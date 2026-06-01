@@ -6,11 +6,6 @@ from typing import Any, cast
 import pytest
 
 from amiga_reversing.disasm import macos_project_payload
-from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
-from amiga_reversing.disasm.macos_target_artifact import (
-    MACOS_EXAMPLE_ASM_RELPATH,
-    render_macos_example_asm_from_payload,
-)
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.tools import platform_executable_formats
@@ -1340,6 +1335,206 @@ def test_macos_semantic_row_text_rewrites_proven_a5_callable_slots() -> None:
     )
 
 
+def test_macos_non_code_resource_placeholders_accept_compact_inventory() -> None:
+    details = macos_project_payload._non_code_resource_details(
+        [
+            {"type": "CODE", "count": 2},
+            {"type": "CURS", "count": 1},
+            {"type": "vers", "count": 3},
+        ]
+    )
+    placeholders = macos_project_payload._executable_resource_placeholders(
+        details,
+        source_image="resources/platform_macos/MPW-GM.img.bin",
+        hfs_path="MPW-GM/MPW/Tools/Asm",
+    )
+
+    assert {item["resource_type"] for item in details} == {"CURS", "vers"}
+    curs_detail = next(item for item in details if item["resource_type"] == "CURS")
+    vers_detail = next(item for item in details if item["resource_type"] == "vers")
+    assert curs_detail["semantic_status"] == "validated"
+    assert curs_detail["fact_status"] == "validated"
+    assert curs_detail["parser_use"] == "accepted_parser_output"
+    assert curs_detail["semantic"] == {
+        "kind": "classic_cursor_16x16",
+        "image_bytes": 32,
+        "mask_bytes": 32,
+        "hotspot_bytes": 4,
+    }
+    assert vers_detail["semantic_status"] == "candidate"
+    assert vers_detail["payload_decode_status"] == "unsupported"
+    assert all(item["source_visible"] is True for item in placeholders)
+    assert all(item["source_context"]["status"] == "unlinked" for item in placeholders)
+    assert all(item["reference_sites"][0]["kind"] == "resource_type_inventory" for item in placeholders)
+    assert all(item["reference_sites"][0]["stable_identity"] == item["stable_identity"] for item in placeholders)
+
+
+def test_macos_source_sections_accept_compact_restored_source_packet() -> None:
+    details = [
+        {
+            "id": 0,
+            "resource_type": "CODE",
+            "name": "unknown",
+            "role": "code0_metadata",
+            "payload_size": 16,
+            "payload_sha256": "00",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "code_layout": [{"kind": "metadata", "start": 0, "end": 16, "size": 16, "fact_status": "validated"}],
+            "jump_table": {"start": 8, "end": 16, "entry_count": 1},
+            "jump_table_rows": [
+                {
+                    "entry_index": 0,
+                    "code0_payload_offset": 8,
+                    "target_resource_id": 1,
+                    "routine_offset_from_segment": 4,
+                    "routine_offset_space": "code_resource_payload",
+                    "accepted_layout": {"fact_status": "validated"},
+                    "candidate_target": {"fact_status": "candidate"},
+                }
+            ],
+            "source_presentation_status": {
+                "kind": "c_owned_restored_source_packet",
+                "status": "covered",
+                "source_visible": True,
+                "verifier_ok": True,
+            },
+            "listing": {"kind": "metadata", "available": False},
+            "restored_source": _c_owned_restored_source_packet(
+                resource_id=0,
+                payload_size=16,
+                ranges=[{"role": "metadata", "start": 0, "end": 16, "size": 16}],
+            ),
+        },
+        {
+            "id": 1,
+            "resource_type": "CODE",
+            "name": "Main",
+            "role": "code_segment",
+            "payload_size": 8,
+            "payload_sha256": "11",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "code_layout": [
+                {"kind": "metadata", "start": 0, "end": 4, "size": 4, "fact_status": "validated"},
+                {"kind": "code", "start": 4, "end": 8, "size": 4, "fact_status": "validated"},
+            ],
+            "source_presentation_status": {
+                "kind": "c_owned_restored_source_packet",
+                "status": "covered",
+                "source_visible": True,
+                "verifier_ok": True,
+            },
+            "listing": {"kind": "full_listing", "available": True},
+            "restored_source": _c_owned_restored_source_packet(
+                resource_id=1,
+                payload_size=8,
+                ranges=[
+                    {"role": "metadata", "start": 0, "end": 4, "size": 4},
+                    {"role": "code", "start": 4, "end": 8, "size": 4},
+                ],
+            ),
+            "semantic_source": {
+                "status": "decoded",
+                "kind": "macos_code_semantic_source_v1",
+                "authority": "c_owned_listing_artifact",
+                "payload_base": 4,
+                "asm_source_includes": ["SegLoad.a"],
+                "analysis_seeds": [
+                    {
+                        "resource_id": 1,
+                        "payload_offset": 4,
+                        "local_offset": 0,
+                        "analysis_payload_base": 4,
+                        "analysis_payload_end": 8,
+                        "reason": "loader_segment_body_start",
+                    }
+                ],
+                "rows": [
+                    {"kind": "label", "resource_id": 1, "payload_offset": 4},
+                    {
+                        "kind": "instruction",
+                        "payload_offset": 4,
+                        "payload_end": 6,
+                        "xrefs": [{"reason": "control_target", "target_label": "CODE_1_loc_00000006"}],
+                    },
+                    {"kind": "label", "resource_id": 1, "payload_offset": 6},
+                    {"kind": "data", "payload_offset": 6, "payload_end": 8, "data_kind": "semantic_string_data_gap"},
+                ],
+                "semantic_gap_residuals": [],
+            },
+        },
+        {
+            "id": 2,
+            "resource_type": "CODE",
+            "name": "Helper",
+            "role": "code_segment",
+            "payload_size": 4,
+            "payload_sha256": "22",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "code_layout": [{"kind": "data", "start": 0, "end": 4, "size": 4, "fact_status": "validated"}],
+            "source_presentation_status": {
+                "kind": "c_owned_restored_source_packet",
+                "status": "covered",
+                "source_visible": True,
+                "verifier_ok": True,
+            },
+            "listing": {"kind": "structured_placeholder", "available": False},
+            "restored_source": _c_owned_restored_source_packet(
+                resource_id=2,
+                payload_size=4,
+                ranges=[{"role": "data", "start": 0, "end": 4, "size": 4}],
+            ),
+        },
+    ]
+
+    sections = macos_project_payload._code_source_body_sections(
+        details,
+        selected_id=1,
+        selected_code_segment={"code_entry_offset": 4},
+        native_source={"backend": "macos-code", "source_kind": "macos_code_resource"},
+    )
+
+    assert [item["source_section_id"] for item in sections] == [
+        "macos-code-CODE-0",
+        "macos-code-CODE-1",
+        "macos-code-CODE-2",
+    ]
+    assert all(item["source_visible"] is True for item in sections)
+    assert next(item for item in sections if item["id"] == 0)["status"] == "covered_placeholder"
+    assert next(item for item in sections if item["id"] == 1)["status"] == "selected_full_listing"
+    assert next(item for item in sections if item["id"] == 2)["status"] == "covered_placeholder"
+    code0_context = next(item for item in sections if item["id"] == 0)["code0_structured_context"]
+    assert code0_context["generated_routing_xrefs"] == [
+        {
+            "kind": "generated_code0_routing_xref",
+            "source_resource_id": 0,
+            "source_payload_offset": 8,
+            "source_label": "CODE_0_jump_table_entry_0",
+            "entry_index": 0,
+            "target_resource_id": 1,
+            "target_payload_offset": 4,
+            "routine_offset_from_segment": 4,
+            "target_label": "CODE_1_loc_00000004",
+            "link_status": "linked_candidate",
+            "accepted_layout": {
+                "fact_status": "validated",
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            },
+            "candidate_target": {
+                "fact_status": "candidate",
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            },
+        }
+    ]
+    assert next(item for item in sections if item["id"] == 1)["incoming_code0_xrefs"] == code0_context[
+        "generated_routing_xrefs"
+    ]
+    selected_section = next(item for item in sections if item["id"] == 1)
+    assert selected_section["selected_listing_context"]["code_entry_offset"] == 4
+    assert selected_section["code1_layout_context"]["candidate_entry_stub"]["label"] == "CODE_1_candidate_entry_stub"
+    assert selected_section["source_envelope"]["kind"] == "source_envelope"
+    assert "semantic source rows are rendered" in selected_section["source_envelope"]["reason"]
+
+
 def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> None:
     if not IMAGE_PATH.exists():
         pytest.skip("MPW-GM image fixture is not available")
@@ -1377,482 +1572,45 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
 
     payload = macos_project_payload.build_macos_project_payload(project)
     container = payload["binary_container_view"]
+    source_sections = container["source_body_sections"]
+    source_quality = container["source_quality_gate"]
+    selected = container["selected_code_segment"]
+    code1_section = next(item for item in source_sections if item["id"] == 1)
+    code27_section = next(item for item in source_sections if item["id"] == 27)
 
     assert platform_executable_formats.validate_parser_fact_references(payload) == []
     assert payload["platform"] == "macos"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
     assert len(container["code_resources"]) == 28
-    non_code_details = container["resource_fork"]["non_code_resource_details"]
-    assert non_code_details
-    assert {item["resource_type"] for item in non_code_details} == {"acur", "CURS", "cmdo", "vers"}
-    curs_detail = next(item for item in non_code_details if item["resource_type"] == "CURS")
-    candidate_details = [item for item in non_code_details if item["resource_type"] != "CURS"]
-    assert curs_detail["semantic_status"] == "validated"
-    assert curs_detail["fact_id"] == "macos.resource_fork.curs.layout.accepted"
-    assert curs_detail["fact_status"] == "validated"
-    assert curs_detail["parser_use"] == "accepted_parser_output"
-    assert curs_detail["semantic"] == {
-        "kind": "classic_cursor_16x16",
-        "image_bytes": 32,
-        "mask_bytes": 32,
-        "hotspot_bytes": 4,
+    assert len(container["code_resource_details"]) == 28
+    assert len(source_sections) == 28
+    assert [item["id"] for item in source_sections] == sorted(item["id"] for item in container["code_resources"])
+    assert {item["resource_type"] for item in container["resource_fork"]["non_code_resource_details"]} == {
+        "acur",
+        "CURS",
+        "cmdo",
+        "vers",
     }
-    assert all(item["fact_status"] == "candidate" for item in candidate_details)
-    assert all(item["parser_use"] == "candidate_only" for item in candidate_details)
-    assert all(item["payload_decode_status"] == "unsupported" for item in non_code_details)
-    placeholders = container["executable_resource_placeholders"]
-    assert placeholders
-    assert {item["resource_type"] for item in placeholders} == {"acur", "CURS", "cmdo", "vers"}
-    assert all(item["source_visible"] is True for item in placeholders)
-    assert all(item["stable_identity"].startswith("macos-resource:") for item in placeholders)
-    assert all(item["source_context"]["status"] == "unlinked" for item in placeholders)
-    assert all(item["reference_sites"][0]["kind"] == "resource_type_inventory" for item in placeholders)
-    assert all(item["reference_sites"][0]["stable_identity"] == item["stable_identity"] for item in placeholders)
-    assert all(item["reference_sites"][0]["link_status"] == "unlinked" for item in placeholders)
-    assert len(container["code_resource_details"]) == len(container["code_resources"])
-    source_sections = container["source_body_sections"]
-    assert len(source_sections) == len(container["code_resources"])
-    expected_section_ids = sorted(item["id"] for item in container["code_resources"])
-    assert [item["id"] for item in source_sections] == expected_section_ids
-    assert [item["source_section_id"] for item in source_sections] == [
-        f"macos-code-CODE-{resource_id}" for resource_id in expected_section_ids
-    ]
-    assert all(item["source_visible"] is True for item in source_sections)
-    assert all(item["source_envelope"]["kind"] == "source_envelope" for item in source_sections)
-    assert (
-        "semantic source rows are rendered"
-        in next(item for item in source_sections if item["id"] == 1)["source_envelope"]["reason"]
-    )
-    assert "accepted routing/application metadata" in next(
-        item for item in source_sections if item["id"] == 0
-    )["source_envelope"]["reason"]
-    assert next(item for item in source_sections if item["id"] == 1)["status"] == "selected_full_listing"
-    assert any(item["status"] == "semantic_source" for item in source_sections)
-    assert any(item["status"] == "covered_placeholder" for item in source_sections)
-    code0_context = next(item for item in source_sections if item["id"] == 0)["code0_structured_context"]
-    assert code0_context["jump_table_rows"]
-    assert len(code0_context["jump_table_rows"]) == code0_context["jump_table"]["entry_count"]
-    assert "raw_byte_gap_reason" not in next(
-        item for item in source_sections if item["id"] == 0
-    )["code0_structured_context"]
-    code0_routing_xrefs = code0_context["generated_routing_xrefs"]
-    assert code0_routing_xrefs
-    assert code0_routing_xrefs[0]["kind"] == "generated_code0_routing_xref"
-    assert code0_routing_xrefs[0]["source_label"] == "CODE_0_jump_table_entry_0"
-    assert code0_routing_xrefs[0]["target_resource_id"] == 27
-    assert code0_routing_xrefs[0]["target_payload_offset"] == 4
-    assert code0_routing_xrefs[0]["target_label"] == "CODE_27_loc_00000004"
-    far_model_row = next(
-        item
-        for item in code0_context["jump_table_rows"]
-        if item.get("target_resource_id") == 1 and item.get("routine_offset_from_segment") == 62
-    )
-    assert far_model_row["stored_offset_expression"] == {
-        "kind": "label_relative_offset",
-        "encoded_width": 4,
-        "byte_order": "big",
-        "directive": "dc.l",
-        "source_resource_id": 0,
-        "source_payload_offset": 44,
-        "target_resource_id": 1,
-        "target_payload_offset": 62,
-        "base_resource_id": 1,
-        "base_payload_offset": 0,
-        "value": 62,
-        "value_space": "code_resource_payload",
-        "renderer": "generic_label_minus_base",
-    }
-    assert far_model_row["a5_entry_offset"] == 0x38
-    assert far_model_row["a5_callable_offset"] == 0x3A
-    assert far_model_row["callable_entry_byte_offset"] == 2
-    assert far_model_row["callable_entry_kind"] == "segment_loader_trap_word"
-    assert any(
-        item["target_resource_id"] == 1
-        and item["target_payload_offset"] == 62
-        and item["routine_offset_from_segment"] == 62
-        and item["target_label"] == "CODE_1_loc_0000003e"
-        for item in code0_routing_xrefs
-    )
-    code27_section = next(item for item in source_sections if item["id"] == 27)
-    code27_xrefs = [item for item in code0_routing_xrefs if item["target_resource_id"] == 27]
-    assert code27_section["incoming_code0_xrefs"] == code27_xrefs
-    code27_seeds = code27_section["semantic_source"]["analysis_seeds"]
-    assert code27_seeds == [
-        {
-            "resource_id": 27,
-                "payload_offset": 4,
-                "local_offset": 0,
-                "analysis_payload_base": 4,
-                "analysis_payload_end": 1882,
-                "reason": "code0_routine_candidate",
-                "name": "CODE_27_entry_00000004",
-            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
-            "fact_status": "candidate",
-            "parser_use": "candidate_only",
-            "code0_payload_offset": 16,
-        }
-    ]
-    assert next(item for item in source_sections if item["id"] == 19)["incoming_code0_xrefs"]
-    assert next(item for item in source_sections if item["id"] == 1)["code1_layout_context"]["candidate_entry_stub"][
-        "fact_status"
-    ] == "candidate"
-    source_quality = container["source_quality_gate"]
     assert source_quality["kind"] == "macos_source_quality_gate_v1"
     assert source_quality["status"] == "byte_real_baseline"
-    assert source_quality["baseline_status"] == "passed_with_deferred_semantics"
     assert source_quality["semantic_closeout_status"] == "semantic_source_complete_for_known_bounds"
     assert source_quality["semantic_decode_gap_resource_count"] > 0
-    assert source_quality["semantic_components"] == {
-        "byte_preservation_status": "byte_real_complete",
-        "source_ordering_status": "source_first",
-        "semantic_disassembly_status": "semantic_instruction_rows_present",
-        "label_xref_status": "generated_labels_and_xrefs_present",
-        "residual_status": "explicit",
-    }
-    assert "not semantic source closeout" in source_quality["baseline_status_meaning"]
-    assert set(source_quality["non_blocking_for_semantic_disassembly"]) == {
-        "missing human semantic names",
-        "missing original source symbols",
-        "deferred A5 lifetime proof",
-        "deferred Segment Loader fixup decoding for current zero-offset fixture spans",
-    }
-    assert set(source_quality["does_not_claim"]) == {
-        "accepted byte-entry proof",
-        "decoded Segment Loader relocation/fixup semantics",
-        "A5 lifetime proof",
-        "resource-fork round trip",
-    }
-    assert all(source_quality["checklist"].values())
-    quality_rows = source_quality["resources"]
-    assert len(quality_rows) == len(source_sections)
-    code1_quality = next(item for item in quality_rows if item["resource_id"] == 1)
-    assert code1_quality["ownership_complete"] is True
-    assert code1_quality["orphan_bucket_present"] is False
-    assert code1_quality["legacy_orphan_ranges_reclassified"] == 0
-    assert code1_quality["renders_durable_source_rows"] is True
-    assert code1_quality["byte_real_only_executable_body"] is False
-    assert code1_quality["executable_body_span_count"] == 1
-    assert code1_quality["semantic_instruction_row_count"] >= 7000
-    assert code1_quality["semantic_data_row_count"] > 0
-    assert code1_quality["generated_xref_count"] >= 1000
-    assert code1_quality["generated_label_count"] >= 100
-    assert code1_quality["human_semantic_names_required"] is False
-    assert "CODE_1_candidate_entry_stub" in code1_quality["labels"]
-    assert code1_quality["recursive_control_target_xrefs"] > 0
-    assert code1_quality["generated_xref_reason_counts"]["control_target"] == code1_quality[
-        "recursive_control_target_xrefs"
-    ]
-    assert code1_quality["xref_target_label_count"] > 0
-    assert code1_quality["unresolved_xref_target_label_count"] == 0
-    assert code1_quality["xref_target_labels_resolved"] is True
-    assert code1_quality["unresolved_xref_target_labels"] == []
-    assert all(item.get("start") != 62 for item in code1_quality["residuals"])
-    assert any(item["kind"] == "candidate_unvisited_entry_pattern" for item in code1_quality["residuals"])
-    for quality in quality_rows:
-        assert quality["xref_target_labels_resolved"] is True
-        residual_spans = [
-            (item.get("kind"), item.get("start"), item.get("end"))
-            for item in quality["residuals"]
-            if item.get("kind") == "semantic_decode_gap"
-        ]
-        assert len(residual_spans) == len(set(residual_spans))
-    code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
-    assert code2_quality["semantic_instruction_row_count"] >= 4
-    assert code2_quality["byte_real_only_executable_body"] is False
-    assert all(item["kind"] != "candidate_code" for item in code2_quality["residuals"])
-    assert any(item["kind"] == "known_entry_stub_pattern" for item in code1_quality["reachable_code_evidence"])
-    code1_section = next(item for item in source_sections if item["id"] == 1)
-    semantic_source = code1_section["semantic_source"]
-    assert semantic_source["kind"] == "macos_code_semantic_source_v1"
-    assert semantic_source["status"] == "decoded"
-    assert semantic_source["authority"] == "c_owned_listing_artifact"
-    assert semantic_source["payload_base"] == 40
-    assert semantic_source["instruction_row_count"] >= 7000
-    assert semantic_source["analysis_seed_count"] == 114
-    assert "SegLoad.a" in semantic_source["asm_source_includes"]
-    semantic_gap_kinds = {item["kind"] for item in semantic_source["semantic_gap_residuals"]}
-    semantic_data_kinds = {row.get("data_kind") for row in semantic_source["rows"] if row.get("kind") == "data"}
-    assert semantic_source["semantic_gap_residual_count"] >= 30
-    assert semantic_gap_kinds == {"semantic_decode_gap"}
-    assert {
-        "semantic_pascal_string_gap",
-        "semantic_dispatch_table_gap",
-        "semantic_string_data_gap",
-    }.issubset(semantic_data_kinds)
-    all_semantic_data_kinds = {
-        row.get("data_kind")
-        for section in source_sections
-        for row in section.get("semantic_source", {}).get("rows", [])
-        if row.get("kind") == "data"
-    }
-    assert "semantic_symbol_record_gap" in all_semantic_data_kinds
-    classified_data_gaps = [
-        item for item in semantic_source["rows"] if item.get("kind") == "data"
-    ]
-    assert all(
-        not any(data["payload_offset"] <= item["start"] < data["payload_end"] for data in classified_data_gaps)
-        for item in code1_quality["residuals"]
-        if item["kind"] == "candidate_unvisited_entry_pattern"
-    )
-    assert all(
-        item.get("island_start") is not None and item.get("island_end") is not None
-        for item in code1_quality["residuals"]
-        if item["kind"] == "candidate_unvisited_entry_pattern"
-    )
-    assert semantic_source["analysis_seeds"][:2] == [
-        {
-            "resource_id": 1,
-            "payload_offset": 40,
-            "local_offset": 0,
-            "analysis_payload_base": 40,
-            "analysis_payload_end": 29024,
-                "reason": "loader_segment_body_start",
-                "name": "CODE_1_entry_00000028",
-                "fact_id": "macos.code_resource.nonzero.segment_header",
-                "fact_status": "validated",
-                "parser_use": "accepted_parser_output",
-        },
-        {
-            "resource_id": 1,
-            "payload_offset": 62,
-            "local_offset": 22,
-            "analysis_payload_base": 40,
-            "analysis_payload_end": 29024,
-            "reason": "code0_routine_candidate",
-            "name": "CODE_1_entry_0000003e",
-            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
-            "fact_status": "candidate",
-            "parser_use": "candidate_only",
-            "code0_payload_offset": 40,
-        },
-    ]
-    assert all(
-        not str(seed.get("reason") or "").startswith("macos_entry_pattern")
-        for section in source_sections
-        for seed in section["semantic_source"].get("analysis_seeds", [])
+    assert len(source_quality["resources"]) == len(source_sections)
+    assert code1_section["status"] == "selected_full_listing"
+    assert code1_section["semantic_source"]["instruction_row_count"] >= 7000
+    assert any(
+        row.get("kind") == "label" and row.get("payload_offset") == 40
+        for row in code1_section["semantic_source"]["rows"]
     )
     assert any(
-            row["kind"] == "instruction"
-            and row["payload_offset"] == 40
-            and row["text"].strip() == "movea.l (a7)+,a0"
-            and row["bytes"] == "205f"
-        for row in semantic_source["rows"]
+        row.get("kind") == "instruction"
+        and row.get("payload_offset") == 40
+        and str(row.get("text") or "").strip() == "movea.l (a7)+,a0"
+        for row in code1_section["semantic_source"]["rows"]
     )
-    assert any(row["kind"] == "label" and row["payload_offset"] == 40 for row in semantic_source["rows"])
-    unload_seg_row = next(
-        row
-        for row in semantic_source["rows"]
-        if row["kind"] == "data"
-        and row["payload_offset"] == 8248
-        and row["text"].strip() == "_UnloadSeg"
-        and row.get("opcode_or_directive") == "_UnloadSeg"
-    )
-    assert unload_seg_row["api_call"]["function"] == "UnloadSeg"
-    assert unload_seg_row["api_call"]["note_symbol_name"] == "_UnloadSeg"
-    assert any(
-        row["kind"] == "data"
-        and row.get("api_call", {}).get("function") == "UnloadSeg"
-        and row.get("api_call", {}).get("note_symbol_name") == "_UnloadSeg"
-        for row in semantic_source["rows"]
-    )
-    assert not any(item["start"] == 8248 and item["end"] == 8250 for item in semantic_source["semantic_gap_residuals"])
-    assert all(row.get("payload_offset") is None or row["payload_offset"] >= 40 for row in semantic_source["rows"])
-    assert not any("loc_0_" in str(row.get("text") or "") for row in semantic_source["rows"])
-    assert any("CODE_1_loc_" in str(row.get("text") or "") for row in semantic_source["rows"])
-    semantic_xref = next(xref for row in semantic_source["rows"] for xref in row.get("xrefs", []))
-    assert semantic_xref["kind"] == "code_start_ref"
-    assert semantic_xref["source_payload_offset"] >= 40
-    assert semantic_xref["target_payload_offset"] >= 40
-    assert semantic_xref["target_label"].startswith("CODE_1_loc_")
-    semantic_labels = {
-        f"CODE_1_loc_{row['payload_offset']:08x}"
-        for row in semantic_source["rows"]
-        if row.get("kind") == "label" and isinstance(row.get("payload_offset"), int)
-    }
-    xref_target_labels = {
-        xref["target_label"]
-        for row in semantic_source["rows"]
-        for xref in row.get("xrefs", [])
-        if xref.get("target_label") and xref.get("reason") != "linkage_api_entry"
-    }
-    assert xref_target_labels <= semantic_labels
-    code26_rows = next(item for item in source_sections if item["id"] == 26)["semantic_source"]["rows"]
-    assert any(row["kind"] == "label" and row["payload_offset"] == 0x93E for row in code26_rows)
-    assert not any(
-        row.get("kind") == "data"
-        and isinstance(row.get("payload_offset"), int)
-        and isinstance(row.get("payload_end"), int)
-        and row["payload_offset"] < 0x93E < row["payload_end"]
-        for row in code26_rows
-    )
-    assert any("CODE_1_loc_000031d2(pc)" in str(row.get("text") or "") for row in semantic_source["rows"])
-    code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
-    assert code2_quality["legacy_orphan_ranges_reclassified"] == 0
-    assert code2_quality["orphan_bucket_present"] is False
-    assert all(item["kind"] != "candidate_unresolved_prefix" for item in code2_quality["residuals"])
-    assert any(item["kind"] == "semantic_decode_gap" for item in code2_quality["residuals"])
-    for detail in container["code_resource_details"]:
-        presentation = detail["source_presentation_status"]
-        assert presentation["kind"] == "c_owned_restored_source_packet"
-        assert presentation["status"] == "covered"
-        assert presentation["stable_identity"] == f"macos-code:CODE:{detail['id']}"
-        assert presentation["source_visible"] is True
-        assert presentation["verifier_ok"] is True
-        assert presentation["ownership_range_count"] > 0
-        assert presentation["source_reference_count"] > 0
-        restored = detail["restored_source"]
-        assert restored["model"] == "restored_source_model_v1"
-        assert restored["authority"] == "c_owned"
-        assert restored["round_trip_required"] is False
-        assert restored["source_coverage_verifier"]["ok"] is True
-        assert restored["source_ownership_ranges"]
-        assert restored["source_reference_records"]
-        assert restored["platform_extensions"]["code_resource"]["resource_id"] == detail["id"]
-        assert restored["platform_extensions"]["a5_world"]["status"] in {
-            "layout_accepted_lifetime_deferred",
-            "context_in_code0_lifetime_deferred",
-        }
-    assert container["code_resource_details"][0]["role"] == "code0_metadata"
-    assert container["code_resource_details"][0]["listing"]["kind"] == "metadata"
-    assert container["code_resource_details"][0]["listing"]["available"] is False
-    assert container["code_resource_details"][0]["preview_windows"] == []
-    assert container["code_resource_details"][0]["jump_table_rows"]
-    code0_references = container["code_resource_details"][0]["restored_source"]["source_reference_records"]
-    assert [item["kind"] for item in code0_references] == [
-        "code0_routing_table",
-        "a5_world_context_placeholder",
-    ]
-    assert all(
-        row["accepted_layout"]["fact_status"] == "validated"
-        for row in container["code_resource_details"][0]["jump_table_rows"]
-    )
-    assert any(
-        row["candidate_target"]["fact_status"] == "candidate"
-        for row in container["code_resource_details"][0]["jump_table_rows"]
-    )
-    code0_a5_world = container["code_resource_details"][0]["restored_source"]["platform_extensions"]["a5_world"]
-    assert code0_a5_world["status"] == "layout_accepted_lifetime_deferred"
-    assert code0_a5_world["above_a5_size"] == 0xAF0
-    assert code0_a5_world["below_a5_size"] == 0x3920
-    assert code0_a5_world["jump_table_offset_from_a5"] == 0x20
-    assert code0_a5_world["jump_table_length"] == 0xAD0
-    assert code0_a5_world["regions"] == [
-        {
-            "kind": "a5_negative_globals",
-            "base_register": "a5",
-            "start": -0x3920,
-            "end": 0,
-            "size": 0x3920,
-            "status": "layout_accepted_type_deferred",
-        },
-        {
-            "kind": "code0_jump_table",
-            "base_register": "a5",
-            "start": 0x20,
-            "end": 0xAF0,
-            "size": 0xAD0,
-            "status": "layout_accepted_targets_candidate",
-        },
-        {
-            "kind": "a5_positive_globals",
-            "base_register": "a5",
-            "start": 0xAF0,
-            "end": 0xAF0,
-            "size": 0,
-            "status": "layout_accepted_type_deferred",
-        },
-    ]
-    selected_detail = next(detail for detail in container["code_resource_details"] if detail["id"] == 1)
-    assert selected_detail["listing"]["kind"] == "full_listing"
-    assert selected_detail["preview_windows"] == []
-    semantic_details = [
-        detail
-        for detail in container["code_resource_details"]
-        if detail["id"] not in {0, 1} and detail["listing"]["kind"] == "semantic_listing"
-    ]
-    assert semantic_details
-    assert {detail["id"] for detail in semantic_details} == {
-        item["id"] for item in container["code_resources"] if item["id"] not in {0, 1}
-    }
-    assert all(detail["listing"]["route"] == "listing" for detail in semantic_details)
-    assert all(detail["listing"]["instruction_row_count"] >= 1 for detail in semantic_details)
-    assert all(detail["listing"]["analysis_seed_count"] >= 1 for detail in semantic_details)
-    assert all(
-        not str(seed.get("reason") or "").startswith("macos_entry_pattern")
-        for detail in semantic_details
-        for seed in detail["listing"]["analysis_seeds"]
-    )
-    assert [
-        detail
-        for detail in container["code_resource_details"]
-        if detail["id"] not in {0, 1} and detail["listing"]["kind"] == "structured_placeholder"
-    ] == []
-    assert all("navigation_anchors" in item for item in container["code_resource_details"])
-    assert any(
-        anchor.get("fact_status") == "candidate"
-        for detail in container["code_resource_details"]
-        for anchor in detail["navigation_anchors"]
-        if isinstance(anchor, dict)
-    )
-    assert any(
-        detail["relocation_fixups"].get("parser_use") == "deferred_only"
-        for detail in container["code_resource_details"]
-    )
-    assert len(container["navigation"]["groups"][0]["items"]) == len(container["code_resources"])
-    assert container["code_segment_map"]
-    assert any(
-        item.get("fact_id") == "macos.code_resource.segment_jump_table_span.accepted"
-        for item in container["code_segment_map"]
-        if isinstance(item, dict)
-    )
-    assert container["selected_code_segment"]["code_entry_offset"] == 40
+    assert code27_section["incoming_code0_xrefs"]
+    assert selected["code_entry_offset"] == 40
+    assert selected["code_bytes_size"] == 28984
     assert payload["native_source"]["backend"] == "macos-code"
     assert payload["native_source"]["source_kind"] == "macos_code_resource"
-    assert payload["native_source"]["wrapped_backend"] is None
-    assert container["native_source"]["source_kind"] == "macos_code_resource"
-    assert container["selected_code_segment"]["native_source"]["resource_id"] == 1
-    assert container["selected_code_segment"]["listing"]["source_kind"] == "macos_code_resource"
-    assert container["selected_code_segment"]["code_bytes_size"] == 28984
-    selected_layout = container["selected_code_segment"]["code_layout"]
-    assert selected_layout[0]["kind"] == "metadata"
-    assert selected_layout[0]["size"] == 40
-    assert selected_layout[0]["evidence"] == "far_model_segment_header"
-    selected_code = next(item for item in selected_layout if item["kind"] == "code")
-    assert selected_code["start"] == 40
-    assert selected_code["fact_status"] == "validated"
-    assert selected_code["parser_use"] == "accepted_parser_output"
-    restored_source = container["selected_code_segment"]["restored_source"]
-    assert restored_source["model"] == "restored_source_model_v1"
-    assert restored_source["round_trip_required"] is False
-    assert restored_source["source_coverage_verifier"]["ok"] is True
-    assert [item["role"] for item in restored_source["source_ownership_ranges"]] == ["metadata", "code"]
-    assert restored_source["source_reference_records"][0]["fact_id"] == "macos.segment_loader.relocation_fixups.deferred"
-    assert restored_source["source_reference_records"][0]["resource_id"] == 1
-    assert restored_source["source_reference_records"][0]["source_range"] == {"start": 0, "end": 0, "size": 0}
-    assert [item["kind"] for item in restored_source["source_reference_records"]] == [
-        "segment_loader_fixup_placeholder",
-        "a5_world_context_placeholder",
-    ]
-    dispatch_detail = next(detail for detail in container["code_resource_details"] if detail["id"] == 27)
-    dispatch_references = dispatch_detail["restored_source"]["source_reference_records"]
-    assert any(
-        item["kind"] == "code0_dispatch_reference"
-        and item["target"] == "CODE:27"
-        and item["fact_status"] == "validated"
-        and item["parser_use"] == "accepted_parser_output"
-        for item in dispatch_references
-    )
-    assert restored_source["platform_extensions"]["address_model"]["payload_offset_space"] == "code_resource_payload"
-    assert restored_source["platform_extensions"]["a5_world"]["status"] == "context_in_code0_lifetime_deferred"
-    assert container["selected_code_segment"]["orphan_ranges"] == []
-    assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()
-    asm_path = Path.cwd() / MACOS_EXAMPLE_ASM_RELPATH
-    if asm_path.exists():
-        asm_text = asm_path.read_text(encoding="utf-8")
-        assert all(f"CODE_{item['id']}:" in asm_text for item in source_sections)
-        assert ";   source_section_id: " not in asm_text
-        assert asm_text.split("\n\n", 1)[1] == render_macos_example_asm_from_payload(
-            payload,
-            hfs_bytes=read_macos_hfs_image_bytes(IMAGE_PATH),
-        )

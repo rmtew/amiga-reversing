@@ -2395,6 +2395,57 @@ real test should keep proving that the actual image and C summary still feed the
 payload builder, but detailed quality accounting should live in this compact
 packet contract.
 
+#### Slice 5C Implementation Checkpoint - MPW Real Smoke Narrowed
+
+The next Mac pass moved two more assertion groups out of the full MPW image
+test:
+
+```text
+test_macos_non_code_resource_placeholders_accept_compact_inventory
+  compact resource type inventory
+  CURS type-level semantics
+  unsupported non-CODE placeholders
+  unlinked placeholder source/reference context
+
+test_macos_source_sections_accept_compact_restored_source_packet
+  three compact CODE details
+  source section id/status/envelope behavior
+  selected CODE listing context
+  CODE 0 generated routing xrefs
+  incoming CODE 0 xrefs on target sections
+```
+
+The real MPW fixture test is now a smoke, not a packed checklist:
+
+```text
+test_macos_project_payload_reads_committed_mpw_fixture_when_available
+  real MPW-GM image
+  real Sample source/resource/build metadata
+  parser fact references validate
+  finder identity
+  28 CODE resources/details/source sections
+  non-CODE type set
+  source quality gate status
+  selected CODE 1 sentinel row
+  CODE 27 receives generated CODE 0 xrefs
+  native source/provenance identity
+```
+
+This still pays the full real payload build cost, because it is intentionally
+the one real image-to-payload sentinel. The improvement is architectural: most
+semantic obligations now live at compact helper seams where failures are
+specific and cheap.
+
+Focused verification:
+
+```text
+pytest tests\test_macos_project_payload.py -q --durations=15
+  14 passed, 1 deselected in 0.30s
+
+pytest tests\test_macos_project_payload.py -m real_integration -q --durations=10
+  1 passed, 14 deselected in 9.23s
+```
+
 ## Expected End State
 
 The target shape is:
@@ -2489,17 +2540,18 @@ wide confidence layers remain meaningful and easier to understand
 
 ## Current Verification Snapshot
 
-After the first generated/drift split and the first route-command split:
+After the generated/drift split, route-command split, CDP race fixes, and MPW
+fixture narrowing:
 
 ```text
 pytest tests -q --durations=20
-  1240 passed, 408 deselected in 15.14s
+  1242 passed, 408 deselected in 15.01s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q
-  133 passed, 16 skipped, 1499 deselected in 94.86s
+  133 passed, 16 skipped, 1501 deselected in 94.32s
 
 uv run ruff check
   passed
@@ -2527,6 +2579,12 @@ pytest tests\test_c_backend.py -m "c_backend and not real_integration" -q --dura
 
 pytest tests\test_macos_project_payload.py -k "compact_source_packet or source_quality_gate_accepts" -q --durations=10
   1 passed, 12 deselected in 0.25s
+
+pytest tests\test_macos_project_payload.py -q --durations=15
+  14 passed, 1 deselected in 0.30s
+
+pytest tests\test_macos_project_payload.py -m real_integration -q --durations=10
+  1 passed, 14 deselected in 9.23s
 
 pytest tests\test_active_imports.py -q --durations=10
   5 passed in 1.28s
