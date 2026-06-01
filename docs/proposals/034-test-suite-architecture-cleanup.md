@@ -3084,6 +3084,81 @@ pytest tests\test_macos_project_payload.py -m real_integration -q --durations=10
   1 passed, 14 deselected in 9.23s
 ```
 
+#### Planner Selection Implementation Checkpoint - Lower Seam
+
+The next default-suite profile showed a new common pattern after corpus render
+duplication had been removed:
+
+```text
+test_planner_selects_data_symbol_remove_candidate     0.59s
+test_planner_selects_data_symbol_rename_candidate     0.32s
+test_planner_skips_already_satisfied_*                0.19s-0.33s
+test_planner_ranks_semantic_representation_*          0.29s
+```
+
+Those tests were not proving iteration execution. They created a temporary
+target, monkeypatched `inspect_target()`, then called `run_one_iteration()` only
+to observe pure planner ranking or skip decisions:
+
+```text
+run_one_iteration()
+  start/resume run state
+  inspect target
+  select planner command
+  check command catalog availability
+  write iteration report
+```
+
+The behavior under test lives lower:
+
+```text
+_select_command_action(inspect_report)
+  candidate command options
+  skip already-satisfied candidates
+  score and rank candidates
+  record selected command/verifier in planner report
+```
+
+The cleanup therefore keeps full `run_one_iteration()` coverage for availability
+drift, report writing, execution, and verifier behavior, but moves pure planner
+selection examples to the planner seam:
+
+```python
+def _select_planner_action(*candidates: dict[str, object]) -> tuple[dict[str, object], dict[str, object]]:
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = list(candidates)
+    selected = reversing_loop._select_command_action(inspect_report)
+    assert selected is not None
+    return inspect_report, selected
+```
+
+That changes tests such as data-symbol rename from:
+
+```text
+tmp target -> monkeypatch inspect_target -> run_one_iteration -> assert selected command
+```
+
+to:
+
+```text
+inspect_report packet -> _select_command_action -> assert selected command/planner fields
+```
+
+Focused verification:
+
+```text
+pytest tests\test_reversing_loop.py -q --durations=20
+  436 passed in 2.95s
+
+pytest tests -q --durations=30
+  1242 passed, 396 deselected in 14.46s
+```
+
+This is the same cleanup principle as the corpus work: use the full workflow
+only when the assertion needs the full workflow. Ranking/skip rules belong at
+the planner seam.
+
 ## Expected End State
 
 The target shape is:
@@ -3184,7 +3259,8 @@ fixture cleanup, Damocles copied-stub native execution deferral, Pandora
 provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
 Bloodwych exact-test removal, Magicland materialization-test removal,
 platform unresolved-sweep removal, immediate-text real sentinel removal, and
-MonAm OpenLibrary app-slot pass removal:
+MonAm OpenLibrary app-slot pass removal, and planner-selection lower-seam
+cleanup:
 
 ```text
 pytest tests -q --durations=20
@@ -3276,6 +3352,12 @@ pytest tests\test_c_backend.py -m real_integration -q --durations=20
 
 pytest tests -q --durations=20
   1242 passed, 396 deselected in 16.16s
+
+pytest tests\test_reversing_loop.py -q --durations=20
+  436 passed in 2.95s
+
+pytest tests -q --durations=30
+  1242 passed, 396 deselected in 14.46s
 
 pytest tests -m real_integration -q --durations=20
   120 passed, 16 skipped, 1502 deselected in 38.01s
@@ -3626,7 +3708,7 @@ them remain as anonymous "not full-file exact" cases.
 
 The remaining broadest tests are now explicit.
 
-The largest single overreach is:
+The former largest single overreach was:
 
 ```text
 tests/test_macos_project_payload.py
@@ -3666,6 +3748,27 @@ compact source-export packet:
 committed artifact drift:
   committed .s -> every real CODE resource is represented
 ```
+
+That split has now happened. The real MPW payload build was removed, the C HFS
+summary remains as the real import smoke, and the source-quality/source-section
+behavior is covered by compact packet tests. The remaining broad synthetic
+payload test is:
+
+```text
+tests/test_macos_project_payload.py
+  test_macos_project_payload_uses_c_summary_and_source_fixture_metadata
+```
+
+Measured in isolation, it is not a performance offender:
+
+```text
+pytest tests\test_macos_project_payload.py::test_macos_project_payload_uses_c_summary_and_source_fixture_metadata -q --durations=10
+  1 passed in 0.19s
+  call time 0.04s
+```
+
+It is still a broad projection contract, so future cleanup may split it for
+fault localization. It should not be treated as the next performance target.
 
 Damocles was the clearest single overreach:
 

@@ -7295,89 +7295,53 @@ def test_target_command_verification_requires_rename_previous_name() -> None:
     assert reversing_loop._verify_projection_metadata(command, durable_result)["status"] == "failed"
 
 
-def test_planner_ranks_semantic_representation_before_comment(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
-        inspect_report["candidate_work"][0],
+def test_planner_ranks_semantic_representation_before_comment() -> None:
+    inspect_report, selected = _select_planner_action(
+        *_default_comment_candidate(),
         _representation_candidate(current_representation="hex", semantic_evidence=True),
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "representation.character"
-    assert report["selected_work_item"]["candidate_id"] == "repr-candidate"
-    assert report["selected_work_item"]["expected_rendered_source_improvement"] == "render immediate 65 as #'A'"
-    assert report["planner"]["selected_command_id"] == "representation.character"
+    assert selected["command"]["command_id"] == "representation.character"
+    assert selected["work_item"]["candidate_id"] == "repr-candidate"
+    assert selected["work_item"]["expected_rendered_source_improvement"] == "render immediate 65 as #'A'"
+    assert inspect_report["planner"]["selected_command_id"] == "representation.character"
 
 
-def test_planner_skips_syntax_only_literal_representation_before_comment(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
-        inspect_report["candidate_work"][0],
+def test_planner_skips_syntax_only_literal_representation_before_comment() -> None:
+    inspect_report, selected = _select_planner_action(
+        *_default_comment_candidate(),
         _representation_candidate(current_representation="hex"),
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "comment.edit"
-    skipped = report["planner"]["skipped_candidates"]
+    assert selected["command"]["command_id"] == "comment.edit"
+    skipped = inspect_report["planner"]["skipped_candidates"]
     assert skipped[0]["candidate_id"] == "repr-candidate"
     assert skipped[0]["stop_reason"] == "literal representation is syntax-only and low semantic value"
 
 
-def test_planner_skips_already_satisfied_projected_candidate(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
+def test_planner_skips_already_satisfied_projected_candidate() -> None:
+    inspect_report, selected = _select_planner_action(
         _representation_candidate(current_representation="character"),
-        inspect_report["candidate_work"][0],
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+        *_default_comment_candidate(),
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "comment.edit"
-    skipped = report["planner"]["skipped_candidates"]
+    assert selected["command"]["command_id"] == "comment.edit"
+    skipped = inspect_report["planner"]["skipped_candidates"]
     assert skipped[0]["candidate_id"] == "repr-candidate"
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
 
 
-def test_planner_selects_data_symbol_rename_candidate(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
-        inspect_report["candidate_work"][0],
+def test_planner_selects_data_symbol_rename_candidate() -> None:
+    inspect_report, selected = _select_planner_action(
+        *_default_comment_candidate(),
         _data_symbol_candidate(current_name="auto_data", new_name="player_table"),
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "data_symbol.rename"
-    assert report["action"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
-    assert report["action"]["parameters"] == {"name": "player_table", "hunk": 0, "addr": 0, "end": 2}
-    assert report["planner"]["selected_command_id"] == "data_symbol.rename"
-    assert report["planner"]["selected_verifier"] == "projected_data_symbol_name"
+    assert selected["command"]["command_id"] == "data_symbol.rename"
+    assert selected["command"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
+    assert selected["command"]["parameters"] == {"name": "player_table", "hunk": 0, "addr": 0, "end": 2}
+    assert inspect_report["planner"]["selected_command_id"] == "data_symbol.rename"
+    assert inspect_report["planner"]["selected_verifier"] == "projected_data_symbol_name"
 
 
 def test_embedded_data_symbol_rename_command_strips_provenance_parameters() -> None:
@@ -7414,23 +7378,14 @@ def test_embedded_data_symbol_rename_command_strips_provenance_parameters() -> N
     assert reversing_loop._candidate_verifier(candidate, command) == "projected_data_symbol_name"
 
 
-def test_planner_skips_already_satisfied_data_symbol_rename(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
+def test_planner_skips_already_satisfied_data_symbol_rename() -> None:
+    inspect_report, selected = _select_planner_action(
         _data_symbol_candidate(current_name="player_table", new_name="player_table"),
-        inspect_report["candidate_work"][0],
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+        *_default_comment_candidate(),
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "comment.edit"
-    skipped = report["planner"]["skipped_candidates"]
+    assert selected["command"]["command_id"] == "comment.edit"
+    skipped = inspect_report["planner"]["skipped_candidates"]
     assert skipped[0]["candidate_id"] == "data-symbol-candidate"
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
 
@@ -7503,35 +7458,20 @@ def test_planner_skips_already_satisfied_generated_data_symbol_remove_by_identit
     assert reversing_loop._candidate_skip_reason(candidate, command) is None
 
 
-def test_planner_selects_data_symbol_remove_candidate(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
-        inspect_report["candidate_work"][0],
+def test_planner_selects_data_symbol_remove_candidate() -> None:
+    inspect_report, selected = _select_planner_action(
+        *_default_comment_candidate(),
         _data_symbol_remove_candidate(suppressed=False),
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "data_symbol.remove"
-    assert report["action"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
-    assert report["planner"]["selected_command_id"] == "data_symbol.remove"
-    assert report["planner"]["selected_verifier"] == "suppressed_seeded_item"
+    assert selected["command"]["command_id"] == "data_symbol.remove"
+    assert selected["command"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
+    assert inspect_report["planner"]["selected_command_id"] == "data_symbol.remove"
+    assert inspect_report["planner"]["selected_verifier"] == "suppressed_seeded_item"
 
 
-def test_planner_reports_candidate_specific_verifier(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
+def test_planner_reports_candidate_specific_verifier() -> None:
+    inspect_report, _selected = _select_planner_action(
         {
             "id": "label-candidate",
             "candidate_id": "label-candidate",
@@ -7544,12 +7484,9 @@ def test_planner_reports_candidate_specific_verifier(
             "confidence": "high",
             "actionable": True,
         }
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    command = report["planner"]["ranked_candidates"][0]["candidate_commands"][0]
+    command = inspect_report["planner"]["ranked_candidates"][0]["candidate_commands"][0]
     assert command["command_id"] == "label.rename"
     assert command["verifier"] == "projection_metadata"
 
@@ -7734,115 +7671,70 @@ def test_run_one_reports_stale_selected_command_availability(
     )
 
 
-def test_planner_selects_rsset_region_add_candidate(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
-        inspect_report["candidate_work"][0],
+def test_planner_selects_rsset_region_add_candidate() -> None:
+    inspect_report, selected = _select_planner_action(
+        *_default_comment_candidate(),
         _rsset_region_candidate(current_symbol="work_0004", new_symbol="work_flags"),
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "target.rsset_region.add"
-    assert report["action"]["context"] == {"kind": "target"}
-    assert report["action"]["parameters"]["symbol"] == "work_flags"
-    assert report["planner"]["selected_command_id"] == "target.rsset_region.add"
+    assert selected["command"]["command_id"] == "target.rsset_region.add"
+    assert selected["command"]["context"] == {"kind": "target"}
+    assert selected["command"]["parameters"]["symbol"] == "work_flags"
+    assert inspect_report["planner"]["selected_command_id"] == "target.rsset_region.add"
 
 
-def test_planner_selects_rsset_region_rename_candidate(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
-        inspect_report["candidate_work"][0],
+def test_planner_selects_rsset_region_rename_candidate() -> None:
+    inspect_report, selected = _select_planner_action(
+        *_default_comment_candidate(),
         _rsset_region_candidate(
             current_symbol="work_0004",
             new_symbol="work_flags",
             action_kind="target.rsset_region.rename",
         ),
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "target.rsset_region.rename"
-    assert report["action"]["context"] == {"kind": "target"}
-    assert report["action"]["parameters"]["symbol"] == "work_flags"
-    assert report["planner"]["selected_command_id"] == "target.rsset_region.rename"
+    assert selected["command"]["command_id"] == "target.rsset_region.rename"
+    assert selected["command"]["context"] == {"kind": "target"}
+    assert selected["command"]["parameters"]["symbol"] == "work_flags"
+    assert inspect_report["planner"]["selected_command_id"] == "target.rsset_region.rename"
 
 
-def test_planner_skips_already_satisfied_rsset_region_add(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
+def test_planner_skips_already_satisfied_rsset_region_add() -> None:
+    inspect_report, selected = _select_planner_action(
         _rsset_region_candidate(current_symbol="work_flags", new_symbol="work_flags"),
-        inspect_report["candidate_work"][0],
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+        *_default_comment_candidate(),
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "comment.edit"
-    skipped = report["planner"]["skipped_candidates"]
+    assert selected["command"]["command_id"] == "comment.edit"
+    skipped = inspect_report["planner"]["skipped_candidates"]
     assert skipped[0]["candidate_id"] == "rsset-region-candidate"
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
 
 
-def test_planner_selects_rsset_region_remove_candidate(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
-        inspect_report["candidate_work"][0],
+def test_planner_selects_rsset_region_remove_candidate() -> None:
+    inspect_report, selected = _select_planner_action(
+        *_default_comment_candidate(),
         _rsset_region_remove_candidate(removed=False),
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "target.rsset_region.remove"
-    assert report["action"]["context"] == {"kind": "target"}
-    assert report["action"]["parameters"] == {
+    assert selected["command"]["command_id"] == "target.rsset_region.remove"
+    assert selected["command"]["context"] == {"kind": "target"}
+    assert selected["command"]["parameters"] == {
         "offset": 4,
         "layout_name": "work",
         "base_symbol": "__game_work_base__",
     }
-    assert report["planner"]["selected_command_id"] == "target.rsset_region.remove"
+    assert inspect_report["planner"]["selected_command_id"] == "target.rsset_region.remove"
 
 
-def test_planner_skips_already_satisfied_rsset_region_remove(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _target(tmp_path)
-    inspect_report = _inspect_with_locator()
-    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
-    inspect_report["candidate_work"] = [
+def test_planner_skips_already_satisfied_rsset_region_remove() -> None:
+    inspect_report, selected = _select_planner_action(
         _rsset_region_remove_candidate(removed=True),
-        inspect_report["candidate_work"][0],
-    ]
-    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+        *_default_comment_candidate(),
+    )
 
-    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
-
-    assert report["action"]["command_id"] == "comment.edit"
-    skipped = report["planner"]["skipped_candidates"]
+    assert selected["command"]["command_id"] == "comment.edit"
+    skipped = inspect_report["planner"]["skipped_candidates"]
     assert skipped[0]["candidate_id"] == "rsset-region-remove-candidate"
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
 
@@ -15442,6 +15334,20 @@ def _inspect_with_locator() -> dict[str, object]:
         ],
         "safe_to_mutate": True,
     }
+
+
+def _default_comment_candidate() -> tuple[dict[str, object], ...]:
+    candidates = cast(list[dict[str, object]], _inspect_with_locator()["candidate_work"])
+    return (candidates[0],)
+
+
+def _select_planner_action(*candidates: dict[str, object]) -> tuple[dict[str, object], dict[str, object]]:
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = list(candidates)
+    selected = reversing_loop._select_command_action(inspect_report)
+    assert selected is not None
+    return inspect_report, selected
 
 
 def _inspect_with_representation(*, round_trip: bool = True) -> dict[str, object]:
