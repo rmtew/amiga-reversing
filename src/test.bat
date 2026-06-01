@@ -23,7 +23,7 @@ set UNIT_MODULES=^
  src.tests.test_platform_disk_lib ^
  src.tests.test_target_usage_manifest
 if /I not "%~1"=="--no-build" (
-    call "%SCRIPT_DIR%build.bat"
+    call "%SCRIPT_DIR%\build.bat"
     if errorlevel 1 exit /b %errorlevel%
 )
 "%C_TEST_EXE%"

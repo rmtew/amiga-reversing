@@ -495,6 +495,8 @@ DECOMPRESSION_REASON_NAMES = {
     17: "simulated_bad_argument",
     18: "simulated_no_output_range",
     19: "simulated_unknown_stop",
+    20: "invalid_decompressed_entrypoint",
+    21: "native_tetragon_unpack_deferred",
 }
 DECOMPRESSION_PAYLOAD_ROLE_NAMES = {
     1: "unknown_runtime_payload",

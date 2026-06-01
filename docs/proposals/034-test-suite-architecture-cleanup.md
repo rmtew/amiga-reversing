@@ -1553,6 +1553,85 @@ copied-stub/Tetragon materialization on a small extracted stream or direct C
 unit fixture without simulating the full Damocles section 2 payload on every
 real-integration run.
 
+#### Slice 6C Implementation Checkpoint - Damocles Native Execution Deferred
+
+The backend seam is now explicit. Ordinary recognized-unpacker analysis no
+longer runs the native copied-stub simulator for a copied-stub Tetragon event.
+It records a materializable deferred event:
+
+```json
+{
+  "status": "materializable",
+  "reason": "native_tetragon_unpack_deferred",
+  "payload_role": "primary_program",
+  "payload_role_confidence": "signature_only",
+  "native_execution_deferred": true,
+  "target_start_address": 4096,
+  "entrypoint": 365700
+}
+```
+
+The expensive native executor now belongs to the materialization boundary:
+
+```text
+analysis request
+  -> detect marker
+  -> detect copied-stub storage/runtime copy
+  -> infer output span and entrypoint
+  -> report native_execution_deferred
+
+materialize recognized unpacker event
+  -> rebuild analysis context
+  -> run native copied-stub simulator
+  -> validate entrypoint
+  -> write output bytes
+  -> return verified size/hash/role metadata
+```
+
+Import had to move with the seam. Deferred events may not have a verified
+`decompressed_sha256` in analysis. The disk importer now accepts such events
+only when they are materializable recognized unpacker events, then fills the
+child origin and decompression record from the materialization result.
+
+The real Damocles test is now a candidate-analysis sentinel:
+
+```text
+two Tetragon events exist
+no false self-decrunch event
+section 1 remains natively validated in analysis
+section 2 is materializable but native_execution_deferred
+section 2 copied-stub metadata/load/entry survives
+```
+
+The focused profile shows the original overreach has been removed from the
+candidate-analysis test:
+
+```text
+pytest tests\test_c_backend.py -m c_backend -k "tetragon" -q --durations=20
+  4 passed, 220 deselected in 4.07s
+
+slowest:
+  real Damocles deferred-analysis sentinel     2.77s
+  Voodoo Tetragon comparator                   0.93s
+  synthetic marker contract                    0.14s
+  synthetic copied-stub contract               0.05s
+```
+
+One explicit materialization probe was run against the real Damocles section 2
+event after the seam change:
+
+```text
+materialize_recognized_unpacker_event(section 2)
+  status: ok
+  size: 489929
+  sha256: 34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a
+```
+
+That probe proves the product path still works. The remaining cleanup opportunity
+is to replace this real-sized materialization proof with a small valid copied-
+stub fixture or a direct C unit seam, so copied-stub native materialization can
+be regression-tested without paying the full Damocles output size.
+
 ### Pandora BK Wrapper
 
 Current test:
@@ -2697,18 +2776,18 @@ wide confidence layers remain meaningful and easier to understand
 ## Current Verification Snapshot
 
 After the generated/drift split, route-command split, CDP race fixes, MPW
-fixture narrowing, duplicate MPW payload removal, and the Bloodwych/string real
-fixture cleanup:
+fixture narrowing, duplicate MPW payload removal, the Bloodwych/string real
+fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 407 deselected in 14.78s
+  1242 passed, 407 deselected in 14.56s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  131 passed, 16 skipped, 1502 deselected in 73.18s
+  131 passed, 16 skipped, 1502 deselected in 64.33s
 
 uv run ruff check
   passed
@@ -2744,7 +2823,14 @@ pytest tests\test_macos_c_backend.py -m real_integration -k "committed_mpw_asm_m
   1 passed, 21 deselected in 1.35s
 
 pytest tests\test_c_backend.py -m c_backend -k "tetragon" -q --durations=20
-  4 passed, 220 deselected in 15.41s
+  4 passed, 220 deselected in 4.07s
+
+pytest tests\test_import_adf.py -k "recognized_unpacker" -q --durations=10
+  1 passed, 42 deselected in 0.27s
+
+cmd /c src\test.bat --no-build
+  C unit tests passed
+  162 Python src unittest tests passed in 13.751s
 
 pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapper" -q --durations=10
   1 passed, 223 deselected in 6.54s
@@ -2767,6 +2853,9 @@ pytest tests\test_reversing_workspace.py -k "hygiene_cli or clean_run_cli" -q --
 ruff check
   passed
 
+mypy
+  passed
+
 python -m amiga_reversing.tools.rendered_source_roundtrip_report --update-rendered-source --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
@@ -2775,13 +2864,16 @@ The default loop is back under 20s without parallelism. The integration layer is
 still too broad and remains the main cleanup target.
 
 The latest real-integration profile now has no separate Bloodwych runtime/table
-listing pass. The largest remaining real fixture overreach is:
+listing pass, and Damocles candidate analysis no longer pays native copied-stub
+execution. The largest remaining real fixture overreach is:
 
 ```text
-Damocles copied-stub native unpacking          13.18s
-Pandora BK provider wrapper                     5.71s
+Pandora BK provider wrapper                     6.02s
 data-class rows                                4.60s
-Pandora table descriptors/evidence bounds       3.80s
+Pandora table descriptors/evidence bounds       3.95s
+GenAm autonomous LVO/RSSET candidates           3.20s / 2.95s
+Bloodwych generated source exact                2.89s
+Damocles deferred-analysis sentinel             2.77s
 ```
 
 ## Trailing Notes And Follow-Up Observations
@@ -2789,28 +2881,31 @@ Pandora table descriptors/evidence bounds       3.80s
 These observations came out of implementation but are not fully resolved by the
 current cleanup slices.
 
-### Real Corpus Cost Is Mostly Analysis Startup
+### Real Corpus Cost Is Now Mostly Real Integration Breadth
 
-The Damocles Tetragon test still costs about 15s because it analyzes the full
-real fixture. Moving assertions out of that test will not materially reduce the
-runtime unless the expensive full analysis is replaced by:
+Damocles used to show that assertion trimming was not enough: analysis itself
+was running the full native copied-stub executor. That has been corrected by
+deferring native execution to the materialization API. The real Damocles
+candidate-analysis sentinel is now about 2.8s.
+
+The remaining Damocles-specific gap is narrower:
 
 ```text
-small Tetragon contract fixture
-  -> marker/event metadata
-  -> copied-stub metadata
-  -> entry validation cases
-  -> materialization hash
+small copied-stub materialization fixture
+  -> copied-stub native executor
+  -> entry validation
+  -> materialized bytes/hash
 
 real Damocles corpus sentinel
   -> two Tetragon events exist
   -> expected load/entry ranges survive
-  -> both payloads are materializable primary programs
+  -> section 2 remains materializable with native_execution_deferred
 ```
 
-The proposal should not count the Damocles split complete until that real
-sentinel is smaller and the displaced behavior is covered by small contract
-fixtures.
+The larger remaining real-suite costs are now Pandora BK, data-class listing
+rows, table descriptor evidence bounds, and autonomous GenAm agent runs. Those
+need the same treatment: keep one real corpus sentinel, move detailed behavior
+to compact contracts, and avoid making real targets carry every assertion.
 
 ### Default Loop Headroom Is Real But Narrow
 
@@ -3087,14 +3182,14 @@ committed artifact drift:
   committed .s -> every real CODE resource is represented
 ```
 
-The second largest overreach is:
+Damocles was the clearest single overreach:
 
 ```text
 tests/test_c_backend.py
   test_real_dll_damocles_tetragon_native_unpacking_candidates
 ```
 
-It uses one full Damocles fixture to prove too many contracts:
+It used one full Damocles fixture to prove too many contracts:
 
 ```text
 Tetragon marker detection
@@ -3107,7 +3202,7 @@ profile timing fields
 real-world two-payload regression
 ```
 
-The corrected split is:
+The current split is:
 
 ```text
 small marker contract:
@@ -3120,10 +3215,12 @@ small entry-validation contract:
   byte packet + entrypoint -> code-bearing payload accepted/rejected
 
 native decompressor contract:
-  minimal real or extracted compressed stream -> materialized bytes/hash
+  currently verified by explicit real Damocles materialization probe
+  future work: minimal real or extracted compressed stream -> materialized bytes/hash
 
 real Damocles smoke:
-  full fixture -> two Tetragon payloads exist and are materializable
+  full fixture -> two Tetragon payloads exist
+  section 2 -> materializable deferred native execution
 ```
 
 Other full-file sentinels that should stay real but become narrower:

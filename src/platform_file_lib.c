@@ -2855,6 +2855,8 @@ static const char *decompression_reason_name_local(uint8_t reason) {
     case PLATFORM_DECOMPRESSION_REASON_SIMULATED_NO_OUTPUT_RANGE: return "simulated_no_output_range";
     case PLATFORM_DECOMPRESSION_REASON_SIMULATED_UNKNOWN_STOP: return "simulated_unknown_stop";
     case PLATFORM_DECOMPRESSION_REASON_INVALID_DECOMPRESSED_ENTRYPOINT: return "invalid_decompressed_entrypoint";
+    case PLATFORM_DECOMPRESSION_REASON_NATIVE_TETRAGON_UNPACK_DEFERRED:
+      return "native_tetragon_unpack_deferred";
     default: return "unknown";
   }
 }
@@ -2985,6 +2987,7 @@ typedef struct PlatformRecognizedUnpackerEvent {
   uint8_t postpass_escape_byte;
   uint8_t native_unpack_validated;
   uint8_t native_execution_attempted;
+  uint8_t native_execution_deferred;
   uint8_t native_execution_stop_reason;
   uint8_t entry_validation_attempted;
   uint8_t entry_validation_valid;
@@ -3982,9 +3985,22 @@ static int collect_recognized_tetragon_events_for_section_local(const M68kObject
       (void)recognized_tetragon_try_unpack_event_local(arena, decode_section, &event, NULL,
         materialize_this_event ? materialize_diagnostics : NULL);
       if (event.has_copied_stub_transfer) {
-        (void)recognized_unpacker_try_native_copied_stub_local(object, analysis, decode_section,
-          section_analysis, &event, materialize_this_event ? materialize_output_path : NULL,
-          materialize_this_event ? materialize_diagnostics : NULL, arena);
+        if (materialize_this_event) {
+          (void)recognized_unpacker_try_native_copied_stub_local(object, analysis, decode_section,
+            section_analysis, &event, materialize_output_path, materialize_diagnostics, arena);
+        } else if (event.target_end_address > event.target_start_address &&
+            event.entrypoint >= event.target_start_address && event.entrypoint < event.target_end_address) {
+          event.native_unpack_validated = 0U;
+          event.native_execution_deferred = 1U;
+          event.native_execution_attempted = 0U;
+          event.entry_validation_attempted = 0U;
+          event.entry_validation_valid = 0U;
+          event.entry_validation_accepted_instructions = 0U;
+          event.entry_validation_unsupported_instruction_demotes = 0U;
+          event.entry_validation_required_instruction_failures = 0U;
+          event.entry_validation_code_start_control_targets = 0U;
+          event.decompressed_sha256[0] = '\0';
+        }
       } else if (materialize_this_event && event.native_unpack_validated) {
         (void)recognized_tetragon_try_unpack_event_local(arena, decode_section, &event,
           materialize_output_path, materialize_diagnostics);
@@ -4052,7 +4068,7 @@ static int self_decrunch_event_matches_native_recognized_unpacker_local(
   if (events == NULL || event == NULL) return 0;
   for (index = 0U; index < event_count; ++index) {
     const PlatformRecognizedUnpackerEvent *recognized = &events[index];
-    if (!recognized->native_unpack_validated) continue;
+    if (!recognized->native_unpack_validated && !recognized->native_execution_deferred) continue;
     if (recognized->source_section_index == event->source_section_index &&
         recognized->target_start_address == event->load_address &&
         recognized->entrypoint == event->entrypoint) {
@@ -4980,21 +4996,24 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
   uint8_t payload_role;
   uint8_t payload_confidence;
   uint8_t parent_remains_active;
+  uint8_t native_materializable;
   if (builder == NULL || event == NULL) return -1;
   make_recognized_unpacker_event_id_local(event_id, sizeof(event_id), event);
-  status = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_STATUS_MATERIALIZABLE :
+  native_materializable = event->native_unpack_validated || event->native_execution_deferred;
+  status = native_materializable ? PLATFORM_DECOMPRESSION_STATUS_MATERIALIZABLE :
     (event->entry_validation_attempted && !event->entry_validation_valid ?
       PLATFORM_DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER : PLATFORM_DECOMPRESSION_STATUS_IDENTIFIED);
   reason = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_REASON_NATIVE_TETRAGON_UNPACK_VALIDATED :
+    (event->native_execution_deferred ? PLATFORM_DECOMPRESSION_REASON_NATIVE_TETRAGON_UNPACK_DEFERRED :
     (event->entry_validation_attempted && !event->entry_validation_valid ?
       PLATFORM_DECOMPRESSION_REASON_INVALID_DECOMPRESSED_ENTRYPOINT :
-      PLATFORM_DECOMPRESSION_REASON_RECOGNIZED_UNPACKER_SIGNATURE);
-  payload_role = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM :
+      PLATFORM_DECOMPRESSION_REASON_RECOGNIZED_UNPACKER_SIGNATURE));
+  payload_role = native_materializable ? PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM :
     PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD;
   payload_confidence = event->native_unpack_validated ?
     PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NATIVE_UNPACK_ENTRY_VALIDATED :
     PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_SIGNATURE_ONLY;
-  parent_remains_active = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE :
+  parent_remains_active = native_materializable ? PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE :
     PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_UNKNOWN;
   if (json_builder_appendf(builder, "{\"event_kind_id\":%u,\"event_kind\":",
       (unsigned)PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION) != 0 ||
@@ -5071,6 +5090,10 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
       return -1;
     }
   }
+  if (event->native_execution_deferred &&
+      json_builder_append(builder, ",\"native_execution_deferred\":true") != 0) {
+    return -1;
+  }
   if (event->entry_validation_attempted) {
     if (json_builder_appendf(builder,
         ",\"entry_validation_attempted\":true,\"entry_validation_valid\":%s,"
@@ -5086,7 +5109,7 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
       return -1;
     }
   }
-  if (event->native_unpack_validated || event->entry_validation_attempted) {
+  if (event->native_unpack_validated || event->native_execution_deferred || event->entry_validation_attempted) {
     if (json_builder_appendf(builder,
         ",\"compressed_source_consumed_section_offset\":%u,"
         "\"postpass_source_consumed_address\":%u,\"target_end_address\":%u,"

@@ -10439,15 +10439,18 @@ def test_real_dll_damocles_tetragon_native_unpacking_candidates() -> None:
         event = by_section[section_index]
         assert event["status"] == "materializable"
         assert event["payload_role"] == "primary_program"
-        assert event["entry_validation_valid"] is True
         assert event["decompressed_size"] > 0
         assert event["target_end_address"] > event["target_start_address"]
         for key, value in expected_fields.items():
             assert event[key] == value
-    assert by_section[2]["reason"] == "native_tetragon_unpack_validated"
-    assert by_section[2]["payload_role_confidence"] == "native_unpack_entry_validated"
-    assert by_section[2]["native_execution_attempted"] is True
-    assert by_section[2]["native_execution_step_count"] > 0
+    assert by_section[1]["reason"] == "native_tetragon_unpack_validated"
+    assert by_section[1]["payload_role_confidence"] == "native_unpack_entry_validated"
+    assert by_section[1]["entry_validation_valid"] is True
+    assert by_section[2]["reason"] == "native_tetragon_unpack_deferred"
+    assert by_section[2]["payload_role_confidence"] == "signature_only"
+    assert by_section[2]["native_execution_deferred"] is True
+    assert "native_execution_attempted" not in by_section[2]
+    assert "entry_validation_valid" not in by_section[2]
 
 
 def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:

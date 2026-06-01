@@ -1443,7 +1443,7 @@ def _materializable_recognized_unpacker_events(analysis: dict[str, object]) -> l
             continue
         if _int_field(item, "decompressed_size") is None:
             continue
-        if _str_field(item, "decompressed_sha256") is None:
+        if _str_field(item, "decompressed_sha256") is None and item.get("native_execution_deferred") is not True:
             continue
         if _int_field(item, "target_start_address") is None:
             continue
@@ -1733,7 +1733,7 @@ def _materialize_decompressed_payload_children(
         for event in _materializable_recognized_unpacker_events(analysis):
             event_id = _str_field(event, "event_id")
             output_size = _int_field(event, "decompressed_size")
-            output_sha256 = _str_field(event, "decompressed_sha256")
+            expected_output_sha256 = _str_field(event, "decompressed_sha256")
             load_address = _int_field(event, "target_start_address")
             entrypoint = _int_field(event, "entrypoint")
             source_section = _int_field(event, "source_section") or 0
@@ -1751,10 +1751,10 @@ def _materialize_decompressed_payload_children(
             native_provider_id = _native_unpacker_provider_id(event)
             assert event_id is not None
             assert output_size is not None
-            assert output_sha256 is not None
             assert load_address is not None
             assert entrypoint is not None
             role_fields = _decompression_role_fields(event)
+            recognized_output_sha256 = expected_output_sha256 or ""
             local_target_id = _recognized_unpacker_payload_child_local_id(parent_local_target_id, event)
             target_name = disk_child_project_id(disk_id, local_target_id)
             target_dir = disk_children_root / local_target_id
@@ -1781,7 +1781,7 @@ def _materialize_decompressed_payload_children(
                 "provider_id": native_provider_id,
                 "event_id": event_id,
                 "decompressed_size": output_size,
-                "decompressed_sha256": output_sha256,
+                "decompressed_sha256": recognized_output_sha256,
                 "load_address": load_address,
                 "entrypoint": entrypoint,
             }
@@ -1810,8 +1810,20 @@ def _materialize_decompressed_payload_children(
                     raise DiskAnalysisError(f"C recognized unpacker did not materialise {child_entry_path}")
                 actual_bytes = temp_output_path.read_bytes()
                 actual_hash = hashlib.sha256(actual_bytes).hexdigest()
-                if len(actual_bytes) != output_size or actual_hash != output_sha256:
+                if len(actual_bytes) != output_size or (
+                    expected_output_sha256 is not None and actual_hash != expected_output_sha256
+                ):
                     raise DiskAnalysisError(f"C recognized unpacker output mismatch for {child_entry_path}")
+                materialized_events = result.get("decompression_events")
+                if isinstance(materialized_events, list) and materialized_events and isinstance(materialized_events[0], dict):
+                    role_fields = _decompression_role_fields(materialized_events[0])
+                    native_provider_id = _native_unpacker_provider_id(materialized_events[0])
+                    origin.update(role_fields)
+                    origin["provider_id"] = native_provider_id
+                output_size = len(actual_bytes)
+                recognized_output_sha256 = actual_hash
+                origin["decompressed_size"] = output_size
+                origin["decompressed_sha256"] = recognized_output_sha256
                 temp_output_path.replace(output_path)
             finally:
                 with contextlib.suppress(FileNotFoundError):
@@ -1865,7 +1877,7 @@ def _materialize_decompressed_payload_children(
                 "compressor": {
                     "id": _str_field(event, "codec_id"),
                     "name": _str_field(event, "codec_name"),
-                    "confidence": _str_field(event, "payload_role_confidence") or "tool_inferred",
+                    "confidence": role_fields.get("payload_role_confidence") or "tool_inferred",
                 },
                 "source": {
                     "kind_id": DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER,
@@ -1889,7 +1901,7 @@ def _materialize_decompressed_payload_children(
                 },
                 "decompressed": {
                     "size": output_size,
-                    "sha256": output_sha256,
+                    "sha256": recognized_output_sha256,
                     "load_address": load_address,
                     "entrypoint": entrypoint,
                 },

@@ -898,39 +898,55 @@ def test_import_adf_materializes_c_recognized_unpacker_valid_children(
         for source_section, (event_id, (output, load_address, entrypoint, marker_offset)) in enumerate(
             outputs.items(), start=1
         ):
-            events.append(
-                {
-                    "event_kind_id": 1,
-                    "event_kind": "decompression",
-                    "event_id": event_id,
-                    "status_id": 2,
-                    "status": "materializable",
-                    "source_kind_id": 2,
-                    "source_kind": "recognized_unpacker",
-                    "codec_id": "tetragon",
-                    "codec_name": "Tetragon native unpacker",
-                    "source_section": source_section,
-                    "unpacker_marker_offset": marker_offset,
-                    "compressed_source_section_offset": marker_offset,
-                    "compressed_source_section_end_offset": marker_offset + 0x20,
-                    "compressed_source_consumed_section_offset": marker_offset + 0x10,
-                    "postpass_source_start_address": load_address + 0x100,
-                    "postpass_source_end_address": load_address + len(output),
-                    "postpass_source_consumed_address": load_address + len(output),
-                    "postpass_escape_byte": 0xAD,
-                    "target_start_address": load_address,
-                    "target_end_address": load_address + len(output),
-                    "decompressed_size": len(output),
-                    "decompressed_sha256": hashlib.sha256(output).hexdigest(),
-                    "entrypoint": entrypoint,
-                    "payload_role_id": 2,
-                    "payload_role": "primary_program",
-                    "payload_role_confidence_id": 2,
-                    "payload_role_confidence": "native_unpack_entry_validated",
-                    "parent_remains_active_id": 1,
-                    "parent_remains_active": "false",
-                }
-            )
+            event: dict[str, object] = {
+                "event_kind_id": 1,
+                "event_kind": "decompression",
+                "event_id": event_id,
+                "status_id": 2,
+                "status": "materializable",
+                "source_kind_id": 2,
+                "source_kind": "recognized_unpacker",
+                "codec_id": "tetragon",
+                "codec_name": "Tetragon native unpacker",
+                "source_section": source_section,
+                "unpacker_marker_offset": marker_offset,
+                "compressed_source_section_offset": marker_offset,
+                "compressed_source_section_end_offset": marker_offset + 0x20,
+                "compressed_source_consumed_section_offset": marker_offset + 0x10,
+                "postpass_source_start_address": load_address + 0x100,
+                "postpass_source_end_address": load_address + len(output),
+                "postpass_source_consumed_address": load_address + len(output),
+                "postpass_escape_byte": 0xAD,
+                "target_start_address": load_address,
+                "target_end_address": load_address + len(output),
+                "decompressed_size": len(output),
+                "entrypoint": entrypoint,
+                "payload_role_id": 2,
+                "payload_role": "primary_program",
+                "parent_remains_active_id": 1,
+                "parent_remains_active": "false",
+            }
+            if source_section == 2:
+                event.update(
+                    {
+                        "reason_id": 21,
+                        "reason": "native_tetragon_unpack_deferred",
+                        "payload_role_confidence_id": 3,
+                        "payload_role_confidence": "signature_only",
+                        "native_execution_deferred": True,
+                    }
+                )
+            else:
+                event.update(
+                    {
+                        "reason_id": 9,
+                        "reason": "native_tetragon_unpack_validated",
+                        "decompressed_sha256": hashlib.sha256(output).hexdigest(),
+                        "payload_role_confidence_id": 2,
+                        "payload_role_confidence": "native_unpack_entry_validated",
+                    }
+                )
+            events.append(event)
         return events
 
     monkeypatch.setattr(
@@ -972,6 +988,18 @@ def test_import_adf_materializes_c_recognized_unpacker_valid_children(
         return {
             "status": "ok",
             "provider_id": "c-tetragon-native",
+            "decompression_events": [
+                {
+                    "event_id": event_id,
+                    "codec_id": "tetragon",
+                    "payload_role_id": 2,
+                    "payload_role": "primary_program",
+                    "payload_role_confidence_id": 2,
+                    "payload_role_confidence": "native_unpack_entry_validated",
+                    "parent_remains_active_id": 1,
+                    "parent_remains_active": "false",
+                }
+            ],
             "decompressed": {
                 "size": len(output),
                 "sha256": output_hash,
