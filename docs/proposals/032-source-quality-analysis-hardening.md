@@ -4755,6 +4755,47 @@ uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
 
+### Data Operand Symbol Accesses
+
+Accepted instructions with decoded data targets now create operand-symbol
+expectations when the target already has a source-analysis symbol origin:
+
+```text
+accepted instruction
+  -> decoded M68K_DECODE_TARGET_DATA with operand_index
+  -> target offset has M68kSymbolOriginIR
+  -> M68kExpectedSymbolAccessIR(operand)
+```
+
+Rendered instruction operands already recorded visible symbol use. This slice
+adds the missing target identity for non-control operands:
+
+```text
+lea.l loc_0_00000006(pc),a1
+      ^ expected operand access, section 0 offset 6
+      ^ rendered operand access, section 0 offset 6
+```
+
+The comparison now treats target-bearing symbol accesses as identity matches.
+That is required for runtime/storage aliases: a renderer may print a storage or
+policy alias for the same section/offset rather than the generated analysis
+label name, and the source-quality question is whether the emitted operand
+points at the approved identity.
+
+The regression fixture is
+`facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target`, which
+now asserts both expected and rendered operand-access rows for
+`loc_0_00000006`.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```
+
 ### Expected Label Statement Accesses
 
 Source-analysis labels now produce explicit expected symbol-access obligations

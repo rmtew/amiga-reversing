@@ -9892,6 +9892,25 @@ static const M68kDecodeTarget *candidate_control_target_for_operand(const M68kDe
   return unique_unindexed_count == 1U ? unique_unindexed_target : NULL;
 }
 
+static const M68kDecodeTarget *candidate_data_target_for_operand(const M68kDecodeCandidate *candidate,
+    size_t operand_index) {
+  size_t target_index;
+  const M68kDecodeTarget *unique_unindexed_target = NULL;
+  size_t unique_unindexed_count = 0U;
+  if (candidate == NULL) return NULL;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section) continue;
+    if (target->has_operand) {
+      if (target->operand_index == operand_index) return target;
+      continue;
+    }
+    unique_unindexed_target = target;
+    ++unique_unindexed_count;
+  }
+  return unique_unindexed_count == 1U ? unique_unindexed_target : NULL;
+}
+
 static const M68kFact *candidate_relocation_for_operand(const M68kRenderLookup *lookup, size_t section_index,
     const M68kDecodeCandidate *candidate, size_t operand_index) {
   const M68kFact *match = NULL;
@@ -9924,6 +9943,7 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kDecodeTarget *control_target;
+    const M68kDecodeTarget *data_target;
     M68kRenderedSymbolAccessIR access;
     if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') continue;
     if ((rendered_operand_symbol_mask & (uint8_t)(1U << operand_index)) == 0U) continue;
@@ -9945,6 +9965,13 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
         access.target_offset = control_target->offset;
       }
       access.has_target = 1U;
+    } else {
+      data_target = candidate_data_target_for_operand(candidate, operand_index);
+      if (data_target != NULL && data_target->section_index <= UINT32_MAX) {
+        access.target_section_index = (uint32_t)data_target->section_index;
+        access.target_offset = data_target->offset;
+        access.has_target = 1U;
+      }
     }
     if (m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access) != 0) return -1;
   }

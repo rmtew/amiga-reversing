@@ -552,7 +552,7 @@ static int rendered_symbol_access_matches_expected(const M68kRenderedSymbolAcces
   if (rendered->access_kind != rendered_kind) return 0;
   if (rendered->offset != expected->offset) return 0;
   if (rendered->symbol_name == NULL || rendered->symbol_name[0] == '\0') return 0;
-  if (expected->access_kind != M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET &&
+  if (!expected->has_target &&
       (expected->symbol_name == NULL || strcmp(rendered->symbol_name, expected->symbol_name) != 0)) {
     return 0;
   }
@@ -967,6 +967,25 @@ static int source_quality_append_expected_branch_symbol_access(M68kSectionAnalys
   return m68k_ir_section_analysis_append_expected_symbol_access(source_section_analysis, &access);
 }
 
+static int source_quality_append_expected_operand_symbol_access(M68kSectionAnalysisIR *source_section_analysis,
+    const M68kSymbolOriginIR *origin, const M68kDecodeCandidate *candidate, uint32_t target_section_index,
+    uint32_t target_offset, uint32_t operand_index) {
+  M68kExpectedSymbolAccessIR access;
+  if (source_section_analysis == NULL || origin == NULL || candidate == NULL) {
+    return -1;
+  }
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = origin->symbol_name;
+  access.offset = candidate->offset;
+  access.target_section_index = target_section_index;
+  access.target_offset = target_offset;
+  access.operand_index = operand_index;
+  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+  access.confidence = origin->confidence;
+  access.has_target = 1U;
+  return m68k_ir_section_analysis_append_expected_symbol_access(source_section_analysis, &access);
+}
+
 static int append_expected_relocated_branch_symbol_accesses_for_section(M68kSourceAnalysisIR *source_analysis,
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeIR *decode, const M68kDecodeSectionIR *section,
     const M68kFactIR *facts, const uint8_t *source_accepted_start, uint8_t *const *accepted_start) {
@@ -1105,6 +1124,54 @@ static int append_expected_intrinsic_branch_symbol_accesses(M68kSourceAnalysisIR
     }
     if (append_expected_relocated_branch_symbol_accesses_for_section(source_analysis, section_analysis, decode,
         section, facts, accepted_start[decode_index], accepted_start) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_expected_data_operand_symbol_accesses_for_section(M68kSourceAnalysisIR *source_analysis,
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start) {
+  size_t candidate_index;
+  if (source_analysis == NULL || section_analysis == NULL || section == NULL) return -1;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    size_t target_index;
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      M68kSectionAnalysisIR *target_section_analysis;
+      const M68kSymbolOriginIR *origin;
+      if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section || !target->has_operand ||
+          target->operand_index >= candidate->operand_count || target->section_index > UINT32_MAX) {
+        continue;
+      }
+      target_section_analysis = source_analysis_section_by_index(source_analysis, (uint32_t)target->section_index);
+      if (target_section_analysis == NULL) continue;
+      origin = source_quality_symbol_origin_at(target_section_analysis, target->offset);
+      if (origin == NULL) continue;
+      if (source_quality_append_expected_operand_symbol_access(section_analysis, origin, candidate,
+          (uint32_t)target->section_index, target->offset, (uint32_t)target->operand_index) != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
+static int append_expected_data_operand_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_expected_data_operand_symbol_accesses_for_section(source_analysis, section_analysis, section,
+        accepted_start[decode_index]) != 0) {
       return -1;
     }
   }
@@ -1630,6 +1697,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_label_statement_symbol_accesses(source_analysis) != 0) return -1;
   if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
     return -1;
+  if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
