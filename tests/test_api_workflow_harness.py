@@ -284,25 +284,48 @@ def test_api_harness_runs_manual_mutation_durability_matrix(
     results = run_durability_matrix(
         [
             DurabilityBoundary("immediate"),
-            DurabilityBoundary("browser_refresh_equivalent"),
-            DurabilityBoundary("target_reopen"),
+            DurabilityBoundary(
+                "browser_refresh_equivalent",
+                required=False,
+                transient_reason="browser refresh is a CDP boundary, not a server route transition",
+            ),
+            DurabilityBoundary(
+                "target_reopen",
+                required=False,
+                transient_reason="this route harness has no distinct target close/reopen transition",
+            ),
             DurabilityBoundary("server_restart", prepare=reseed_listing),
-            DurabilityBoundary("new_context_storage_clear"),
+            DurabilityBoundary(
+                "new_context_storage_clear",
+                required=False,
+                transient_reason="browser storage clearing is a CDP boundary, not a server route transition",
+            ),
             DurabilityBoundary("project_cache_clear", prepare=reseed_listing),
         ],
         snapshot,
         lambda current: assert_manual_workflow_snapshot(current, expected),
     )
 
-    assert [result["boundary"] for result in results] == [
-        "immediate",
-        "browser_refresh_equivalent",
-        "target_reopen",
-        "server_restart",
-        "new_context_storage_clear",
-        "project_cache_clear",
+    assert results == [
+        {"boundary": "immediate", "status": "passed"},
+        {
+            "boundary": "browser_refresh_equivalent",
+            "status": "transient",
+            "reason": "browser refresh is a CDP boundary, not a server route transition",
+        },
+        {
+            "boundary": "target_reopen",
+            "status": "transient",
+            "reason": "this route harness has no distinct target close/reopen transition",
+        },
+        {"boundary": "server_restart", "status": "passed"},
+        {
+            "boundary": "new_context_storage_clear",
+            "status": "transient",
+            "reason": "browser storage clearing is a CDP boundary, not a server route transition",
+        },
+        {"boundary": "project_cache_clear", "status": "passed"},
     ]
-    assert all(result["status"] == "passed" for result in results)
 
 
 def test_workflow_assertions_accept_debug_state_shape() -> None:

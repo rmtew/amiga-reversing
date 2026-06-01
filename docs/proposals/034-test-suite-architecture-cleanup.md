@@ -3159,6 +3159,65 @@ This is the same cleanup principle as the corpus work: use the full workflow
 only when the assertion needs the full workflow. Ranking/skip rules belong at
 the planner seam.
 
+#### API Durability Matrix Implementation Checkpoint - Real Boundaries Only
+
+The non-real integration profile then exposed another overreach:
+
+```text
+test_api_harness_runs_manual_mutation_durability_matrix  2.18s
+```
+
+The matrix named six durability boundaries, but four of them did not change
+server state in this harness:
+
+```text
+immediate                         real server snapshot
+browser_refresh_equivalent        no browser is running here
+target_reopen                     no target close/reopen transition is simulated
+server_restart                    reseeds listing projection
+new_context_storage_clear         no browser storage is running here
+project_cache_clear               reseeds listing projection
+```
+
+Repeating the same route snapshot for browser-only boundaries made the test
+look broader than its evidence. The corrected shape keeps the server-visible
+boundaries as passed checks and records the browser-only boundaries as explicit
+transient entries:
+
+```python
+DurabilityBoundary(
+    "browser_refresh_equivalent",
+    required=False,
+    transient_reason="browser refresh is a CDP boundary, not a server route transition",
+)
+```
+
+The result assertion now documents the coverage honestly:
+
+```text
+passed:
+  immediate
+  server_restart
+  project_cache_clear
+
+transient:
+  browser_refresh_equivalent
+  target_reopen
+  new_context_storage_clear
+```
+
+Focused verification:
+
+```text
+pytest tests\test_api_workflow_harness.py -m integration -q --durations=10
+  5 passed in 1.70s
+  matrix call time 1.00s
+```
+
+This is not moving coverage out of the suite. It removes three repeated server
+snapshots that never simulated the named boundary and leaves the real browser
+durability claim to the CDP layer.
+
 ## Expected End State
 
 The target shape is:
@@ -3259,8 +3318,8 @@ fixture cleanup, Damocles copied-stub native execution deferral, Pandora
 provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
 Bloodwych exact-test removal, Magicland materialization-test removal,
 platform unresolved-sweep removal, immediate-text real sentinel removal, and
-MonAm OpenLibrary app-slot pass removal, and planner-selection lower-seam
-cleanup:
+MonAm OpenLibrary app-slot pass removal, planner-selection lower-seam cleanup,
+and API durability matrix narrowing:
 
 ```text
 pytest tests -q --durations=20
@@ -3364,6 +3423,12 @@ pytest tests -m real_integration -q --durations=20
 
 pytest tests -m "integration and not real_integration" -q --durations=20
   203 passed, 1435 deselected in 44.91s
+
+pytest tests\test_api_workflow_harness.py -m integration -q --durations=10
+  5 passed in 1.70s
+
+pytest tests -m "integration and not real_integration" -q --durations=30
+  203 passed, 1435 deselected in 32.48s
 
 ruff check
   passed
