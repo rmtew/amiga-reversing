@@ -912,6 +912,108 @@ static int source_quality_operand_has_relocation_ref(const M68kFactIR *facts,
   return 0;
 }
 
+static const M68kFact *source_quality_unique_relocation_ref_for_operand(const M68kFactIR *facts,
+    size_t section_index, const M68kDecodeCandidate *candidate, size_t operand_index) {
+  const M68kFact *match = NULL;
+  uint32_t span_start = 0U;
+  uint32_t span_size = 0U;
+  size_t fact_index;
+  if (facts == NULL || candidate == NULL) return NULL;
+  if (!m68k_decode_candidate_operand_storage_span(candidate, operand_index, &span_start, &span_size)) return NULL;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if (!source_quality_relocation_exactly_covers_span(fact, section_index, span_start, span_size)) continue;
+    if (match != NULL) return NULL;
+    match = fact;
+  }
+  return match;
+}
+
+static const M68kDecodeTarget *source_quality_control_target_for_operand(const M68kDecodeCandidate *candidate,
+    size_t operand_index) {
+  size_t target_index;
+  const M68kDecodeTarget *unique_unindexed_target = NULL;
+  size_t unique_unindexed_count = 0U;
+  if (candidate == NULL) return NULL;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (!source_quality_target_is_control_symbol_access(target)) continue;
+    if (target->has_operand) {
+      if (target->operand_index == operand_index) return target;
+      continue;
+    }
+    unique_unindexed_target = target;
+    ++unique_unindexed_count;
+  }
+  return unique_unindexed_count == 1U ? unique_unindexed_target : NULL;
+}
+
+static int source_quality_append_expected_branch_symbol_access(M68kSectionAnalysisIR *source_section_analysis,
+    const M68kSymbolOriginIR *origin, const M68kDecodeCandidate *candidate, uint32_t target_section_index,
+    uint32_t target_offset, uint32_t operand_index) {
+  M68kExpectedSymbolAccessIR access;
+  if (source_section_analysis == NULL || origin == NULL || candidate == NULL) {
+    return -1;
+  }
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = origin->symbol_name;
+  access.offset = candidate->offset;
+  access.target_section_index = target_section_index;
+  access.target_offset = target_offset;
+  access.operand_index = operand_index;
+  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET;
+  access.confidence = origin->confidence;
+  access.has_target = 1U;
+  return m68k_ir_section_analysis_append_expected_symbol_access(source_section_analysis, &access);
+}
+
+static int append_expected_relocated_branch_symbol_accesses_for_section(M68kSourceAnalysisIR *source_analysis,
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeIR *decode, const M68kDecodeSectionIR *section,
+    const M68kFactIR *facts, const uint8_t *source_accepted_start, uint8_t *const *accepted_start) {
+  size_t candidate_index;
+  if (source_analysis == NULL || section_analysis == NULL || decode == NULL || section == NULL ||
+      source_accepted_start == NULL || accepted_start == NULL) {
+    return -1;
+  }
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    M68kInstructionIR instruction;
+    size_t operand_index;
+    if (!source_quality_candidate_is_accepted_start(section, source_accepted_start, candidate)) continue;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
+      const M68kFact *relocation;
+      const M68kDecodeTarget *control_target;
+      const M68kDecodeSectionIR *target_decode_section;
+      M68kSectionAnalysisIR *target_section_analysis;
+      const M68kSymbolOriginIR *origin;
+      size_t target_decode_index = 0U;
+      control_target = source_quality_control_target_for_operand(candidate, operand_index);
+      if (control_target == NULL) continue;
+      relocation = source_quality_unique_relocation_ref_for_operand(facts, section->section_index, candidate,
+        operand_index);
+      if (relocation == NULL || relocation->target_section_index > UINT32_MAX) continue;
+      target_decode_section = source_quality_decode_section_by_index(decode,
+        (uint32_t)relocation->target_section_index, &target_decode_index);
+      if (target_decode_section == NULL || accepted_start[target_decode_index] == NULL ||
+          relocation->target_offset >= target_decode_section->size ||
+          accepted_start[target_decode_index][relocation->target_offset] == 0U) {
+        continue;
+      }
+      target_section_analysis = source_analysis_section_by_index(source_analysis,
+        (uint32_t)relocation->target_section_index);
+      if (target_section_analysis == NULL) continue;
+      origin = source_quality_symbol_origin_at(target_section_analysis, relocation->target_offset);
+      if (origin == NULL) continue;
+      if (source_quality_append_expected_branch_symbol_access(section_analysis, origin, candidate,
+          (uint32_t)relocation->target_section_index, relocation->target_offset, (uint32_t)operand_index) != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const M68kFactIR *facts, const uint8_t *accepted_start) {
   size_t candidate_index;
@@ -965,6 +1067,10 @@ static int append_expected_intrinsic_branch_symbol_accesses(M68kSourceAnalysisIR
     if (section == NULL) continue;
     if (append_expected_intrinsic_branch_symbol_accesses_for_section(section_analysis, section, facts,
         accepted_start[decode_index]) != 0) {
+      return -1;
+    }
+    if (append_expected_relocated_branch_symbol_accesses_for_section(source_analysis, section_analysis, decode,
+        section, facts, accepted_start[decode_index], accepted_start) != 0) {
       return -1;
     }
   }

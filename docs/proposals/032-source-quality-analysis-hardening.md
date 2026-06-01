@@ -4106,10 +4106,11 @@ rendered: no matching non-comment label_statement
 result: source_quality diagnostic missing_expected_symbol_access, blocker=true
 ```
 
-Follow-up work remains to add precise C producers for relocation-backed branch
-targets, ordinary operand symbols, equates, storage labels, and independent
-label-statement obligations. Those producers must be reason-driven; they must
-not reuse broad label-created or label-required facts as a shortcut.
+Follow-up work remains to add precise C producers for ordinary operand symbols,
+equates, storage labels, and independent label-statement obligations.
+Relocation-backed branch targets now have a reason-driven C producer; the
+remaining producers must follow the same rule and must not reuse broad
+label-created or label-required facts as a shortcut.
 
 ### Actual Rendered Label Access Recording
 
@@ -4182,9 +4183,11 @@ rendered target label statement
 post-render source-quality gate stays clear
 ```
 
-Relocation-backed branch/call symbol obligations remain future work. They need a
-relocation-aware C producer rather than reusing CFG rows or broad label-created
-facts.
+Relocation-backed branch/call symbol obligations now use a relocation-aware C
+producer. The gate requires an accepted control instruction, a unique relocation
+covering the control operand bytes, an accepted code target, and a symbol origin
+at the relocation target. It still does not reuse CFG rows or broad
+label-created facts.
 
 ### Internal API Compatibility Cleanup
 
@@ -4692,6 +4695,62 @@ Verified:
 cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe m68k_ir
 uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```
+
+### Relocation-Backed Control Symbol Accesses
+
+The symbol-access gate now covers relocation-backed branch/call/jump operands
+instead of only intrinsic same-section control targets.
+
+The old limitation was:
+
+```text
+accepted jsr/jmp instruction
+  -> operand has relocation ref
+  -> intrinsic producer skips it
+  -> no expected_symbol_access(branch_target)
+```
+
+That was intentionally conservative while decoded CFG targets were the only
+available evidence, because a relocated absolute call can decode as an ordinary
+same-section absolute address before the relocation-aware renderer proves the
+real cross-section target. The new producer uses the relocation fact itself as
+the reason:
+
+```text
+accepted control instruction
+  -> unique relocation exactly covers the control operand bytes
+  -> relocation target is accepted code
+  -> relocation target has a C symbol origin
+  -> M68kExpectedSymbolAccessIR(branch_target)
+```
+
+The rendered-access recorder now makes the same distinction. When an operand is
+actually emitted symbolically and that operand has a unique relocation, the
+rendered branch-target access records the relocation target rather than the raw
+decoded target:
+
+```text
+bytes: 4E B9 00 00 00 04
+fixup: section 0 +2 -> section 1 +4
+asm:   jsr loc_1_00000004.l
+
+expected: section 0 offset 0 -> section 1 offset 4
+rendered: section 0 offset 0 -> section 1 offset 4
+```
+
+The regression fixture is
+`facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target`, which now
+asserts both the expected and rendered source-quality rows for
+`loc_1_00000004`.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
 uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```

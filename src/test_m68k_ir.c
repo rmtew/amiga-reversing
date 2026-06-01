@@ -21890,12 +21890,16 @@ static int test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target(
   M68kFixup fixup;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  int saw_expected_branch_target_access = 0;
+  int saw_rendered_branch_target_access = 0;
   uint8_t code_bytes[8] = {0x4eu, 0xb9u, 0x00u, 0x00u, 0x00u, 0x04u, 0x4eu, 0x75u};
   uint8_t target_bytes[6] = {0x4eu, 0x75u, 0x00u, 0x00u, 0x4eu, 0x75u};
   memset(&code_section, 0, sizeof(code_section));
   memset(&target_section, 0, sizeof(target_section));
   memset(&fixup, 0, sizeof(fixup));
+  memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   code_section.kind = M68K_SECTION_CODE;
   code_section.size = sizeof(code_bytes);
@@ -21916,14 +21920,46 @@ static int test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target(
   added = m68k_object_add_fixup(&object, &fixup);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000004.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_1_00000004:\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_1_00000000:\n\trts\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(3U, profile.accepted_instructions);
+  M68K_C_ASSERT(source_analysis.section_count >= 2U);
+  {
+    const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
+    size_t access_index;
+    for (access_index = 0U; access_index < analysis_section->expected_symbol_access_count; ++access_index) {
+      const M68kExpectedSymbolAccessIR *access = &analysis_section->expected_symbol_accesses[access_index];
+      if (access->offset == 0U &&
+          access->target_section_index == 1U &&
+          access->target_offset == 4U &&
+          access->operand_index == 0U &&
+          access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET &&
+          access->symbol_name != NULL &&
+          strcmp(access->symbol_name, "loc_1_00000004") == 0) {
+        saw_expected_branch_target_access = 1;
+      }
+    }
+    for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
+      const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
+      if (access->offset == 0U &&
+          access->target_section_index == 1U &&
+          access->target_offset == 4U &&
+          access->operand_index == 0U &&
+          access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET &&
+          access->symbol_name != NULL &&
+          strcmp(access->symbol_name, "loc_1_00000004") == 0) {
+        saw_rendered_branch_target_access = 1;
+      }
+    }
+  }
+  M68K_C_ASSERT(saw_expected_branch_target_access);
+  M68K_C_ASSERT(saw_rendered_branch_target_access);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;

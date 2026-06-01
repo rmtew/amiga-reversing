@@ -9654,8 +9654,8 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
 }
 
 static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
-    size_t section_index, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
-    uint8_t rendered_operand_symbol_mask);
+    const M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask);
 
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
@@ -9812,7 +9812,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   ++preview->asm_source_symbolic_instructions;
-  if (record_rendered_instruction_symbol_accesses(source_analysis, section->section_index, candidate,
+  if (record_rendered_instruction_symbol_accesses(source_analysis, lookup, section->section_index, candidate,
       &render_instruction, rendered.rendered_operand_symbol_mask) != 0) {
     return 0;
   }
@@ -9884,9 +9884,30 @@ static const M68kDecodeTarget *candidate_control_target_for_operand(const M68kDe
   return unique_unindexed_count == 1U ? unique_unindexed_target : NULL;
 }
 
+static const M68kFact *candidate_relocation_for_operand(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, size_t operand_index) {
+  const M68kFact *match = NULL;
+  uint32_t offset;
+  uint32_t end;
+  if (lookup == NULL || candidate == NULL) return NULL;
+  end = candidate->offset + candidate->byte_count;
+  for (offset = candidate->offset; offset < end; ++offset) {
+    const M68kFact *relocation = lookup_relocation_at(lookup, section_index, offset);
+    size_t relocated_operand_index = 0U;
+    if (relocation == NULL) continue;
+    if (!find_unique_relocation_operand(candidate, relocation, &relocated_operand_index) ||
+        relocated_operand_index != operand_index) {
+      continue;
+    }
+    if (match != NULL) return NULL;
+    match = relocation;
+  }
+  return match;
+}
+
 static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
-    size_t section_index, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
-    uint8_t rendered_operand_symbol_mask) {
+    const M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask) {
   M68kSectionAnalysisIR *section_analysis;
   size_t operand_index;
   if (source_analysis == NULL || candidate == NULL || instruction == NULL) return 0;
@@ -9905,9 +9926,16 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
     access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
     control_target = candidate_control_target_for_operand(candidate, operand_index);
     if (control_target != NULL) {
+      const M68kFact *relocation = candidate_relocation_for_operand(lookup, section_index, candidate,
+        operand_index);
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
-      access.target_section_index = (uint32_t)control_target->section_index;
-      access.target_offset = control_target->offset;
+      if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
+        access.target_section_index = (uint32_t)relocation->target_section_index;
+        access.target_offset = relocation->target_offset;
+      } else {
+        access.target_section_index = (uint32_t)control_target->section_index;
+        access.target_offset = control_target->offset;
+      }
       access.has_target = 1U;
     }
     if (m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access) != 0) return -1;
