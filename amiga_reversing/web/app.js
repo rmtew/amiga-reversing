@@ -3722,6 +3722,9 @@ function corpusFeatureLabel(feature) {
   if (text.startsWith("analysis:symbol_origin_confidence:")) return `Symbol origin confidence: ${text.split(":").pop()}`;
   if (text.startsWith("analysis:symbol_origin:")) return `Symbol origin: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text === "analysis:symbol_origin") return "Symbol origin";
+  if (text.startsWith("analysis:expected_symbol_access_kind:")) return `Expected symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:expected_symbol_access:")) return `Expected symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:expected_symbol_access") return "Expected symbol access";
   if (text.startsWith("analysis:rendered_symbol_access_kind:")) return `Rendered symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text.startsWith("analysis:rendered_symbol_access:")) return `Rendered symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text === "analysis:rendered_symbol_access") return "Rendered symbol access";
@@ -8085,6 +8088,9 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     );
   } catch (error) {
     if (isAbortError(error)) {
+      return null;
+    }
+    if (!ListingSession.shouldApplyResponse(requestSeq)) {
       return null;
     }
     throw error;

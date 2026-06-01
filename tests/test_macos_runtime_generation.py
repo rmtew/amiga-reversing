@@ -17,88 +17,78 @@ def _load_generator() -> ModuleType:
     return module
 
 
-def _record_by_name(metadata: dict[str, object], name: str) -> dict[str, object]:
-    records = metadata["records"]
-    assert isinstance(records, list)
-    return next(record for record in records if isinstance(record, dict) and record["name"] == name)
-
-
 def _field_by_name(record: dict[str, object], name: str) -> dict[str, object]:
     fields = record["fields"]
     assert isinstance(fields, list)
     return next(field for field in fields if isinstance(field, dict) and field["name"] == name)
 
 
-def _call_by_name(metadata: dict[str, object], name: str) -> dict[str, object]:
-    calls = metadata["calls"]
-    assert isinstance(calls, list)
-    return next(call for call in calls if isinstance(call, dict) and call["name"] == name)
-
-
-def test_record_extraction_covers_baseline_structs_with_source_evidence() -> None:
+def test_record_extraction_covers_struct_offsets_from_small_fixture() -> None:
     generator = _load_generator()
-    metadata = generator.extract_baseline_metadata()
+    rect = generator.parse_record(
+        [
+            "Rect RECORD 0",
+            "topLeft ds Point ; offset: $0000 (0)",
+            "bottom ds.w 1 ; offset: $0004 (4)",
+            "right ds.w 1 ; offset: $0006 (6)",
+            "sizeof EQU * ; size: $0008 (8)",
+            " ENDR",
+        ],
+        "Rect",
+        "fixture/MacTypes.a",
+        {"Point": 4},
+    )
 
-    rect = _record_by_name(metadata, "Rect")
     assert rect["size"] == 8
-    assert rect["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a"
-    assert rect["line"] == 490
+    assert rect["source"] == "fixture/MacTypes.a"
+    assert rect["line"] == 1
     assert _field_by_name(rect, "right")["offset"] == 6
     assert _field_by_name(rect, "right")["size"] == 2
     assert _field_by_name(rect, "topLeft")["offset"] == 0
     assert _field_by_name(rect, "topLeft")["size"] == 4
 
-    event = _record_by_name(metadata, "EventRecord")
-    assert event["size"] == 16
-    assert event["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a"
-    assert _field_by_name(event, "where")["offset"] == 10
-    assert _field_by_name(event, "where")["size"] == 4
-    assert _field_by_name(event, "where")["line"] == 135
 
-    volume = _record_by_name(metadata, "HVolumeParam")
-    assert volume["size"] == 122
-    assert volume["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a"
-    assert _field_by_name(volume, "ioNamePtr")["offset"] == 18
-    assert _field_by_name(volume, "ioNamePtr")["size"] == 4
-    assert _field_by_name(volume, "ioVolIndex")["offset"] == 28
-    assert _field_by_name(volume, "ioVFndrInfo")["size"] == 32
-
-
-def test_trap_extraction_covers_baseline_calls_with_register_protocol() -> None:
+def test_trap_extraction_covers_call_kinds_and_register_protocol_from_small_fixture() -> None:
     generator = _load_generator()
-    metadata = generator.extract_baseline_metadata()
-    calls = metadata["calls"]
-    assert isinstance(calls, list)
-    assert len(calls) > 800
+    opword_call = generator.parse_call_asm(
+        [
+            "; paramBlock => A0",
+            "; result <= D0",
+            "_PBHGetVInfoSync: OPWORD $A207",
+        ],
+        "_PBHGetVInfoSync",
+        "Files",
+        "fixture/Files.a",
+    )
+    prototype = generator.parse_c_prototype_metadata(
+        [
+            "EXTERN_API( void ) GetFNum(",
+            "  ConstStr255Param name,",
+            "  short * familyID",
+            ") ONEWORDINLINE(0xA900);",
+        ],
+        "GetFNum",
+    )
+    package_call = generator.parse_call_asm(
+        [
+            "NumToString PROC",
+            " dc.w $A9EE",
+            " ENDP",
+        ],
+        "NumToString",
+        "NumberFormatting",
+        "fixture/NumberFormatting.a",
+    )
 
-    get_resource = _call_by_name(metadata, "_GetResource")
-    assert get_resource["kind"] == "opword"
-    assert get_resource["opword"] == 0xA9A0
-    assert get_resource["family"] == "Resources"
-    assert get_resource["line"] == 425
-    assert "GetResource(" in get_resource["prototype"]
-
-    wait_next_event = _call_by_name(metadata, "_WaitNextEvent")
-    assert wait_next_event["opword"] == 0xA860
-    assert wait_next_event["family"] == "Events"
-
-    unload_seg = _call_by_name(metadata, "_UnloadSeg")
-    assert unload_seg["opword"] == 0xA9F1
-    assert unload_seg["family"] == "SegLoad"
-    assert unload_seg["kind"] == "opword"
-
-    load_seg = _call_by_name(metadata, "_LoadSeg")
-    assert load_seg["kind"] == "trap_constant"
-    assert load_seg["opword"] == 0xA9F0
-    assert load_seg["family"] == "Traps"
-    assert load_seg["source"] == "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Traps.h"
-
-    get_fnum = _call_by_name(metadata, "_GetFNum")
-    assert get_fnum["opword"] == 0xA900
-    assert get_fnum["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Fonts.a"
-    assert get_fnum["c_name"] == "GetFNum"
-    assert get_fnum["return_type"] == "void"
-    assert get_fnum["parameters"] == [
+    assert opword_call["kind"] == "opword"
+    assert opword_call["opword"] == 0xA207
+    assert opword_call["family"] == "Files"
+    assert opword_call["parameter_register"] == "A0"
+    assert opword_call["result_register"] == "D0"
+    assert prototype is not None
+    assert prototype["c_name"] == "GetFNum"
+    assert prototype["return_type"] == "void"
+    assert prototype["parameters"] == [
         {
             "name": "name",
             "type": "ConstStr255Param",
@@ -114,34 +104,30 @@ def test_trap_extraction_covers_baseline_calls_with_register_protocol() -> None:
             "index": 1,
         },
     ]
-
-    hget_vinfo = _call_by_name(metadata, "_PBHGetVInfoSync")
-    assert hget_vinfo["opword"] == 0xA207
-    assert hget_vinfo["parameter_register"] == "A0"
-    assert hget_vinfo["result_register"] == "D0"
-    assert "PBHGetVInfoSync(HParmBlkPtr paramBlock)" in hget_vinfo["prototype"]
-
-    new_ptr = _call_by_name(metadata, "_NewPtr")
-    assert new_ptr["opword"] == 0xA11E
-    assert new_ptr["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacMemory.a"
-    assert new_ptr["parameter_register"] == "D0"
-    assert new_ptr["result_register"] == "A0"
-
-    close_sync = _call_by_name(metadata, "_PBCloseSync")
-    assert close_sync["opword"] == 0xA001
-    assert close_sync["parameter_register"] == "A0"
-    assert close_sync["result_register"] == "D0"
+    assert package_call["kind"] == "package_macro"
+    assert package_call["opword"] == 0
+    assert package_call["package_word"] == 0xA9EE
 
 
 def test_num_to_string_is_package_macro_not_opword_alias() -> None:
     generator = _load_generator()
-    call = _call_by_name(generator.extract_baseline_metadata(), "_NumToString")
+    call = generator.parse_call_asm(
+        [
+            "NumToString PROC",
+            " move.l (a7)+,a0",
+            " dc.w $A9EE",
+            " jmp (a0)",
+            " ENDP",
+        ],
+        "NumToString",
+        "NumberFormatting",
+        "fixture/NumberFormatting.a",
+    )
 
     assert call["kind"] == "package_macro"
     assert call["opword"] == 0
     assert call["package_word"] == 0xA9EE
-    assert call["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/NumberFormatting.a"
-    assert "NumToString(" in call["prototype"]
+    assert call["source"] == "fixture/NumberFormatting.a"
 
 
 def test_generated_mac_os_runtime_metadata_is_current() -> None:

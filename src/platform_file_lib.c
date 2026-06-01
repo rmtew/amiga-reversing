@@ -47,6 +47,7 @@
 #define PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT (32U * 1024U * 1024U)
 
 static void platform_file_add_error(M68kDiagList *diagnostics, const char *message);
+static double elapsed_seconds(clock_t start_ticks, clock_t end_ticks);
 
 static size_t platform_self_decrunch_step_limit_for_output_local(uint32_t output_size) {
   size_t step_limit = output_size > PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT / 64U ?
@@ -2971,6 +2972,7 @@ typedef struct PlatformRecognizedUnpackerEvent {
   uint32_t copied_stub_transfer_offset;
   uint32_t copied_stub_transfer_site_offset;
   uint32_t native_execution_start_pc;
+  uint32_t native_execution_step_count;
   uint32_t lz_long_reference_bit_count;
   uint32_t entry_validation_accepted_instructions;
   uint32_t entry_validation_unsupported_instruction_demotes;
@@ -3826,6 +3828,7 @@ static int recognized_unpacker_try_native_copied_stub_local(const M68kObject *ob
     goto cleanup;
   }
   event->native_execution_attempted = 1U;
+  event->native_execution_step_count = result.step_count > UINT32_MAX ? UINT32_MAX : (uint32_t)result.step_count;
   event->native_execution_stop_reason = (uint8_t)result.stop_reason;
   if (result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE || result.memory_write_range_overflow ||
       result.memory_write_range_count == 0U) {
@@ -5059,8 +5062,10 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
   if (event->native_execution_attempted) {
     if (json_builder_appendf(builder, ",\"native_execution_attempted\":true,"
         "\"native_execution_start_pc\":%u,"
+        "\"native_execution_step_count\":%u,"
         "\"native_execution_stop_reason\":",
-        (unsigned)event->native_execution_start_pc) != 0 ||
+        (unsigned)event->native_execution_start_pc,
+        (unsigned)event->native_execution_step_count) != 0 ||
         json_builder_append_json_string(builder,
           self_decrunch_sim_stop_reason_name_local(event->native_execution_stop_reason)) != 0) {
       return -1;
@@ -5358,8 +5363,32 @@ static int append_decompression_event_json(JsonBuilder *builder,
   return json_builder_append(builder, "}");
 }
 
+typedef struct PlatformDecompressionAnalysisTiming {
+  double candidate_scan_seconds;
+  double provider_probe_seconds;
+  double self_decrunch_seconds;
+  double recognized_unpacker_seconds;
+  double event_json_seconds;
+} PlatformDecompressionAnalysisTiming;
+
+static int append_decompression_timing_json(JsonBuilder *builder,
+    const PlatformDecompressionAnalysisTiming *timing) {
+  if (builder == NULL || timing == NULL) return -1;
+  return json_builder_appendf(builder,
+    "{\"decompression_candidate_scan_seconds\":%.6f,"
+    "\"decompression_provider_probe_seconds\":%.6f,"
+    "\"decompression_self_decrunch_seconds\":%.6f,"
+    "\"decompression_recognized_unpacker_seconds\":%.6f,"
+    "\"decompression_event_json_seconds\":%.6f}",
+    timing->candidate_scan_seconds,
+    timing->provider_probe_seconds,
+    timing->self_decrunch_seconds,
+    timing->recognized_unpacker_seconds,
+    timing->event_json_seconds);
+}
+
 static int append_object_decompression_analysis_json(JsonBuilder *builder, const M68kObject *object,
-    const M68kSourceAnalysisIR *analysis) {
+    const M68kSourceAnalysisIR *analysis, PlatformDecompressionAnalysisTiming *timing) {
   const size_t result_capacity = 32U;
   const size_t self_decrunch_event_capacity = 16U;
   const size_t recognized_unpacker_event_capacity = 16U;
@@ -5374,8 +5403,10 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   size_t recognized_unpacker_event_count = 0U;
   size_t section_index;
   size_t emitted_event_count = 0U;
+  clock_t phase_start;
   int rc = -1;
   if (object == NULL || analysis == NULL) return -1;
+  if (timing != NULL) memset(timing, 0, sizeof(*timing));
   /* Keep JSON-pass scratch independent of analysis->arena. Decompression probes
      use marks and rewinds for temporary memory, while analysis->arena owns
      durable source-analysis records. */
@@ -5399,8 +5430,10 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     if (section->data == NULL || section->data_size == 0U || section_index >= analysis->section_count) continue;
     section_analysis = &analysis->sections[section_index];
     memset(candidates, 0, candidate_capacity * sizeof(*candidates));
+    phase_start = clock();
     candidate_count = platform_decompression_find_candidates_in_buffer("ancient-cli", section->data,
       section->data_size, candidates, candidate_capacity);
+    if (timing != NULL) timing->candidate_scan_seconds += elapsed_seconds(phase_start, clock());
     if (candidate_count > candidate_capacity)
       candidate_count = candidate_capacity;
     for (candidate_index = 0U; candidate_index < candidate_count && result_count < result_capacity;
@@ -5414,11 +5447,14 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       if (analysis_range_overlaps_accepted_code(section_analysis, candidate->offset, candidate->packed_size))
         continue;
       if (make_temp_output_path(output_path, sizeof(output_path)) != 0) goto cleanup;
+      phase_start = clock();
       if (platform_decompression_decompress_buffer_range("ancient-cli", "", section->data, section->data_size,
           candidate->offset, candidate->packed_size, output_path, &result, error, sizeof(error)) != 0) {
+        if (timing != NULL) timing->provider_probe_seconds += elapsed_seconds(phase_start, clock());
         remove(output_path);
         continue;
       }
+      if (timing != NULL) timing->provider_probe_seconds += elapsed_seconds(phase_start, clock());
       if (!result.found || !result.decompressed) {
         remove(output_path);
         continue;
@@ -5451,16 +5487,21 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       remove(output_path);
     }
   }
+  phase_start = clock();
   if (collect_self_decrunch_events_local(object, analysis, self_decrunch_events,
       self_decrunch_event_capacity, &self_decrunch_event_count,
       NULL, NULL, NULL, NULL, scratch_arena) != 0) {
     goto cleanup;
   }
+  if (timing != NULL) timing->self_decrunch_seconds += elapsed_seconds(phase_start, clock());
+  phase_start = clock();
   if (collect_recognized_unpacker_events_local(object, analysis, recognized_unpacker_events,
       recognized_unpacker_event_capacity,
       &recognized_unpacker_event_count, NULL, NULL, NULL, NULL, scratch_arena) != 0) {
     goto cleanup;
   }
+  if (timing != NULL) timing->recognized_unpacker_seconds += elapsed_seconds(phase_start, clock());
+  phase_start = clock();
   if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) goto cleanup;
   for (section_index = 0U; section_index < result_count; ++section_index) {
     if (section_index != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
@@ -5497,6 +5538,7 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     ++emitted_event_count;
   }
   if (json_builder_append(builder, "]") != 0) goto cleanup;
+  if (timing != NULL) timing->event_json_seconds += elapsed_seconds(phase_start, clock());
   rc = 0;
 
 cleanup:
@@ -5509,15 +5551,19 @@ static int append_analysis_executable_ranges_json(JsonBuilder *builder, const ch
 
 static int append_analysis_json_with_decompression_profile(JsonBuilder *builder, const char *base_json,
     const char *backend_name, const M68kObject *object, const M68kSourceAnalysisIR *analysis,
-    const M68kRenderPlan *source_plan, const M68kFactsV2Profile *profile) {
+    const M68kRenderPlan *source_plan, const M68kFactsV2Profile *profile,
+    PlatformDecompressionAnalysisTiming *out_decompression_timing) {
+  PlatformDecompressionAnalysisTiming decompression_timing;
   size_t base_len;
   if (builder == NULL || base_json == NULL || backend_name == NULL || object == NULL || analysis == NULL) return -1;
+  memset(&decompression_timing, 0, sizeof(decompression_timing));
   base_len = strlen(base_json);
   if (base_len == 0U || base_json[base_len - 1U] != '}') return -1;
   if (json_builder_appendf(builder, "%.*s", (int)(base_len - 1U), base_json) != 0)
     return -1;
-  if (append_object_decompression_analysis_json(builder, object, analysis) != 0)
+  if (append_object_decompression_analysis_json(builder, object, analysis, &decompression_timing) != 0)
     return -1;
+  if (out_decompression_timing != NULL) *out_decompression_timing = decompression_timing;
   if (append_analysis_executable_ranges_json(builder, backend_name, object) != 0)
     return -1;
   if (append_analysis_restored_source_model_json(builder, backend_name, object, source_plan) != 0)
@@ -5546,6 +5592,8 @@ static int append_analysis_json_with_decompression_profile(JsonBuilder *builder,
     if (json_builder_append(builder,
         ",\"profile\":{\"generation\":\"facts_v2_analysis\",\"analysis_backend\":\"facts_v2\",\"facts_v2\":") != 0 ||
         json_builder_append_facts_v2_profile(builder, profile) != 0 ||
+        json_builder_append(builder, ",\"decompression\":") != 0 ||
+        append_decompression_timing_json(builder, &decompression_timing) != 0 ||
         json_builder_append(builder, "}") != 0)
       return -1;
   }
@@ -10291,7 +10339,7 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const char *backend_
   if (json_result == 0) {
     if (json_builder_create(&builder) != 0 ||
         append_analysis_json_with_decompression_profile(&builder, base_json, backend_name, object, workflow.analysis,
-          NULL, workflow.profile) != 0) {
+          NULL, workflow.profile, NULL) != 0) {
       json_result = -1;
     } else {
       result.text = json_builder_build(&builder);
@@ -11897,7 +11945,9 @@ int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileList
   char *json = NULL;
   clock_t analysis_start;
   clock_t analysis_end;
+  PlatformDecompressionAnalysisTiming decompression_timing;
   memset(&result, 0, sizeof(result));
+  memset(&decompression_timing, 0, sizeof(decompression_timing));
   if (out_text == NULL) return -1;
   *out_text = NULL;
   if (artifact == NULL) {
@@ -11918,7 +11968,7 @@ int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileList
   }
   if (analysis_json == NULL ||
       append_analysis_json_with_decompression_profile(&builder, analysis_json, artifact->backend_name, &artifact->object,
-        &artifact->source_analysis, &artifact->source_plan, NULL) != 0) {
+        &artifact->source_analysis, &artifact->source_plan, NULL, &decompression_timing) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;
   }
@@ -11929,6 +11979,8 @@ int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileList
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      json_builder_append(&builder, ",\"decompression\":") != 0 ||
+      append_decompression_timing_json(&builder, &decompression_timing) != 0 ||
       json_builder_appendf(&builder,
         ",\"timing\":{\"source_seconds\":%.6f,\"analysis_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
         artifact->source_seconds, elapsed_seconds(analysis_start, analysis_end),

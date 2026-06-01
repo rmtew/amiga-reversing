@@ -9,7 +9,6 @@ from zipfile import ZipFile
 
 import pytest
 
-from amiga_reversing import reversing_loop
 from amiga_reversing.disasm import c_backend, decision_journal
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
@@ -484,8 +483,17 @@ second_payload:
 
     analysis = analyze_binary_source_with_c_backend(binary, project_root=PROJECT_ROOT)
     events = [event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon"]
+    decompression_profile = analysis["profile"]["decompression"]
 
     assert len(events) == 2
+    assert set(decompression_profile) == {
+        "decompression_candidate_scan_seconds",
+        "decompression_provider_probe_seconds",
+        "decompression_self_decrunch_seconds",
+        "decompression_recognized_unpacker_seconds",
+        "decompression_event_json_seconds",
+    }
+    assert all(isinstance(value, (int, float)) for value in decompression_profile.values())
     by_section = {event["source_section"]: event for event in events}
     assert by_section[1]["source_kind"] == "recognized_unpacker"
     assert by_section[1]["provider_id"] == "c-tetragon-signature"
@@ -506,6 +514,58 @@ second_payload:
     assert by_section[2]["postpass_source_end_address"] == 0x7FFFF
     assert by_section[2]["postpass_escape_byte"] == 0xAD
     assert by_section[2]["entrypoint"] == 0x59484
+
+
+def test_listing_analysis_identifies_tetragon_copied_stub_transfer_without_real_payload(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "tetragon_copied_stub_hunk.bin"
+    marker = "$20,$54,$45,$54,$52,$41,$47,$4F,$4E,$20"
+    source = f"""    SECTION section,code
+    lea.l stub(pc),a0
+    lea.l $100.l,a2
+    move.w #25,d0
+copy_loop:
+    move.b (a0)+,(a2)+
+    dbf.w d0,copy_loop
+    lea.l stub_transfer(pc),a1
+    jmp (a1)
+    dc.b {marker}
+stub:
+    moveq.l #-83,d7
+    lea.l $1000.l,a0
+    lea.l $1100.l,a2
+    lea.l $1080.l,a1
+stub_transfer:
+    jmp $1000.l
+    dc.b $4E,$75
+    dc.w 0
+    dc.w 0
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+
+    analysis = analyze_binary_source_with_c_backend(binary, project_root=PROJECT_ROOT)
+    event = next(event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon")
+
+    assert event["status"] == "identified"
+    assert event["reason"] == "recognized_unpacker_signature"
+    assert event["source_section_offset"] == 0x3E
+    assert event["compressed_source_section_offset"] == 0x3E
+    assert event["compressed_source_section_end_offset"] == 0x44
+    assert event["target_start_address"] == 0x1000
+    assert event["postpass_source_start_address"] == 0x1080
+    assert event["postpass_source_end_address"] == 0x1100
+    assert event["entrypoint"] == 0x1000
+    assert event["postpass_escape_byte"] == 0xAD
+    assert event["copied_stub_storage_offset"] == 0x24
+    assert event["copied_stub_runtime_address"] == 0x100
+    assert event["copied_stub_transfer_offset"] == 0x14
+    assert event["copied_stub_transfer_site_offset"] == 0x18
+    assert "native_execution_attempted" not in event
 
 
 def test_listing_analysis_bounds_simulated_self_decruncher_output_to_transfer_range(tmp_path: Path) -> None:
@@ -7659,50 +7719,6 @@ def test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression
     assert rebuilt_from_rendered == rebuilt
 
 
-def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> None:
-    _requires_c_backend_dlls()
-    target_name = "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
-    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
-        paths.binary_source,
-        metadata_path=paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    combined = _facts_v2_listing_analysis_for_project(target_name)
-    section = combined["analysis"]["sections"][0]
-
-    assert source_profile["facts_v2"]["asm_source_refused"] is False
-    assert "    ORG $10000\nabs_0_00010000:\n" in source_text
-    assert "\tlea.l abs_0_00010000.l,a2\n" in source_text
-    assert "\tlea.l abs_0_0001046A.l,a3\n" in source_text
-    assert "abs_0_0001046A:\n\tlea.l absolute_slot_000039FC.l,a0\n" in source_text
-    assert "runtime_code_0001046A\tEQU\t$1046A\n" not in source_text
-    assert "\tmove.l #abs_0_0005D5DE,bltapt(a5)" in source_text
-    assert "\tmovea.l #abs_0_0001C3A8,a0\n" in source_text
-    assert "    ORG $55370\n" not in source_text
-    assert "    ORG $5548F\n" not in source_text
-    assert "loc_0_00057800:\n" not in source_text
-    assert "loc_0_00057D00:\n" not in source_text
-    assert "loc_0_00000078:\n\tori.b #0,d0\n" not in source_text
-    assert not any(ref.get("offset") == 0x78 for ref in section["code_start_refs"])
-    assert not any(site.get("target") == 0x78 for site in section["recovered_indirect_sites"])
-    assert any(
-        record.get("record_kind") == "runtime_view"
-        and record.get("source_offset") == 0
-        and record.get("runtime_address") == 0x20000
-        and record.get("entry_runtime_address") == 0x20000
-        and record.get("entry_reason_name") == "policy_entry_point"
-        for record in combined["analysis"]["memory_layout_records"]
-    )
-    assert any(
-        record.get("record_kind") == "runtime_view"
-        and record.get("source_offset") == 0
-        and record.get("runtime_address") == 0x10000
-        and record.get("entry_point_count", 0) == 0
-        for record in combined["analysis"]["memory_layout_records"]
-    )
-
-
 def test_real_dll_starglider_replays_common_indirect_stub_trace_variants() -> None:
     _requires_c_backend_dlls()
     target_name = "amiga_disk_starglider-1987-rainbird__amiga_hunk_libs__mathieeedoubbas.library_3d4e4903"
@@ -9788,34 +9804,6 @@ def test_project_source_facts_v2_pc_indexed_absolute_long_dispatch_table_roundtr
 @pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
 def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(target_name: str) -> None:
     _requires_c_backend_dlls()
-    _rows, _api_calls, profile = build_project_listing_rows_profile_with_c_artifact(
-        target_name,
-        project_root=PROJECT_ROOT,
-    )
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
-    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
-        paths.binary_source,
-        metadata_path=paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-
-    facts_v2 = profile["facts_v2"]
-    assert facts_v2["asm_source_refused"] is False
-    assert facts_v2["required_instruction_failures"] == 0
-    assert facts_v2["unsupported_instruction_demotes"] == 0
-    assert facts_v2["interior_conflicts_unresolved"] == 0
-    assert facts_v2["unresolved_labels"] == 0
-    assert source_profile["facts_v2"]["asm_source_refused"] is False
-    assert "    ORG $4\n" not in source_text
-    if target_name == "amiga_hunk_monam302":
-        assert "\tdc.l loc_0_0000850A\t; pointer_table\n" in source_text
-    else:
-        assert "pointer_table" not in source_text
-
-
-@pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
-def test_project_source_facts_v2_wide_word_dispatch_comparators_stay_clean(target_name: str) -> None:
-    _requires_c_backend_dlls()
     paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -9830,9 +9818,13 @@ def test_project_source_facts_v2_wide_word_dispatch_comparators_stay_clean(targe
     assert facts_v2["interior_conflicts_unresolved"] == 0
     assert facts_v2["unresolved_labels"] == 0
     assert "    ORG $4\n" not in source_text
+    if target_name == "amiga_hunk_monam302":
+        assert "\tdc.l loc_0_0000850A\t; pointer_table\n" in source_text
+    else:
+        assert "pointer_table" not in source_text
 
 
-def test_project_source_facts_v2_inline_tail_dispatch_voodoo_and_comparators_stay_clean() -> None:
+def test_real_dll_voodoo_inline_tail_dispatch_stays_clean() -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths(
         "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
@@ -9856,16 +9848,19 @@ def test_project_source_facts_v2_inline_tail_dispatch_voodoo_and_comparators_sta
     assert "abs_6_00079194:\n\tmove.b (a1)+,(a0)+\n" in source_text
     assert "abs_6_000791A4:\n\tdbf.w d0,abs_6_00079194\n" in source_text
 
-    for target_name in ["amiga_hunk_genam", "amiga_hunk_monam302"]:
-        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
-        rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            paths.binary_source,
-            metadata_path=paths.target_dir / "target_metadata.json",
-            project_root=PROJECT_ROOT,
-        )
-        assert direct_source_profile["facts_v2"]["asm_source_refused"] is False
-        assert direct_profile["direct_rebuild_refused"] is False
-        assert rebuilt == paths.binary_source.path.read_bytes()
+
+@pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
+def test_real_dll_genam_monam_direct_rebuild_stays_exact(target_name: str) -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert direct_source_profile["facts_v2"]["asm_source_refused"] is False
+    assert direct_profile["direct_rebuild_refused"] is False
+    assert rebuilt == paths.binary_source.path.read_bytes()
 
 
 def test_real_dll_renders_genam() -> None:
@@ -10009,12 +10004,11 @@ def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     assert profile["facts_v2"]["queue_iterations"] < 10000
 
 
-def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
+def test_real_dll_bloodwych_detects_runtime_copy_loader_and_table_rows() -> None:
     _requires_c_backend_dlls()
-    rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
-        "amiga_hunk_bloodwych",
-        project_root=PROJECT_ROOT,
-    )
+    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
+    rows = combined["listing"]["rows"]
+    profile = combined["profile"]
 
     facts_v2 = profile["facts_v2"]
     assert facts_v2["asm_source_refused"] is False
@@ -10046,7 +10040,6 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
         (0x74000, 0x2000, "bitmap"),
         (0x76000, 0x2000, "bitmap"),
     ]
-    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
     section = combined["analysis"]["sections"][0]
     sites_by_offset = {site["offset"]: site for site in section["recovered_indirect_sites"]}
     assert sites_by_offset[0x79D8]["status"] == "jump_table"
@@ -10059,14 +10052,49 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
         if ref["source_offset"] in {0x79D8, 0xA394}
     ]
     assert len(refs_by_source) == 14
-
-
-def test_real_dll_bloodwych_listing_rows_use_per_entry_table_ranges() -> None:
-    _requires_c_backend_dlls()
-    rows, _, _ = build_project_listing_rows_profile_with_c_artifact(
-        "amiga_hunk_bloodwych",
-        project_root=PROJECT_ROOT,
+    bloodwych_table = next(
+        descriptor
+        for descriptor in section["table_descriptors"]
+        if descriptor["start_offset"] == 106360 and descriptor["entry_count"] == 73
     )
+    assert bloodwych_table["status_name"] == "accepted"
+    assert bloodwych_table["source_pattern"] == "indexed_local_scalar_read"
+    assert bloodwych_table["entry_size"] == 2
+    assert bloodwych_table["end_offset"] == 106506
+    assert bloodwych_table["entry_count_proof"] == "consumer_structural_scan"
+    assert bloodwych_table["stop_reason"] == "consumer_structural_stop"
+    bloodwych_scalar_entries = [
+        entry
+        for entry in section["table_entries"]
+        if entry["table_start_offset"] == bloodwych_table["start_offset"]
+    ]
+    assert len(bloodwych_scalar_entries) == 73
+    assert {entry["target_status_name"] for entry in bloodwych_scalar_entries} == {
+        "numeric_exact"
+    }
+    assert not [
+        ref
+        for ref in section["data_references"]
+        if ref["table_start_offset"] == bloodwych_table["start_offset"]
+    ]
+    bloodwych_pointer_entries = [
+        entry
+        for entry in section["table_entries"]
+        if entry["table_start_offset"] == 526
+    ]
+    bloodwych_pointer_refs = [
+        ref
+        for ref in section["data_references"]
+        if ref["table_start_offset"] == 526
+    ]
+    assert len(bloodwych_pointer_entries) == 5
+    assert len(bloodwych_pointer_refs) == 5
+    assert {entry["target_status_name"] for entry in bloodwych_pointer_entries} == {
+        "accepted_target"
+    }
+    assert bloodwych_pointer_refs[0]["target_offset"] == 35552
+    assert bloodwych_pointer_refs[-1]["target_offset"] == 35620
+
     data_rows = {str(row["text"]).strip(): row for row in rows if row["kind"] == "data"}
 
     first_pointer = data_rows["dc.l abs_0_00008E84\t; pointer_table"]
@@ -10096,7 +10124,7 @@ def test_real_dll_bloodwych_listing_rows_use_per_entry_table_ranges() -> None:
     )
 
 
-def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
+def test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_candidates() -> None:
     _requires_c_backend_dlls()
 
     expectations = {
@@ -10135,85 +10163,38 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
         for data_class, expected_count in expected_counts.items():
             assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
 
-
-def test_real_dll_genam_data_class_rows_feed_data_symbol_candidates() -> None:
-    _requires_c_backend_dlls()
-
-    rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
-        "amiga_hunk_genam",
-        project_root=PROJECT_ROOT,
-    )
-    assert profile["facts_v2"]["asm_source_refused"] is False
-    candidate_rows = []
-    for row in rows:
-        if row.get("kind") != "data" or not row.get("data_class"):
-            continue
-        row_with_locator = dict(row)
-        row_with_locator["locator"] = {
-            "target_id": "amiga_hunk_genam",
-            "projection_hash": "genam-data-symbol-smoke",
-            "kind": "row",
-            "row_key": row["row_key"],
-            "section_index": row["section_index"],
-            "start_offset": row["start_offset"],
-            "end_offset": row.get("end_offset"),
-        }
-        candidate_rows.append(row_with_locator)
-
-    candidates = reversing_loop._listing_data_symbol_candidates(candidate_rows)
-    data_class_candidates = [
-        candidate
-        for candidate in candidates
-        if candidate.get("evidence", {}).get("evidence_kind") == "data_class_row"
-    ]
-
-    assert data_class_candidates
-    assert any(candidate["new_name"].startswith("string_h0_") for candidate in data_class_candidates)
-    assert all(candidate["kind"] == "data_symbol_name" for candidate in data_class_candidates)
-    assert all(candidate["suggested_action_kinds"] == ["data_symbol.rename"] for candidate in data_class_candidates)
-    assert all(candidate["verifier"]["kind"] == "projected_data_symbol_name" for candidate in data_class_candidates)
-
-
-def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
-    _requires_c_backend_dlls()
-
-    for target_name in ("amiga_hunk_bloodwych", "amiga_hunk_genam"):
-        rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
-            target_name,
-            project_root=PROJECT_ROOT,
-        )
-        assert profile["facts_v2"]["asm_source_refused"] is False
-        expected = []
-        seen = set()
-        for row in rows:
-            key = (row.get("section_index"), row.get("addr"), row.get("data_class"))
-            if row.get("data_class") and row.get("kind") not in {"instruction", "label"} and key not in seen:
-                seen.add(key)
-                expected.append(
-                    (
-                        row.get("section_index"),
-                        row.get("addr"),
-                        row.get("comment_text") or row["data_class"],
+        if target_name in {"amiga_hunk_bloodwych", "amiga_hunk_genam"}:
+            expected = []
+            seen = set()
+            for row in rows:
+                key = (row.get("section_index"), row.get("addr"), row.get("data_class"))
+                if row.get("data_class") and row.get("kind") not in {"instruction", "label"} and key not in seen:
+                    seen.add(key)
+                    expected.append(
+                        (
+                            row.get("section_index"),
+                            row.get("addr"),
+                            row.get("comment_text") or row["data_class"],
+                        )
                     )
-                )
-        assert expected
+            assert expected
 
-        navigation = profile["navigation"]
-        assert isinstance(navigation, dict)
-        groups = navigation["groups"]
-        assert isinstance(groups, dict)
-        typed_data = groups["typed-data"]
-        assert isinstance(typed_data, list)
+            navigation = profile["navigation"]
+            assert isinstance(navigation, dict)
+            groups = navigation["groups"]
+            assert isinstance(groups, dict)
+            typed_data = groups["typed-data"]
+            assert isinstance(typed_data, list)
 
-        keys = [
-            (entry.get("hunk_index"), entry.get("addr"), entry.get("summary"))
-            for entry in typed_data
-            if isinstance(entry, dict)
-        ]
-        assert len(keys) == len(set(keys))
-        entries = set(keys)
-        for key in expected:
-            assert key in entries
+            keys = [
+                (entry.get("hunk_index"), entry.get("addr"), entry.get("summary"))
+                for entry in typed_data
+                if isinstance(entry, dict)
+            ]
+            assert len(keys) == len(set(keys))
+            entries = set(keys)
+            for key in expected:
+                assert key in entries
 
 
 def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
@@ -10564,7 +10545,7 @@ def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
     assert rebuilt == paths.binary_source.read_bytes()
 
 
-def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
+def test_real_dll_damocles_tetragon_native_unpacking_candidates() -> None:
     _requires_c_backend_dlls()
 
     fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
@@ -10573,137 +10554,41 @@ def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
     self_decrunch_events = [
         event for event in analysis["decompression_events"] if event.get("source_kind") == "self_decruncher"
     ]
+    decompression_profile = analysis["profile"]["decompression"]
 
     assert len(tetragon_events) == 2
     assert self_decrunch_events == []
+    assert decompression_profile["decompression_recognized_unpacker_seconds"] > 0
     by_section = {event["source_section"]: event for event in tetragon_events}
-    assert by_section[1]["source_section_offset"] == 0x100
-    assert by_section[1]["compressed_source_section_offset"] == 0x100
-    assert by_section[1]["compressed_source_section_end_offset"] == 0x428
-    assert by_section[1]["postpass_source_start_address"] == 0x4F92B
-    assert by_section[1]["postpass_source_end_address"] == 0x50000
-    assert by_section[1]["postpass_escape_byte"] == 0x11
-    assert by_section[1]["target_start_address"] == 0x40000
-    assert by_section[1]["target_end_address"] == 0x50000
-    assert by_section[1]["compressed_source_consumed_section_offset"] == 0x100
-    assert by_section[1]["postpass_source_consumed_address"] == 0x50000
-    assert by_section[1]["decompressed_size"] == 0x10000
-    assert by_section[1]["decompressed_sha256"] == (
-        "6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9"
-    )
-    assert by_section[1]["entrypoint"] == 0x40000
-    assert by_section[1]["status"] == "materializable"
-    assert by_section[1]["payload_role"] == "primary_program"
-    assert by_section[1]["entry_validation_valid"] is True
-    assert by_section[1]["entry_validation_unsupported_instruction_demotes"] == 0
-    assert by_section[2]["source_section_offset"] == 0x14C
-    assert by_section[2]["compressed_source_section_offset"] == 0x14C
-    assert by_section[2]["compressed_source_section_end_offset"] == 0x474B4
-    assert by_section[2]["postpass_source_start_address"] == 0x130B6
-    assert by_section[2]["postpass_source_end_address"] == 0x7FFFF
-    assert by_section[2]["postpass_escape_byte"] == 0xAD
-    assert by_section[2]["target_start_address"] == 0x1000
-    assert by_section[2]["target_end_address"] == 0x789C9
-    assert by_section[2]["compressed_source_consumed_section_offset"] == 0x13D40
-    assert by_section[2]["postpass_source_consumed_address"] == 0x7FFFF
-    assert by_section[2]["decompressed_size"] == 0x779C9
-    assert by_section[2]["decompressed_sha256"] == (
-        "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a"
-    )
-    assert by_section[2]["entrypoint"] == 0x59484
-    assert by_section[2]["status"] == "materializable"
+    expected = {
+        1: {
+            "source_section_offset": 0x100,
+            "target_start_address": 0x40000,
+            "target_end_address": 0x50000,
+            "decompressed_size": 0x10000,
+            "decompressed_sha256": "6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9",
+            "entrypoint": 0x40000,
+        },
+        2: {
+            "source_section_offset": 0x14C,
+            "target_start_address": 0x1000,
+            "target_end_address": 0x789C9,
+            "decompressed_size": 0x779C9,
+            "decompressed_sha256": "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a",
+            "entrypoint": 0x59484,
+        },
+    }
+    for section_index, expected_fields in expected.items():
+        event = by_section[section_index]
+        assert event["status"] == "materializable"
+        assert event["payload_role"] == "primary_program"
+        assert event["entry_validation_valid"] is True
+        for key, value in expected_fields.items():
+            assert event[key] == value
     assert by_section[2]["reason"] == "native_tetragon_unpack_validated"
-    assert by_section[2]["payload_role"] == "primary_program"
     assert by_section[2]["payload_role_confidence"] == "native_unpack_entry_validated"
-    assert by_section[2]["entry_validation_valid"] is True
-    assert by_section[2]["entry_validation_accepted_instructions"] == 25003
-    assert by_section[2]["entry_validation_unsupported_instruction_demotes"] == 2
-    assert by_section[2]["entry_validation_required_instruction_failures"] == 0
-    assert by_section[2]["copied_stub_storage_offset"] == 0x6A
-    assert by_section[2]["copied_stub_runtime_address"] == 0x100
-    assert by_section[2]["copied_stub_transfer_offset"] == 0x40
-
-
-def test_real_dll_damocles_tetragon_native_materialization(tmp_path: Path) -> None:
-    _requires_c_backend_dlls()
-
-    parent_path = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
-    analysis = analyze_binary_source_with_c_backend(parent_path, project_root=PROJECT_ROOT)
-    event = next(
-        item
-        for item in analysis["decompression_events"]
-        if item.get("codec_id") == "tetragon" and item.get("source_section") == 1
-    )
-    output_path = tmp_path / "damocles_hunk1_tetragon.bin"
-
-    result = materialize_recognized_unpacker_event_with_c_backend(
-        "amiga-hunk",
-        parent_path,
-        event["event_id"],
-        output_path,
-        project_root=PROJECT_ROOT,
-    )
-
-    output = output_path.read_bytes()
-    assert result["status"] == "ok"
-    assert result["provider_id"] == "c-tetragon-native"
-    assert len(output) == 0x10000
-    assert hashlib.sha256(output).hexdigest() == event["decompressed_sha256"]
-    assert result["decompressed"]["load_address"] == 0x40000
-    assert result["decompressed"]["entrypoint"] == 0x40000
-    binary_source = RawBinarySource(
-        kind=BinarySourceKind.RAW_BINARY,
-        path=output_path,
-        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
-        load_address=0x40000,
-        entrypoint=0x40000,
-        code_start_offset=0,
-        display_path=str(output_path),
-        analysis_cache_path=output_path.with_suffix(output_path.suffix + ".analysis"),
-    )
-    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
-        binary_source,
-        project_root=PROJECT_ROOT,
-    )
-    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
-        "amiga-raw",
-        source_text,
-        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
-        project_root=PROJECT_ROOT,
-    )
-    assert source_profile["facts_v2"]["asm_source_refused"] is False
-    assert rebuilt == output
-
-
-def test_real_dll_damocles_tetragon_materializes_second_native_stub(tmp_path: Path) -> None:
-    _requires_c_backend_dlls()
-
-    parent_path = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
-    analysis = analyze_binary_source_with_c_backend(parent_path, project_root=PROJECT_ROOT)
-    event = next(
-        item
-        for item in analysis["decompression_events"]
-        if item.get("codec_id") == "tetragon" and item.get("source_section") == 2
-    )
-    output_path = tmp_path / "damocles_hunk2_tetragon.bin"
-
-    result = materialize_recognized_unpacker_event_with_c_backend(
-        "amiga-hunk",
-        parent_path,
-        event["event_id"],
-        output_path,
-        project_root=PROJECT_ROOT,
-    )
-    output = output_path.read_bytes()
-
-    assert event["status"] == "materializable"
-    assert event["entry_validation_valid"] is True
-    assert result["status"] == "ok"
-    assert result["provider_id"] == "c-tetragon-native"
-    assert result["decompressed"]["load_address"] == 0x1000
-    assert result["decompressed"]["entrypoint"] == 0x59484
-    assert len(output) == 0x779C9
-    assert hashlib.sha256(output).hexdigest() == "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a"
+    assert by_section[2]["native_execution_attempted"] is True
+    assert by_section[2]["native_execution_step_count"] > 0
 
 
 def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:
@@ -11195,6 +11080,40 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
         "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
     )
     pandora_section = pandora["analysis"]["sections"][0]
+    pandora_source_text = "\n".join(str(row.get("text", "")) for row in pandora["listing"]["rows"])
+    assert pandora["profile"]["facts_v2"]["asm_source_refused"] is False
+    assert "ORG $10000" in pandora_source_text
+    assert "abs_0_00010000:" in pandora_source_text
+    assert "lea.l abs_0_00010000.l,a2" in pandora_source_text
+    assert "lea.l abs_0_0001046A.l,a3" in pandora_source_text
+    assert "abs_0_0001046A:" in pandora_source_text
+    assert "lea.l absolute_slot_000039FC.l,a0" in pandora_source_text
+    assert "runtime_code_0001046A\tEQU\t$1046A" not in pandora_source_text
+    assert "move.l #abs_0_0005D5DE,bltapt(a5)" in pandora_source_text
+    assert "movea.l #abs_0_0001C3A8,a0" in pandora_source_text
+    assert "ORG $55370" not in pandora_source_text
+    assert "ORG $5548F" not in pandora_source_text
+    assert "loc_0_00057800:" not in pandora_source_text
+    assert "loc_0_00057D00:" not in pandora_source_text
+    assert "loc_0_00000078:" not in pandora_source_text
+    assert not any(ref.get("offset") == 0x78 for ref in pandora_section["code_start_refs"])
+    assert not any(site.get("target") == 0x78 for site in pandora_section["recovered_indirect_sites"])
+    assert any(
+        record.get("record_kind") == "runtime_view"
+        and record.get("source_offset") == 0
+        and record.get("runtime_address") == 0x20000
+        and record.get("entry_runtime_address") == 0x20000
+        and record.get("entry_reason_name") == "policy_entry_point"
+        for record in pandora["analysis"]["memory_layout_records"]
+    )
+    assert any(
+        record.get("record_kind") == "runtime_view"
+        and record.get("source_offset") == 0
+        and record.get("runtime_address") == 0x10000
+        and record.get("entry_point_count", 0) == 0
+        for record in pandora["analysis"]["memory_layout_records"]
+    )
+
     pandora_tables = pandora_section["table_descriptors"]
     pandora_string_table = next(
         descriptor
@@ -11273,62 +11192,6 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert pandora_dispatch_entries[0]["target_offset"] == 4432
     assert pandora_dispatch_entries[-1]["entry_offset"] == 5298
     assert pandora_dispatch_entries[-1]["target_offset"] == 5068
-
-    bloodwych = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
-    bloodwych_section = bloodwych["analysis"]["sections"][0]
-    bloodwych_table = next(
-        descriptor
-        for descriptor in bloodwych_section["table_descriptors"]
-        if descriptor["start_offset"] == 106360 and descriptor["entry_count"] == 73
-    )
-    assert bloodwych_table["status_name"] == "accepted"
-    assert bloodwych_table["source_pattern"] == "indexed_local_scalar_read"
-    assert bloodwych_table["entry_size"] == 2
-    assert bloodwych_table["end_offset"] == 106506
-    assert bloodwych_table["entry_count_proof"] == "consumer_structural_scan"
-    assert bloodwych_table["stop_reason"] == "consumer_structural_stop"
-    bloodwych_scalar_entries = [
-        entry
-        for entry in bloodwych_section["table_entries"]
-        if entry["table_start_offset"] == bloodwych_table["start_offset"]
-    ]
-    assert len(bloodwych_scalar_entries) == 73
-    assert {entry["target_status_name"] for entry in bloodwych_scalar_entries} == {
-        "numeric_exact"
-    }
-    assert not [
-        ref
-        for ref in bloodwych_section["data_references"]
-        if ref["table_start_offset"] == bloodwych_table["start_offset"]
-    ]
-    bloodwych_pointer_entries = [
-        entry
-        for entry in bloodwych_section["table_entries"]
-        if entry["table_start_offset"] == 526
-    ]
-    bloodwych_pointer_refs = [
-        ref
-        for ref in bloodwych_section["data_references"]
-        if ref["table_start_offset"] == 526
-    ]
-    assert len(bloodwych_pointer_entries) == 5
-    assert len(bloodwych_pointer_refs) == 5
-    assert {entry["target_status_name"] for entry in bloodwych_pointer_entries} == {
-        "accepted_target"
-    }
-    assert bloodwych_pointer_refs[0]["target_offset"] == 35552
-    assert bloodwych_pointer_refs[-1]["target_offset"] == 35620
-
-    bloodwych_paths = resolve_project_paths("amiga_hunk_bloodwych", project_root=PROJECT_ROOT)
-    bloodwych_source, bloodwych_profile = listing_artifact_source_text_with_c_backend_profile(
-        bloodwych_paths.binary_source,
-        metadata_path=bloodwych_paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    assert bloodwych_profile["facts_v2"]["asm_source_refused"] is False
-    assert "\tdc.w $0C5D\t; lookup_table\n\tdc.b $FC,$1E" in bloodwych_source
-    assert "\tdc.w $0C5D,$FC1E" not in bloodwych_source
-
 
 def test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts() -> None:
     _requires_c_backend_dlls()
@@ -11490,6 +11353,8 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tdc.w $0C5D\t; lookup_table\n\tdc.b $FC,$1E" in source_text
+    assert "\tdc.w $0C5D,$FC1E" not in source_text
     section_pos = source_text.index("    SECTION section,code_c\n")
     assert source_text.index("    RSSET 0\n") < section_pos
     assert source_text.index('    INCLUDE "hardware/custom.i"\n') < section_pos

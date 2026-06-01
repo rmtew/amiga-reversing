@@ -6,7 +6,11 @@ from typing import Any, cast
 import pytest
 
 from amiga_reversing.disasm import macos_project_payload
-from amiga_reversing.disasm.macos_target_artifact import MACOS_EXAMPLE_ASM_RELPATH
+from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
+from amiga_reversing.disasm.macos_target_artifact import (
+    MACOS_EXAMPLE_ASM_RELPATH,
+    render_macos_example_asm_from_payload,
+)
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.tools import platform_executable_formats
@@ -1119,6 +1123,155 @@ def test_macos_source_quality_residuals_are_split_by_ownership_range() -> None:
     ]
 
 
+def test_macos_source_quality_gate_accepts_compact_source_packet() -> None:
+    details = [
+        {
+            "id": 0,
+            "name": "unknown",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "payload_size": 16,
+        },
+        {
+            "id": 1,
+            "name": "Main",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "payload_size": 8,
+        },
+        {
+            "id": 2,
+            "name": "Helper",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "payload_size": 4,
+            "navigation_anchors": [
+                {
+                    "kind": "candidate_routine_entry",
+                    "label": "CODE_2_loc_00000000",
+                    "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+                    "fact_status": "candidate",
+                    "parser_use": "candidate_only",
+                }
+            ],
+        },
+    ]
+    sections = [
+        {
+            "id": 0,
+            "label": "CODE_0",
+            "source_section_id": "macos-code-CODE-0",
+            "source_visible": True,
+            "source_body_ranges": [
+                {"kind": "metadata", "start": 0, "end": 16, "size": 16, "fact_status": "validated"}
+            ],
+            "code0_structured_context": {
+                "jump_table_rows": [
+                    {
+                        "entry_index": 0,
+                        "target_resource_id": 1,
+                        "routine_offset_from_segment": 4,
+                    }
+                ]
+            },
+        },
+        {
+            "id": 1,
+            "label": "CODE_1",
+            "source_section_id": "macos-code-CODE-1",
+            "source_visible": True,
+            "source_body_ranges": [
+                {"kind": "metadata", "start": 0, "end": 4, "size": 4, "fact_status": "validated"},
+                {"kind": "code", "start": 4, "end": 8, "size": 4, "fact_status": "validated"},
+            ],
+            "code1_layout_context": {"candidate_entry_stub": {"label": "CODE_1_candidate_entry_stub"}},
+            "semantic_source": {
+                "rows": [
+                    {"kind": "label", "resource_id": 1, "payload_offset": 4},
+                    {
+                        "kind": "instruction",
+                        "payload_offset": 4,
+                        "payload_end": 6,
+                        "xrefs": [
+                            {
+                                "reason": "control_target",
+                                "target_label": "CODE_1_loc_00000006",
+                            }
+                        ],
+                    },
+                    {"kind": "label", "resource_id": 1, "payload_offset": 6},
+                ],
+                "semantic_gap_residuals": [
+                    {"kind": "semantic_decode_gap", "start": 6, "end": 8, "size": 2, "status": "deferred"}
+                ],
+            },
+        },
+        {
+            "id": 2,
+            "label": "CODE_2",
+            "source_section_id": "macos-code-CODE-2",
+            "source_visible": True,
+            "source_body_ranges": [
+                {
+                    "kind": "candidate_code",
+                    "start": 0,
+                    "end": 4,
+                    "size": 4,
+                    "fact_status": "candidate",
+                    "parser_use": "candidate_only",
+                    "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                }
+            ],
+            "semantic_source": {
+                "rows": [
+                    {"kind": "label", "resource_id": 2, "payload_offset": 0},
+                    {"kind": "instruction", "payload_offset": 0, "payload_end": 2},
+                ],
+                "semantic_gap_residuals": [
+                    {"kind": "semantic_decode_gap", "start": 2, "end": 4, "size": 2, "status": "candidate"}
+                ],
+                "candidate_residuals": [
+                    {
+                        "kind": "candidate_unvisited_entry_pattern",
+                        "start": 2,
+                        "end": 4,
+                        "island_start": 2,
+                        "island_end": 4,
+                        "island_size": 2,
+                    }
+                ],
+            },
+        },
+    ]
+
+    gate = macos_project_payload._source_quality_gate(sections, details)
+
+    assert gate["kind"] == "macos_source_quality_gate_v1"
+    assert gate["status"] == "byte_real_baseline"
+    assert gate["semantic_closeout_status"] == "semantic_source_complete_for_known_bounds"
+    assert gate["semantic_components"] == {
+        "byte_preservation_status": "byte_real_complete",
+        "source_ordering_status": "source_first",
+        "semantic_disassembly_status": "semantic_instruction_rows_present",
+        "label_xref_status": "generated_labels_and_xrefs_present",
+        "residual_status": "explicit",
+    }
+    assert gate["semantic_decode_gap_resource_count"] == 2
+    assert set(gate["does_not_claim"]) == {
+        "accepted byte-entry proof",
+        "decoded Segment Loader relocation/fixup semantics",
+        "A5 lifetime proof",
+        "resource-fork round trip",
+    }
+    assert all(gate["checklist"].values())
+    rows = {item["resource_id"]: item for item in gate["resources"]}
+    assert rows[1]["recursive_control_target_xrefs"] == 1
+    assert rows[1]["xref_target_labels_resolved"] is True
+    assert rows[1]["residuals"] == [
+        {"kind": "semantic_decode_gap", "start": 6, "end": 8, "size": 2, "status": "deferred"}
+    ]
+    assert rows[2]["residuals"][0]["kind"] == "semantic_decode_gap"
+    assert rows[2]["residuals"][0]["status"] == "candidate"
+    assert rows[2]["reachable_code_evidence_recorded"] is True
+
+
 def test_macos_analysis_seeds_are_bounded_to_analysis_window() -> None:
     seeds = macos_project_payload._macos_code_analysis_seeds(
         {"id": 1},
@@ -1699,3 +1852,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         asm_text = asm_path.read_text(encoding="utf-8")
         assert all(f"CODE_{item['id']}:" in asm_text for item in source_sections)
         assert ";   source_section_id: " not in asm_text
+        assert asm_text.split("\n\n", 1)[1] == render_macos_example_asm_from_payload(
+            payload,
+            hfs_bytes=read_macos_hfs_image_bytes(IMAGE_PATH),
+        )

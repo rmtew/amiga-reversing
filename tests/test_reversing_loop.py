@@ -432,17 +432,17 @@ def test_inspect_cli_reports_json(tmp_path: Path) -> None:
     assert payload["target_state"]["manual_action_log"]["count"] == 0
 
 
-def test_decision_journal_report_cli_reports_json_and_dry_run_without_writing(tmp_path: Path) -> None:
+def test_decision_journal_report_cli_reports_json_and_dry_run_without_writing(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     target_dir = _target(tmp_path)
     record_path = tmp_path / "candidate-decision.json"
     record = _decision_journal_record("defer_fact")
     record_path.write_text(json.dumps(record), encoding="utf-8")
 
-    result = subprocess.run(
+    result = reversing_loop.main(
         [
-            sys.executable,
-            "-m",
-            "amiga_reversing.reversing_loop",
             "--project-root",
             str(tmp_path),
             "decision-journal-report",
@@ -450,13 +450,11 @@ def test_decision_journal_report_cli_reports_json_and_dry_run_without_writing(tm
             "demo",
             "--dry-run-record",
             str(record_path),
-        ],
-        check=True,
-        text=True,
-        capture_output=True,
+        ]
     )
 
-    payload = json.loads(result.stdout)
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
     assert payload["target_id"] == "demo"
     assert payload["exists"] is False
     assert payload["valid"] is True
@@ -469,30 +467,28 @@ def test_decision_journal_report_cli_reports_json_and_dry_run_without_writing(tm
     assert not (target_dir / "manual_actions.jsonl").exists()
 
 
-def test_decision_journal_report_cli_includes_projection_without_mutating(tmp_path: Path) -> None:
+def test_decision_journal_report_cli_includes_projection_without_mutating(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     target_dir = _target(tmp_path)
     record = _decision_journal_record("accept_fact", decision_id="decision-accept")
     append = decision_journal.append_decision_record(target_dir, record)
     before = (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8")
 
-    result = subprocess.run(
+    result = reversing_loop.main(
         [
-            sys.executable,
-            "-m",
-            "amiga_reversing.reversing_loop",
             "--project-root",
             str(tmp_path),
             "decision-journal-report",
             "--target",
             "demo",
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
+        ]
     )
-    payload = json.loads(result.stdout)
+    payload = json.loads(capsys.readouterr().out)
 
     assert append["status"] == "appended"
+    assert result == 0
     assert payload["projection"]["valid"] is True
     assert payload["projection"]["accepted_facts"] == [record]
     assert payload["projection"]["by_candidate_id"]["rsset-raw-a6:022E"]["accepted_facts"] == [record]

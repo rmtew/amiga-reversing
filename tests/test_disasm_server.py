@@ -405,6 +405,49 @@ def _seed_c_listing_artifact(
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda requested: cache_key)
 
 
+def _execute_manual_command_fixture(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    command_id: str,
+    context: Mapping[str, object],
+    rows: Sequence[ListingRow | Mapping[str, object]] = (),
+    parameters: dict[str, object] | None = None,
+    project_name: str = "bloodwych",
+    project: ProjectRecord | None = None,
+) -> tuple[dict[str, object], list[dict[str, object]]]:
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    row_payloads = [dict(serialize_row(row)) if isinstance(row, ListingRow) else dict(row) for row in rows]
+    for row_index, row_payload in enumerate(row_payloads):
+        row_payload.setdefault("row_index", row_index)
+    monkeypatch.setattr(disasm_server, "get_project", lambda requested: project or _binary_project(requested, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda requested, project_root=None: SimpleNamespace(target_dir=tmp_path / requested),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    return (
+        disasm_server._execute_manual_action_command(
+            project_name,
+            command_id,
+            context,
+            row_payloads,
+            parameters,
+        ),
+        appended_actions,
+    )
+
+
 def _row_locator(
     row: ListingRow | Mapping[str, object],
     *,
@@ -446,6 +489,15 @@ def _row_command_context(row: ListingRow | Mapping[str, object]) -> dict[str, ob
 
 def _element_command_context(row: ListingRow | Mapping[str, object], element_id: str) -> dict[str, object]:
     return {"kind": "element", "locator": _row_locator(row), "element_id": element_id}
+
+
+def _resolved_element_command_context(row: ListingRow | Mapping[str, object], element_id: str) -> dict[str, object]:
+    row_payload = dict(serialize_row(row)) if isinstance(row, ListingRow) else dict(row)
+    context = disasm_server._selected_command_element_context(row_payload, element_id)
+    context["target"] = "bloodwych"
+    context["locator"] = _row_locator(row)
+    context["projection_hash"] = "cache"
+    return context
 
 
 def _range_command_context(rows: Sequence[ListingRow | Mapping[str, object]]) -> dict[str, object]:
@@ -1279,6 +1331,52 @@ def test_route_project_returns_project_and_session(monkeypatch: pytest.MonkeyPat
     assert "disk_manifest" not in data
 
 
+def test_route_project_returns_asset_data_without_reproduction(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "amiga_disk_demo__amiga_raw_bootblock"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"DOS\0" + (b"\0" * 1020))
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "asset_data",
+                "path": "targets/amiga_disk_demo__amiga_raw_bootblock/binary.bin",
+                "load_address": 0x70000,
+                "role": "bootblock",
+            }
+        ),
+        encoding="utf-8",
+    )
+    project = replace(
+        _binary_project("amiga_disk_demo__amiga_raw_bootblock", ready=True),
+        target_dir=str(target_dir),
+        binary_path="bin/demo.adf::bootblock",
+        target_type="bootblock",
+    )
+    monkeypatch.setattr(disasm_server, "PROJECT_ROOT", project_root)
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "_current_reproduction_payload",
+        lambda project_name: pytest.fail("asset_data project must not request reproduction"),
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/amiga_disk_demo__amiga_raw_bootblock", {})
+    data = cast(dict[str, object], payload["data"])
+    asset = cast(dict[str, object], data["asset_data"])
+
+    assert payload["ok"] is True
+    assert asset["kind"] == "asset_data"
+    assert asset["role"] == "bootblock"
+    assert asset["load_address"] == 0x70000
+    assert asset["size"] == 1024
+    assert "reproduction" not in data
+
+
 def test_route_project_returns_macos_payload(monkeypatch: pytest.MonkeyPatch) -> None:
     project_record = _macos_project("macos_mpw_sample")
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project_record)
@@ -1779,7 +1877,7 @@ def test_route_manual_action_catalog_returns_review_note_item_actions(monkeypatc
     assert actions[1]["parameters"] == {"note_id": "note-1"}
 
 
-def test_route_manual_action_catalog_execute_edits_and_clears_review_note(
+def test_command_manual_action_execute_edits_and_clears_review_note(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1800,64 +1898,33 @@ def test_route_manual_action_catalog_execute_edits_and_clears_review_note(
             },
         ),
     )
-    appended_actions: list[dict[str, object]] = []
-    rows = [
-        ListingRow(
-            row_id="r0",
-            kind="label",
-            text="copy_loop:\n",
-            addr=0x1001E,
-            runtime_address=0x1001E,
-            section_index=0,
-            start_offset=0x1E,
-            end_offset=0x1E,
-            label="copy_loop",
-            stable_key="s0:0000001E:label:245",
-        )
-    ]
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    edit_payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="review_note.edit",
+        context={"kind": "review_item", "item_id": "review_note:h0:$00000004-$00000006"},
+        parameters={"title": "Updated", "tracking": "note_only"},
+        project=project,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    edit_payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "review_note.edit",
-            "context": {"kind": "review_item", "item_id": "review_note:h0:$00000004-$00000006"},
-            "parameters": {"title": "Updated", "tracking": "note_only"},
-        },
+    clear_payload, clear_appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="review_note.clear",
+        context={"kind": "review_item", "item_id": "review_note:h0:$00000004-$00000006"},
+        project=project,
     )
-    clear_payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "review_note.clear",
-            "context": {"kind": "review_item", "item_id": "review_note:h0:$00000004-$00000006"},
-        },
-    )
+    appended_actions.extend(clear_appended_actions)
 
     assert appended_actions == [
-        {"kind": "edit_review_note", "payload": {"note_id": "note-1", "title": "Updated", "tracking": "note_only"}},
-        {"kind": "clear_review_note", "payload": {"note_id": "note-1"}},
+        {
+            "target_dir": str(tmp_path / "bloodwych"),
+            "kind": "edit_review_note",
+            "payload": {"note_id": "note-1", "title": "Updated", "tracking": "note_only"},
+        },
+        {"target_dir": str(tmp_path / "bloodwych"), "kind": "clear_review_note", "payload": {"note_id": "note-1"}},
     ]
-    edit_effect = cast(list[dict[str, object]], cast(dict[str, object], edit_payload["data"])["application"]["local_effects"])[0]
-    clear_effect = cast(list[dict[str, object]], cast(dict[str, object], clear_payload["data"])["application"]["local_effects"])[0]
+    edit_effect = cast(list[dict[str, object]], cast(dict[str, object], edit_payload["application"])["local_effects"])[0]
+    clear_effect = cast(list[dict[str, object]], cast(dict[str, object], clear_payload["application"])["local_effects"])[0]
     assert edit_effect["kind"] == "review_note_edit"
     assert clear_effect["kind"] == "review_note_clear"
 
@@ -1944,7 +2011,7 @@ def test_route_command_catalog_reports_malformed_locator_as_missing(monkeypatch:
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_appends_review_note_action(
+def test_command_manual_action_execute_appends_review_note_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1960,37 +2027,17 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
             stable_key="row-0",
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="review_note.add",
+        context=_row_command_context(rows[0]),
+        rows=rows,
+        parameters={"title": "Check RTS", "body": "Verify return path", "tracking": "needs_review"},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "review_note.add",
-            "context": _row_command_context(rows[0]),
-            "parameters": {"title": "Check RTS", "body": "Verify return path", "tracking": "needs_review"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     note = cast(dict[str, object], cast(dict[str, object], action["payload"])["note"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "add_review_note"
@@ -2003,45 +2050,24 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
     assert application["status"] == "applied"
     assert local_effect["kind"] == "review_note_add"
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 @pytest.mark.parametrize("command_id", ["target.equate.add", "target.equate.edit", "target.equate.represent"])
-def test_route_manual_action_catalog_execute_appends_target_equate_action(
+def test_command_manual_action_execute_appends_target_equate_action(
     command_id: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id=command_id,
+        context={"kind": "target"},
+        parameters={"name": "PLAYER_START_LIVES", "value": 3},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": command_id,
-            "context": {"kind": "target"},
-            "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     target_equate = cast(dict[str, object], cast(dict[str, object], action["payload"])["target_equate"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "create_manual_target_equate"
@@ -2081,7 +2107,7 @@ def test_route_manual_action_catalog_execute_appends_target_equate_action(
         ),
     ],
 )
-def test_route_manual_action_catalog_execute_returns_target_equate_local_effect(
+def test_command_manual_action_execute_returns_target_equate_local_effect(
     command_id: str,
     parameters: dict[str, object],
     action_kind: str,
@@ -2090,32 +2116,16 @@ def test_route_manual_action_catalog_execute_returns_target_equate_local_effect(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id=command_id,
+        context={"kind": "target"},
+        parameters=parameters,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {"command_id": command_id, "context": {"kind": "target"}, "parameters": parameters},
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     target_equate = cast(dict[str, object], cast(dict[str, object], action["payload"])["target_equate"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == action_kind
@@ -2194,7 +2204,7 @@ def test_route_manual_action_catalog_execute_returns_target_equate_local_effect(
         ),
     ],
 )
-def test_route_manual_action_catalog_execute_returns_custom_struct_local_effect(
+def test_command_manual_action_execute_returns_custom_struct_local_effect(
     command_id: str,
     parameters: dict[str, object],
     action_kind: str,
@@ -2204,32 +2214,16 @@ def test_route_manual_action_catalog_execute_returns_custom_struct_local_effect(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id=command_id,
+        context={"kind": "target"},
+        parameters=parameters,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {"command_id": command_id, "context": {"kind": "target"}, "parameters": parameters},
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     projected = cast(dict[str, object], cast(dict[str, object], action["payload"])[payload_key])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == action_kind
@@ -2307,7 +2301,7 @@ def test_route_manual_action_catalog_execute_returns_custom_struct_local_effect(
         ),
     ],
 )
-def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
+def test_command_manual_action_execute_returns_typed_field_local_effect(
     row: ListingRow,
     element_id: str,
     command_id: str,
@@ -2317,33 +2311,17 @@ def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact([row]))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id=command_id,
+        context=_resolved_element_command_context(row, element_id),
+        rows=[row],
+        parameters=parameters,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {"command_id": command_id, "context": _element_command_context(row, element_id), "parameters": parameters},
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     field = cast(dict[str, object], cast(dict[str, object], action["payload"])["custom_struct_field"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == action_kind
@@ -2362,10 +2340,9 @@ def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
     assert application["status"] == "applied"
     assert local_effect == {"kind": "custom_struct_field", "custom_struct_field": field}
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_typed_field_preserves_context_evidence(
+def test_command_manual_action_execute_typed_field_preserves_context_evidence(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -2393,7 +2370,7 @@ def test_route_manual_action_catalog_execute_typed_field_preserves_context_evide
             ),
         ),
     )
-    context = _element_command_context(row, "gap-row:typed_gap:0:prefix_extension") | {
+    context = _resolved_element_command_context(row, "gap-row:typed_gap:0:prefix_extension") | {
         "source_evidence_id": "prov-selected-struct-pointer",
         "source_family": "struct_pointer",
         "source_evidence_status": "manual_classified",
@@ -2402,35 +2379,15 @@ def test_route_manual_action_catalog_execute_typed_field_preserves_context_evide
         "conflicts": [],
         "parent_evidence_ids": ["prov-parent-a0"],
     }
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact([row]))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="typed_gap.field.add",
+        context=context,
+        rows=[row],
+        parameters={"name": "de_Code", "type": "UWORD", "size": 2},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "typed_gap.field.add",
-            "context": context,
-            "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     field = cast(dict[str, object], cast(dict[str, object], action["payload"])["custom_struct_field"])
 
     assert field["source_evidence_id"] == "prov-selected-struct-pointer"
@@ -2438,7 +2395,6 @@ def test_route_manual_action_catalog_execute_typed_field_preserves_context_evide
     assert field["path_lifetime_scope"] == {"kind": "selected_use", "hunk": 0, "addr": 0x20}
     assert field["parent_evidence_ids"] == ["prov-parent-a0"]
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_data_block_type_preserves_context_evidence(
@@ -2560,46 +2516,26 @@ def test_manual_action_pending_range_preserves_subject_row_index_zero() -> None:
 
 
 @pytest.mark.parametrize("command_id", ["target.execution_view.add", "target.execution_view.edit"])
-def test_route_manual_action_catalog_execute_appends_execution_view_action(
+def test_command_manual_action_execute_appends_execution_view_action(
     command_id: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
-    )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": command_id,
-            "context": {"kind": "target"},
-            "parameters": {
-                "source_start": 0x20,
-                "source_end": 0x80,
-                "base_addr": 0x4000,
-                "name": "stage_code",
-            },
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id=command_id,
+        context={"kind": "target"},
+        parameters={
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
         },
     )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     execution_view = cast(dict[str, object], cast(dict[str, object], action["payload"])["execution_view"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "create_manual_execution_view"
@@ -2615,44 +2551,24 @@ def test_route_manual_action_catalog_execute_appends_execution_view_action(
     assert appended_actions == [action]
 
 
-def test_route_manual_action_catalog_execute_removes_execution_view_action(
+def test_command_manual_action_execute_removes_execution_view_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
-    )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "target.execution_view.remove",
-            "context": {"kind": "target"},
-            "parameters": {
-                "source_start": 0x20,
-                "source_end": 0x80,
-                "base_addr": 0x4000,
-            },
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="target.execution_view.remove",
+        context={"kind": "target"},
+        parameters={
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
         },
     )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     execution_view = cast(dict[str, object], cast(dict[str, object], action["payload"])["execution_view"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "remove_manual_execution_view"
@@ -2662,49 +2578,29 @@ def test_route_manual_action_catalog_execute_removes_execution_view_action(
 
 
 @pytest.mark.parametrize("command_id", ["target.rsset_region.add", "target.rsset_region.edit"])
-def test_route_manual_action_catalog_execute_adds_rsset_layout_region_action(
+def test_command_manual_action_execute_adds_rsset_layout_region_action(
     command_id: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
-    )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": command_id,
-            "context": {"kind": "target"},
-            "parameters": {
-                "offset": 4,
-                "size": 2,
-                "layout_name": "work",
-                "base_symbol": "__game_work_base__",
-                "sizeof_symbol": "work_SIZEOF",
-                "symbol": "work_counter",
-                "storage_kind": "scalar",
-            },
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id=command_id,
+        context={"kind": "target"},
+        parameters={
+            "offset": 4,
+            "size": 2,
+            "layout_name": "work",
+            "base_symbol": "__game_work_base__",
+            "sizeof_symbol": "work_SIZEOF",
+            "symbol": "work_counter",
+            "storage_kind": "scalar",
         },
     )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     region = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_layout_region"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "create_manual_rsset_layout_region"
@@ -2714,7 +2610,7 @@ def test_route_manual_action_catalog_execute_adds_rsset_layout_region_action(
     assert appended_actions == [action]
 
 
-def test_route_manual_action_catalog_execute_renames_app_slot_with_rsset_region(
+def test_command_manual_action_execute_renames_app_slot_with_rsset_region(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -2734,37 +2630,17 @@ def test_route_manual_action_catalog_execute_renames_app_slot_with_rsset_region(
             app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 1, "write"),),
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="app_slot.rename",
+        context=_resolved_element_command_context(rows[0], "app-write:app_slot:1:app_0234:write"),
+        rows=rows,
+        parameters={"symbol": "app_player_state", "size": 4, "storage_kind": "pointer"},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "app_slot.rename",
-            "context": _element_command_context(rows[0], "app-write:app_slot:1:app_0234:write"),
-            "parameters": {"symbol": "app_player_state", "size": 4, "storage_kind": "pointer"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     region = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_layout_region"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "create_manual_rsset_layout_region"
@@ -2777,10 +2653,9 @@ def test_route_manual_action_catalog_execute_renames_app_slot_with_rsset_region(
     }
     assert local_effect == {"kind": "rsset_layout_region", "rsset_layout_region": region}
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_removes_app_slot_rsset_region(
+def test_command_manual_action_execute_removes_app_slot_rsset_region(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -2800,79 +2675,38 @@ def test_route_manual_action_catalog_execute_removes_app_slot_rsset_region(
             app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 1, "write"),),
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="app_slot.remove",
+        context=_resolved_element_command_context(rows[0], "app-write:app_slot:1:app_0234:write"),
+        rows=rows,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "app_slot.remove",
-            "context": _element_command_context(rows[0], "app-write:app_slot:1:app_0234:write"),
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     region = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_layout_region"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "remove_manual_rsset_layout_region"
     assert region == {"offset": 0x0234}
     assert local_effect == {"kind": "rsset_layout_region_remove", "rsset_layout_region": region}
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_removes_rsset_layout_region_action(
+def test_command_manual_action_execute_removes_rsset_layout_region_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="target.rsset_region.remove",
+        context={"kind": "target"},
+        parameters={"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "target.rsset_region.remove",
-            "context": {"kind": "target"},
-            "parameters": {"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     region = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_layout_region"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "remove_manual_rsset_layout_region"
@@ -3657,7 +3491,7 @@ def test_route_manual_action_catalog_ignores_numeric_label_text_for_semantic_hin
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_appends_label_rename_override(
+def test_command_manual_action_execute_appends_label_rename_override(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -3674,37 +3508,17 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
             stable_key="label-0",
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="label.rename",
+        context=_resolved_element_command_context(rows[0], "label-0:label:loc_0_00000000"),
+        rows=rows,
+        parameters={"name": "start"},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "label.rename",
-            "context": _element_command_context(rows[0], "label-0:label:loc_0_00000000"),
-            "parameters": {"name": "start"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     label = cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "create_manual_label"
@@ -3724,7 +3538,7 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_id(
+def test_command_manual_action_execute_renames_projected_manual_label_by_id(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -3744,7 +3558,6 @@ def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_i
             ]
         },
     )
-    appended_actions: list[dict[str, object]] = []
     rows = [
         {
             "row_index": 245,
@@ -3762,48 +3575,17 @@ def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_i
             "manual_label_address_domain": "runtime",
         }
     ]
-
-    class DictRowsArtifact:
-        def close(self) -> None:
-            return None
-
-        def summary_payload(self):
-            return {"total_rows": len(rows)}, {}
-
-        def window_payload(self, *, start: int, count: int):
-            return {"rows": rows[start : start + count]}, {}
-
-        def navigation_payload(self):
-            return {"groups": {}, "app_slot_analysis": {}}, {}
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", DictRowsArtifact())
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="label.rename",
+        context=_resolved_element_command_context(rows[0], "s0:0000001E:label:245:label:copy_loop"),
+        rows=rows,
+        parameters={"name": "copy_loop_again"},
+        project=project,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "label.rename",
-            "context": _element_command_context(rows[0], "s0:0000001E:label:245:label:copy_loop"),
-            "parameters": {"name": "copy_loop_again"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    action = cast(dict[str, object], payload["action"])
+    application = cast(dict[str, object], payload["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "rename_manual_label"
@@ -3850,7 +3632,7 @@ def test_route_command_execute_rejects_locator_without_artifact(
     assert exc.value.code == "missing_locator"
 
 
-def test_route_manual_action_catalog_execute_preserves_absolute_label_domain(
+def test_command_manual_action_execute_preserves_absolute_label_domain(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -3866,45 +3648,24 @@ def test_route_manual_action_catalog_execute_preserves_absolute_label_domain(
             stable_key="label-0",
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="label.rename",
+        context=_resolved_element_command_context(rows[0], "label-0:label:abs_0_00010000"),
+        rows=rows,
+        parameters={"name": "ENTRYPOINT0000"},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "label.rename",
-            "context": _element_command_context(rows[0], "label-0:label:abs_0_00010000"),
-            "parameters": {"name": "ENTRYPOINT0000"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     label = cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
 
     assert label["label_id"] == "catalog-label-runtime-h0-00010000-sk-label-0"
     assert label["address_domain"] == "runtime"
     assert label["addr"] == 0x10000
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action(
+def test_command_manual_action_execute_appends_row_data_type_helper_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -3923,34 +3684,14 @@ def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action
             operand_text="$00,$00,$00,$00",
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="row.seed.data.palette",
+        context=_row_command_context(rows[0]),
+        rows=rows,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "row.seed.data.palette",
-            "context": _row_command_context(rows[0]),
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["seed"])
 
     assert action["kind"] == "create_manual_seed"
@@ -3961,10 +3702,9 @@ def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action
     assert seed["addr"] == 4
     assert seed["end"] == 8
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_appends_named_data_seed_action(
+def test_command_manual_action_execute_appends_named_data_seed_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -3983,35 +3723,15 @@ def test_route_manual_action_catalog_execute_appends_named_data_seed_action(
             operand_text="$41,$42",
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="row.seed.data.named",
+        context=_row_command_context(rows[0]),
+        rows=rows,
+        parameters={"name": "manual_data"},
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "row.seed.data.named",
-            "context": _row_command_context(rows[0]),
-            "parameters": {"name": "manual_data"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["seed"])
 
     assert action["kind"] == "create_manual_seed"
@@ -4023,10 +3743,9 @@ def test_route_manual_action_catalog_execute_appends_named_data_seed_action(
     assert seed["addr"] == 4
     assert seed["end"] == 6
     assert appended_actions == [action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_route_manual_action_catalog_execute_appends_valid_log_action(
+def test_command_manual_action_execute_appends_valid_log_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -4047,33 +3766,14 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
             },
         ),
     )
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="review.seed.data.copper_list",
+        context={"kind": "review_item", "item_id": "unreconciled:h0:00000004-00000008"},
+        project=project,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "review.seed.data.copper_list",
-            "context": {"kind": "review_item", "item_id": "unreconciled:h0:00000004-00000008"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["seed"])
 
     assert action["kind"] == "create_manual_seed"
@@ -4082,17 +3782,16 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
     assert seed["unit"] == "word"
     assert seed["addr"] == 4
     assert seed["end"] == 8
-    named_payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "review.seed.data.named",
-            "context": {"kind": "review_item", "item_id": "unreconciled:h0:00000004-00000008"},
-            "parameters": {"name": "manual_gap"},
-        },
+    named_payload, named_appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="review.seed.data.named",
+        context={"kind": "review_item", "item_id": "unreconciled:h0:00000004-00000008"},
+        parameters={"name": "manual_gap"},
+        project=project,
     )
-    named_action = cast(dict[str, object], cast(dict[str, object], named_payload["data"])["action"])
+    appended_actions.extend(named_appended_actions)
+    named_action = cast(dict[str, object], named_payload["action"])
     named_seed = cast(dict[str, object], cast(dict[str, object], named_action["payload"])["seed"])
 
     assert named_seed["kind"] == "data"
@@ -4104,7 +3803,7 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
     assert appended_actions == [action, named_action]
 
 
-def test_route_manual_action_catalog_execute_removes_manual_seed_from_conflict(
+def test_command_manual_action_execute_removes_manual_seed_from_conflict(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -4126,34 +3825,15 @@ def test_route_manual_action_catalog_execute_removes_manual_seed_from_conflict(
             },
         ),
     )
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="review.seed.remove",
+        context={"kind": "review_item", "item_id": "manual_seed_conflict:data-as-code:entry"},
+        project=project,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "review.seed.remove",
-            "context": {"kind": "review_item", "item_id": "manual_seed_conflict:data-as-code:entry"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    action = cast(dict[str, object], payload["action"])
+    application = cast(dict[str, object], payload["application"])
 
     assert action["kind"] == "remove_manual_seed"
     assert action["payload"] == {"seed_id": "data-as-code"}
@@ -4162,7 +3842,7 @@ def test_route_manual_action_catalog_execute_removes_manual_seed_from_conflict(
     assert appended_actions == [action]
 
 
-def test_route_manual_action_catalog_execute_appends_label_rename_action(
+def test_command_manual_action_execute_appends_label_rename_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -4184,35 +3864,16 @@ def test_route_manual_action_catalog_execute_appends_label_rename_action(
             },
         ),
     )
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="review.label.rename",
+        context={"kind": "review_item", "item_id": "label_scope_conflict:l1:missing-owner"},
+        parameters={"name": "renamed_label"},
+        project=project,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "review.label.rename",
-            "context": {"kind": "review_item", "item_id": "label_scope_conflict:l1:missing-owner"},
-            "parameters": {"name": "renamed_label"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
-    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    action = cast(dict[str, object], payload["action"])
+    application = cast(dict[str, object], payload["application"])
 
     assert action["kind"] == "rename_manual_label"
     assert action["payload"] == {"label_id": "l1", "name": "renamed_label"}
@@ -4220,7 +3881,7 @@ def test_route_manual_action_catalog_execute_appends_label_rename_action(
     assert appended_actions == [action]
 
 
-def test_route_manual_action_catalog_execute_appends_representation_action(
+def test_command_manual_action_execute_appends_representation_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -4239,34 +3900,14 @@ def test_route_manual_action_catalog_execute_appends_representation_action(
             operand_text="$41",
         )
     ]
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
-
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="representation.character",
+        context=_resolved_element_command_context(rows[0], "row-0:data_literal:4"),
+        rows=rows,
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "representation.character",
-            "context": _element_command_context(rows[0], "row-0:data_literal:4"),
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    action = cast(dict[str, object], payload["action"])
     representation = cast(dict[str, object], cast(dict[str, object], action["payload"])["representation"])
 
     assert action["kind"] == "create_manual_representation"
@@ -4276,18 +3917,16 @@ def test_route_manual_action_catalog_execute_appends_representation_action(
     assert representation["addr"] == 4
     assert representation["end"] == 5
     assert representation["stable_key"] == "row-0"
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    named_payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/commands/execute",
-        {},
-        {
-            "command_id": "element.seed.data.named",
-            "context": _element_command_context(rows[0], "row-0:data_literal:4"),
-            "parameters": {"name": "manual_byte"},
-        },
+    named_payload, named_appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="element.seed.data.named",
+        context=_resolved_element_command_context(rows[0], "row-0:data_literal:4"),
+        rows=rows,
+        parameters={"name": "manual_byte"},
     )
-    named_action = cast(dict[str, object], cast(dict[str, object], named_payload["data"])["action"])
+    appended_actions.extend(named_appended_actions)
+    named_action = cast(dict[str, object], named_payload["action"])
     named_seed = cast(dict[str, object], cast(dict[str, object], named_action["payload"])["seed"])
 
     assert named_seed["kind"] == "data"
@@ -4297,7 +3936,6 @@ def test_route_manual_action_catalog_execute_appends_representation_action(
     assert named_seed["addr"] == 4
     assert named_seed["end"] == 5
     assert appended_actions == [action, named_action]
-    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_appends_library_base_semantic_action(
@@ -5765,6 +5403,18 @@ def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.Monke
     assert cast(dict[str, object], snippet["data"])["highlighted_row_index"] == 4
     assert snippet_args == [("xref-1", 0, 0)]
     assert cast(list[dict[str, object]], cast(dict[str, object], snippet["data"])["rows"])[0]["row_index"] == 4
+
+
+def test_corpus_feature_labels_expected_symbol_accesses() -> None:
+    assert (
+        disasm_server.corpus_usage._feature_label("analysis:expected_symbol_access_kind:label_statement")
+        == "Expected symbol access: label statement"
+    )
+    assert (
+        disasm_server.corpus_usage._feature_label("analysis:expected_symbol_access:targeted")
+        == "Expected symbol access: targeted"
+    )
+    assert disasm_server.corpus_usage._feature_label("analysis:expected_symbol_access") == "Expected symbol access"
 
 
 def test_corpus_snippet_payload_preserves_explicit_row_indexes(monkeypatch: pytest.MonkeyPatch) -> None:

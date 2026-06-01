@@ -45,7 +45,14 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = ["-m", "not integration and not real_integration and not web_e2e"]
 markers = [
+    "integration: opt-in non-real tests outside the default developer loop",
+    "c_backend: tests that require the C backend/tools or project-scale C analysis",
+    "codegen_drift: generated artifact drift and coverage inventory checks",
+    "route_integration: API/server route workflow tests",
+    "macos_real_fixture: tests that read real Classic Mac OS image fixtures",
+    "real_integration: real corpus/backend integration tests, opt in with -m real_integration",
     "web_e2e: Brave/CDP browser integration tests",
 ]
 

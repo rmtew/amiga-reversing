@@ -4,6 +4,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
+
 from amiga_reversing.tools import m68k_coverage
 
 
@@ -140,7 +142,54 @@ def test_empty_sample_options_produce_missing_strategy_status() -> None:
     assert entry.missing_operand_kinds == ("unknown",)
 
 
-def test_diagnostic_report_command_prints_counts(capsys) -> None:
+def _synthetic_diagnostic_inventory() -> dict[str, object]:
+    return {
+        "phase": "diagnostic",
+        "temporary_bootstrap": True,
+        "deletion_criteria": "synthetic deletion note",
+        "counts": {
+            "assembler_forms": 2,
+            "disassembler_forms": 1,
+            "matched_forms": 1,
+            "asm_only_forms": 1,
+            "disasm_only_forms": 0,
+        },
+        "sample_status_counts": {"sampled": 1},
+        "unsupported_counts": {"implemented_unsupported": 1},
+        "unsupported_inventory": [
+            {
+                "family_id": "synthetic",
+                "status": "implemented_unsupported",
+                "reason_category": "fixture",
+                "form_count": 1,
+                "blocking_artifacts": ["generated_semantics"],
+                "active_blocking_artifacts": ["generated_semantics"],
+            }
+        ],
+        "ea_sample_plans": [
+            {
+                "kb_mnemonic": "MOVE",
+                "local_form_index": 0,
+                "mnemonic": "MOVE",
+                "syntax": "MOVE <ea>,Dn",
+                "size": "w",
+                "operand_role": "source",
+                "operand_index": 0,
+                "required_families": ["data_register"],
+                "covered_families": ["data_register"],
+                "missing_families": [],
+            }
+        ],
+        "entries": [],
+    }
+
+
+def test_diagnostic_report_command_prints_counts(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(m68k_coverage, "build_diagnostic_inventory", _synthetic_diagnostic_inventory)
+
     assert m68k_coverage.main(["report", "--phase", "diagnostic"]) == 0
 
     output = capsys.readouterr().out
@@ -155,7 +204,27 @@ def test_diagnostic_report_command_prints_counts(capsys) -> None:
     assert "ea sample families:" in output
 
 
-def test_canonical_report_command_prints_summaries(capsys) -> None:
+def test_canonical_report_command_prints_summaries(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    inventory = _synthetic_diagnostic_inventory()
+    inventory["phase"] = "canonical"
+    inventory["temporary_bootstrap"] = False
+    inventory["summaries"] = {
+        "cpu": {"68000": 1},
+        "mnemonic": {"MOVE": 1},
+        "oracle": {},
+        "ea_family": {
+            "required": {"data_register": 1},
+            "missing": {},
+        },
+        "alias": {"count": 0},
+        "executor_semantic": {"available": 1},
+        "unsupported": {"families": [{"family_id": "synthetic"}]},
+    }
+    monkeypatch.setattr(m68k_coverage, "build_canonical_inventory", lambda: inventory)
+
     assert m68k_coverage.main(["report", "--phase", "canonical"]) == 0
 
     output = capsys.readouterr().out

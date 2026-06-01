@@ -18,6 +18,16 @@ def _repo_python_paths(repo_root: Path, roots: tuple[str, ...]) -> list[Path]:
     return paths
 
 
+def _import_roots(tree: ast.AST) -> set[str]:
+    roots: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            roots.update(alias.name.partition(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module is not None and node.level == 0:
+            roots.add(node.module.partition(".")[0])
+    return roots
+
+
 def test_active_python_imports_stay_inside_package_boundary() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     script = """
@@ -58,9 +68,9 @@ if active_machine68k_modules:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_kb_parser_imports_are_limited_to_maintenance_tools() -> None:
+def test_active_source_import_boundaries_are_current() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    allowed = {
+    kb_parser_allowed = {
         "src/scripts/amiga_hardware_usage.py",
         "src/scripts/generate_amiga_os_runtime.py",
         "src/scripts/sync_amiga_includes.py",
@@ -69,50 +79,7 @@ def test_kb_parser_imports_are_limited_to_maintenance_tools() -> None:
         "tests/test_pdf_to_markdown.py",
         "tests/test_sync_amiga_includes.py",
     }
-    offenders: list[str] = []
-    for path in _repo_python_paths(repo_root, ("amiga_reversing", "tests", "src/scripts")):
-        relative = path.relative_to(repo_root).as_posix()
-        text = path.read_text(encoding="utf-8", errors="ignore")
-        if "from src.scripts.kb" not in text and "import src.scripts.kb" not in text:
-            continue
-        if relative.startswith("src/scripts/kb/"):
-            continue
-        if relative not in allowed:
-            offenders.append(relative)
-
-    assert offenders == []
-
-
-def test_active_package_does_not_contain_kb_parser_package() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    assert not (repo_root / "amiga_reversing" / "kb").exists()
-
-
-def test_active_web_backend_does_not_use_subprocess_or_platform_clis() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    c_backend = repo_root / "amiga_reversing" / "disasm" / "c_backend.py"
-    text = c_backend.read_text(encoding="utf-8")
-    assert "subprocess" not in text
-    assert "platform_file_cli" not in text
-    assert "platform_disk_cli" not in text
-
-
-def test_active_runtime_code_does_not_invoke_platform_clis() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    offenders: list[str] = []
-    for package in ("amiga_reversing/disasm", "amiga_reversing/amiga_disk"):
-        for path in (repo_root / package).rglob("*.py"):
-            relative = path.relative_to(repo_root).as_posix()
-            text = path.read_text(encoding="utf-8", errors="ignore")
-            if "platform_file_cli" in text or "platform_disk_cli" in text:
-                offenders.append(relative)
-
-    assert offenders == []
-
-
-def test_active_runtime_imports_are_current_package_or_standard_library() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    allowed_roots = {
+    runtime_allowed_roots = {
         "__future__",
         "amiga_reversing",
         "argparse",
@@ -151,33 +118,49 @@ def test_active_runtime_imports_are_current_package_or_standard_library() -> Non
         "uuid",
         "zipfile",
     }
-    offenders: list[str] = []
-    for package in ("amiga_reversing/disasm", "amiga_reversing/amiga_disk", "amiga_reversing/tools"):
-        for path in (repo_root / package).rglob("*.py"):
-            relative = path.relative_to(repo_root).as_posix()
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    roots = {alias.name.partition(".")[0] for alias in node.names}
-                elif isinstance(node, ast.ImportFrom):
-                    roots = (
-                        set()
-                        if node.module is None or node.level > 0
-                        else {node.module.partition(".")[0]}
-                    )
-                else:
-                    continue
-                invalid_roots = sorted(
-                    root
-                    for root in roots
-                    if root not in allowed_roots
-                    and not (relative == "amiga_reversing/disasm/corpus_usage.py" and root == "src")
-                )
-                if invalid_roots:
-                    offenders.append(f"{relative}: {', '.join(invalid_roots)}")
-                    break
+    kb_parser_offenders: list[str] = []
+    runtime_import_offenders: list[str] = []
+    platform_cli_offenders: list[str] = []
+    c_backend_text = ""
+    runtime_roots = ("amiga_reversing/disasm/", "amiga_reversing/amiga_disk/", "amiga_reversing/tools/")
+    cli_free_roots = ("amiga_reversing/disasm/", "amiga_reversing/amiga_disk/")
+    for path in _repo_python_paths(repo_root, ("amiga_reversing", "tests", "src/scripts")):
+        relative = path.relative_to(repo_root).as_posix()
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if relative == "amiga_reversing/disasm/c_backend.py":
+            c_backend_text = text
+        if (
+            ("from src.scripts.kb" in text or "import src.scripts.kb" in text)
+            and not relative.startswith("src/scripts/kb/")
+            and relative not in kb_parser_allowed
+        ):
+            kb_parser_offenders.append(relative)
+        if relative.startswith(cli_free_roots) and ("platform_file_cli" in text or "platform_disk_cli" in text):
+            platform_cli_offenders.append(relative)
+        if not relative.startswith(runtime_roots):
+            continue
+        roots = _import_roots(ast.parse(text, filename=relative))
+        invalid_roots = sorted(
+            root
+            for root in roots
+            if root not in runtime_allowed_roots
+            and not (relative == "amiga_reversing/disasm/corpus_usage.py" and root == "src")
+        )
+        if invalid_roots:
+            runtime_import_offenders.append(f"{relative}: {', '.join(invalid_roots)}")
 
-    assert offenders == []
+    assert kb_parser_offenders == []
+    assert platform_cli_offenders == []
+    assert runtime_import_offenders == []
+    assert c_backend_text
+    assert "subprocess" not in c_backend_text
+    assert "platform_file_cli" not in c_backend_text
+    assert "platform_disk_cli" not in c_backend_text
+
+
+def test_active_package_does_not_contain_kb_parser_package() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    assert not (repo_root / "amiga_reversing" / "kb").exists()
 
 
 def test_disk_python_layer_does_not_load_content_classification_kbs() -> None:

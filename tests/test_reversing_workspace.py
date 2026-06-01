@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 
+import pytest
+
+from amiga_reversing import reversing_loop
 from amiga_reversing.reversing_workspace import (
     TargetFileAction,
     TargetFileClass,
@@ -124,27 +125,22 @@ def test_hygiene_report_is_json_serializable_and_separates_agent_audit(tmp_path:
     assert json.loads(json.dumps(payload))["recommended_modes"] == ["continue", "clean-run", "reimport"]
 
 
-def test_hygiene_cli_reports_json(tmp_path: Path) -> None:
+def test_hygiene_cli_reports_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     target_dir = _target(tmp_path)
     _touch(target_dir / "source_binary.json")
 
-    result = subprocess.run(
+    result = reversing_loop.main(
         [
-            sys.executable,
-            "-m",
-            "amiga_reversing.reversing_loop",
             "--project-root",
             str(tmp_path),
             "hygiene",
             "--target",
             "demo",
-        ],
-        check=True,
-        text=True,
-        capture_output=True,
+        ]
     )
 
-    payload = json.loads(result.stdout)
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
     assert payload["target_id"] == "demo"
     assert payload["files"][0]["class"] == TargetFileClass.SOURCE_IMPORT_FACT
 
@@ -222,26 +218,21 @@ def test_clean_run_writes_before_after_report(tmp_path: Path) -> None:
     assert payload["deleted_files"] == ["reproduction.json"]
 
 
-def test_clean_run_cli_reports_json(tmp_path: Path) -> None:
+def test_clean_run_cli_reports_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     target_dir = _target(tmp_path)
     _touch(target_dir / "reproduction.json")
 
-    result = subprocess.run(
+    result = reversing_loop.main(
         [
-            sys.executable,
-            "-m",
-            "amiga_reversing.reversing_loop",
             "--project-root",
             str(tmp_path),
             "clean-run",
             "--target",
             "demo",
-        ],
-        check=True,
-        text=True,
-        capture_output=True,
+        ]
     )
 
-    payload = json.loads(result.stdout)
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "completed"
     assert payload["deleted_files"] == ["reproduction.json"]

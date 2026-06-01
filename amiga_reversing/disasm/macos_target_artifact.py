@@ -94,7 +94,15 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     project = macos_example_project_record(project_root=project_root)
     payload = build_macos_project_payload(project, project_root=project_root)
     hfs_bytes = read_macos_hfs_image_bytes(project_root / MACOS_EXAMPLE_SOURCE_IMAGE)
+    return render_macos_example_asm_from_payload(payload, hfs_bytes=hfs_bytes, project_root=project_root)
 
+
+def render_macos_example_asm_from_payload(
+    payload: Mapping[str, object],
+    *,
+    hfs_bytes: bytes,
+    project_root: Path = PROJECT_ROOT,
+) -> str:
     container = _mapping(payload.get("binary_container_view"))
     finder = _mapping(container.get("finder"))
     source_body_sections = [_mapping(item) for item in _sequence(container.get("source_body_sections"))]

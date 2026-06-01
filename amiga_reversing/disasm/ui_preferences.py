@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
+from contextlib import suppress
 from pathlib import Path
 from typing import cast
 
@@ -50,10 +53,24 @@ def save_ui_preferences(target_dir: Path, target_id: str, payload: dict[str, obj
         "version": 1,
         "target_id": target_id,
     }
-    ui_preferences_path(target_dir).write_text(
-        json.dumps(preferences, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    path = ui_preferences_path(target_dir)
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            delete=False,
+            dir=path.parent,
+            encoding="utf-8",
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+            temp_file.write(json.dumps(preferences, indent=2, sort_keys=True) + "\n")
+        os.replace(temp_path, path)
+    finally:
+        if temp_path is not None:
+            with suppress(FileNotFoundError):
+                temp_path.unlink()
     return preferences
 
 

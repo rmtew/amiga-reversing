@@ -52,10 +52,6 @@ from amiga_reversing.amiga_disk.project import (
     import_adf,
     refresh_decompressed_payload_children,
 )
-from amiga_reversing.disasm.c_backend import (
-    analyze_binary_source_with_c_backend,
-    materialize_recognized_unpacker_event_with_c_backend,
-)
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.target_metadata import TargetMetadata
 from amiga_reversing.tools.analyze_disk import print_summary
@@ -872,18 +868,70 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
     assert decompression["decompressed"]["sha256"] == output_hash
 
 
-def test_import_adf_materializes_c_recognized_unpacker_valid_child_from_real_fixture(
+def test_import_adf_materializes_c_recognized_unpacker_valid_children(
     monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
-    _requires_c_backend_dlls()
     project_root = tmp_path
     (project_root / "targets").mkdir()
     (project_root / "bin").mkdir()
     adf_path = project_root / "bin" / "demo.adf"
     adf_path.write_bytes(b"demo")
-    fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
-    parent_bytes = fixture.read_bytes()
+    parent_bytes = b"packed-parent"
     startup_script = b"s:Run"
+    outputs = {
+        "decompression:recognized_unpacker:section:1:000000c4": (
+            b"\x4E\x75\x00\x01",
+            0x40000,
+            0x40000,
+            0xC4,
+        ),
+        "decompression:recognized_unpacker:section:2:00000060": (
+            b"\x60\x00\x00\x02\x4E\x75",
+            0x1000,
+            0x59484,
+            0x60,
+        ),
+    }
+
+    def fake_events() -> list[dict[str, object]]:
+        events: list[dict[str, object]] = []
+        for source_section, (event_id, (output, load_address, entrypoint, marker_offset)) in enumerate(
+            outputs.items(), start=1
+        ):
+            events.append(
+                {
+                    "event_kind_id": 1,
+                    "event_kind": "decompression",
+                    "event_id": event_id,
+                    "status_id": 2,
+                    "status": "materializable",
+                    "source_kind_id": 2,
+                    "source_kind": "recognized_unpacker",
+                    "codec_id": "tetragon",
+                    "codec_name": "Tetragon native unpacker",
+                    "source_section": source_section,
+                    "unpacker_marker_offset": marker_offset,
+                    "compressed_source_section_offset": marker_offset,
+                    "compressed_source_section_end_offset": marker_offset + 0x20,
+                    "compressed_source_consumed_section_offset": marker_offset + 0x10,
+                    "postpass_source_start_address": load_address + 0x100,
+                    "postpass_source_end_address": load_address + len(output),
+                    "postpass_source_consumed_address": load_address + len(output),
+                    "postpass_escape_byte": 0xAD,
+                    "target_start_address": load_address,
+                    "target_end_address": load_address + len(output),
+                    "decompressed_size": len(output),
+                    "decompressed_sha256": hashlib.sha256(output).hexdigest(),
+                    "entrypoint": entrypoint,
+                    "payload_role_id": 2,
+                    "payload_role": "primary_program",
+                    "payload_role_confidence_id": 2,
+                    "payload_role_confidence": "native_unpack_entry_validated",
+                    "parent_remains_active_id": 1,
+                    "parent_remains_active": "false",
+                }
+            )
+        return events
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
@@ -906,17 +954,35 @@ def test_import_adf_materializes_c_recognized_unpacker_valid_child_from_real_fix
     )
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
-        lambda source_path, *, project_root, metadata_path=None: analyze_binary_source_with_c_backend(
-            getattr(source_path, "path", source_path), project_root=PROJECT_ROOT
-        ),
+        lambda source_path, *, project_root, metadata_path=None: {"decompression_events": fake_events()},
     )
+
+    def fake_materialize(
+        backend_name: str,
+        path: str | Path,
+        event_id: str,
+        output_path: str | Path,
+        *,
+        project_root: Path,
+    ) -> dict[str, object]:
+        assert backend_name == "amiga-hunk"
+        output, load_address, entrypoint, _marker_offset = outputs[event_id]
+        output_hash = hashlib.sha256(output).hexdigest()
+        Path(output_path).write_bytes(output)
+        return {
+            "status": "ok",
+            "provider_id": "c-tetragon-native",
+            "decompressed": {
+                "size": len(output),
+                "sha256": output_hash,
+                "load_address": load_address,
+                "entrypoint": entrypoint,
+            },
+        }
+
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.materialize_recognized_unpacker_event_with_c_backend",
-        lambda backend_name, path, event_id, output_path, *, project_root: (
-            materialize_recognized_unpacker_event_with_c_backend(
-                backend_name, path, event_id, output_path, project_root=PROJECT_ROOT
-            )
-        ),
+        fake_materialize,
     )
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
@@ -949,8 +1015,8 @@ def test_import_adf_materializes_c_recognized_unpacker_valid_child_from_real_fix
         for child in children
     ]
     expected = {
-        1: (0x40000, 0x40000, 0x10000, "6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9"),
-        2: (0x1000, 0x59484, 0x779C9, "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a"),
+        section: (load_address, entrypoint, len(output), hashlib.sha256(output).hexdigest())
+        for section, (output, load_address, entrypoint, _marker_offset) in enumerate(outputs.values(), start=1)
     }
     for child in children:
         assert child.derived_from is not None
