@@ -908,6 +908,9 @@ static int render_asm_includes_for_structured_data_item(M68kRenderIRPreview *pre
     render_asm_include_for_amiga_symbol(preview, item->constant_name);
 }
 
+static int record_rendered_label_statement_access(M68kSourceAnalysisIR *source_analysis,
+  const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+
 static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, uint32_t *io_logical_pc) {
   const M68kAnalysisStructuredDataItem *item =
@@ -957,6 +960,11 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
   }
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
+  if (preview->source_analysis_for_symbol_access != NULL &&
+      record_rendered_label_statement_access(preview->source_analysis_for_symbol_access, lookup,
+        section_index, offset) != 0) {
+    preview->asm_source_allocation_failed = 1U;
+  }
 }
 
 static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_t reg_index) {
@@ -9979,6 +9987,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   if (render_asm_source && source_analysis == NULL) return -1;
   memset(&platform_state, 0, sizeof(platform_state));
   out_preview->platform_backend_kind = object->platform_backend_kind;
+  out_preview->source_analysis_for_symbol_access = source_analysis;
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();
@@ -10032,10 +10041,6 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
             M68kRenderPlanRow *row;
             begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_LABEL, (uint32_t)section_index);
             render_asm_label(out_preview, lookup, section->section_index, offset, &asm_logical_pc);
-            if (record_rendered_label_statement_access(source_analysis, lookup, section->section_index,
-                offset) != 0) {
-              goto cleanup;
-            }
             row = finish_asm_source_plan_row(out_preview, section->section_index, offset, 0U, 1);
             set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_LABEL, NULL, section, offset, 0U);
           }

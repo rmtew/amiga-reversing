@@ -16,6 +16,7 @@
 #define M68K_RENDER_ASM_SYMBOL_NAME_SIZE 64U
 
 typedef struct Arena Arena;
+typedef struct M68kSourceAnalysisIR M68kSourceAnalysisIR;
 
 typedef struct M68kRenderIRPreview {
   uint32_t statement_count;
@@ -55,6 +56,7 @@ typedef struct M68kRenderIRPreview {
   size_t asm_source_text_capacity;
   M68kRenderPlan asm_source_plan;
   M68kRenderPlanRowBuilder asm_source_row_builder;
+  M68kSourceAnalysisIR *source_analysis_for_symbol_access;
   Arena *asm_source_header_arena;
   Arena *scratch_arena;
   char asm_source_includes[M68K_RENDER_ASM_INCLUDE_LIMIT][M68K_RENDER_ASM_INCLUDE_PATH_SIZE];

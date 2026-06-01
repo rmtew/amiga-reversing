@@ -1014,6 +1014,40 @@ static int append_expected_relocated_branch_symbol_accesses_for_section(M68kSour
   return 0;
 }
 
+static int append_expected_label_statement_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis) {
+  size_t label_index;
+  if (section_analysis == NULL) return -1;
+  for (label_index = 0U; label_index < section_analysis->label_count; ++label_index) {
+    const uint32_t offset = section_analysis->label_offsets[label_index];
+    const M68kSymbolOriginIR *origin = source_quality_symbol_origin_at(section_analysis, offset);
+    M68kExpectedSymbolAccessIR access;
+    if (origin == NULL) continue;
+    memset(&access, 0, sizeof(access));
+    access.symbol_name = origin->symbol_name;
+    access.offset = offset;
+    access.target_section_index = (uint32_t)section_analysis->section_index;
+    access.target_offset = offset;
+    access.operand_index = UINT32_MAX;
+    access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT;
+    access.confidence = origin->confidence;
+    access.has_target = 1U;
+    if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_expected_label_statement_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    if (append_expected_label_statement_symbol_accesses_for_section(
+        &source_analysis->sections[section_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const M68kFactIR *facts, const uint8_t *accepted_start) {
   size_t candidate_index;
@@ -1593,6 +1627,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
     if (append_orphan_conflict_ranges_for_section(section) != 0) return -1;
   }
+  if (append_expected_label_statement_symbol_accesses(source_analysis) != 0) return -1;
   if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
     return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;

@@ -5376,6 +5376,7 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
     int saw_section_row = 0;
     int saw_label_row = 0;
     int saw_instruction_source_row = 0;
+    int saw_expected_target_label_access = 0;
     int saw_rendered_target_label_access = 0;
     int saw_expected_branch_target_access = 0;
     int saw_rendered_branch_target_access = 0;
@@ -5428,6 +5429,14 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
       const M68kSectionAnalysisIR *analysis_section = &source_analysis->sections[0];
       for (access_index = 0U; access_index < analysis_section->expected_symbol_access_count; ++access_index) {
         const M68kExpectedSymbolAccessIR *access = &analysis_section->expected_symbol_accesses[access_index];
+        if (access->offset == 4U &&
+            access->target_section_index == 0U &&
+            access->target_offset == 4U &&
+            access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT &&
+            access->symbol_name != NULL &&
+            strcmp(access->symbol_name, "loc_0_00000004") == 0) {
+          saw_expected_target_label_access = 1;
+        }
         if (access->offset == 0U &&
             access->target_section_index == 0U &&
             access->target_offset == 4U &&
@@ -5456,6 +5465,7 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
       }
     }
     M68K_C_ASSERT(saw_expected_branch_target_access);
+    M68K_C_ASSERT(saw_expected_target_label_access);
     M68K_C_ASSERT(saw_rendered_target_label_access);
     M68K_C_ASSERT(saw_rendered_branch_target_access);
     M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, NULL,

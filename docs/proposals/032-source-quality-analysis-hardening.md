@@ -4754,3 +4754,44 @@ src\build\m68k_c_unit_tests.exe m68k_ir
 uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
+
+### Expected Label Statement Accesses
+
+Source-analysis labels now produce explicit expected symbol-access obligations
+for the label statement itself:
+
+```text
+section_analysis.label_offsets
+  -> source_quality_symbol_origin_at(section, offset)
+  -> M68kExpectedSymbolAccessIR(label_statement)
+```
+
+This makes "analysis said this label exists" visible in the same quality gate as
+branch, call, relocation, and rendered-access checks. A label can no longer be
+silently present in analysis while the renderer drops it, renames it, or emits it
+only through an untracked path.
+
+The rendered side records label statements centrally from `render_asm_label()`.
+That matters because labels are not only emitted by the top-level section walk:
+structured data paths can emit internal labels as well.
+
+```text
+copper_patch:
+  dc.w ...
+
+palette_patch:
+  dc.w ...
+```
+
+Those internal structured-data labels were the useful regression case. Recording
+inside `render_asm_label()` keeps the source-quality accounting aligned with the
+actual renderer path instead of with only one caller.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```
