@@ -2129,7 +2129,7 @@ they used a full real target loop to force individual planner/candidate cases.
 Current broad shape:
 
 ```text
-test_agent_real_genam_autonomous_rsset_candidate_converges_source
+test_agent_real_genam_autonomous_rsset_candidate_converges_semantic_state
 test_agent_real_genam_autonomous_lvo_library_base_candidate_converges
 test_agent_real_genam_autonomous_data_symbol_candidate_is_not_generic_progress
 
@@ -2155,23 +2155,33 @@ tests/test_reversing_loop.py
 The real layer now keeps one GenAm end-to-end sentinel:
 
 ```text
-test_agent_real_genam_autonomous_rsset_candidate_converges_source
+test_agent_real_genam_autonomous_rsset_candidate_converges_semantic_state
   real GenAm listing/projection
   clean-run agent loop
   target.rsset_region.add command
   semantic reload verification
-  rendered source contains the projected RSSET region
 ```
 
 The LVO and data-symbol real loops were removed because they duplicated direct
 candidate and verifier contracts while paying the same real target setup.
+The retained RSSET loop was narrowed again: the final explicit full source
+render was removed and the test was renamed to
+`test_agent_real_genam_autonomous_rsset_candidate_converges_semantic_state`.
+Rendered RSSET source and exact rebuild are already owned by
+`test_real_dll_manual_rsset_layout_region_renders_source_and_rebuilds` plus
+the focused RSSET metadata render tests in `tests/test_c_backend.py`.
 
 Measured result:
 
 ```text
 pytest tests\test_agent_reversing_loop.py -m real_integration -q --durations=10
-  1 passed, 2 deselected in 3.19s
-  slowest call: 2.93s
+  before narrowing: 1 passed, 2 deselected in 3.74s
+    slowest call: 3.48s
+  after narrowing and rename: 1 passed, 2 deselected in 2.72s
+    slowest call: 2.45s
+
+pytest tests\test_c_backend.py -m c_backend -k "rsset_layout_region" -q --durations=10
+  2 passed, 221 deselected in 0.26s
 ```
 
 ### Bloodwych Generated Source Exactness
@@ -3049,17 +3059,17 @@ wide confidence layers remain meaningful and easier to understand
 After the generated/drift split, route-command split, CDP race fixes, MPW
 fixture narrowing, duplicate MPW payload removal, the Bloodwych/string real
 fixture cleanup, Damocles copied-stub native execution deferral, and Pandora
-provider-wrapper validation deferral:
+provider-wrapper validation deferral, and GenAm agent RSSET sentinel narrowing:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 404 deselected in 16.63s
+  1242 passed, 404 deselected in 18.38s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  128 passed, 16 skipped, 1502 deselected in 49.87s
+  128 passed, 16 skipped, 1502 deselected in 52.31s
 
 uv run ruff check
   passed
@@ -3146,11 +3156,11 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-GenAm autonomous RSSET sentinel                 3.14s
-Bloodwych generated source exact                3.13s
-Damocles deferred-analysis sentinel             2.85s
-Magicland self-decrunch materialization         2.50s
-Immediate text real sentinel                    1.66s
+Bloodwych generated source exact                3.24s
+Damocles deferred-analysis sentinel             2.95s
+Magicland self-decrunch materialization         2.77s
+GenAm autonomous RSSET sentinel                 2.39s
+platform unresolved indirect sites              1.75s
 ```
 
 ## Trailing Notes And Follow-Up Observations
@@ -3191,7 +3201,7 @@ The default loop is under 20s in the clean timing run:
 
 ```text
 pytest tests -q
-  1240 passed, 408 deselected in 16.90s
+  1242 passed, 404 deselected in 18.38s
 ```
 
 The slowest remaining default tests are not the converted route command tests.

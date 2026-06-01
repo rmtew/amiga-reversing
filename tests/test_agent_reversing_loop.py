@@ -12,7 +12,6 @@ from amiga_reversing import reversing_loop
 from amiga_reversing.disasm import c_backend, project_paths, projects
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.binary_source import write_source_descriptor
-from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemScope,
@@ -180,7 +179,7 @@ def test_agent_listing_backed_comment_smoke_uses_harness_path(
     assert (target_dir / "agent" / "latest-reversing-loop.json").exists()
 
 
-def test_agent_real_genam_autonomous_rsset_candidate_converges_source(
+def test_agent_real_genam_autonomous_rsset_candidate_converges_semantic_state(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -219,16 +218,6 @@ def test_agent_real_genam_autonomous_rsset_candidate_converges_source(
     matching_regions = cast(list[dict[str, object]], semantic_reload["matching_rsset_layout_regions"])
     assert matching_regions[0]["symbol"] == expected_region["symbol"]
     assert matching_regions[0]["offset"] == expected_region["offset"]
-
-    paths = resolve_temp_paths(project_id)
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        rendered, _profile = c_backend.listing_artifact_source_text_with_c_backend_profile(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=PROJECT_ROOT,
-    )
-    assert expected_region["symbol"] in rendered
-    assert f"{expected_region['symbol']} RS." in rendered
 
 
 def _project(review_items: tuple[dict[str, object], ...]) -> ProjectRecord:
