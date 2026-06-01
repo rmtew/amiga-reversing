@@ -67,28 +67,92 @@ def test_021_001_committed_mpw_asm_project_resolves_native_code_source_descripto
     )
 
 
-def test_021_001_macos_listing_source_sits_behind_native_descriptor() -> None:
-    if not IMAGE_PATH.exists():
-        pytest.skip("MPW-GM image fixture is not available")
-    if not NDIF2RAW_PATH.exists():
-        pytest.skip("ndif2raw provider is not available")
+def test_macos_listing_source_uses_native_descriptor_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    image_path = tmp_path / "MPW-GM.img.bin"
+    image_path.write_bytes(b"image")
+    calls: dict[str, object] = {}
+    project = type(
+        "Project",
+        (),
+        {
+            "id": "macos_sample",
+            "target_dir": "targets/macos_sample",
+            "origin": {
+                "kind": "macos_hfs_resource_code_file",
+                "source_image": image_path.name,
+                "hfs_path": "MPW-GM/MPW/Tools/Asm",
+                "selected_code_resource_id": 1,
+                "selected_code_resource_name": "Main",
+            },
+        },
+    )()
 
-    project = get_project(MACOS_EXAMPLE_PROJECT_ID)
-    listing_source = build_macos_code_listing_source(project)
+    def fake_read(path: Path) -> bytes:
+        calls["read_path"] = path
+        return b"hfs"
+
+    def fake_summary(hfs_bytes: bytes, hfs_path: str) -> dict[str, object]:
+        calls["summary"] = (hfs_bytes, hfs_path)
+        return {
+            "container_kind": "macos_hfs",
+            "file": {"type": "MPST", "creator": "MPS ", "cnid": 2310},
+            "selected_code": {"id": 1, "name": "Main"},
+            "resource_fork": {"code_resources": [{"type": "CODE", "id": 1, "name": "Main", "size": 4}]},
+            "executable_model": "platform_executable_summary_v1",
+            "executable_ranges": [
+                {
+                    "resource_type": "CODE",
+                    "resource_id": 1,
+                    "role": "code",
+                    "entrypoint": True,
+                    "load_offset": 40,
+                    "size": 4,
+                    "fact_status": "validated",
+                }
+            ],
+            "executable_deferred": [{"reason": "fixups_deferred"}],
+            "unsupported": ["relocation/fixups"],
+        }
+
+    def fake_extract(hfs_bytes: bytes, hfs_path: str, resource_id: int) -> bytes:
+        calls["extract"] = (hfs_bytes, hfs_path, resource_id)
+        return b"\x20\x5f\x4e\x75"
+
+    monkeypatch.setattr(macos_listing_source, "read_macos_hfs_image_bytes", fake_read)
+    monkeypatch.setattr(macos_listing_source, "inspect_macos_hfs_code_summary_with_c_backend", fake_summary)
+    monkeypatch.setattr(macos_listing_source, "extract_macos_hfs_code_resource_bytes_with_c_backend", fake_extract)
+
+    listing_source = build_macos_code_listing_source(project, project_root=tmp_path)
     descriptor = cast(dict[str, object], listing_source["source_descriptor"])
     classified_range = cast(dict[str, object], listing_source["classified_range"])
 
+    assert calls["read_path"] == image_path.resolve()
+    assert calls["summary"] == (b"hfs", "MPW-GM/MPW/Tools/Asm")
+    assert calls["extract"] == (b"hfs", "MPW-GM/MPW/Tools/Asm", 1)
     assert isinstance(descriptor, dict)
     assert descriptor["kind"] == "macos_code_resource"
-    assert descriptor["source_image"] == "resources/platform_macos/MPW-GM.img.bin"
+    assert descriptor["source_image"] == "MPW-GM.img.bin"
     assert descriptor["hfs_path"] == "MPW-GM/MPW/Tools/Asm"
     assert descriptor["resource_type"] == "CODE"
     assert descriptor["resource_id"] == 1
     assert descriptor["address_model"] == "macos_code_resource_offset"
     assert descriptor["cache_identity"] == (
-        "macos-code-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CODE:1"
+        "macos-code-resource:MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CODE:1"
     )
     assert classified_range["fact_status"] == "validated"
+    assert classified_range["load_offset"] == 40
+    assert listing_source["resource_name"] == "Main"
+    assert listing_source["code_bytes"] == b"\x20\x5f\x4e\x75"
+    assert listing_source["executable_deferred"] == [{"reason": "fixups_deferred"}]
+    assert listing_source["container"] == {
+        "kind": "macos_hfs",
+        "file_type": "MPST",
+        "creator": "MPS ",
+        "cnid": 2310,
+    }
 
 
 def test_macos_code_listing_artifact_uses_macos_platform_backend_for_opword_calls() -> None:

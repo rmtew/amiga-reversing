@@ -2879,6 +2879,67 @@ The source export comparison is especially important because it is the local
 round-trip style gate for the committed Mac source artifact. It can move out of
 the broad payload test, but it should remain a named drift/contract check.
 
+#### Mac Listing Source Checkpoint - Compact Builder Contract
+
+The real-integration profile still included a separate Mac listing-source test:
+
+```text
+test_021_001_macos_listing_source_sits_behind_native_descriptor  ~0.82s
+```
+
+That test loaded the real MPW image to verify the Python listing-source builder
+copied descriptor and selected CODE metadata into the listing-source packet.
+The real-image part duplicated existing sentinels:
+
+```text
+test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata
+  real MPW image -> real C HFS summary
+
+test_macos_listing_artifact_uses_macos_source_and_row_provenance
+  committed Mac target -> real listing artifact -> row provenance/source text
+```
+
+The listing-source builder contract now uses a compact mocked HFS summary and
+CODE extraction:
+
+```python
+monkeypatch.setattr(macos_listing_source, "read_macos_hfs_image_bytes", fake_read)
+monkeypatch.setattr(
+    macos_listing_source,
+    "inspect_macos_hfs_code_summary_with_c_backend",
+    fake_summary,
+)
+monkeypatch.setattr(
+    macos_listing_source,
+    "extract_macos_hfs_code_resource_bytes_with_c_backend",
+    fake_extract,
+)
+```
+
+It still proves the owned behavior:
+
+```text
+MacosCodeResourceSource descriptor fields
+source descriptor payload/cache identity
+selected executable range propagation
+resource name and CODE bytes propagation
+container/fork metadata propagation
+deferred executable facts propagation
+```
+
+Focused verification:
+
+```text
+pytest tests\test_macos_target_artifact.py -q --durations=15
+  6 passed, 5 deselected in 0.35s
+
+pytest tests -m real_integration -q --durations=30
+  119 passed, 16 skipped, 1503 deselected in 39.61s
+```
+
+This keeps the real MPW image coverage at the actual real-image boundaries and
+moves the Python packet-shaping rule to a compact seam.
+
 #### Slice 5 Implementation Checkpoint - Compact Source Export Contract
 
 The first Mac implementation pass added a compact source-export renderer
@@ -3392,7 +3453,8 @@ provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
 Bloodwych exact-test removal, Magicland materialization-test removal,
 platform unresolved-sweep removal, immediate-text real sentinel removal, and
 MonAm OpenLibrary app-slot pass removal, planner-selection lower-seam cleanup,
-API durability matrix narrowing, and route catalog lower-seam cleanup:
+API durability matrix narrowing, route catalog lower-seam cleanup, and Mac
+listing-source compact builder cleanup:
 
 ```text
 pytest tests -q --durations=20
@@ -3493,6 +3555,12 @@ pytest tests -q --durations=30
 
 pytest tests -m real_integration -q --durations=20
   120 passed, 16 skipped, 1502 deselected in 38.01s
+
+pytest tests\test_macos_target_artifact.py -q --durations=15
+  6 passed, 5 deselected in 0.35s
+
+pytest tests -m real_integration -q --durations=30
+  119 passed, 16 skipped, 1503 deselected in 39.61s
 
 pytest tests -m "integration and not real_integration" -q --durations=20
   203 passed, 1435 deselected in 44.91s
