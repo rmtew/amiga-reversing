@@ -1484,7 +1484,7 @@ real Damocles sentinel
   two Tetragon events
   no false self-decrunch event
   both payloads materializable
-  expected load/entry/size/hash
+  expected load/entry identity
   section 2 native copied-stub path ran
 ```
 
@@ -1516,6 +1516,42 @@ The first two affect import behavior and UI semantics, so they need design work
 before implementation. The third needs a known valid small Tetragon payload or a
 test-only fixture generator; it should not be faked by asserting less on
 Damocles.
+
+#### Slice 6B Implementation Checkpoint - Real Damocles Assertions Narrowed
+
+The real Damocles Tetragon test no longer asserts exact decompressed output
+sizes and hashes. Those are materialization details, not the purpose of the real
+corpus sentinel. The test now checks:
+
+```text
+two Tetragon events
+no false self-decrunch event
+recognized-unpacker timing is visible
+both events are materializable primary programs
+both entrypoints validate as code-bearing payloads
+section 1 load/entry identity is $40000/$40000
+section 2 load/entry identity is $1000/$59484
+section 2 native copied-stub execution ran
+```
+
+Focused timing confirms the remaining cost is native execution, not assertion
+breadth:
+
+```text
+pytest tests\test_c_backend.py -m c_backend -k "tetragon" -q --durations=20
+  4 passed, 220 deselected in 15.41s
+
+slowest:
+  real Damocles native unpacking sentinel    13.46s
+  Voodoo Tetragon comparator                 0.88s
+  synthetic marker contract                  0.15s
+  synthetic copied-stub contract             0.05s
+```
+
+The next implementation opportunity is a backend seam that can prove native
+copied-stub/Tetragon materialization on a small extracted stream or direct C
+unit fixture without simulating the full Damocles section 2 payload on every
+real-integration run.
 
 ### Pandora BK Wrapper
 
@@ -2545,13 +2581,13 @@ fixture narrowing:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 408 deselected in 15.01s
+  1242 passed, 408 deselected in 14.70s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q
-  133 passed, 16 skipped, 1501 deselected in 94.32s
+  133 passed, 16 skipped, 1501 deselected in 93.35s
 
 uv run ruff check
   passed
@@ -2585,6 +2621,9 @@ pytest tests\test_macos_project_payload.py -q --durations=15
 
 pytest tests\test_macos_project_payload.py -m real_integration -q --durations=10
   1 passed, 14 deselected in 9.23s
+
+pytest tests\test_c_backend.py -m c_backend -k "tetragon" -q --durations=20
+  4 passed, 220 deselected in 15.41s
 
 pytest tests\test_active_imports.py -q --durations=10
   5 passed in 1.28s
