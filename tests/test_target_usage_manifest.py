@@ -404,6 +404,7 @@ def test_source_quality_diagnostics_feature_and_xref() -> None:
                 "origin": "auto_analysis",
                 "length": 12,
                 "summary": "accepted code has no terminal proof",
+                "evidence_source": "accepted_code_run",
             }
         ],
         "sections": [
@@ -430,12 +431,14 @@ def test_source_quality_diagnostics_feature_and_xref() -> None:
     assert counts["source-quality:kind:unterminated_or_invalid_code_range"] == 1
     assert counts["source-quality:kind:platform_name_without_use_shape"] == 1
     assert counts["source-quality:origin:auto_analysis"] == 1
+    assert counts["source-quality:evidence:accepted_code_run"] == 1
     assert counts["source-quality:owner:low_ram"] == 1
     assert counts["source-quality:platform_use:low_memory_base"] == 1
     assert "source-quality:diagnostic" in tags
     assert "target-pattern:source_quality_false_code" in tags
     assert "target-pattern:source_quality_platform_semantics" in tags
     assert examples["source-quality:kind:unterminated_or_invalid_code_range"][0]["length"] == 12
+    assert examples["source-quality:evidence:accepted_code_run"][0]["evidence_source"] == "accepted_code_run"
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
     row_locations = {
@@ -722,6 +725,7 @@ def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_sea
                         "offset": 0x42C00,
                         "symbol_name": "abs_0_00042C00",
                         "access_kind": "label_statement",
+                        "producer": "label_statement",
                         "target_section_index": 0,
                         "target_offset": 0x42C00,
                         "operand_index": None,
@@ -750,12 +754,14 @@ def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_sea
     assert counts["analysis:symbol_origin_kind:analysis_label"] == 1
     assert counts["analysis:expected_symbol_access"] == 1
     assert counts["analysis:expected_symbol_access_kind:label_statement"] == 1
+    assert counts["analysis:expected_symbol_access_producer:label_statement"] == 1
     assert counts["analysis:expected_symbol_access:targeted"] == 1
     assert counts["analysis:rendered_symbol_access"] == 1
     assert counts["analysis:rendered_symbol_access_kind:label_statement"] == 1
     assert counts["analysis:rendered_symbol_access:targeted"] == 1
     assert "target-pattern:source_quality_label_consistency" in tags
     assert examples["analysis:symbol_origin"][0]["symbol_name"] == "abs_0_00042C00"
+    assert examples["analysis:expected_symbol_access_producer:label_statement"][0]["producer"] == "label_statement"
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
     row_locations = {(0, 0x42C00): (12, "s0:00042C00:label:12", "abs_0_00042C00:")}

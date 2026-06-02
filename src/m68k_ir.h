@@ -1772,6 +1772,7 @@ typedef struct M68kSymbolOriginIR {
 
 typedef struct M68kExpectedSymbolAccessIR {
   char *symbol_name;
+  char *producer;
   uint32_t offset;
   uint32_t target_section_index;
   uint32_t target_offset;

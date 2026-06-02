@@ -904,7 +904,11 @@ static int section_has_rendered_symbol_access(const M68kRenderEvidenceSectionIR 
 static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisIR *section,
     const M68kExpectedSymbolAccessIR *access) {
   M68kSourceQualityDiagnosticIR diagnostic;
+  char evidence_source[160];
+  const char *producer;
   if (section == NULL || access == NULL) return -1;
+  producer = access->producer != NULL && access->producer[0] != '\0' ? access->producer : "unknown";
+  snprintf(evidence_source, sizeof(evidence_source), "expected_symbol_access:%s", producer);
   memset(&diagnostic, 0, sizeof(diagnostic));
   diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_MISSING_EXPECTED_SYMBOL_ACCESS;
   diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
@@ -915,7 +919,7 @@ static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisI
   diagnostic.has_offset = 1U;
   diagnostic.offset = access->offset;
   diagnostic.summary = "expected symbol access was not rendered";
-  diagnostic.evidence_source = "expected_symbol_access";
+  diagnostic.evidence_source = evidence_source;
   return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
 }
 
@@ -1574,6 +1578,7 @@ static int source_quality_append_expected_branch_symbol_access(M68kSectionAnalys
   }
   memset(&access, 0, sizeof(access));
   access.symbol_name = origin->symbol_name;
+  access.producer = "relocated_branch";
   access.offset = candidate->offset;
   access.target_section_index = target_section_index;
   access.target_offset = target_offset;
@@ -1593,6 +1598,7 @@ static int source_quality_append_expected_operand_symbol_access(M68kSectionAnaly
   }
   memset(&access, 0, sizeof(access));
   access.symbol_name = origin->symbol_name;
+  access.producer = "data_operand";
   access.offset = candidate->offset;
   access.target_section_index = target_section_index;
   access.target_offset = target_offset;
@@ -1609,6 +1615,7 @@ static int source_quality_append_expected_equate_symbol_access(M68kSectionAnalys
   if (source_section_analysis == NULL || symbol_name == NULL || symbol_name[0] == '\0') return -1;
   memset(&access, 0, sizeof(access));
   access.symbol_name = (char *)symbol_name;
+  access.producer = "manual_equate";
   access.offset = offset;
   access.operand_index = operand_index;
   access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
@@ -1673,6 +1680,7 @@ static int append_expected_label_statement_symbol_accesses_for_section(M68kSecti
     if (origin == NULL) continue;
     memset(&access, 0, sizeof(access));
     access.symbol_name = origin->symbol_name;
+    access.producer = "label_statement";
     access.offset = offset;
     access.target_section_index = (uint32_t)section_analysis->section_index;
     access.target_offset = offset;
@@ -1725,6 +1733,7 @@ static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSect
       if (origin == NULL) continue;
       memset(&access, 0, sizeof(access));
       access.symbol_name = origin->symbol_name;
+      access.producer = "intrinsic_branch";
       access.offset = candidate->offset;
       access.target_section_index = (uint32_t)target->section_index;
       access.target_offset = target->offset;
@@ -2005,6 +2014,8 @@ static int append_expected_address_observation_symbol_accesses_for_section(M68kS
       memset(&access, 0, sizeof(access));
       access.symbol_name = section_storage_origin != NULL ? section_storage_origin->symbol_name :
         observation->symbol_name;
+      access.producer = section_storage_origin != NULL ? "section_storage_address_observation" :
+        "absolute_address_observation";
       access.offset = observation->offset;
       access.operand_index = observation->operand_index;
       access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;

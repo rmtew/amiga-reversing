@@ -10954,6 +10954,7 @@ static int test_source_analysis_symbol_origin_and_expected_access_export(void) {
   access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT;
   access.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
   access.has_target = 1U;
+  access.producer = "test_expected_symbol_access";
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_expected_symbol_access(&section_analysis, &access));
   memset(&rendered_access, 0, sizeof(rendered_access));
   rendered_access.symbol_name = "loc_0_00000004";
@@ -10972,6 +10973,7 @@ static int test_source_analysis_symbol_origin_and_expected_access_export(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"loc_0_00000004\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"origin_kind\":\"analysis_label\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"test_expected_symbol_access\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"label_statement\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":4") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"operand_index\":null") != NULL);
@@ -11033,6 +11035,7 @@ static int test_source_quality_analyze_blocks_missing_expected_symbol_access(voi
   access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT;
   access.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
   access.has_target = 1U;
+  access.producer = "test_missing_symbol_access";
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_expected_symbol_access(&section_analysis, &access));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, test_source_quality_analyze_rendered_symbol_accesses_from_section(&source_analysis));
@@ -11044,7 +11047,8 @@ static int test_source_quality_analyze_blocks_missing_expected_symbol_access(voi
   M68K_C_ASSERT(strstr(analysis_json, "\"origin\":\"render_export\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"offset\":4") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"summary\":\"expected symbol access was not rendered\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_source\":\"expected_symbol_access\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"evidence_source\":\"expected_symbol_access:test_missing_symbol_access\"") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -11641,6 +11645,7 @@ static int test_source_quality_analyze_expects_section_storage_operand_symbol_ac
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_name\":\"section_storage\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"target_word\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"section_storage_address_observation\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"operand\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":1,\"target_offset\":8") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"operand_index\":0") != NULL);

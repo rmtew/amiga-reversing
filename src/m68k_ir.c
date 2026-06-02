@@ -2897,9 +2897,11 @@ int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR
     const M68kExpectedSymbolAccessIR *access) {
   M68kExpectedSymbolAccessIR copy;
   size_t index;
+  const char *producer;
   if (section_analysis == NULL || access == NULL || section_analysis->arena == NULL) return -1;
   if (access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_UNKNOWN ||
       access->symbol_name == NULL || access->symbol_name[0] == '\0') return 0;
+  producer = access->producer != NULL && access->producer[0] != '\0' ? access->producer : "unknown";
   for (index = 0U; index < section_analysis->expected_symbol_access_count; ++index) {
     const M68kExpectedSymbolAccessIR *existing = &section_analysis->expected_symbol_accesses[index];
     if (existing->offset == access->offset &&
@@ -2920,6 +2922,8 @@ int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR
   copy = *access;
   copy.symbol_name = arena_strdup(section_analysis->arena, access->symbol_name);
   if (copy.symbol_name == NULL) return -1;
+  copy.producer = arena_strdup(section_analysis->arena, producer);
+  if (copy.producer == NULL) return -1;
   section_analysis->expected_symbol_accesses[section_analysis->expected_symbol_access_count++] = copy;
   return 0;
 }

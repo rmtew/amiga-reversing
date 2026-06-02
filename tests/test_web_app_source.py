@@ -401,6 +401,7 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "function renderOracleCompatibility(report)" in app_js
     assert "oracle_compatibility" in app_js
     assert "analysis:expected_symbol_access_kind:" in app_js
+    assert "analysis:expected_symbol_access_producer:" in app_js
     assert "Expected symbol access" in app_js
     assert "oracle-result" in styles_css
     assert "function currentReproIssue()" in app_js

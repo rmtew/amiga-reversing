@@ -3900,6 +3900,7 @@ function corpusFeatureLabel(feature) {
   if (text.startsWith("analysis:symbol_origin_confidence:")) return `Symbol origin confidence: ${text.split(":").pop()}`;
   if (text.startsWith("analysis:symbol_origin:")) return `Symbol origin: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text === "analysis:symbol_origin") return "Symbol origin";
+  if (text.startsWith("analysis:expected_symbol_access_producer:")) return `Expected symbol access producer: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text.startsWith("analysis:expected_symbol_access_kind:")) return `Expected symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text.startsWith("analysis:expected_symbol_access:")) return `Expected symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text === "analysis:expected_symbol_access") return "Expected symbol access";

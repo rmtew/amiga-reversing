@@ -667,10 +667,40 @@ OS-call input value-domain symbols, stack-cleanup notes, and runtime-address
 sink role labels. Render should not rescan forward to find the next platform
 call or reclassify a hardware register from raw numbers.
 
-### Remaining Gap: Expected Symbol Producers Are Too Narrow
+### Remaining Gap: Expected Symbol Producer Coverage Is Too Narrow
 
-The current expected-symbol producer covers intrinsic branch/control labels. It
-does not yet cover the full set needed for Damocles-style failures:
+Expected-symbol accesses now carry a producer id. That is important because a
+missing rendered symbol is not just "some label did not print"; it is a failed
+obligation from a specific analysis rule.
+
+Current implemented producer ids include:
+
+```text
+relocated_branch
+intrinsic_branch
+data_operand
+manual_equate
+label_statement
+section_storage_address_observation
+absolute_address_observation
+```
+
+The producer field is exported with each expected symbol access. Missing-symbol
+diagnostics surface it through producer-qualified evidence source text:
+
+```text
+missing_expected_symbol_access
+  evidence_source = expected_symbol_access:section_storage_address_observation
+```
+
+That gives the worker the rule that created the failed obligation instead of
+only the missing symbol name. The current dedupe model still stores one obligation for a given
+source/operand/symbol/kind pair; if multiple producers later need to report the
+same missing symbol independently, that should become explicit multi-producer
+evidence rather than duplicate diagnostics.
+
+The remaining gap is coverage. The implemented producers do not yet cover the
+full set needed for Damocles-style failures:
 
 ```text
 absolute operand targets in-image storage
@@ -682,19 +712,11 @@ table entry target labels
 platform semantic operands
 ```
 
-Until those producers exist, the post-render gate can catch only a small part
-of the label/source mismatch class.
+Until those producers are complete, the post-render gate can catch only the
+covered part of the label/source mismatch class.
 
-The current producer is specifically
-`append_expected_intrinsic_branch_symbol_accesses()`. It walks accepted
-instructions, selects branch/call/jump targets with an intrinsic label operand,
-skips relocation-covered operands, then requires an existing symbol origin at
-the target. That is a good first producer, but it explains why Damocles numeric
-absolute storage operands are not caught yet: they are not intrinsic control
-targets.
-
-The next producers should be separate functions, not one broad "label exists"
-rule:
+The next coverage should stay as separate functions, not one broad "label
+exists" rule:
 
 ```text
 append_expected_absolute_storage_operand_accesses()
@@ -705,15 +727,10 @@ append_expected_table_entry_target_accesses()
 append_expected_platform_symbol_operand_accesses()
 ```
 
-Each producer should carry a producer id/string into
-`M68kExpectedSymbolAccessIR`, so diagnostics can say which analysis obligation
-the renderer failed to satisfy.
-
-The current `M68kExpectedSymbolAccessIR` has symbol, source offset, target,
-operand, access kind, confidence, and `has_target`, but no producer field. Add a
-small enum or interned string field before expanding producers; otherwise the
-post-render diagnostic will identify only the missing symbol, not the analysis
-rule that required it.
+Each new producer must set a precise producer id/string in
+`M68kExpectedSymbolAccessIR`. A missing or empty producer should be treated as a
+test failure for new source-quality code, with the existing `"unknown"` fallback
+reserved for old/manual fixture construction and defensive JSON export.
 
 ## Tutorial: Symbol Obligations
 
@@ -876,11 +893,14 @@ Adding a validator and then stopping because a tracked target now fails is not
 completion; it is the start of the repair.
 
 This is an acceptance rule, not a preference. A slice that discovers a
-framework-owned source-quality failure is not complete until the producer is
-fixed, the failure is reduced to an isolated test, and the affected target
-renders/round-trips again. The only acceptable deferral is a failure whose cause
-is outside the slice and whose diagnostic chain is explicit enough to reproduce
-without another investigation pass.
+framework-owned source-quality failure is not complete until the cause is fixed,
+the failure is reduced to an isolated test, and the affected target
+renders/round-trips again. "Cause" means the wrong producer, missing producer,
+bad classifier, missing conflict rule, bad accepted-run proof, or wrong
+render-evidence path that actually made the framework emit bad source. The only
+acceptable deferral is a failure whose cause is outside the slice and whose
+diagnostic chain is explicit enough to reproduce without another investigation
+pass.
 
 This applies to all proposal work, not only dedicated validation slices. If an
 implementation step changes analysis, rendering, address identity, platform
@@ -892,7 +912,7 @@ and the obvious fix.
 proposal work touches source-quality behavior
   -> validation/test/target exposes a failure
   -> classify the failure as framework-owned or genuinely outside scope
-  -> if framework-owned and causally visible, fix the producer now
+  -> if framework-owned and causally visible, fix the cause now
   -> add or tighten the isolated fixture that proves the repaired behavior
   -> only defer with a precise diagnostic chain when the fix is outside scope
 ```
@@ -1511,6 +1531,9 @@ checked-in `.s` diffs.
   slice scope.
 - A slice is not accepted when it merely adds a diagnostic for an obvious
   producer bug and leaves the restored source wrong.
+- A validation failure is not a blocker by itself; it is a work item to trace
+  back to the bad producer, classifier, accepted-run proof, platform semantic,
+  or render-evidence path and repair there.
 
 ## Trailing Observations For Later Work
 

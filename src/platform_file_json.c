@@ -4634,6 +4634,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_json_string(&builder, access->symbol_name) != 0)
         goto oom;
+      if (json_builder_append(&builder, ",\"producer\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          access->producer != NULL ? access->producer : "unknown") != 0)
+        goto oom;
       if (json_builder_appendf(&builder,
           ",\"access_kind_id\":%u,\"access_kind\":",
           (unsigned)access->access_kind) != 0)

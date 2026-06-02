@@ -1952,6 +1952,7 @@ def _source_quality_diagnostic_example(
         "status",
         "severity",
         "summary",
+        "evidence_source",
         "detail",
     ):
         value = _string_value(diagnostic.get(key))
@@ -1975,6 +1976,7 @@ def _source_quality_diagnostic_features(diagnostic: dict[str, Any]) -> list[str]
         ("owner_kind_name", "source-quality:owner"),
         ("platform_use_shape", "source-quality:platform_use"),
         ("platform_use_shape_name", "source-quality:platform_use"),
+        ("evidence_source", "source-quality:evidence"),
         ("status", "source-quality:status"),
         ("severity", "source-quality:severity"),
     ):
@@ -2300,6 +2302,10 @@ def _expected_symbol_access_kind(access: dict[str, Any]) -> str:
     )
 
 
+def _expected_symbol_access_producer(access: dict[str, Any]) -> str | None:
+    return _string_value(access.get("producer"))
+
+
 def _expected_symbol_access_example(section_index: int | None, access: dict[str, Any]) -> dict[str, object]:
     access_section = _int_value(access.get("section_index"), section_index)
     offset = _int_value(access.get("offset"))
@@ -2315,7 +2321,7 @@ def _expected_symbol_access_example(section_index: int | None, access: dict[str,
         value = _int_value(access.get(key))
         if value is not None:
             example[key] = value
-    for key in ("symbol_name", "symbol", "access_kind", "access_kind_name", "detail"):
+    for key in ("symbol_name", "symbol", "access_kind", "access_kind_name", "producer", "detail"):
         value = _string_value(access.get(key))
         if value:
             example[key] = value
@@ -2324,10 +2330,13 @@ def _expected_symbol_access_example(section_index: int | None, access: dict[str,
 
 def _expected_symbol_access_features(access: dict[str, Any]) -> list[str]:
     kind = _expected_symbol_access_kind(access)
+    producer = _expected_symbol_access_producer(access)
     features = [
         "analysis:expected_symbol_access",
         f"analysis:expected_symbol_access_kind:{_safe_part(kind)}",
     ]
+    if producer:
+        features.append(f"analysis:expected_symbol_access_producer:{_safe_part(producer)}")
     if _int_value(access.get("target_offset")) is not None:
         features.append("analysis:expected_symbol_access:targeted")
     if _int_value(access.get("operand_index")) is not None:

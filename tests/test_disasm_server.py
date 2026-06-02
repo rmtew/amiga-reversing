@@ -5387,6 +5387,10 @@ def test_corpus_feature_labels_expected_symbol_accesses() -> None:
         disasm_server.corpus_usage._feature_label("analysis:expected_symbol_access:targeted")
         == "Expected symbol access: targeted"
     )
+    assert (
+        disasm_server.corpus_usage._feature_label("analysis:expected_symbol_access_producer:label_statement")
+        == "Expected symbol access producer: label statement"
+    )
     assert disasm_server.corpus_usage._feature_label("analysis:expected_symbol_access") == "Expected symbol access"
 
 

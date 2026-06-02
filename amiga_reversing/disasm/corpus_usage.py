@@ -384,6 +384,8 @@ def _feature_label(feature: str) -> str:
         return f"Symbol origin: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
     if feature == "analysis:symbol_origin":
         return "Symbol origin"
+    if feature.startswith("analysis:expected_symbol_access_producer:"):
+        return f"Expected symbol access producer: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
     if feature.startswith("analysis:expected_symbol_access_kind:"):
         return f"Expected symbol access: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
     if feature.startswith("analysis:expected_symbol_access:"):
