@@ -75,10 +75,9 @@ def brave_cdp_skip_reason() -> str:
     )
 
 
-def brave_cdp_requested() -> bool:
-    if os.environ.get("M68K_RUN_BRAVE_CDP") == "1":
-        return True
-    for arg in sys.argv[1:]:
+def brave_cdp_file_or_module_selected(args: list[str] | None = None) -> bool:
+    selected_args = sys.argv[1:] if args is None else args
+    for arg in selected_args:
         if arg.startswith("-"):
             continue
         normalized = arg.replace("\\", "/")
@@ -87,6 +86,22 @@ def brave_cdp_requested() -> bool:
         if normalized == _CDP_TEST_MODULE or normalized.startswith(f"{_CDP_TEST_MODULE}::"):
             return True
     return False
+
+
+def brave_cdp_marker_selected(args: list[str] | None = None) -> bool:
+    selected_args = sys.argv[1:] if args is None else args
+    for index, arg in enumerate(selected_args):
+        if arg in {"-m", "--markexpr"}:
+            return index + 1 < len(selected_args) and "web_e2e" in selected_args[index + 1]
+        if arg.startswith("-m") and "web_e2e" in arg[2:]:
+            return True
+        if arg.startswith("--markexpr=") and "web_e2e" in arg.split("=", 1)[1]:
+            return True
+    return False
+
+
+def brave_cdp_requested() -> bool:
+    return os.environ.get("M68K_RUN_BRAVE_CDP") == "1" or brave_cdp_file_or_module_selected()
 
 
 def _http_failure_allowed(url: str, status: int, allowed: list[AllowedHttpFailure]) -> bool:

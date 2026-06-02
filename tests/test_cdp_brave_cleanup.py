@@ -56,3 +56,18 @@ def test_brave_cleanup_kills_process_after_timeout(monkeypatch) -> None:
     assert process.terminated is True
     assert process.killed is True
     assert process.wait_calls == 2
+
+
+def test_brave_cdp_file_or_module_selected_accepts_direct_file_and_nodeid() -> None:
+    assert cdp_brave.brave_cdp_file_or_module_selected(["tests/test_web_e2e_cdp.py"])
+    assert cdp_brave.brave_cdp_file_or_module_selected(
+        ["tests\\test_web_e2e_cdp.py::test_brave_cdp_can_open_project_and_render_listing"]
+    )
+    assert cdp_brave.brave_cdp_file_or_module_selected(["tests.test_web_e2e_cdp"])
+    assert not cdp_brave.brave_cdp_file_or_module_selected(["tests"])
+
+
+def test_brave_cdp_marker_selected_detects_web_e2e_marker_expression() -> None:
+    assert cdp_brave.brave_cdp_marker_selected(["-m", "web_e2e"])
+    assert cdp_brave.brave_cdp_marker_selected(["--markexpr=web_e2e and not slow"])
+    assert not cdp_brave.brave_cdp_marker_selected(["-m", "not integration"])

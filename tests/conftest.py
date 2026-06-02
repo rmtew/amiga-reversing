@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.cdp_brave import brave_cdp_file_or_module_selected, brave_cdp_marker_selected
+
 _C_BACKEND_FILES = {
     "test_c_backend.py",
 }
@@ -73,7 +75,9 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             layer_markers.append(route_integration)
         if file_name in _MACOS_REAL_FIXTURE_FILES:
             layer_markers.append(macos_real_fixture)
-        if file_name == "test_web_e2e_cdp.py":
+        if file_name == "test_web_e2e_cdp.py" and (
+            not brave_cdp_file_or_module_selected() or brave_cdp_marker_selected()
+        ):
             standalone_markers.append(web_e2e)
         if file_name == "test_disasm_server.py" and test_name.startswith(
             ("test_route_", "test_installed_disasm_server_")

@@ -898,7 +898,6 @@ def _live_server() -> Iterator[str]:
         httpd.server_close()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_demo")
     rows = [
@@ -926,7 +925,6 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_asset_data_bootblock_renders_hex_without_listing_job(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -977,7 +975,6 @@ def test_brave_cdp_asset_data_bootblock_renders_hex_without_listing_job(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_can_open_single_macos_project_from_home(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _macos_project("macos_mpw_preview")
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
@@ -1015,7 +1012,6 @@ def test_brave_cdp_can_open_single_macos_project_from_home(monkeypatch: pytest.M
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_can_open_real_macos_project_from_home(monkeypatch: pytest.MonkeyPatch) -> None:
     _skip_without_c_backend()
     parent = project_store.get_project("macos_hfs_mpw_gm")
@@ -1065,7 +1061,6 @@ def test_brave_cdp_can_open_real_macos_project_from_home(monkeypatch: pytest.Mon
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_macos_code_child_uses_shared_source_artifact_view(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _macos_project("macos_mpw_preview")
     disasm_server._ASYNC_JOBS.clear()
@@ -1105,7 +1100,6 @@ def test_brave_cdp_macos_code_child_uses_shared_source_artifact_view(monkeypatch
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest.MonkeyPatch) -> None:
     base_project = _binary_project("amiga_hunk_review")
     project = replace(
@@ -1182,7 +1176,6 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_listing_selection_keyboard_navigation(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_selection")
     rows = [
@@ -1225,7 +1218,6 @@ def test_brave_cdp_listing_selection_keyboard_navigation(monkeypatch: pytest.Mon
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_listing_selection_survives_refresh_by_row_key(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_selection_refresh")
     rows = [
@@ -1302,7 +1294,6 @@ def test_brave_cdp_listing_selection_survives_refresh_by_row_key(monkeypatch: py
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_listing_range_selection_and_palette_reasons(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1353,7 +1344,6 @@ def test_brave_cdp_listing_range_selection_and_palette_reasons(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_first_open_selects_source_entrypoint(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1449,7 +1439,6 @@ def test_brave_cdp_first_open_selects_source_entrypoint(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_first_open_uses_source_entrypoint_before_unmapped_runtime_address(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1502,7 +1491,6 @@ def test_brave_cdp_first_open_uses_source_entrypoint_before_unmapped_runtime_add
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_opens_and_executes_catalog_command(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_palette")
     rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
@@ -1533,7 +1521,6 @@ def test_brave_cdp_command_palette_opens_and_executes_catalog_command(monkeypatc
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_arrow_keys_select_entry(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_palette_keys")
     rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
@@ -1570,7 +1557,6 @@ def test_brave_cdp_command_palette_arrow_keys_select_entry(monkeypatch: pytest.M
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1673,7 +1659,6 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_reproduction_profile_command_updates_summary(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1774,7 +1759,6 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
     assert not (target_dir / "manual_actions.jsonl").exists()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_source_export_palette_uses_browser_save(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1854,7 +1838,6 @@ def test_brave_cdp_source_export_palette_uses_browser_save(
     assert not (target_dir / "manual_actions.jsonl").exists()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_source_export_refusal_shows_source_quality_diagnostics(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1942,7 +1925,6 @@ def test_brave_cdp_source_export_refusal_shows_source_quality_diagnostics(
     assert not (target_dir / "manual_actions.jsonl").exists()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     project = _binary_project("amiga_hunk_representation")
     rows = [
@@ -2019,7 +2001,6 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2199,7 +2180,6 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_comment_rows_render_once_and_single_selection_prefers_locator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2259,7 +2239,6 @@ def test_brave_cdp_comment_rows_render_once_and_single_selection_prefers_locator
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2368,7 +2347,6 @@ def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2544,7 +2522,6 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_sends_structured_symbol_context(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_palette_symbol_context")
     rows = [
@@ -2603,7 +2580,6 @@ def test_brave_cdp_command_palette_sends_structured_symbol_context(monkeypatch: 
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_selected_row_follows_reference_and_goes_back(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_follow_reference")
     rows = [
@@ -2644,7 +2620,6 @@ def test_brave_cdp_selected_row_follows_reference_and_goes_back(monkeypatch: pyt
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_relative_label_and_hunk_navigation(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_relative_navigation")
     rows = [
@@ -2716,7 +2691,6 @@ def test_brave_cdp_relative_label_and_hunk_navigation(monkeypatch: pytest.Monkey
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_listing_ready_refreshes_analysis_review_badge(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_analysis_review")
     rows = [
@@ -2815,7 +2789,6 @@ def test_brave_cdp_listing_ready_refreshes_analysis_review_badge(monkeypatch: py
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_review_navigation_back_refills_listing_window(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_review_history_refill")
     h1_rows = [
@@ -2950,7 +2923,6 @@ def test_brave_cdp_review_navigation_back_refills_listing_window(monkeypatch: py
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     project = _binary_project("amiga_hunk_manual_seed_refresh")
     rows = [
@@ -3055,7 +3027,6 @@ def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypa
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_corpus_demo")
     _cache_full_project_rows(project.id, [
@@ -3356,7 +3327,6 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_app_slots")
     rows = [
@@ -3459,7 +3429,6 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3560,7 +3529,6 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3607,7 +3575,6 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_corpus_tab_renders_before_corpus_fetches_finish(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "list_projects", list)
     feature_entered = threading.Event()
@@ -3648,7 +3615,6 @@ def test_brave_cdp_corpus_tab_renders_before_corpus_fetches_finish(monkeypatch: 
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_corpus_target_selection_ignores_stale_xrefs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "list_projects", list)
     monkeypatch.setattr(
@@ -3731,7 +3697,6 @@ def test_brave_cdp_corpus_target_selection_ignores_stale_xrefs(monkeypatch: pyte
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_stats")
     rows = [
@@ -3795,7 +3760,6 @@ def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyP
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3902,7 +3866,6 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3980,7 +3943,6 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_navigation_overlay_opens_on_listing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4031,7 +3993,6 @@ def test_brave_cdp_navigation_overlay_opens_on_listing(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_navigation_overlay_list_scrolls_with_many_entries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4096,7 +4057,6 @@ def test_brave_cdp_navigation_overlay_list_scrolls_with_many_entries(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_page_level_listing_keys_route_to_listing_viewport(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4157,7 +4117,6 @@ def test_brave_cdp_page_level_listing_keys_route_to_listing_viewport(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_navigation_click_preserves_list_scroll_after_jump(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4222,7 +4181,6 @@ def test_brave_cdp_navigation_click_preserves_list_scroll_after_jump(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_api_navigation_uses_row_index_for_duplicate_offsets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4294,7 +4252,6 @@ def test_brave_cdp_api_navigation_uses_row_index_for_duplicate_offsets(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4505,7 +4462,6 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_equate_navigation_lists_refs_and_source_links(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4596,7 +4552,6 @@ def test_brave_cdp_equate_navigation_lists_refs_and_source_links(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_listing_layout_aligns_globals_and_shows_bytes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4743,7 +4698,6 @@ def test_brave_cdp_listing_layout_aligns_globals_and_shows_bytes(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_navigation_buttons_move_history(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_demo")
     rows = [
@@ -4784,7 +4738,6 @@ def test_brave_cdp_navigation_buttons_move_history(monkeypatch: pytest.MonkeyPat
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_navigation_jumps_to_runtime_address(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_runtime_nav")
     rows = [
@@ -4836,7 +4789,6 @@ def test_brave_cdp_navigation_jumps_to_runtime_address(monkeypatch: pytest.Monke
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_project_delete_confirms_and_removes_project(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_demo")
     projects = [project]
@@ -4872,7 +4824,6 @@ def test_brave_cdp_project_delete_confirms_and_removes_project(monkeypatch: pyte
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
     _skip_without_c_backend()
     project_id = "amiga_hunk_genam"
@@ -4896,7 +4847,6 @@ def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch)
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_upload_import_success(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -4931,7 +4881,6 @@ def test_brave_cdp_upload_import_success(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_upload_import_failure_shows_error(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -4965,7 +4914,6 @@ def test_brave_cdp_upload_import_failure_shows_error(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_disk_project_browsing_and_target_listing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4994,7 +4942,6 @@ def test_brave_cdp_disk_project_browsing_and_target_listing(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_disk_project_shows_decompressed_child_target(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -5054,7 +5001,6 @@ def test_brave_cdp_disk_project_shows_decompressed_child_target(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_disk_project_does_not_stub_badge_multi_payload_parent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -5080,7 +5026,6 @@ def test_brave_cdp_disk_project_does_not_stub_badge_multi_payload_parent(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_dos_disk_icon_library_target(monkeypatch: pytest.MonkeyPatch) -> None:
     _skip_without_c_backend()
     disk_project_id = "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5"
@@ -5104,7 +5049,6 @@ def test_brave_cdp_dos_disk_icon_library_target(monkeypatch: pytest.MonkeyPatch)
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_non_dos_disk_bootblock_and_bootloader_targets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -5161,7 +5105,6 @@ def test_brave_cdp_non_dos_disk_bootblock_and_bootloader_targets(
         page.assert_no_errors()
 
 
-@pytest.mark.web_e2e
 def test_brave_cdp_api_edit_modal_applies_struct_override(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
