@@ -5670,6 +5670,7 @@ Focused fixture:
 ```text
 facts_v2_render_asm_source_symbols_absolute_address_uses
 source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access
+source_quality_analyze_exports_sparse_absolute_address_range
 ```
 
 The fixture now asserts both sides of the quality gate for generated absolute
@@ -5681,6 +5682,12 @@ rendered_symbol_access(absolute_slot_00006F50, operand)
 
 expected_symbol_access(absolute_slot_0002F490, operand)
 rendered_symbol_access(absolute_slot_0002F490, operand)
+
+two observations of the same unowned absolute address
+  -> one address identity
+  -> absolute_address_range(status=unowned_sparse)
+  -> no generated absolute_slot_* symbol unless the renderer-backed shape
+     requires one
 ```
 
 Verified so far:
@@ -5688,7 +5695,7 @@ Verified so far:
 ```text
 cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe m68k_ir
-  m68k_ir: all 458 passed
+  m68k_ir: all 471 passed
 
 platform-rendered-source-roundtrip --update-rendered-source --json
   targets: 55

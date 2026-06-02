@@ -317,6 +317,41 @@ static int format_generated_absolute_memory_symbol(uint32_t address, char *buf, 
   return written > 0 && (size_t)written < buf_size;
 }
 
+static int absolute_memory_observation_supports_generated_symbol(const M68kAddressObservationIR *observation) {
+  if (observation == NULL ||
+      observation->source != M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND ||
+      observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY ||
+      observation->conflicted != 0U ||
+      observation->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN ||
+      !observation->has_address) {
+    return 0;
+  }
+  if (observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS) return 1;
+  return (observation->access_kind == M68K_SIM_ACCESS_MEMORY_READ ||
+      observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+    observation->access_width != 0U &&
+    observation->address < 0x10000U;
+}
+
+static int address_identity_supports_generated_absolute_memory_symbol(const M68kSourceAnalysisIR *source_analysis,
+    const M68kAddressIdentityIR *identity) {
+  size_t section_index;
+  if (source_analysis == NULL || identity == NULL || identity->identity_id == 0U) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t observation_index;
+    for (observation_index = 0U; observation_index < section->address_observation_count; ++observation_index) {
+      const M68kAddressObservationIR *observation = &section->address_observations[observation_index];
+      if (observation->has_identity &&
+          observation->identity_id == identity->identity_id &&
+          absolute_memory_observation_supports_generated_symbol(observation)) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int source_analysis_assign_absolute_memory_symbols(M68kSourceAnalysisIR *source_analysis) {
   size_t identity_index;
   if (source_analysis == NULL || source_analysis->arena == NULL) return -1;
@@ -325,7 +360,8 @@ static int source_analysis_assign_absolute_memory_symbols(M68kSourceAnalysisIR *
     char symbol[80];
     if (identity->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY ||
         !identity->has_absolute_address ||
-        identity->symbol_name != NULL) {
+        identity->symbol_name != NULL ||
+        !address_identity_supports_generated_absolute_memory_symbol(source_analysis, identity)) {
       continue;
     }
     if (!format_generated_absolute_memory_symbol(identity->absolute_address, symbol, sizeof(symbol))) return -1;

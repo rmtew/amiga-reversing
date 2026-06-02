@@ -11240,6 +11240,51 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   return 0;
 }
 
+static int test_source_quality_analyze_exports_sparse_absolute_address_range(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kAddressObservationIR absolute_ref;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  memset(&absolute_ref, 0, sizeof(absolute_ref));
+  absolute_ref.offset = 2U;
+  absolute_ref.operand_index = 1U;
+  absolute_ref.raw_value = 0x42C6CU;
+  absolute_ref.address = 0x42C6CU;
+  absolute_ref.access_width = 2U;
+  absolute_ref.access_kind = M68K_SIM_ACCESS_MEMORY_READ;
+  absolute_ref.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND;
+  absolute_ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
+  absolute_ref.owner_offset = absolute_ref.address;
+  absolute_ref.has_address = 1U;
+  absolute_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_observation(&section_analysis, &absolute_ref));
+  absolute_ref.offset = 8U;
+  absolute_ref.operand_index = 0U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_observation(&section_analysis, &absolute_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"address_observation_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"address_identity_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"absolute_address\":273516") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"observation_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"absolute_address_range_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"status_name\":\"unowned_sparse\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"read_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"write_count\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"absolute_slot_00042C6C\"") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_address_identity\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_preserves_code_origin_producer_evidence(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -25863,6 +25908,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_accepts_branch_target_alias_symbol_access},
     {"source_quality_analyze_exports_code_origins_and_runs",
       test_source_quality_analyze_exports_code_origins_and_runs},
+    {"source_quality_analyze_exports_sparse_absolute_address_range",
+      test_source_quality_analyze_exports_sparse_absolute_address_range},
     {"source_quality_analyze_preserves_code_origin_producer_evidence",
       test_source_quality_analyze_preserves_code_origin_producer_evidence},
     {"code_origin_evidence_kind_names",
