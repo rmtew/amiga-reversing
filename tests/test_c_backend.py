@@ -14,6 +14,8 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     DiskEntryBinarySource,
     HunkFileBinarySource,
+    MacosCodeAddressModel,
+    MacosCodeResourceSource,
     RawAddressModel,
     RawBinarySource,
 )
@@ -2913,6 +2915,51 @@ def test_project_source_quality_explain_uses_raw_runtime_load_api(
             0x4000,
             "",
             "",
+        )
+    ]
+
+
+def test_project_source_quality_explain_uses_macos_code_resource_api(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_image = tmp_path / "MPW-GM.img.bin"
+    source_image.write_bytes(b"fake-hfs")
+    metadata_path = tmp_path / "target.json"
+    metadata_path.write_text("{}", encoding="utf-8")
+    source = MacosCodeResourceSource(
+        kind=BinarySourceKind.MACOS_CODE_RESOURCE,
+        source_image=source_image,
+        hfs_path="MPW:Tools:Asm",
+        resource_type="CODE",
+        resource_id=1,
+        address_model=MacosCodeAddressModel.RESOURCE_OFFSET,
+        display_path="MPW-GM.img.bin::MPW:Tools:Asm::CODE 1",
+        analysis_cache_path=tmp_path / "binary.analysis",
+        project_root=tmp_path,
+    )
+    calls: list[tuple[object, ...]] = []
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend.read_macos_hfs_image_bytes", lambda path: b"hfs-image")
+
+    def fake_buffer_run(function_name: str, data: bytes, *args: object, project_root: Path) -> str:
+        calls.append((function_name, data, *args))
+        return '{"source_quality":{"section_count":1},"profile":{"backend":"macos-code"}}'
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_buffer_text", fake_buffer_run)
+
+    assert source_quality_explain_project_source_with_c_backend(
+        source,
+        metadata_path=metadata_path,
+        project_root=tmp_path,
+    ) == {"source_quality": {"section_count": 1}, "profile": {"backend": "macos-code"}}
+    assert calls == [
+        (
+            "platform_file_source_quality_explain_macos_hfs_code_resource_json_alloc",
+            b"hfs-image",
+            "MPW:Tools:Asm",
+            1,
+            str(metadata_path),
         )
     ]
 

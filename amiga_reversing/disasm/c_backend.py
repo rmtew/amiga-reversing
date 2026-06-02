@@ -580,6 +580,17 @@ def source_quality_explain_project_source_with_c_backend(
 ) -> dict[str, object]:
     metadata_text = _metadata_path_text(metadata_path)
     entry_offsets_text = _entry_offsets_text(entry_offset_args)
+    if isinstance(binary_source, MacosCodeResourceSource):
+        image_bytes = read_macos_hfs_image_bytes(binary_source.source_image)
+        explanation_text = _platform_file_buffer_text(
+            "platform_file_source_quality_explain_macos_hfs_code_resource_json_alloc",
+            image_bytes,
+            binary_source.hfs_path,
+            binary_source.resource_id,
+            metadata_text,
+            project_root=project_root,
+        )
+        return cast(dict[str, object], json.loads(explanation_text))
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         if source_file.entry_offset is None:
             explanation_text = _platform_file_text(
@@ -1000,7 +1011,7 @@ def _platform_file_buffer_text(function_name: str, data: bytes, *args: object, p
     function = getattr(dll, function_name)
     out_text = c_void_p()
     data_buffer = create_string_buffer(data)
-    c_args = [_c_arg(arg) for arg in args]
+    c_args = [arg if isinstance(arg, int) else _c_arg(arg) for arg in args]
     result = function(data_buffer, len(data), *c_args, byref(out_text))
     try:
         text = string_at(out_text.value).decode("utf-8", errors="replace") if out_text.value else ""
@@ -1213,6 +1224,15 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     _configure_text_function(dll, "platform_file_source_quality_explain_raw_path_json_alloc", 7)
     _configure_text_function(dll, "platform_file_effective_policy_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_effective_policy_raw_path_json_alloc", 7)
+    dll.platform_file_source_quality_explain_macos_hfs_code_resource_json_alloc.argtypes = [
+        c_void_p,
+        c_size_t,
+        c_char_p,
+        c_int,
+        c_char_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_source_quality_explain_macos_hfs_code_resource_json_alloc.restype = c_int
     dll.platform_file_macos_hfs_code_summary_json_alloc.argtypes = [
         c_void_p,
         c_size_t,

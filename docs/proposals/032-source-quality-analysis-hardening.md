@@ -6186,13 +6186,65 @@ uv run python -m pytest tests -q
 uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --no-write-report
 ```
 
-Remaining work for this explanation slice:
+### MacOS CODE Resource Explanation Slice
 
 ```text
-MacOS CODE resource explanation path through listing-artifact/source-analysis JSON
+MacOS HFS image + HFS path + CODE resource id
+  -> shared MacOS CODE object/policy loader
+  -> facts_v2_source_quality_explain_object_json("macos-code", ...)
+  -> source_quality_explain_project_source_with_c_backend()
+```
+
+This is platform-source specific, not target-specific. It knows about the
+Classic Mac OS CODE-resource container shape and the MacOS platform semantics
+needed to analyse the selected executable payload. It does not know about MPW
+`Asm` by target id.
+
+The important implementation rule is that MacOS CODE listing artifacts and
+MacOS CODE source-quality explanations share one object/policy setup path:
+
+```text
+load_macos_hfs_code_resource_object_policy_local()
+  -> parse HFS catalog
+  -> locate resource fork
+  -> locate selected CODE resource executable range
+  -> copy executable CODE bytes
+  -> load flat M68K object
+  -> set platform_backend_kind=MACOS
+  -> attach CODE 0 A5 world layout when present
+  -> configure and validate analysis policy
+```
+
+The public API is a thin adapter:
+
+```c
+platform_file_source_quality_explain_macos_hfs_code_resource_json_alloc(...)
+```
+
+It exists because MacOS CODE is not a normal file path source and must not be
+flattened into `amiga-raw` just to reuse a generic raw path. Flattening it would
+lose platform semantics and reintroduce the exact failure mode this proposal is
+trying to avoid.
+
+Focused tests:
+
+```text
+test_project_source_quality_explain_uses_macos_code_resource_api
+test_code1_main_source_quality_explain_uses_macos_code_resource_shape
+```
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_c_backend.py::test_project_source_quality_explain_uses_macos_code_resource_api -m c_backend -q
+uv run python -m pytest tests\test_macos_asm_container.py::test_code1_main_source_quality_explain_uses_macos_code_resource_shape -m macos_real_fixture -q
+uv run ruff check
+uv run mypy
+uv run python -m pytest tests -q
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --no-write-report
 ```
 
 The web layer still must not implement byte ownership or proof-chain inference.
-It only formats the C JSON. The remaining MacOS work is about getting the same
-C explanation JSON for CODE-resource listing-artifact failures before source
-artifact construction refuses the project.
+It only formats the C JSON.

@@ -8,11 +8,14 @@ import pytest
 
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
+    MacosCodeAddressModel,
+    MacosCodeResourceSource,
     RawAddressModel,
     RawBinarySource,
 )
 from amiga_reversing.disasm.c_backend import (
     build_listing_artifact_profile_from_binary_source,
+    source_quality_explain_project_source_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import (
     DEFAULT_NDIF2RAW_PATH,
@@ -197,3 +200,26 @@ def test_code1_main_is_decodable_by_existing_m68k_listing_backend(tmp_path: Path
     assert "SECTION code,code" not in listing
     assert "ori.b #16,d0" not in listing
     assert "movea.l (a7)+,a0" in listing
+
+
+def test_code1_main_source_quality_explain_uses_macos_code_resource_shape(tmp_path: Path) -> None:
+    _requires_real_fixture()
+    source = MacosCodeResourceSource(
+        kind=BinarySourceKind.MACOS_CODE_RESOURCE,
+        source_image=IMAGE_PATH,
+        hfs_path=MPW_ASM_PATH,
+        resource_type="CODE",
+        resource_id=1,
+        address_model=MacosCodeAddressModel.RESOURCE_OFFSET,
+        display_path="MPW-GM.img.bin::MPW:Tools:Asm::CODE 1",
+        analysis_cache_path=tmp_path / "mpw_asm_CODE_1_Main.analysis",
+    )
+
+    explanation = source_quality_explain_project_source_with_c_backend(source)
+    profile = cast(dict[str, object], explanation["profile"])
+    source_quality = cast(dict[str, object], explanation["source_quality"])
+
+    assert profile["backend"] == "macos-code"
+    assert profile["generation"] == "facts_v2_source_quality_explain"
+    assert "source_quality_explanation_count" in source_quality
+    assert "sections" in source_quality

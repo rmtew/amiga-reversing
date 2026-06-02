@@ -11681,10 +11681,9 @@ fail:
   return listing_artifact_set_error(out_error, &diagnostics, "Mac CODE listing artifact create failed");
 }
 
-int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
-    const unsigned char *data, size_t size, const char *hfs_path, int32_t resource_id,
-    const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
-    char **out_error) {
+static int load_macos_hfs_code_resource_object_policy_local(const unsigned char *data, size_t size,
+    const char *hfs_path, int32_t resource_id, const char *metadata_path, M68kObject *object,
+    M68kAnalysisPolicy *policy, uint8_t *out_object_loaded, M68kDiagList *diagnostics) {
   PlatformMacosHFSCatalog catalog;
   PlatformMacosHFSDirectoryInfo *directories = NULL;
   PlatformMacosHFSFileInfo *files = NULL;
@@ -11703,33 +11702,30 @@ int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
   uint32_t code_size = 0U;
   size_t index;
   int find_status;
-  M68kDiagList diagnostics = {0};
-  PlatformFileListingArtifact *artifact = NULL;
-  (void)include_dir;
-  if (out_artifact != NULL) *out_artifact = NULL;
-  if (out_error != NULL) *out_error = NULL;
+  int result = -1;
+  if (out_object_loaded != NULL) *out_object_loaded = 0U;
   memset(&catalog, 0, sizeof(catalog));
   memset(&resource_fork_info, 0, sizeof(resource_fork_info));
-  if (out_artifact == NULL || out_error == NULL || data == NULL || size == 0U ||
-      hfs_path == NULL || hfs_path[0] == '\0' || resource_id <= 0 || resource_id > 32767) {
-    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid Mac HFS CODE listing artifact request");
-    return -1;
+  if (data == NULL || size == 0U || hfs_path == NULL || hfs_path[0] == '\0' ||
+      resource_id <= 0 || resource_id > 32767 || object == NULL || policy == NULL || diagnostics == NULL) {
+    if (diagnostics != NULL) platform_file_add_error(diagnostics, "invalid Mac HFS CODE resource request");
+    goto cleanup;
   }
   if (platform_macos_hfs_catalog_parse(data, size, &catalog, NULL, 0U, NULL, 0U) != 0) {
-    platform_file_add_error(&diagnostics, "Mac HFS catalog parse failed");
-    goto fail;
+    platform_file_add_error(diagnostics, "Mac HFS catalog parse failed");
+    goto cleanup;
   }
   directories = (PlatformMacosHFSDirectoryInfo *)calloc(catalog.directory_count ? catalog.directory_count : 1U,
     sizeof(*directories));
   files = (PlatformMacosHFSFileInfo *)calloc(catalog.file_count ? catalog.file_count : 1U, sizeof(*files));
   if (directories == NULL || files == NULL) {
-    platform_file_add_error(&diagnostics, "out of memory reading Mac HFS catalog");
-    goto fail;
+    platform_file_add_error(diagnostics, "out of memory reading Mac HFS catalog");
+    goto cleanup;
   }
   if (platform_macos_hfs_catalog_parse(data, size, &catalog, directories, catalog.directory_count,
       files, catalog.file_count) != 0) {
-    platform_file_add_error(&diagnostics, "Mac HFS catalog detail parse failed");
-    goto fail;
+    platform_file_add_error(diagnostics, "Mac HFS catalog detail parse failed");
+    goto cleanup;
   }
   for (index = 0U; index < catalog.file_count; ++index) {
     if (platform_macos_hfs_file_path(directories, catalog.directory_count, &files[index], path, sizeof(path)) != 0)
@@ -11740,82 +11736,125 @@ int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
     }
   }
   if (selected_file == NULL) {
-    platform_file_add_error(&diagnostics, "Mac HFS path was not found");
-    goto fail;
+    platform_file_add_error(diagnostics, "Mac HFS path was not found");
+    goto cleanup;
   }
   if (macos_copy_fork_or_error(data, size, &catalog.volume, selected_file->resource_extents,
       selected_file->resource_size, &resource_fork, &copy_error) != 0) {
-    platform_file_add_error(&diagnostics, copy_error != NULL ? copy_error : "Mac HFS resource fork copy failed");
-    goto fail;
+    platform_file_add_error(diagnostics, copy_error != NULL ? copy_error : "Mac HFS resource fork copy failed");
+    goto cleanup;
   }
   if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
       NULL, 0U, NULL, 0U) != 0) {
-    platform_file_add_error(&diagnostics, "Mac resource fork parse failed");
-    goto fail;
+    platform_file_add_error(diagnostics, "Mac resource fork parse failed");
+    goto cleanup;
   }
   resources = (PlatformMacosResourceInfo *)calloc(
     resource_fork_info.resource_count ? resource_fork_info.resource_count : 1U, sizeof(*resources));
   if (resources == NULL) {
-    platform_file_add_error(&diagnostics, "out of memory reading Mac resources");
-    goto fail;
+    platform_file_add_error(diagnostics, "out of memory reading Mac resources");
+    goto cleanup;
   }
   if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
       NULL, 0U, resources, resource_fork_info.resource_count) != 0) {
-    platform_file_add_error(&diagnostics, "Mac resource fork detail parse failed");
-    goto fail;
+    platform_file_add_error(diagnostics, "Mac resource fork detail parse failed");
+    goto cleanup;
   }
   selected_resource = macos_find_resource(resources, resource_fork_info.resource_count, "CODE", (int16_t)resource_id);
   code0_resource = macos_find_code0_resource(resources, resource_fork_info.resource_count);
   if (selected_resource == NULL ||
       platform_macos_code_metadata_executable_range(&selected_resource->code, &code_start, &code_size) != 0) {
-    platform_file_add_error(&diagnostics, "Mac CODE resource has no confirmed executable range");
-    goto fail;
+    platform_file_add_error(diagnostics, "Mac CODE resource has no confirmed executable range");
+    goto cleanup;
   }
   find_status = platform_macos_resource_fork_find_payload(resource_fork, selected_file->resource_size, "CODE",
     (int16_t)resource_id, &payload_offset, &payload_size);
   if (find_status != 0 || code_start > payload_size || code_size > payload_size - code_start) {
-    platform_file_add_error(&diagnostics, "Mac CODE executable range is outside the resource payload");
-    goto fail;
+    platform_file_add_error(diagnostics, "Mac CODE executable range is outside the resource payload");
+    goto cleanup;
   }
   code_bytes = (unsigned char *)malloc(code_size ? code_size : 1U);
   if (code_bytes == NULL) {
-    platform_file_add_error(&diagnostics, "out of memory reading Mac CODE bytes");
-    goto fail;
+    platform_file_add_error(diagnostics, "out of memory reading Mac CODE bytes");
+    goto cleanup;
   }
   if (code_size != 0U) memcpy(code_bytes, resource_fork + payload_offset + code_start, code_size);
-  artifact = listing_artifact_alloc_base("macos-code", hfs_path, &diagnostics);
-  if (artifact == NULL) goto fail;
-  if (load_flat_m68k_object_from_buffer(code_bytes, code_size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
-    goto fail;
-  artifact->object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  if (load_flat_m68k_object_from_buffer(code_bytes, code_size, object, m68k_diag_sink(diagnostics)) != 0)
+    goto cleanup;
+  if (out_object_loaded != NULL) *out_object_loaded = 1U;
+  object->platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
   if (code0_resource != NULL &&
-      platform_macos_object_set_a5_world_layout(&artifact->object, code0_resource->resource_id,
-        &code0_resource->code) != 0) {
-    platform_file_add_error(&diagnostics, "Mac CODE 0 A5 world layout attachment failed");
-    goto fail;
+      platform_macos_object_set_a5_world_layout(object, code0_resource->resource_id, &code0_resource->code) != 0) {
+    platform_file_add_error(diagnostics, "Mac CODE 0 A5 world layout attachment failed");
+    goto cleanup;
   }
-  if (configure_flat_m68k_buffer_policy(&artifact->policy, &artifact->object, metadata_path, &diagnostics) != 0)
-    goto fail;
-  enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
-  if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
-  if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
-  *out_artifact = artifact;
-  free(code_bytes);
-  free(resource_fork);
-  free(resources);
-  free(files);
-  free(directories);
-  return 0;
+  if (configure_flat_m68k_buffer_policy(policy, object, metadata_path, diagnostics) != 0) goto cleanup;
+  enrich_policy_pointer_targets_from_object_local(policy, object);
+  if (!validate_effective_policy_against_object_local(diagnostics, object, policy)) goto cleanup;
+  result = 0;
 
-fail:
-  platform_file_facts_v2_listing_artifact_destroy(artifact);
+cleanup:
   free(copy_error);
   free(code_bytes);
   free(resource_fork);
   free(resources);
   free(files);
   free(directories);
+  return result;
+}
+
+int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
+    const unsigned char *data, size_t size, const char *hfs_path, int32_t resource_id,
+    const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
+    char **out_error) {
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingArtifact *artifact = NULL;
+  (void)include_dir;
+  if (out_artifact != NULL) *out_artifact = NULL;
+  if (out_error != NULL) *out_error = NULL;
+  if (out_artifact == NULL || out_error == NULL || data == NULL || size == 0U ||
+      hfs_path == NULL || hfs_path[0] == '\0' || resource_id <= 0 || resource_id > 32767) {
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid Mac HFS CODE listing artifact request");
+    return -1;
+  }
+  artifact = listing_artifact_alloc_base("macos-code", hfs_path, &diagnostics);
+  if (artifact == NULL) goto fail;
+  if (load_macos_hfs_code_resource_object_policy_local(data, size, hfs_path, resource_id, metadata_path,
+      &artifact->object, &artifact->policy, NULL, &diagnostics) != 0)
+    goto fail;
+  if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
+  *out_artifact = artifact;
+  return 0;
+
+fail:
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
   return listing_artifact_set_error(out_error, &diagnostics, "Mac HFS CODE listing artifact create failed");
+}
+
+int platform_file_source_quality_explain_macos_hfs_code_resource_json_alloc(
+    const unsigned char *data, size_t size, const char *hfs_path, int32_t resource_id,
+    const char *metadata_path, char **out_text) {
+  PlatformFileTextResult result;
+  PlatformFileWorkflow workflow;
+  memset(&result, 0, sizeof(result));
+  memset(&workflow, 0, sizeof(workflow));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (data == NULL || size == 0U || hfs_path == NULL || hfs_path[0] == '\0' ||
+      resource_id <= 0 || resource_id > 32767) {
+    platform_file_add_error(&result.diagnostics, "invalid Mac HFS CODE source-quality explanation request");
+    goto cleanup;
+  }
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) goto cleanup;
+  if (load_macos_hfs_code_resource_object_policy_local(data, size, hfs_path, resource_id, metadata_path,
+      &workflow.object, workflow.analysis_policy, &workflow.object_loaded, &result.diagnostics) != 0)
+    goto cleanup;
+  result = facts_v2_source_quality_explain_object_json("macos-code", hfs_path, &workflow.object,
+    workflow.analysis_policy);
+
+cleanup:
+  platform_file_workflow_destroy(&workflow);
+  return text_result_to_alloc(&result, out_text);
 }
 
 int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListingArtifact *artifact,

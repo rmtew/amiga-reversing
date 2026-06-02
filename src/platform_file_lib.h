@@ -103,6 +103,9 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_macos_hfs_code_res
     const unsigned char *data, size_t size, const char *hfs_path, int32_t resource_id,
     const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
     char **out_error);
+PLATFORM_FILE_API int platform_file_source_quality_explain_macos_hfs_code_resource_json_alloc(
+    const unsigned char *data, size_t size, const char *hfs_path, int32_t resource_id,
+    const char *metadata_path, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_window_json_alloc(
     PlatformFileListingArtifact *artifact, uint32_t start, uint32_t count, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(
