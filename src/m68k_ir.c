@@ -46,6 +46,52 @@ static int text_equal_nullable(const char *left, const char *right) {
   return strcmp(left, right) == 0;
 }
 
+static int comma_token_list_contains(const char *list, const char *token) {
+  size_t token_len;
+  const char *cursor;
+  if (list == NULL || token == NULL || token[0] == '\0') return 0;
+  token_len = strlen(token);
+  cursor = list;
+  while (*cursor != '\0') {
+    const char *end = strchr(cursor, ',');
+    size_t part_len = end != NULL ? (size_t)(end - cursor) : strlen(cursor);
+    if (part_len == token_len && strncmp(cursor, token, token_len) == 0) return 1;
+    if (end == NULL) break;
+    cursor = end + 1;
+  }
+  return 0;
+}
+
+static int expected_symbol_access_append_producer(M68kSectionAnalysisIR *section_analysis,
+    M68kExpectedSymbolAccessIR *access, const char *producer) {
+  size_t old_len;
+  size_t producer_len;
+  char *merged;
+  if (section_analysis == NULL || access == NULL || section_analysis->arena == NULL ||
+      producer == NULL || producer[0] == '\0') {
+    return -1;
+  }
+  if (access->producer != NULL && comma_token_list_contains(access->producer, producer)) return 0;
+  if ((access->producer == NULL || strcmp(access->producer, "unknown") == 0) &&
+      strcmp(producer, "unknown") != 0) {
+    access->producer = arena_strdup(section_analysis->arena, producer);
+    return access->producer != NULL ? 0 : -1;
+  }
+  old_len = access->producer != NULL ? strlen(access->producer) : 0U;
+  producer_len = strlen(producer);
+  merged = (char *)arena_alloc(section_analysis->arena, old_len + producer_len + 2U);
+  if (merged == NULL) return -1;
+  if (old_len == 0U) {
+    memcpy(merged, producer, producer_len + 1U);
+  } else {
+    memcpy(merged, access->producer, old_len);
+    merged[old_len] = ',';
+    memcpy(merged + old_len + 1U, producer, producer_len + 1U);
+  }
+  access->producer = merged;
+  return 0;
+}
+
 const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags) {
   if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING) != 0U)
     return "macos_symbol_string";
@@ -2910,7 +2956,8 @@ int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR
         existing->operand_index == access->operand_index &&
         existing->access_kind == access->access_kind &&
         strcmp(existing->symbol_name, access->symbol_name) == 0) {
-      return 0;
+      return expected_symbol_access_append_producer(section_analysis,
+        &section_analysis->expected_symbol_accesses[index], producer);
     }
   }
   section_analysis->expected_symbol_accesses =

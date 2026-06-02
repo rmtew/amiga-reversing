@@ -27,6 +27,7 @@ static int append_runtime_view_entry_json(JsonBuilder *builder, const M68kRuntim
 static const char *m68k_code_start_reason_name(uint32_t reason);
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
 static const char *analysis_conflict_state_name(uint8_t conflict_state);
+static int append_expected_symbol_access_producers_json(JsonBuilder *builder, const char *producer);
 static void address_observation_owner_symbols(const M68kAddressObservationIR *observation,
   const char **out_symbol, const char **out_base_symbol);
 static int address_observation_owner_symbol_expr(const M68kAddressObservationIR *observation,
@@ -38,6 +39,28 @@ static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
   if (kind == M68K_PLATFORM_FILE_OBJECT) return "object";
   return "unknown";
+}
+
+static int append_expected_symbol_access_producers_json(JsonBuilder *builder, const char *producer) {
+  const char *cursor;
+  size_t count = 0U;
+  if (builder == NULL) return -1;
+  if (producer == NULL || producer[0] == '\0') producer = "unknown";
+  if (json_builder_append(builder, "[") != 0) return -1;
+  cursor = producer;
+  while (*cursor != '\0') {
+    const char *end = strchr(cursor, ',');
+    size_t length = end != NULL ? (size_t)(end - cursor) : strlen(cursor);
+    if (length != 0U) {
+      if (count != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_append_json_string_len(builder, cursor, length) != 0) return -1;
+      ++count;
+    }
+    if (end == NULL) break;
+    cursor = end + 1;
+  }
+  if (count == 0U && json_builder_append_json_string(builder, "unknown") != 0) return -1;
+  return json_builder_append(builder, "]");
 }
 
 static const char *unresolved_typed_access_classification_name(uint8_t classification) {
@@ -4638,6 +4661,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_json_string(&builder,
           access->producer != NULL ? access->producer : "unknown") != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"producers\":") != 0)
+        goto oom;
+      if (append_expected_symbol_access_producers_json(&builder, access->producer) != 0)
         goto oom;
       if (json_builder_appendf(&builder,
           ",\"access_kind_id\":%u,\"access_kind\":",

@@ -472,7 +472,7 @@ The closure should be:
 ```text
 instruction operand observes in-image address
   -> address_identity resolves section/offset/owner
-  -> expected_symbol_access emitted with producer=address_identity
+  -> expected_symbol_access emitted with a precise address-observation producer
   -> render consumes that expected symbol
   -> rendered_symbol_access records actual output
   -> post-render gate blocks missing/wrong symbol
@@ -497,6 +497,12 @@ Current implementation progress:
 ```text
 SECTION_STORAGE address observation + accepted instruction + target symbol
   -> expected_symbol_access(access_kind=operand)
+  -> producer=section_storage_address_observation
+  -> post-render gate can refuse a raw numeric operand
+
+ABSOLUTE address observation + accepted instruction + target symbol
+  -> expected_symbol_access(access_kind=operand)
+  -> producer=absolute_address_observation
   -> post-render gate can refuse a raw numeric operand
 ```
 
@@ -695,33 +701,57 @@ missing_expected_symbol_access
 ```
 
 That gives the worker the rule that created the failed obligation instead of
-only the missing symbol name. The current dedupe model still stores one obligation for a given
-source/operand/symbol/kind pair; if multiple producers later need to report the
-same missing symbol independently, that should become explicit multi-producer
-evidence rather than duplicate diagnostics.
+only the missing symbol name.
 
-The remaining gap is coverage. The implemented producers do not yet cover the
-full set needed for Damocles-style failures:
+Current multi-producer progress:
 
 ```text
-absolute operand targets in-image storage
-PC-relative operand targets storage
-generated equates
-accepted storage labels
-independent label statements
-platform semantic operands
+same source/operand/symbol/kind obligation from producer_one
+same source/operand/symbol/kind obligation from producer_two
+  -> one expected_symbol_access
+  -> producer = producer_one,producer_two
+  -> producers = [producer_one, producer_two] in JSON
+  -> one missing-symbol diagnostic with both causes visible
 ```
 
-Until those producers are complete, the post-render gate can catch only the
-covered part of the label/source mismatch class.
+The gate should not emit duplicate diagnostics for one missing rendered symbol
+just because two analysis rules required it. It should also not drop either
+rule's evidence.
+
+The remaining gap is no longer a generic lack of producer ids. Several of the
+old gap names are now implemented:
+
+```text
+relocation-backed branch/call targets
+intrinsic branch/call/jump targets
+ordinary data operands
+manual equates
+independent label statements
+section-storage address observations
+absolute address observations
+accepted table-entry targets
+```
+
+The remaining coverage gap is narrower:
+
+```text
+PC-relative storage operands that are not already represented as ordinary data
+  operands
+generated non-manual equates
+accepted storage labels whose definition must be visibly emitted
+platform semantic operands and comments
+```
+
+Until those producers are complete, the post-render gate can catch the covered
+part of the label/source mismatch class and must not pretend the uncovered
+classes are validated.
 
 The next coverage should stay as separate functions, not one broad "label
 exists" rule:
 
 ```text
-append_expected_absolute_storage_operand_accesses()
 append_expected_pc_relative_storage_operand_accesses()
-append_expected_equate_operand_accesses()
+append_expected_generated_equate_operand_accesses()
 append_expected_storage_label_statements()
 append_expected_platform_symbol_operand_accesses()
 ```
@@ -1070,13 +1100,26 @@ Delete compatibility wrappers and old parameter shapes during the migration.
 
 ### Slice 2: Expected Symbol Access Producers
 
-Add precise C producers for:
+Keep the completed precise C producers:
 
-- relocation-backed branch/call targets
-- ordinary absolute/PC-relative operand symbols
-- generated equates
-- accepted storage labels
-- independent label statements
+```text
+relocated_branch
+intrinsic_branch
+data_operand
+manual_equate
+label_statement
+section_storage_address_observation
+absolute_address_observation
+table_entry_target
+merged producer evidence for duplicate obligations
+```
+
+Add the remaining precise C producers:
+
+- PC-relative storage operands not already covered by data operands
+- generated non-manual equates
+- accepted storage-label definitions
+- platform semantic operands and comments
 
 Do not reuse generic label-created or label-required facts. Those pseudo-facts
 were deleted because they hid why a symbol was needed.
@@ -1266,7 +1309,8 @@ renderer-side special cases. First make identities produce symbol obligations:
 ```text
 M68kAddressObservationIR
   -> M68kAddressIdentityIR
-  -> M68kExpectedSymbolAccessIR(producer=address_identity)
+  -> M68kExpectedSymbolAccessIR(producer=section_storage_address_observation
+                                or absolute_address_observation)
   -> M68kRenderedSymbolAccessIR
   -> missing/wrong symbol diagnostic
 ```
