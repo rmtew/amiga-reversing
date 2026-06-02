@@ -6084,11 +6084,62 @@ source_quality_explain_json_exports_section_explanations
   asserts source_byte_ownership=accepted_noncode in the compact explanation JSON
 ```
 
-Remaining work for this slice is to consume the alloc API from:
+### Python Source-Export Failure Payload Slice
+
+Python now consumes the C-backed explanation API for project sources through a
+thin wrapper:
 
 ```text
-Python source_export / web API failure payload
+source_quality_explain_project_source_with_c_backend()
+  -> platform_file_source_quality_explain_path_json_alloc()
+  -> platform_file_source_quality_explain_raw_path_json_alloc()
+```
+
+It mirrors `analyze_project_source_with_c_backend()` so raw decompressed
+payloads keep the same entrypoint and runtime-load model:
+
+```text
+RawBinarySource(runtime_absolute, load=$4000, entry=$4000)
+  -> platform=amiga-raw
+  -> entry_address=$4000
+  -> has_runtime_load_address=1
+  -> runtime_load_address=$4000
+```
+
+Source export now attaches the C-owned explanation when C refuses source
+generation:
+
+```json
+{
+  "status": "refused",
+  "message": "facts_v2 asm source refused ...",
+  "listing_profile": {},
+  "source_quality_explanation": {
+    "source_quality": {
+      "source_quality_explanation_count": 1
+    }
+  }
+}
+```
+
+Because `/api/projects/<target>/source-export` returns this payload directly,
+the web API failure payload now carries the same cause-oriented Source Analysis
+IR evidence as the CLI. Python does not infer byte ownership, proof chains, or
+accepted-code causes; it only forwards the C JSON.
+
+Focused tests:
+
+```text
+test_project_source_quality_explain_uses_file_alloc_api
+test_project_source_quality_explain_uses_raw_runtime_load_api
+test_source_export_returns_refusal_payload
+```
+
+Remaining work for this UI slice:
+
+```text
 CDP/web diagnostics panel
+MacOS CODE resource explanation path through listing-artifact/source-analysis JSON
 ```
 
 Those layers must consume this JSON/IR path. They must not implement their own

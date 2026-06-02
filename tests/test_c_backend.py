@@ -40,6 +40,7 @@ from amiga_reversing.disasm.c_backend import (
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
     reproduction_compare_rebuilt_bytes_with_c_backend_profile,
+    source_quality_explain_project_source_with_c_backend,
     validate_amiga_hunk_executable_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -2628,6 +2629,42 @@ def test_project_source_disk_entry_extracts_with_c_disk_backend(monkeypatch, tmp
     assert not Path(str(file_calls[0][2])).exists()
 
 
+def test_project_source_quality_explain_uses_file_alloc_api(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    binary_path = tmp_path / "demo"
+    binary_path.write_bytes(b"\0\0\x03\xf3")
+    metadata_path = tmp_path / "target.json"
+    metadata_path.write_text('{"entry_offsets":["4"]}', encoding="utf-8")
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
+        calls.append((function_name, *args))
+        return '{"source_quality":{"source_quality_explanation_count":0}}'
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
+
+    assert source_quality_explain_project_source_with_c_backend(
+        source,
+        metadata_path=metadata_path,
+        entry_offset_args=("8",),
+        project_root=tmp_path,
+    ) == {"source_quality": {"source_quality_explanation_count": 0}}
+    assert calls == [
+        (
+            "platform_file_source_quality_explain_path_json_alloc",
+            "amiga-hunk",
+            str(binary_path),
+            str(metadata_path),
+            "8",
+        )
+    ]
+
+
 class _FakeSourceArtifact:
     def __init__(self, source_text: str, profile: dict[str, object]) -> None:
         self.source_text_value = source_text
@@ -2836,6 +2873,47 @@ def test_project_source_runtime_absolute_raw_binary_passes_runtime_load_model(
     assert analyze_project_source_with_c_backend(source, project_root=tmp_path) == {"sections": []}
     assert calls == [
         ("platform_file_facts_v2_analysis_raw_path_json_alloc", "amiga-raw", str(binary_path), 0x4000, 1, 0x4000, "", ""),
+    ]
+
+
+def test_project_source_quality_explain_uses_raw_runtime_load_api(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    binary_path = tmp_path / "decompressed.bin"
+    binary_path.write_bytes(b"\x4e\xf9\x00\x00\x9b\x3a")
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY,
+        path=binary_path,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
+        load_address=0x4000,
+        entrypoint=0x4000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
+        calls.append((function_name, *args))
+        return '{"source_quality":{"section_count":0}}'
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
+
+    assert source_quality_explain_project_source_with_c_backend(source, project_root=tmp_path) == {
+        "source_quality": {"section_count": 0}
+    }
+    assert calls == [
+        (
+            "platform_file_source_quality_explain_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0x4000,
+            1,
+            0x4000,
+            "",
+            "",
+        )
     ]
 
 

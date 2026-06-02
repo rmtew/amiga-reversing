@@ -8,6 +8,9 @@ from typing import TypedDict
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import BinarySourceKind
+from amiga_reversing.disasm.c_backend import (
+    source_quality_explain_project_source_with_c_backend,
+)
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
 )
@@ -99,6 +102,11 @@ def _c_backend_binary_source_export(
         )
     filename = f"{_safe_filename(target_name)}-{assembler_profile}.s"
     if rendering.refused:
+        source_quality_explanation = source_quality_explain_project_source_with_c_backend(
+            binary_source,
+            metadata_path=metadata_path,
+            project_root=project_root,
+        )
         raise SourceExportRefused(
             {
                 "status": "refused",
@@ -110,6 +118,7 @@ def _c_backend_binary_source_export(
                 "workflow_profile": rendering.workflow_profile,
                 "metadata_hash": rendering.metadata_hash,
                 "target_identity_sha256": rendering.target_identity_sha256,
+                "source_quality_explanation": source_quality_explanation,
             }
         )
     header = _source_export_header(

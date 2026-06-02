@@ -571,6 +571,40 @@ def analyze_project_source_with_c_backend(
     return cast(dict[str, object], json.loads(analysis_text))
 
 
+def source_quality_explain_project_source_with_c_backend(
+    binary_source: BinarySource,
+    *,
+    metadata_path: Path | None = None,
+    entry_offset_args: tuple[str, ...] = (),
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    metadata_text = _metadata_path_text(metadata_path)
+    entry_offsets_text = _entry_offsets_text(entry_offset_args)
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        if source_file.entry_offset is None:
+            explanation_text = _platform_file_text(
+                "platform_file_source_quality_explain_path_json_alloc",
+                source_file.platform_name,
+                str(source_file.path),
+                metadata_text,
+                entry_offsets_text,
+                project_root=project_root,
+            )
+        else:
+            explanation_text = _platform_file_text(
+                "platform_file_source_quality_explain_raw_path_json_alloc",
+                source_file.platform_name,
+                str(source_file.path),
+                source_file.entry_offset,
+                1 if source_file.runtime_load_address is not None else 0,
+                source_file.runtime_load_address or 0,
+                metadata_text,
+                entry_offsets_text,
+                project_root=project_root,
+            )
+    return cast(dict[str, object], json.loads(explanation_text))
+
+
 def inspect_macos_hfs_code_summary_with_c_backend(
     image_data: bytes,
     hfs_path: str,
@@ -1175,6 +1209,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     _configure_text_function(dll, "platform_file_inspect_path_json_alloc", 2)
     _configure_text_function(dll, "platform_file_facts_v2_analysis_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_facts_v2_analysis_raw_path_json_alloc", 7)
+    _configure_text_function(dll, "platform_file_source_quality_explain_path_json_alloc", 4)
+    _configure_text_function(dll, "platform_file_source_quality_explain_raw_path_json_alloc", 7)
     _configure_text_function(dll, "platform_file_effective_policy_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_effective_policy_raw_path_json_alloc", 7)
     dll.platform_file_macos_hfs_code_summary_json_alloc.argtypes = [

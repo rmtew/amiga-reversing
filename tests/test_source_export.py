@@ -99,6 +99,16 @@ def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> N
             refusal_message="facts_v2 asm source refused required_instruction_failure section=0 offset=2",
         ),
     )
+    monkeypatch.setattr(
+        source_export,
+        "source_quality_explain_project_source_with_c_backend",
+        lambda binary_source, metadata_path, project_root: {
+            "source_quality": {
+                "source_quality_explanation_count": 1,
+                "source_quality_explanations": [{"diagnostic": {"kind_name": "required_instruction"}}],
+            }
+        },
+    )
 
     payload = source_export.source_export_payload("demo", project_root=tmp_path)
 
@@ -106,6 +116,12 @@ def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> N
     assert "facts_v2 asm source refused" in payload["message"]
     assert payload["listing_profile"] == profile
     assert payload["workflow_profile"]["spans"][0]["name"] == "source_rendering"
+    assert payload["source_quality_explanation"] == {
+        "source_quality": {
+            "source_quality_explanation_count": 1,
+            "source_quality_explanations": [{"diagnostic": {"kind_name": "required_instruction"}}],
+        }
+    }
     assert "source_text" not in payload
 
 
