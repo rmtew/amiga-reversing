@@ -6281,3 +6281,156 @@ cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe m68k_parse_util
 platform_file_cli source-quality-explain ... amiga-raw ... 0x58484
 ```
+
+### Address Observation Versus Control-Proof Slice
+
+Damocles Tetragon payload 2 exposed a boundary that must be explicit in the
+framework. A value can be a useful address observation without being executable
+control-flow proof.
+
+The observed bad chain is:
+
+```asm
+    move.l #$42C00,d2
+    move.w d4,d2
+    movea.l d2,a4
+    jmp (a4)
+```
+
+Analysis incorrectly treated the earlier full-register constant as if it still
+proved the later indirect jump target. That promoted `$42C00` to code even
+though the low word was overwritten before control transfer. The bytes at
+`$42C00` are still meaningful to track as address/range evidence, but that is
+not the same as proving executable entry.
+
+The hard rule is:
+
+```text
+address-looking value
+  -> address observation only
+  -> candidate for address identity/range/storage review
+  -> must not seed code, data ownership, or symbol naming by itself
+
+actual address use
+  -> address observation plus use-shape evidence
+  -> may prove storage/range ownership only when the use-shape supports it
+  -> must not seed code unless the use is a proven control transfer
+
+control-transfer target
+  -> may seed code only when the producer proves control-flow semantics
+  -> traced register state must be valid at the transfer instruction
+```
+
+That gives three separate fact families:
+
+```text
+M68kAddressObservationIR
+  "this operand/value observes an address"
+
+M68kAbsoluteAddressRangeIR / range ownership
+  "these observations cohere into storage/range/table/platform use"
+
+M68kCodeStartRefIR with executable evidence
+  "control flow can enter this byte range"
+```
+
+The implementation must keep those families separate. In particular:
+
+```text
+absolute operand, immediate, loaded pointer, computed address
+  -> address observation
+
+memory read/write through or of that address
+  -> storage/range evidence only when access shape and target mapping are valid
+
+one-off sparse non-platform address use
+  -> unresolved candidate/review signal
+  -> no automatic absolute_slot_* symbol
+
+jmp/jsr/branch/vector/callback/dispatch target with valid producer evidence
+  -> possible code start
+```
+
+Do not bridge from address observation to code start. Do not bridge from a
+single address-looking value to a durable storage symbol either. The only bridge
+into code is executable control proof. The bridge into a named data/range symbol
+is repeated or structured storage evidence, relocation/container proof,
+platform semantic proof, or an accepted manual fact that passes validation.
+
+Traced indirect control has an additional invalidation rule:
+
+```text
+tracked full data register value
+  -> any byte/word write to that data register kills the full value
+  -> a later movea.l dN,aN may not recover the killed full value
+  -> a later jmp/jsr (aN) may not use the killed full value as a target
+```
+
+Partial-width knowledge can still exist for specific uses:
+
+```text
+move.w #count,d0
+dbf d0,loop
+  -> low16 counter knowledge is valid
+
+move.l #$42C00,d2
+move.w d4,d2
+movea.l d2,a4
+jmp (a4)
+  -> full target knowledge is invalid
+```
+
+This is not a Damocles-specific exception. It is the general trace-state
+contract for M68K data registers: data-register byte/word writes preserve some
+hardware bits, but they destroy any exact full 32-bit semantic fact unless the
+analyzer can explicitly recompute the new full value.
+
+The source-quality validator should then enforce the downstream invariant:
+
+```text
+accepted code run
+  -> must have a non-fallthrough executable origin
+  -> bare/unknown CONTROL_TARGET is not enough
+  -> address observations and runtime ranges are not executable origins
+```
+
+However, the validator is the backstop, not the primary fix. If this failure is
+hit on an imported target, the required workflow is still cause repair:
+
+```text
+bad code start from traced indirect jump
+  -> fix trace-state invalidation or producer evidence
+  -> verify the bad M68kCodeStartRefIR is no longer emitted
+  -> then source-quality no longer needs to refuse that target for this cause
+```
+
+Focused fixtures required for this slice:
+
+```text
+facts_v2_traced_indirect_jump_invalidates_full_data_reg_after_word_write
+  bytes:
+    move.l #target_base,d2
+    move.w d4,d2
+    movea.l d2,a4
+    jmp (a4)
+    target_base: data-looking bytes
+
+  asserts:
+    no M68kCodeStartRefIR at target_base from the jmp
+    no accepted code range starts at target_base
+    address observation/range evidence may still exist
+    source export is not refused because target_base was falsely code
+
+source_quality_analyze_blocks_unknown_control_target_origin
+  constructs accepted bytes with only a bare CONTROL_TARGET/unknown evidence
+  asserts accepted_code_without_executable_origin
+```
+
+The original Damocles reproduction remains part of the target-level check:
+
+```text
+amiga_raw_damocles_53b24620_native_tetragon_02_00000060
+  $42C00 must not render as accepted ori.b code
+  $42C00/$42C6C/$42C70 may be tracked as address/range/storage evidence
+  round-trip assembly must still pass after fresh render
+```

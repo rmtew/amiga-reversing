@@ -2541,12 +2541,41 @@ static int trace_state_move_copy_source_is_tracked_value(const M68kDecodeCandida
       &value) && trace_state_find_absolute_slot_const(state, value) != NULL;
 }
 
+static int trace_state_move_source_low16(size_t section_index, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, size_t operand_index, const M68kFactsV2TraceState *state,
+    uint16_t *out_value) {
+  M68kFactsV2TraceValue value;
+  uint8_t reg = 0U;
+  uint32_t immediate = 0U;
+  if (out_value != NULL) *out_value = 0U;
+  if (candidate == NULL || state == NULL || out_value == NULL || operand_index >= candidate->operand_count) return 0;
+  if (operand_is_data_register_direct(&candidate->operands[operand_index], &reg) &&
+      m68k_bitset_u32_has(state->d_low16_known, reg)) {
+    *out_value = state->d_low16[reg];
+    return 1;
+  }
+  if (operand_immediate_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+      &immediate)) {
+    *out_value = (uint16_t)(immediate & 0xFFFFU);
+    return 1;
+  }
+  if (trace_value_from_candidate_source(section_index, section, candidate, operand_index, state, &value) &&
+      (value.kind == M68K_FACTS_V2_TRACE_CONSTANT ||
+       value.kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
+       value.kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET)) {
+    *out_value = (uint16_t)(value.value & 0xFFFFU);
+    return 1;
+  }
+  return 0;
+}
+
 static void trace_state_apply_move_value_copy(size_t section_index, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     M68kFactsV2TraceState *after) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   M68kFactsV2TraceValue value;
+  uint16_t low16 = 0U;
   uint8_t reg = 0U;
   if (section == NULL || candidate == NULL || before == NULL || after == NULL ||
       m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
@@ -2558,12 +2587,22 @@ static void trace_state_apply_move_value_copy(size_t section_index, const M68kDe
       metadata->dest_operand_index >= candidate->operand_count) {
     return;
   }
-  if (!trace_state_move_copy_source_is_tracked_value(candidate, metadata->source_operand_index, before)) return;
-  if (!trace_value_from_candidate_source(section_index, section, candidate, metadata->source_operand_index,
-      before, &value)) {
-    return;
-  }
   if (operand_is_data_register_direct(&candidate->operands[metadata->dest_operand_index], &reg)) {
+    if (candidate->size_suffix != 'l') {
+      trace_state_clear_data_register(after, reg);
+      if (candidate->size_suffix == 'w' &&
+          trace_state_move_source_low16(section_index, section, candidate, metadata->source_operand_index,
+            before, &low16)) {
+        trace_state_set_data_register_low16(after, reg, low16, candidate->offset);
+      }
+      return;
+    }
+    if (!trace_state_move_copy_source_is_tracked_value(candidate, metadata->source_operand_index, before) ||
+        !trace_value_from_candidate_source(section_index, section, candidate, metadata->source_operand_index,
+          before, &value)) {
+      trace_state_clear_data_register(after, reg);
+      return;
+    }
     after->d[reg] = value;
     if (value.kind == M68K_FACTS_V2_TRACE_CONSTANT) {
       m68k_bitset_u32_set(&after->d_low16_known, reg);
@@ -2585,6 +2624,13 @@ static void trace_state_apply_move_value_copy(size_t section_index, const M68kDe
     }
   } else if (operand_is_address_register_direct(&candidate->operands[metadata->dest_operand_index], &reg) &&
              reg != 7U) {
+    if (candidate->size_suffix != 'l' ||
+        !trace_state_move_copy_source_is_tracked_value(candidate, metadata->source_operand_index, before) ||
+        !trace_value_from_candidate_source(section_index, section, candidate, metadata->source_operand_index,
+          before, &value)) {
+      trace_value_set_unknown(&after->a[reg]);
+      return;
+    }
     after->a[reg] = value;
   }
 }
