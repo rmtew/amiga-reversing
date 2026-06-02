@@ -3448,6 +3448,238 @@ static int append_source_quality_diagnostic_json(JsonBuilder *builder,
   return json_builder_append(builder, "}");
 }
 
+static const M68kSectionAnalysisIR *source_analysis_find_section_by_index(
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index) {
+  size_t index;
+  if (source_analysis == NULL) return NULL;
+  for (index = 0U; index < source_analysis->section_count; ++index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[index];
+    if (section->section_index == section_index) return section;
+  }
+  return NULL;
+}
+
+static void source_quality_diagnostic_range(const M68kSourceQualityDiagnosticIR *diagnostic,
+    uint32_t *out_start, uint32_t *out_end) {
+  uint32_t start = 0U;
+  uint32_t end = 0U;
+  if (diagnostic != NULL) {
+    if (diagnostic->has_related_range) {
+      start = diagnostic->related_start;
+      end = diagnostic->related_end;
+    } else if (diagnostic->has_offset) {
+      start = diagnostic->offset;
+      end = diagnostic->offset + (diagnostic->has_length && diagnostic->length != 0U ? diagnostic->length : 1U);
+    }
+  }
+  if (end < start) end = start;
+  *out_start = start;
+  *out_end = end;
+}
+
+static int source_quality_ranges_overlap(uint32_t left_start, uint32_t left_end,
+    uint32_t right_start, uint32_t right_end) {
+  return left_start < right_end && right_start < left_end;
+}
+
+static const M68kAcceptedCodeRunIR *source_quality_explanation_run(
+    const M68kSectionAnalysisIR *section, const M68kSourceQualityDiagnosticIR *diagnostic) {
+  uint32_t start, end;
+  size_t index;
+  if (section == NULL || diagnostic == NULL) return NULL;
+  source_quality_diagnostic_range(diagnostic, &start, &end);
+  for (index = 0U; index < section->accepted_code_run_count; ++index) {
+    const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[index];
+    if (source_quality_ranges_overlap(start, end, run->start_offset, run->end_offset))
+      return run;
+    if (diagnostic->has_offset && diagnostic->offset >= run->start_offset &&
+        diagnostic->offset <= run->end_offset)
+      return run;
+  }
+  return NULL;
+}
+
+static int source_quality_range_contains(const M68kRangeOwnershipIR *range, uint32_t offset) {
+  return range != NULL && offset >= range->start_offset && offset < range->end_offset;
+}
+
+static const M68kRangeOwnershipIR *source_quality_find_range_at(
+    const M68kSectionAnalysisIR *section, uint32_t offset, int prefer_conflict) {
+  const M68kRangeOwnershipIR *fallback = NULL;
+  size_t index;
+  if (section == NULL) return NULL;
+  for (index = 0U; index < section->range_ownership_count; ++index) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[index];
+    if (!source_quality_range_contains(range, offset)) continue;
+    if (prefer_conflict &&
+        (range->status == M68K_RANGE_OWNERSHIP_STATUS_CONFLICT ||
+         range->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN))
+      return range;
+    if (fallback == NULL) fallback = range;
+  }
+  return fallback;
+}
+
+static const M68kRangeOwnershipIR *source_quality_explanation_blocking_range(
+    const M68kSectionAnalysisIR *section, const M68kSourceQualityDiagnosticIR *diagnostic,
+    const M68kAcceptedCodeRunIR *run) {
+  uint32_t start, end;
+  size_t index;
+  if (section == NULL || diagnostic == NULL) return NULL;
+  if (run != NULL) {
+    const M68kRangeOwnershipIR *range = source_quality_find_range_at(section, run->end_offset, 1);
+    if (range != NULL) return range;
+  }
+  source_quality_diagnostic_range(diagnostic, &start, &end);
+  for (index = 0U; index < section->range_ownership_count; ++index) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[index];
+    if (source_quality_ranges_overlap(start, end, range->start_offset, range->end_offset))
+      return range;
+  }
+  return NULL;
+}
+
+static const char *source_quality_byte_ownership_name(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset) {
+  const M68kSectionAnalysisIR *section = source_analysis_find_section_by_index(source_analysis, section_index);
+  const M68kRangeOwnershipIR *range;
+  size_t index;
+  if (section == NULL) return "unknown";
+  range = source_quality_find_range_at(section, offset, 1);
+  if (range != NULL) {
+    if (range->status == M68K_RANGE_OWNERSHIP_STATUS_CONFLICT ||
+        range->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN ||
+        range->kind == M68K_RANGE_OWNERSHIP_CONFLICT)
+      return "conflict";
+    if (range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED &&
+        range->kind != M68K_RANGE_OWNERSHIP_CODE)
+      return "accepted_noncode";
+  }
+  for (index = 0U; index < section->accepted_code_run_count; ++index) {
+    const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[index];
+    if (offset >= run->start_offset && offset < run->end_offset) return "accepted_code";
+  }
+  if (range != NULL && range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED &&
+      range->kind == M68K_RANGE_OWNERSHIP_CODE)
+    return "accepted_code";
+  return "unknown";
+}
+
+static int append_source_quality_accepted_run_summary_json(JsonBuilder *builder,
+    const M68kAcceptedCodeRunIR *run) {
+  if (run == NULL) return json_builder_append(builder, "null");
+  if (json_builder_appendf(builder,
+      "{\"start_offset\":%u,\"end_offset\":%u,\"instruction_count\":%u,"
+      "\"end_kind_id\":%u,\"end_kind\":",
+      (unsigned)run->start_offset, (unsigned)run->end_offset, (unsigned)run->instruction_count,
+      (unsigned)run->end_kind) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, m68k_accepted_code_run_end_kind_name(run->end_kind)) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"terminal_offset\":") != 0) return -1;
+  if (run->has_terminal_offset) {
+    if (json_builder_appendf(builder, "%u", (unsigned)run->terminal_offset) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  return json_builder_appendf(builder, ",\"has_origin\":%s}", run->has_origin ? "true" : "false");
+}
+
+static int append_source_quality_range_summary_json(JsonBuilder *builder,
+    const M68kRangeOwnershipIR *range) {
+  if (range == NULL) return json_builder_append(builder, "null");
+  if (json_builder_appendf(builder,
+      "{\"start_offset\":%u,\"end_offset\":%u,\"kind\":%u,\"kind_name\":",
+      (unsigned)range->start_offset, (unsigned)range->end_offset, (unsigned)range->kind) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, range_ownership_kind_name(range->kind)) != 0)
+    return -1;
+  if (json_builder_appendf(builder, ",\"status\":%u,\"status_name\":",
+      (unsigned)range->status) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, range_ownership_status_name(range->status)) != 0)
+    return -1;
+  if (json_builder_appendf(builder, ",\"conflict_state\":%u,\"conflict_state_name\":",
+      (unsigned)range->conflict_state) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, analysis_conflict_state_name(range->conflict_state)) != 0)
+    return -1;
+  return json_builder_append(builder, "}");
+}
+
+static int append_source_quality_explanation_json(JsonBuilder *builder,
+    const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section,
+    const M68kSourceQualityDiagnosticIR *diagnostic, uint8_t section_local) {
+  const M68kAcceptedCodeRunIR *run;
+  const M68kRangeOwnershipIR *blocking_range;
+  size_t index;
+  int emitted = 0;
+  if (builder == NULL || source_analysis == NULL || section == NULL || diagnostic == NULL) return -1;
+  run = source_quality_explanation_run(section, diagnostic);
+  blocking_range = source_quality_explanation_blocking_range(section, diagnostic, run);
+  if (json_builder_append(builder, "{\"diagnostic\":") != 0) return -1;
+  if (append_source_quality_diagnostic_json(builder, diagnostic, section_local) != 0) return -1;
+  if (json_builder_append(builder, ",\"accepted_run\":") != 0) return -1;
+  if (append_source_quality_accepted_run_summary_json(builder, run) != 0) return -1;
+  if (json_builder_append(builder, ",\"blocking_range\":") != 0) return -1;
+  if (append_source_quality_range_summary_json(builder, blocking_range) != 0) return -1;
+  if (json_builder_append(builder, ",\"proof_refs\":[") != 0) return -1;
+  if (run != NULL) {
+    for (index = 0U; index < section->code_start_ref_count; ++index) {
+      const M68kCodeStartRefIR *ref = &section->code_start_refs[index];
+      const char *ownership;
+      if (ref->offset < run->start_offset || ref->offset >= run->end_offset) continue;
+      ownership = source_quality_byte_ownership_name(source_analysis, ref->source_section_index,
+        ref->source_offset);
+      if (emitted && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder,
+          "{\"offset\":%u,\"reason\":%u,\"reason_name\":",
+          (unsigned)ref->offset, (unsigned)ref->reason) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, m68k_code_start_reason_name(ref->reason)) != 0)
+        return -1;
+      if (json_builder_appendf(builder,
+          ",\"evidence_kind_id\":%u,\"evidence_kind_name\":",
+          (unsigned)ref->evidence_kind) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder,
+          m68k_code_origin_evidence_kind_name(ref->evidence_kind)) != 0)
+        return -1;
+      if (json_builder_appendf(builder,
+          ",\"confidence\":%u,\"source_section\":%u,\"source_offset\":%u,"
+          "\"source_byte_ownership\":",
+          (unsigned)ref->confidence, (unsigned)ref->source_section_index,
+          (unsigned)ref->source_offset) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, ownership) != 0) return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
+      emitted = 1;
+    }
+  }
+  return json_builder_append(builder, "]}");
+}
+
+static size_t source_quality_explanation_count_for_diagnostics(
+    const M68kSourceQualityDiagnosticIR *diagnostics, size_t diagnostic_count) {
+  size_t index;
+  size_t count = 0U;
+  for (index = 0U; index < diagnostic_count; ++index)
+    if (diagnostics[index].blocker) ++count;
+  return count;
+}
+
+static size_t source_quality_explanation_count_for_source_analysis(
+    const M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  size_t count = 0U;
+  if (source_analysis == NULL) return 0U;
+  for (index = 0U; index < source_analysis->source_quality_diagnostic_count; ++index) {
+    const M68kSourceQualityDiagnosticIR *diagnostic = &source_analysis->source_quality_diagnostics[index];
+    if (diagnostic->blocker && diagnostic->has_section_index &&
+        source_analysis_find_section_by_index(source_analysis, diagnostic->section_index) != NULL)
+      ++count;
+  }
+  return count;
+}
+
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t field_index, section_index, incomplete_index, source_quality_index;
@@ -3550,6 +3782,27 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     if (append_source_quality_diagnostic_json(&builder,
         &source_analysis->source_quality_diagnostics[source_quality_index], 0U) != 0)
       goto oom;
+  }
+  if (json_builder_appendf(&builder,
+      "],\"source_quality_explanation_count\":%u,\"source_quality_explanations\":[",
+      (unsigned)source_quality_explanation_count_for_source_analysis(source_analysis)) != 0)
+    goto oom;
+  {
+    size_t emitted_explanation_count = 0U;
+    for (source_quality_index = 0U; source_quality_index < source_analysis->source_quality_diagnostic_count;
+        ++source_quality_index) {
+      const M68kSourceQualityDiagnosticIR *diagnostic =
+        &source_analysis->source_quality_diagnostics[source_quality_index];
+      const M68kSectionAnalysisIR *diagnostic_section = NULL;
+      if (!diagnostic->blocker || !diagnostic->has_section_index) continue;
+      diagnostic_section = source_analysis_find_section_by_index(source_analysis, diagnostic->section_index);
+      if (diagnostic_section == NULL) continue;
+      if (emitted_explanation_count++ != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (append_source_quality_explanation_json(&builder, source_analysis, diagnostic_section,
+          diagnostic, 0U) != 0)
+        goto oom;
+    }
   }
   if (json_builder_appendf(&builder,
       "],\"address_identity_count\":%u,\"address_identities\":[",
@@ -4102,6 +4355,13 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append_json_string(&builder, m68k_code_start_reason_name(ref->reason)) != 0)
         goto oom;
       if (json_builder_appendf(&builder,
+          ",\"evidence_kind_id\":%u,\"evidence_kind\":",
+          (unsigned)ref->evidence_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_code_origin_evidence_kind_name(ref->evidence_kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
           ",\"confidence\":%u,\"source_section_index\":%u,\"source_offset\":%u,\"runtime_address\":",
           (unsigned)ref->confidence, (unsigned)ref->source_section_index, (unsigned)ref->source_offset) != 0)
         goto oom;
@@ -4122,6 +4382,24 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (append_source_quality_diagnostic_json(&builder,
           &section->source_quality_diagnostics[source_quality_index], 1U) != 0)
         goto oom;
+    }
+    if (json_builder_appendf(&builder,
+        "],\"source_quality_explanation_count\":%u,\"source_quality_explanations\":[",
+        (unsigned)source_quality_explanation_count_for_diagnostics(section->source_quality_diagnostics,
+          section->source_quality_diagnostic_count)) != 0)
+      goto oom;
+    {
+      size_t emitted_explanation_count = 0U;
+      for (source_quality_index = 0U; source_quality_index < section->source_quality_diagnostic_count;
+          ++source_quality_index) {
+        const M68kSourceQualityDiagnosticIR *diagnostic =
+          &section->source_quality_diagnostics[source_quality_index];
+        if (!diagnostic->blocker) continue;
+        if (emitted_explanation_count++ != 0U && json_builder_append(&builder, ",") != 0)
+          goto oom;
+        if (append_source_quality_explanation_json(&builder, source_analysis, section, diagnostic, 1U) != 0)
+          goto oom;
+      }
     }
     if (json_builder_appendf(&builder, "],\"symbol_origin_count\":%u,\"symbol_origins\":[",
           (unsigned)section->symbol_origin_count) != 0)
@@ -5667,6 +5945,12 @@ static int append_listing_code_start_refs_json(JsonBuilder *builder, const M68kS
         (unsigned)ref->offset, (unsigned)ref->reason) != 0)
       return -1;
     if (json_builder_append_json_string(builder, m68k_code_start_reason_name(ref->reason)) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"evidence_kind_id\":%u,\"evidence_kind\":",
+        (unsigned)ref->evidence_kind) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder,
+        m68k_code_origin_evidence_kind_name(ref->evidence_kind)) != 0)
+      return -1;
     if (json_builder_appendf(builder,
         ",\"confidence\":%u,\"source_section_index\":%u,\"source_offset\":%u,\"runtime_address\":",
         (unsigned)ref->confidence, (unsigned)ref->source_section_index, (unsigned)ref->source_offset) != 0)

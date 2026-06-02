@@ -5926,3 +5926,95 @@ accepted run has only weak/control-derived proof
 This tooling is part of the validation contract. When a hard failure appears,
 the worker should be able to reduce the failure to a focused fixture and repair
 the producer without adding temporary probes or weakening validators.
+
+### Source-Quality Explanation JSON Slice
+
+Added the first durable implementation of the failure explanation path in
+Source Analysis IR JSON. Blocking source-quality diagnostics now export an
+explanation bundle alongside the flat diagnostic rows:
+
+```text
+source_quality_diagnostics[]
+  -> source_quality_explanations[]
+       diagnostic
+       accepted_run
+       blocking_range
+       proof_refs[]
+```
+
+The explanation is C-owned. It joins existing Source Analysis IR facts instead
+of re-inferring state in Python:
+
+```text
+diagnostic related range
+  -> accepted_code_runs touching the range
+  -> range_ownership at the run end or diagnostic range
+  -> code_start_refs inside the accepted run
+  -> source byte ownership for each proof ref
+```
+
+The proof ref now carries the evidence kind in JSON:
+
+```json
+{
+  "offset": 4,
+  "reason_name": "control_target",
+  "evidence_kind_name": "direct_control_target",
+  "source_section": 0,
+  "source_offset": 0,
+  "source_byte_ownership": "accepted_noncode"
+}
+```
+
+Byte ownership is intentionally coarse and cause-oriented:
+
+```text
+accepted_code
+accepted_noncode
+conflict
+unknown
+```
+
+That is enough to distinguish the important repair paths:
+
+```text
+proof source is accepted_noncode
+  -> proof producer/classifier is wrong
+
+blocking range is accepted_noncode at run end
+  -> code run falls into owned data/text/table
+
+blocking range is code_overlap conflict
+  -> conflict finalizer is preserving the contradiction visibly
+```
+
+Focused test:
+
+```text
+source_analysis_source_quality_explanation_export
+  constructs accepted run $4..$8
+  constructs adjacent accepted text $8..$C
+  constructs control-target proof from accepted text $0..$2
+  asserts accepted_run, blocking_range, proof evidence, and
+  source_byte_ownership=accepted_noncode in JSON
+```
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+  m68k_ir: all 466 passed
+```
+
+This does not finish the user-facing tooling. Remaining work for this slice is
+to expose the same C-backed explanation through:
+
+```text
+platform_file_cli source-quality-explain ...
+Python source_export / web API failure payload
+CDP/web diagnostics panel
+```
+
+Those layers must consume this JSON/IR path. They must not implement their own
+Python-side byte ownership or proof-chain inference.
