@@ -5777,6 +5777,57 @@ target + optional section + optional offset/radius
   -> ownership of each proof ref's source byte
 ```
 
+The temporary probes also exposed three common lookup tasks that should become
+normal introspection, not ad hoc scripts:
+
+```text
+byte ownership query
+  input: section + offset/range
+  output: accepted code run, range ownership, structured item, conflict state
+
+proof-chain query
+  input: section + accepted code run or code-start offset
+  output: code-start refs, reason/evidence, source section/offset, source
+          byte ownership
+
+decode-window query
+  input: section + offset/radius
+  output: decoded instructions, accepted/unaccepted byte state, terminal shape,
+          neighbouring owned data/range boundaries
+```
+
+These are debugging primitives for framework failures. They should be available
+from the same Source Analysis IR JSON and CLI/API surface as the blocker
+explanation. They are not separate target-specific commands and they must not
+infer new facts in Python.
+
+The useful textual form is a compact cause map:
+
+```text
+section 0:$65d2
+  diagnostic: unterminated_or_invalid_code_range
+
+  accepted code:
+    $65d2..$65dc  end=accepted_gap
+    proof $65d2 control_target/direct_control_target from section 0:$656c
+      source ownership: accepted_noncode text $656c..$6570
+
+  adjacent ownership:
+    $65dc..$65e7  text accepted clean
+
+  decode window:
+    $65d2  ...
+    $65d6  ...
+    $65da  ...
+    $65dc  owned text begins
+```
+
+That view is intentionally small: it gives enough evidence to decide whether
+the bad fact came from code-start promotion, range ownership, decode terminal
+classification, or rendered-access accounting. If a debugging script needs more
+state than this, either add a durable Source Analysis IR field or prove why the
+extra state is only temporary instrumentation.
+
 The minimum C-owned JSON shape is:
 
 ```json
