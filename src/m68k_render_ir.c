@@ -927,6 +927,8 @@ static int render_asm_includes_for_structured_data_item(M68kRenderIRPreview *pre
 
 static int record_rendered_label_statement_access(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
   const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+static int record_rendered_storage_label_statement_access(M68kRenderIRPreview *preview,
+  M68kSourceAnalysisIR *source_analysis, const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
   size_t source_section_index, uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
   const char *symbol_name);
@@ -1015,6 +1017,11 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
         runtime_address);
     hash_asm_text(preview, line);
     ++preview->asm_source_lines;
+    if (preview->source_analysis_for_symbol_access != NULL &&
+        record_rendered_storage_label_statement_access(preview, preview->source_analysis_for_symbol_access, lookup,
+          section_index, offset) != 0) {
+      preview->asm_source_allocation_failed = 1U;
+    }
     render_asm_org(preview, runtime_address);
     *io_logical_pc = runtime_address;
   } else if (io_logical_pc != NULL) {
@@ -10266,6 +10273,28 @@ static int record_rendered_label_statement_access(M68kRenderIRPreview *preview, 
   access.target_offset = offset;
   access.operand_index = UINT32_MAX;
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
+  access.has_target = 1U;
+  return record_rendered_symbol_access(preview, source_analysis, section_index, &access);
+}
+
+static int record_rendered_storage_label_statement_access(M68kRenderIRPreview *preview,
+    M68kSourceAnalysisIR *source_analysis, const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  M68kSectionAnalysisIR *section_analysis;
+  M68kRenderedSymbolAccessIR access;
+  char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
+  if (source_analysis == NULL || lookup == NULL) return 0;
+  section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
+  if (section_analysis == NULL) return -1;
+  symbol_name[0] = '\0';
+  (void)format_storage_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
+  if (symbol_name[0] == '\0') return 0;
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = symbol_name;
+  access.offset = offset;
+  access.target_section_index = (uint32_t)section_index;
+  access.target_offset = offset;
+  access.operand_index = UINT32_MAX;
+  access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_STORAGE_LABEL;
   access.has_target = 1U;
   return record_rendered_symbol_access(preview, source_analysis, section_index, &access);
 }

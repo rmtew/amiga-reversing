@@ -730,6 +730,7 @@ independent label statements
 section-storage address observations
 absolute address observations
 accepted table-entry targets
+rendered storage-label evidence
 ```
 
 The remaining coverage gap is narrower:
@@ -755,6 +756,21 @@ append_expected_generated_equate_operand_accesses()
 append_expected_storage_label_statements()
 append_expected_platform_symbol_operand_accesses()
 ```
+
+Current storage-label progress:
+
+```text
+renderer emits a storage-domain label before switching ORG to runtime domain
+  -> rendered_symbol_access(access_kind=storage_label)
+  -> post-render gate can match an expected storage-label obligation
+
+source-quality analysis proves that storage label must exist
+  -> still remaining: append_expected_storage_label_statements()
+```
+
+The remaining producer must be C-owned. It cannot reuse the current
+renderer-only `needs_storage_label` decision; that condition has to move into
+source analysis first so render only formats and records the label.
 
 Each new producer must set a precise producer id/string in
 `M68kExpectedSymbolAccessIR`. A missing or empty producer should be treated as a
@@ -1112,6 +1128,7 @@ section_storage_address_observation
 absolute_address_observation
 table_entry_target
 merged producer evidence for duplicate obligations
+rendered storage-label evidence
 ```
 
 Add the remaining precise C producers:
