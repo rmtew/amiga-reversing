@@ -45,7 +45,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = ["-m", "not integration and not real_integration and not web_e2e"]
+addopts = ["-m", "not integration and not real_integration"]
 markers = [
     "integration: opt-in non-real tests outside the default developer loop",
     "c_backend: tests that require the C backend/tools or project-scale C analysis",

@@ -3605,6 +3605,82 @@ static int append_source_quality_range_summary_json(JsonBuilder *builder,
   return json_builder_append(builder, "}");
 }
 
+static const M68kRenderedSymbolAccessIR *source_quality_find_rendered_label_statement(
+    const M68kSectionAnalysisIR *section, const M68kSourceQualityDiagnosticIR *diagnostic) {
+  size_t index;
+  if (section == NULL || diagnostic == NULL || !diagnostic->has_offset) return NULL;
+  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
+    const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[index];
+    if (access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT &&
+        access->offset == diagnostic->offset) {
+      return access;
+    }
+  }
+  return NULL;
+}
+
+static int source_quality_symbol_origin_matches_access(const M68kSectionAnalysisIR *section,
+    const M68kSymbolOriginIR *origin, const M68kRenderedSymbolAccessIR *access) {
+  if (section == NULL || origin == NULL || access == NULL) return 0;
+  if (access->has_target) {
+    return access->target_section_index == section->section_index && access->target_offset == origin->offset;
+  }
+  if (access->symbol_name != NULL && origin->symbol_name != NULL &&
+      strcmp(access->symbol_name, origin->symbol_name) == 0)
+    return 1;
+  return access->offset == origin->offset;
+}
+
+static size_t source_quality_symbol_origin_count_for_access(const M68kSectionAnalysisIR *section,
+    const M68kRenderedSymbolAccessIR *access) {
+  size_t index;
+  size_t count = 0U;
+  if (section == NULL || access == NULL) return 0U;
+  for (index = 0U; index < section->symbol_origin_count; ++index) {
+    if (source_quality_symbol_origin_matches_access(section, &section->symbol_origins[index], access)) ++count;
+  }
+  return count;
+}
+
+static int append_source_quality_rendered_label_detail_json(JsonBuilder *builder,
+    const M68kSectionAnalysisIR *section, const M68kSourceQualityDiagnosticIR *diagnostic) {
+  const M68kRenderedSymbolAccessIR *access;
+  size_t index;
+  size_t emitted = 0U;
+  if (builder == NULL || section == NULL || diagnostic == NULL) return -1;
+  if (diagnostic->kind != M68K_SOURCE_QUALITY_DIAGNOSTIC_UNREFERENCED_LABEL_STATEMENT) {
+    return json_builder_append(builder, "null");
+  }
+  access = source_quality_find_rendered_label_statement(section, diagnostic);
+  if (access == NULL) return json_builder_append(builder, "null");
+  if (json_builder_appendf(builder, "{\"offset\":%u,\"symbol_name\":", (unsigned)access->offset) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, access->symbol_name != NULL ? access->symbol_name : "") != 0)
+    return -1;
+  if (json_builder_appendf(builder,
+      ",\"target_section\":%u,\"target_offset\":%u,\"origin_count\":%u,\"origins\":[",
+      (unsigned)(access->has_target ? access->target_section_index : section->section_index),
+      (unsigned)(access->has_target ? access->target_offset : access->offset),
+      (unsigned)source_quality_symbol_origin_count_for_access(section, access)) != 0)
+    return -1;
+  for (index = 0U; index < section->symbol_origin_count; ++index) {
+    const M68kSymbolOriginIR *origin = &section->symbol_origins[index];
+    if (!source_quality_symbol_origin_matches_access(section, origin, access)) continue;
+    if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder, "{\"origin_kind_id\":%u,\"origin_kind\":",
+        (unsigned)origin->origin_kind) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, m68k_symbol_origin_kind_name(origin->origin_kind)) != 0)
+      return -1;
+    if (json_builder_appendf(builder,
+        ",\"offset\":%u,\"source_section\":%u,\"source_offset\":%u,\"confidence\":%u}",
+        (unsigned)origin->offset, (unsigned)origin->source_section_index,
+        (unsigned)origin->source_offset, (unsigned)origin->confidence) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]}");
+}
+
 static int append_source_quality_explanation_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section,
     const M68kSourceQualityDiagnosticIR *diagnostic, uint8_t section_local) {
@@ -3621,6 +3697,8 @@ static int append_source_quality_explanation_json(JsonBuilder *builder,
   if (append_source_quality_accepted_run_summary_json(builder, run) != 0) return -1;
   if (json_builder_append(builder, ",\"blocking_range\":") != 0) return -1;
   if (append_source_quality_range_summary_json(builder, blocking_range) != 0) return -1;
+  if (json_builder_append(builder, ",\"rendered_label\":") != 0) return -1;
+  if (append_source_quality_rendered_label_detail_json(builder, section, diagnostic) != 0) return -1;
   if (json_builder_append(builder, ",\"proof_refs\":[") != 0) return -1;
   if (run != NULL) {
     for (index = 0U; index < section->code_start_ref_count; ++index) {

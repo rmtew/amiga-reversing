@@ -10447,6 +10447,11 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->asm_source_first_failure_aux_offset = render_preview->asm_source_first_failure_aux_offset;
   }
   if (source_analysis != NULL && render_asm_source) {
+    if (m68k_analysis_render_lookup_append_auto_policy(source_analysis, &render_lookup) != 0) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 post-render auto policy append failed");
+      goto fail;
+    }
     if (m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 rendered symbol access analysis failed");

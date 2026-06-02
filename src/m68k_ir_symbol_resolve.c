@@ -22,13 +22,13 @@ M68kIrSymbolApplyResult m68k_ir_apply_symbol_refs(const M68kIrResolveContext *co
     symbol = context->lookup_symbol(label_name, context->user_data);
     if (!symbol.ok) {
       m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
-        "undefined label at line %u: %s", (unsigned)line_number, label_name);
+        "undefined label at line %u: %s (not found)", (unsigned)line_number, label_name);
       return result;
     }
     if (!symbol.defined) {
       if (!allow_undefined) {
         m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
-          "undefined label at line %u: %s", (unsigned)line_number, label_name);
+          "undefined label at line %u: %s (declared but not defined)", (unsigned)line_number, label_name);
         return result;
       }
       symbol_value = 0;

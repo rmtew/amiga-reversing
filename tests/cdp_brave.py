@@ -70,8 +70,8 @@ def find_brave() -> Path:
 
 def brave_cdp_skip_reason() -> str:
     return (
-        "set M68K_RUN_BRAVE_CDP=1 to run Brave/CDP web E2E tests as part of a wider suite, "
-        "or select tests/test_web_e2e_cdp.py directly"
+        "set M68K_RUN_BRAVE_CDP=1, select -m web_e2e, or select tests/test_web_e2e_cdp.py "
+        "directly to run Brave/CDP web E2E tests"
     )
 
 
@@ -101,7 +101,11 @@ def brave_cdp_marker_selected(args: list[str] | None = None) -> bool:
 
 
 def brave_cdp_requested() -> bool:
-    return os.environ.get("M68K_RUN_BRAVE_CDP") == "1" or brave_cdp_file_or_module_selected()
+    return (
+        os.environ.get("M68K_RUN_BRAVE_CDP") == "1"
+        or brave_cdp_file_or_module_selected()
+        or brave_cdp_marker_selected()
+    )
 
 
 def _http_failure_allowed(url: str, status: int, allowed: list[AllowedHttpFailure]) -> bool:

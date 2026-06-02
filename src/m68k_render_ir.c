@@ -590,6 +590,20 @@ static void format_runtime_asm_label(const M68kRenderLookup *lookup, char *buf, 
   snprintf(buf, buf_size, "abs_%u_%08X", (unsigned)section_index, (unsigned)runtime_address);
 }
 
+static uint8_t format_runtime_operand_asm_label_with_generation(const M68kRenderLookup *lookup,
+    char *buf, size_t buf_size, size_t section_index, uint32_t source_offset, uint32_t runtime_address) {
+  const char *policy_name;
+  if (buf == NULL || buf_size == 0U) return 1U;
+  policy_name = lookup_policy_label_name(lookup, section_index, source_offset, M68K_ANALYSIS_LABEL_DOMAIN_SOURCE);
+  if (policy_name != NULL && policy_name[0] != '\0') {
+    snprintf(buf, buf_size, "%s", policy_name);
+    return 0U;
+  }
+  policy_name = lookup_policy_label_name(lookup, section_index, runtime_address, M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME);
+  format_runtime_asm_label(lookup, buf, buf_size, section_index, source_offset, runtime_address);
+  return policy_name != NULL && policy_name[0] != '\0' ? 0U : 1U;
+}
+
 static uint8_t format_rendered_asm_label_with_generation(const M68kRenderLookup *lookup, char *buf, size_t buf_size,
     size_t section_index, uint32_t offset) {
   uint32_t runtime_address = 0U;
@@ -623,6 +637,8 @@ static uint8_t format_storage_asm_label_with_generation(const M68kRenderLookup *
 }
 
 static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range);
+static int runtime_address_ref_targets_policy_materialized_source(const M68kRenderLookup *lookup,
+    const M68kFact *ref);
 
 static int render_asm_include_once(M68kRenderIRPreview *preview, const char *include_path) {
   uint16_t index;
@@ -910,6 +926,54 @@ static int render_asm_includes_for_structured_data_item(M68kRenderIRPreview *pre
 
 static int record_rendered_label_statement_access(M68kSourceAnalysisIR *source_analysis,
   const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+static int record_rendered_data_symbol_access(M68kSourceAnalysisIR *source_analysis,
+  size_t source_section_index, uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
+  const char *symbol_name);
+static int record_rendered_data_label_target_access(M68kRenderIRPreview *preview,
+  const M68kRenderLookup *lookup, size_t source_section_index, uint32_t source_offset,
+  size_t target_section_index, uint32_t target_offset);
+
+static int record_rendered_data_symbol_access(M68kSourceAnalysisIR *source_analysis,
+    size_t source_section_index, uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
+    const char *symbol_name) {
+  M68kSectionAnalysisIR *section_analysis;
+  M68kRenderedSymbolAccessIR access;
+  size_t index;
+  if (source_analysis == NULL || symbol_name == NULL || symbol_name[0] == '\0' ||
+      source_section_index > UINT32_MAX || target_section_index > UINT32_MAX) {
+    return 0;
+  }
+  section_analysis = NULL;
+  for (index = 0U; index < source_analysis->section_count; ++index) {
+    if (source_analysis->sections[index].section_index == source_section_index) {
+      section_analysis = &source_analysis->sections[index];
+      break;
+    }
+  }
+  if (section_analysis == NULL) return -1;
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = (char *)symbol_name;
+  access.offset = source_offset;
+  access.target_section_index = (uint32_t)target_section_index;
+  access.target_offset = target_offset;
+  access.operand_index = UINT32_MAX;
+  access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
+  access.has_target = 1U;
+  return m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access);
+}
+
+static int record_rendered_data_label_target_access(M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, size_t source_section_index, uint32_t source_offset,
+    size_t target_section_index, uint32_t target_offset) {
+  char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
+  if (preview == NULL || lookup == NULL || preview->source_analysis_for_symbol_access == NULL) return 0;
+  symbol_name[0] = '\0';
+  (void)format_rendered_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name),
+    target_section_index, target_offset);
+  if (symbol_name[0] == '\0') return 0;
+  return record_rendered_data_symbol_access(preview->source_analysis_for_symbol_access, source_section_index,
+    source_offset, target_section_index, target_offset, symbol_name);
+}
 
 static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, uint32_t *io_logical_pc) {
@@ -1885,6 +1949,11 @@ static void render_asm_relocation_expr(M68kRenderIRPreview *preview, M68kRenderL
   } else {
     snprintf(line, sizeof(line), "\t%s %s\n", directive, name);
   }
+  if (record_rendered_data_label_target_access(preview, lookup, fact->section_index, fact->offset,
+      fact->target_section_index, fact->target_offset) != 0) {
+    preview->asm_source_allocation_failed = 1U;
+    return;
+  }
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   ++preview->asm_source_relocation_exprs;
@@ -2184,10 +2253,19 @@ static void render_asm_dc_b_character_line(M68kRenderIRPreview *preview, const u
   ++preview->asm_source_lines;
 }
 
-static void render_asm_manual_representation_dc_b(M68kRenderIRPreview *preview, const uint8_t *data,
-    size_t section_index, uint32_t offset, uint32_t size, const M68kRenderLookup *lookup,
-    const M68kAnalysisManualRepresentation *representation, const char *comment) {
+static int lookup_should_emit_data_label_statement(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset) {
+  return section != NULL &&
+    (lookup_should_emit_label_statement(lookup, section, accepted_start, section->section_index, offset) ||
+     lookup_structured_data_item_at_offset(lookup, section->section_index, offset) != NULL ||
+     lookup_structured_long_table_targets_offset(lookup, section->section_index, offset));
+}
+
+static void render_asm_manual_representation_dc_b(M68kRenderIRPreview *preview,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset, uint32_t size,
+    const M68kRenderLookup *lookup, const M68kAnalysisManualRepresentation *representation, const char *comment) {
   uint32_t cursor = 0U;
+  const uint8_t *data = section != NULL ? section->data : NULL;
   uint8_t style_id = representation != NULL ? representation->style_id : M68K_ANALYSIS_REPRESENTATION_STYLE_NONE;
   if (preview == NULL || data == NULL || size == 0U) return;
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && (size == 1U || size == 2U || size == 4U)) {
@@ -2202,11 +2280,12 @@ static void render_asm_manual_representation_dc_b(M68kRenderIRPreview *preview, 
     while (cursor < size) {
       uint32_t chunk_size = size - cursor;
       uint32_t probe;
-      if (cursor != 0U && lookup_has_renderable_label(lookup, section_index, offset + cursor)) {
-        render_asm_label(preview, lookup, section_index, offset + cursor, NULL);
+      if (cursor != 0U && lookup_should_emit_data_label_statement(lookup, section, accepted_start,
+          offset + cursor)) {
+        render_asm_label(preview, lookup, section->section_index, offset + cursor, NULL);
       }
       for (probe = 1U; probe < chunk_size; ++probe) {
-        if (lookup_has_renderable_label(lookup, section_index, offset + cursor + probe)) {
+        if (lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor + probe)) {
           chunk_size = probe;
           break;
         }
@@ -2230,7 +2309,8 @@ static void render_asm_manual_representation_dc_b(M68kRenderIRPreview *preview, 
 }
 
 static void render_asm_dc_b_with_policy(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
-    const M68kRenderLookup *lookup, uint32_t offset, uint32_t size, const char *comment) {
+    const uint8_t *accepted_start, const M68kRenderLookup *lookup, uint32_t offset, uint32_t size,
+    const char *comment) {
   uint32_t cursor = 0U;
   uint32_t limit;
   if (preview == NULL || section == NULL || section->data == NULL || size == 0U) return;
@@ -2240,27 +2320,27 @@ static void render_asm_dc_b_with_policy(M68kRenderIRPreview *preview, const M68k
     uint32_t probe;
     const M68kAnalysisManualRepresentation *representation =
       lookup_manual_representation_at(lookup, section->section_index, current);
-    if (cursor != 0U && lookup_has_renderable_label(lookup, section->section_index, current)) {
+    if (cursor != 0U && lookup_should_emit_data_label_statement(lookup, section, accepted_start, current)) {
       render_asm_label(preview, lookup, section->section_index, current, NULL);
     }
     if (representation != NULL) {
       uint32_t chunk_size = representation->size;
       if (chunk_size > size - cursor) chunk_size = size - cursor;
       for (probe = 1U; probe < chunk_size; ++probe) {
-        if (lookup_has_renderable_label(lookup, section->section_index, current + probe)) {
+        if (lookup_should_emit_data_label_statement(lookup, section, accepted_start, current + probe)) {
           chunk_size = probe;
           break;
         }
       }
-      render_asm_manual_representation_dc_b(preview, section->data, section->section_index, current, chunk_size,
-        lookup, representation, cursor == 0U ? comment : NULL);
+      render_asm_manual_representation_dc_b(preview, section, accepted_start, current, chunk_size, lookup,
+        representation, cursor == 0U ? comment : NULL);
       cursor += chunk_size;
     } else {
       uint32_t next = next_manual_representation_offset(lookup, section->section_index, current, limit);
       uint32_t chunk_size = next > current ? next - current : size - cursor;
       if (chunk_size > size - cursor) chunk_size = size - cursor;
       for (probe = 1U; probe < chunk_size; ++probe) {
-        if (lookup_has_renderable_label(lookup, section->section_index, current + probe)) {
+        if (lookup_should_emit_data_label_statement(lookup, section, accepted_start, current + probe)) {
           chunk_size = probe;
           break;
         }
@@ -2389,8 +2469,9 @@ static int lookup_exact_pointer_value_label_offset(const M68kRenderLookup *looku
     uint32_t section_size, uint32_t value, uint8_t allow_in_section_source_offset, uint32_t *out_source_offset);
 
 static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *preview,
-    const M68kDecodeSectionIR *section, const M68kRenderLookup *lookup, const M68kAnalysisStructuredDataItem *item,
-    uint32_t offset, uint32_t size, uint32_t width, const char *comment, uint32_t *io_logical_pc) {
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, uint32_t offset, uint32_t size, uint32_t width,
+    const char *comment, uint32_t *io_logical_pc) {
   uint32_t cursor = 0U;
   if (preview == NULL || section == NULL || lookup == NULL || item == NULL || section->data == NULL || size == 0U)
     return;
@@ -2398,11 +2479,11 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
     uint32_t current = offset + cursor;
     uint32_t chunk_size = size - cursor;
     uint32_t probe;
-    if (cursor != 0U && lookup_has_renderable_label(lookup, section->section_index, current)) {
+    if (cursor != 0U && lookup_should_emit_data_label_statement(lookup, section, accepted_start, current)) {
       render_asm_label(preview, lookup, section->section_index, current, io_logical_pc);
     }
     for (probe = 1U; probe < chunk_size; ++probe) {
-      if (lookup_has_renderable_label(lookup, section->section_index, current + probe)) {
+      if (lookup_should_emit_data_label_statement(lookup, section, accepted_start, current + probe)) {
         chunk_size = probe;
         break;
       }
@@ -2412,7 +2493,8 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
     } else if (width >= 2U && chunk_size >= 2U && (chunk_size & 1U) == 0U) {
       render_asm_dc_w_values(preview, section->data, current, chunk_size, cursor == 0U ? comment : NULL);
     } else {
-      render_asm_dc_b_with_policy(preview, section, lookup, current, chunk_size, cursor == 0U ? comment : NULL);
+      render_asm_dc_b_with_policy(preview, section, accepted_start, lookup, current, chunk_size,
+        cursor == 0U ? comment : NULL);
     }
     if (io_logical_pc != NULL) *io_logical_pc += chunk_size;
     cursor += chunk_size;
@@ -2511,6 +2593,12 @@ static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const
   }
   if (!lookup_has_renderable_label(lookup, section->section_index, target_offset)) return 0;
   (void)format_rendered_asm_label_with_generation(lookup, name, sizeof(name), section->section_index, target_offset);
+  render_lookup_mark_label_statement_ref(lookup, section->section_index, target_offset);
+  if (record_rendered_data_label_target_access(preview, lookup, section->section_index, offset,
+      section->section_index, target_offset) != 0) {
+    preview->asm_source_allocation_failed = 1U;
+    return 0;
+  }
   if (comment != NULL && comment[0] != '\0')
     snprintf(line, sizeof(line), "\tdc.l %s\t; %s\n", name, comment);
   else
@@ -2640,8 +2728,10 @@ static int lookup_any_runtime_address_source_offset(const M68kRenderLookup *look
 }
 
 static int format_absolute_long_lookup_table_expr(M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, uint32_t raw_long, char *expr, size_t expr_size) {
+    const M68kDecodeSectionIR *section, uint32_t raw_long, char *expr, size_t expr_size,
+    uint32_t *out_target_offset) {
   uint32_t target_offset = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
   if (lookup == NULL || section == NULL || expr == NULL || expr_size == 0U) return 0;
   expr[0] = '\0';
   if (raw_long == 0U) {
@@ -2658,7 +2748,10 @@ static int format_absolute_long_lookup_table_expr(M68kRenderLookup *lookup,
   }
   if (!lookup_has_renderable_label(lookup, section->section_index, target_offset)) return 0;
   (void)format_rendered_asm_label_with_generation(lookup, expr, expr_size, section->section_index, target_offset);
-  return expr[0] != '\0' && strlen(expr) + 1U < expr_size;
+  if (out_target_offset != NULL) *out_target_offset = target_offset;
+  if (expr[0] == '\0' || strlen(expr) + 1U >= expr_size) return 0;
+  render_lookup_mark_label_statement_ref(lookup, section->section_index, target_offset);
+  return 1;
 }
 
 static int render_asm_absolute_long_lookup_table(M68kRenderIRPreview *preview,
@@ -2676,9 +2769,19 @@ static int render_asm_absolute_long_lookup_table(M68kRenderIRPreview *preview,
     hash_asm_text(preview, "\tdc.l ");
     for (index = 0U; index < line_count; ++index) {
       char expr[96];
-      uint32_t raw_long = m68k_read_u32be(section->data + item->offset + cursor + (index * 4U));
-      if (!format_absolute_long_lookup_table_expr(lookup, section, raw_long, expr, sizeof(expr)))
+      uint32_t entry_offset = item->offset + cursor + (index * 4U);
+      uint32_t raw_long = m68k_read_u32be(section->data + entry_offset);
+      uint32_t target_offset = 0U;
+      if (format_absolute_long_lookup_table_expr(lookup, section, raw_long, expr, sizeof(expr),
+          &target_offset)) {
+        if (record_rendered_data_label_target_access(preview, lookup, section->section_index, entry_offset,
+            section->section_index, target_offset) != 0) {
+          preview->asm_source_allocation_failed = 1U;
+          return 0;
+        }
+      } else {
         snprintf(expr, sizeof(expr), "$%08X", (unsigned)raw_long);
+      }
       if (index != 0U) hash_asm_text(preview, ",");
       hash_asm_text(preview, expr);
     }
@@ -2698,12 +2801,15 @@ static int lookup_source_offset_is_block_start(const M68kRenderLookup *lookup, s
 
 static int format_keyed_long_relative_lookup_table_entry(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    const M68kAnalysisStructuredDataItem *item, uint32_t raw_long, char *expr, size_t expr_size) {
+    const M68kAnalysisStructuredDataItem *item, uint32_t raw_long, char *expr, size_t expr_size,
+    uint32_t *out_base_offset, uint32_t *out_target_offset) {
   int32_t displacement = (int32_t)(int16_t)((raw_long >> 16U) & 0xFFFFU);
   uint16_t key = (uint16_t)(raw_long & 0xFFFFU);
   int64_t target_offset = (int64_t)item->target_offset + displacement;
   char target_name[96];
   char base_name[96];
+  if (out_base_offset != NULL) *out_base_offset = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
   if (lookup == NULL || item == NULL || expr == NULL || expr_size == 0U ||
       item->target_section >= lookup->section_count || target_offset < 0 ||
       target_offset > UINT32_MAX) {
@@ -2726,6 +2832,8 @@ static int format_keyed_long_relative_lookup_table_entry(const M68kRenderLookup 
   (void)format_rendered_asm_label_with_generation(lookup, target_name, sizeof(target_name),
     item->target_section, (uint32_t)target_offset);
   snprintf(expr, expr_size, "%s-%s,$%04X", target_name, base_name, (unsigned)key);
+  if (out_base_offset != NULL) *out_base_offset = item->target_offset;
+  if (out_target_offset != NULL) *out_target_offset = (uint32_t)target_offset;
   return strlen(expr) + 1U < expr_size;
 }
 
@@ -2739,10 +2847,21 @@ static int render_asm_keyed_long_relative_lookup_table(M68kRenderIRPreview *prev
   }
   while (cursor + 4U <= available) {
     char expr[224];
-    uint32_t raw_long = m68k_read_u32be(section->data + item->offset + cursor);
+    uint32_t entry_offset = item->offset + cursor;
+    uint32_t raw_long = m68k_read_u32be(section->data + entry_offset);
+    uint32_t base_offset = 0U;
+    uint32_t target_offset = 0U;
     hash_asm_text(preview, "\tdc.w ");
-    if (!format_keyed_long_relative_lookup_table_entry(lookup, section, accepted_start, item, raw_long, expr,
-        sizeof(expr))) {
+    if (format_keyed_long_relative_lookup_table_entry(lookup, section, accepted_start, item, raw_long, expr,
+        sizeof(expr), &base_offset, &target_offset)) {
+      if (record_rendered_data_label_target_access(preview, lookup, section->section_index, entry_offset,
+          item->target_section, target_offset) != 0 ||
+          record_rendered_data_label_target_access(preview, lookup, section->section_index, entry_offset,
+            item->target_section, base_offset) != 0) {
+        preview->asm_source_allocation_failed = 1U;
+        return 0;
+      }
+    } else {
       snprintf(expr, sizeof(expr), "$%04X,$%04X", (unsigned)((raw_long >> 16U) & 0xFFFFU),
         (unsigned)(raw_long & 0xFFFFU));
     }
@@ -2760,11 +2879,14 @@ static int render_asm_keyed_long_relative_lookup_table(M68kRenderIRPreview *prev
 
 static int format_word_relative_lookup_table_expr(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    const M68kAnalysisStructuredDataItem *item, uint16_t raw_word, char *expr, size_t expr_size) {
+    const M68kAnalysisStructuredDataItem *item, uint16_t raw_word, char *expr, size_t expr_size,
+    uint32_t *out_base_offset, uint32_t *out_target_offset) {
   int32_t displacement = (int32_t)(int16_t)raw_word;
   int64_t target_offset = (int64_t)item->target_offset + displacement;
   char target_name[96];
   char base_name[96];
+  if (out_base_offset != NULL) *out_base_offset = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
   if (lookup == NULL || item == NULL || expr == NULL || expr_size == 0U ||
       item->target_section >= lookup->section_count || target_offset < 0 ||
       target_offset > UINT32_MAX) {
@@ -2787,6 +2909,8 @@ static int format_word_relative_lookup_table_expr(const M68kRenderLookup *lookup
   (void)format_rendered_asm_label_with_generation(lookup, target_name, sizeof(target_name),
     item->target_section, (uint32_t)target_offset);
   snprintf(expr, expr_size, "%s-%s", target_name, base_name);
+  if (out_base_offset != NULL) *out_base_offset = item->target_offset;
+  if (out_target_offset != NULL) *out_target_offset = (uint32_t)target_offset;
   return strlen(expr) + 1U < expr_size;
 }
 
@@ -2800,10 +2924,23 @@ static int render_asm_word_relative_lookup_table(M68kRenderIRPreview *preview,
   }
   while (cursor + 2U <= available) {
     char expr[192];
-    uint16_t raw_word = m68k_read_u16be(section->data + item->offset + cursor);
+    uint32_t entry_offset = item->offset + cursor;
+    uint16_t raw_word = m68k_read_u16be(section->data + entry_offset);
+    uint32_t base_offset = 0U;
+    uint32_t target_offset = 0U;
     hash_asm_text(preview, "\tdc.w ");
-    if (!format_word_relative_lookup_table_expr(lookup, section, accepted_start, item, raw_word, expr, sizeof(expr)))
+    if (format_word_relative_lookup_table_expr(lookup, section, accepted_start, item, raw_word, expr, sizeof(expr),
+        &base_offset, &target_offset)) {
+      if (record_rendered_data_label_target_access(preview, lookup, section->section_index, entry_offset,
+          item->target_section, target_offset) != 0 ||
+          record_rendered_data_label_target_access(preview, lookup, section->section_index, entry_offset,
+            item->target_section, base_offset) != 0) {
+        preview->asm_source_allocation_failed = 1U;
+        return 0;
+      }
+    } else {
       snprintf(expr, sizeof(expr), "$%04X", (unsigned)raw_word);
+    }
     hash_asm_text(preview, expr);
     if (cursor == 0U && comment != NULL && comment[0] != '\0') {
       hash_asm_text(preview, "\t; ");
@@ -3188,8 +3325,8 @@ static int format_copper_wait_comment(uint16_t first, uint16_t second, char *buf
 }
 
 static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *data, uint32_t offset, uint32_t size,
-    const char *comment, uint32_t *io_logical_pc) {
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *data, uint32_t offset,
+    uint32_t size, const char *comment, uint32_t *io_logical_pc) {
   uint32_t cursor = 0U;
   int raw_word_mode = 0;
   if (preview == NULL || data == NULL || size == 0U) return;
@@ -3203,8 +3340,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     int copper_move = 0;
     int copper_wait = 0;
     if (cursor != 0U &&
-        (lookup_has_renderable_label(lookup, section->section_index, offset + cursor) ||
-         lookup_structured_long_table_targets_offset(lookup, section->section_index, offset + cursor))) {
+        lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
     }
     if (raw_word_mode) {
@@ -3214,8 +3350,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       continue;
     }
     if (cursor + 2U < size &&
-        (lookup_has_renderable_label(lookup, section->section_index, offset + cursor + 2U) ||
-         lookup_structured_long_table_targets_offset(lookup, section->section_index, offset + cursor + 2U))) {
+        lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor + 2U)) {
       render_asm_dc_w_values(preview, data, offset + cursor, 2U, cursor == 0U ? comment : NULL);
       if (io_logical_pc != NULL) *io_logical_pc += 2U;
       cursor += 2U;
@@ -3278,51 +3413,51 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     cursor += 2U;
   }
   if (cursor < size) {
-    render_asm_dc_b_with_policy(preview, section, lookup, offset + cursor, size - cursor, comment);
+    render_asm_dc_b_with_policy(preview, section, accepted_start, lookup, offset + cursor, size - cursor, comment);
     if (io_logical_pc != NULL) *io_logical_pc += size - cursor;
   }
 }
 
 static void render_asm_palette_words(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *data, uint32_t offset, uint32_t size,
-    const char *comment, uint32_t *io_logical_pc) {
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *data, uint32_t offset,
+    uint32_t size, const char *comment, uint32_t *io_logical_pc) {
   uint32_t cursor = 0U;
   if (preview == NULL || lookup == NULL || section == NULL || data == NULL || size == 0U) return;
   while (cursor + 2U <= size) {
     uint32_t start = cursor;
     uint32_t span;
     if (cursor != 0U &&
-        (lookup_has_renderable_label(lookup, section->section_index, offset + cursor) ||
-         lookup_structured_long_table_targets_offset(lookup, section->section_index, offset + cursor))) {
+        lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
     }
     cursor += 2U;
     while (cursor + 2U <= size &&
-           !lookup_has_renderable_label(lookup, section->section_index, offset + cursor) &&
-           !lookup_structured_long_table_targets_offset(lookup, section->section_index, offset + cursor))
+           !lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor))
       cursor += 2U;
     span = cursor - start;
     render_asm_dc_w_values(preview, data, offset + start, span, start == 0U ? comment : NULL);
     if (io_logical_pc != NULL) *io_logical_pc += span;
   }
   if (cursor < size) {
-    render_asm_dc_b_with_policy(preview, section, lookup, offset + cursor, size - cursor, NULL);
+    render_asm_dc_b_with_policy(preview, section, accepted_start, lookup, offset + cursor, size - cursor, NULL);
     if (io_logical_pc != NULL) *io_logical_pc += size - cursor;
   }
 }
 
 static void render_asm_dc_b_string_with_labels(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
-    M68kRenderLookup *lookup, uint32_t offset, uint32_t size, const char *comment, uint32_t *io_logical_pc) {
+    const uint8_t *accepted_start, M68kRenderLookup *lookup, uint32_t offset, uint32_t size, const char *comment,
+    uint32_t *io_logical_pc) {
   uint32_t cursor = 0U;
   if (preview == NULL || section == NULL || lookup == NULL || section->data == NULL || size == 0U) return;
   while (cursor < size) {
     uint32_t chunk_size = size - cursor;
     uint32_t probe;
-    if (cursor != 0U && lookup_has_renderable_label(lookup, section->section_index, offset + cursor)) {
+    if (cursor != 0U && lookup_should_emit_data_label_statement(lookup, section, accepted_start,
+        offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
     }
     for (probe = 1U; probe < chunk_size; ++probe) {
-      if (lookup_has_renderable_label(lookup, section->section_index, offset + cursor + probe)) {
+      if (lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor + probe)) {
         chunk_size = probe;
         break;
       }
@@ -3360,20 +3495,20 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
     return;
   }
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING && available == item->size) {
-    render_asm_dc_b_string_with_labels(preview, section, lookup, item->offset, available, comment_text,
+    render_asm_dc_b_string_with_labels(preview, section, accepted_start, lookup, item->offset, available, comment_text,
       io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
     return;
   }
   if (available == item->size && structured_data_item_is_copper_list(item)) {
     const char *copper_comment = item->comment[0] != '\0' ? comment_text : NULL;
-    render_asm_copper_list_words(preview, lookup, section, section->data, item->offset, available, copper_comment,
-      io_logical_pc);
+    render_asm_copper_list_words(preview, lookup, section, accepted_start, section->data, item->offset, available,
+      copper_comment, io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
     return;
   }
   if (available == item->size && structured_data_item_is_palette(item)) {
-    render_asm_palette_words(preview, lookup, section, section->data, item->offset, available, comment_text,
+    render_asm_palette_words(preview, lookup, section, accepted_start, section->data, item->offset, available, comment_text,
       io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
     return;
@@ -3398,7 +3533,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       if ((tail_offset & 1U) == 0U && (tail_size & 1U) == 0U)
         render_asm_dc_w_values(preview, section->data, tail_offset, tail_size, NULL);
       else
-        render_asm_dc_b_with_policy(preview, section, lookup, tail_offset, tail_size, NULL);
+        render_asm_dc_b_with_policy(preview, section, accepted_start, lookup, tail_offset, tail_size, NULL);
     }
     return;
   }
@@ -3433,16 +3568,16 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
     return;
   }
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && available >= 4U) {
-    render_asm_structured_raw_data_with_labels(preview, section, lookup, item, item->offset, available, 4U,
-      comment_text, io_logical_pc);
+    render_asm_structured_raw_data_with_labels(preview, section, accepted_start, lookup, item, item->offset,
+      available, 4U, comment_text, io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
   } else if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && available >= 2U) {
-    render_asm_structured_raw_data_with_labels(preview, section, lookup, item, item->offset, available, 2U,
-      comment_text, io_logical_pc);
+    render_asm_structured_raw_data_with_labels(preview, section, accepted_start, lookup, item, item->offset,
+      available, 2U, comment_text, io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
   } else {
-    render_asm_structured_raw_data_with_labels(preview, section, lookup, item, item->offset, available, 1U,
-      comment_text, io_logical_pc);
+    render_asm_structured_raw_data_with_labels(preview, section, accepted_start, lookup, item, item->offset,
+      available, 1U, comment_text, io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
   }
   if (available < item->size) render_asm_ds_b(preview, item->size - available, comment_text);
@@ -5369,7 +5504,13 @@ int structured_data_item_render_comment(const M68kDecodeSectionIR *section,
 
 static int runtime_address_maps_to_materialized_source(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t runtime_address);
-static void render_lookup_mark_runtime_ref_statement_labels(M68kRenderLookup *lookup);
+static const char *runtime_address_ref_sink_role(const M68kRenderLookup *lookup, const M68kFact *fact);
+static const char *lookup_runtime_address_value_semantic_role(const M68kRenderLookup *lookup,
+  uint32_t runtime_address);
+static int amiga_abs_exec_base_load_should_stay_absolute(const M68kRenderLookup *lookup,
+    const M68kInstructionIR *instruction, size_t operand_index, const M68kOperandIR *operand,
+    const M68kFact *fact);
+static void render_lookup_mark_runtime_ref_statement_labels(M68kRenderLookup *lookup, const M68kDecodeIR *decode);
 
 static void render_lookup_build_block_start_before_maps(M68kRenderLookup *lookup) {
   size_t section_index;
@@ -5713,6 +5854,11 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
           fact->target_offset <= lookup->label_extents[fact->target_section_index]) {
         render_lookup_set_label(lookup, fact->target_section_index, fact->target_offset);
         render_lookup_mark_label_target_ref(lookup, fact->target_section_index, fact->target_offset);
+        if (fact->reason < M68K_DECODE_IR_MAX_OPERANDS && fact->has_runtime_address &&
+            (fact->runtime_address == fact->target_offset ||
+             runtime_address_ref_targets_policy_materialized_source(lookup, fact))) {
+          render_lookup_mark_label_statement_ref(lookup, fact->target_section_index, fact->target_offset);
+        }
       }
     } else if (fact->kind == M68K_FACT_RUNTIME_ADDRESS_RANGE) {
       if (render_lookup_add_runtime_address_range(lookup, fact) != 0) goto oom;
@@ -5787,7 +5933,7 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
   }
   render_lookup_mark_materialized_runtime_code_operand_patch_labels(lookup, decode, accepted_start);
   render_lookup_build_block_start_before_maps(lookup);
-  render_lookup_mark_runtime_ref_statement_labels(lookup);
+  render_lookup_mark_runtime_ref_statement_labels(lookup, decode);
   if (render_lookup_add_pc_relative_xrefs(lookup, decode, accepted_start) != 0) goto oom;
   lookup->build_complete = 1U;
   return 0;
@@ -6460,6 +6606,29 @@ int lookup_source_has_materialized_runtime_address(const M68kRenderLookup *looku
   return 0;
 }
 
+static int runtime_address_ref_targets_policy_materialized_source(const M68kRenderLookup *lookup,
+    const M68kFact *ref) {
+  size_t index;
+  if (lookup == NULL || ref == NULL || ref->kind != M68K_FACT_RUNTIME_ADDRESS_REF ||
+      !ref->has_runtime_address || lookup->runtime_address_ranges == NULL) {
+    return 0;
+  }
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *range = lookup->runtime_address_ranges[index].fact;
+    uint32_t mapped_runtime_address = 0U;
+    if (range == NULL || range->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY ||
+        !runtime_range_is_materialized(lookup, range)) {
+      continue;
+    }
+    if (!runtime_range_contains_source(range, ref->target_section_index, ref->target_offset,
+        &mapped_runtime_address)) {
+      continue;
+    }
+    if (mapped_runtime_address == ref->runtime_address) return 1;
+  }
+  return 0;
+}
+
 int lookup_source_should_render_runtime_label(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t source_offset, uint32_t *out_runtime_address) {
   return lookup_source_runtime_address(lookup, section_index, source_offset, out_runtime_address);
@@ -6558,6 +6727,47 @@ static int runtime_address_ref_targets_discovered_copy_range_start(const M68kRen
   return 0;
 }
 
+static int runtime_address_ref_source_label_wins(const M68kRenderLookup *lookup, const M68kFact *ref) {
+  if (lookup == NULL || ref == NULL || !ref->has_runtime_address ||
+      ref->target_section_index >= lookup->section_count ||
+      ref->runtime_address == ref->target_offset ||
+      ref->runtime_address > lookup->label_extents[ref->target_section_index] ||
+      !lookup_has_renderable_label(lookup, ref->target_section_index, ref->runtime_address)) {
+    return 0;
+  }
+  return lookup_label_has_explicit_name(lookup, ref->target_section_index, ref->runtime_address) ||
+    lookup_label_has_statement_ref(lookup, ref->target_section_index, ref->runtime_address);
+}
+
+static int runtime_address_ref_operand_can_render_materialized_label(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, const M68kFact *fact) {
+  const M68kDecodeSectionIR *section;
+  const M68kDecodeCandidate *candidate;
+  M68kInstructionIR instruction;
+  const M68kOperandIR *operand;
+  uint32_t value = 0U;
+  if (lookup == NULL || decode == NULL || fact == NULL || !fact->has_runtime_address ||
+      fact->has_sink_address || fact->reason >= M68K_DECODE_IR_MAX_OPERANDS ||
+      fact->section_index >= decode->section_count || fact->target_section_index >= lookup->section_count ||
+      !lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset) ||
+      (!lookup_source_has_materialized_runtime_address(lookup, fact->target_section_index,
+         fact->target_offset, fact->runtime_address) && fact->runtime_address != fact->target_offset)) {
+    return 0;
+  }
+  section = &decode->sections[fact->section_index];
+  candidate = m68k_decode_ir_find_candidate_at_offset(section, fact->offset);
+  if (candidate == NULL || fact->reason >= candidate->operand_count ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      fact->reason >= instruction.operand_count) {
+    return 0;
+  }
+  operand = &instruction.operands[fact->reason];
+  if (!m68k_ir_operand_immediate_value(operand, &value) && !operand_absolute_offset_local(operand, &value))
+    return 0;
+  if (value != fact->runtime_address) return 0;
+  return !amiga_abs_exec_base_load_should_stay_absolute(lookup, &instruction, fact->reason, operand, fact);
+}
+
 int lookup_source_logical_address(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t source_offset, uint32_t *out_logical_address) {
   uint32_t runtime_address = 0U;
@@ -6570,23 +6780,52 @@ int lookup_source_logical_address(const M68kRenderLookup *lookup, size_t section
   return 1;
 }
 
-static void render_lookup_mark_runtime_ref_statement_labels(M68kRenderLookup *lookup) {
+static int runtime_sink_ref_renders_platform_symbol(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    const M68kFact *fact) {
+  const M68kDecodeCandidate *candidate;
+  M68kInstructionIR instruction;
+  uint32_t value = 0U;
+  if (lookup == NULL || decode == NULL || fact == NULL || runtime_address_ref_sink_role(lookup, fact) == NULL ||
+      fact->section_index >= decode->section_count || fact->reason >= M68K_DECODE_IR_MAX_OPERANDS) {
+    return 0;
+  }
+  candidate = m68k_decode_ir_find_candidate_at_offset(&decode->sections[fact->section_index], fact->offset);
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      fact->reason >= instruction.operand_count) {
+    return 0;
+  }
+  return m68k_ir_operand_immediate_value(&instruction.operands[fact->reason], &value) &&
+    value == fact->runtime_address;
+}
+
+static void render_lookup_mark_runtime_ref_statement_labels(M68kRenderLookup *lookup, const M68kDecodeIR *decode) {
   size_t index;
   if (lookup == NULL || lookup->runtime_address_refs == NULL) return;
   for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
     const M68kFact *fact = lookup->runtime_address_refs[index].fact;
     uint32_t target_runtime_address = 0U;
     if (fact == NULL || fact->target_section_index >= lookup->section_count) continue;
+    if (runtime_address_ref_source_label_wins(lookup, fact)) continue;
+    if (fact->has_runtime_address &&
+        lookup_runtime_address_value_semantic_role(lookup, fact->runtime_address) != NULL) {
+      continue;
+    }
     if (fact->has_sink_address) {
-      render_lookup_mark_label_statement_ref(lookup, fact->target_section_index, fact->target_offset);
+      if (!runtime_sink_ref_renders_platform_symbol(lookup, decode, fact) &&
+          (fact->reason < M68K_DECODE_IR_MAX_OPERANDS ||
+           (fact->has_runtime_address && fact->target_offset == fact->runtime_address))) {
+        render_lookup_mark_label_statement_ref(lookup, fact->target_section_index, fact->target_offset);
+      }
       continue;
     }
     if (!fact->has_runtime_address || !lookup_has_renderable_label(lookup, fact->target_section_index,
         fact->target_offset)) {
       continue;
     }
-    if (lookup_source_has_materialized_runtime_address(lookup, fact->target_section_index,
-        fact->target_offset, fact->runtime_address) || fact->runtime_address == fact->target_offset) {
+    if (fact->runtime_address == fact->target_offset ||
+        runtime_address_ref_targets_policy_materialized_source(lookup, fact) ||
+        runtime_address_ref_operand_can_render_materialized_label(lookup, decode, fact)) {
       render_lookup_mark_label_statement_ref(lookup, fact->target_section_index, fact->target_offset);
       continue;
     }
@@ -6785,18 +7024,43 @@ static const char *lookup_external_runtime_address_role_by_value(const M68kRende
   return NULL;
 }
 
-static int lookup_inferred_runtime_address_value_has_data_class(const M68kRenderLookup *lookup,
+static const char *lookup_sink_runtime_address_role_by_value(const M68kRenderLookup *lookup,
     uint32_t runtime_address) {
   size_t index;
-  if (lookup == NULL || runtime_address == 0U) return 0;
+  if (lookup == NULL || runtime_address == 0U) return NULL;
+  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_refs[index].fact;
+    const char *role;
+    if (fact == NULL || !fact->has_runtime_address || fact->runtime_address != runtime_address) continue;
+    role = runtime_address_ref_sink_role(lookup, fact);
+    if (role != NULL && role[0] != '\0') return role;
+  }
+  return NULL;
+}
+
+static const char *lookup_inferred_runtime_address_value_data_class(const M68kRenderLookup *lookup,
+    uint32_t runtime_address) {
+  size_t index;
+  if (lookup == NULL || runtime_address == 0U) return NULL;
   for (index = 0U; index < lookup->inferred_runtime_address_ref_count; ++index) {
     const M68kRenderInferredRuntimeAddressRef *entry = &lookup->inferred_runtime_address_refs[index];
     if (entry->ref.has_runtime_address && entry->ref.runtime_address == runtime_address &&
         entry->data_class_flags != 0U) {
-      return 1;
+      const char *role = m68k_analysis_structured_data_role_name_for_flags(entry->data_class_flags);
+      if (role != NULL && role[0] != '\0') return role;
     }
   }
-  return 0;
+  return NULL;
+}
+
+static const char *lookup_runtime_address_value_semantic_role(const M68kRenderLookup *lookup,
+    uint32_t runtime_address) {
+  const char *role = lookup_sink_runtime_address_role_by_value(lookup, runtime_address);
+  if (role != NULL && role[0] != '\0') return role;
+  role = lookup_external_runtime_address_role_by_value(lookup, runtime_address);
+  if (role != NULL && role[0] != '\0') return role;
+  role = lookup_inferred_runtime_address_value_data_class(lookup, runtime_address);
+  return role != NULL && role[0] != '\0' ? role : NULL;
 }
 
 static int runtime_alias_label_seen_before(const M68kRenderLookup *lookup, size_t current_index,
@@ -8926,18 +9190,31 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
         }
         return 0;
       }
+      {
+        const char *role = lookup_runtime_address_value_semantic_role(lookup, fact->runtime_address);
+        char symbol[80];
+        if (role != NULL &&
+            (fact->target_section_index >= lookup->section_count ||
+             !runtime_address_maps_to_materialized_source(lookup, fact->target_section_index,
+               fact->runtime_address)) &&
+            render_asm_define_runtime_address_symbol_once(preview, role, fact->runtime_address, symbol,
+              sizeof(symbol))) {
+          attach_generic_symbol(operand, symbol);
+          continue;
+        }
+      }
       m68k_ir_symbol_ref_init(&operand->symbol_ref);
       operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_ABS;
       operand->symbol_ref.has_name = 1U;
-      operand->symbol_ref.name_is_generated = 1U;
       operand->symbol_ref.has_section = 1;
       operand->symbol_ref.section_index = fact->target_section_index;
       if (target_runtime_address != fact->runtime_address) {
         int64_t addend = (int64_t)(uint64_t)fact->runtime_address - (int64_t)(uint64_t)target_runtime_address;
         if (addend >= INT32_MIN && addend <= INT32_MAX) operand->symbol_ref.addend = (int32_t)addend;
       }
-      format_runtime_asm_label(lookup, operand->symbol_ref.name, sizeof(operand->symbol_ref.name),
-        fact->target_section_index, fact->target_offset, target_runtime_address);
+      operand->symbol_ref.name_is_generated = format_runtime_operand_asm_label_with_generation(lookup,
+        operand->symbol_ref.name, sizeof(operand->symbol_ref.name), fact->target_section_index,
+        fact->target_offset, target_runtime_address);
     }
   }
   return 1;
@@ -9010,9 +9287,10 @@ static int instruction_operand_is_unmapped_runtime_address_literal(const M68kIns
   return operand_address_register_index_local(&instruction->operands[dest_index], &dest_reg);
 }
 
-static int attach_existing_materialized_runtime_immediate_symbols(const M68kRenderLookup *lookup,
-    size_t section_index, M68kInstructionIR *instruction) {
+static int attach_existing_materialized_runtime_immediate_symbols(M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, size_t section_index, M68kInstructionIR *instruction) {
   size_t operand_index;
+  (void)preview;
   if (lookup == NULL || instruction == NULL || section_index >= lookup->section_count) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
@@ -9029,11 +9307,10 @@ static int attach_existing_materialized_runtime_immediate_symbols(const M68kRend
     m68k_ir_symbol_ref_init(&operand->symbol_ref);
     operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_ABS;
     operand->symbol_ref.has_name = 1U;
-    operand->symbol_ref.name_is_generated = 1U;
     operand->symbol_ref.has_section = 1;
     operand->symbol_ref.section_index = section_index;
-    format_runtime_asm_label(lookup, operand->symbol_ref.name, sizeof(operand->symbol_ref.name),
-      section_index, source_offset, runtime_address);
+    operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
+      operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section_index, source_offset);
   }
   return 1;
 }
@@ -9052,8 +9329,7 @@ static int attach_unmapped_absolute_runtime_address_symbols(M68kRenderIRPreview 
       continue;
     }
     if (value < 0x10000U || m68k_cpu_find_exception_vector_by_address(value) != NULL ||
-        lookup_external_runtime_address_role_by_value(lookup, value) != NULL ||
-        lookup_inferred_runtime_address_value_has_data_class(lookup, value) ||
+        lookup_runtime_address_value_semantic_role(lookup, value) != NULL ||
         amiga_os_find_hardware_base_symbol_by_address(value) != NULL ||
         amiga_os_find_hardware_register_by_cpu_address(value) != NULL ||
         amiga_os_find_hardware_register_field_by_cpu_address(value) != NULL ||
@@ -9278,8 +9554,9 @@ static int attach_amiga_runtime_sink_immediate_symbols(const M68kRenderLookup *l
   instruction->operands[source_index].symbol_ref.name_is_generated = 1U;
   instruction->operands[source_index].symbol_ref.has_section = 1;
   instruction->operands[source_index].symbol_ref.section_index = section_index;
-  format_runtime_asm_label(lookup, instruction->operands[source_index].symbol_ref.name,
-    sizeof(instruction->operands[source_index].symbol_ref.name), section_index, source_offset, runtime_address);
+  instruction->operands[source_index].symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(
+    lookup, instruction->operands[source_index].symbol_ref.name,
+    sizeof(instruction->operands[source_index].symbol_ref.name), section_index, source_offset);
   return 1;
 }
 
@@ -9774,7 +10051,7 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
 }
 
 static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
-    const M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
+    M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask);
 
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
@@ -9817,7 +10094,10 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   }
   if (!attach_runtime_address_ref_symbols(preview, lookup, section, accepted_bytes, candidate, &instruction))
     return 0;
-  (void)attach_existing_materialized_runtime_immediate_symbols(lookup, section->section_index, &instruction);
+  if (!attach_existing_materialized_runtime_immediate_symbols(preview, lookup, section->section_index,
+      &instruction)) {
+    return 0;
+  }
   if (!attach_materialized_runtime_absolute_storage_symbols(lookup, section, accepted_start, accepted_bytes, candidate,
       &instruction)) {
     return 0;
@@ -9965,7 +10245,7 @@ static int record_rendered_label_statement_access(M68kSourceAnalysisIR *source_a
   section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
   if (section_analysis == NULL) return -1;
   symbol_name[0] = '\0';
-  format_lookup_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
+  (void)format_rendered_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
   if (symbol_name[0] == '\0') return 0;
   memset(&access, 0, sizeof(access));
   access.symbol_name = symbol_name;
@@ -10033,9 +10313,20 @@ static const M68kFact *candidate_relocation_for_operand(const M68kRenderLookup *
   for (offset = candidate->offset; offset < end; ++offset) {
     const M68kFact *relocation = lookup_relocation_at(lookup, section_index, offset);
     size_t relocated_operand_index = 0U;
+    size_t target_index;
+    int operand_matches_relocation = 0;
     if (relocation == NULL) continue;
-    if (!find_unique_relocation_operand(candidate, relocation, &relocated_operand_index) ||
-        relocated_operand_index != operand_index) {
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      if (target->has_operand != 0U && target->operand_index == operand_index &&
+          target_matches_relocation(target, relocation)) {
+        operand_matches_relocation = 1;
+        break;
+      }
+    }
+    if (!operand_matches_relocation &&
+        (!find_unique_relocation_operand(candidate, relocation, &relocated_operand_index) ||
+         relocated_operand_index != operand_index)) {
       continue;
     }
     if (match != NULL) return NULL;
@@ -10045,7 +10336,7 @@ static const M68kFact *candidate_relocation_for_operand(const M68kRenderLookup *
 }
 
 static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
-    const M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
+    M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask) {
   M68kSectionAnalysisIR *section_analysis;
   size_t operand_index;
@@ -10057,6 +10348,8 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
     const M68kDecodeTarget *control_target;
     const M68kDecodeTarget *data_target;
     const M68kAnalysisManualRepresentation *representation;
+    const M68kFact *relocation;
+    const M68kFact *runtime_ref;
     M68kRenderedSymbolAccessIR access;
     if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') continue;
     if ((rendered_operand_symbol_mask & (uint8_t)(1U << operand_index)) == 0U) continue;
@@ -10071,10 +10364,9 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
         representation->target_equate_index != 0U) {
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
     }
+    relocation = candidate_relocation_for_operand(lookup, section_index, candidate, operand_index);
     control_target = candidate_control_target_for_operand(candidate, operand_index);
     if (control_target != NULL) {
-      const M68kFact *relocation = candidate_relocation_for_operand(lookup, section_index, candidate,
-        operand_index);
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
       if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
         access.target_section_index = (uint32_t)relocation->target_section_index;
@@ -10091,6 +10383,22 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
         access.target_offset = data_target->offset;
         access.has_target = 1U;
       }
+      if (!access.has_target && relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
+        access.target_section_index = (uint32_t)relocation->target_section_index;
+        access.target_offset = relocation->target_offset;
+        access.has_target = 1U;
+      }
+    }
+    runtime_ref = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
+    if (!access.has_target && runtime_ref != NULL && runtime_ref->target_section_index <= UINT32_MAX) {
+      access.target_section_index = (uint32_t)runtime_ref->target_section_index;
+      access.target_offset = runtime_ref->target_offset;
+      access.has_target = 1U;
+    }
+    if (access.has_target && access.access_kind != M68K_RENDERED_SYMBOL_ACCESS_EQUATE &&
+        access.target_section_index < lookup->section_count &&
+        access.target_offset <= lookup->label_extents[access.target_section_index]) {
+      render_lookup_mark_label_statement_ref(lookup, access.target_section_index, access.target_offset);
     }
     if (m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access) != 0) return -1;
   }
@@ -10369,8 +10677,8 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
                 render_asm_sync_logical_pc(out_preview, lookup, section->section_index, offset, &asm_logical_pc);
                 render_asm_comment_line(out_preview,
                   lookup_instruction_comment(lookup, section->section_index, offset));
-                render_asm_dc_b_string_with_labels(out_preview, section, lookup, offset, string_span->size, NULL,
-                  &asm_logical_pc);
+                render_asm_dc_b_string_with_labels(out_preview, section, accepted_start[section_index], lookup,
+                  offset, string_span->size, NULL, &asm_logical_pc);
                 row = finish_asm_source_plan_row(out_preview, section->section_index, offset, string_span->size, 1);
                 set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
                   string_span->size);

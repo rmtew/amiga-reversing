@@ -102,6 +102,16 @@ class ListingProjectionService:
         self._review_items_cache.pop(project_id, None)
         self._row_indexes.pop(project_id, None)
 
+    def invalidate_project_keep_artifact(self, project_id: str) -> None:
+        if project_id in self._artifacts:
+            self._cache_keys[project_id] = f"__invalidated__:{project_id}"
+            self._presentation_dirty.add(project_id)
+        else:
+            self._cache_keys.pop(project_id, None)
+            self._presentation_dirty.discard(project_id)
+        self._review_items_cache.pop(project_id, None)
+        self._row_indexes.pop(project_id, None)
+
     def mark_presentation_dirty(self, project_id: str) -> None:
         self._presentation_dirty.add(project_id)
 

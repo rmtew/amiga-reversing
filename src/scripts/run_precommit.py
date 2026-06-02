@@ -15,6 +15,7 @@ BUILD_BAT = ROOT / "src" / "build.bat"
 TEST_BAT = ROOT / "src" / "test.bat"
 TEST_INTEGRATION_BAT = ROOT / "src" / "test_integration.bat"
 TEST_EXPLICIT_BAT = ROOT / "src" / "test_explicit.bat"
+TEST_WEB_E2E_CDP_PY = ROOT / "tests" / "test_web_e2e_cdp.py"
 NATIVE_C_UNIT_EXE = ROOT / "src" / "build" / "m68k_c_unit_tests.exe"
 CORPUS_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_corpus.py"
 FIND_DEAD_CODE_PATH = ROOT / "src" / "scripts" / "find_dead_code.py"
@@ -231,6 +232,78 @@ def _run_unittest_module(module_name: str, extra_env: dict[str, str] | None = No
     }
 
 
+def _parse_pytest_output(output: str, ok: bool) -> dict[str, object]:
+    summary_match = re.search(r"=+ ([^=]*?) in [0-9.]+s =+", output)
+    summary = summary_match.group(1) if summary_match else ""
+    if not summary:
+        fallback_match = re.search(
+            r"((?:\d+ (?:passed|failed|error|errors|skipped|deselected),? ?)+)in [0-9.]+s",
+            output,
+        )
+        summary = fallback_match.group(1).strip() if fallback_match else ""
+    tests_run = 0
+    skipped = 0
+    failures = 0
+    errors = 0
+    for count_text, kind in re.findall(r"(\d+) (passed|failed|error|errors|skipped|deselected)", summary):
+        count = int(count_text)
+        if kind == "passed":
+            tests_run += count
+        elif kind == "skipped":
+            skipped += count
+        elif kind == "failed":
+            failures += count
+            tests_run += count
+        elif kind in {"error", "errors"}:
+            errors += count
+    if not ok and failures == 0 and errors == 0:
+        failures = 1
+    return {
+        "tests_run": tests_run,
+        "failures": failures,
+        "errors": errors,
+        "skipped": skipped,
+        "expected_failures": 0,
+        "unexpected_successes": 0,
+        "no_tests_ran": ok and tests_run == 0 and skipped == 0,
+    }
+
+
+def _run_pytest_file(
+    name: str,
+    path: Path,
+    extra_env: dict[str, str] | None = None,
+) -> dict[str, object]:
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+    start = time.perf_counter()
+    result = subprocess.run(
+        [_python_exe(), "-m", "pytest", "-o", "addopts=", str(path), "-q"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+    elapsed = time.perf_counter() - start
+    combined_output = result.stdout + result.stderr
+    parsed = _parse_pytest_output(combined_output, result.returncode == 0)
+    return {
+        "name": name,
+        "seconds": round(elapsed, 3),
+        "ok": result.returncode == 0,
+        "tests_run": parsed["tests_run"],
+        "failures": parsed["failures"],
+        "errors": parsed["errors"],
+        "skipped": parsed["skipped"],
+        "expected_failures": parsed["expected_failures"],
+        "unexpected_successes": parsed["unexpected_successes"],
+        "no_tests_ran": parsed["no_tests_ran"],
+        "output": combined_output,
+    }
+
+
 def _summarize_stage_runs(runs: list[dict[str, object]]) -> dict[str, object]:
     return {
         "seconds": round(sum(float(run["seconds"]) for run in runs), 3),
@@ -336,6 +409,36 @@ def _run_module_stage(
     return summary
 
 
+def _run_web_e2e_stage() -> dict[str, object]:
+    if os.environ.get("M68K_SKIP_BRAVE_CDP") == "1":
+        runs = [
+            {
+                "name": "tests.test_web_e2e_cdp",
+                "seconds": 0.0,
+                "ok": True,
+                "tests_run": 0,
+                "failures": 0,
+                "errors": 0,
+                "skipped": 1,
+                "expected_failures": 0,
+                "unexpected_successes": 0,
+                "no_tests_ran": False,
+                "output": "skipped because M68K_SKIP_BRAVE_CDP=1\n",
+            }
+        ]
+    else:
+        runs = [
+            _run_pytest_file(
+                "tests.test_web_e2e_cdp",
+                TEST_WEB_E2E_CDP_PY,
+                {"M68K_RUN_BRAVE_CDP": "1"},
+            )
+        ]
+    summary = _summarize_stage_runs(runs)
+    summary["_runs"] = runs
+    return summary
+
+
 def _collect_corpus_stats() -> dict[str, object]:
     start = time.perf_counter()
     generator = _load_module(CORPUS_GENERATOR_PATH, "src_precommit_corpus_generator")
@@ -378,6 +481,7 @@ def main() -> int:
             "unit": {"ok": False, "timings": {"runs": []}},
             "integration": {"ok": False, "timings": {"runs": []}},
             "explicit": {"ok": False, "timings": {"runs": []}},
+            "web_e2e": {"ok": False, "timings": {"runs": []}},
             "total_seconds": float(style["seconds"]),
             "status": "style_failed",
         }
@@ -389,6 +493,7 @@ def main() -> int:
         sys.stdout.write("unit: skipped because style checks failed\n")
         sys.stdout.write("integration: skipped because style checks failed\n")
         sys.stdout.write("explicit: skipped because style checks failed\n")
+        sys.stdout.write("web_e2e: skipped because style checks failed\n")
         return 1
     build = _run_build()
     benchmark = {
@@ -403,6 +508,7 @@ def main() -> int:
         benchmark["unit"] = {"ok": False, "timings": {"runs": []}}
         benchmark["integration"] = {"ok": False, "timings": {"runs": []}}
         benchmark["explicit"] = {"ok": False, "timings": {"runs": []}}
+        benchmark["web_e2e"] = {"ok": False, "timings": {"runs": []}}
         benchmark["total_seconds"] = round(
             float(style["seconds"]) + float(build["seconds"]) + float(benchmark["corpus"]["seconds"]),
             3,
@@ -472,11 +578,28 @@ def main() -> int:
             "output": "skipped because earlier suite failed\n",
             "_runs": [],
         }
+    if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"]:
+        web_e2e = _run_web_e2e_stage()
+    else:
+        web_e2e = {
+            "seconds": 0.0,
+            "ok": False,
+            "tests_run": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "expected_failures": 0,
+            "unexpected_successes": 0,
+            "timings": {"runs": []},
+            "output": "skipped because earlier suite failed\n",
+            "_runs": [],
+        }
 
     benchmark["dead_code"] = {key: value for key, value in dead_code.items() if key != "output"}
     benchmark["unit"] = {key: value for key, value in unit.items() if key != "output"}
     benchmark["integration"] = {key: value for key, value in integration.items() if key != "output"}
     benchmark["explicit"] = {key: value for key, value in explicit.items() if key != "output"}
+    benchmark["web_e2e"] = {key: value for key, value in web_e2e.items() if key != "output"}
     benchmark["total_seconds"] = round(
         float(style["seconds"])
         + float(build["seconds"])
@@ -484,12 +607,13 @@ def main() -> int:
         + float(dead_code["seconds"])
         + float(unit["seconds"])
         + float(integration["seconds"])
-        + float(explicit["seconds"]),
+        + float(explicit["seconds"])
+        + float(web_e2e["seconds"]),
         3,
     )
     benchmark["status"] = (
         "ok"
-        if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"]
+        if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"] and web_e2e["ok"]
         else "dead_code_failed"
         if not dead_code["ok"]
         else "test_failed"
@@ -512,6 +636,10 @@ def main() -> int:
         _print_stage_summary("explicit", explicit)
     else:
         sys.stdout.write("explicit: skipped because earlier suite failed\n")
+    if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"]:
+        _print_stage_summary("web_e2e", web_e2e)
+    else:
+        sys.stdout.write("web_e2e: skipped because earlier suite failed\n")
     if not dead_code["ok"]:
         _print_failed_stage_details("dead_code", dead_code)
     if not unit["ok"] and dead_code["ok"]:
@@ -520,7 +648,9 @@ def main() -> int:
         _print_failed_stage_details("integration", integration)
     if not explicit["ok"] and dead_code["ok"] and unit["ok"] and integration["ok"]:
         _print_failed_stage_details("explicit", explicit)
-    return 0 if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"] else 1
+    if not web_e2e["ok"] and dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"]:
+        _print_failed_stage_details("web_e2e", web_e2e)
+    return 0 if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"] and web_e2e["ok"] else 1
 
 
 if __name__ == "__main__":

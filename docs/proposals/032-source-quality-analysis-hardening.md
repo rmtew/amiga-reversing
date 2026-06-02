@@ -470,6 +470,33 @@ rendered label/access
   -> diagnostic or blocker by class
 ```
 
+Durable label origins are important. A label imported from an object/container
+symbol table is not the same thing as an auto-analysis label. It may be a real
+external/debug/source symbol even when no in-file instruction visibly accesses
+it. Source-quality therefore records this as a distinct origin:
+
+```text
+M68K_SYMBOL_ORIGIN_OBJECT_SYMBOL
+  -> label came from the object/container symbol table
+  -> unreferenced label statement is allowed
+  -> still must assemble and define exactly the emitted symbol
+
+M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL
+  -> label was invented by analysis/rendering
+  -> unreferenced label statement remains a validation failure
+```
+
+This distinction fixes the synthetic hunk policy fixture without weakening the
+rule that generated labels need visible access or a durable origin:
+
+```asm
+data_ref:
+    dc.l start
+
+; data_ref is a container symbol at section 1 offset 0.
+; It is not evidence of bad analysis just because no instruction references it.
+```
+
 Bad code emission is treated the same way. A byte run can decode and round-trip
 while still being false code. A valid decode is not enough if the run has the
 shape of data or an unsplit mixed block:
@@ -569,10 +596,12 @@ expected label definition missing from render
 expected operand/equate symbol rendered numerically
 rendered label with no visible non-comment access
 structured label origin exception
+object/container symbol label origin exception
 comment-only symbol mention does not satisfy access
 weak address-shaped literal stays numeric
 proven absolute slot renders symbolically
 runtime/LVO-style value is not forced into absolute_slot_*
+materialized runtime operand labels are defined when the operand proves the target
 manual/effective metadata cannot force broken code or labels
 ```
 
@@ -596,6 +625,18 @@ runtime/LVO-style value is not forced into absolute_slot_*
   -> expected/rendered symbolic access domain compatibility
   -> source refusal: no
   -> Midwinter II setpatch_55392121
+
+object/container symbol label origin exception
+  -> source_quality_analyze_accepts_unreferenced_object_symbol_label_statement
+  -> unreferenced label allowed only for M68K_SYMBOL_ORIGIN_OBJECT_SYMBOL
+  -> source refusal: no
+  -> synthetic hunk data_ref symbol
+
+materialized runtime operand labels are defined when the operand proves the target
+  -> facts_v2_runtime_ref_labels_backward_materialized_data_target
+  -> rendered operand and label definition use the same materialized target
+  -> source refusal: no
+  -> Magicland, Pandora, Bloodwych regression sweep
 ```
 
 The inventory is how a reviewer checks that proposal coverage is complete. A
@@ -694,7 +735,7 @@ M68kSectionAnalysisIR currently owns:
   orphan code signals
   CFG/violation/platform recovery facts
 
-Missing as real C facts:
+Now implemented as real C facts:
   source_quality_diagnostics
   code_origins
   accepted_code_runs
@@ -708,10 +749,15 @@ Missing as real C facts:
   rendered_symbol_accesses
 ```
 
-`source_analysis_to_json()` currently exports existing facts such as
-`runtime_address_refs`, `data_references`, `code_start_refs`, and
-`range_ownerships`. It does not yet export the new source-quality families.
-That makes C IR and JSON export the first real implementation gap.
+`source_analysis_to_json()` exports both the older analysis facts and the
+source-quality families. That makes JSON a diagnostic transport, not the place
+where source-quality decisions are made:
+
+```text
+C Source Analysis IR
+  -> source_analysis_to_json()
+  -> Python/report/UI grouping and display only
+```
 
 Placement rule:
 
@@ -1318,6 +1364,50 @@ address observation
   -> storage/media/application owner
   -> expected symbol expression
 ```
+
+Do not collapse "looks like an address" into "deserves a symbol". There are
+three distinct states:
+
+```text
+numeric literal
+  -> ordinary value, rendered numerically
+
+address candidate
+  -> observed as address-shaped or address-used
+  -> tracked for range/identity analysis
+  -> still rendered numerically unless ownership is proven
+
+approved source symbol
+  -> address identity/range/semantic use is proven
+  -> symbol origin and expected rendered access exist
+  -> renderer may print a label/equate/expression
+```
+
+Even a proven non-code address use is not automatically a code or data symbol.
+For example, an absolute write can prove storage pressure without proving a
+stable named slot. Repeated accesses, looped range operations, relocation-backed
+targets, table consumers, platform sink use-shapes, or accepted range ownership
+are the evidence that upgrades an observation into an approved symbol. A sparse
+one-off non-system access should usually remain numeric while source-quality
+records it as an address candidate and, when clustered with nearby observations,
+as evidence that a range may have been missed.
+
+Addends are allowed only inside that proven context:
+
+```text
+approved range base + proven displacement
+  -> render symbol+$NN
+
+unowned address value + addend-looking arithmetic
+  -> keep numeric
+  -> record address/addend observation
+  -> do not invent restored source
+```
+
+This is deliberately wary. Some addends represent real restored source
+expressions; others are symptoms of failed analysis. The difference must be
+proved by address identity, range ownership, relocation semantics, or traced
+base use before rendering becomes symbolic.
 
 The renderer should get expressions from those facts:
 
@@ -2053,6 +2143,89 @@ C fact says symbol is approved and expected
   -> renderer records actual rendered access
   -> source-quality compares expected and actual before export is accepted
 ```
+
+The rendered-access side must be literal: every visible label/equate/expression
+printed by the renderer records the same target identity that the text names.
+Do not infer actual rendered accesses later from lookup bitsets or comments.
+The formatter that creates source text and the recorder that appends
+`M68kRenderedSymbolAccessIR` must agree on the final symbol spelling and target
+section/offset/domain.
+
+This caught several concrete implementation rules:
+
+```text
+rendered data/table/relocation expressions
+  -> record operand/directive accesses, not only code operand accesses
+
+relative table entry target-base
+  -> record both target and base accesses when both symbols are printed
+
+cross-section symbol use
+  -> satisfies a label in the target section
+  -> validation scans all sections, not only the label's own section
+
+long-table/string target boundary
+  -> may split a data range
+  -> does not justify a label statement by itself
+
+speculative table/string target scan
+  -> may record candidate target/range evidence
+  -> must not mark a label statement reference until source text will visibly
+     use that symbol or the target has accepted structured ownership
+
+PC-relative instruction operand target
+  -> may predeclare a label statement because the instruction renderer is
+     expected to print that symbol
+  -> post-render validation still checks the renderer actually recorded the
+     visible operand access
+
+pointer-table target prepass
+  -> may mark target/reference evidence so later analysis can classify pointed
+     data
+  -> must not mark a label statement for the generic pointer value alone
+  -> may mark a label statement after the target is promoted into accepted
+     structured ownership, such as a pointer-string-table string
+
+bounded raw target inside a proven relative table
+  -> may get a label only when the table is already proven, the target is
+     tightly bounded by the next table target or table start, and the bounded
+     span has no code, relocation payload, interior label, or existing owner
+
+render-discovered auto structured data
+  -> is appended idempotently into Source Analysis IR before post-render
+     validation
+  -> labels inside those structured ranges are structural labels, not
+     unreferenced symbol failures
+
+source label and runtime/materialized label both possible
+  -> prefer the approved source-domain label for a source target
+  -> use runtime-domain label only for the specific runtime view
+
+formatter mismatch
+  -> validation failure, not a harmless spelling difference
+```
+
+The unreferenced-label exception list must stay narrow:
+
+```text
+valid without a visible ordinary access:
+  accepted code start with strong/proven/manual executable origin
+  accepted structured-data range boundary
+  label inside an accepted non-code structured range
+  platform/file-format anchor with explicit structural origin
+
+not valid by itself:
+  analysis created a label
+  raw label-offset origin exists
+  value looks like an address
+  orphan-code/renderable-label pressure exists
+  comment mentions the symbol
+```
+
+Broad compatibility bypasses such as "any analysis label origin is enough" or
+"any label-offset origin is enough" are forbidden. They hide the exact failure
+source-quality is meant to expose: a definition that render output cannot
+justify.
 
 Implementation order:
 
@@ -6136,6 +6309,25 @@ the web API failure payload now carries the same cause-oriented Source Analysis
 IR evidence as the CLI. Python does not infer byte ownership, proof chains, or
 accepted-code causes; it only forwards the C JSON.
 
+Reproduction must write the source artifact that it is actually about to
+assemble. The listing-source branch must not assemble an in-memory render while
+leaving a stale `bin/rebuilt/<target>/source.s` on disk, because that makes
+assembler diagnostics and manual inspection disagree:
+
+```text
+rendered_source_text
+  -> bin/rebuilt/<target>/source.s
+  -> assembler input
+  -> reproduction compare
+```
+
+Focused tests:
+
+```text
+test_run_reproduction_uses_listing_artifact_source_assembly
+test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch
+```
+
 Focused tests:
 
 ```text
@@ -6194,6 +6386,43 @@ uv run mypy
 uv run python -m pytest tests -q
 uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --no-write-report
 ```
+
+CDP is part of the default gate, not an accidental opt-in. The base pytest
+selection no longer deselects `web_e2e`; CDP tests still skip when Brave CDP is
+not available, but precommit explicitly runs the web-e2e stage with
+`M68K_RUN_BRAVE_CDP=1`. The explicit opt-out is:
+
+```text
+M68K_SKIP_BRAVE_CDP=1
+```
+
+This avoids the recurring failure mode where CDP tests silently disappear from
+the gate and UI regressions are discovered manually.
+
+The CDP gate also surfaced the correct listing invalidation behavior for manual
+analysis edits:
+
+```text
+manual action affects analysis
+  -> cancel old listing/reproduction jobs
+  -> invalidate listing cache key
+  -> keep the last artifact readable while rebuild is running
+  -> replace it only when the new artifact is ready
+```
+
+The stale artifact must not satisfy the current cache key, but it should remain
+readable so scroll/review refreshes do not hit a transient
+`C listing artifact not loaded` error while the replacement analysis is
+building.
+
+Precommit must also treat odd pytest output as a failure when the subprocess
+fails. A quiet pytest failure such as:
+
+```text
+1 failed, 57 passed in 161.63s
+```
+
+must not be summarized as a filtered zero-test stage.
 
 ### MacOS CODE Resource Explanation Slice
 
@@ -6414,6 +6643,26 @@ needed the runtime address `$0004F314+2`, not the storage offset `$0004E314+2`.
 The correct clean form is `abs_0_0004F314+2.l`. If the analysis cannot prove
 that relationship, the operand must remain numeric or produce a source-quality
 failure; it must not be "fixed" with a plausible label plus addend.
+
+Materialized runtime labels use the same proof rule. A label statement may be
+pre-marked for policy materialized source, because the policy declares the
+source/load view. A discovered-copy or runtime-reference label must be defined
+only when the rendered operand proves the target shape:
+
+```text
+runtime ref fact
+  -> candidate instruction decodes
+  -> operand index is known
+  -> operand immediate/absolute value equals the runtime address
+  -> target maps to a materialized source/range label
+  -> rendered operand records a non-comment symbol access
+  -> label definition is emitted
+```
+
+This is deliberately narrower than "runtime address exists". It fixes backward
+materialized data targets such as Magicland, Pandora, and Bloodwych while
+keeping one-off address observations numeric unless they have real use-shape
+proof.
 
 Traced indirect control has an additional invalidation rule:
 

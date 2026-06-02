@@ -788,13 +788,24 @@ class RoundTripVerificationWorkflow:
                         )
                     _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
                     round_trip_profile["render_seconds"] = _profile_timing_total(listing_profile)
-                    source_size = _facts_v2_profile_source_bytes(listing_profile)
+                    source_text = rendered_source_text
+                    source_size = len(source_text.encode("utf-8"))
+                    phase = "write_source"
+                    _emit_progress(
+                        progress_callback,
+                        target_name=target_name,
+                        phase=phase,
+                        started_at=profile_started_at,
+                        backend=backend,
+                        source_size=source_size,
+                    )
+                    source_size = _write_source_artifact(source_path, source_text, round_trip_profile)
                     phase = "assemble"
                     phase_started_at = time.perf_counter()
                     try:
                         assembly = run_source_assembly_phase(
                             backend=backend,
-                            source_text=rendered_source_text,
+                            source_text=source_text,
                             include_dir=include_dir,
                             output_path=rebuilt_path,
                             target_cpu=assembler_cpu,
@@ -827,8 +838,6 @@ class RoundTripVerificationWorkflow:
                 _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
                 round_trip_profile["assemble_seconds"] = _flat_profile_total(assembler_profile)
                 round_trip_profile["listing_artifact_source_assembly"] = 1.0
-                round_trip_profile["source_file_rewritten"] = 0.0
-                round_trip_profile["write_source_seconds"] = 0.0
             elif source_text is not None:
                 round_trip_profile["render_seconds"] = (
                     _profile_timing_total(listing_profile) if listing_profile is not None else 0.0

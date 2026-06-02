@@ -1033,8 +1033,11 @@ def _review_note_navigation_entries(notes: list[dict[str, object]]) -> list[dict
     return sorted(entries, key=lambda entry: (_optional_int(entry.get("addr")) is None, _optional_int(entry.get("addr")) or 0, str(entry.get("note_id") or "")))
 
 
-def _clear_project_listing_cache(project_name: str) -> None:
-    _LISTING_PROJECTION_SERVICE.clear_project(project_name)
+def _clear_project_listing_cache(project_name: str, *, keep_stale_artifact: bool = False) -> None:
+    if keep_stale_artifact:
+        _LISTING_PROJECTION_SERVICE.invalidate_project_keep_artifact(project_name)
+    else:
+        _LISTING_PROJECTION_SERVICE.clear_project(project_name)
     prefix = '{"context_kind":'
     stale_keys = [
         key for key in _COMMAND_AVAILABILITY_CACHE
@@ -2591,7 +2594,7 @@ def _execute_manual_action_command(
         if any(_manual_action_affects_listing_artifact(manual_action_kind(kind)) for kind, _ in action_payloads):
             _cancel_listing_jobs(project_name)
             _cancel_reproduction_jobs(project_name)
-            _clear_project_listing_cache(project_name)
+            _clear_project_listing_cache(project_name, keep_stale_artifact=True)
         else:
             invalidation_mode = "presentation_dirty"
             _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
@@ -3637,7 +3640,7 @@ def route_request(
             if _manual_action_affects_listing_artifact(manual_action_kind_id):
                 _cancel_listing_jobs(project_name)
                 _cancel_reproduction_jobs(project_name)
-                _clear_project_listing_cache(project_name)
+                _clear_project_listing_cache(project_name, keep_stale_artifact=True)
             else:
                 _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
             mark_project_updated(paths.target_dir)

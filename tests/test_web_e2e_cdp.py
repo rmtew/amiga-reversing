@@ -47,7 +47,10 @@ from tests.workflow_harness import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-pytestmark = pytest.mark.skipif(not brave_cdp_requested(), reason=brave_cdp_skip_reason())
+pytestmark = [
+    pytest.mark.web_e2e,
+    pytest.mark.skipif(not brave_cdp_requested(), reason=brave_cdp_skip_reason()),
+]
 
 
 def _binary_project(project_name: str) -> ProjectRecord:

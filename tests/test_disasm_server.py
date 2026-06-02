@@ -8507,7 +8507,9 @@ def test_manual_action_route_appends_action_and_invalidates_analysis(
             "binary_source": binary_source,
         }
     ]
-    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is None
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is not None
+    assert disasm_server._LISTING_PROJECTION_SERVICE.cache_satisfies_listing("bloodwych", "cache") is False
+    assert disasm_server._LISTING_PROJECTION_SERVICE.read_artifact("bloodwych", "cache") is not None
     assert canceled == ["listing:bloodwych", "repro:bloodwych"]
 
 

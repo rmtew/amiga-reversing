@@ -287,7 +287,6 @@ app_SIZEOF EQU __RS
 absolute_slot_00003300	EQU	$3300
 runtime_code_00DFF180	EQU	$DFF180
 _custom	EQU	$DFF000
-absolute_slot_000002CE	EQU	$2CE
 absolute_slot_000009C4	EQU	$9C4
 absolute_slot_00001290	EQU	$1290
 absolute_slot_000012D0	EQU	$12D0
@@ -311,7 +310,6 @@ m68k_vector_level_6_interrupt_autovector	EQU	$78
 m68k_vector_level_7_interrupt_autovector	EQU	$7C
 m68k_vector_spurious_interrupt	EQU	$60
 _ciab	EQU	$BFD000
-absolute_slot_00000337	EQU	$337
 absolute_slot_0000001E	EQU	$1E
 m68k_vector_trap_7_instruction_vector	EQU	$9C
 absolute_slot_0000009A	EQU	$9A
@@ -325,6 +323,7 @@ loc_0_00000000:
 	dc.b $72,$65,$20,$4C,$74,$64,$2E,$2C,$0D,$0A,$57,$72,$69,$74,$74,$65
 	dc.b $6E,$20,$42,$79,$20,$4A,$65,$7A,$20,$53,$61,$6E,$2E,$0D,$0A,$50
 	dc.b $75,$62,$6C,$69,$73,$68,$65,$64,$20,$62,$79,$20,$42,$54,$20,$52
+loc_0_00000064:
 	dc.b "ainbird, London, UK."
 	dc.b $0D,$0A,$47,$69,$76,$65,$6E,$20,$74,$6F,$20,$52,$61,$69,$6E,$62
 	dc.b $69,$72,$64,$20,$6F,$6E,$20,$37,$74,$68,$20,$41,$70,$72,$69,$6C
@@ -1420,7 +1419,7 @@ loc_0_0000149E:
 	st.b app_0320(a6)
 	sf.b app_033B(a6)
 	move.b #$0,app_033D(a6)
-	move.w #$0,absolute_slot_000002CE.l
+	move.w #$0,$000002CE.l
 	lea.l loc_0_00017DFC.l,a0
 	lea.l loc_0_0001893C.l,a1
 	suba.l a0,a1
@@ -7905,7 +7904,7 @@ loc_0_0000847C:
 loc_0_00008484:
 	bsr.w loc_0_00008306
 	bne.w loc_0_00008484
-	clr.b absolute_slot_00000337.l
+	clr.b $00000337.l
 	bsr.w loc_0_00008DAA
 	lea.l _ciab+ciaprb.l,a5
 	bsr.w loc_0_0000864A

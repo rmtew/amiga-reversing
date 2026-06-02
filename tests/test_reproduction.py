@@ -681,7 +681,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
     assert cast(dict[str, object], report["profile"])["listing_artifact_source_assembly"] == 1.0
     assert "output_path" not in render_calls[0]["kwargs"]
     assert assemble_calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
-    assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
+    assert (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").read_text() == "dc.l $000003F3\n"
 
 
 def test_run_reproduction_preserves_pre_rendered_source_profile(
@@ -1302,7 +1302,7 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
     report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
     assert report["status"] == "binary_mismatch"
-    assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
+    assert (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").read_text() == "dc.l $000003F3\n"
 
 
 def test_run_reproduction_captures_renderer_failure_as_render_error(

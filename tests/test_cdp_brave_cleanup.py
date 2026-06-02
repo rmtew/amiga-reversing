@@ -71,3 +71,10 @@ def test_brave_cdp_marker_selected_detects_web_e2e_marker_expression() -> None:
     assert cdp_brave.brave_cdp_marker_selected(["-m", "web_e2e"])
     assert cdp_brave.brave_cdp_marker_selected(["--markexpr=web_e2e and not slow"])
     assert not cdp_brave.brave_cdp_marker_selected(["-m", "not integration"])
+
+
+def test_brave_cdp_requested_accepts_marker_selection(monkeypatch) -> None:
+    monkeypatch.delenv("M68K_RUN_BRAVE_CDP", raising=False)
+    monkeypatch.setattr(cdp_brave.sys, "argv", ["pytest", "-m", "web_e2e"])
+
+    assert cdp_brave.brave_cdp_requested()

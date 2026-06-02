@@ -10483,6 +10483,7 @@ static PlatformFileTextResult facts_v2_source_quality_explain_object_json(const 
   PlatformFileTextResult result;
   JsonBuilder builder = {0};
   PlatformFileWorkflow workflow;
+  char *source_text = NULL;
   char *explanation_json = NULL;
   int json_result;
   memset(&result, 0, sizeof(result));
@@ -10495,8 +10496,8 @@ static PlatformFileTextResult facts_v2_source_quality_explain_object_json(const 
   if (analysis_policy != NULL) {
     if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
   } else m68k_analysis_policy_init_default(workflow.analysis_policy);
-  if (m68k_facts_v2_collect_source_analysis_profile(object, workflow.analysis_policy, workflow.profile,
-      workflow.analysis,
+  if (m68k_facts_v2_render_asm_source_analysis_profile_alloc(object, workflow.analysis_policy, &source_text,
+      workflow.profile, workflow.analysis, 0U,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "failed building facts_v2 source analysis");
@@ -10526,6 +10527,7 @@ static PlatformFileTextResult facts_v2_source_quality_explain_object_json(const 
     platform_file_add_error(&result.diagnostics, "failed building source-quality explanation json");
 cleanup:
   json_builder_destroy(&builder);
+  m68k_facts_v2_free_text(source_text);
   platform_file_free_text(explanation_json);
   platform_file_workflow_destroy(&workflow);
   return result;
