@@ -29,9 +29,17 @@ static int test_parse_number_u32(void) {
   M68kParseU32Result result = m68k_parse_number_u32("$FF");
   M68K_C_ASSERT(result.ok);
   M68K_C_ASSERT_U32(0x000000FFu, result.value);
+  result = m68k_parse_number_u32("0x58484");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(0x00058484u, result.value);
+  result = m68k_parse_number_u32("0X42C00");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(0x00042C00u, result.value);
   result = m68k_parse_number_u32("-8");
   M68K_C_ASSERT(result.ok);
   M68K_C_ASSERT_U32(0xFFFFFFF8u, result.value);
+  result = m68k_parse_number_u32("0x");
+  M68K_C_ASSERT(!result.ok);
   result = m68k_parse_number_u32("");
   M68K_C_ASSERT(!result.ok);
   return 0;

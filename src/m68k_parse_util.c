@@ -393,6 +393,9 @@ M68kParseU32Result m68k_parse_number_u32(const char *text) {
   if (*text == '$') {
     base = 16;
     ++text;
+  } else if (text[0] == '0' && (text[1] == 'x' || text[1] == 'X')) {
+    base = 16;
+    text += 2;
   } else if (*text == '%') {
     uint32_t value = 0U;
     ++text;

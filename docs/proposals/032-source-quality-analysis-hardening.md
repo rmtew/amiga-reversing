@@ -6248,3 +6248,36 @@ uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --no-wri
 
 The web layer still must not implement byte ownership or proof-chain inference.
 It only formats the C JSON.
+
+### CLI Hex Offset Introspection Slice
+
+While probing Damocles source-quality facts, `platform_file_cli` rejected:
+
+```text
+source-quality-explain ... amiga-raw binary.bin 0x58484
+bad entry offset: 0x58484
+```
+
+That is not target-specific behaviour; it is tooling friction. Reversing work
+uses hexadecimal offsets by default, and the same parser is already used by
+platform CLI positional offsets and `--entry-offset` policy arguments.
+
+The shared numeric parser now accepts the common forms:
+
+```text
+361604    -> decimal
+$58484    -> assembler-style hex
+0x58484   -> C/Python-style hex
+0X58484   -> uppercase variant
+```
+
+This keeps source-quality failure probing usable without adding Python-side
+conversion wrappers or target-specific helper scripts.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_parse_util
+platform_file_cli source-quality-explain ... amiga-raw ... 0x58484
+```
