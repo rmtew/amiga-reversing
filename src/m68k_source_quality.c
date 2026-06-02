@@ -477,6 +477,119 @@ static int accepted_run_has_executable_origin(const M68kSectionAnalysisIR *secti
   return 0;
 }
 
+static int range_ownership_is_accepted_noncode(const M68kRangeOwnershipIR *range) {
+  return range != NULL &&
+    range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED &&
+    range->kind != M68K_RANGE_OWNERSHIP_UNKNOWN &&
+    range->kind != M68K_RANGE_OWNERSHIP_CODE &&
+    range->kind != M68K_RANGE_OWNERSHIP_CONFLICT;
+}
+
+static int range_ownership_overlaps(uint32_t start, uint32_t end, const M68kRangeOwnershipIR *range) {
+  return range != NULL && range->start_offset < end && range->end_offset > start;
+}
+
+static int range_ownership_blocks_hard_control_proof(const M68kRangeOwnershipIR *range) {
+  return range_ownership_is_accepted_noncode(range) ||
+    (range != NULL && (range->status == M68K_RANGE_OWNERSHIP_STATUS_CONFLICT ||
+      range->kind == M68K_RANGE_OWNERSHIP_CONFLICT));
+}
+
+static int accepted_run_overlaps_blocking_range_for_hard_control_proof(const M68kSectionAnalysisIR *section,
+    const M68kAcceptedCodeRunIR *run) {
+  size_t range_index;
+  if (section == NULL || run == NULL) return 1;
+  for (range_index = 0U; range_index < section->range_ownership_count; ++range_index) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
+    if (range_ownership_blocks_hard_control_proof(range) &&
+        range_ownership_overlaps(run->start_offset, run->end_offset, range)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int code_start_ref_is_direct_hard_fallthrough_proof(const M68kCodeStartRefIR *ref) {
+  if (ref == NULL) return 0;
+  switch (ref->reason) {
+    case M68K_FACT_CODE_START_REASON_SECTION_ENTRY:
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET:
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT:
+    case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
+      return 1;
+    default:
+      break;
+  }
+  switch (ref->evidence_kind) {
+    case M68K_CODE_ORIGIN_EVIDENCE_SECTION_ENTRY:
+    case M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_OFFSET:
+    case M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT:
+    case M68K_CODE_ORIGIN_EVIDENCE_PLATFORM_LOADSEG_ENTRY:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+static int code_start_ref_is_control_target_proof(const M68kCodeStartRefIR *ref) {
+  if (ref == NULL) return 0;
+  if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET) return 1;
+  switch (ref->evidence_kind) {
+    case M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET:
+    case M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET:
+    case M68K_CODE_ORIGIN_EVIDENCE_RELOCATION_CONTROL_TARGET:
+    case M68K_CODE_ORIGIN_EVIDENCE_TRACED_INDIRECT_CONTROL_TARGET:
+    case M68K_CODE_ORIGIN_EVIDENCE_DISPATCH_TABLE_CONTROL_TARGET:
+    case M68K_CODE_ORIGIN_EVIDENCE_CALLBACK_FIELD_CONTROL_TARGET:
+    case M68K_CODE_ORIGIN_EVIDENCE_VECTOR_STORE_CONTROL_TARGET:
+    case M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_COPY_CONTROL_TARGET:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+static const M68kAcceptedCodeRunIR *accepted_code_run_containing_offset(const M68kSectionAnalysisIR *section,
+    uint32_t offset) {
+  size_t index;
+  if (section == NULL) return NULL;
+  for (index = 0U; index < section->accepted_code_run_count; ++index) {
+    const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[index];
+    if (offset >= run->start_offset && offset < run->end_offset) return run;
+  }
+  return NULL;
+}
+
+static int accepted_run_has_hard_fallthrough_proof_depth(const M68kSectionAnalysisIR *section,
+    uint32_t start, uint32_t end, unsigned depth) {
+  enum { SOURCE_QUALITY_CONTROL_PROOF_DEPTH_LIMIT = 16U };
+  size_t index;
+  if (section == NULL) return 0;
+  for (index = 0U; index < section->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &section->code_start_refs[index];
+    const M68kAcceptedCodeRunIR *source_run;
+    if (ref->offset < start || ref->offset >= end) continue;
+    if (code_start_ref_is_direct_hard_fallthrough_proof(ref)) return 1;
+    if (!code_start_ref_is_control_target_proof(ref)) continue;
+    if (depth >= SOURCE_QUALITY_CONTROL_PROOF_DEPTH_LIMIT) continue;
+    if (ref->source_section_index != section->section_index) continue;
+    if (ref->source_offset >= start && ref->source_offset < end) continue;
+    source_run = accepted_code_run_containing_offset(section, ref->source_offset);
+    if (source_run == NULL) continue;
+    if (accepted_run_overlaps_blocking_range_for_hard_control_proof(section, source_run)) continue;
+    if (accepted_run_has_hard_fallthrough_proof_depth(section, source_run->start_offset, source_run->end_offset,
+        depth + 1U)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int accepted_run_has_hard_fallthrough_proof(const M68kSectionAnalysisIR *section,
+    uint32_t start, uint32_t end) {
+  return accepted_run_has_hard_fallthrough_proof_depth(section, start, end, 0U);
+}
+
 static int classify_run_end_from_cfg(const M68kSectionAnalysisIR *section, uint32_t start, uint32_t end,
     M68kAcceptedCodeRunIR *run) {
   size_t block_index;
@@ -484,12 +597,13 @@ static int classify_run_end_from_cfg(const M68kSectionAnalysisIR *section, uint3
   for (block_index = 0U; block_index < section->block_count; ++block_index) {
     const M68kCfgBlockIR *block = &section->blocks[block_index];
     size_t edge_index;
-    if (block->start_offset < start || block->end_offset != end) continue;
+    if (block->start_offset > start || block->end_offset != end) continue;
     for (edge_index = 0U; edge_index < block->edge_count; ++edge_index) {
       const M68kCfgEdgeIR *edge;
       size_t absolute_edge_index = block->edge_start + edge_index;
       if (absolute_edge_index >= section->edge_count) return -1;
       edge = &section->edges[absolute_edge_index];
+      if (edge->source_offset < start || edge->source_offset >= end) continue;
       if (edge->kind == M68K_CFG_EDGE_RETURN) {
         run->end_kind = M68K_ACCEPTED_CODE_RUN_END_TERMINAL;
         run->terminal_offset = edge->source_offset;
@@ -503,6 +617,46 @@ static int classify_run_end_from_cfg(const M68kSectionAnalysisIR *section, uint3
         return 1;
       }
     }
+  }
+  return 0;
+}
+
+static int classify_run_end_from_decode(const M68kDecodeSectionIR *decode_section, uint32_t start, uint32_t end,
+    M68kAcceptedCodeRunIR *run) {
+  uint32_t offset;
+  if (decode_section == NULL || run == NULL || end <= start) return 0;
+  offset = start;
+  while (offset < end) {
+    const M68kDecodeCandidate *candidate = m68k_decode_ir_find_candidate_at_offset(decode_section, offset);
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    uint32_t next_offset;
+    if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > end - offset) break;
+    next_offset = offset + candidate->byte_count;
+    if (next_offset != end) {
+      offset = next_offset;
+      continue;
+    }
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) return 0;
+    if (metadata->flow_kind == M68K_SIM_FLOW_RETURN ||
+        (metadata->flow_kind == M68K_SIM_FLOW_TRAP &&
+         metadata->exception_trigger == M68K_SIM_EXCEPTION_TRIGGER_ALWAYS &&
+         metadata->exception_pc_source == M68K_SIM_EXCEPTION_PC_CURRENT)) {
+      run->end_kind = M68K_ACCEPTED_CODE_RUN_END_TERMINAL;
+      run->terminal_offset = candidate->offset;
+      run->has_terminal_offset = 1U;
+      return 1;
+    }
+    if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+        (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
+      run->end_kind = M68K_ACCEPTED_CODE_RUN_END_PROVEN_TRANSFER;
+      run->terminal_offset = candidate->offset;
+      run->has_terminal_offset = 1U;
+      return 1;
+    }
+    return 0;
   }
   return 0;
 }
@@ -868,6 +1022,18 @@ static uint32_t structured_data_range_negative_evidence_flags(uint8_t conflict_s
   return 0U;
 }
 
+static int section_has_certain_code_overlap(const M68kSectionAnalysisIR *section, uint32_t start, uint32_t end) {
+  uint32_t cursor;
+  if (section == NULL || section->certain_code_byte == NULL || section->certain_code_size == 0U || start >= end)
+    return 0;
+  if (start >= section->certain_code_size) return 0;
+  if (end > section->certain_code_size) end = (uint32_t)section->certain_code_size;
+  for (cursor = start; cursor < end; ++cursor) {
+    if (section->certain_code_byte[cursor] != 0U) return 1;
+  }
+  return 0;
+}
+
 static M68kSectionAnalysisIR *source_analysis_section_by_index(M68kSourceAnalysisIR *source_analysis,
     uint32_t section_index) {
   size_t index;
@@ -897,20 +1063,27 @@ static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_
     const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
     M68kSectionAnalysisIR *section;
     M68kRangeOwnershipIR range;
+    uint8_t conflict_state;
+    uint8_t conflicted;
     if (!item->has_section_index || item->size == 0U || item->offset > UINT32_MAX - item->size) continue;
     section = source_analysis_section_by_index(source_analysis, item->section_index);
     if (section == NULL) continue;
+    conflict_state = item->table_conflict_state;
+    conflicted = item->table_conflicted;
+    if (section_has_certain_code_overlap(section, item->offset, item->offset + item->size)) {
+      conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP;
+      conflicted = 1U;
+    }
     memset(&range, 0, sizeof(range));
     range.start_offset = item->offset;
     range.end_offset = item->offset + item->size;
     range.kind = m68k_analysis_structured_data_range_ownership_kind(item);
-    range.status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
+    range.status = conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
       M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
     range.data_kind = item->kind;
-    range.conflict_state = item->table_conflict_state;
+    range.conflict_state = conflict_state;
     range.positive_evidence_flags = m68k_analysis_structured_data_range_ownership_evidence_flags(item);
-    range.negative_evidence_flags = item->table_conflicted ?
-      structured_data_range_negative_evidence_flags(item->table_conflict_state) : 0U;
+    range.negative_evidence_flags = conflicted ? structured_data_range_negative_evidence_flags(conflict_state) : 0U;
     range.has_source = item->has_consumer;
     range.source_offset = item->consumer_offset;
     range.table_kind_id = item->table_kind_id;
@@ -918,6 +1091,56 @@ static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_
     range.role = item->semantic_role[0] != '\0' ? (char *)item->semantic_role : NULL;
     range.source_pattern = item->source_pattern[0] != '\0' ? (char *)item->source_pattern : NULL;
     if (m68k_ir_section_analysis_append_range_ownership(section, &range) != 0) return -1;
+  }
+  return 0;
+}
+
+static int accepted_run_overlaps_accepted_noncode(const M68kSectionAnalysisIR *section,
+    const M68kAcceptedCodeRunIR *run) {
+  size_t range_index;
+  if (section == NULL || run == NULL) return 0;
+  for (range_index = 0U; range_index < section->range_ownership_count; ++range_index) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
+    if (range_ownership_is_accepted_noncode(range) &&
+        range_ownership_overlaps(run->start_offset, run->end_offset, range)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int append_accepted_run_noncode_fallthrough_diagnostics_for_section(M68kSectionAnalysisIR *section) {
+  size_t run_index;
+  if (section == NULL) return -1;
+  for (run_index = 0U; run_index < section->accepted_code_run_count; ++run_index) {
+    const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[run_index];
+    size_t range_index;
+    if (run->end_kind != M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP) continue;
+    if (!accepted_run_has_hard_fallthrough_proof(section, run->start_offset, run->end_offset)) continue;
+    if (accepted_run_overlaps_accepted_noncode(section, run)) continue;
+    for (range_index = 0U; range_index < section->range_ownership_count; ++range_index) {
+      const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
+      if (range->start_offset != run->end_offset || !range_ownership_is_accepted_noncode(range)) continue;
+      if (append_run_diagnostic(section, run,
+          M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE,
+          M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
+          "accepted code run falls through into accepted non-code range") != 0) {
+        return -1;
+      }
+      break;
+    }
+  }
+  return 0;
+}
+
+static int append_accepted_run_noncode_fallthrough_diagnostics(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    if (append_accepted_run_noncode_fallthrough_diagnostics_for_section(
+        &source_analysis->sections[section_index]) != 0) {
+      return -1;
+    }
   }
   return 0;
 }
@@ -2097,7 +2320,8 @@ static int append_structured_data_table_entries(M68kSourceAnalysisIR *source_ana
   return 0;
 }
 
-static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section) {
+static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section,
+    const M68kDecodeSectionIR *decode_section) {
   uint32_t cursor;
   if (section == NULL || section->certain_code_byte == NULL || section->certain_code_size == 0U) return 0;
   cursor = 0U;
@@ -2116,6 +2340,7 @@ static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section) {
     run.end_kind = (size_t)cursor >= section->certain_code_size ?
       M68K_ACCEPTED_CODE_RUN_END_SECTION_BOUNDARY : M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP;
     run.has_origin = (uint8_t)accepted_run_has_origin(section, start, cursor);
+    (void)classify_run_end_from_decode(decode_section, start, cursor, &run);
     if (classify_run_end_from_cfg(section, start, cursor, &run) < 0) return -1;
     if (section->certain_code_start != NULL) {
       uint32_t offset;
@@ -2166,10 +2391,14 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (source_analysis == NULL) return -1;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    const M68kDecodeSectionIR *decode_section = NULL;
+    if (decode != NULL && section->section_index <= UINT32_MAX) {
+      decode_section = source_quality_decode_section_by_index(decode, (uint32_t)section->section_index, NULL);
+    }
     if (append_code_origins_for_section(section) != 0) return -1;
     if (append_address_observations_for_section(section) != 0) return -1;
     if (append_platform_address_uses_for_section(section) != 0) return -1;
-    if (append_accepted_runs_for_section(section) != 0) return -1;
+    if (append_accepted_runs_for_section(section, decode_section) != 0) return -1;
     if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
     if (append_orphan_conflict_ranges_for_section(section) != 0) return -1;
   }
@@ -2179,6 +2408,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
+  if (append_accepted_run_noncode_fallthrough_diagnostics(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;

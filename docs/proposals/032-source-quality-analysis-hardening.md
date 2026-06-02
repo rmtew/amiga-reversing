@@ -322,6 +322,50 @@ There should not be a "warning" class for broken source-quality invariants:
 either the invariant fails and source export is refused, or the observation is
 not a source-quality diagnostic and belongs in review/candidate reporting.
 
+Validation failures are entry points into cause repair. The default workflow is
+not to loosen the validator, downgrade the diagnostic, add a bypass, or teach
+the UI to tolerate broken output. The default workflow is:
+
+```text
+blocking validation failure
+  -> identify the contradictory facts
+  -> trace each fact to the analysis producer that created it
+  -> decide which producer is wrong, incomplete, or too broad
+  -> fix that producer or its conflict classification at cause
+  -> add a focused fixture for the invariant and the corrected producer behavior
+  -> rerender affected targets and preserve round-trip assembly
+```
+
+Only relax a validator after proving the validator's premise is wrong. "A target
+now fails" is not evidence that validation is too strict; it is evidence that
+the framework has found a contradiction that must be explained.
+
+This is a hard implementation rule, not only a debugging preference. A
+validation failure on an imported target becomes a concrete reproduction for the
+analysis bug. The fix is complete only when the bad fact is no longer produced,
+or when the producing stage marks the contradiction explicitly as a conflict.
+Target-specific exceptions, renderer-side suppression, manual-review deferral,
+and UI-only tolerance do not satisfy the proposal.
+
+The useful shape of the work is:
+
+```text
+validator fails on target
+  -> target proves the framework emitted inconsistent facts
+  -> reduce the failing offset into a focused fixture
+  -> repair the fact producer, finalizer, or conflict classifier
+  -> prove the fixture and the target both pass
+```
+
+The wrong shape is:
+
+```text
+validator fails on target
+  -> special-case the target
+  -> hide the diagnostic
+  -> keep emitting the same contradictory facts
+```
+
 The validation contract is:
 
 ```text
@@ -3217,6 +3261,181 @@ with no credible continuation, or a bad-disassembly pattern. Otherwise the
 observation belongs in review/candidate reporting, not source-quality
 diagnostics.
 
+The first concrete invalid-run case now blocks:
+
+```text
+accepted code run
+  -> end_kind = accepted_gap
+  -> contains executable origin
+  -> next range starts at run end
+  -> next range has accepted non-code ownership
+  -> emits unterminated_or_invalid_code_range
+  -> diagnostic severity error
+  -> blocker true
+```
+
+Focused fixture:
+
+```text
+source_quality_analyze_blocks_code_fallthrough_into_structured_data
+```
+
+This intentionally does not classify every `accepted_gap` as a failure. It
+requires the additional C-owned proof that fallthrough would enter text, table,
+structured data, platform metadata, or another accepted non-code range.
+
+The MacOS MPW target exposed why this rule is useful. Adding the validator made
+the target refuse source export, but the refusal was not the root problem. The
+root problem was contradictory ownership:
+
+```text
+accepted code bytes
+  and
+accepted structured/text data ownership
+  over the same or immediately consumed range
+```
+
+The correct repair is not:
+
+```text
+MacOS target failed
+  -> disable the fallthrough validator
+  -> render anyway
+```
+
+The correct repair is:
+
+```text
+MacOS target failed
+  -> inspect the failing offset and adjacent rendered source
+  -> identify why structured/text data was accepted over certain code
+  -> fix the classifier or ownership finalizer so the range is conflicted or not
+     classified as data
+  -> keep the fallthrough validator as the guard that exposed the bug
+```
+
+At minimum, structured/text/table ownership must not remain
+`accepted non-code` when it overlaps bytes already accepted as code. Such ranges
+must be prevented at the producing classifier when possible, or finalized as
+`code_overlap` conflicts when later analysis proves the overlap. That conflict
+then becomes visible in source analysis instead of being mistaken for valid
+non-code ownership.
+
+This gives the target-level acceptance test for the validator:
+
+```text
+before repair
+  code bytes accepted
+  text/structured range also accepted over those bytes
+  fallthrough validator refuses export
+
+after repair
+  code bytes accepted
+  overlapping text/structured range is absent or conflict(code_overlap)
+  no accepted-non-code fallthrough proof remains
+  source export proceeds
+```
+
+The focused unit fixture must cover both sides:
+
+```text
+source_quality_analyze_blocks_code_fallthrough_into_structured_data
+  proves real fallthrough into accepted non-code still fails
+
+source_quality_analyze_conflicts_structured_data_over_certain_code
+  proves contradictory structured/text ownership is repaired at cause
+```
+
+Control-target proof must be source-owned, not globally trusted or globally
+discarded:
+
+```text
+control target from independently proven code
+  -> may prove the target run for fallthrough validation
+
+control target from accepted non-code, conflict, unknown, or unproven code
+  -> weak context only
+  -> must not prove an unterminated-code blocker
+```
+
+Focused fixtures:
+
+```text
+source_quality_analyze_ignores_control_target_from_noncode_for_fallthrough_proof
+  proves the MacOS-style false text/source case stays weak
+
+source_quality_analyze_uses_control_target_from_hard_code_for_fallthrough_proof
+  proves real branch-derived code remains covered by the validator
+
+source_quality_analyze_ignores_control_target_from_conflicted_code_for_fallthrough_proof
+  proves code-overlap conflicts cannot be used as hard control-source proof
+```
+
+The MacOS `Asm` case also exposed a terminal-classification gap. Some broader
+unit fixtures exposed the same issue with small code-then-table and
+code-then-string snippets: the last decoded instruction was an `rts`, but the
+accepted run still reported `end_kind=accepted_gap` because the run-end
+classifier was relying on CFG ownership alone.
+
+The first repair is to classify the accepted run from the decoded final
+instruction when the final instruction ends exactly at the accepted run end:
+
+```text
+decoded candidate at run tail
+  candidate.end == accepted_run.end
+  flow = return
+    -> end_kind = terminal
+
+decoded candidate at run tail
+  candidate.end == accepted_run.end
+  flow = unconditional jump/branch
+    -> end_kind = proven_transfer
+```
+
+Focused fixture:
+
+```text
+source_quality_analyze_uses_decode_terminal_run_end
+  proves a decoded rts before structured data is not treated as fallthrough
+```
+
+The second repair covers target layouts where decoded instruction metadata is
+not enough by itself. The rendered source already showed a real terminal tail:
+
+```text
+CODE_1_loc_000065fa:
+  movem.l -$0010(a6),d7/a3-a4
+  unlk a6
+  rts
+CODE_1_semantic_decode_gap_00006604:
+  dc.b ...
+```
+
+Source-quality initially saw local `$65FA-$6604` as `accepted_gap` because the
+CFG block began before the accepted run. MacOS trap opword/platform rows can
+split accepted-code byte runs while the CFG block still spans the full linear
+routine. Terminal classification must therefore accept a CFG block that covers
+the run start and ends at the run end:
+
+```text
+cfg block start <= accepted_run.start
+cfg block end   == accepted_run.end
+cfg edge kind   == return/jump
+  -> accepted_run.end_kind = terminal/proven_transfer
+```
+
+Focused fixture:
+
+```text
+source_quality_analyze_uses_covering_cfg_terminal_run_end
+  proves a terminal tail run is not treated as fallthrough into following data
+```
+
+In other words, the framework must not "fix" MacOS by weakening the
+unterminated-code diagnostic. It must fix MacOS by ensuring the data ownership
+fact was never accepted as valid non-code ownership once certain code occupied
+the same bytes.
+
 Facts-v2 profiles now count source-quality diagnostics and blockers, expose the
 first source-quality diagnostic, and map blocking source-quality failures to
 the source refusal summary. This is still running after render preview because
@@ -5486,3 +5705,173 @@ label-domain confusion, or the missed mapped labels for operands such as
 framework signal that will turn one class of "analysis named it but rendering
 missed it" into a C-visible source-quality failure instead of a silent bad
 source rendering.
+
+### Source-Quality Failure Explanation Tooling
+
+The MacOS MPW `Asm` regression exposed a tooling gap while proving the
+validator was useful. Source export refused with:
+
+```text
+facts_v2 asm source refused because structural invariants failed:
+kind=source_quality section=0 offset=$65d2 aux=unterminated_or_invalid_code_range
+```
+
+The temporary debugging probe needed to answer one question:
+
+```text
+Why did source-quality believe this accepted run had hard proof and fell into
+accepted non-code?
+```
+
+The real lesson is not that we need a pile of target-specific debug scripts.
+The probes exposed a small reusable introspection shape that the framework
+should provide whenever a source-quality failure blocks export:
+
+```text
+what failed?
+  -> diagnostic kind, section, offset, related range
+
+what byte ownership contradicted it?
+  -> accepted run, blocking range, structured item/data ownership
+
+why did analysis believe the bad fact?
+  -> proof refs, evidence kinds, source bytes, source byte ownership
+```
+
+The answer for the MacOS failure was compact and should be available from
+normal tooling:
+
+```text
+accepted_run:
+  section=0
+  start=$65d2
+  end=$65dc
+  end_kind=accepted_gap
+
+blocking_range:
+  start=$65dc
+  end=$65e7
+  kind=text
+  status=accepted
+  conflict_state=clean
+
+proof_refs:
+  offset=$65d2
+  reason=control_target
+  evidence=direct_control_target
+  source=$656c
+  source_ownership=text/accepted
+```
+
+This is not a request for more one-off scripts. Add one reusable
+source-quality failure explanation path owned by the same C facts that drive
+render/export:
+
+```text
+target + optional section + optional offset/radius
+  -> source-quality diagnostics
+  -> accepted code runs touching the diagnostic range
+  -> range ownerships touching run start/end
+  -> structured data items touching those ranges
+  -> code-start refs proving the run
+  -> ownership of each proof ref's source byte
+```
+
+The minimum C-owned JSON shape is:
+
+```json
+{
+  "diagnostic": {
+    "kind": "unterminated_or_invalid_code_range",
+    "section": 0,
+    "offset": 26066,
+    "related_start": 26066,
+    "related_end": 26076
+  },
+  "accepted_run": {
+    "start_offset": 26066,
+    "end_offset": 26076,
+    "end_kind": "accepted_gap"
+  },
+  "blocking_range": {
+    "start_offset": 26076,
+    "end_offset": 26087,
+    "kind_name": "text",
+    "status_name": "accepted",
+    "conflict_state_name": "clean"
+  },
+  "proof_refs": [
+    {
+      "offset": 26066,
+      "reason_name": "control_target",
+      "evidence_kind_name": "direct_control_target",
+      "source_section": 0,
+      "source_offset": 25964,
+      "source_byte_ownership": "accepted_noncode"
+    }
+  ]
+}
+```
+
+Implementation requirement:
+
+```text
+source-quality failure
+  -> still blocks export
+  -> still records profile first-failure fields
+  -> also exposes a failure explanation bundle
+     without requiring successful source text export
+```
+
+This must work for all target shapes, including MacOS CODE resources. The
+MacOS case matters because the current raw analysis path accepts only
+`amiga-raw`/`atari-st-raw`, while the MacOS CODE path is only available through
+listing-artifact creation, which currently fails before callers can inspect the
+source-analysis facts. The common path must allow:
+
+```text
+MacOS HFS image + hfs path + CODE resource id
+  -> selected CODE bytes
+  -> source analysis
+  -> source-quality failure explanation
+  -> no source export required
+```
+
+Expose the same C-backed result through:
+
+```text
+platform_file_cli source-quality-explain <target-or-platform-source> [section] [offset]
+Python source_export / web API failure payload
+CDP/web diagnostics panel
+```
+
+Do not build separate Python inference for this. Python may locate the target,
+call the C-backed explanation API, and present the result. The ownership
+answers must come from Source Analysis IR:
+
+```text
+proof ref source byte
+  -> accepted code      => may prove hard control-target origin
+  -> accepted non-code  => cannot prove hard control-target origin
+  -> conflict           => diagnostic context, not proof
+  -> unknown            => weak/candidate context only
+```
+
+The output is intentionally cause-oriented. It should make the next action
+obvious:
+
+```text
+proof source byte is accepted non-code
+  -> fix proof classification or producer, not the renderer
+
+blocking range is accepted structured data over certain code
+  -> mark the range as code_overlap conflict or stop producing it
+
+accepted run has only weak/control-derived proof
+  -> do not treat it as hard fallthrough proof until its source run has
+     independent hard proof
+```
+
+This tooling is part of the validation contract. When a hard failure appears,
+the worker should be able to reduce the failure to a focused fixture and repair
+the producer without adding temporary probes or weakening validators.

@@ -11509,6 +11509,306 @@ static int test_source_quality_analyze_blocks_code_without_executable_origin(voi
   return 0;
 }
 
+static int test_source_quality_analyze_blocks_code_fallthrough_into_structured_data(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kAnalysisStructuredDataItem item;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[4] = 1U;
+  certain_start[6] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 4U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 8U;
+  item.size = 4U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"accepted_gap\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"text\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"error\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run falls through into accepted non-code range\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_conflicts_structured_data_over_certain_code(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kAnalysisStructuredDataItem item;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[4] = 1U;
+  certain_start[6] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 4U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 2U;
+  item.size = 10U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"accepted_gap\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"text\",\"status\":3,\"status_name\":\"conflict\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_name\":\"code_overlap\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run falls through into accepted non-code range\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_ignores_control_target_from_noncode_for_fallthrough_proof(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kAnalysisStructuredDataItem item;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[4] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 0U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 0U;
+  item.size = 2U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  item.offset = 8U;
+  item.size = 4U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"accepted_gap\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"text\",\"status\":2,\"status_name\":\"accepted\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run falls through into accepted non-code range\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_uses_control_target_from_hard_code_for_fallthrough_proof(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kAnalysisStructuredDataItem item;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[0] = 1U;
+  certain_start[4] = 1U;
+  certain_byte[0] = 1U;
+  certain_byte[1] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 0U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 0U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+  code_start_ref.evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 0U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 8U;
+  item.size = 4U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"reason_name\":\"control_target\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run falls through into accepted non-code range\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_ignores_control_target_from_conflicted_code_for_fallthrough_proof(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kAnalysisStructuredDataItem item;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[0] = 1U;
+  certain_start[4] = 1U;
+  certain_byte[0] = 1U;
+  certain_byte[1] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 0U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 0U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+  code_start_ref.evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 0U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 0U;
+  item.size = 2U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  item.offset = 8U;
+  item.size = 4U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_name\":\"code_overlap\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run falls through into accepted non-code range\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_uses_cfg_terminal_run_end(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -11560,6 +11860,152 @@ static int test_source_quality_analyze_uses_cfg_terminal_run_end(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"terminal\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"terminal_offset\":6") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_uses_decode_terminal_run_end(void) {
+  M68kObject object;
+  M68kSection object_section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kAnalysisStructuredDataItem item;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  uint8_t bytes[16] = {
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x70u, 0x00u, 0x4eu, 0x75u,
+    'D', 'A', 'T', 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u
+  };
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[4] = 1U;
+  certain_start[6] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  memset(&object_section, 0, sizeof(object_section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object_section.kind = M68K_SECTION_CODE;
+  object_section.size = sizeof(bytes);
+  object_section.data_size = sizeof(bytes);
+  object_section.data = bytes;
+  added = m68k_object_add_section(&object, &object_section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 4U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 8U;
+  item.size = 4U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, &decode, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"terminal\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_offset\":6") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run falls through into accepted non-code range\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_source_quality_analyze_uses_covering_cfg_terminal_run_end(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kCfgBlockIR block;
+  M68kCfgEdgeIR edge;
+  M68kAnalysisStructuredDataItem item;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[4] = 1U;
+  certain_start[6] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 4U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  memset(&block, 0, sizeof(block));
+  block.start_offset = 0U;
+  block.end_offset = 8U;
+  block.edge_start = 0U;
+  block.edge_count = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_block(&section_analysis, &block));
+  memset(&edge, 0, sizeof(edge));
+  edge.source_block_index = 0U;
+  edge.target_block_index = (size_t)-1;
+  edge.source_offset = 6U;
+  edge.target_offset = UINT32_MAX;
+  edge.kind = M68K_CFG_EDGE_RETURN;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_edge(&section_analysis, &edge));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 8U;
+  item.size = 4U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"terminal\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_offset\":6") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run falls through into accepted non-code range\"") == NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -25134,8 +25580,22 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_resolves_pointer_table_entries_from_labels},
     {"source_quality_analyze_blocks_code_without_executable_origin",
       test_source_quality_analyze_blocks_code_without_executable_origin},
+    {"source_quality_analyze_blocks_code_fallthrough_into_structured_data",
+      test_source_quality_analyze_blocks_code_fallthrough_into_structured_data},
+    {"source_quality_analyze_conflicts_structured_data_over_certain_code",
+      test_source_quality_analyze_conflicts_structured_data_over_certain_code},
+    {"source_quality_analyze_ignores_control_target_from_noncode_for_fallthrough_proof",
+      test_source_quality_analyze_ignores_control_target_from_noncode_for_fallthrough_proof},
+    {"source_quality_analyze_uses_control_target_from_hard_code_for_fallthrough_proof",
+      test_source_quality_analyze_uses_control_target_from_hard_code_for_fallthrough_proof},
+    {"source_quality_analyze_ignores_control_target_from_conflicted_code_for_fallthrough_proof",
+      test_source_quality_analyze_ignores_control_target_from_conflicted_code_for_fallthrough_proof},
     {"source_quality_analyze_uses_cfg_terminal_run_end",
       test_source_quality_analyze_uses_cfg_terminal_run_end},
+    {"source_quality_analyze_uses_decode_terminal_run_end",
+      test_source_quality_analyze_uses_decode_terminal_run_end},
+    {"source_quality_analyze_uses_covering_cfg_terminal_run_end",
+      test_source_quality_analyze_uses_covering_cfg_terminal_run_end},
     {"source_quality_analyze_exports_orphan_conflict_ranges",
       test_source_quality_analyze_exports_orphan_conflict_ranges},
     {"source_analysis_range_ownership_exports_conflict",
