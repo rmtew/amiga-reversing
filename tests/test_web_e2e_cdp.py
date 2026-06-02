@@ -1855,6 +1855,94 @@ def test_brave_cdp_source_export_palette_uses_browser_save(
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_source_export_refusal_shows_source_quality_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_source_export_refused")
+    target_dir = tmp_path / project.id
+    target_dir.mkdir()
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+    )
+
+    def export_payload(project_name: str, *, assembler_profile: str, project_root=None) -> dict[str, object]:
+        return {
+            "status": "refused",
+            "message": "facts_v2 asm source refused required_instruction_failure section=0 offset=8",
+            "source_quality_explanation": {
+                "source_quality": {
+                    "source_quality_explanation_count": 1,
+                    "sections": [
+                        {
+                            "section_index": 0,
+                            "source_quality_explanations": [
+                                {
+                                    "diagnostic": {
+                                        "kind_name": "unterminated_or_invalid_code_range",
+                                        "offset": 8,
+                                    },
+                                    "accepted_run": {
+                                        "start_offset": 4,
+                                        "end_offset": 12,
+                                        "end_kind_name": "accepted_gap",
+                                    },
+                                    "blocking_range": {
+                                        "start_offset": 8,
+                                        "end_offset": 12,
+                                        "ownership_name": "accepted_noncode",
+                                    },
+                                    "proof_refs": [
+                                        {
+                                            "offset": 8,
+                                            "reason_name": "control_target",
+                                            "evidence_kind_name": "direct_control_target",
+                                            "source_byte_ownership": "accepted_noncode",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            },
+        }
+
+    monkeypatch.setattr(disasm_server, "source_export_payload", export_payload)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-index='0']")
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("state.commandPalette.loading === false")
+        page.press_key("Backspace")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'export source'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Export Source')")
+        page.press_key("Enter")
+        page.wait_for_selector("#command-parameter-editor .command-parameter-submit")
+        page.click("#command-parameter-editor .command-parameter-submit")
+        page.wait_for_selector("#source-quality-overlay")
+        page.wait_for_expression("document.querySelector('#source-quality-overlay')?.textContent.includes('unterminated_or_invalid_code_range')")
+        page.wait_for_expression("document.querySelector('#source-quality-overlay')?.textContent.includes('$00000008')")
+        page.wait_for_expression("document.querySelector('#source-quality-overlay')?.textContent.includes('direct_control_target')")
+        page.wait_for_expression("document.querySelector('#source-quality-overlay')?.textContent.includes('accepted_noncode')")
+        page.assert_no_errors()
+
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     project = _binary_project("amiga_hunk_representation")
     rows = [

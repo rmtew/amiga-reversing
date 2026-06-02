@@ -3124,9 +3124,11 @@ async function exportSource(assemblerProfile) {
   const profile = assemblerProfile || "vasm";
   const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}`);
   if (payload.status === "refused") {
+    showSourceQualityDiagnosticsOverlay(payload);
     setAnalysisStatus(`Source export refused: ${payload.message || "render failed"}`, "failed", 4000);
     return;
   }
+  closeSourceQualityDiagnosticsOverlay();
   const sourceText = String(payload.source_text || "");
   const filename = String(payload.filename || `${state.project}-${profile}.s`);
   const blob = new Blob([sourceText], {type: "text/plain;charset=utf-8"});
@@ -3164,7 +3166,18 @@ async function renderProjectSourceArtifact(projectId, token) {
     throw new Error("stale");
   }
   if (payload.status === "refused") {
-    throw new Error(`Source export refused: ${payload.message || "render failed"}`);
+    document.getElementById("listing-viewport").innerHTML = renderSourceQualityDiagnosticsPanel(payload, {
+      title: "Source Export Refused",
+      className: "source-quality-viewport-panel",
+      closeButton: false,
+    });
+    setAnalysisStatus(`Source export refused: ${payload.message || "render failed"}`, "failed", 4000);
+    dispatchAppEvent("amiga:project-rendered", {
+      projectId,
+      generation: "source_artifact_refused",
+      totalRows: 0,
+    });
+    return;
   }
   const sourceText = String(payload.source_text || "");
   const lines = sourceText.split(/\r?\n/);
@@ -3209,6 +3222,171 @@ function bindReproPanel() {
       void runReproduction(state.project);
     }
   });
+}
+
+function sourceQualityPayload(payload) {
+  const explanation = payload?.source_quality_explanation;
+  if (!explanation || typeof explanation !== "object" || Array.isArray(explanation)) {
+    return null;
+  }
+  const sourceQuality = explanation.source_quality;
+  if (!sourceQuality || typeof sourceQuality !== "object" || Array.isArray(sourceQuality)) {
+    return null;
+  }
+  return sourceQuality;
+}
+
+function sourceQualityExplanations(payload) {
+  const sourceQuality = sourceQualityPayload(payload);
+  if (!sourceQuality) {
+    return [];
+  }
+  const rows = [];
+  const append = (explanations, sectionIndex = null) => {
+    if (!Array.isArray(explanations)) {
+      return;
+    }
+    explanations.forEach((explanation) => {
+      if (explanation && typeof explanation === "object" && !Array.isArray(explanation)) {
+        rows.push({sectionIndex, explanation});
+      }
+    });
+  };
+  append(sourceQuality.source_quality_explanations, null);
+  if (Array.isArray(sourceQuality.sections)) {
+    sourceQuality.sections.forEach((section) => {
+      const sectionIndex = Number(section?.section_index);
+      append(section?.source_quality_explanations, Number.isInteger(sectionIndex) ? sectionIndex : null);
+    });
+  }
+  return rows;
+}
+
+function formatSourceQualityHex(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return "";
+  }
+  return `$${Math.max(0, Math.floor(number)).toString(16).toUpperCase().padStart(8, "0")}`;
+}
+
+function sourceQualityDiagnosticTitle(row) {
+  const diagnostic = row.explanation.diagnostic || {};
+  return String(diagnostic.kind_name || diagnostic.kind || "source_quality_failure");
+}
+
+function sourceQualityLocationText(row) {
+  const diagnostic = row.explanation.diagnostic || {};
+  const sectionIndex = Number.isInteger(row.sectionIndex) ? row.sectionIndex : Number(diagnostic.section_index);
+  const offset = diagnostic.offset ?? diagnostic.start_offset ?? diagnostic.related_offset;
+  const parts = [];
+  if (Number.isInteger(sectionIndex)) {
+    parts.push(`section ${sectionIndex}`);
+  }
+  const offsetText = formatSourceQualityHex(offset);
+  if (offsetText) {
+    parts.push(offsetText);
+  }
+  return parts.join(" ");
+}
+
+function sourceQualityRangeText(range) {
+  if (!range || typeof range !== "object" || Array.isArray(range)) {
+    return "";
+  }
+  const start = formatSourceQualityHex(range.start_offset ?? range.start ?? range.offset);
+  const end = formatSourceQualityHex(range.end_offset ?? range.end);
+  const kind = String(range.end_kind_name || range.kind_name || range.ownership_name || range.reason_name || "").trim();
+  const rangeText = start && end ? `${start}-${end}` : (start || end);
+  return [rangeText, kind].filter(Boolean).join(" ");
+}
+
+function renderSourceQualityProofRefs(proofRefs) {
+  if (!Array.isArray(proofRefs) || !proofRefs.length) {
+    return "";
+  }
+  return `
+    <div class="source-quality-proof-list">
+      ${proofRefs.map((proof) => {
+        const offset = formatSourceQualityHex(proof?.offset ?? proof?.source_offset);
+        const reason = String(proof?.reason_name || proof?.reason || "").trim();
+        const evidence = String(proof?.evidence_kind_name || proof?.evidence_kind || "").trim();
+        const ownership = String(proof?.source_byte_ownership || "").trim();
+        return `<div class="source-quality-proof">${escapeHtml([offset, reason, evidence, ownership].filter(Boolean).join(" | "))}</div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderSourceQualityExplanation(row) {
+  const explanation = row.explanation;
+  const location = sourceQualityLocationText(row);
+  const acceptedRun = sourceQualityRangeText(explanation.accepted_run);
+  const blockingRange = sourceQualityRangeText(explanation.blocking_range);
+  const details = [
+    location,
+    acceptedRun ? `accepted ${acceptedRun}` : "",
+    blockingRange ? `blocking ${blockingRange}` : "",
+  ].filter(Boolean);
+  return `
+    <div class="source-quality-item">
+      <div class="source-quality-item-title">
+        <span>${escapeHtml(sourceQualityDiagnosticTitle(row))}</span>
+        ${location ? `<span>${escapeHtml(location)}</span>` : ""}
+      </div>
+      ${details.length ? `<div class="source-quality-detail">${escapeHtml(details.join(" | "))}</div>` : ""}
+      ${renderSourceQualityProofRefs(explanation.proof_refs)}
+    </div>
+  `;
+}
+
+function renderSourceQualityDiagnosticsPanel(payload, options = {}) {
+  const title = options.title || "Source Quality Diagnostics";
+  const className = options.className || "";
+  const rows = sourceQualityExplanations(payload);
+  const message = String(payload?.message || "Source export refused");
+  const body = rows.length
+    ? rows.map(renderSourceQualityExplanation).join("")
+    : `<div class="source-quality-empty">No source-quality explanation was returned.</div>`;
+  const closeButton = options.closeButton === false ? "" : '<button type="button" class="source-quality-close" data-source-quality-close="1">Close</button>';
+  return `
+    <div class="source-quality-panel ${escapeHtml(className)}" role="dialog" aria-modal="true" aria-labelledby="source-quality-title">
+      <div class="source-quality-header">
+        <div>
+          <div class="source-quality-title" id="source-quality-title">${escapeHtml(title)}</div>
+          <div class="source-quality-message">${escapeHtml(message)}</div>
+        </div>
+        ${closeButton}
+      </div>
+      <div class="source-quality-list">${body}</div>
+    </div>
+  `;
+}
+
+function showSourceQualityDiagnosticsOverlay(payload) {
+  closeSourceQualityDiagnosticsOverlay();
+  const app = document.getElementById("app");
+  if (!app) {
+    return;
+  }
+  app.insertAdjacentHTML("beforeend", `
+    <div class="source-quality-overlay" id="source-quality-overlay">
+      ${renderSourceQualityDiagnosticsPanel(payload, {title: "Source Export Refused"})}
+    </div>
+  `);
+  bindSourceQualityDiagnosticsOverlay();
+}
+
+function closeSourceQualityDiagnosticsOverlay() {
+  document.getElementById("source-quality-overlay")?.remove();
+}
+
+function bindSourceQualityDiagnosticsOverlay() {
+  const overlay = document.getElementById("source-quality-overlay");
+  if (!overlay) {
+    return;
+  }
+  overlay.querySelector("[data-source-quality-close='1']")?.addEventListener("click", closeSourceQualityDiagnosticsOverlay);
 }
 
 function renderErrorOverlay(message) {

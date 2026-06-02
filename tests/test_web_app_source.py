@@ -238,6 +238,24 @@ def test_web_app_renders_default_source_artifact_with_shared_export_route() -> N
     assert 'generation: "source_artifact"' in app_js
 
 
+def test_web_app_surfaces_source_quality_explanations_from_source_export_refusal() -> None:
+    web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
+    app_js = (web_dir / "app.js").read_text(encoding="utf-8")
+    styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
+
+    assert "function sourceQualityPayload(payload)" in app_js
+    assert "function sourceQualityExplanations(payload)" in app_js
+    assert "function renderSourceQualityDiagnosticsPanel(payload" in app_js
+    assert "showSourceQualityDiagnosticsOverlay(payload);" in app_js
+    assert 'generation: "source_artifact_refused"' in app_js
+    assert "source_byte_ownership" in app_js
+    assert "evidence_kind_name" in app_js
+    assert "No source-quality explanation was returned." in app_js
+    assert ".source-quality-overlay" in styles_css
+    assert ".source-quality-panel" in styles_css
+    assert ".source-quality-proof" in styles_css
+
+
 def test_web_app_typed_navigation_uses_data_class_rows() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent

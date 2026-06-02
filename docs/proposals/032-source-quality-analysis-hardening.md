@@ -6135,12 +6135,64 @@ test_project_source_quality_explain_uses_raw_runtime_load_api
 test_source_export_returns_refusal_payload
 ```
 
-Remaining work for this UI slice:
+### Web Diagnostics Panel Slice
+
+The web UI now consumes the same refusal payload instead of collapsing the
+failure to a status string. Source export refusal opens a diagnostics panel
+whose rows come from:
 
 ```text
-CDP/web diagnostics panel
+payload.source_quality_explanation.source_quality
+  -> source_quality_explanations[]
+  -> sections[].source_quality_explanations[]
+```
+
+The panel shows the C-owned cause map:
+
+```text
+diagnostic kind
+section and offset
+accepted run
+blocking range
+proof refs with reason, evidence kind, and source-byte ownership
+```
+
+For command-palette source export this appears as an overlay. For default
+source-artifact projects it appears in the listing viewport instead of throwing
+away the structured payload:
+
+```text
+source-export refused
+  -> renderSourceQualityDiagnosticsPanel(payload)
+  -> generation=source_artifact_refused
+```
+
+Focused tests:
+
+```text
+test_web_app_surfaces_source_quality_explanations_from_source_export_refusal
+test_brave_cdp_source_export_refusal_shows_source_quality_diagnostics
+```
+
+Verified:
+
+```text
+node --check amiga_reversing\web\app.js
+uv run python -m pytest tests\test_web_app_source.py::test_web_app_surfaces_source_quality_explanations_from_source_export_refusal -q
+uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_source_export_refusal_shows_source_quality_diagnostics -m web_e2e -q
+uv run ruff check
+uv run mypy
+uv run python -m pytest tests -q
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --no-write-report
+```
+
+Remaining work for this explanation slice:
+
+```text
 MacOS CODE resource explanation path through listing-artifact/source-analysis JSON
 ```
 
-Those layers must consume this JSON/IR path. They must not implement their own
-Python-side byte ownership or proof-chain inference.
+The web layer still must not implement byte ownership or proof-chain inference.
+It only formats the C JSON. The remaining MacOS work is about getting the same
+C explanation JSON for CODE-resource listing-artifact failures before source
+artifact construction refuses the project.
