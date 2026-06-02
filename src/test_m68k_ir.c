@@ -12159,6 +12159,8 @@ static int test_source_quality_analyze_uses_control_target_from_hard_code_for_fa
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"reason_name\":\"control_target\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"error\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":true") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"summary\":\"accepted code run falls through into accepted non-code range\"") != NULL);
   free(analysis_json);

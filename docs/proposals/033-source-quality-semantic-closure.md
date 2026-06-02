@@ -978,14 +978,15 @@ accepted_run_has_executable_origin == false
   -> accepted_code_without_executable_origin
   -> severity=error blocker=true
 
-run.end_kind == accepted_gap
+run.end_kind == accepted_gap + accepted non-code range starts at run end +
+hard fallthrough proof reaches the run
   -> unterminated_or_invalid_code_range
-  -> severity=warning blocker=false
+  -> severity=error blocker=true
 ```
 
-That second case is too weak for the failure class. A run that falls into data
-should either never be promoted in the first place or become a source-quality
-blocker when a required/proven origin made it accepted:
+The remaining gap is earlier promotion. A run that falls into data should
+either never be promoted in the first place or become a source-quality blocker
+when a required/proven origin made it accepted:
 
 ```text
 accepted_gap + nearby_data/string/table/absolute-storage evidence
