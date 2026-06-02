@@ -490,6 +490,46 @@ The important rule is that "in image and labelable" must not silently render as
 a raw number. Either the operand is symbolized through the C-owned identity, or
 the source-quality report contains the reason it is not.
 
+Current implementation progress:
+
+```text
+SECTION_STORAGE address observation + accepted instruction + target symbol
+  -> expected_symbol_access(access_kind=operand)
+  -> post-render gate can refuse a raw numeric operand
+```
+
+The producer is deliberately limited to ordinary memory read/write and
+compute-address operands:
+
+```text
+move.w  abs_0_00042C6C.l,d0
+lea     abs_0_00042C70.l,a0
+  -> operand symbol obligation
+
+jsr     loc_1_00000004.l
+jmp     loc_1_00000004.l
+  -> branch-target symbol obligation
+```
+
+This keeps address identity from swallowing control-flow semantics. Relocated
+or intrinsic branch/call/jump targets are still owned by branch-target expected
+access producers; storage observations only close the data/address operand
+case.
+
+For storage operands, the actual operand address remains the primary fact. A
+relocation/addend target can be valid restored-source evidence for one operand
+while being wrong for another operand in the same instruction:
+
+```asm
+    cmpi.l #loc_1_0000DE66,loc_1_0000DCCE.l
+```
+
+Here `loc_1_0000DE66` is the immediate value, while the memory-read operand is
+`loc_1_0000DCCE.l`. If an address observation says the memory operand's raw
+address is `$DCCE` but its addend-adjusted target is `$DE66`, the expected
+operand symbol must use the raw storage symbol when one exists. The addend
+target is not a safe substitute for the operand actually being read or written.
+
 ### Remaining Wrong Boundary: Render Evidence Mutates Source Analysis
 
 `m68k_render_ir.c` now records actual rendered symbol accesses during assembly
@@ -814,6 +854,13 @@ Each slice must fix the obvious cause of any validation failure it exposes.
 Adding a validator and then stopping because a tracked target now fails is not
 completion; it is the start of the repair.
 
+This is an acceptance rule, not a preference. A slice that discovers a
+framework-owned source-quality failure is not complete until the producer is
+fixed, the failure is reduced to an isolated test, and the affected target
+renders/round-trips again. The only acceptable deferral is a failure whose cause
+is outside the slice and whose diagnostic chain is explicit enough to reproduce
+without another investigation pass.
+
 This applies to all proposal work, not only dedicated validation slices. If an
 implementation step changes analysis, rendering, address identity, platform
 semantics, table detection, fixture import, or test coverage and that work
@@ -825,6 +872,7 @@ proposal work touches source-quality behavior
   -> validation/test/target exposes a failure
   -> classify the failure as framework-owned or genuinely outside scope
   -> if framework-owned and causally visible, fix the producer now
+  -> add or tighten the isolated fixture that proves the repaired behavior
   -> only defer with a precise diagnostic chain when the fix is outside scope
 ```
 
@@ -858,6 +906,34 @@ failure is genuinely outside the proposal slice and the remaining work is
 documented with target, section/offset, diagnostic, fact chain, and proposed
 next fix.
 
+In concrete terms, these are different outcomes:
+
+```text
+validation exposes false code acceptance
+  -> find the analysis rule that promoted weak bytes to accepted code
+  -> fix that rule or add the missing conflict classifier
+  -> keep an isolated false-code fixture
+  -> rerender the target that originally exposed it
+
+validation exposes missing rendered symbol access
+  -> find the missing or wrong expected-symbol producer
+  -> fix address identity / platform semantic / render evidence at cause
+  -> keep an isolated symbol-obligation fixture
+  -> rerender the target that originally exposed it
+```
+
+These are not valid completions:
+
+```text
+validation exposes false code acceptance
+  -> record "bad code blocker"
+  -> leave the weak code producer unchanged
+
+validation exposes missing symbol access
+  -> record "render blocker"
+  -> leave analysis without the missing symbol obligation
+```
+
 The documentation for any deferred failure must be concrete enough that another
 worker can reproduce it without re-discovering the problem:
 
@@ -888,6 +964,25 @@ added validation
   -> called it a blocker
   -> left the producer unchanged
 ```
+
+Implementation must treat this as a repair loop, not a stopping condition:
+
+```text
+new validation detects bad source
+  -> preserve the failing fixture
+  -> identify the producer that created the bad fact
+  -> add or tighten the isolated source-quality test
+  -> fix the producer/classifier/render-evidence path at cause
+  -> rerender and round-trip the affected targets
+```
+
+A blocker diagnostic is a product-facing refusal to emit misleading restored
+source. It is not an engineering excuse to stop the proposal work. If the
+failure comes from an obvious cause in the slice being implemented, the slice is
+not complete until that cause is fixed. If the failure exposes a genuinely
+separate subsystem, keep the diagnostic, document the separate owner/slice, and
+do not claim the current slice as complete unless the emitted source is no
+longer wrong for the covered case.
 
 ### Slice 1: Render Preview Read-Only Source Analysis
 
@@ -1390,8 +1485,11 @@ checked-in `.s` diffs.
 - Manual/editor changes pass the same C source-quality checks as auto-analysis.
 - All output-affecting changes are reflected in regenerated target `.s` files
   and round-trip report output.
-- Validation failures discovered during implementation are reduced and fixed at
-  cause in the same slice when the cause is inside the slice scope.
+- Validation failures discovered during implementation are preserved as
+  fixtures and fixed at cause in the same slice when the cause is inside the
+  slice scope.
+- A slice is not accepted when it merely adds a diagnostic for an obvious
+  producer bug and leaves the restored source wrong.
 
 ## Trailing Observations For Later Work
 

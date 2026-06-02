@@ -1912,6 +1912,54 @@ static int source_quality_observation_requires_rendered_absolute_symbol(
   return observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS;
 }
 
+static const M68kSymbolOriginIR *source_quality_section_storage_observation_origin(
+    M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section,
+    const M68kDecodeCandidate *candidate, const M68kAddressObservationIR *observation,
+    uint32_t *out_target_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  M68kSectionAnalysisIR *target_section;
+  uint32_t target_offset;
+  uint32_t address = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
+  if (source_analysis == NULL || candidate == NULL || observation == NULL ||
+      observation->source != M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND ||
+      observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE ||
+      observation->conflicted != 0U ||
+      observation->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN ||
+      !observation->has_target ||
+      observation->operand_index == UINT32_MAX ||
+      observation->offset != candidate->offset ||
+      observation->operand_index >= candidate->operand_count ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      observation->operand_index >= instruction.operand_count ||
+      !source_quality_operand_absolute_offset(&instruction.operands[observation->operand_index], &address) ||
+      address != observation->address) {
+    return NULL;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || observation->operand_index >= 4U ||
+      metadata->operand_access_kinds[observation->operand_index] != observation->access_kind) {
+    return NULL;
+  }
+  if (observation->access_kind != M68K_SIM_ACCESS_MEMORY_READ &&
+      observation->access_kind != M68K_SIM_ACCESS_MEMORY_WRITE &&
+      observation->access_kind != M68K_SIM_ACCESS_COMPUTE_ADDRESS) {
+    return NULL;
+  }
+  if (source_quality_observation_is_stack_top_symbol_operand(&instruction, metadata, observation) ||
+      source_quality_observation_has_bitmap_runtime_comment_owner(section, observation)) {
+    return NULL;
+  }
+  target_section = source_analysis_section_by_index(source_analysis, observation->target_section_index);
+  target_offset = observation->target_offset;
+  if (observation->address != observation->target_offset) {
+    target_offset = observation->address;
+  }
+  if (out_target_offset != NULL) *out_target_offset = target_offset;
+  return source_quality_symbol_origin_at(target_section, target_offset);
+}
+
 static const M68kAddressObservationIR *source_quality_address_observation_for_candidate_operand(
     const M68kSectionAnalysisIR *section, const M68kDecodeCandidate *candidate, size_t operand_index) {
   size_t index;
@@ -1927,9 +1975,9 @@ static const M68kAddressObservationIR *source_quality_address_observation_for_ca
 }
 
 static int append_expected_address_observation_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+    M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   size_t candidate_index;
-  if (section_analysis == NULL || section == NULL) return -1;
+  if (section_analysis == NULL || source_analysis == NULL || section == NULL) return -1;
   for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
     const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
     size_t operand_index;
@@ -1937,18 +1985,29 @@ static int append_expected_address_observation_symbol_accesses_for_section(M68kS
     for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
       const M68kAddressObservationIR *observation =
         source_quality_address_observation_for_candidate_operand(section_analysis, candidate, operand_index);
+      const M68kSymbolOriginIR *section_storage_origin = NULL;
+      uint32_t section_storage_target_offset = 0U;
+      int requires_absolute_symbol =
+        source_quality_observation_requires_rendered_absolute_symbol(section_analysis, candidate, observation);
       M68kExpectedSymbolAccessIR access;
-      if (!source_quality_observation_requires_rendered_absolute_symbol(section_analysis, candidate, observation))
+      if (!requires_absolute_symbol) {
+        section_storage_origin = source_quality_section_storage_observation_origin(source_analysis, section_analysis,
+          candidate, observation, &section_storage_target_offset);
+      }
+      if (section_storage_origin == NULL && !requires_absolute_symbol) {
         continue;
+      }
       memset(&access, 0, sizeof(access));
-      access.symbol_name = observation->symbol_name;
+      access.symbol_name = section_storage_origin != NULL ? section_storage_origin->symbol_name :
+        observation->symbol_name;
       access.offset = observation->offset;
       access.operand_index = observation->operand_index;
       access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
-      access.confidence = observation->confidence;
-      if (observation->has_target) {
+      access.confidence = section_storage_origin != NULL ? section_storage_origin->confidence : observation->confidence;
+      if (section_storage_origin != NULL || observation->has_target) {
         access.target_section_index = observation->target_section_index;
-        access.target_offset = observation->target_offset;
+        access.target_offset = section_storage_origin != NULL ? section_storage_target_offset :
+          observation->target_offset;
         access.has_target = 1U;
       }
       if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
@@ -1968,7 +2027,7 @@ static int append_expected_address_observation_symbol_accesses(M68kSourceAnalysi
     const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
       (uint32_t)section_analysis->section_index, &decode_index);
     if (section == NULL) continue;
-    if (append_expected_address_observation_symbol_accesses_for_section(section_analysis, section,
+    if (append_expected_address_observation_symbol_accesses_for_section(section_analysis, source_analysis, section,
         accepted_start[decode_index]) != 0) {
       return -1;
     }
