@@ -715,6 +715,69 @@ static int classify_run_end_from_decode(const M68kDecodeSectionIR *decode_sectio
   return 0;
 }
 
+static int accepted_run_decode_coverage_gap(const M68kSectionAnalysisIR *section,
+    const M68kDecodeSectionIR *decode_section, const M68kAcceptedCodeRunIR *run, uint32_t *out_offset) {
+  uint32_t offset;
+  uint32_t expected_offset;
+  uint8_t saw_start = 0U;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (section == NULL || decode_section == NULL || run == NULL || section->certain_code_start == NULL ||
+      section->certain_code_byte == NULL || run->end_offset <= run->start_offset) {
+    return 0;
+  }
+  expected_offset = run->start_offset;
+  for (offset = run->start_offset; offset < run->end_offset && (size_t)offset < section->certain_code_size;
+       ++offset) {
+    const M68kDecodeCandidate *candidate;
+    uint32_t next_offset;
+    if (section->certain_code_start[offset] == 0U) continue;
+    saw_start = 1U;
+    if (offset < expected_offset) continue;
+    if (offset > expected_offset) {
+      if (out_offset != NULL) *out_offset = expected_offset;
+      return 1;
+    }
+    candidate = m68k_decode_ir_find_candidate_at_offset(decode_section, offset);
+    if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > run->end_offset - offset) {
+      if (out_offset != NULL) *out_offset = offset;
+      return 1;
+    }
+    next_offset = offset + candidate->byte_count;
+    if (next_offset <= expected_offset) {
+      if (out_offset != NULL) *out_offset = offset;
+      return 1;
+    }
+    expected_offset = next_offset;
+  }
+  if (!saw_start || expected_offset < run->end_offset) {
+    if (out_offset != NULL) *out_offset = saw_start ? expected_offset : run->start_offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int append_run_offset_diagnostic(M68kSectionAnalysisIR *section, const M68kAcceptedCodeRunIR *run,
+    uint32_t offset, uint8_t kind, uint8_t severity, uint8_t blocker, const char *summary,
+    const char *evidence_source) {
+  M68kSourceQualityDiagnosticIR diagnostic;
+  if (section == NULL || run == NULL) return -1;
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = kind;
+  diagnostic.severity = severity;
+  diagnostic.blocker = blocker;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
+  diagnostic.has_section_index = 1U;
+  diagnostic.section_index = (uint32_t)section->section_index;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = offset;
+  diagnostic.has_related_range = 1U;
+  diagnostic.related_start = run->start_offset;
+  diagnostic.related_end = run->end_offset;
+  diagnostic.summary = (char *)summary;
+  diagnostic.evidence_source = (char *)evidence_source;
+  return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
+}
+
 static int append_run_diagnostic(M68kSectionAnalysisIR *section, const M68kAcceptedCodeRunIR *run, uint8_t kind,
     uint8_t severity, uint8_t blocker, const char *summary) {
   M68kSourceQualityDiagnosticIR diagnostic;
@@ -2403,6 +2466,18 @@ static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section,
       }
     }
     if (m68k_ir_section_analysis_append_accepted_code_run(section, &run) != 0) return -1;
+    {
+      uint32_t partial_offset;
+      if (accepted_run_decode_coverage_gap(section, decode_section, &run, &partial_offset)) {
+        if (append_run_offset_diagnostic(section, &run, partial_offset,
+            M68K_SOURCE_QUALITY_DIAGNOSTIC_PARTIAL_CODE_BLOCK_DECODE,
+            M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
+            "accepted code run contains bytes not covered by decoded instructions",
+            "accepted_code_run_decode_coverage") != 0) {
+          return -1;
+        }
+      }
+    }
     if (!accepted_run_has_executable_origin(section, start, cursor)) {
       if (append_run_diagnostic(section, &run,
           M68K_SOURCE_QUALITY_DIAGNOSTIC_ACCEPTED_CODE_WITHOUT_EXECUTABLE_ORIGIN,

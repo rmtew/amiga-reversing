@@ -314,6 +314,8 @@ const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind) {
       return "accepted_code_without_executable_origin";
     case M68K_SOURCE_QUALITY_DIAGNOSTIC_UNREFERENCED_LABEL_STATEMENT:
       return "unreferenced_label_statement";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_PARTIAL_CODE_BLOCK_DECODE:
+      return "partial_code_block_decode";
     default:
       return "unknown";
   }

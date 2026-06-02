@@ -68,6 +68,64 @@ candidate has entry/control/relocation/table/runtime/manual proof
 An accepted run that falls through weakly into data is a diagnostic or a
 demotion. It is not silently rendered as restored source.
 
+Partial block decode is a separate explicit failure when the framework has
+accepted a block as code but cannot decode/prove the whole executable span:
+
+```text
+accepted code block/run
+  -> CPU decode stops before a terminal or proven boundary
+  -> no platform semantic instruction covers the stop
+  -> no accepted non-code ownership explains a deliberate boundary
+  -> partial_code_block_decode blocker
+```
+
+`partial_code_block_decode` must be distinct from
+`unterminated_or_invalid_code_range`. The first means analysis claimed a code
+span that CPU/platform decode cannot cover. The second means the run decodes
+but has no credible ending or falls through into invalid ownership.
+
+This check must run as early as the state is knowable. A locally bad candidate
+is rejected during acceptance. A run-level partial decode is validated after
+accepted bytes/runs are rebuilt and before render. Renderer discovery is only a
+final invariant check, not the primary mechanism.
+
+Platform semantics are part of the decode proof. Classic Mac OS object and
+CODE-resource sources can contain A-line/F-line opwords that generic M68K
+decode would otherwise treat as illegal or data:
+
+```asm
+    move.l  a0,-(sp)
+    dc.w    $A9F0        ; Classic Mac OS trap/opword call
+    addq.l  #4,sp
+```
+
+For a Mac OS backend this can be valid executable flow when the platform hook
+identifies the opword and its flow behavior. For Amiga/Atari/raw targets, the
+same word has no such meaning unless that platform proves one. The validation
+question is therefore:
+
+```text
+CPU or platform semantic decode proves executable flow?
+  yes -> accepted code may continue with platform evidence
+  no  -> partial code-block diagnostic/refusal
+```
+
+The platform hook must return enough structure for accepted-run validation to
+continue safely:
+
+```text
+offset
+byte_length
+flow_kind = fallthrough | call_like_fallthrough | terminal | unsupported
+semantic_kind = macos_trap | macos_package_call | platform_private_opword | ...
+symbol/display name if known
+confidence/proof source
+```
+
+Knowing only that an opword is "known" is insufficient. Without `byte_length`,
+analysis cannot know where executable flow resumes. Without `flow_kind`, it
+cannot know whether fallthrough is valid.
+
 ### In-Image Address Identity
 
 Damocles currently has labels and numeric accesses that disagree:
@@ -336,6 +394,9 @@ typedef struct M68kPlatformSourceQualityHooks {
                                         uint8_t use_shape,
                                         char *buffer,
                                         size_t buffer_size);
+  int (*classify_semantic_opword)(const M68kDecodeSectionIR *section,
+                                  uint32_t offset,
+                                  M68kPlatformSemanticUseIR *out_use);
   int (*append_platform_ranges)(M68kSourceAnalysisIR *source_analysis);
 } M68kPlatformSourceQualityHooks;
 ```
@@ -343,7 +404,9 @@ typedef struct M68kPlatformSourceQualityHooks {
 The core owns fact schemas, validation, address identity, range coalescing, and
 diagnostics. The platform backend owns the semantic lookup that says "`$DFF09A`
 is `_custom+intena`" or "`$74` is only a low-memory base in this instruction
-shape."
+shape." It also owns platform executable opword classification, such as Classic
+Mac OS A-line/F-line traps and package calls, including whether the opword is a
+call-like fallthrough, terminal transfer, or unsupported platform instruction.
 
 This should fit the existing backend model. The code already carries
 `M68kPlatformBackendKind` through objects, assembler policy, render preview, and
@@ -747,6 +810,85 @@ where analysis is consistent, not downgrade failures.
 
 ## Implementation Slices
 
+Each slice must fix the obvious cause of any validation failure it exposes.
+Adding a validator and then stopping because a tracked target now fails is not
+completion; it is the start of the repair.
+
+This applies to all proposal work, not only dedicated validation slices. If an
+implementation step changes analysis, rendering, address identity, platform
+semantics, table detection, fixture import, or test coverage and that work
+surfaces a framework-owned failure, the same work item owns the cause analysis
+and the obvious fix.
+
+```text
+proposal work touches source-quality behavior
+  -> validation/test/target exposes a failure
+  -> classify the failure as framework-owned or genuinely outside scope
+  -> if framework-owned and causally visible, fix the producer now
+  -> only defer with a precise diagnostic chain when the fix is outside scope
+```
+
+The proposal must not normalize this pattern:
+
+```text
+validator added
+  -> target fails
+  -> failure is listed as a blocker
+  -> implementation moves on without fixing the bad producer
+```
+
+That is not a successful validation outcome. It is an incomplete slice.
+
+The slice workflow is:
+
+```text
+new validation exposes failure
+  -> treat the failure as a reproduction
+  -> reduce it to a focused fixture
+  -> identify the bad producer, missing platform semantic, or missing conflict
+     classifier
+  -> fix that cause in the same slice when it is within scope
+  -> rerender affected targets
+  -> update fixture/invariant inventory
+```
+
+Do not complete a slice by only surfacing a validation error when the fix is
+obvious from the same evidence. Leaving work behind is acceptable only when the
+failure is genuinely outside the proposal slice and the remaining work is
+documented with target, section/offset, diagnostic, fact chain, and proposed
+next fix.
+
+The documentation for any deferred failure must be concrete enough that another
+worker can reproduce it without re-discovering the problem:
+
+```text
+target/project
+source section and offset
+diagnostic kind/error code
+expected source-quality fact
+actual bad producer or missing producer
+why the fix is outside this slice
+next implementation step
+```
+
+The intended outcome is:
+
+```text
+added validation
+  -> target exposed framework bug
+  -> producer/conflict/platform semantic fixed
+  -> target renders correctly or refuses with a precise remaining diagnostic
+```
+
+The rejected outcome is:
+
+```text
+added validation
+  -> target now fails
+  -> called it a blocker
+  -> left the producer unchanged
+```
+
 ### Slice 1: Render Preview Read-Only Source Analysis
 
 Change render preview to consume source analysis:
@@ -800,13 +942,30 @@ Upgrade accepted-run auditing from reporting to action:
 
 ```text
 weak shape-only run
-  -> demote to orphan-code signal or data
+  -> never promote in the final model
+  -> demote during migration only to repair old bad facts
 
-run has origin but no credible ending
-  -> source-quality diagnostic
+accepted/proven code later fails validation
+  -> source-quality blocker
 
 manual seeded invalid run
   -> diagnostic/refusal, not silent acceptance
+```
+
+Weak code evidence is a review indicator, not a reason to convert bytes into
+code:
+
+```text
+weak decode island
+address-shaped value
+nearby label
+plausible instruction sequence
+orphan terminal-looking block
+  -> orphan_code_signal / possible_code_candidate / address_observation
+  -> no accepted_code
+  -> no code label
+  -> no source code rendering
+  -> no fallthrough propagation
 ```
 
 Damocles `$42C00`, Starglider false `ori` blocks, and Pandora false-code blocks
@@ -824,24 +983,53 @@ run.end_kind == accepted_gap
   -> severity=warning blocker=false
 ```
 
-That second case is too weak for the failure class. A seeded or auto-accepted
-run that falls into data should either be demoted before render or become a
-source-quality blocker when negative evidence is present:
+That second case is too weak for the failure class. A run that falls into data
+should either never be promoted in the first place or become a source-quality
+blocker when a required/proven origin made it accepted:
 
 ```text
 accepted_gap + nearby_data/string/table/absolute-storage evidence
   -> severity=error blocker=true
 
-accepted_gap + no negative evidence yet
-  -> warning plus review item
+weak accepted_gap + no hard origin
+  -> not accepted code; review/candidate fact only
 
 manual origin + accepted_gap
   -> manual_evidence_conflict blocker unless explicit boundary proof exists
 ```
 
 The implementation should avoid opcode-specific checks. The inputs are origin
-class, CFG end kind, nearby range ownership, orphan-code signals, structured
-data overlap, and address/table/string evidence.
+class, CFG end kind, CPU/platform decode coverage, nearby range ownership,
+orphan-code signals, structured data overlap, and address/table/string evidence.
+
+Credible code boundaries are explicit:
+
+```text
+terminal CPU instruction
+  -> rts, rte, bra, jmp, trap/no-return call when proven
+
+platform semantic terminal/fallthrough
+  -> MacOS A-line/F-line trap with byte length and flow kind
+
+proven control split
+  -> branch/jump/call target starts or exits a block
+
+section/resource boundary
+  -> executable section/resource ends exactly here
+
+explicit owned non-code boundary
+  -> following bytes are proven data/table/string
+  -> current code has a credible transfer/boundary before them
+```
+
+Non-boundaries:
+
+```text
+decode stopped on invalid next word
+next bytes look awkward
+one-off address value points here
+run simply reaches data with no terminal/transfer
+```
 
 Implementation order:
 
@@ -852,8 +1040,43 @@ Implementation order:
 3. Export provenance in M68kCodeOriginIR.
 4. Add source-quality tests for manual seed at valid code, data overlap,
    mid-instruction, and unterminated accepted-gap runs.
-5. Change accepted-gap severity to blocker when negative evidence is present.
-6. Demote shape-only runs before render when no executable origin remains.
+5. Add partial-code-block fixtures:
+   generic accepted run whose decode stops before a credible terminal;
+   same byte shape under Mac OS where an A-line/F-line platform opword proves
+   executable flow; same opword under Amiga/raw where no platform proof exists
+   and source export is refused.
+6. Change accepted-gap severity to blocker when negative evidence is present.
+7. Stop promoting weak shape-only runs; keep them as review/candidate facts.
+   During migration, demote any existing shape-only accepted runs before render.
+```
+
+Current implementation progress:
+
+```text
+partial_code_block_decode diagnostic kind
+  -> added to C source-quality diagnostics
+  -> emitted as severity=error/blocker when accepted code bytes are not fully
+     covered by decoded instruction candidates
+  -> covered by isolated C fixture:
+     source_quality_analyze_blocks_partial_code_block_decode
+  -> positive terminal decode path asserts no partial-code diagnostic:
+     source_quality_analyze_uses_decode_terminal_run_end
+```
+
+This is only the first validation slice. It deliberately does not solve weak
+shape-only promotion or platform semantic opword coverage. Those remain in this
+slice because partial decode validation is useful only when the producer fixes
+follow:
+
+```text
+accepted bytes without decode coverage
+  -> fail now
+
+weak decode island promoted without hard evidence
+  -> next: stop promoting or demote before render
+
+platform opword accepted as executable code
+  -> next: require platform hook byte length and flow kind
 ```
 
 ### Slice 5: Address Identity And Range Closure
@@ -1166,6 +1389,41 @@ checked-in `.s` diffs.
 - Manual/editor changes pass the same C source-quality checks as auto-analysis.
 - All output-affecting changes are reflected in regenerated target `.s` files
   and round-trip report output.
+- Validation failures discovered during implementation are reduced and fixed at
+  cause in the same slice when the cause is inside the slice scope.
+
+## Trailing Observations For Later Work
+
+These observations are not part of the partial-code diagnostic patch, but they
+matter before proposal 033 can be called complete.
+
+The rendered-source gate previously reported missing recorded source paths for
+the Magicland Dizzy hunk targets:
+
+```text
+bin/imported/magicland_dizzy_zip/
+  Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf
+```
+
+That was stale extracted-path metadata. The current fix is archive-aware disk
+access in the Python C-backend wrapper plus Magicland metadata pointing at the
+tracked resource zip:
+
+```text
+resources/platform_amiga/
+  Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip
+```
+
+The read-only all-target gate then reports zero failures, with Damocles
+Tetragon 02 exact. This is gate hygiene for proposal 033: tracked target
+metadata must not depend on ignored extracted disk images.
+
+The current gate also shows many content-exact but not full-file-exact hunk
+targets because of known container-shape, relocation ordering/grouping, size,
+or policy-divergence categories. Those should not block source-quality slices
+when the rendered source is content-exact, but final acceptance should keep the
+distinction visible in the report instead of treating them as source render
+regressions.
 
 ## Non-Goals
 

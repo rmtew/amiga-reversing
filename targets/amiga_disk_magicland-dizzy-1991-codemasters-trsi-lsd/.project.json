@@ -6,7 +6,7 @@
     "platform": "amiga-disk",
     "sha256": "bb2426185164bf2e667a73f8804a670285d8c11da0245f5f7a6d4237106fd56a",
     "size": 901120,
-    "source_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf"
+    "source_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip"
   },
   "schema_version": 2,
   "updated_at": "2026-05-30T09:54:42.807960+00:00"

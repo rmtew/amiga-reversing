@@ -3,7 +3,7 @@
   "origin": {
     "kind": "disk_child",
     "parent_disk_id": "magicland-dizzy-1991-codemasters-trsi-lsd",
-    "source_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf",
+    "source_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip",
     "target_role": "bootblock",
     "target_type": "bootblock"
   },

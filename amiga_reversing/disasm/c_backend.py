@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import zipfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from ctypes import (
@@ -240,12 +241,13 @@ def inspect_disk_with_c_backend(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
-    inspect_text = _platform_disk_text(
-        "platform_disk_inspect_path_json_alloc",
-        _platform_disk_name_for_path(Path(disk_path)),
-        str(disk_path),
-        project_root=project_root,
-    )
+    with _disk_image_path_for_c_backend(Path(disk_path)) as c_disk_path:
+        inspect_text = _platform_disk_text(
+            "platform_disk_inspect_path_json_alloc",
+            _platform_disk_name_for_path(c_disk_path),
+            str(c_disk_path),
+            project_root=project_root,
+        )
     return cast(dict[str, object], json.loads(inspect_text))
 
 
@@ -255,13 +257,14 @@ def extract_disk_entry_with_c_backend(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> bytes:
-    return _platform_disk_bytes(
-        "platform_disk_extract_entry_path_bytes_alloc",
-        _platform_disk_name_for_path(Path(disk_path)),
-        str(disk_path),
-        entry_path,
-        project_root=project_root,
-    )
+    with _disk_image_path_for_c_backend(Path(disk_path)) as c_disk_path:
+        return _platform_disk_bytes(
+            "platform_disk_extract_entry_path_bytes_alloc",
+            _platform_disk_name_for_path(c_disk_path),
+            str(c_disk_path),
+            entry_path,
+            project_root=project_root,
+        )
 
 
 def identify_packed_range_with_c_backend(
@@ -2084,6 +2087,29 @@ def _platform_file_name_for_disk_path(path: Path) -> str:
     if path.suffix.lower() in {".st", ".msa"}:
         return "atari-st"
     return "amiga-hunk"
+
+
+@contextmanager
+def _disk_image_path_for_c_backend(path: Path) -> Iterator[Path]:
+    if path.suffix.lower() != ".zip":
+        yield path
+        return
+    try:
+        with zipfile.ZipFile(path) as archive:
+            members = [
+                member
+                for member in archive.infolist()
+                if not member.is_dir() and Path(member.filename).suffix.lower() in {".adf", ".st", ".msa"}
+            ]
+            if len(members) != 1:
+                raise ValueError(f"Disk archive must contain exactly one disk image: {path}")
+            member = members[0]
+            with tempfile.TemporaryDirectory(prefix="amiga_reversing_disk_") as temp_root:
+                image_path = Path(temp_root) / Path(member.filename).name
+                image_path.write_bytes(archive.read(member))
+                yield image_path
+    except zipfile.BadZipFile as exc:
+        raise ValueError(f"Invalid disk archive: {path}") from exc
 
 
 def _platform_disk_name_for_path(path: Path) -> str:

@@ -9035,21 +9035,21 @@
   "disk_id": "magicland-dizzy-1991-codemasters-trsi-lsd",
   "imported_targets": [
     {
-      "binary_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::CacheOFF",
+      "binary_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip::CacheOFF",
       "entry_path": "CacheOFF",
       "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_cacheoff_77b2e4f4",
       "target_path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_cacheoff_77b2e4f4",
       "target_type": "program"
     },
     {
-      "binary_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::MD",
+      "binary_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip::MD",
       "entry_path": "MD",
       "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
       "target_path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_md_e066dc14",
       "target_type": "program"
     },
     {
-      "binary_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::TRAINER",
+      "binary_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip::TRAINER",
       "derived_targets": [
         {
           "codec_id": "unknown-self-decrunch",
@@ -9105,14 +9105,14 @@
       "target_type": "raw_binary"
     },
     {
-      "binary_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::TRSI!",
+      "binary_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip::TRSI!",
       "entry_path": "TRSI!",
       "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trsi_4892c70e",
       "target_path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_trsi_4892c70e",
       "target_type": "program"
     },
     {
-      "binary_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::bootblock",
+      "binary_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip::bootblock",
       "entry_path": "bootblock",
       "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_bootblock",
       "target_path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_raw_bootblock",
@@ -9120,6 +9120,6 @@
     }
   ],
   "schema_version": 1,
-  "source_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf",
+  "source_path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip",
   "source_sha256": "bb2426185164bf2e667a73f8804a670285d8c11da0245f5f7a6d4237106fd56a"
 }

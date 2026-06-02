@@ -2601,6 +2601,36 @@ def test_extract_disk_entry_uses_c_disk_backend(monkeypatch, tmp_path: Path) -> 
     assert calls == [("platform_disk_extract_entry_path_bytes_alloc", "amiga-disk", str(disk_path), "C/Run")]
 
 
+def test_extract_disk_entry_materializes_single_image_zip_for_c_backend(monkeypatch, tmp_path: Path) -> None:
+    archive_path = tmp_path / "demo.zip"
+    with ZipFile(archive_path, "w") as archive:
+        archive.writestr("Demo Disk.adf", b"DOS" + b"\0" * 1021)
+    calls: list[tuple[object, ...]] = []
+
+    def fake_run(function_name: str, *args: str, project_root):
+        image_path = Path(args[1])
+        calls.append((function_name, args[0], image_path.name, args[2]))
+        assert image_path != archive_path
+        assert image_path.suffix == ".adf"
+        assert image_path.read_bytes().startswith(b"DOS")
+        return b"payload"
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_disk_bytes", fake_run)
+
+    assert extract_disk_entry_with_c_backend(archive_path, "C/Run", project_root=tmp_path) == b"payload"
+    assert calls == [("platform_disk_extract_entry_path_bytes_alloc", "amiga-disk", "Demo Disk.adf", "C/Run")]
+
+
+def test_inspect_disk_rejects_ambiguous_image_zip(tmp_path: Path) -> None:
+    archive_path = tmp_path / "demo.zip"
+    with ZipFile(archive_path, "w") as archive:
+        archive.writestr("Disk1.adf", b"DOS" + b"\0" * 1021)
+        archive.writestr("Disk2.adf", b"DOS" + b"\0" * 1021)
+
+    with pytest.raises(ValueError, match="exactly one disk image"):
+        inspect_disk_with_c_backend(archive_path, project_root=tmp_path)
+
+
 def test_project_source_disk_entry_extracts_with_c_disk_backend(monkeypatch, tmp_path: Path) -> None:
     source = DiskEntryBinarySource(
         kind=BinarySourceKind.DISK_ENTRY,

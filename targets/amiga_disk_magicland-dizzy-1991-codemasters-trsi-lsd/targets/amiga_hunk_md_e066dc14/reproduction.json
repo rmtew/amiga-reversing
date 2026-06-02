@@ -246,7 +246,7 @@
       "workflow_arena_total_blocks": 33
     },
     "generation": "facts_v2_asm_source",
-    "path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::MD",
+    "path": "resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip::MD",
     "timing": {
       "total_seconds": 0.207
     }
