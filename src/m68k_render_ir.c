@@ -1485,6 +1485,8 @@ static int lookup_materialized_runtime_address_source_offset(const M68kRenderLoo
   uint32_t runtime_address, uint32_t *out_source_offset);
 static int render_absolute_ref_access_kind(uint8_t access_kind);
 static uint32_t render_instruction_access_width(const M68kInstructionIR *instruction, uint8_t access_kind);
+static const M68kDecodeCandidate *accepted_candidate_covering_offset_local(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t offset);
 
 static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kSourceAnalysisIR *source_analysis, int *io_emitted_header) {
@@ -5390,6 +5392,76 @@ static void render_lookup_build_block_start_before_maps(M68kRenderLookup *lookup
   }
 }
 
+static int materialized_runtime_code_operand_patch_anchor_offset(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t source_offset,
+    uint32_t access_width, uint32_t *out_anchor_offset) {
+  const M68kDecodeCandidate *anchor;
+  uint32_t anchor_end;
+  if (out_anchor_offset != NULL) *out_anchor_offset = 0U;
+  if (lookup == NULL || section == NULL || accepted_start == NULL ||
+      access_width == 0U || source_offset > UINT32_MAX - access_width) {
+    return 0;
+  }
+  anchor = accepted_candidate_covering_offset_local(section, accepted_start, source_offset);
+  if (anchor == NULL || anchor->byte_count == 0U || anchor->offset > UINT32_MAX - anchor->byte_count) return 0;
+  anchor_end = anchor->offset + anchor->byte_count;
+  if (source_offset <= anchor->offset || source_offset + access_width > anchor_end) return 0;
+  if (out_anchor_offset != NULL) *out_anchor_offset = anchor->offset;
+  return 1;
+}
+
+static void render_lookup_mark_materialized_runtime_code_operand_patch_labels(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start) {
+  size_t section_index;
+  uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL) return;
+  if (lookup->object != NULL) platform_kind = lookup->object->platform_backend_kind;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    const uint8_t *section_accepted_start = accepted_start[section_index];
+    size_t candidate_index;
+    if (section_accepted_start == NULL) continue;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      const M68kSimFormMetadata *metadata;
+      size_t operand_index;
+      if (candidate->offset >= section->size || section_accepted_start[candidate->offset] == 0U) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      metadata = m68k_sim_metadata_for_instruction(&instruction);
+      if (metadata == NULL) continue;
+      for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+        M68kOperandIR *operand = &instruction.operands[operand_index];
+        uint32_t runtime_address = 0U;
+        uint32_t source_offset = 0U;
+        uint32_t access_width = 0U;
+        uint32_t anchor_offset = 0U;
+        uint8_t platform_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+        uint32_t platform_owner_offset = 0U;
+        if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
+            operand->symbol_ref.has_name != 0U ||
+            !operand_absolute_offset_local(operand, &runtime_address)) {
+          continue;
+        }
+        if (platform_facts_v2_absolute_memory_owner(platform_kind, runtime_address, &platform_owner_kind,
+            &platform_owner_offset) ||
+            m68k_cpu_find_exception_vector_by_address(runtime_address) != NULL ||
+            !lookup_materialized_runtime_address_source_offset(lookup, section->section_index, runtime_address,
+              &source_offset)) {
+          continue;
+        }
+        access_width = render_instruction_access_width(&instruction, metadata->operand_access_kinds[operand_index]);
+        if (!materialized_runtime_code_operand_patch_anchor_offset(lookup, section, section_accepted_start,
+            source_offset, access_width, &anchor_offset)) {
+          continue;
+        }
+        render_lookup_set_label(lookup, section->section_index, anchor_offset);
+        render_lookup_mark_label_target_ref(lookup, section->section_index, anchor_offset);
+      }
+    }
+  }
+}
+
 int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object, const M68kDecodeIR *decode,
     const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
     const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count) {
@@ -5713,6 +5785,7 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
       }
     }
   }
+  render_lookup_mark_materialized_runtime_code_operand_patch_labels(lookup, decode, accepted_start);
   render_lookup_build_block_start_before_maps(lookup);
   render_lookup_mark_runtime_ref_statement_labels(lookup);
   if (render_lookup_add_pc_relative_xrefs(lookup, decode, accepted_start) != 0) goto oom;
@@ -8052,6 +8125,21 @@ static void attach_operand_storage_label_symbol(const M68kRenderLookup *lookup, 
   operand->symbol_ref.section_index = target_section_index;
 }
 
+static void attach_operand_label_addend_symbol(const M68kRenderLookup *lookup, M68kInstructionIR *instruction,
+    size_t operand_index, size_t target_section_index, uint32_t target_offset, int32_t addend) {
+  M68kOperandIR *operand;
+  if (instruction == NULL || operand_index >= instruction->operand_count) return;
+  operand = &instruction->operands[operand_index];
+  m68k_ir_symbol_ref_init(&operand->symbol_ref);
+  operand->symbol_ref.kind = symbol_ref_kind_for_operand(operand);
+  operand->symbol_ref.has_name = 1U;
+  operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
+    operand->symbol_ref.name, sizeof(operand->symbol_ref.name), target_section_index, target_offset);
+  operand->symbol_ref.has_section = 1;
+  operand->symbol_ref.section_index = target_section_index;
+  operand->symbol_ref.addend = addend;
+}
+
 static int target_matches_relocation(const M68kDecodeTarget *target, const M68kFact *relocation) {
   return target != NULL && relocation != NULL && target->has_section != 0U &&
     target->section_index == relocation->target_section_index && target->offset == relocation->target_offset;
@@ -8979,9 +9067,27 @@ static int attach_unmapped_absolute_runtime_address_symbols(M68kRenderIRPreview 
   return 1;
 }
 
+static int attach_materialized_runtime_code_operand_patch_symbol(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, M68kInstructionIR *instruction,
+    size_t operand_index, uint32_t source_offset, uint32_t access_width) {
+  uint32_t anchor_offset = 0U;
+  int64_t addend;
+  if (lookup == NULL || section == NULL || accepted_start == NULL || instruction == NULL ||
+      !materialized_runtime_code_operand_patch_anchor_offset(lookup, section, accepted_start, source_offset,
+        access_width, &anchor_offset)) {
+    return 0;
+  }
+  if (!lookup_has_renderable_label(lookup, section->section_index, anchor_offset)) return 0;
+  addend = (int64_t)(uint64_t)source_offset - (int64_t)(uint64_t)anchor_offset;
+  if (addend < INT32_MIN || addend > INT32_MAX) return 0;
+  attach_operand_label_addend_symbol(lookup, instruction, operand_index, section->section_index,
+    anchor_offset, (int32_t)addend);
+  return 1;
+}
+
 static int attach_materialized_runtime_absolute_storage_symbols(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, const M68kDecodeCandidate *candidate,
-    M68kInstructionIR *instruction) {
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
   uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
@@ -9008,12 +9114,18 @@ static int attach_materialized_runtime_absolute_storage_symbols(const M68kRender
         &platform_owner_offset) ||
         m68k_cpu_find_exception_vector_by_address(runtime_address) != NULL ||
         !lookup_materialized_runtime_address_source_offset(lookup, section->section_index, runtime_address,
-          &source_offset) ||
-        !lookup_has_renderable_label(lookup, section->section_index, source_offset)) {
+          &source_offset)) {
       continue;
     }
     access_width = render_instruction_access_width(instruction, metadata->operand_access_kinds[operand_index]);
-    if (accepted_byte_range_overlaps(section, accepted_bytes, source_offset, access_width)) continue;
+    if (accepted_byte_range_overlaps(section, accepted_bytes, source_offset, access_width)) {
+      if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+        (void)attach_materialized_runtime_code_operand_patch_symbol(lookup, section, accepted_start, instruction,
+          operand_index, source_offset, access_width);
+      }
+      continue;
+    }
+    if (!lookup_has_renderable_label(lookup, section->section_index, source_offset)) continue;
     attach_operand_label_symbol(lookup, instruction, operand_index, section->section_index, candidate->offset,
       section->section_index, source_offset);
   }
@@ -9706,7 +9818,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   if (!attach_runtime_address_ref_symbols(preview, lookup, section, accepted_bytes, candidate, &instruction))
     return 0;
   (void)attach_existing_materialized_runtime_immediate_symbols(lookup, section->section_index, &instruction);
-  if (!attach_materialized_runtime_absolute_storage_symbols(lookup, section, accepted_bytes, candidate,
+  if (!attach_materialized_runtime_absolute_storage_symbols(lookup, section, accepted_start, accepted_bytes, candidate,
       &instruction)) {
     return 0;
   }

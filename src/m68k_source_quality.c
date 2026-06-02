@@ -7,6 +7,7 @@
 #include "platform_common.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static uint8_t code_origin_class_from_reason(uint32_t reason) {
@@ -549,45 +550,62 @@ static int code_start_ref_is_control_target_proof(const M68kCodeStartRefIR *ref)
   }
 }
 
-static const M68kAcceptedCodeRunIR *accepted_code_run_containing_offset(const M68kSectionAnalysisIR *section,
-    uint32_t offset) {
+static int accepted_code_run_index_containing_offset(const M68kSectionAnalysisIR *section,
+    uint32_t offset, size_t *out_index) {
   size_t index;
-  if (section == NULL) return NULL;
+  if (section == NULL || out_index == NULL) return 0;
   for (index = 0U; index < section->accepted_code_run_count; ++index) {
     const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[index];
-    if (offset >= run->start_offset && offset < run->end_offset) return run;
-  }
-  return NULL;
-}
-
-static int accepted_run_has_hard_fallthrough_proof_depth(const M68kSectionAnalysisIR *section,
-    uint32_t start, uint32_t end, unsigned depth) {
-  enum { SOURCE_QUALITY_CONTROL_PROOF_DEPTH_LIMIT = 16U };
-  size_t index;
-  if (section == NULL) return 0;
-  for (index = 0U; index < section->code_start_ref_count; ++index) {
-    const M68kCodeStartRefIR *ref = &section->code_start_refs[index];
-    const M68kAcceptedCodeRunIR *source_run;
-    if (ref->offset < start || ref->offset >= end) continue;
-    if (code_start_ref_is_direct_hard_fallthrough_proof(ref)) return 1;
-    if (!code_start_ref_is_control_target_proof(ref)) continue;
-    if (depth >= SOURCE_QUALITY_CONTROL_PROOF_DEPTH_LIMIT) continue;
-    if (ref->source_section_index != section->section_index) continue;
-    if (ref->source_offset >= start && ref->source_offset < end) continue;
-    source_run = accepted_code_run_containing_offset(section, ref->source_offset);
-    if (source_run == NULL) continue;
-    if (accepted_run_overlaps_blocking_range_for_hard_control_proof(section, source_run)) continue;
-    if (accepted_run_has_hard_fallthrough_proof_depth(section, source_run->start_offset, source_run->end_offset,
-        depth + 1U)) {
+    if (offset >= run->start_offset && offset < run->end_offset) {
+      *out_index = index;
       return 1;
     }
   }
   return 0;
 }
 
-static int accepted_run_has_hard_fallthrough_proof(const M68kSectionAnalysisIR *section,
-    uint32_t start, uint32_t end) {
-  return accepted_run_has_hard_fallthrough_proof_depth(section, start, end, 0U);
+static int accepted_run_has_hard_fallthrough_proof_depth(const M68kSectionAnalysisIR *section,
+    size_t run_index, uint8_t *proof_state, unsigned depth) {
+  enum { SOURCE_QUALITY_CONTROL_PROOF_DEPTH_LIMIT = 16U };
+  enum {
+    SOURCE_QUALITY_PROOF_UNKNOWN = 0U,
+    SOURCE_QUALITY_PROOF_VISITING = 1U,
+    SOURCE_QUALITY_PROOF_FALSE = 2U,
+    SOURCE_QUALITY_PROOF_TRUE = 3U
+  };
+  const M68kAcceptedCodeRunIR *run;
+  size_t index;
+  if (section == NULL || proof_state == NULL || run_index >= section->accepted_code_run_count) return 0;
+  if (proof_state[run_index] == SOURCE_QUALITY_PROOF_TRUE) return 1;
+  if (proof_state[run_index] == SOURCE_QUALITY_PROOF_FALSE ||
+      proof_state[run_index] == SOURCE_QUALITY_PROOF_VISITING) {
+    return 0;
+  }
+  proof_state[run_index] = SOURCE_QUALITY_PROOF_VISITING;
+  run = &section->accepted_code_runs[run_index];
+  for (index = 0U; index < section->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &section->code_start_refs[index];
+    size_t source_run_index;
+    const M68kAcceptedCodeRunIR *source_run;
+    if (ref->offset < run->start_offset || ref->offset >= run->end_offset) continue;
+    if (code_start_ref_is_direct_hard_fallthrough_proof(ref)) {
+      proof_state[run_index] = SOURCE_QUALITY_PROOF_TRUE;
+      return 1;
+    }
+    if (!code_start_ref_is_control_target_proof(ref)) continue;
+    if (depth >= SOURCE_QUALITY_CONTROL_PROOF_DEPTH_LIMIT) continue;
+    if (ref->source_section_index != section->section_index) continue;
+    if (ref->source_offset >= run->start_offset && ref->source_offset < run->end_offset) continue;
+    if (!accepted_code_run_index_containing_offset(section, ref->source_offset, &source_run_index)) continue;
+    source_run = &section->accepted_code_runs[source_run_index];
+    if (accepted_run_overlaps_blocking_range_for_hard_control_proof(section, source_run)) continue;
+    if (accepted_run_has_hard_fallthrough_proof_depth(section, source_run_index, proof_state, depth + 1U)) {
+      proof_state[run_index] = SOURCE_QUALITY_PROOF_TRUE;
+      return 1;
+    }
+  }
+  proof_state[run_index] = SOURCE_QUALITY_PROOF_FALSE;
+  return 0;
 }
 
 static int classify_run_end_from_cfg(const M68kSectionAnalysisIR *section, uint32_t start, uint32_t end,
@@ -1111,12 +1129,16 @@ static int accepted_run_overlaps_accepted_noncode(const M68kSectionAnalysisIR *s
 
 static int append_accepted_run_noncode_fallthrough_diagnostics_for_section(M68kSectionAnalysisIR *section) {
   size_t run_index;
+  uint8_t *proof_state;
   if (section == NULL) return -1;
+  if (section->accepted_code_run_count == 0U) return 0;
+  proof_state = (uint8_t *)calloc(section->accepted_code_run_count, sizeof(*proof_state));
+  if (proof_state == NULL) return -1;
   for (run_index = 0U; run_index < section->accepted_code_run_count; ++run_index) {
     const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[run_index];
     size_t range_index;
     if (run->end_kind != M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP) continue;
-    if (!accepted_run_has_hard_fallthrough_proof(section, run->start_offset, run->end_offset)) continue;
+    if (!accepted_run_has_hard_fallthrough_proof_depth(section, run_index, proof_state, 0U)) continue;
     if (accepted_run_overlaps_accepted_noncode(section, run)) continue;
     for (range_index = 0U; range_index < section->range_ownership_count; ++range_index) {
       const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
@@ -1125,11 +1147,13 @@ static int append_accepted_run_noncode_fallthrough_diagnostics_for_section(M68kS
           M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE,
           M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
           "accepted code run falls through into accepted non-code range") != 0) {
+        free(proof_state);
         return -1;
       }
       break;
     }
   }
+  free(proof_state);
   return 0;
 }
 

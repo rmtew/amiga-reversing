@@ -5698,13 +5698,15 @@ platform-rendered-source-roundtrip --update-rendered-source --json
   unsupported: 1
 ```
 
-Remaining Damocles-specific work is still open. This slice does not by itself
-repair the false accepted-code island at `$00042C00`, the `runtime_address_*`
-label-domain confusion, or the missed mapped labels for operands such as
-`$00042C6C.l`, `$00042C70.l`, `$000459BA.l`, and `$000459C6.l`. It adds the
-framework signal that will turn one class of "analysis named it but rendering
-missed it" into a C-visible source-quality failure instead of a silent bad
-source rendering.
+The `$00042C00` false accepted-code island was repaired by the trace-state
+invalidation rule: a partial data-register write kills the previous full-width
+target fact. Remaining Damocles cleanup is narrower: mapped runtime/storage
+operands must either render as justified symbols or remain numeric for a clear
+reason. Self-modifying writes to instruction operand bytes, such as
+`$000459BA.l` and `$000459C6.l`, should render as the containing instruction
+runtime label plus addend instead of as raw interior absolute addresses. One-off
+sparse non-platform address observations such as `$00042C6C.l` and `$00042C70.l`
+must not become `absolute_slot_*` names without stronger storage/range proof.
 
 ### Source-Quality Failure Explanation Tooling
 
@@ -6343,6 +6345,11 @@ absolute operand, immediate, loaded pointer, computed address
 memory read/write through or of that address
   -> storage/range evidence only when access shape and target mapping are valid
 
+memory write to operand bytes inside an accepted instruction
+  -> self-modifying operand patch evidence
+  -> render as the containing runtime instruction label plus addend
+  -> do not invent a separate absolute_slot_* symbol for the interior bytes
+
 one-off sparse non-platform address use
   -> unresolved candidate/review signal
   -> no automatic absolute_slot_* symbol
@@ -6356,6 +6363,50 @@ single address-looking value to a durable storage symbol either. The only bridge
 into code is executable control proof. The bridge into a named data/range symbol
 is repeated or structured storage evidence, relocation/container proof,
 platform semantic proof, or an accepted manual fact that passes validation.
+
+The important cleanup rule is that "code overlap" is not one bucket. Generic
+address use overlapping accepted code remains unresolved/conflicted and must not
+create an `absolute_slot_*`. A write whose access width lands wholly inside an
+accepted instruction's operand storage is different: it is not a new storage
+symbol, it is a patch to the existing instruction bytes. The renderer should
+therefore name the containing runtime instruction address, not the source
+storage address and not the interior address:
+
+```asm
+; storage/runtime view maps storage offset $10 to runtime address $00000110
+abs_0_00000110:
+    jsr abs_0_00000110.l
+
+; write targets the absolute-long operand at $00000112
+    move.l #$120,abs_0_00000110+2.l
+```
+
+That symbolic addend is the checkable source-quality result only because the
+analysis proved the target bytes are a subrange of one accepted instruction.
+Addends must be supported warily. They are not a general escape hatch for
+making an absolute address look symbolic. In the safe case, the addend is the
+restored source form for a proven sub-object. In the unsafe case, the same
+syntax is a symptom that analysis has lost the correct object, address domain,
+or ownership boundary:
+
+```text
+safe addend:
+  base symbol identifies the real emitted address domain
+  addend lands inside a proven sub-object
+  rebuilt bytes match the original
+
+unsafe addend:
+  base symbol was chosen only because some nearby label exists
+  addend crosses an ownership boundary or address domain
+  round-trip changes bytes or hides an unproved address observation
+```
+
+The Damocles failure mode is the warning case. Rendering the patch as
+`loc_0_0004E314+2.l` assembled, but rebuilt bytes changed because the operand
+needed the runtime address `$0004F314+2`, not the storage offset `$0004E314+2`.
+The correct clean form is `abs_0_0004F314+2.l`. If the analysis cannot prove
+that relationship, the operand must remain numeric or produce a source-quality
+failure; it must not be "fixed" with a plausible label plus addend.
 
 Traced indirect control has an additional invalidation rule:
 
@@ -6424,6 +6475,29 @@ facts_v2_traced_indirect_jump_invalidates_full_data_reg_after_word_write
 source_quality_analyze_blocks_unknown_control_target_origin
   constructs accepted bytes with only a bare CONTROL_TARGET/unknown evidence
   asserts accepted_code_without_executable_origin
+
+facts_v2_materialized_runtime_code_operand_patch_renders_label_addend
+  constructs a materialized runtime range with:
+    jsr target_instruction
+    move.l #new_target,target_instruction+2
+    target_instruction: jsr old_target
+
+  asserts:
+    the patch operand renders as abs_...+2.l in the runtime address domain
+    the patch operand does not render as loc_...+2.l in the storage domain
+    the raw interior absolute address is not emitted
+    source export is not refused
+
+facts_v2_materialized_runtime_code_operand_patch_backward_ref_defines_label
+  constructs the Damocles-shaped ordering:
+    target_instruction: jsr old_target
+    move.w #new_operand,target_instruction+2
+
+  asserts:
+    the required containing label is known before rendering reaches the later
+    patch instruction
+    the patch operand renders as abs_...+2.l
+    source export is not refused
 ```
 
 The original Damocles reproduction remains part of the target-level check:
@@ -6431,6 +6505,7 @@ The original Damocles reproduction remains part of the target-level check:
 ```text
 amiga_raw_damocles_53b24620_native_tetragon_02_00000060
   $42C00 must not render as accepted ori.b code
+  $459BA/$459C6 operand patches should render as runtime containing-label+2.l
   $42C00/$42C6C/$42C70 may be tracked as address/range/storage evidence
   round-trip assembly must still pass after fresh render
 ```
