@@ -1533,6 +1533,20 @@ static int source_quality_operand_has_relocation_ref(const M68kFactIR *facts,
   return 0;
 }
 
+static const M68kFact *source_quality_unique_relocation_ref_for_span(const M68kFactIR *facts,
+    size_t section_index, uint32_t span_start, uint32_t span_size) {
+  const M68kFact *match = NULL;
+  size_t fact_index;
+  if (facts == NULL || span_size == 0U) return NULL;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if (!source_quality_relocation_exactly_covers_span(fact, section_index, span_start, span_size)) continue;
+    if (match != NULL) return NULL;
+    match = fact;
+  }
+  return match;
+}
+
 static const M68kFact *source_quality_unique_relocation_ref_for_operand(const M68kFactIR *facts,
     size_t section_index, const M68kDecodeCandidate *candidate, size_t operand_index) {
   const M68kFact *match = NULL;
@@ -2079,6 +2093,40 @@ static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *s
   return 0;
 }
 
+static int append_expected_table_entry_target_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t entry_index;
+    for (entry_index = 0U; entry_index < section_analysis->table_entry_count; ++entry_index) {
+      const M68kTableEntryIR *entry = &section_analysis->table_entries[entry_index];
+      M68kSectionAnalysisIR *target_section;
+      const M68kSymbolOriginIR *origin;
+      M68kExpectedSymbolAccessIR access;
+      if (!entry->has_target || entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET) {
+        continue;
+      }
+      target_section = source_analysis_section_by_index(source_analysis, entry->target_section_index);
+      if (target_section == NULL) continue;
+      origin = source_quality_symbol_origin_at(target_section, entry->target_offset);
+      if (origin == NULL) continue;
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = origin->symbol_name;
+      access.producer = "table_entry_target";
+      access.offset = entry->entry_offset;
+      access.target_section_index = entry->target_section_index;
+      access.target_offset = entry->target_offset;
+      access.operand_index = UINT32_MAX;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+      access.confidence = origin->confidence;
+      access.has_target = 1U;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 static uint8_t source_quality_immediate_text_token_width_for_candidate(const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction) {
   char suffix;
@@ -2361,11 +2409,21 @@ static int append_structured_data_reference_for_table_entry(M68kSourceAnalysisIR
   return m68k_ir_section_analysis_append_data_reference(section_analysis, &ref);
 }
 
+static int source_quality_relocation_target_inside_structured_item(const M68kAnalysisStructuredDataItem *item,
+    const M68kFact *relocation) {
+  if (item == NULL || relocation == NULL || !item->has_section_index || item->size == 0U ||
+      relocation->target_section_index != item->section_index) {
+    return 0;
+  }
+  if (item->offset > UINT32_MAX - item->size) return 0;
+  return relocation->target_offset >= item->offset && relocation->target_offset < item->offset + item->size;
+}
+
 static int append_structured_data_table_entry_target(M68kSourceAnalysisIR *source_analysis,
     M68kSectionAnalysisIR *section_analysis, const M68kAnalysisStructuredDataItem *item, uint32_t entry_index,
     uint32_t entry_offset, uint32_t entry_size, uint32_t raw_value, uint8_t raw_value_width,
-    int64_t target_offset, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    const uint8_t *accepted_bytes) {
+    uint32_t target_section_index, int64_t target_offset, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const uint8_t *accepted_bytes) {
   M68kTableEntryIR entry;
   uint8_t conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
   if (source_analysis == NULL || section_analysis == NULL || item == NULL || target_offset < 0 ||
@@ -2382,11 +2440,11 @@ static int append_structured_data_table_entry_target(M68kSourceAnalysisIR *sourc
   entry.table_kind_id = item->table_kind_id;
   entry.source_pattern_id = item->source_pattern_id;
   entry.has_target = 1U;
-  entry.target_section_index = item->target_section;
+  entry.target_section_index = target_section_index;
   entry.target_offset = (uint32_t)target_offset;
   if (item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH ||
       item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH) {
-    if (section != NULL && item->target_section == section->section_index) {
+    if (section != NULL && target_section_index == section->section_index) {
       entry.target_status = source_quality_code_table_target_status(section, accepted_start, accepted_bytes,
         (uint32_t)target_offset, &conflict_state);
     } else {
@@ -2421,7 +2479,8 @@ static int append_structured_data_table_entry_numeric(M68kSectionAnalysisIR *sec
 
 static int append_structured_data_table_entries_for_item(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
-    M68kSectionAnalysisIR *section_analysis, const M68kAnalysisStructuredDataItem *item) {
+    M68kSectionAnalysisIR *section_analysis, const M68kAnalysisStructuredDataItem *item,
+    const M68kFactIR *facts) {
   uint32_t cursor;
   uint32_t entry_size;
   if (source_analysis == NULL || section == NULL || section_analysis == NULL || item == NULL ||
@@ -2438,7 +2497,8 @@ static int append_structured_data_table_entries_for_item(M68kSourceAnalysisIR *s
       uint16_t raw_word = m68k_read_u16be(section->data + entry_offset);
       int64_t target_offset = (int64_t)item->target_offset + (int32_t)(int16_t)raw_word;
       if (append_structured_data_table_entry_target(source_analysis, section_analysis, item, entry_index,
-          entry_offset, entry_size, raw_word, 2U, target_offset, section, accepted_start, accepted_bytes) != 0) {
+          entry_offset, entry_size, raw_word, 2U, item->target_section, target_offset, section, accepted_start,
+          accepted_bytes) != 0) {
         return -1;
       }
     } else if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
@@ -2446,7 +2506,8 @@ static int append_structured_data_table_entries_for_item(M68kSourceAnalysisIR *s
       uint32_t raw_long = m68k_read_u32be(section->data + entry_offset);
       int64_t target_offset = (int64_t)item->target_offset + (int32_t)(int16_t)((raw_long >> 16U) & 0xFFFFU);
       if (append_structured_data_table_entry_target(source_analysis, section_analysis, item, entry_index,
-          entry_offset, entry_size, raw_long, 4U, target_offset, section, accepted_start, accepted_bytes) != 0) {
+          entry_offset, entry_size, raw_long, 4U, item->target_section, target_offset, section, accepted_start,
+          accepted_bytes) != 0) {
         return -1;
       }
     } else if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
@@ -2455,11 +2516,23 @@ static int append_structured_data_table_entries_for_item(M68kSourceAnalysisIR *s
       uint32_t raw_long = m68k_read_u32be(section->data + entry_offset);
       uint32_t target_offset = 0U;
       uint8_t allow_source_offset = source_quality_structured_data_item_is_absolute_long_lookup_table(item) ? 1U : 0U;
-      if (raw_long != 0U &&
+      const M68kFact *relocation = item->source_pattern_id ==
+          M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE ?
+        source_quality_unique_relocation_ref_for_span(facts, section_analysis->section_index, entry_offset,
+          entry_size) : NULL;
+      if (relocation != NULL && relocation->target_section_index <= UINT32_MAX &&
+          !source_quality_relocation_target_inside_structured_item(item, relocation)) {
+        if (append_structured_data_table_entry_target(source_analysis, section_analysis, item, entry_index,
+            entry_offset, entry_size, raw_long, 4U, (uint32_t)relocation->target_section_index,
+            relocation->target_offset, section, accepted_start, accepted_bytes) != 0) {
+          return -1;
+        }
+      } else if (raw_long != 0U &&
           source_quality_exact_pointer_value_label_offset(section_analysis, section->size, raw_long,
             allow_source_offset, &target_offset)) {
         if (append_structured_data_table_entry_target(source_analysis, section_analysis, item, entry_index,
-            entry_offset, entry_size, raw_long, 4U, target_offset, section, accepted_start, accepted_bytes) != 0) {
+            entry_offset, entry_size, raw_long, 4U, item->target_section, target_offset, section, accepted_start,
+            accepted_bytes) != 0) {
           return -1;
         }
       } else if (append_structured_data_table_entry_numeric(section_analysis, item, entry_index, entry_offset,
@@ -2480,7 +2553,8 @@ static int append_structured_data_table_entries_for_item(M68kSourceAnalysisIR *s
 }
 
 static int append_structured_data_table_entries(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start,
+    uint8_t *const *accepted_bytes) {
   size_t index;
   if (source_analysis == NULL) return -1;
   if (decode == NULL) return 0;
@@ -2505,7 +2579,7 @@ static int append_structured_data_table_entries(M68kSourceAnalysisIR *source_ana
     if (accepted_start != NULL) section_accepted_start = accepted_start[decode_index];
     if (accepted_bytes != NULL) section_accepted_bytes = accepted_bytes[decode_index];
     if (append_structured_data_table_entries_for_item(source_analysis, section, section_accepted_start,
-        section_accepted_bytes, section_analysis, item) != 0) {
+        section_accepted_bytes, section_analysis, item, facts) != 0) {
       return -1;
     }
   }
@@ -2616,7 +2690,9 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
-  if (append_structured_data_table_entries(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
+  if (append_structured_data_table_entries(source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
+    return -1;
+  if (append_expected_table_entry_target_symbol_accesses(source_analysis) != 0) return -1;
   if (append_immediate_text_tokens(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
   if (append_expected_address_observation_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;

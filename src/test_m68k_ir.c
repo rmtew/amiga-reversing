@@ -12168,6 +12168,9 @@ static int test_source_quality_analyze_resolves_pointer_table_entries_from_label
   M68kDecodeIR decode;
   M68kDecodeSectionIR decode_section;
   M68kAnalysisStructuredDataItem item;
+  M68kSymbolOriginIR origin;
+  size_t access_index;
+  int saw_table_entry_target_access = 0;
   uint8_t bytes[32];
   memset(bytes, 0, sizeof(bytes));
   bytes[8] = 0x00U;
@@ -12179,6 +12182,14 @@ static int test_source_quality_analyze_resolves_pointer_table_entries_from_label
   section_analysis.section_index = 0U;
   section_analysis.section_size = sizeof(bytes);
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_add_label(&section_analysis, 24U));
+  memset(&origin, 0, sizeof(origin));
+  origin.symbol_name = "ptr_target";
+  origin.offset = 24U;
+  origin.source_section_index = 0U;
+  origin.source_offset = 24U;
+  origin.origin_kind = M68K_SYMBOL_ORIGIN_DATA_REFERENCE;
+  origin.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_symbol_origin(&section_analysis, &origin));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   memset(&item, 0, sizeof(item));
   item.has_section_index = 1U;
@@ -12208,7 +12219,111 @@ static int test_source_quality_analyze_resolves_pointer_table_entries_from_label
       M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE |
       M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET,
     (int)source_analysis.sections[0].data_references[0].evidence_flags);
+  for (access_index = 0U; access_index < source_analysis.sections[0].expected_symbol_access_count;
+       ++access_index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[access_index];
+    if (access->offset == 8U && access->target_section_index == 0U && access->target_offset == 24U &&
+        access->operand_index == UINT32_MAX && access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+        access->symbol_name != NULL && strcmp(access->symbol_name, "ptr_target") == 0 &&
+        access->producer != NULL && strcmp(access->producer, "table_entry_target") == 0) {
+      saw_table_entry_target_access = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_table_entry_target_access);
   m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_resolves_relocation_pointer_table_entry_target_section(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section0;
+  M68kSectionAnalysisIR section1;
+  M68kDecodeIR decode;
+  M68kDecodeSectionIR decode_sections[2];
+  M68kFactIR facts;
+  M68kFact relocation;
+  M68kAnalysisStructuredDataItem item;
+  M68kSymbolOriginIR origin;
+  size_t access_index;
+  int saw_table_entry_target_access = 0;
+  uint8_t section0_bytes[8];
+  uint8_t section1_bytes[8];
+  memset(section0_bytes, 0, sizeof(section0_bytes));
+  memset(section1_bytes, 0, sizeof(section1_bytes));
+  section0_bytes[3] = 0x04U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section0, test_ir_result_arena()));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section1, test_ir_result_arena()));
+  section0.section_index = 0U;
+  section0.section_size = sizeof(section0_bytes);
+  section1.section_index = 1U;
+  section1.section_size = sizeof(section1_bytes);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_add_label(&section1, 4U));
+  memset(&origin, 0, sizeof(origin));
+  origin.symbol_name = "section1_ptr_target";
+  origin.offset = 4U;
+  origin.source_section_index = 1U;
+  origin.source_offset = 4U;
+  origin.origin_kind = M68K_SYMBOL_ORIGIN_DATA_REFERENCE;
+  origin.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_symbol_origin(&section1, &origin));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section0));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section1));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 0U;
+  item.size = 4U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  item.table_kind_id = M68K_ANALYSIS_TABLE_KIND_POINTER;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  memset(&decode, 0, sizeof(decode));
+  memset(decode_sections, 0, sizeof(decode_sections));
+  decode.sections = decode_sections;
+  decode.section_count = 2U;
+  decode_sections[0].section_index = 0U;
+  decode_sections[0].size = sizeof(section0_bytes);
+  decode_sections[0].data = section0_bytes;
+  decode_sections[1].section_index = 1U;
+  decode_sections[1].size = sizeof(section1_bytes);
+  decode_sections[1].data = section1_bytes;
+  m68k_fact_ir_init(&facts);
+  memset(&relocation, 0, sizeof(relocation));
+  relocation.kind = M68K_FACT_RELOCATION_REF;
+  relocation.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  relocation.section_index = 0U;
+  relocation.offset = 0U;
+  relocation.size = 4U;
+  relocation.target_section_index = 1U;
+  relocation.target_offset = 4U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &relocation));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, &decode, &facts, NULL, NULL));
+  M68K_C_ASSERT_INT(1, (int)source_analysis.sections[0].table_entry_count);
+  M68K_C_ASSERT_INT(M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET,
+    source_analysis.sections[0].table_entries[0].target_status);
+  M68K_C_ASSERT_INT(1, (int)source_analysis.sections[0].table_entries[0].target_section_index);
+  M68K_C_ASSERT_INT(4, (int)source_analysis.sections[0].table_entries[0].target_offset);
+  M68K_C_ASSERT_INT(1, (int)source_analysis.sections[0].data_reference_count);
+  M68K_C_ASSERT_INT(1, (int)source_analysis.sections[0].data_references[0].target_section_index);
+  M68K_C_ASSERT_INT(4, (int)source_analysis.sections[0].data_references[0].target_offset);
+  for (access_index = 0U; access_index < source_analysis.sections[0].expected_symbol_access_count;
+       ++access_index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[access_index];
+    if (access->offset == 0U && access->target_section_index == 1U && access->target_offset == 4U &&
+        access->operand_index == UINT32_MAX && access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+        access->symbol_name != NULL && strcmp(access->symbol_name, "section1_ptr_target") == 0 &&
+        access->producer != NULL && strcmp(access->producer, "table_entry_target") == 0) {
+      saw_table_entry_target_access = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_table_entry_target_access);
+  m68k_fact_ir_destroy(&facts);
+  m68k_ir_section_analysis_destroy(&section1);
+  m68k_ir_section_analysis_destroy(&section0);
   m68k_ir_source_analysis_destroy(&source_analysis);
   return 0;
 }
@@ -26512,6 +26627,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_classifies_code_dispatch_targets},
     {"source_quality_analyze_resolves_pointer_table_entries_from_labels",
       test_source_quality_analyze_resolves_pointer_table_entries_from_labels},
+    {"source_quality_analyze_resolves_relocation_pointer_table_entry_target_section",
+      test_source_quality_analyze_resolves_relocation_pointer_table_entry_target_section},
     {"source_quality_analyze_blocks_code_without_executable_origin",
       test_source_quality_analyze_blocks_code_without_executable_origin},
     {"source_quality_analyze_blocks_code_fallthrough_into_structured_data",

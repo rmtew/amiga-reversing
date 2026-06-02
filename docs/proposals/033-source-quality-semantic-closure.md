@@ -683,6 +683,7 @@ manual_equate
 label_statement
 section_storage_address_observation
 absolute_address_observation
+table_entry_target
 ```
 
 The producer field is exported with each expected symbol access. Missing-symbol
@@ -708,7 +709,6 @@ PC-relative operand targets storage
 generated equates
 accepted storage labels
 independent label statements
-table entry target labels
 platform semantic operands
 ```
 
@@ -723,7 +723,6 @@ append_expected_absolute_storage_operand_accesses()
 append_expected_pc_relative_storage_operand_accesses()
 append_expected_equate_operand_accesses()
 append_expected_storage_label_statements()
-append_expected_table_entry_target_accesses()
 append_expected_platform_symbol_operand_accesses()
 ```
 
@@ -731,6 +730,34 @@ Each new producer must set a precise producer id/string in
 `M68kExpectedSymbolAccessIR`. A missing or empty producer should be treated as a
 test failure for new source-quality code, with the existing `"unknown"` fallback
 reserved for old/manual fixture construction and defensive JSON export.
+
+Current table-entry progress:
+
+```text
+accepted table entry has a target symbol origin
+  -> expected symbol access emitted at the table entry offset
+  -> producer = table_entry_target
+  -> rendered table entry must record matching operand evidence
+  -> missing evidence is a render/analysis closure bug, not user review work
+
+relocation-backed pointer-table entry
+  -> entry target comes from the relocation fact for that entry
+  -> not from a table-wide target section
+
+relocation target lies inside the relocation/table payload itself
+  -> keep numeric
+  -> do not create a target-label obligation
+```
+
+The table-entry rule is intentionally narrow. It does not promote every
+numeric table-looking value into a symbol. It only closes the loop after earlier
+analysis has accepted the entry target and there is a C-owned symbol origin at
+that target. Midwinter II exposed why this matters: a relocation pointer table
+can contain entries whose relocation targets live in a different section from
+the table. The entry fact must therefore use the relocation at the entry offset,
+not the structured item's default target section. The existing hunk safety rule
+also remains required: a relocation that points back into the relocation payload
+is preservation metadata, not proof that the payload should be symbolized.
 
 ## Tutorial: Symbol Obligations
 
@@ -1216,6 +1243,21 @@ platform opword accepted as executable code
   -> next: require platform hook byte length and flow kind
 ```
 
+When this validation fires on a real target during the proposal work, the slice
+is not complete until the cause is fixed. The expected path is:
+
+```text
+validation failure found
+  -> preserve the smallest fixture that reproduces it
+  -> identify the producer/classifier/render-evidence path that created it
+  -> repair that path
+  -> rerender affected targets
+  -> keep the fixture as regression coverage
+```
+
+Treating the diagnostic itself as the deliverable would only make the framework
+better at reporting broken source. The proposal outcome is corrected source.
+
 ### Slice 5: Address Identity And Range Closure
 
 Close the existing C-owned identity/range model instead of adding more
@@ -1528,12 +1570,17 @@ checked-in `.s` diffs.
   and round-trip report output.
 - Validation failures discovered during implementation are preserved as
   fixtures and fixed at cause in the same slice when the cause is inside the
-  slice scope.
+  slice scope. "Cause" means the producer, classifier, accepted-run proof,
+  platform semantic hook, or render-evidence path that created the bad source.
 - A slice is not accepted when it merely adds a diagnostic for an obvious
   producer bug and leaves the restored source wrong.
 - A validation failure is not a blocker by itself; it is a work item to trace
   back to the bad producer, classifier, accepted-run proof, platform semantic,
   or render-evidence path and repair there.
+- If the validation exposes a legitimate framework problem, the fix belongs in
+  this work unless it is demonstrably outside the slice boundary. In that case
+  the boundary and follow-up fixture must be explicit, not an excuse to leave a
+  known bad conversion/rendering silent.
 
 ## Trailing Observations For Later Work
 
