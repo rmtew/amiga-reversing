@@ -38,6 +38,11 @@ PLATFORM_FILE_API PlatformFileTextResult platform_file_facts_v2_analysis_path_js
 PLATFORM_FILE_API PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char *platform_name,
   const char *path, uint32_t entry_address, uint8_t has_runtime_load_address, uint32_t runtime_load_address,
   const M68kAnalysisPolicy *analysis_policy);
+PLATFORM_FILE_API PlatformFileTextResult platform_file_source_quality_explain_path_json(const char *backend_name,
+  const char *path, const M68kAnalysisPolicy *analysis_policy);
+PLATFORM_FILE_API PlatformFileTextResult platform_file_source_quality_explain_raw_path_json(const char *platform_name,
+  const char *path, uint32_t entry_address, uint8_t has_runtime_load_address, uint32_t runtime_load_address,
+  const M68kAnalysisPolicy *analysis_policy);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_type_catalog_json(const char *backend_name);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_naming_catalog_json(const char *backend_name);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_os_metadata_catalog_json(const char *backend_name);
@@ -48,6 +53,11 @@ PLATFORM_FILE_API int platform_file_inspect_path_json_alloc(const char *backend_
 PLATFORM_FILE_API int platform_file_facts_v2_analysis_path_json_alloc(const char *backend_name, const char *path,
   const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_analysis_raw_path_json_alloc(const char *platform_name,
+  const char *path, uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+  const char *metadata_path, const char *entry_offsets, char **out_text);
+PLATFORM_FILE_API int platform_file_source_quality_explain_path_json_alloc(const char *backend_name, const char *path,
+  const char *metadata_path, const char *entry_offsets, char **out_text);
+PLATFORM_FILE_API int platform_file_source_quality_explain_raw_path_json_alloc(const char *platform_name,
   const char *path, uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
   const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_effective_policy_path_json_alloc(const char *backend_name, const char *path,

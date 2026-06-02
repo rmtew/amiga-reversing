@@ -44,6 +44,33 @@ static int facts_v2_analysis_raw_to_stdout(const char *platform_name, const char
   return 0;
 }
 
+static int source_quality_explain_file_to_stdout(const char *platform_name, const char *path,
+    const M68kAnalysisPolicy *analysis_policy) {
+  PlatformFileTextResult result = platform_file_source_quality_explain_path_json(platform_name, path, analysis_policy);
+  if (m68k_diag_has_errors(&result.diagnostics)) {
+    fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
+    platform_file_free_text(result.text);
+    return 1;
+  }
+  puts(result.text);
+  platform_file_free_text(result.text);
+  return 0;
+}
+
+static int source_quality_explain_raw_to_stdout(const char *platform_name, const char *path, uint32_t entry_offset,
+    const M68kAnalysisPolicy *analysis_policy) {
+  PlatformFileTextResult result = platform_file_source_quality_explain_raw_path_json(platform_name, path, entry_offset,
+    0U, 0U, analysis_policy);
+  if (m68k_diag_has_errors(&result.diagnostics)) {
+    fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
+    platform_file_free_text(result.text);
+    return 1;
+  }
+  puts(result.text);
+  platform_file_free_text(result.text);
+  return 0;
+}
+
 static int type_catalog_to_stdout(const char *platform_name) {
   PlatformFileTextResult result = platform_file_type_catalog_json(platform_name);
   if (m68k_diag_has_errors(&result.diagnostics)) {
@@ -593,6 +620,62 @@ int main(int argc, char **argv) {
     platform_file_analysis_policy_destroy(analysis_policy);
     return result;
   }
+  if (argc >= 4 && strcmp(argv[1], "source-quality-explain") == 0) {
+    M68kAnalysisPolicy *analysis_policy = platform_file_analysis_policy_create(M68K_ASM_CPU_68000);
+    const char *platform_name = NULL;
+    const char *path = NULL;
+    const char *metadata_path = NULL;
+    uint32_t entry_offset = 0U;
+    int have_entry_offset = 0;
+    int result;
+    if (analysis_policy == NULL) {
+      fprintf(stderr, "out of memory\n");
+      return 1;
+    }
+    for (argi = 2; argi < argc; ++argi) {
+      int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
+      if (policy_result < 0) {
+        platform_file_analysis_policy_destroy(analysis_policy);
+        return 2;
+      }
+      if (policy_result > 0) continue;
+      if (platform_name == NULL) {
+        platform_name = argv[argi];
+        continue;
+      }
+      if (path == NULL) {
+        path = argv[argi];
+        continue;
+      }
+      if (!have_entry_offset) {
+        if (!parse_u32_arg(argv[argi], &entry_offset)) {
+          fprintf(stderr, "bad entry offset: %s\n", argv[argi]);
+          platform_file_analysis_policy_destroy(analysis_policy);
+          return 2;
+        }
+        have_entry_offset = 1;
+        continue;
+      }
+      fprintf(stderr, "unexpected argument: %s\n", argv[argi]);
+      platform_file_analysis_policy_destroy(analysis_policy);
+      return 2;
+    }
+    if (platform_name == NULL || path == NULL) {
+      fprintf(stderr, "missing platform/file\n");
+      platform_file_analysis_policy_destroy(analysis_policy);
+      return 2;
+    }
+    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) {
+      platform_file_analysis_policy_destroy(analysis_policy);
+      return 2;
+    }
+    if (have_entry_offset)
+      result = source_quality_explain_raw_to_stdout(platform_name, path, entry_offset, analysis_policy);
+    else
+      result = source_quality_explain_file_to_stdout(platform_name, path, analysis_policy);
+    platform_file_analysis_policy_destroy(analysis_policy);
+    return result;
+  }
   if (argc >= 4 && strcmp(argv[1], "disassemble-file") == 0) {
     const char *platform_name = NULL, *path = NULL, *metadata_path = NULL;
     const char *benchmark_json_path = NULL, *output_path = NULL;
@@ -697,6 +780,10 @@ int main(int argc, char **argv) {
   fprintf(stderr, "   or: %s analyze-raw <amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
   fprintf(stderr, "   or: %s analyze-file [--max-cpu " "<68000|68010|68020|68030|68040|68060>] <amiga-hunk|atari-st> "
     "<file>\n", argv[0]);
+  fprintf(stderr, "   or: %s source-quality-explain [--max-cpu <68000|68010|68020|68030|68040|68060>]\n",
+    argv[0]);
+  fprintf(stderr, "          [--target-metadata file] [--entry-offset offset] "
+    "<amiga-hunk|atari-st|amiga-raw|atari-st-raw> <file> [raw-entry-offset]\n");
   fprintf(stderr, "   or: %s disassemble-file [--target-metadata file] [--benchmark-json-out file]\n", argv[0]);
   fprintf(stderr, "          [--output file] <amiga-hunk|atari-st> <file>\n");
   fprintf(stderr, "   or: %s disassemble-raw [--target-metadata file] [--benchmark-json-out file] <amiga-raw|atari-st-raw> "

@@ -6007,11 +6007,86 @@ src\build\m68k_c_unit_tests.exe m68k_ir
   m68k_ir: all 466 passed
 ```
 
-This does not finish the user-facing tooling. Remaining work for this slice is
-to expose the same C-backed explanation through:
+### Source-Quality Explain CLI/API Slice
+
+The next slice adds a durable user-facing entrypoint for the same C-owned
+explanation data. It is deliberately a wrapper over Source Analysis IR JSON,
+not a Python-side inference path:
 
 ```text
 platform_file_cli source-quality-explain ...
+  -> platform_file_source_quality_explain_*_json()
+  -> m68k_facts_v2_collect_source_analysis_profile()
+  -> source_analysis_source_quality_explanations_to_json()
+```
+
+The CLI supports both file-backed and raw-image analysis:
+
+```text
+platform_file_cli source-quality-explain amiga-hunk bin\Bloodwych439
+
+platform_file_cli source-quality-explain --target-metadata metadata.json \
+  amiga-raw payload.bin 0x400
+```
+
+The public alloc API exposes the same path to Python/web callers:
+
+```c
+int platform_file_source_quality_explain_path_json_alloc(
+    const char *backend_name,
+    const char *path,
+    const char *metadata_path,
+    const char *entry_offsets,
+    char **out_text);
+
+int platform_file_source_quality_explain_raw_path_json_alloc(
+    const char *platform_name,
+    const char *path,
+    uint32_t entry_address,
+    uint32_t has_runtime_load_address,
+    uint32_t runtime_load_address,
+    const char *metadata_path,
+    const char *entry_offsets,
+    char **out_text);
+```
+
+The compact JSON keeps total and section-local counts separate so tooling can
+show either a whole-target failure list or drill into one section:
+
+```json
+{
+  "source_quality_explanation_count": 1,
+  "global_source_quality_explanation_count": 0,
+  "source_quality_explanations": [],
+  "section_count": 1,
+  "sections": [
+    {
+      "section_index": 0,
+      "source_quality_explanation_count": 1,
+      "source_quality_explanations": [
+        {
+          "diagnostic": {
+            "kind_name": "unterminated_or_invalid_code_range"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Focused test:
+
+```text
+source_quality_explain_json_exports_section_explanations
+  constructs a section-local blocker
+  asserts total/global/section counts
+  asserts source_byte_ownership=accepted_noncode in the compact explanation JSON
+```
+
+Remaining work for this slice is to consume the alloc API from:
+
+```text
 Python source_export / web API failure payload
 CDP/web diagnostics panel
 ```

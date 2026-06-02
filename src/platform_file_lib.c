@@ -10478,6 +10478,59 @@ cleanup:
   return result;
 }
 
+static PlatformFileTextResult facts_v2_source_quality_explain_object_json(const char *backend_name, const char *path,
+    const M68kObject *object, const M68kAnalysisPolicy *analysis_policy) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  PlatformFileWorkflow workflow;
+  char *explanation_json = NULL;
+  int json_result;
+  memset(&result, 0, sizeof(result));
+  memset(&workflow, 0, sizeof(workflow));
+  if (backend_name == NULL || object == NULL) {
+    platform_file_add_error(&result.diagnostics, "invalid source-quality explanation request");
+    return result;
+  }
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
+  if (analysis_policy != NULL) {
+    if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
+  } else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (m68k_facts_v2_collect_source_analysis_profile(object, workflow.analysis_policy, workflow.profile,
+      workflow.analysis,
+      m68k_diag_sink(&result.diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(&result.diagnostics))
+      platform_file_add_error(&result.diagnostics, "failed building facts_v2 source analysis");
+    goto cleanup;
+  }
+  json_result = source_analysis_source_quality_explanations_to_json(workflow.analysis, &explanation_json,
+    m68k_diag_sink(&result.diagnostics));
+  if (json_result == 0) {
+    if (json_builder_create(&builder) != 0 ||
+        json_builder_append(&builder, "{\"source_quality\":") != 0 ||
+        json_builder_append(&builder, explanation_json) != 0 ||
+        json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_source_quality_explain\","
+          "\"backend\":") != 0 ||
+        json_builder_append_json_string(&builder, backend_name) != 0 ||
+        json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+        json_builder_append_json_string(&builder, path != NULL ? path : "") != 0 ||
+        json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+        json_builder_append_facts_v2_profile(&builder, workflow.profile) != 0 ||
+        json_builder_append(&builder, "}}") != 0) {
+      json_result = -1;
+    } else {
+      result.text = json_builder_build(&builder);
+      if (result.text == NULL) json_result = -1;
+    }
+  }
+  if (json_result != 0 && !m68k_diag_has_errors(&result.diagnostics))
+    platform_file_add_error(&result.diagnostics, "failed building source-quality explanation json");
+cleanup:
+  json_builder_destroy(&builder);
+  platform_file_free_text(explanation_json);
+  platform_file_workflow_destroy(&workflow);
+  return result;
+}
+
 PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *backend_name, const char *path,
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
@@ -10501,6 +10554,34 @@ PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *bac
       workflow.analysis_policy))
     goto cleanup;
   result = facts_v2_analysis_object_json(backend_name, &workflow.object, workflow.analysis_policy);
+cleanup:
+  platform_file_workflow_destroy(&workflow);
+  return result;
+}
+
+PlatformFileTextResult platform_file_source_quality_explain_path_json(const char *backend_name, const char *path,
+    const M68kAnalysisPolicy *analysis_policy) {
+  PlatformFileTextResult result;
+  PlatformFileWorkflow workflow;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  memset(&result, 0, sizeof(result));
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
+  if (analysis_policy != NULL) {
+    if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
+  } else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (load_object_from_path(backend, path, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
+    goto cleanup;
+  workflow.object_loaded = 1U;
+  if (enrich_policy_from_object_target_info_local(workflow.analysis_policy, backend, &workflow.object, NULL, 0U,
+      &result.diagnostics) != 0) {
+    goto cleanup;
+  }
+  enrich_policy_pointer_targets_from_object_local(workflow.analysis_policy, &workflow.object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
+      workflow.analysis_policy))
+    goto cleanup;
+  result = facts_v2_source_quality_explain_object_json(backend_name, path, &workflow.object, workflow.analysis_policy);
 cleanup:
   platform_file_workflow_destroy(&workflow);
   return result;
@@ -10530,6 +10611,36 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
       workflow.analysis_policy))
     goto cleanup;
   result = facts_v2_analysis_object_json(platform_name, &workflow.object, workflow.analysis_policy);
+cleanup:
+  platform_file_workflow_destroy(&workflow);
+  return result;
+}
+
+PlatformFileTextResult platform_file_source_quality_explain_raw_path_json(const char *platform_name, const char *path,
+    uint32_t entry_address, uint8_t has_runtime_load_address, uint32_t runtime_load_address,
+    const M68kAnalysisPolicy *analysis_policy) {
+  PlatformFileTextResult result;
+  PlatformFileWorkflow workflow;
+  memset(&result, 0, sizeof(result));
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
+  if (analysis_policy != NULL) {
+    if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
+  } else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (load_raw_object_from_path(platform_name, path, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
+    goto cleanup;
+  workflow.object_loaded = 1U;
+  if (!policy_add_raw_runtime_load_range_local(workflow.analysis_policy, &workflow.object, has_runtime_load_address,
+        runtime_load_address, &result.diagnostics) ||
+      !policy_set_raw_entry_address_local(workflow.analysis_policy, &workflow.object, entry_address,
+        has_runtime_load_address, &result.diagnostics))
+    goto cleanup;
+  enrich_policy_pointer_targets_from_object_local(workflow.analysis_policy, &workflow.object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
+      workflow.analysis_policy))
+    goto cleanup;
+  result = facts_v2_source_quality_explain_object_json(platform_name, path, &workflow.object,
+    workflow.analysis_policy);
 cleanup:
   platform_file_workflow_destroy(&workflow);
   return result;
@@ -10657,6 +10768,58 @@ int platform_file_facts_v2_analysis_raw_path_json_alloc(const char *platform_nam
     return text_result_to_alloc(&result, out_text);
   }
   result = platform_file_facts_v2_analysis_raw_path_json(platform_name, path, entry_address,
+    (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, workflow.analysis_policy);
+  platform_file_workflow_destroy(&workflow);
+  return text_result_to_alloc(&result, out_text);
+}
+
+int platform_file_source_quality_explain_path_json_alloc(const char *backend_name, const char *path,
+    const char *metadata_path, const char *entry_offsets, char **out_text) {
+  PlatformFileWorkflow workflow;
+  M68kDiagList diagnostics;
+  PlatformFileTextResult result;
+  m68k_diag_list_reset(&diagnostics);
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
+    result.text = NULL;
+    memset(&result.diagnostics, 0, sizeof(result.diagnostics));
+    result.diagnostics = diagnostics;
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (configure_analysis_policy_for_alloc(workflow.analysis_policy, backend_name, metadata_path, entry_offsets,
+        &diagnostics) != 0) {
+    result.text = NULL;
+    result.diagnostics = diagnostics;
+    platform_file_workflow_destroy(&workflow);
+    return text_result_to_alloc(&result, out_text);
+  }
+  result = platform_file_source_quality_explain_path_json(backend_name, path, workflow.analysis_policy);
+  platform_file_workflow_destroy(&workflow);
+  return text_result_to_alloc(&result, out_text);
+}
+
+int platform_file_source_quality_explain_raw_path_json_alloc(const char *platform_name, const char *path,
+    uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+    const char *metadata_path, const char *entry_offsets, char **out_text) {
+  PlatformFileWorkflow workflow;
+  M68kDiagList diagnostics;
+  PlatformFileTextResult result;
+  m68k_diag_list_reset(&diagnostics);
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
+    result.text = NULL;
+    memset(&result.diagnostics, 0, sizeof(result.diagnostics));
+    result.diagnostics = diagnostics;
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (configure_analysis_policy_for_alloc(workflow.analysis_policy, platform_name, metadata_path, entry_offsets,
+        &diagnostics) != 0) {
+    result.text = NULL;
+    result.diagnostics = diagnostics;
+    platform_file_workflow_destroy(&workflow);
+    return text_result_to_alloc(&result, out_text);
+  }
+  result = platform_file_source_quality_explain_raw_path_json(platform_name, path, entry_address,
     (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, workflow.analysis_policy);
   platform_file_workflow_destroy(&workflow);
   return text_result_to_alloc(&result, out_text);

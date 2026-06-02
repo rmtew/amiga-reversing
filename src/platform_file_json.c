@@ -3680,6 +3680,117 @@ static size_t source_quality_explanation_count_for_source_analysis(
   return count;
 }
 
+static size_t source_quality_explanation_count_all(const M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  size_t count;
+  if (source_analysis == NULL) return 0U;
+  count = source_quality_explanation_count_for_source_analysis(source_analysis);
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    count += source_quality_explanation_count_for_diagnostics(section->source_quality_diagnostics,
+      section->source_quality_diagnostic_count);
+  }
+  return count;
+}
+
+static size_t source_quality_explanation_section_count(const M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  size_t count = 0U;
+  if (source_analysis == NULL) return 0U;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    if (source_quality_explanation_count_for_diagnostics(section->source_quality_diagnostics,
+        section->source_quality_diagnostic_count) != 0U)
+      ++count;
+  }
+  return count;
+}
+
+static int append_source_quality_explanation_array_json(JsonBuilder *builder,
+    const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section,
+    const M68kSourceQualityDiagnosticIR *diagnostics, size_t diagnostic_count, uint8_t section_local) {
+  size_t diagnostic_index;
+  size_t emitted = 0U;
+  if (builder == NULL || source_analysis == NULL || section == NULL) return -1;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (diagnostic_index = 0U; diagnostic_index < diagnostic_count; ++diagnostic_index) {
+    const M68kSourceQualityDiagnosticIR *diagnostic = &diagnostics[diagnostic_index];
+    if (!diagnostic->blocker) continue;
+    if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (append_source_quality_explanation_json(builder, source_analysis, section, diagnostic, section_local) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+int source_analysis_source_quality_explanations_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json,
+    M68kDiagSink diagnostics) {
+  JsonBuilder builder = {0};
+  size_t source_quality_index;
+  size_t section_index;
+  size_t emitted = 0U;
+  if (out_json == NULL) return -1;
+  *out_json = NULL;
+  if (source_analysis == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
+      "invalid source-quality explanation request");
+    return -1;
+  }
+  if (json_builder_create(&builder) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
+  if (json_builder_appendf(&builder,
+      "{\"source_quality_explanation_count\":%u,\"global_source_quality_explanation_count\":%u,"
+      "\"source_quality_explanations\":[",
+      (unsigned)source_quality_explanation_count_all(source_analysis),
+      (unsigned)source_quality_explanation_count_for_source_analysis(source_analysis)) != 0)
+    goto oom;
+  for (source_quality_index = 0U; source_quality_index < source_analysis->source_quality_diagnostic_count;
+      ++source_quality_index) {
+    const M68kSourceQualityDiagnosticIR *diagnostic =
+      &source_analysis->source_quality_diagnostics[source_quality_index];
+    const M68kSectionAnalysisIR *section;
+    if (!diagnostic->blocker || !diagnostic->has_section_index) continue;
+    section = source_analysis_find_section_by_index(source_analysis, diagnostic->section_index);
+    if (section == NULL) continue;
+    if (emitted++ != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+    if (append_source_quality_explanation_json(&builder, source_analysis, section, diagnostic, 0U) != 0)
+      goto oom;
+  }
+  if (json_builder_appendf(&builder, "],\"section_count\":%u,\"sections\":[",
+      (unsigned)source_quality_explanation_section_count(source_analysis)) != 0)
+    goto oom;
+  emitted = 0U;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t explanation_count = source_quality_explanation_count_for_diagnostics(section->source_quality_diagnostics,
+      section->source_quality_diagnostic_count);
+    if (explanation_count == 0U) continue;
+    if (emitted++ != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+    if (json_builder_appendf(&builder,
+        "{\"section_index\":%u,\"source_quality_explanation_count\":%u,\"source_quality_explanations\":",
+        (unsigned)section->section_index, (unsigned)explanation_count) != 0)
+      goto oom;
+    if (append_source_quality_explanation_array_json(&builder, source_analysis, section,
+        section->source_quality_diagnostics, section->source_quality_diagnostic_count, 1U) != 0)
+      goto oom;
+    if (json_builder_append(&builder, "}") != 0) goto oom;
+  }
+  if (json_builder_append(&builder, "]}") != 0) goto oom;
+  *out_json = json_builder_build(&builder);
+  json_builder_destroy(&builder);
+  if (*out_json == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
+  return 0;
+oom:
+  json_builder_destroy(&builder);
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+  return -1;
+}
+
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t field_index, section_index, incomplete_index, source_quality_index;

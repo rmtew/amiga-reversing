@@ -149,6 +149,8 @@ int section_analysis_context_init(SectionAnalysisContext *ctx, const M68kObject 
 int inspect_object_json(const M68kBackend *backend, const M68kObject *object, char **out_json);
 int object_target_metadata_json(const M68kBackend *backend, const M68kObject *object, char **out_json);
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics);
+int source_analysis_source_quality_explanations_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json,
+    M68kDiagSink diagnostics);
 int source_analysis_platform_calls_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json,
     M68kDiagSink diagnostics);
 int source_file_listing_window_from_render_plan_with_index_append_json(JsonBuilder *builder,
