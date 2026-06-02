@@ -290,8 +290,10 @@ m68k_render_lookup_build(...)
   -> append_symbol_facts_from_label_lookup(...)
   -> append_address_observations_for_accepted(...)
   -> m68k_source_quality_analyze(...)
-  -> render preview mutates rendered_symbol_accesses into source_analysis
-  -> m68k_source_quality_analyze_rendered_symbol_accesses(...)
+  -> render preview records M68kRenderEvidenceIR
+  -> compatibility mirror keeps rendered_symbol_accesses in source_analysis
+  -> m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis,
+                                                         render_evidence)
 ```
 
 So source-quality analysis is present, but it is not yet the owner of the
@@ -532,26 +534,41 @@ target is not a safe substitute for the operand actually being read or written.
 
 ### Remaining Wrong Boundary: Render Evidence Mutates Source Analysis
 
-`m68k_render_ir.c` now records actual rendered symbol accesses during assembly
-source emission. That is the right moment to observe what render emitted, but
-the target object is still `M68kSourceAnalysisIR`:
+`m68k_render_ir.c` records actual rendered symbol accesses during assembly
+source emission. That is the right moment to observe what render emitted. The
+post-render gate now has a first-class evidence object:
 
 ```c
-record_rendered_label_statement_access(source_analysis, ...)
-record_rendered_instruction_symbol_accesses(source_analysis, ...)
-```
-
-That makes render mutate the same object that analysis proved. The cleaner
-interface is a separate render evidence object:
-
-```c
-typedef struct M68kRenderEvidenceIR {
+typedef struct M68kRenderEvidenceSectionIR {
+  uint32_t section_index;
   M68kRenderedSymbolAccessIR *rendered_symbol_accesses;
   size_t rendered_symbol_access_count;
+  size_t rendered_symbol_access_capacity;
+} M68kRenderEvidenceSectionIR;
+
+typedef struct M68kRenderEvidenceIR {
+  M68kRenderEvidenceSectionIR *sections;
+  size_t section_count;
+  size_t section_capacity;
+  Arena *arena;
 } M68kRenderEvidenceIR;
 ```
 
-Then the post-render gate is explicit:
+The render preview owns this object:
+
+```text
+m68k_render_ir_preview_init
+  -> m68k_ir_render_evidence_create
+
+record_rendered_*()
+  -> m68k_ir_render_evidence_append_rendered_symbol_access
+
+m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis,
+                                                     render_evidence)
+  -> compares expected analysis obligations with render output evidence
+```
+
+The post-render gate is therefore explicit:
 
 ```text
 source_analysis.expected_symbol_accesses
@@ -559,8 +576,12 @@ source_analysis.expected_symbol_accesses
   -> source_quality_diagnostics
 ```
 
-This keeps source analysis immutable during render while still allowing the C
-post-render gate to compare intended symbols with actual emitted text.
+This is not the final cleanup. For compatibility with current JSON/reporting,
+render still mirrors rendered accesses into `M68kSectionAnalysisIR` while it
+also records them in `M68kRenderEvidenceIR`. The important ownership step is
+complete: source-quality validation no longer reads the section mirror. The
+next cleanup is to give JSON/reporting an explicit render-evidence export path
+and delete the section-level rendered-access mirror from source analysis.
 
 ### Remaining Wrong Boundary: Renderer-Side Platform Decisions
 

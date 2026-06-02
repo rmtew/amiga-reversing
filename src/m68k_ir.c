@@ -12,6 +12,7 @@
 
 #define M68K_IR_SOURCE_FILE_ARENA_SIZE 16384U
 #define M68K_IR_SOURCE_ANALYSIS_ARENA_SIZE 16384U
+#define M68K_IR_RENDER_EVIDENCE_ARENA_SIZE 4096U
 
 const M68kInstructionIR g_m68k_ir_instruction_none = {
   M68K_ASM_FORM_NONE,
@@ -2952,6 +2953,88 @@ int m68k_ir_section_analysis_append_rendered_symbol_access(M68kSectionAnalysisIR
   copy.symbol_name = arena_strdup(section_analysis->arena, access->symbol_name);
   if (copy.symbol_name == NULL) return -1;
   section_analysis->rendered_symbol_accesses[section_analysis->rendered_symbol_access_count++] = copy;
+  return 0;
+}
+
+int m68k_ir_render_evidence_create(M68kRenderEvidenceIR *evidence) {
+  if (evidence == NULL) return -1;
+  memset(evidence, 0, sizeof(*evidence));
+  evidence->arena = arena_create(M68K_IR_RENDER_EVIDENCE_ARENA_SIZE);
+  return evidence->arena != NULL ? 0 : -1;
+}
+
+void m68k_ir_render_evidence_destroy(M68kRenderEvidenceIR *evidence) {
+  if (evidence == NULL) return;
+  arena_destroy(evidence->arena);
+  memset(evidence, 0, sizeof(*evidence));
+}
+
+static M68kRenderEvidenceSectionIR *render_evidence_section_by_index_mutable(
+    M68kRenderEvidenceIR *evidence, uint32_t section_index) {
+  size_t index;
+  if (evidence == NULL) return NULL;
+  for (index = 0U; index < evidence->section_count; ++index) {
+    if (evidence->sections[index].section_index == section_index) return &evidence->sections[index];
+  }
+  return NULL;
+}
+
+const M68kRenderEvidenceSectionIR *m68k_ir_render_evidence_section_by_index(
+    const M68kRenderEvidenceIR *evidence, uint32_t section_index) {
+  size_t index;
+  if (evidence == NULL) return NULL;
+  for (index = 0U; index < evidence->section_count; ++index) {
+    if (evidence->sections[index].section_index == section_index) return &evidence->sections[index];
+  }
+  return NULL;
+}
+
+static M68kRenderEvidenceSectionIR *render_evidence_get_or_add_section(
+    M68kRenderEvidenceIR *evidence, uint32_t section_index) {
+  M68kRenderEvidenceSectionIR *section;
+  if (evidence == NULL || evidence->arena == NULL) return NULL;
+  section = render_evidence_section_by_index_mutable(evidence, section_index);
+  if (section != NULL) return section;
+  evidence->sections = (M68kRenderEvidenceSectionIR *)arena_grow_array(evidence->arena,
+    evidence->sections, evidence->section_count, &evidence->section_capacity, 4U,
+    sizeof(*evidence->sections));
+  if (evidence->sections == NULL) return NULL;
+  section = &evidence->sections[evidence->section_count++];
+  memset(section, 0, sizeof(*section));
+  section->section_index = section_index;
+  return section;
+}
+
+int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
+    uint32_t section_index, const M68kRenderedSymbolAccessIR *access) {
+  M68kRenderEvidenceSectionIR *section;
+  M68kRenderedSymbolAccessIR copy;
+  size_t index;
+  if (evidence == NULL || evidence->arena == NULL || access == NULL) return -1;
+  if (access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN ||
+      access->symbol_name == NULL || access->symbol_name[0] == '\0') return 0;
+  section = render_evidence_get_or_add_section(evidence, section_index);
+  if (section == NULL) return -1;
+  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
+    const M68kRenderedSymbolAccessIR *existing = &section->rendered_symbol_accesses[index];
+    if (existing->offset == access->offset &&
+        existing->target_section_index == access->target_section_index &&
+        existing->target_offset == access->target_offset &&
+        existing->operand_index == access->operand_index &&
+        existing->access_kind == access->access_kind &&
+        existing->comment_only == access->comment_only &&
+        strcmp(existing->symbol_name, access->symbol_name) == 0) {
+      return 0;
+    }
+  }
+  section->rendered_symbol_accesses = (M68kRenderedSymbolAccessIR *)arena_grow_array(evidence->arena,
+    section->rendered_symbol_accesses, section->rendered_symbol_access_count,
+    &section->rendered_symbol_access_capacity, 8U, sizeof(*section->rendered_symbol_accesses));
+  if (section->rendered_symbol_accesses == NULL) return -1;
+  copy = *access;
+  copy.symbol_name = arena_strdup(evidence->arena, access->symbol_name);
+  if (copy.symbol_name == NULL) return -1;
+  section->rendered_symbol_accesses[section->rendered_symbol_access_count++] = copy;
   return 0;
 }
 

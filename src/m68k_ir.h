@@ -1794,6 +1794,20 @@ typedef struct M68kRenderedSymbolAccessIR {
   uint8_t reserved[1];
 } M68kRenderedSymbolAccessIR;
 
+typedef struct M68kRenderEvidenceSectionIR {
+  uint32_t section_index;
+  M68kRenderedSymbolAccessIR *rendered_symbol_accesses;
+  size_t rendered_symbol_access_count;
+  size_t rendered_symbol_access_capacity;
+} M68kRenderEvidenceSectionIR;
+
+typedef struct M68kRenderEvidenceIR {
+  M68kRenderEvidenceSectionIR *sections;
+  size_t section_count;
+  size_t section_capacity;
+  Arena *arena;
+} M68kRenderEvidenceIR;
+
 typedef enum M68kCodeOriginClass {
   M68K_CODE_ORIGIN_UNKNOWN = 0,
   M68K_CODE_ORIGIN_STRONG_ENTRY = 1,
@@ -2259,6 +2273,12 @@ int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR
     const M68kExpectedSymbolAccessIR *access);
 int m68k_ir_section_analysis_append_rendered_symbol_access(M68kSectionAnalysisIR *section_analysis,
     const M68kRenderedSymbolAccessIR *access);
+int m68k_ir_render_evidence_create(M68kRenderEvidenceIR *evidence);
+void m68k_ir_render_evidence_destroy(M68kRenderEvidenceIR *evidence);
+int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
+    uint32_t section_index, const M68kRenderedSymbolAccessIR *access);
+const M68kRenderEvidenceSectionIR *m68k_ir_render_evidence_section_by_index(
+    const M68kRenderEvidenceIR *evidence, uint32_t section_index);
 int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeOriginIR *origin);
 int m68k_ir_section_analysis_append_accepted_code_run(M68kSectionAnalysisIR *section_analysis,

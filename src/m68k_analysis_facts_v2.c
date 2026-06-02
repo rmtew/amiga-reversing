@@ -10452,7 +10452,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         "facts_v2 post-render auto policy append failed");
       goto fail;
     }
-    if (m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis) != 0) {
+    if (m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis,
+        render_preview->render_evidence) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 rendered symbol access analysis failed");
       goto fail;

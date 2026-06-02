@@ -885,15 +885,15 @@ static int rendered_symbol_access_matches_expected(const M68kRenderedSymbolAcces
   return 1;
 }
 
-static int section_has_rendered_symbol_access(const M68kSectionAnalysisIR *section,
+static int section_has_rendered_symbol_access(const M68kRenderEvidenceSectionIR *render_evidence_section,
     const M68kExpectedSymbolAccessIR *expected) {
   uint8_t rendered_kind;
   size_t index;
-  if (section == NULL || expected == NULL) return 0;
+  if (render_evidence_section == NULL || expected == NULL) return 0;
   rendered_kind = rendered_symbol_access_kind_for_expected(expected->access_kind);
   if (rendered_kind == M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN) return 1;
-  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
-    if (rendered_symbol_access_matches_expected(&section->rendered_symbol_accesses[index], expected,
+  for (index = 0U; index < render_evidence_section->rendered_symbol_access_count; ++index) {
+    if (rendered_symbol_access_matches_expected(&render_evidence_section->rendered_symbol_accesses[index], expected,
         rendered_kind)) {
       return 1;
     }
@@ -919,12 +919,13 @@ static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisI
   return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
 }
 
-static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSectionAnalysisIR *section) {
+static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSectionAnalysisIR *section,
+    const M68kRenderEvidenceSectionIR *render_evidence_section) {
   size_t index;
   if (section == NULL) return -1;
   for (index = 0U; index < section->expected_symbol_access_count; ++index) {
     const M68kExpectedSymbolAccessIR *access = &section->expected_symbol_accesses[index];
-    if (!section_has_rendered_symbol_access(section, access)) {
+    if (!section_has_rendered_symbol_access(render_evidence_section, access)) {
       if (append_missing_expected_symbol_access_diagnostic(section, access) != 0) return -1;
     }
   }
@@ -946,13 +947,13 @@ static int rendered_symbol_access_references_label(const M68kRenderedSymbolAcces
     strcmp(label->symbol_name, access->symbol_name) == 0;
 }
 
-static int source_analysis_has_rendered_reference_to_label(const M68kSourceAnalysisIR *source_analysis,
+static int render_evidence_has_rendered_reference_to_label(const M68kRenderEvidenceIR *render_evidence,
     const M68kRenderedSymbolAccessIR *label) {
   size_t section_index;
   size_t index;
-  if (source_analysis == NULL || label == NULL) return 0;
-  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
-    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+  if (render_evidence == NULL || label == NULL) return 0;
+  for (section_index = 0U; section_index < render_evidence->section_count; ++section_index) {
+    const M68kRenderEvidenceSectionIR *section = &render_evidence->sections[section_index];
     for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
       if (rendered_symbol_access_references_label(label, &section->rendered_symbol_accesses[index])) return 1;
     }
@@ -1085,17 +1086,21 @@ static int append_unreferenced_label_statement_diagnostic(M68kSectionAnalysisIR 
 }
 
 static int append_unreferenced_label_statement_diagnostics_for_section(M68kSourceAnalysisIR *source_analysis,
-    M68kSectionAnalysisIR *section) {
+    M68kSectionAnalysisIR *section, const M68kRenderEvidenceIR *render_evidence) {
   size_t index;
-  if (section == NULL) return -1;
-  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
-    const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[index];
+  const M68kRenderEvidenceSectionIR *render_evidence_section;
+  if (section == NULL || render_evidence == NULL) return -1;
+  render_evidence_section = m68k_ir_render_evidence_section_by_index(render_evidence,
+    (uint32_t)section->section_index);
+  if (render_evidence_section == NULL) return 0;
+  for (index = 0U; index < render_evidence_section->rendered_symbol_access_count; ++index) {
+    const M68kRenderedSymbolAccessIR *access = &render_evidence_section->rendered_symbol_accesses[index];
     if (access->access_kind != M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT || access->comment_only) continue;
     if (section_label_has_durable_unreferenced_origin(section, access)) continue;
     if (section_label_has_code_origin(section, access)) continue;
     if (section_label_has_noncode_range_origin(source_analysis, section, access)) continue;
     if (section_label_is_accepted_code_start(section, access)) continue;
-    if (!source_analysis_has_rendered_reference_to_label(source_analysis, access)) {
+    if (!render_evidence_has_rendered_reference_to_label(render_evidence, access)) {
       if (append_unreferenced_label_statement_diagnostic(section, access) != 0) return -1;
     }
   }
@@ -2607,16 +2612,20 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   return 0;
 }
 
-int m68k_source_quality_analyze_rendered_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
+int m68k_source_quality_analyze_rendered_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderEvidenceIR *render_evidence) {
   size_t section_index;
-  if (source_analysis == NULL) return -1;
+  if (source_analysis == NULL || render_evidence == NULL) return -1;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
-    if (append_missing_expected_symbol_access_diagnostics_for_section(
-        &source_analysis->sections[section_index]) != 0) {
+    const M68kRenderEvidenceSectionIR *render_evidence_section =
+      m68k_ir_render_evidence_section_by_index(render_evidence,
+        (uint32_t)source_analysis->sections[section_index].section_index);
+    if (append_missing_expected_symbol_access_diagnostics_for_section(&source_analysis->sections[section_index],
+        render_evidence_section) != 0) {
       return -1;
     }
     if (append_unreferenced_label_statement_diagnostics_for_section(source_analysis,
-        &source_analysis->sections[section_index]) != 0) {
+        &source_analysis->sections[section_index], render_evidence) != 0) {
       return -1;
     }
   }
