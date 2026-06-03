@@ -383,6 +383,22 @@ instruction shape proves a true vector install. Analysis JSON follows the same
 rule, so round-trip exports no longer make low-memory base/storage facts appear
 as `m68k_vector_*` definitions.
 
+The same split does not imply automatic `absolute_slot_*` uplift. A low-memory
+base/storage observation is useful range evidence, but weak low-memory evidence
+alone is not a durable symbol:
+
+```text
+lea.l $74,a2
+  -> low_memory_base fact
+  -> absolute range candidate
+  -> no m68k_vector_* symbol
+  -> no absolute_slot_00000074 symbol unless stronger storage evidence exists
+```
+
+This keeps address-domain naming conservative. Review tooling can surface the
+candidate range, but rendered source should not invent a named slot merely
+because the value is address-shaped or in low memory.
+
 The isolated regression is in
 `test_source_quality_analyze_exports_platform_address_uses`:
 
@@ -393,8 +409,9 @@ low_base_ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
 ```
 
 The expected result is a `low_memory_base` platform-use fact, storage identity,
-and an unowned one-off absolute range. A true write to `$70` remains a vector
-install and keeps the vector symbol.
+and an unowned one-off absolute range, with no generated `absolute_slot_*`
+symbol. A true write to `$70` remains a vector install and keeps the vector
+symbol.
 
 Focused Damocles verification exports analysis JSON for the exact target:
 

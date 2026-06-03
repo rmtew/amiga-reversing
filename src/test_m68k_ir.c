@@ -12546,12 +12546,15 @@ static int test_source_quality_analyze_exports_platform_address_uses(void) {
   M68K_C_ASSERT(low_base_identity != NULL);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, low_base_identity->owner_kind);
   M68K_C_ASSERT_U32(M68K_ADDRESS_IDENTITY_ROLE_STORAGE, low_base_identity->role_kind);
+  M68K_C_ASSERT(low_base_identity->symbol_name == NULL);
+  M68K_C_ASSERT(source_analysis.sections[0].address_observations[1].symbol_name == NULL);
   M68K_C_ASSERT(vector_range != NULL);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR, vector_range->owner_kind);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_OWNED, vector_range->status);
   M68K_C_ASSERT(low_base_range != NULL);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, low_base_range->owner_kind);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_ONE_OFF, low_base_range->status);
+  M68K_C_ASSERT(low_base_range->symbol_name == NULL);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"platform_address_use_count\":4") != NULL);
@@ -12563,6 +12566,7 @@ static int test_source_quality_analyze_exports_platform_address_uses(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"address\":112") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"m68k_vector_level_4_interrupt_autovector\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "m68k_vector_level_5_interrupt_autovector") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"absolute_slot_00000074\"") == NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"_custom\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"_custom+intena\"") != NULL);
   free(analysis_json);
