@@ -1433,6 +1433,26 @@ Each new producer must set a precise producer id/string in
 test failure for new source-quality code, with the existing `"unknown"` fallback
 reserved for old/manual fixture construction and defensive JSON export.
 
+Implemented closure:
+
+```text
+expected_symbol_access producer is missing or "unknown"
+  -> source_quality_diagnostic(
+       kind=expected_symbol_access_without_producer,
+       origin=auto_analysis,
+       blocker=true)
+  -> missing-rendered-symbol checking is skipped for that access
+     because the primary failure is the untraceable producer
+```
+
+This keeps `m68k_ir_section_analysis_append_expected_symbol_access()` defensive:
+callers can still construct or import old fixture data and JSON can still show
+`"producer":"unknown"`. The validated source-quality path is stricter. If an
+expected symbol access participates in rendered-source validation, it must name
+the producer that created the obligation, even when the renderer happened to
+emit the matching symbol. The focused regression is
+`source_quality_analyze_blocks_expected_symbol_access_without_producer`.
+
 Current table-entry progress:
 
 ```text

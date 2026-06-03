@@ -1100,12 +1100,54 @@ static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisI
   return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
 }
 
+static int expected_symbol_access_has_precise_producer(const M68kExpectedSymbolAccessIR *access) {
+  return access != NULL && access->producer != NULL && access->producer[0] != '\0' &&
+    strcmp(access->producer, "unknown") != 0;
+}
+
+static int append_expected_symbol_access_without_producer_diagnostic(M68kSectionAnalysisIR *section,
+    const M68kExpectedSymbolAccessIR *access) {
+  M68kSourceQualityDiagnosticIR diagnostic;
+  char evidence_source[256];
+  const char *symbol_name;
+  if (section == NULL || access == NULL) return -1;
+  symbol_name = access->symbol_name != NULL && access->symbol_name[0] != '\0' ? access->symbol_name : "unknown";
+  if (access->has_target) {
+    snprintf(evidence_source, sizeof(evidence_source),
+      "expected_symbol_access:producer=unknown access=%s symbol=%s operand=%u target=%u:%u",
+      m68k_expected_symbol_access_kind_name(access->access_kind), symbol_name,
+      (unsigned)access->operand_index, (unsigned)access->target_section_index,
+      (unsigned)access->target_offset);
+  } else {
+    snprintf(evidence_source, sizeof(evidence_source),
+      "expected_symbol_access:producer=unknown access=%s symbol=%s operand=%u",
+      m68k_expected_symbol_access_kind_name(access->access_kind), symbol_name,
+      (unsigned)access->operand_index);
+  }
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_EXPECTED_SYMBOL_ACCESS_WITHOUT_PRODUCER;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
+  diagnostic.blocker = 1U;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
+  diagnostic.has_section_index = 1U;
+  diagnostic.section_index = (uint32_t)section->section_index;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = access->offset;
+  diagnostic.summary = "expected symbol access has no precise producer";
+  diagnostic.evidence_source = evidence_source;
+  return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
+}
+
 static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSectionAnalysisIR *section,
     const M68kRenderEvidenceSectionIR *render_evidence_section) {
   size_t index;
   if (section == NULL) return -1;
   for (index = 0U; index < section->expected_symbol_access_count; ++index) {
     const M68kExpectedSymbolAccessIR *access = &section->expected_symbol_accesses[index];
+    if (!expected_symbol_access_has_precise_producer(access)) {
+      if (append_expected_symbol_access_without_producer_diagnostic(section, access) != 0) return -1;
+      continue;
+    }
     if (!section_has_rendered_symbol_access(render_evidence_section, access)) {
       if (append_missing_expected_symbol_access_diagnostic(section, access) != 0) return -1;
     }
