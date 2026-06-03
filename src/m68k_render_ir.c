@@ -208,6 +208,18 @@ static int store_asm_source_declaration_line(M68kRenderIRPreview *preview, const
   return 1;
 }
 
+static int asm_source_symbol_is_declared_equate(const M68kRenderIRPreview *preview, const char *symbol_name) {
+  uint16_t index;
+  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
+    if (preview->asm_source_declaration_is_equate[index] != 0U &&
+        strcmp(preview->asm_source_declarations[index], symbol_name) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static Arena *render_preview_scratch_arena(M68kRenderIRPreview *preview) {
   if (preview == NULL) return NULL;
   if (preview->scratch_arena == NULL) {
@@ -685,6 +697,7 @@ static int render_asm_declare_symbol_once(M68kRenderIRPreview *preview, const ch
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
     sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
+  preview->asm_source_declaration_is_equate[preview->asm_source_declaration_count] = 1U;
   snprintf(line, sizeof(line), "%s\tEQU\t%d\n", symbol_name, (int)value);
   if (preview->collect_asm_source_text) {
     if (!store_asm_source_declaration_line(preview, line)) return 0;
@@ -716,6 +729,7 @@ static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, cons
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
     sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
+  preview->asm_source_declaration_is_equate[preview->asm_source_declaration_count] = 1U;
   snprintf(line, sizeof(line), "%s\tEQU\t$%X\n", symbol_name, (unsigned)value);
   if (preview->collect_asm_source_text) {
     if (!store_asm_source_declaration_line(preview, line)) return 0;
@@ -749,6 +763,7 @@ static int render_asm_declare_symbol_expr_once(M68kRenderIRPreview *preview, con
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
     sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
+  preview->asm_source_declaration_is_equate[preview->asm_source_declaration_count] = 1U;
   snprintf(line, sizeof(line), "%s\tEQU\t%s\n", symbol_name, expr);
   if (preview->collect_asm_source_text) {
     if (!store_asm_source_declaration_line(preview, line)) return 0;
@@ -10404,8 +10419,11 @@ static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *prev
     access.offset = candidate->offset;
     access.operand_index = (uint32_t)operand_index;
     access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
+    if (asm_source_symbol_is_declared_equate(preview, operand->symbol_ref.name)) {
+      access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
+    }
     representation = lookup_manual_operand_representation(lookup, section_index, candidate->offset, operand_index);
-    if (representation != NULL &&
+    if (access.access_kind != M68K_RENDERED_SYMBOL_ACCESS_EQUATE && representation != NULL &&
         representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
         representation->target_equate_index != 0U) {
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;

@@ -686,6 +686,7 @@ relocated_branch
 intrinsic_branch
 data_operand
 manual_equate
+generated absolute-symbol equate operand obligations
 label_statement
 section_storage_address_observation
 absolute_address_observation
@@ -726,6 +727,7 @@ relocation-backed branch/call targets
 intrinsic branch/call/jump targets
 ordinary data operands
 manual equates
+generated non-manual equates
 independent label statements
 section-storage address observations
 absolute address observations
@@ -738,7 +740,6 @@ PC-relative data operands crossing materialized runtime ORG boundaries
 The remaining coverage gap is narrower:
 
 ```text
-generated non-manual equates
 non-data PC-relative storage operands that cross a runtime ORG boundary
 platform semantic operands and comments
 ```
@@ -751,9 +752,29 @@ The next coverage should stay as separate functions, not one broad "label
 exists" rule:
 
 ```text
-append_expected_generated_equate_operand_accesses()
 append_expected_platform_symbol_operand_accesses()
 ```
+
+Current generated-equate progress:
+
+```text
+source-quality analysis sees an absolute address observation that requires a
+generated absolute symbol
+  -> expected_symbol_access(access_kind=equate,
+                            producer=absolute_address_observation)
+
+renderer declares the generated symbol with EQU
+  -> declaration metadata marks the symbol as an EQU
+
+renderer emits that symbol in an operand
+  -> rendered_symbol_access(access_kind=equate)
+  -> post-render gate proves the operand used the emitted EQU
+```
+
+This is intentionally not a generic "any symbol-looking value is an address"
+rule. Section-storage observations that resolve to real in-image labels remain
+`access_kind=operand`; only declarations emitted as `EQU` are recorded as
+rendered equate accesses.
 
 Current storage-label progress:
 
@@ -855,7 +876,7 @@ accepted data boundary label
   -> expected label statement
 
 generated absolute storage slot
-  -> expected equate and operand symbol
+  -> expected equate-backed operand use
 ```
 
 Broad facts such as "a label exists here" are not enough. The obligation must
@@ -1169,7 +1190,6 @@ target inside copied runtime range and runtime != storage
 
 Add the remaining precise C producers:
 
-- generated non-manual equates
 - non-data PC-relative storage operands that cross a runtime ORG boundary
 - platform semantic operands and comments
 

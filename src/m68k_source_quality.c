@@ -2073,7 +2073,8 @@ static int append_expected_address_observation_symbol_accesses_for_section(M68kS
         "absolute_address_observation";
       access.offset = observation->offset;
       access.operand_index = observation->operand_index;
-      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+      access.access_kind = section_storage_origin != NULL ? M68K_EXPECTED_SYMBOL_ACCESS_OPERAND :
+        M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
       access.confidence = section_storage_origin != NULL ? section_storage_origin->confidence : observation->confidence;
       if (section_storage_origin != NULL || observation->has_target) {
         access.target_section_index = observation->target_section_index;

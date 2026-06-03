@@ -64,6 +64,7 @@ typedef struct M68kRenderIRPreview {
   char asm_source_includes[M68K_RENDER_ASM_INCLUDE_LIMIT][M68K_RENDER_ASM_INCLUDE_PATH_SIZE];
   char asm_source_declarations[M68K_RENDER_ASM_DECLARATION_LIMIT][M68K_RENDER_ASM_SYMBOL_NAME_SIZE];
   char *asm_source_declaration_lines[M68K_RENDER_ASM_DECLARATION_LIMIT];
+  uint8_t asm_source_declaration_is_equate[M68K_RENDER_ASM_DECLARATION_LIMIT];
   uint32_t asm_source_body_start_byte;
   uint16_t asm_source_include_count;
   uint16_t asm_source_declaration_count;

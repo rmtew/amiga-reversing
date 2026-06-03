@@ -11278,14 +11278,14 @@ static int test_source_quality_analyze_accepts_runtime_alias_for_absolute_slot_a
   access.symbol_name = "absolute_slot_FFFFFF94";
   access.offset = 0x178U;
   access.operand_index = 0U;
-  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
   access.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_expected_symbol_access(&section_analysis, &access));
   memset(&rendered_access, 0, sizeof(rendered_access));
   rendered_access.symbol_name = "runtime_address_FFFFFF94";
   rendered_access.offset = 0x178U;
   rendered_access.operand_index = 0U;
-  rendered_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
+  rendered_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_rendered_symbol_access(
     &section_analysis, &rendered_access));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
@@ -24914,12 +24914,12 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
        ++access_index) {
     const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[access_index];
     if (access->offset == 0U && access->operand_index == 0U &&
-        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_EQUATE &&
         access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_00006F50") == 0) {
       saw_expected_first = 1;
     }
     if (access->offset == 6U && access->operand_index == 0U &&
-        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_EQUATE &&
         access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_0002F490") == 0) {
       saw_expected_second = 1;
     }
@@ -24928,12 +24928,12 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
        ++access_index) {
     const M68kRenderedSymbolAccessIR *access = &source_analysis.sections[0].rendered_symbol_accesses[access_index];
     if (access->offset == 0U && access->operand_index == 0U &&
-        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_OPERAND &&
+        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_EQUATE &&
         access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_00006F50") == 0) {
       saw_rendered_first = 1;
     }
     if (access->offset == 6U && access->operand_index == 0U &&
-        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_OPERAND &&
+        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_EQUATE &&
         access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_0002F490") == 0) {
       saw_rendered_second = 1;
     }
