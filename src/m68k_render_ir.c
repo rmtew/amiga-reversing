@@ -6599,6 +6599,40 @@ static int attach_platform_semantic_operand_expr_for_render(M68kRenderIRPreview 
   return 0;
 }
 
+static int attach_platform_semantic_target_operand_for_render(const M68kRenderLookup *lookup,
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset,
+    M68kInstructionIR *instruction) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (lookup == NULL || instruction == NULL) return 0;
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (section == NULL) return 0;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    M68kOperandIR *operand;
+    uint32_t value = 0U;
+    if (use->offset != offset ||
+        use->kind != M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER ||
+        !use->has_target ||
+        use->target_section_index >= lookup->section_count ||
+        use->operand_index >= instruction->operand_count ||
+        !lookup_has_renderable_label(lookup, use->target_section_index, use->target_offset)) {
+      continue;
+    }
+    operand = &instruction->operands[use->operand_index];
+    if (operand->symbol_ref.has_name != 0U || !m68k_ir_operand_immediate_value(operand, &value)) continue;
+    m68k_ir_symbol_ref_init(&operand->symbol_ref);
+    operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_ABS;
+    operand->symbol_ref.has_name = 1U;
+    operand->symbol_ref.has_section = 1;
+    operand->symbol_ref.section_index = use->target_section_index;
+    operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
+      operand->symbol_ref.name, sizeof(operand->symbol_ref.name), use->target_section_index, use->target_offset);
+    return 1;
+  }
+  return 0;
+}
+
 static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
     size_t section_index, uint32_t offset, uint8_t kind, char *comment, size_t comment_size) {
   const M68kSectionAnalysisIR *section;
@@ -9191,49 +9225,6 @@ static int attach_vector_address_use_symbols(M68kRenderIRPreview *preview,
   return 1;
 }
 
-static int attach_amiga_runtime_sink_immediate_symbols(const M68kRenderLookup *lookup,
-    const M68kRenderPlatformState *platform_state, size_t section_index, M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata;
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  size_t source_index = 0U;
-  size_t dest_index = 0U;
-  uint32_t runtime_address = 0U;
-  uint32_t source_offset = 0U;
-  if (lookup == NULL || platform_state == NULL || instruction == NULL || section_index >= lookup->section_count)
-    return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL || metadata->source_operand_index >= instruction->operand_count ||
-      metadata->dest_operand_index >= instruction->operand_count) {
-    return 0;
-  }
-  source_index = metadata->source_operand_index;
-  dest_index = metadata->dest_operand_index;
-  if (instruction->size_suffix != 'l' ||
-      metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
-      instruction->operands[source_index].symbol_ref.has_name ||
-      !m68k_ir_operand_immediate_value(&instruction->operands[source_index], &runtime_address)) {
-    return 0;
-  }
-  hardware_register = resolve_amiga_hardware_register_operand(platform_state, &instruction->operands[dest_index]);
-  if (hardware_register == NULL ||
-      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE ||
-      !lookup_materialized_runtime_address_source_offset(lookup, section_index, runtime_address, &source_offset) ||
-      !lookup_has_renderable_label(lookup, section_index, source_offset)) {
-    return 0;
-  }
-  m68k_ir_symbol_ref_init(&instruction->operands[source_index].symbol_ref);
-  instruction->operands[source_index].symbol_ref.kind = M68K_IR_SYMBOL_REF_ABS;
-  instruction->operands[source_index].symbol_ref.has_name = 1U;
-  instruction->operands[source_index].symbol_ref.name_is_generated = 1U;
-  instruction->operands[source_index].symbol_ref.has_section = 1;
-  instruction->operands[source_index].symbol_ref.section_index = section_index;
-  instruction->operands[source_index].symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(
-    lookup, instruction->operands[source_index].symbol_ref.name,
-    sizeof(instruction->operands[source_index].symbol_ref.name), section_index, source_offset);
-  return 1;
-}
-
 static int attach_known_external_runtime_address_symbols(M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
     M68kInstructionIR *instruction) {
@@ -9526,11 +9517,12 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       candidate->offset, &instruction) < 0) {
     return 0;
   }
+  (void)attach_platform_semantic_target_operand_for_render(lookup, source_analysis, section->section_index,
+    candidate->offset, &instruction);
   (void)attach_platform_semantic_note_comment_for_render(source_analysis, lookup, section->section_index,
     candidate->offset, platform_comment, sizeof(platform_comment));
   (void)attach_amiga_hardware_register_symbols(platform_state, source_analysis, section, candidate, &instruction,
     &instruction);
-  (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);
   (void)attach_absolute_stack_top_symbol(preview, &instruction);
   if (!attach_absolute_memory_address_use_symbols(preview, source_analysis, section, candidate, &instruction,
       platform_comment,

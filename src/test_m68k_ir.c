@@ -27133,8 +27133,11 @@ static int test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample(v
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  const M68kPlatformSemanticUseIR *sink_use = NULL;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint16_t index;
+  size_t use_index;
   uint8_t bytes[28] = {
     0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x14u, 0x00u, 0xDFu, 0xF0u, 0xA0u,
     0x33u, 0xFCu, 0x00u, 0x04u, 0x00u, 0xDFu, 0xF0u, 0xA4u,
@@ -27164,6 +27167,23 @@ static int test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample(v
     "\tmove.l #loc_0_00000014,_custom+aud0+ac_ptr.l\t; sound_sample pointer\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.w #$4,_custom+aud0+ac_len.l\t; sound sample length 8 bytes\n") != NULL);
+  for (use_index = 0U; use_index < source_analysis.sections[0].platform_semantic_use_count; ++use_index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[use_index];
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER && use->offset == 0U) {
+      sink_use = use;
+      break;
+    }
+  }
+  M68K_C_ASSERT(sink_use != NULL);
+  M68K_C_ASSERT(sink_use->has_target);
+  M68K_C_ASSERT_U32(0U, sink_use->target_section_index);
+  M68K_C_ASSERT_U32(0x14U, sink_use->target_offset);
+  M68K_C_ASSERT_U32(0U, sink_use->operand_index);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"runtime_sink_pointer\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_offset\":20") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 0x14U &&
@@ -27176,6 +27196,7 @@ static int test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample(v
   M68K_C_ASSERT_U32(8U, auto_item->size);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);

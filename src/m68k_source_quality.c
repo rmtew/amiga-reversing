@@ -2714,6 +2714,22 @@ static void source_quality_runtime_sink_note_text(const M68kSectionAnalysisIR *s
   }
 }
 
+static void source_quality_runtime_sink_set_target_operand(M68kPlatformSemanticUseIR *use,
+    const M68kRuntimeAddressRefIR *runtime_ref, const M68kInstructionIR *instruction) {
+  uint32_t value = 0U;
+  if (use == NULL || runtime_ref == NULL || instruction == NULL ||
+      !runtime_ref->has_target || runtime_ref->target_section_index > UINT32_MAX ||
+      runtime_ref->operand_index >= instruction->operand_count ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[runtime_ref->operand_index], &value) ||
+      !runtime_ref->has_runtime_address || value != runtime_ref->runtime_address) {
+    return;
+  }
+  use->has_target = 1U;
+  use->target_section_index = (uint32_t)runtime_ref->target_section_index;
+  use->target_offset = runtime_ref->target_offset;
+  use->operand_index = runtime_ref->operand_index;
+}
+
 static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   size_t observation_index;
@@ -2749,6 +2765,7 @@ static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnal
       observation->address);
     use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     use.note_text = note;
+    source_quality_runtime_sink_set_target_operand(&use, runtime_ref, &instruction);
     if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
   }
   return 0;
@@ -3969,6 +3986,7 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
         sink_address);
       use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
       use.note_text = note;
+      source_quality_runtime_sink_set_target_operand(&use, runtime_ref, &instruction);
       if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
     }
     source_quality_hardware_base_state_update_after_instruction(&state, &instruction);

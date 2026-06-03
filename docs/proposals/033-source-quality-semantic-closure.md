@@ -2886,6 +2886,33 @@ deleted. Focused coverage asserts both the rendered comment and the exported
 `runtime_sink_pointer` JSON record, so the pipeline can distinguish producer
 failure from render consumption failure.
 
+The in-image runtime-sink operand label now follows the same boundary. Earlier
+render resolved the hardware destination, checked whether the immediate runtime
+address mapped back into the source image, and rewrote the source operand:
+
+```asm
+    move.l  #loc_0_00000014,_custom+aud0+ac_ptr.l ; sound_sample pointer
+```
+
+That was a semantic decision in the renderer. Source-quality now attaches the
+source target to the same `runtime_sink_pointer` semantic use:
+
+```text
+runtime-address ref at sink write
+  + ref has source target section/offset
+  + source operand is the immediate runtime address
+  -> platform_semantic_use(kind=runtime_sink_pointer,
+       operand_index=source_operand,
+       target_section_index=...,
+       target_offset=...)
+  -> renderer formats that target as the current source/runtime label
+```
+
+The renderer may still choose the textual label spelling, because `loc_*` versus
+storage/runtime spelling is render support. It no longer discovers that the
+operand is a sink pointer or maps the immediate back into source bytes. The old
+`attach_amiga_runtime_sink_immediate_symbols()` scan was deleted.
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no
