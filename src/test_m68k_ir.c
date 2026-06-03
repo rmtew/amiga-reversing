@@ -27751,6 +27751,7 @@ static int test_facts_v2_render_asm_source_renders_call_input_domain_immediate(v
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   const AmigaOsLibraryVectorInfo *alert_vector = amiga_os_find_library_vector_by_symbol_name("_LVOAlert");
   int32_t an_icon_lib = 0;
   int32_t ag_open_lib = 0;
@@ -27801,7 +27802,9 @@ static int test_facts_v2_render_asm_source_renders_call_input_domain_immediate(v
     int found_an = 0;
     int found_ag = 0;
     int found_ao = 0;
+    int found_operand_expr_use = 0;
     size_t expected_index;
+    size_t use_index;
     for (expected_index = 0U; expected_index < analysis_section->expected_symbol_access_count; ++expected_index) {
       const M68kExpectedSymbolAccessIR *expected = &analysis_section->expected_symbol_accesses[expected_index];
       if (expected->offset != 0U ||
@@ -27814,10 +27817,130 @@ static int test_facts_v2_render_asm_source_renders_call_input_domain_immediate(v
       if (strcmp(expected->symbol_name, "AG_OpenLib") == 0) found_ag = 1;
       if (strcmp(expected->symbol_name, "AO_DOSLib") == 0) found_ao = 1;
     }
+    for (use_index = 0U; use_index < analysis_section->platform_semantic_use_count; ++use_index) {
+      const M68kPlatformSemanticUseIR *use = &analysis_section->platform_semantic_uses[use_index];
+      if (use->kind == M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT &&
+          use->offset == 0U &&
+          use->has_operand_expr &&
+          use->operand_index == 0U &&
+          use->operand_expr != NULL &&
+          strcmp(use->operand_expr, "AN_IconLib|AG_OpenLib|AO_DOSLib") == 0) {
+        found_operand_expr_use = 1;
+      }
+    }
     M68K_C_ASSERT(found_an);
     M68K_C_ASSERT(found_ag);
     M68K_C_ASSERT(found_ao);
+    M68K_C_ASSERT(found_operand_expr_use);
   }
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"platform_call_input\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_expr\":\"AN_IconLib|AG_OpenLib|AO_DOSLib\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_render_asm_source_renders_local_helper_call_input_domain_immediate(void) {
+  M68kObject object;
+  M68kSection caller_section;
+  M68kSection helper_section;
+  M68kSection data_section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kSymbol symbol;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  int saw_operand_expr_use = 0;
+  size_t use_index;
+  uint8_t caller_bytes[12] = {
+    0x70u, 0x10u,
+    0x72u, 0x04u,
+    0x4eu, 0xb9u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x75u
+  };
+  uint8_t helper_bytes[22] = {
+    0x2fu, 0x0eu,
+    0x2cu, 0x79u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4au, 0x80u,
+    0x67u, 0x06u,
+    0x4eu, 0xaeu, 0xffu, 0x3au,
+    0x4au, 0x80u,
+    0x2cu, 0x5fu,
+    0x4eu, 0x75u
+  };
+  uint8_t data_bytes[4] = {0};
+  memset(&caller_section, 0, sizeof(caller_section));
+  memset(&helper_section, 0, sizeof(helper_section));
+  memset(&data_section, 0, sizeof(data_section));
+  memset(&fixup, 0, sizeof(fixup));
+  memset(&symbol, 0, sizeof(symbol));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  caller_section.kind = M68K_SECTION_CODE;
+  caller_section.size = sizeof(caller_bytes);
+  caller_section.data_size = sizeof(caller_bytes);
+  helper_section.kind = M68K_SECTION_CODE;
+  helper_section.size = sizeof(helper_bytes);
+  helper_section.data_size = sizeof(helper_bytes);
+  data_section.kind = M68K_SECTION_DATA;
+  data_section.size = sizeof(data_bytes);
+  data_section.data_size = sizeof(data_bytes);
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object,
+    m68k_object_add_section(&object, &caller_section).index, caller_bytes, sizeof(caller_bytes)));
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object,
+    m68k_object_add_section(&object, &helper_section).index, helper_bytes, sizeof(helper_bytes)));
+  added = m68k_object_add_section(&object, &data_section);
+  M68K_C_ASSERT(added.ok);
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object, added.index, data_bytes, sizeof(data_bytes)));
+  symbol.name = "SysBase";
+  symbol.binding = M68K_SYMBOL_LOCAL;
+  symbol.defined = 1;
+  symbol.section_index = 2U;
+  symbol.value = 0U;
+  M68K_C_ASSERT(m68k_object_add_symbol(&object, &symbol).ok);
+  fixup.section_index = 0U;
+  fixup.offset = 6U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 1U;
+  fixup.has_target_section = 1;
+  M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 1U;
+  fixup.offset = 4U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 2U;
+  fixup.has_target_section = 1;
+  M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
+    &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #MEMF_FAST,d1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\n") != NULL);
+  for (use_index = 0U; use_index < source_analysis.sections[0].platform_semantic_use_count; ++use_index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[use_index];
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT &&
+        use->offset == 2U &&
+        use->has_operand_expr &&
+        use->operand_expr != NULL &&
+        strcmp(use->operand_expr, "MEMF_FAST") == 0) {
+      saw_operand_expr_use = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_operand_expr_use);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -29291,6 +29414,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_marks_structured_data_code_overlap},
     {"facts_v2_render_asm_source_renders_call_input_domain_immediate",
       test_facts_v2_render_asm_source_renders_call_input_domain_immediate},
+    {"facts_v2_render_asm_source_renders_local_helper_call_input_domain_immediate",
+      test_facts_v2_render_asm_source_renders_local_helper_call_input_domain_immediate},
     {"facts_v2_render_asm_source_expects_hardware_value_domain_immediate",
       test_facts_v2_render_asm_source_expects_hardware_value_domain_immediate},
     {"facts_v2_render_asm_source_expects_hardware_base_register_value_domain_immediate",

@@ -2877,7 +2877,10 @@ int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR 
         existing->has_secondary_target == use->has_secondary_target &&
         existing->secondary_target_section_index == use->secondary_target_section_index &&
         existing->secondary_target_offset == use->secondary_target_offset &&
-        text_equal_nullable(existing->note_text, use->note_text)) {
+        existing->has_operand_expr == use->has_operand_expr &&
+        existing->operand_index == use->operand_index &&
+        text_equal_nullable(existing->note_text, use->note_text) &&
+        text_equal_nullable(existing->operand_expr, use->operand_expr)) {
       return 0;
     }
   }
@@ -2888,9 +2891,14 @@ int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR 
   if (section_analysis->platform_semantic_uses == NULL) return -1;
   copy = *use;
   copy.note_text = NULL;
+  copy.operand_expr = NULL;
   if (use->note_text != NULL) {
     copy.note_text = arena_strdup(section_analysis->arena, use->note_text);
     if (copy.note_text == NULL) return -1;
+  }
+  if (use->operand_expr != NULL) {
+    copy.operand_expr = arena_strdup(section_analysis->arena, use->operand_expr);
+    if (copy.operand_expr == NULL) return -1;
   }
   section_analysis->platform_semantic_uses[section_analysis->platform_semantic_use_count++] = copy;
   return 0;

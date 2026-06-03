@@ -6712,6 +6712,32 @@ static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnal
   return appended_target_note || comment[0] != '\0';
 }
 
+static int attach_platform_semantic_operand_expr_for_render(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset,
+    M68kInstructionIR *instruction) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (preview == NULL || instruction == NULL) return 0;
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (section == NULL) return 0;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    if (use->offset != offset || !use->has_operand_expr || use->operand_expr == NULL ||
+        use->operand_expr[0] == '\0' || use->operand_index >= instruction->operand_count) {
+      continue;
+    }
+    if (instruction->operands[use->operand_index].symbol_ref.has_name != 0U) continue;
+    if (!render_asm_include_for_symbol_expr(preview, use->operand_expr)) {
+      ++preview->asm_source_instruction_render_failures;
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, (uint32_t)section_index, offset, 0U);
+      return -1;
+    }
+    attach_amiga_platform_symbol(&instruction->operands[use->operand_index], use->operand_expr);
+    return 1;
+  }
+  return 0;
+}
+
 static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
     size_t section_index, uint32_t offset, uint8_t kind, char *comment, size_t comment_size) {
   const M68kSectionAnalysisIR *section;
@@ -9559,124 +9585,6 @@ static const M68kFact *first_anchor_in_candidate(const M68kRenderLookup *lookup,
   return first;
 }
 
-static int instruction_loads_immediate_to_register(const M68kInstructionIR *instruction, uint8_t *out_reg_kind,
-    uint8_t *out_reg_index, uint32_t *out_value) {
-  uint32_t value = 0U;
-  uint8_t reg = 0U;
-  if (out_reg_kind != NULL) *out_reg_kind = 0U;
-  if (out_reg_index != NULL) *out_reg_index = 0U;
-  if (out_value != NULL) *out_value = 0U;
-  if (instruction == NULL || instruction->operand_count != 2U ||
-      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value)) {
-    return 0;
-  }
-  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
-      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA &&
-      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEQ) {
-    return 0;
-  }
-  if (operand_is_data_register_local(&instruction->operands[1], &reg)) {
-    if (out_reg_kind != NULL) *out_reg_kind = 1U;
-  } else if (operand_address_register_index_local(&instruction->operands[1], &reg)) {
-    if (out_reg_kind != NULL) *out_reg_kind = 2U;
-  } else {
-    return 0;
-  }
-  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ) value = (uint32_t)(int32_t)(int8_t)(value & 0xFFU);
-  else if (instruction->size_suffix == 'b') value = (uint32_t)(int32_t)(int8_t)(value & 0xFFU);
-  else if (instruction->size_suffix == 'w') value = (uint32_t)(int32_t)(int16_t)(value & 0xFFFFU);
-  if (out_reg_index != NULL) *out_reg_index = reg;
-  if (out_value != NULL) *out_value = value;
-  return 1;
-}
-
-static int instruction_writes_register(const M68kInstructionIR *instruction, uint8_t reg_kind,
-    uint8_t reg_index) {
-  size_t operand_index;
-  uint8_t reg = 0U;
-  if (instruction == NULL || reg_kind == 0U || reg_index >= 8U) return 0;
-  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count >= 2U &&
-      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
-    if (reg_kind == 1U) return reglist_contains_data_register_local(&instruction->operands[1], reg_index);
-    return reglist_contains_address_register_local(&instruction->operands[1], reg_index);
-  }
-  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
-    const M68kOperandIR *operand = &instruction->operands[operand_index];
-    if (!instruction_operand_writes_register_from_metadata(instruction, operand_index)) continue;
-    if (reg_kind == 1U && operand_is_data_register_local(operand, &reg) && reg == reg_index) return 1;
-    if (reg_kind == 2U && operand_address_register_index_local(operand, &reg) && reg == reg_index) return 1;
-  }
-  return 0;
-}
-
-static int attach_amiga_next_call_input_immediate_symbol(M68kRenderIRPreview *preview,
-    const M68kRenderLookup *lookup, const M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode,
-    uint8_t **accepted_start_all, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
-    M68kInstructionIR *instruction) {
-  M68kRenderPlatformState state;
-  uint8_t reg_kind = 0U;
-  uint8_t reg_index = 0U;
-  uint32_t value = 0U;
-  uint32_t cursor;
-  size_t scan_count = 0U;
-  if (preview == NULL || lookup == NULL || platform_state == NULL || decode == NULL || accepted_start_all == NULL ||
-      section == NULL || candidate == NULL || instruction == NULL) {
-    return 0;
-  }
-  if (lookup->object == NULL || lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK)
-    return 0;
-  if (!instruction_loads_immediate_to_register(instruction, &reg_kind, &reg_index, &value)) return 0;
-  state = *platform_state;
-  cursor = candidate->offset + candidate->byte_count;
-  while (cursor < section->size && scan_count < 12U) {
-    const M68kDecodeCandidate *next_candidate;
-    M68kInstructionIR next_instruction;
-    M68kRenderAmigaVectorResolution vector_resolution;
-    const AmigaOsCallInputInfo *input;
-    const char *value_domain_name;
-    char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
-    if (!accepted_start_at(section, accepted_start_all[section->section_index], cursor)) break;
-    next_candidate = find_candidate_at_offset_local(section, cursor);
-    if (next_candidate == NULL || next_candidate->byte_count == 0U) break;
-    platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index, cursor);
-    if (m68k_decode_candidate_to_instruction(next_candidate, &next_instruction) != 0) break;
-    attach_known_instruction_relocations(lookup, section->section_index, next_candidate, &next_instruction);
-    m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(lookup, &state, decode, accepted_start_all, section,
-      accepted_start_all[section->section_index], next_candidate, &next_instruction, &vector_resolution);
-    if (vector_resolution.chosen_vector != NULL) {
-      input = amiga_vector_input_by_register(vector_resolution.chosen_vector, reg_kind, reg_index);
-      if (input == NULL) return 0;
-      value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
-      if (value_domain_name == NULL ||
-          !amiga_value_domain_symbolic_expr(value_domain_name, value, symbol_expr, sizeof(symbol_expr))) {
-        return 0;
-      }
-      if (!render_asm_include_for_symbol_expr(preview, symbol_expr)) {
-        ++preview->asm_source_instruction_render_failures;
-        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section->section_index,
-          candidate->offset, 0U);
-        return -1;
-      }
-      m68k_ir_symbol_ref_init(&instruction->operands[0].symbol_ref);
-      instruction->operands[0].symbol_ref.has_name = 1U;
-      instruction->operands[0].symbol_ref.name_is_generated = 0U;
-      instruction->operands[0].symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
-      instruction->operands[0].symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
-      snprintf(instruction->operands[0].symbol_ref.name, sizeof(instruction->operands[0].symbol_ref.name), "%s",
-        symbol_expr);
-      return 1;
-    }
-    if (instruction_writes_register(&next_instruction, reg_kind, reg_index)) break;
-    if (candidate_has_call_flow(next_candidate)) break;
-    platform_state_update_data_lvo_after_instruction(&state, &next_instruction);
-    platform_state_update_after_instruction(&state, lookup, &next_instruction);
-    if (!candidate_has_local_helper_summary_fallthrough(next_candidate)) break;
-    cursor += next_candidate->byte_count;
-    ++scan_count;
-  }
-  return 0;
-}
-
 static int amiga_vector_is_open_library_result(const AmigaOsLibraryVectorInfo *vector) {
   if (vector == NULL) return 0;
   return vector->function_id == AMIGA_OS_FUNCTION_ID_OPENLIBRARY ||
@@ -9753,8 +9661,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   }
   m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(lookup, platform_state, decode, accepted_start_all, section,
     accepted_start, candidate, &instruction, &vector_resolution);
-  if (attach_amiga_next_call_input_immediate_symbol(preview, lookup, platform_state, decode, accepted_start_all,
-      section, candidate, &instruction) < 0) {
+  if (attach_platform_semantic_operand_expr_for_render(preview, source_analysis, section->section_index,
+      candidate->offset, &instruction) < 0) {
     return 0;
   }
   (void)attach_platform_semantic_note_comment_for_render(source_analysis, lookup, section->section_index,

@@ -591,6 +591,81 @@ typedef struct M68kRenderedSymbolAccessIR {
 If a renderer helper still classifies tables, labels, platform names, or memory
 ranges, that helper is analysis code in the wrong place.
 
+### Implemented Slice: Platform Operand Expressions
+
+Amiga OS call input value-domain rendering used to be decided while emitting a
+prior instruction:
+
+```text
+render move.l #number,d7
+  -> scan forward up to 12 accepted instructions
+  -> resolve later _LVOAlert(a6)
+  -> discover d7 is alertNumber
+  -> translate number to AN_IconLib|AG_OpenLib|AO_DOSLib
+  -> rewrite operand during render
+```
+
+That was analysis in rendering. The renderer was proving that an earlier
+immediate belonged to a later platform call input.
+
+The fact now belongs to source-quality analysis:
+
+```text
+recovered platform call _LVOAlert(a6)
+  -> generated Amiga input metadata says d7 is alertNumber
+  -> accepted previous instruction loads an immediate into d7
+  -> value-domain expression is proven
+  -> platform_semantic_use(offset=producer,
+                           kind=platform_call_input,
+                           operand_index=0,
+                           operand_expr="AN_IconLib|AG_OpenLib|AO_DOSLib")
+```
+
+Render support is intentionally small:
+
+```c
+if (use->has_operand_expr && use->offset == instruction_offset) {
+  render_asm_include_for_symbol_expr(preview, use->operand_expr);
+  attach_amiga_platform_symbol(&instruction->operands[use->operand_index],
+                               use->operand_expr);
+}
+```
+
+There is no forward scan, register tracking, or platform-call resolution in the
+renderer for this case now. The same C fact is exported to analysis JSON, so a
+round-trip failure can show exactly which operand expression analysis expected.
+The existing expected-symbol-access token obligations remain:
+
+```text
+operand_expr: AN_IconLib|AG_OpenLib|AO_DOSLib
+expected accesses:
+  AN_IconLib from platform_call_input_value_domain_operand
+  AG_OpenLib from platform_call_input_value_domain_operand
+  AO_DOSLib from platform_call_input_value_domain_operand
+```
+
+Recovered local helpers use the same rule. If analysis proves that a local
+helper ultimately calls `_LVOAllocMem`, a preceding `d1` immediate may render as
+`MEMF_FAST` only if the value still reaches the helper call:
+
+```text
+moveq.l #MEMF_FAST,d1
+jsr     allocmem_helper
+  -> operand_expr=MEMF_FAST
+
+moveq.l #0,d1
+move.b  (a1)+,d1
+jsr     allocmem_helper
+  -> d1 was overwritten
+  -> no MEMF_ANY symbol
+```
+
+The corpus update found the second shape in Search for the King. The old
+renderer printed `MEMF_ANY` for the zeroing instruction even though the next
+instruction overwrote the argument register. Moving the scan into analysis
+removes that false symbol while preserving the valid helper-mediated
+`MEMF_FAST` cases in GenAm and MonAm.
+
 ## Tutorial: Current-State Audit
 
 The current tree has already moved some work into the right layer. In

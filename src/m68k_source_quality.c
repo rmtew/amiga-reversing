@@ -4887,6 +4887,62 @@ static int append_platform_call_input_semantic_use(M68kSectionAnalysisIR *sectio
   return m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use);
 }
 
+static int append_platform_call_input_operand_expr_semantic_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeCandidate *candidate, const char *operand_expr) {
+  M68kPlatformSemanticUseIR use;
+  if (section_analysis == NULL || candidate == NULL || operand_expr == NULL || operand_expr[0] == '\0') return 0;
+  memset(&use, 0, sizeof(use));
+  use.kind = M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT;
+  use.offset = candidate->offset;
+  use.size = candidate->byte_count;
+  use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  use.operand_index = 0U;
+  use.operand_expr = (char *)operand_expr;
+  use.has_operand_expr = 1U;
+  return m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use);
+}
+
+static int append_platform_call_input_operand_expr_semantic_uses_for_call(
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kRecoveredPlatformCallIR *call, const AmigaOsLibraryVectorInfo *vector) {
+  const AmigaOsCallInputInfo *inputs;
+  size_t input_count = 0U;
+  size_t input_index;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL || call == NULL || vector == NULL) {
+    return 0;
+  }
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  if (inputs == NULL) return 0;
+  for (input_index = 0U; input_index < input_count; ++input_index) {
+    const AmigaOsCallInputInfo *input = &inputs[input_index];
+    const M68kDecodeCandidate *producer = NULL;
+    const char *value_domain_name;
+    char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
+    uint32_t value = 0U;
+    if (input->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) continue;
+    if (!source_quality_find_platform_call_input_immediate(section, accepted_start, call, input, &producer, &value))
+      continue;
+    value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
+    if (!amiga_value_domain_symbolic_expr(value_domain_name, value, symbol_expr, sizeof(symbol_expr))) continue;
+    if (append_platform_call_input_operand_expr_semantic_use(section_analysis, producer, symbol_expr) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static const AmigaOsLibraryVectorInfo *source_quality_recovered_call_vector(
+    const M68kRecoveredPlatformCallIR *call) {
+  const char *symbol_name;
+  const AmigaOsLibraryVectorInfo *vector;
+  if (call == NULL) return NULL;
+  symbol_name = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
+  vector = amiga_os_find_library_vector_by_symbol_name(symbol_name);
+  if (vector != NULL) return vector;
+  symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
+  return amiga_os_find_library_vector_by_symbol_name(symbol_name);
+}
+
 static int append_local_wrapper_call_input_semantic_uses(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call) {
   const char *call_symbol;
@@ -5039,6 +5095,11 @@ static int append_platform_call_input_semantic_uses_for_section(M68kSectionAnaly
       call_symbol = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
     }
     if (call_symbol == NULL || call_symbol[0] == '\0') continue;
+    vector = source_quality_recovered_call_vector(call);
+    if (append_platform_call_input_operand_expr_semantic_uses_for_call(section_analysis, section, accepted_start,
+        call, vector) != 0) {
+      return -1;
+    }
     if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_HELPER_SYMBOL) continue;
     if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL) {
       if (append_local_wrapper_call_input_semantic_uses(section_analysis, section, accepted_start, call) != 0) {
@@ -5046,7 +5107,6 @@ static int append_platform_call_input_semantic_uses_for_section(M68kSectionAnaly
       }
       continue;
     }
-    vector = amiga_os_find_library_vector_by_symbol_name(call_symbol);
     if (append_platform_call_input_semantic_uses_for_call(section_analysis, section, accepted_start, call,
         vector) != 0) {
       return -1;

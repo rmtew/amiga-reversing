@@ -77,7 +77,7 @@ loc_0_00000056:
 	adda.l a1,a1
 	adda.l a1,a1
 	move.l d2,d0
-	moveq.l #MEMF_ANY,d1
+	moveq.l #0,d1
 	move.b (a1)+,d1
 	move.l a1,-$3BE0(a4)
 	add.l d1,d0

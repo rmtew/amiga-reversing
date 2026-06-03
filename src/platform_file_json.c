@@ -4492,6 +4492,13 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         if (json_builder_append_json_string(&builder, use->note_text) != 0)
           goto oom;
       }
+      if (use->has_operand_expr && use->operand_expr != NULL && use->operand_expr[0] != '\0') {
+        if (json_builder_appendf(&builder, ",\"operand_index\":%u,\"operand_expr\":",
+            (unsigned)use->operand_index) != 0)
+          goto oom;
+        if (json_builder_append_json_string(&builder, use->operand_expr) != 0)
+          goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }

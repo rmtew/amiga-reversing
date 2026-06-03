@@ -1402,8 +1402,10 @@ typedef enum M68kPlatformSemanticUseKind {
 
 typedef struct M68kPlatformSemanticUseIR {
   char *note_text;
+  char *operand_expr;
   uint32_t offset;
   uint32_t size;
+  uint32_t operand_index;
   uint32_t target_section_index;
   uint32_t target_offset;
   uint32_t secondary_target_section_index;
@@ -1414,6 +1416,7 @@ typedef struct M68kPlatformSemanticUseIR {
   uint8_t confidence;
   uint8_t has_target;
   uint8_t has_secondary_target;
+  uint8_t has_operand_expr;
 } M68kPlatformSemanticUseIR;
 
 typedef struct M68kCodeStartRefIR {
