@@ -735,12 +735,12 @@ accepted table-entry targets
 rendered storage-label evidence
 materialized runtime range-start storage-label obligations
 PC-relative data operands crossing materialized runtime ORG boundaries
+PC-relative control operands crossing materialized runtime ORG boundaries
 ```
 
 The remaining coverage gap is narrower:
 
 ```text
-non-data PC-relative storage operands that cross a runtime ORG boundary
 platform semantic operands and comments
 ```
 
@@ -798,13 +798,21 @@ If the ordinary data-target producer already created the same operand
 obligation, producer evidence is merged; this records both reasons without
 duplicating the expected access.
 
-remaining: non-data PC-relative storage operands that cross a runtime ORG
-boundary need equivalent operand-driven producers before render
+source-quality analysis sees a PC-relative branch/call/jump target cross the
+same boundary
+  -> expected_symbol_access(access_kind=branch_target,
+                            producer=pc_relative_storage_operand)
+  -> expected_symbol_access(access_kind=storage_label,
+                            producer=pc_relative_storage_label_statement)
+
+If the intrinsic or relocated branch producer already created the branch-target
+obligation, producer evidence is merged; the storage-label statement remains a
+separate obligation because it proves the storage-domain label was emitted.
 ```
 
-The remaining producer must be C-owned. It cannot reuse the renderer-only
-`storage_label_target_refs` side effect; the operand/cross-ORG condition has to
-move into source analysis first so render only formats and records the label.
+These producers are C-owned. They do not reuse the renderer-only
+`storage_label_target_refs` side effect; source analysis owns the
+operand/cross-ORG condition, and render only formats and records the label.
 
 Each new producer must set a precise producer id/string in
 `M68kExpectedSymbolAccessIR`. A missing or empty producer should be treated as a
@@ -1165,6 +1173,7 @@ merged producer evidence for duplicate obligations
 rendered storage-label evidence
 storage_label_statement for materialized runtime range starts
 pc_relative_storage_operand for cross-ORG PC-relative data operands
+pc_relative_storage_operand for cross-ORG PC-relative control operands
 pc_relative_storage_label_statement for those operand-required storage labels
 ```
 
@@ -1190,7 +1199,6 @@ target inside copied runtime range and runtime != storage
 
 Add the remaining precise C producers:
 
-- non-data PC-relative storage operands that cross a runtime ORG boundary
 - platform semantic operands and comments
 
 Do not reuse generic label-created or label-required facts. Those pseudo-facts

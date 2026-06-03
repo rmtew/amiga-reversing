@@ -11751,6 +11751,109 @@ static int test_source_quality_analyze_expects_pc_relative_storage_symbol_access
   return 0;
 }
 
+static int test_source_quality_analyze_expects_pc_relative_control_storage_label(void) {
+  M68kObject object;
+  M68kSection object_section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kSymbolOriginIR origin;
+  M68kRuntimeViewIR view;
+  const M68kDecodeTarget *pc_relative_target = NULL;
+  uint8_t certain_start[16];
+  uint8_t *accepted_starts[1];
+  uint8_t bytes[16] = {
+    0x60u, 0x06u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x4eu, 0x75u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u
+  };
+  char *analysis_json = NULL;
+  size_t candidate_index;
+  size_t target_index;
+  memset(certain_start, 0, sizeof(certain_start));
+  accepted_starts[0] = certain_start;
+  certain_start[0] = 1U;
+  certain_start[8] = 1U;
+  memset(&object_section, 0, sizeof(object_section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object_section.kind = M68K_SECTION_CODE;
+  object_section.size = sizeof(bytes);
+  object_section.data_size = sizeof(bytes);
+  object_section.data = bytes;
+  added = m68k_object_add_section(&object, &object_section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL)));
+  for (candidate_index = 0U; candidate_index < decode.sections[0].candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &decode.sections[0].candidates[candidate_index];
+    if (candidate->offset != 0U) continue;
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      if (target->kind == M68K_DECODE_TARGET_BRANCH && target->has_section && target->has_operand &&
+          target->section_index == 0U && target->operand_index == 0U) {
+        pc_relative_target = target;
+        break;
+      }
+    }
+  }
+  M68K_C_ASSERT(pc_relative_target != NULL);
+  M68K_C_ASSERT_U32(8U, pc_relative_target->offset);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = sizeof(bytes);
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 0U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 0U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 8U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+  code_start_ref.evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 8U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  memset(&origin, 0, sizeof(origin));
+  origin.symbol_name = "pc_relative_storage_branch_target";
+  origin.offset = pc_relative_target->offset;
+  origin.source_section_index = 0U;
+  origin.source_offset = pc_relative_target->offset;
+  origin.origin_kind = M68K_SYMBOL_ORIGIN_ACCEPTED_CODE_TARGET;
+  origin.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_symbol_origin(&section_analysis, &origin));
+  memset(&view, 0, sizeof(view));
+  view.storage_offset = 4U;
+  view.runtime_address = 0x400U;
+  view.size = 12U;
+  view.materialized = 1U;
+  view.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_view(&section_analysis, &view));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, &decode, NULL, accepted_starts, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"intrinsic_branch,pc_relative_storage_operand\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"pc_relative_storage_label_statement\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"branch_target\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"storage_label\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_source_quality_analyze_skips_pc_relative_storage_for_unmapped_target(void) {
   M68kObject object;
   M68kSection object_section;
@@ -26917,6 +27020,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_exports_sparse_absolute_address_range},
     {"source_quality_analyze_expects_pc_relative_storage_symbol_accesses",
       test_source_quality_analyze_expects_pc_relative_storage_symbol_accesses},
+    {"source_quality_analyze_expects_pc_relative_control_storage_label",
+      test_source_quality_analyze_expects_pc_relative_control_storage_label},
     {"source_quality_analyze_skips_pc_relative_storage_for_unmapped_target",
       test_source_quality_analyze_skips_pc_relative_storage_for_unmapped_target},
     {"source_quality_analyze_expects_section_storage_operand_symbol_access",

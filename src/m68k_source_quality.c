@@ -2148,9 +2148,10 @@ static int source_quality_source_offset_has_distinct_runtime_address(
   return 0;
 }
 
-static int source_quality_candidate_operand_is_pc_relative_d16(
+static int source_quality_candidate_operand_is_pc_relative_storage_operand(
     const M68kDecodeCandidate *candidate, size_t operand_index) {
   if (candidate == NULL || operand_index >= candidate->operand_count) return 0;
+  if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_LABEL) return 1;
   return candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_EA &&
     candidate->operands[operand_index].ea_mode == 7U &&
     candidate->operands[operand_index].ea_reg == 2U;
@@ -2169,10 +2170,11 @@ static int append_expected_pc_relative_storage_symbol_accesses_for_section(
       const M68kDecodeTarget *target = &candidate->targets[target_index];
       const M68kSymbolOriginIR *origin;
       M68kExpectedSymbolAccessIR access;
-      if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section || !target->has_operand ||
+      if ((target->kind != M68K_DECODE_TARGET_DATA && !source_quality_target_is_control_symbol_access(target)) ||
+          !target->has_section || !target->has_operand ||
           target->section_index != section->section_index ||
           target->section_index != section_analysis->section_index ||
-          !source_quality_candidate_operand_is_pc_relative_d16(candidate, target->operand_index) ||
+          !source_quality_candidate_operand_is_pc_relative_storage_operand(candidate, target->operand_index) ||
           !source_quality_source_offset_has_distinct_runtime_address(section_analysis, target->offset, NULL) ||
           !source_quality_pc_relative_operand_crosses_runtime_org(section_analysis, candidate->offset,
             target->offset)) {
@@ -2187,7 +2189,8 @@ static int append_expected_pc_relative_storage_symbol_accesses_for_section(
       access.target_section_index = (uint32_t)section_analysis->section_index;
       access.target_offset = target->offset;
       access.operand_index = (uint32_t)target->operand_index;
-      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+      access.access_kind = source_quality_target_is_control_symbol_access(target) ?
+        M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET : M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
       access.confidence = origin->confidence;
       access.has_target = 1U;
       if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
