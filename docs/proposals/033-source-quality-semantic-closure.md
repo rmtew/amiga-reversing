@@ -2027,7 +2027,11 @@ weak decode island promoted without hard evidence
      demoted before render rather than rendered as code
 
 platform opword accepted as executable code
-  -> next: require platform hook byte length and flow kind
+  -> done: source-quality accepts two-byte opword coverage only when recovered
+     platform-call evidence exists at that offset
+  -> covered by isolated C fixtures:
+     source_quality_analyze_blocks_raw_platform_opword_partial_decode
+     source_quality_analyze_accepts_macos_opword_platform_call_coverage
 
 accepted gap overlaps negative range evidence
   -> done: fail as unterminated_or_invalid_code_range
