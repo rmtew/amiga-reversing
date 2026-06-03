@@ -25784,6 +25784,9 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address_ref_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"platform_semantic_use_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_list\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"role_flags\":64") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"sink_address\":14676096") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":14") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,

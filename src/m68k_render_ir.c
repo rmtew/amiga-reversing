@@ -6880,47 +6880,45 @@ static const M68kFact *lookup_external_runtime_address_ref_for_instruction(const
   return NULL;
 }
 
-static const char *runtime_address_ref_analysis_role(const M68kRuntimeAddressRefIR *ref) {
+static const char *platform_semantic_use_role_for_render(const M68kPlatformSemanticUseIR *use) {
   const char *role;
-  if (ref == NULL) return NULL;
-  role = m68k_analysis_structured_data_role_name_for_flags(ref->data_class_flags);
+  if (use == NULL) return NULL;
+  role = m68k_analysis_structured_data_role_name_for_flags(use->role_flags);
   if (role != NULL && role[0] != '\0') return role;
-  return ref->data_class != NULL && ref->data_class[0] != '\0' ? ref->data_class : NULL;
-}
-
-static const M68kRuntimeAddressRefIR *source_analysis_runtime_address_ref_for_fact(
-    const M68kSourceAnalysisIR *source_analysis, const M68kFact *fact) {
-  const M68kSectionAnalysisIR *section;
-  size_t index;
-  if (source_analysis == NULL || fact == NULL || fact->section_index >= source_analysis->section_count)
-    return NULL;
-  section = &source_analysis->sections[fact->section_index];
-  for (index = 0U; index < section->runtime_address_ref_count; ++index) {
-    const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[index];
-    if (ref->offset != fact->offset || ref->operand_index != fact->reason ||
-        ref->has_runtime_address != fact->has_runtime_address ||
-        ref->runtime_address != fact->runtime_address ||
-        ref->has_sink_address != fact->has_sink_address ||
-        ref->sink_address != fact->sink_address ||
-        ref->target_section_index != fact->target_section_index ||
-        ref->target_offset != fact->target_offset) {
-      continue;
-    }
-    return ref;
+  switch (use->kind) {
+    case M68K_PLATFORM_SEMANTIC_USE_COPPER_LIST:
+      return "copper list";
+    case M68K_PLATFORM_SEMANTIC_USE_BITMAP_PLANE:
+      return "bitmap";
+    case M68K_PLATFORM_SEMANTIC_USE_SOUND_SAMPLE:
+      return "sound sample";
+    case M68K_PLATFORM_SEMANTIC_USE_DISK_BUFFER:
+      return "disk buffer";
+    case M68K_PLATFORM_SEMANTIC_USE_BLITTER_BUFFER:
+      return "blitter buffer";
+    case M68K_PLATFORM_SEMANTIC_USE_PALETTE:
+      return "palette";
+    case M68K_PLATFORM_SEMANTIC_USE_SPRITE:
+      return "sprite";
+    case M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE:
+      return "audio table";
+    default:
+      return NULL;
   }
-  return NULL;
 }
 
-static const M68kRuntimeAddressRefIR *source_analysis_runtime_address_sink_ref_for_instruction(
-    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, uint32_t sink_address) {
+static const char *source_analysis_platform_semantic_use_role_for_instruction(
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset) {
   const M68kSectionAnalysisIR *section;
   size_t index;
-  if (source_analysis == NULL || section_index >= source_analysis->section_count || sink_address == 0U)
-    return NULL;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count) return NULL;
   section = &source_analysis->sections[section_index];
-  for (index = 0U; index < section->runtime_address_ref_count; ++index) {
-    const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[index];
-    if (ref->offset == offset && ref->has_sink_address && ref->sink_address == sink_address) return ref;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    const char *role;
+    if (use->offset != offset) continue;
+    role = platform_semantic_use_role_for_render(use);
+    if (role != NULL && role[0] != '\0') return role;
   }
   return NULL;
 }
@@ -9997,7 +9995,6 @@ static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatfor
   const M68kSimFormMetadata *metadata;
   const AmigaOsHardwareRegisterInfo *hardware_register;
   const M68kFact *external_ref;
-  const M68kRuntimeAddressRefIR *analysis_ref;
   const char *role = NULL;
   uint8_t dest_index = 0xFFU;
   uint8_t operand_index;
@@ -10019,13 +10016,7 @@ static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatfor
     return;
   }
   external_ref = lookup_external_runtime_address_ref_for_instruction(lookup, section_index, offset);
-  analysis_ref = source_analysis_runtime_address_ref_for_fact(source_analysis, external_ref);
-  role = runtime_address_ref_analysis_role(analysis_ref);
-  if (role == NULL || role[0] == '\0') {
-    analysis_ref = source_analysis_runtime_address_sink_ref_for_instruction(source_analysis, section_index, offset,
-      hardware_register->base_address + hardware_register->offset);
-    role = runtime_address_ref_analysis_role(analysis_ref);
-  }
+  role = source_analysis_platform_semantic_use_role_for_instruction(source_analysis, section_index, offset);
   if (role == NULL || role[0] == '\0') role = hardware_register->runtime_target_role;
   if (external_ref != NULL) {
     snprintf(note, sizeof(note), "%s pointer $%08X", role, (unsigned)external_ref->runtime_address);

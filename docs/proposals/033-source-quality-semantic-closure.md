@@ -2169,12 +2169,39 @@ Implementation order:
 2. Add/verify corpus/xref lanes for analysis:platform_semantic_use:*.
 3. Move hardware/display/access comments from render to semantic-use producers.
 4. Move next-call input immediate symbol rendering to consume source-quality/platform facts.
-5. Move runtime-address sink role naming to semantic-use/address-range facts.
+5. Done for runtime-address sink role comments: render now gets the role name
+   from C-owned M68kPlatformSemanticUseIR first, with hardware metadata only as
+   the formatting fallback when no semantic-use fact exists.
 6. Delete the renderer scans once equivalent C facts drive the same source.
 ```
 
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
 `M68kPlatformSemanticUseIR` for higher-level meanings and comments.
+
+Current runtime-sink closure:
+
+```text
+runtime address ref
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=copper_list, ...)
+  -> renderer formats the sink pointer comment from that semantic-use role
+  -> source still renders the same useful comment, but the role decision is no
+     longer recovered from runtime-ref flags inside render
+```
+
+The fixture `facts_v2_register_runtime_sink_auto_classifies_copper_list` now
+checks both sides:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json, "\"platform_semantic_use_count\":1") != NULL);
+M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_list\"") != NULL);
+M68K_C_ASSERT(strstr(source, "\tmove.l d0,_custom+cop1lc.l\t; copper_list pointer\n") != NULL);
+```
+
+Remaining platform-comment work is the same rule applied to richer comments
+that need value-domain payloads, such as display setup, disk DMA length, audio
+period/volume/length, palette writes, and read-side hardware status comments.
+Those need C semantic-use records with enough structured fields or note text
+for render to format without re-deciding the semantic meaning.
 
 ### Slice 7: Table And Data Reference Closure
 
