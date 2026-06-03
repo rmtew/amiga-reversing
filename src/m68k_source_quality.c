@@ -1896,6 +1896,88 @@ static int source_quality_operand_address_register_index(const M68kOperandIR *op
   return 0;
 }
 
+static int source_quality_operand_data_register_index(const M68kOperandIR *operand, uint8_t *out_reg) {
+  if (out_reg != NULL) *out_reg = 0U;
+  if (operand == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_DN) {
+    if (out_reg != NULL) *out_reg = operand->value.reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_RN && !operand->value.reg_is_address) {
+    if (out_reg != NULL) *out_reg = operand->value.reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 0U) {
+    if (out_reg != NULL) *out_reg = operand->value.ea_reg;
+    return 1;
+  }
+  return 0;
+}
+
+static int source_quality_reglist_contains_register(const M68kOperandIR *operand, uint8_t reg_kind,
+    uint8_t reg_index) {
+  uint32_t mask;
+  if (operand == NULL || operand->kind != M68K_ASM_OPERAND_REGLIST || reg_index >= 8U) return 0;
+  mask = operand->value.value;
+  if (reg_kind == 1U) return (mask & (1UL << reg_index)) != 0U;
+  if (reg_kind == 2U) return (mask & (1UL << (8U + reg_index))) != 0U;
+  return 0;
+}
+
+static int source_quality_instruction_loads_immediate_to_register(const M68kInstructionIR *instruction,
+    uint8_t *out_reg_kind, uint8_t *out_reg_index, uint32_t *out_value) {
+  uint32_t value = 0U;
+  uint8_t reg = 0U;
+  if (out_reg_kind != NULL) *out_reg_kind = 0U;
+  if (out_reg_index != NULL) *out_reg_index = 0U;
+  if (out_value != NULL) *out_value = 0U;
+  if (instruction == NULL || instruction->operand_count != 2U ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value)) {
+    return 0;
+  }
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA &&
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEQ) {
+    return 0;
+  }
+  if (source_quality_operand_data_register_index(&instruction->operands[1], &reg)) {
+    if (out_reg_kind != NULL) *out_reg_kind = 1U;
+  } else if (source_quality_operand_address_register_index(&instruction->operands[1], &reg)) {
+    if (out_reg_kind != NULL) *out_reg_kind = 2U;
+  } else {
+    return 0;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ) value = (uint32_t)(int32_t)(int8_t)(value & 0xFFU);
+  else if (instruction->size_suffix == 'b') value = (uint32_t)(int32_t)(int8_t)(value & 0xFFU);
+  else if (instruction->size_suffix == 'w') value = (uint32_t)(int32_t)(int16_t)(value & 0xFFFFU);
+  if (out_reg_index != NULL) *out_reg_index = reg;
+  if (out_value != NULL) *out_value = value;
+  return 1;
+}
+
+static int source_quality_instruction_writes_register(const M68kInstructionIR *instruction, uint8_t reg_kind,
+    uint8_t reg_index) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  uint8_t reg = 0U;
+  if (instruction == NULL || reg_kind == 0U || reg_index >= 8U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+    if (access_kind == M68K_SIM_ACCESS_REGISTER_LIST_WRITE &&
+        source_quality_reglist_contains_register(operand, reg_kind, reg_index)) {
+      return 1;
+    }
+    if (access_kind != M68K_SIM_ACCESS_REGISTER_WRITE) continue;
+    if (reg_kind == 1U && source_quality_operand_data_register_index(operand, &reg) && reg == reg_index) return 1;
+    if (reg_kind == 2U && source_quality_operand_address_register_index(operand, &reg) && reg == reg_index)
+      return 1;
+  }
+  return 0;
+}
+
 static int source_quality_observation_is_stack_top_symbol_operand(const M68kInstructionIR *instruction,
     const M68kSimFormMetadata *metadata, const M68kAddressObservationIR *observation) {
   uint8_t dest_reg = 0U;
@@ -2251,6 +2333,118 @@ static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *s
     if (section_analysis == NULL) continue;
     if (source_quality_append_expected_equate_symbol_access(section_analysis, equate->name,
         representation->offset, representation->operand_index) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_instruction_has_call_flow(const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  if (instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  return metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL;
+}
+
+static const M68kDecodeCandidate *source_quality_previous_accepted_candidate(
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t cursor) {
+  size_t candidate_index;
+  const M68kDecodeCandidate *best = NULL;
+  if (section == NULL || accepted_start == NULL || cursor == 0U || cursor > section->size) return NULL;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (candidate->byte_count == 0U || candidate->byte_count > cursor) continue;
+    if (candidate->offset + candidate->byte_count != cursor) continue;
+    if (best == NULL || candidate->offset > best->offset) best = candidate;
+  }
+  return best;
+}
+
+static int source_quality_find_platform_call_input_immediate(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call, const AmigaOsCallInputInfo *input,
+    const M68kDecodeCandidate **out_candidate, uint32_t *out_value) {
+  uint32_t cursor;
+  size_t scan_count = 0U;
+  if (out_candidate != NULL) *out_candidate = NULL;
+  if (out_value != NULL) *out_value = 0U;
+  if (section == NULL || accepted_start == NULL || call == NULL || input == NULL) return 0;
+  cursor = call->offset;
+  while (scan_count < 12U) {
+    const M68kDecodeCandidate *candidate =
+      source_quality_previous_accepted_candidate(section, accepted_start, cursor);
+    M68kInstructionIR instruction;
+    uint8_t reg_kind = 0U;
+    uint8_t reg_index = 0U;
+    uint32_t value = 0U;
+    if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
+    if (source_quality_instruction_loads_immediate_to_register(&instruction, &reg_kind, &reg_index, &value) &&
+        reg_kind == input->reg_kind && reg_index == input->reg_index) {
+      if (out_candidate != NULL) *out_candidate = candidate;
+      if (out_value != NULL) *out_value = value;
+      return 1;
+    }
+    if (source_quality_instruction_writes_register(&instruction, input->reg_kind, input->reg_index)) break;
+    if (source_quality_instruction_has_call_flow(&instruction)) break;
+    cursor = candidate->offset;
+    ++scan_count;
+  }
+  return 0;
+}
+
+static int append_expected_platform_call_input_symbol_accesses_for_section(
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+  size_t call_index;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
+  for (call_index = 0U; call_index < section_analysis->recovered_platform_call_count; ++call_index) {
+    const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[call_index];
+    const char *call_symbol = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
+    const AmigaOsLibraryVectorInfo *vector;
+    const AmigaOsCallInputInfo *inputs;
+    size_t input_count = 0U;
+    size_t input_index;
+    if (call_symbol == NULL || call_symbol[0] == '\0') continue;
+    vector = amiga_os_find_library_vector_by_symbol_name(call_symbol);
+    inputs = amiga_os_library_vector_inputs(vector, &input_count);
+    if (inputs == NULL) continue;
+    for (input_index = 0U; input_index < input_count; ++input_index) {
+      const AmigaOsCallInputInfo *input = &inputs[input_index];
+      const M68kDecodeCandidate *producer = NULL;
+      const char *value_domain_name;
+      char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
+      uint32_t value = 0U;
+      M68kExpectedSymbolAccessIR access;
+      if (input->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) continue;
+      if (!source_quality_find_platform_call_input_immediate(section, accepted_start, call, input, &producer, &value))
+        continue;
+      value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
+      if (!amiga_value_domain_symbolic_expr(value_domain_name, value, symbol_expr, sizeof(symbol_expr))) continue;
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = symbol_expr;
+      access.producer = "platform_call_input_value_domain_operand";
+      access.offset = producer->offset;
+      access.operand_index = 0U;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+      access.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_expected_platform_call_input_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_expected_platform_call_input_symbol_accesses_for_section(section_analysis, section,
+        accepted_start[decode_index]) != 0) {
       return -1;
     }
   }
@@ -2851,6 +3045,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_pc_relative_storage_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
+  if (append_expected_platform_call_input_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_accepted_run_noncode_fallthrough_diagnostics(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;

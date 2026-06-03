@@ -647,31 +647,52 @@ render:
   records rendered symbol evidence
 ```
 
-The missing durable fact family is a real platform semantic-use record. The
-diagnostic name `platform_semantic_use` exists, but there is not yet a
-first-class exported `M68kPlatformSemanticUseIR` analogous to
-`M68kPlatformAddressUseIR`. Add it before moving renderer-side comments and
-symbols:
+The durable fact family now exists for range-like platform semantic uses:
 
 ```c
 typedef struct M68kPlatformSemanticUseIR {
-  uint16_t section_index;
   uint32_t offset;
-  uint8_t operand_index;
-  uint8_t semantic_kind;
-  uint8_t access_kind;
+  uint32_t size;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t role_flags;
+  uint8_t kind;
+  uint8_t source_pattern_id;
   uint8_t confidence;
-  M68kPlatformNameRef symbol_ref;
-  M68kPlatformNameRef type_ref;
-  M68kPlatformNameRef value_domain_ref;
-  char *render_text;
+  uint8_t has_target;
 } M68kPlatformSemanticUseIR;
 ```
 
-This is the fact that should drive display/audio/disk/blitter/copper comments,
-OS-call input value-domain symbols, stack-cleanup notes, and runtime-address
-sink role labels. Render should not rescan forward to find the next platform
-call or reclassify a hardware register from raw numbers.
+It is exported as `platform_semantic_uses` and currently covers semantic
+roles derived from structured data and runtime-address references, such as
+bitmap, copper, audio, disk, blitter, palette, sprite, and audio-table uses.
+
+That does not finish renderer-side platform closure. Render still performs
+some instruction-local semantic decisions for display/audio/disk/blitter/copper
+comments, stack-cleanup notes, runtime-address sink role comments, and
+next-call input value-domain operands. Those decisions need either:
+
+```text
+first-class semantic/use facts
+  -> when the source meaning should be queryable after analysis
+
+expected-symbol access producers
+  -> when the immediate requirement is to validate a rendered platform symbol
+```
+
+The first source-quality slice for this boundary is now implemented:
+
+```text
+recovered platform call _LVOAlert
+  -> generated metadata proves D7 is an alert-number input
+  -> nearby accepted instruction loads an immediate into D7
+  -> value domain formats AN_IconLib|AG_OpenLib|AO_DOSLib
+  -> expected_symbol_access:platform_call_input_value_domain_operand
+```
+
+Render should ultimately consume these C-owned facts instead of rescanning
+forward to find the next platform call or reclassifying hardware/register
+numbers while formatting.
 
 ### Remaining Gap: Expected Symbol Producer Coverage Is Too Narrow
 
@@ -736,12 +757,16 @@ rendered storage-label evidence
 materialized runtime range-start storage-label obligations
 PC-relative data operands crossing materialized runtime ORG boundaries
 PC-relative control operands crossing materialized runtime ORG boundaries
+platform call input value-domain operands
 ```
 
 The remaining coverage gap is narrower:
 
 ```text
-platform semantic operands and comments
+platform semantic comments
+hardware/register value-domain operands
+runtime-address sink role symbols/comments
+stack-cleanup comments
 ```
 
 Until those producers are complete, the post-render gate can catch the covered
@@ -1444,10 +1469,10 @@ Renderer-side numeric lookup is allowed only for formatting a C-owned
 Implementation order:
 
 ```text
-1. Add M68kPlatformSemanticUseIR and JSON export.
-2. Add corpus/xref lanes for analysis:platform_semantic_use:*.
+1. M68kPlatformSemanticUseIR and JSON export exist.
+2. Add/verify corpus/xref lanes for analysis:platform_semantic_use:*.
 3. Move hardware/display/access comments from render to semantic-use producers.
-4. Move next-call input immediate symbol recovery to semantic-use producers.
+4. Move next-call input immediate symbol rendering to consume source-quality/platform facts.
 5. Move runtime-address sink role naming to semantic-use/address-range facts.
 6. Delete the renderer scans once equivalent C facts drive the same source.
 ```
@@ -1641,12 +1666,13 @@ features were indexed but not given first-class labels in the Python/web corpus
 feature-label helpers. Those labels should remain Python/web presentation only;
 the feature itself must continue to come from C source-analysis JSON.
 
-A second, deeper discoverability gap remains by design: there is no exported
-`platform_semantic_uses` array yet, so corpus indexing cannot honestly expose
-`analysis:platform_semantic_use:*` rows. Add those lanes only when the C fact
-exists. Until then, `target-pattern:source_quality_platform_semantics` can be
-found only from precursor features such as platform calls, hardware names, and
-platform address uses.
+A second discoverability gap remains around coverage, not existence:
+`platform_semantic_uses` is exported, but corpus/xref indexing must be checked
+against the current fact shape before promising
+`analysis:platform_semantic_use:*` rows. Until those lanes are verified,
+`target-pattern:source_quality_platform_semantics` may still need precursor
+features such as platform calls, hardware names, platform address uses, and
+expected symbol producers.
 
 ## Verification Gates
 

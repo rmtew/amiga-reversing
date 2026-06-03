@@ -26215,6 +26215,7 @@ static int test_facts_v2_render_asm_source_renders_call_input_domain_immediate(v
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   const AmigaOsLibraryVectorInfo *alert_vector = amiga_os_find_library_vector_by_symbol_name("_LVOAlert");
   int32_t an_icon_lib = 0;
@@ -26254,15 +26255,35 @@ static int test_facts_v2_render_asm_source_renders_call_input_domain_immediate(v
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
+    &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "    INCLUDE \"exec/alerts.i\"\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #AN_IconLib|AG_OpenLib|AO_DOSLib,d7\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOAlert(a6)\n") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  {
+    const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
+    int found_expected = 0;
+    size_t expected_index;
+    for (expected_index = 0U; expected_index < analysis_section->expected_symbol_access_count; ++expected_index) {
+      const M68kExpectedSymbolAccessIR *expected = &analysis_section->expected_symbol_accesses[expected_index];
+      if (expected->offset == 0U &&
+          expected->operand_index == 0U &&
+          expected->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+          expected->symbol_name != NULL &&
+          strcmp(expected->symbol_name, "AN_IconLib|AG_OpenLib|AO_DOSLib") == 0 &&
+          expected->producer != NULL &&
+          strcmp(expected->producer, "platform_call_input_value_domain_operand") == 0) {
+        found_expected = 1;
+      }
+    }
+    M68K_C_ASSERT(found_expected);
+  }
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
