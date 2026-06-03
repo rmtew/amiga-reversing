@@ -2310,11 +2310,46 @@ The rendered output is unchanged, but the source of truth moved. Tests assert
 both `kind_name:"hardware_access"` and the expected `note_text` values for
 palette, joystick/mouse, and interrupt-state comments.
 
-Remaining platform-comment work is the same rule applied to richer comments
-that need value-domain payloads, such as display setup.
-Those need C semantic-use records with enough structured fields or note text
-for render to format without re-deciding the semantic meaning. Once each family
-is migrated, the corresponding renderer fallback must be deleted.
+Current immediate hardware-value comment closure:
+
+```text
+accepted hardware register write
+  + source operand is an immediate value
+  + destination is display/blitter setup register
+    or DSKLEN/DSKSYNC through absolute/base-relative addressing
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=hardware_value
+                                                      or disk_dma,
+                                                      note_text=...)
+  -> renderer appends note_text
+  -> instruction render no longer has a hardware display/disk fallback
+```
+
+Examples:
+
+```asm
+    move.w  #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l
+            ; display 4 bitplanes lores color
+
+    move.w  #(120<<6)|18,bltsize(a0)
+            ; blitter size 120 rows x 18 words (36 bytes/row)
+
+    move.w  #$4489,dsksync(a0)
+            ; disk sync word $4489
+```
+
+This closes the instruction-comment migration for the families covered by the
+old `attach_amiga_hardware_display_comment_for_render()` and
+`attach_amiga_hardware_access_comment_for_render()` paths. Render still has
+display formatting for structured copper-list data rows, but instruction
+comments now come from C source-quality semantic-use facts.
+
+Remaining platform-comment work is the same rule applied to richer structured
+comments such as copper-list row display annotations, copper pointer combined
+display setup comments, bitmap-memory comments, and other renderer helpers that
+still describe platform meaning while formatting data. Those need C
+semantic-use records with enough structured fields or note text for render to
+format without re-deciding the semantic meaning. Once each family is migrated,
+the corresponding renderer fallback must be deleted.
 
 ### Slice 7: Table And Data Reference Closure
 

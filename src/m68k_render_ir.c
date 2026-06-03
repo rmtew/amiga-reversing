@@ -3197,30 +3197,6 @@ static int format_amiga_display_register_comment(const AmigaOsHardwareRegisterIn
   return 0;
 }
 
-static int format_amiga_disk_dma_register_comment(const AmigaOsHardwareRegisterInfo *hardware_register,
-    uint32_t value, char *buf, size_t buf_size) {
-  uint32_t word = value & 0xFFFFU;
-  uint32_t byte_length;
-  const char *direction;
-  if (buf == NULL || buf_size == 0U) return 0;
-  buf[0] = '\0';
-  if (hardware_register == NULL ||
-      (hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKLEN &&
-       hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKSYNC)) {
-    return 0;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DSKSYNC) {
-    snprintf(buf, buf_size, "disk sync word $%04X", (unsigned)word);
-    return strlen(buf) + 1U < buf_size;
-  }
-  if ((word & AMIGA_OS_DSKLEN_DMA_ENABLE_MASK) == 0U) return 0;
-  byte_length = (word & AMIGA_OS_DSKLEN_LENGTH_MASK) * AMIGA_OS_DSKLEN_LENGTH_UNIT_BYTES;
-  if (byte_length == 0U) return 0;
-  direction = (word & AMIGA_OS_DSKLEN_WRITE_MASK) != 0U ? "write" : "read";
-  snprintf(buf, buf_size, "disk DMA %s %u bytes", direction, (unsigned)byte_length);
-  return strlen(buf) + 1U < buf_size;
-}
-
 static int format_copper_display_register_comment(uint16_t first, uint16_t second, char *buf, size_t buf_size) {
   const AmigaOsHardwareRegisterInfo *hardware_register;
   uint32_t register_offset = (uint32_t)(first & 0x01FEU);
@@ -6779,6 +6755,8 @@ static const char *platform_semantic_use_role_for_render(const M68kPlatformSeman
       return "audio register";
     case M68K_PLATFORM_SEMANTIC_USE_HARDWARE_ACCESS:
       return "hardware access";
+    case M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE:
+      return "hardware value";
     default:
       return NULL;
   }
@@ -9792,44 +9770,6 @@ static void attach_platform_stack_cleanup_comment_for_render(const M68kSourceAna
   (void)append_comment_part_local(comment, comment_size, note);
 }
 
-static void attach_amiga_hardware_display_comment_for_render(const M68kRenderPlatformState *state,
-    const M68kInstructionIR *instruction, char *comment, size_t comment_size) {
-  const M68kSimFormMetadata *metadata;
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  uint32_t value = 0U;
-  uint8_t source_index = 0xFFU;
-  uint8_t dest_index = 0xFFU;
-  uint8_t operand_index;
-  char note[160];
-  if (instruction == NULL || comment == NULL || comment_size == 0U) return;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return;
-  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) {
-      dest_index = operand_index;
-      break;
-    }
-  }
-  if (dest_index >= instruction->operand_count) return;
-  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
-    if (operand_index == dest_index) continue;
-    if (m68k_ir_operand_immediate_value(&instruction->operands[operand_index], &value)) {
-      source_index = operand_index;
-      break;
-    }
-  }
-  if (source_index >= instruction->operand_count) return;
-  hardware_register = resolve_amiga_hardware_register_operand(state, &instruction->operands[dest_index]);
-  if (!format_amiga_display_register_comment(hardware_register,
-      immediate_domain_value_for_instruction_size(instruction, value), note, sizeof(note))) {
-    if (!format_amiga_disk_dma_register_comment(hardware_register,
-        immediate_domain_value_for_instruction_size(instruction, value), note, sizeof(note))) {
-      return;
-    }
-  }
-  (void)append_comment_part_local(comment, comment_size, note);
-}
-
 static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatformState *state,
     const M68kRenderLookup *lookup, const M68kSourceAnalysisIR *source_analysis, size_t section_index,
     uint32_t offset, const M68kInstructionIR *instruction, char *comment, size_t comment_size) {
@@ -9947,11 +9887,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       section, candidate, &instruction) < 0) {
     return 0;
   }
-  if (!attach_platform_semantic_note_comment_for_render(source_analysis, section->section_index, candidate->offset,
-      platform_comment, sizeof(platform_comment))) {
-    attach_amiga_hardware_display_comment_for_render(platform_state, &instruction, platform_comment,
-      sizeof(platform_comment));
-  }
+  (void)attach_platform_semantic_note_comment_for_render(source_analysis, section->section_index, candidate->offset,
+    platform_comment, sizeof(platform_comment));
   (void)attach_amiga_hardware_register_symbols(platform_state, source_analysis, section, candidate, &instruction,
     &instruction);
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);

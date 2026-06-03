@@ -18206,6 +18206,11 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"joystick/mouse port 0 data\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"joystick/mouse port 1 data\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"interrupt request state\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"hardware_value\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display 4 bitplanes lores color\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"blitter size 120 rows x 18 words (36 bytes/row)\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display scroll pf1=0 pf2=0\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"disk sync word $4489\"") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,bplpt+$02(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,sprpt+$1E(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $0004.w,a6\n") != NULL);
