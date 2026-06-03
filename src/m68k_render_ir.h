@@ -57,7 +57,6 @@ typedef struct M68kRenderIRPreview {
   size_t asm_source_text_capacity;
   M68kRenderPlan asm_source_plan;
   M68kRenderPlanRowBuilder asm_source_row_builder;
-  M68kSourceAnalysisIR *source_analysis_for_symbol_access;
   M68kRenderEvidenceIR *render_evidence;
   Arena *asm_source_header_arena;
   Arena *scratch_arena;

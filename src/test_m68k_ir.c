@@ -114,6 +114,35 @@ static int runtime_address_ref_has_data_class(const M68kRuntimeAddressRefIR *ref
   return ref != NULL && (ref->data_class_flags & data_class_flags) == data_class_flags;
 }
 
+static int test_render_evidence_has_symbol_access(const M68kRenderEvidenceIR *evidence, uint32_t section_index,
+    uint32_t offset, uint32_t operand_index, uint8_t access_kind, const char *symbol_name,
+    uint32_t target_section_index, uint32_t target_offset) {
+  const M68kRenderEvidenceSectionIR *section;
+  size_t access_index;
+  if (evidence == NULL || symbol_name == NULL) return 0;
+  section = m68k_ir_render_evidence_section_by_index(evidence, section_index);
+  if (section == NULL) return 0;
+  for (access_index = 0U; access_index < section->rendered_symbol_access_count; ++access_index) {
+    const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[access_index];
+    if (access->offset != offset ||
+        access->operand_index != operand_index ||
+        access->access_kind != access_kind ||
+        access->symbol_name == NULL ||
+        strcmp(access->symbol_name, symbol_name) != 0) {
+      continue;
+    }
+    if (target_section_index != UINT32_MAX) {
+      if (!access->has_target ||
+          access->target_section_index != target_section_index ||
+          access->target_offset != target_offset) {
+        continue;
+      }
+    }
+    return 1;
+  }
+  return 0;
+}
+
 static int test_append_analysis_label(M68kAnalysisLabelPoint *labels, size_t *label_count, size_t label_capacity,
     size_t section_index, uint32_t offset, uint8_t confidence) {
   size_t index;
@@ -5463,6 +5492,7 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68kRenderPlan listing_plan;
   M68kSourceAnalysisIR *source_analysis = NULL;
   M68kSourceAnalysisIR *listing_analysis = NULL;
+  M68kRenderEvidenceIR source_evidence;
   M68kRenderEvidenceIR listing_evidence;
   char *source = NULL;
   char *plan_source = NULL;
@@ -5489,8 +5519,8 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   listing_analysis = (M68kSourceAnalysisIR *)calloc(1U, sizeof(*listing_analysis));
   M68K_C_ASSERT(source_analysis != NULL && listing_analysis != NULL);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, &source,
-    &source_plan, &profile, source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy, &source,
+    &source_plan, &profile, source_analysis, &source_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&source_plan, &plan_source));
   M68K_C_ASSERT_STR(source, plan_source);
@@ -5542,24 +5572,12 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
           saw_expected_branch_target_access = 1;
         }
       }
-      for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
-        const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
-        if (access->offset == 4U &&
-            access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT &&
-            access->symbol_name != NULL &&
-            strcmp(access->symbol_name, "loc_0_00000004") == 0) {
-          saw_rendered_target_label_access = 1;
-        }
-        if (access->offset == 0U &&
-            access->target_section_index == 0U &&
-            access->target_offset == 4U &&
-            access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET &&
-            access->symbol_name != NULL &&
-            strcmp(access->symbol_name, "loc_0_00000004") == 0) {
-          saw_rendered_branch_target_access = 1;
-        }
-      }
+      M68K_C_ASSERT_U32(0U, (uint32_t)analysis_section->rendered_symbol_access_count);
     }
+    saw_rendered_target_label_access = test_render_evidence_has_symbol_access(&source_evidence, 0U, 4U, UINT32_MAX,
+      M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT, "loc_0_00000004", 0U, 4U);
+    saw_rendered_branch_target_access = test_render_evidence_has_symbol_access(&source_evidence, 0U, 0U, 0U,
+      M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET, "loc_0_00000004", 0U, 4U);
     M68K_C_ASSERT(saw_expected_branch_target_access);
     M68K_C_ASSERT(saw_expected_target_label_access);
     M68K_C_ASSERT(saw_rendered_target_label_access);
@@ -5581,6 +5599,7 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   m68k_ir_source_analysis_destroy(listing_analysis);
   free(listing_analysis);
   m68k_render_plan_free_text(plan_source);
+  m68k_ir_render_evidence_destroy(&source_evidence);
   m68k_render_plan_destroy(&source_plan);
   m68k_ir_source_analysis_destroy(source_analysis);
   free(source_analysis);
@@ -5643,6 +5662,8 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
+  M68kRenderEvidenceIR render_evidence;
   char *source = NULL;
   int saw_expected_operand_access = 0;
   int saw_rendered_operand_access = 0;
@@ -5657,8 +5678,8 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
-    &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
+    &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000006(pc),a1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000006:\n\tdc.b") != NULL);
@@ -5678,23 +5699,16 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
         saw_expected_operand_access = 1;
       }
     }
-    for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
-      const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
-      if (access->offset == 0U &&
-          access->target_section_index == 0U &&
-          access->target_offset == 6U &&
-          access->operand_index == 0U &&
-          access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_OPERAND &&
-          access->symbol_name != NULL &&
-          strcmp(access->symbol_name, "loc_0_00000006") == 0) {
-        saw_rendered_operand_access = 1;
-      }
-    }
+    M68K_C_ASSERT_U32(0U, (uint32_t)analysis_section->rendered_symbol_access_count);
   }
+  saw_rendered_operand_access = test_render_evidence_has_symbol_access(&render_evidence, 0U, 0U, 0U,
+    M68K_RENDERED_SYMBOL_ACCESS_OPERAND, "loc_0_00000006", 0U, 6U);
   M68K_C_ASSERT(saw_expected_operand_access);
   M68K_C_ASSERT(saw_rendered_operand_access);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_ir_render_evidence_destroy(&render_evidence);
+  m68k_render_plan_destroy(&source_plan);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -5708,6 +5722,8 @@ static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
+  M68kRenderEvidenceIR render_evidence;
   char *source = NULL;
   int saw_expected_equate_access = 0;
   int saw_rendered_equate_access = 0;
@@ -5734,8 +5750,8 @@ static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
   policy.manual_representations[0].has_operand_index = 1U;
   policy.manual_representations[0].operand_index = 0U;
   policy.manual_representations[0].target_equate_index = 1U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
-    &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
+    &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "manual_value\tEQU\t$1234\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #manual_value,d0\n") != NULL);
@@ -5752,20 +5768,15 @@ static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
         saw_expected_equate_access = 1;
       }
     }
-    for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
-      const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
-      if (access->offset == 0U &&
-          access->operand_index == 0U &&
-          access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_EQUATE &&
-          access->symbol_name != NULL &&
-          strcmp(access->symbol_name, "manual_value") == 0) {
-        saw_rendered_equate_access = 1;
-      }
-    }
+    M68K_C_ASSERT_U32(0U, (uint32_t)analysis_section->rendered_symbol_access_count);
   }
+  saw_rendered_equate_access = test_render_evidence_has_symbol_access(&render_evidence, 0U, 0U, 0U,
+    M68K_RENDERED_SYMBOL_ACCESS_EQUATE, "manual_value", UINT32_MAX, 0U);
   M68K_C_ASSERT(saw_expected_equate_access);
   M68K_C_ASSERT(saw_rendered_equate_access);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_render_evidence_destroy(&render_evidence);
+  m68k_render_plan_destroy(&source_plan);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -24394,6 +24405,8 @@ static int test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target(
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
+  M68kRenderEvidenceIR render_evidence;
   char *source = NULL;
   int saw_expected_branch_target_access = 0;
   int saw_rendered_branch_target_access = 0;
@@ -24423,8 +24436,8 @@ static int test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target(
   added = m68k_object_add_fixup(&object, &fixup);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
-    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
+    &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000004.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_1_00000004:\n\trts\n") != NULL);
@@ -24447,21 +24460,14 @@ static int test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target(
         saw_expected_branch_target_access = 1;
       }
     }
-    for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
-      const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
-      if (access->offset == 0U &&
-          access->target_section_index == 1U &&
-          access->target_offset == 4U &&
-          access->operand_index == 0U &&
-          access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET &&
-          access->symbol_name != NULL &&
-          strcmp(access->symbol_name, "loc_1_00000004") == 0) {
-        saw_rendered_branch_target_access = 1;
-      }
-    }
+    M68K_C_ASSERT_U32(0U, (uint32_t)analysis_section->rendered_symbol_access_count);
   }
+  saw_rendered_branch_target_access = test_render_evidence_has_symbol_access(&render_evidence, 0U, 0U, 0U,
+    M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET, "loc_1_00000004", 1U, 4U);
   M68K_C_ASSERT(saw_expected_branch_target_access);
   M68K_C_ASSERT(saw_rendered_branch_target_access);
+  m68k_ir_render_evidence_destroy(&render_evidence);
+  m68k_render_plan_destroy(&source_plan);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -25384,6 +25390,8 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
+  M68kRenderEvidenceIR render_evidence;
   char *source = NULL;
   size_t access_index;
   int saw_expected_first = 0;
@@ -25416,8 +25424,8 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
   policy.runtime_entry_points[0].section_index = 0U;
   policy.runtime_entry_points[0].runtime_address = 0x5BFF0U;
   memset(&source_analysis, 0, sizeof(source_analysis));
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
-    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
+    &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "absolute_slot_00006F50\tEQU\t$6F50\n") != NULL);
   M68K_C_ASSERT(strstr(source, "absolute_slot_0002F490\tEQU\t$2F490\n") != NULL);
@@ -25440,26 +25448,19 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
       saw_expected_second = 1;
     }
   }
-  for (access_index = 0U; access_index < source_analysis.sections[0].rendered_symbol_access_count;
-       ++access_index) {
-    const M68kRenderedSymbolAccessIR *access = &source_analysis.sections[0].rendered_symbol_accesses[access_index];
-    if (access->offset == 0U && access->operand_index == 0U &&
-        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_EQUATE &&
-        access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_00006F50") == 0) {
-      saw_rendered_first = 1;
-    }
-    if (access->offset == 6U && access->operand_index == 0U &&
-        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_EQUATE &&
-        access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_0002F490") == 0) {
-      saw_rendered_second = 1;
-    }
-  }
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].rendered_symbol_access_count);
+  saw_rendered_first = test_render_evidence_has_symbol_access(&render_evidence, 0U, 0U, 0U,
+    M68K_RENDERED_SYMBOL_ACCESS_EQUATE, "absolute_slot_00006F50", UINT32_MAX, 0U);
+  saw_rendered_second = test_render_evidence_has_symbol_access(&render_evidence, 0U, 6U, 0U,
+    M68K_RENDERED_SYMBOL_ACCESS_EQUATE, "absolute_slot_0002F490", UINT32_MAX, 0U);
   M68K_C_ASSERT(saw_expected_first);
   M68K_C_ASSERT(saw_expected_second);
   M68K_C_ASSERT(saw_rendered_first);
   M68K_C_ASSERT(saw_rendered_second);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_ir_render_evidence_destroy(&render_evidence);
+  m68k_render_plan_destroy(&source_plan);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);

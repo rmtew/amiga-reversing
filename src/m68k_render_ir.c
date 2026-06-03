@@ -940,44 +940,34 @@ static int render_asm_includes_for_structured_data_item(M68kRenderIRPreview *pre
     render_asm_include_for_amiga_symbol(preview, item->constant_name);
 }
 
-static int record_rendered_label_statement_access(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
-  const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+static int record_rendered_label_statement_access(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+  size_t section_index, uint32_t offset);
 static int record_rendered_storage_label_statement_access(M68kRenderIRPreview *preview,
-  M68kSourceAnalysisIR *source_analysis, const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
-static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
-  size_t source_section_index, uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
+  const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
+  uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
   const char *symbol_name);
 static int record_rendered_data_label_target_access(M68kRenderIRPreview *preview,
   const M68kRenderLookup *lookup, size_t source_section_index, uint32_t source_offset,
   size_t target_section_index, uint32_t target_offset);
 
-static int record_rendered_symbol_access(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
-    size_t source_section_index, const M68kRenderedSymbolAccessIR *access) {
-  M68kSectionAnalysisIR *section_analysis = NULL;
-  size_t index;
+static int record_rendered_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
+    const M68kRenderedSymbolAccessIR *access) {
   if (source_section_index > UINT32_MAX || access == NULL) return 0;
   if (preview != NULL && preview->render_evidence != NULL &&
       m68k_ir_render_evidence_append_rendered_symbol_access(preview->render_evidence,
         (uint32_t)source_section_index, access) != 0) {
     return -1;
   }
-  if (source_analysis == NULL) return 0;
-  for (index = 0U; index < source_analysis->section_count; ++index) {
-    if (source_analysis->sections[index].section_index == source_section_index) {
-      section_analysis = &source_analysis->sections[index];
-      break;
-    }
-  }
-  if (section_analysis == NULL) return -1;
-  return m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, access);
+  return 0;
 }
 
-static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
-    size_t source_section_index, uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
+static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
+    uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
     const char *symbol_name) {
   M68kRenderedSymbolAccessIR access;
-  if (source_analysis == NULL || symbol_name == NULL || symbol_name[0] == '\0' ||
-      source_section_index > UINT32_MAX || target_section_index > UINT32_MAX) {
+  if (symbol_name == NULL || symbol_name[0] == '\0' || source_section_index > UINT32_MAX ||
+      target_section_index > UINT32_MAX) {
     return 0;
   }
   memset(&access, 0, sizeof(access));
@@ -988,20 +978,20 @@ static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, M68k
   access.operand_index = UINT32_MAX;
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
   access.has_target = 1U;
-  return record_rendered_symbol_access(preview, source_analysis, source_section_index, &access);
+  return record_rendered_symbol_access(preview, source_section_index, &access);
 }
 
 static int record_rendered_data_label_target_access(M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, size_t source_section_index, uint32_t source_offset,
     size_t target_section_index, uint32_t target_offset) {
   char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
-  if (preview == NULL || lookup == NULL || preview->source_analysis_for_symbol_access == NULL) return 0;
+  if (preview == NULL || lookup == NULL) return 0;
   symbol_name[0] = '\0';
   (void)format_rendered_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name),
     target_section_index, target_offset);
   if (symbol_name[0] == '\0') return 0;
-  return record_rendered_data_symbol_access(preview, preview->source_analysis_for_symbol_access, source_section_index,
-    source_offset, target_section_index, target_offset, symbol_name);
+  return record_rendered_data_symbol_access(preview, source_section_index, source_offset, target_section_index,
+    target_offset, symbol_name);
 }
 
 static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
@@ -1032,9 +1022,7 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
         runtime_address);
     hash_asm_text(preview, line);
     ++preview->asm_source_lines;
-    if (preview->source_analysis_for_symbol_access != NULL &&
-        record_rendered_storage_label_statement_access(preview, preview->source_analysis_for_symbol_access, lookup,
-          section_index, offset) != 0) {
+    if (record_rendered_storage_label_statement_access(preview, lookup, section_index, offset) != 0) {
       preview->asm_source_allocation_failed = 1U;
     }
     render_asm_org(preview, runtime_address);
@@ -1058,9 +1046,7 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
   }
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
-  if (preview->source_analysis_for_symbol_access != NULL &&
-      record_rendered_label_statement_access(preview, preview->source_analysis_for_symbol_access, lookup,
-        section_index, offset) != 0) {
+  if (record_rendered_label_statement_access(preview, lookup, section_index, offset) != 0) {
     preview->asm_source_allocation_failed = 1U;
   }
 }
@@ -10012,7 +9998,7 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
   }
 }
 
-static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
+static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
     M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask);
 
@@ -10174,7 +10160,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   ++preview->asm_source_symbolic_instructions;
-  if (record_rendered_instruction_symbol_accesses(preview, source_analysis, lookup, section->section_index, candidate,
+  if (record_rendered_instruction_symbol_accesses(preview, lookup, section->section_index, candidate,
       &render_instruction, rendered.rendered_operand_symbol_mask) != 0) {
     return 0;
   }
@@ -10188,24 +10174,11 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   return 1;
 }
 
-static M68kSectionAnalysisIR *render_source_analysis_section_by_index(M68kSourceAnalysisIR *source_analysis,
-    uint32_t section_index) {
-  size_t index;
-  if (source_analysis == NULL) return NULL;
-  for (index = 0U; index < source_analysis->section_count; ++index) {
-    if (source_analysis->sections[index].section_index == section_index) return &source_analysis->sections[index];
-  }
-  return NULL;
-}
-
-static int record_rendered_label_statement_access(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
-    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
-  M68kSectionAnalysisIR *section_analysis;
+static int record_rendered_label_statement_access(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset) {
   M68kRenderedSymbolAccessIR access;
   char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
-  if (source_analysis == NULL || lookup == NULL) return 0;
-  section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
-  if (section_analysis == NULL) return -1;
+  if (lookup == NULL) return 0;
   symbol_name[0] = '\0';
   (void)format_rendered_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
   if (symbol_name[0] == '\0') return 0;
@@ -10217,17 +10190,14 @@ static int record_rendered_label_statement_access(M68kRenderIRPreview *preview, 
   access.operand_index = UINT32_MAX;
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
   access.has_target = 1U;
-  return record_rendered_symbol_access(preview, source_analysis, section_index, &access);
+  return record_rendered_symbol_access(preview, section_index, &access);
 }
 
 static int record_rendered_storage_label_statement_access(M68kRenderIRPreview *preview,
-    M68kSourceAnalysisIR *source_analysis, const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
-  M68kSectionAnalysisIR *section_analysis;
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   M68kRenderedSymbolAccessIR access;
   char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
-  if (source_analysis == NULL || lookup == NULL) return 0;
-  section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
-  if (section_analysis == NULL) return -1;
+  if (lookup == NULL) return 0;
   symbol_name[0] = '\0';
   (void)format_storage_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
   if (symbol_name[0] == '\0') return 0;
@@ -10239,7 +10209,7 @@ static int record_rendered_storage_label_statement_access(M68kRenderIRPreview *p
   access.operand_index = UINT32_MAX;
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_STORAGE_LABEL;
   access.has_target = 1U;
-  return record_rendered_symbol_access(preview, source_analysis, section_index, &access);
+  return record_rendered_symbol_access(preview, section_index, &access);
 }
 
 static int decode_target_is_control_symbol_access(const M68kDecodeTarget *target) {
@@ -10319,14 +10289,11 @@ static const M68kFact *candidate_relocation_for_operand(const M68kRenderLookup *
   return match;
 }
 
-static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview, M68kSourceAnalysisIR *source_analysis,
+static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
     M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask) {
-  M68kSectionAnalysisIR *section_analysis;
   size_t operand_index;
-  if (source_analysis == NULL || candidate == NULL || instruction == NULL) return 0;
-  section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
-  if (section_analysis == NULL) return -1;
+  if (candidate == NULL || instruction == NULL) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kDecodeTarget *control_target;
@@ -10387,7 +10354,7 @@ static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *prev
         access.target_offset <= lookup->label_extents[access.target_section_index]) {
       render_lookup_mark_label_statement_ref(lookup, access.target_section_index, access.target_offset);
     }
-    if (record_rendered_symbol_access(preview, source_analysis, section_index, &access) != 0) return -1;
+    if (record_rendered_symbol_access(preview, section_index, &access) != 0) return -1;
   }
   return 0;
 }
@@ -10439,7 +10406,6 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   if (render_asm_source && out_preview->render_evidence == NULL) return -1;
   memset(&platform_state, 0, sizeof(platform_state));
   out_preview->platform_backend_kind = object->platform_backend_kind;
-  out_preview->source_analysis_for_symbol_access = source_analysis;
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();

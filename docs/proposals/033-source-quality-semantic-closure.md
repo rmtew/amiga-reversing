@@ -593,7 +593,6 @@ m68k_render_lookup_build(...)
   -> append_address_observations_for_accepted(...)
   -> m68k_source_quality_analyze(...)
   -> render preview records M68kRenderEvidenceIR
-  -> compatibility mirror keeps rendered_symbol_accesses in source_analysis
   -> m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis,
                                                          render_evidence)
 ```
@@ -840,7 +839,7 @@ address is `$DCCE` but its addend-adjusted target is `$DE66`, the expected
 operand symbol must use the raw storage symbol when one exists. The addend
 target is not a safe substitute for the operand actually being read or written.
 
-### Partly Implemented Boundary: Render Evidence Is Separate From Source Analysis
+### Implemented Boundary: Render Evidence Is Separate From Source Analysis
 
 `m68k_render_ir.c` records actual rendered symbol accesses during assembly
 source emission. That is the right moment to observe what render emitted. The
@@ -884,11 +883,11 @@ source_analysis.expected_symbol_accesses
   -> source_quality_diagnostics
 ```
 
-This is not the final cleanup. For compatibility with current JSON/reporting,
-render still mirrors rendered accesses into `M68kSectionAnalysisIR` while it
-also records them in `M68kRenderEvidenceIR`. The important ownership step is
-complete: source-quality validation no longer reads the section mirror, and
-new export paths can consume render evidence directly.
+This is not the final cleanup, but the renderer-side ownership boundary is now
+correct. Render no longer mirrors rendered accesses into
+`M68kSectionAnalysisIR`; it only appends to `M68kRenderEvidenceIR`. Source
+analysis is still passed to source export as read-only formatting input, but a
+render pass does not mutate it with emitted-output facts.
 
 The first implementation slice added the explicit JSON export path:
 
@@ -900,13 +899,15 @@ int source_analysis_to_json_with_render_evidence(
     M68kDiagSink diagnostics);
 ```
 
-The default `source_analysis_to_json()` keeps the compatibility behavior and
-exports section-mirrored rendered accesses. The render-evidence-aware form uses
+The default `source_analysis_to_json()` keeps the compatibility behavior for
+manual fixtures and legacy pure-analysis callers that explicitly populate
+section-rendered accesses. The render-evidence-aware form uses
 `M68kRenderEvidenceIR` directly when supplied:
 
 ```text
 source_analysis_to_json()
-  -> rendered_symbol_accesses from M68kSectionAnalysisIR mirror
+  -> rendered_symbol_accesses from M68kSectionAnalysisIR only if a caller
+     explicitly populated that legacy field
 
 source_analysis_to_json_with_render_evidence()
   -> rendered_symbol_accesses from M68kRenderEvidenceIR
@@ -914,14 +915,16 @@ source_analysis_to_json_with_render_evidence()
   -> never consults the section mirror when an evidence object is supplied
 ```
 
-The regression fixture
-`source_quality_analyze_uses_render_evidence_without_section_mutation` now
-proves both sides:
+The regression fixtures now prove both sides:
 
 ```text
-section mirror count remains 0
-explicit render evidence export count is 1
-missing_expected_symbol_access does not fire
+rendered source export:
+  source_analysis.sections[*].rendered_symbol_access_count remains 0
+  M68kRenderEvidenceIR records label/operand/equate access evidence
+
+source_quality_analyze_uses_render_evidence_without_section_mutation:
+  explicit render evidence export count is 1
+  missing_expected_symbol_access does not fire
 ```
 
 The next slice fixed the listing-artifact lifetime path. Facts-v2 source export
@@ -964,9 +967,10 @@ unreferenced_label_statement diagnostic
   -> section mirror only for legacy/pure-analysis calls
 ```
 
-The remaining cleanup is narrower: migrate remaining tests and legacy/pure
-analysis reporting away from `M68kSectionAnalysisIR.rendered_symbol_accesses`,
-then delete the compatibility mirror from render once no caller depends on it.
+The remaining cleanup is narrower: migrate legacy pure-analysis reporting and
+manual fixture helpers away from `M68kSectionAnalysisIR.rendered_symbol_accesses`,
+then delete the section field/API entirely once no non-render caller depends on
+it.
 
 ### Remaining Wrong Boundary: Renderer-Side Platform Decisions
 
