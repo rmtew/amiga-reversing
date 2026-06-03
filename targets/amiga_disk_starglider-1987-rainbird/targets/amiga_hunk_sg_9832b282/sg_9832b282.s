@@ -2801,11 +2801,12 @@ loc_0_00002D94:
 	jmp loc_0_00008DAA.l
 loc_0_00002D9A:
 	jmp loc_0_00008968.l
-	jmp loc_0_000092B8.l
+	dc.b $4E,$F9
+	dc.l loc_0_000092B8
 loc_0_00002DA6:
 	jmp loc_0_00008AF6.l
-	dc.b $29,$09,$2A,$20,$4E,$65,$78,$74,$20,$6F,$62,$6A
-	jmp loc_0_00009278.l
+	dc.b $29,$09,$2A,$20,$4E,$65,$78,$74,$20,$6F,$62,$6A,$4E,$F9
+	dc.l loc_0_00009278
 	dc.b $20,$64,$72,$61,$77,$3F
 loc_0_00002DC4:
 	jmp loc_0_00008446.l
@@ -5563,31 +5564,19 @@ loc_0_00005AE6:
 	ori.w #1,d1
 loc_0_00005AF2:
 	add.w d1,(a2)
-	move.w (a2)+,(a0)+
+	move.w (a2)+,(a0)+	; palette upload 32 colors
 	dbf.w d4,loc_0_00005AC2
 	movem.l (a7)+,a0-a2
 	dbf.w d3,loc_0_00005AB8
 	rts
 loc_0_00005B04:
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000	; palette
+loc_0_00005B22:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000
+	dcb.b $C,$00
 loc_0_00005B50:
 	moveq.l #15,d3
 loc_0_00005B52:
@@ -8962,28 +8951,14 @@ loc_0_000091DC:
 loc_0_00009274:
 	dc.b $4A,$53,$41,$4E
 loc_0_00009278:
-	ori.b #0,d1
-	ori.b #$9000,d0
-	ori.b #$8000,d0
-	ori.b #$7000,d0
-	ori.b #$6000,d0
-	ori.b #$5000,d0
-	ori.b #$4000,d0
-	ori.b #$3000,d0
-	ori.b #$2000,d0
-	ori.b #$1000,d0
+	dc.b $00,$01,$00,$00,$00,$00,$90,$00,$00,$00,$80,$00,$00,$00,$70,$00
+	dc.b $00,$00,$60,$00,$00,$00,$50,$00,$00,$00,$40,$00,$00,$00,$30,$00
+	dc.b $00,$00,$20,$00,$00,$00,$10,$00
 loc_0_000092A0:
-	ori.b #$1000,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
+	dc.b $00,$00,$10
+	dcb.b $15,$00
 loc_0_000092B8:
-	move.l -(a0),d0
-	move.l -(a0),d0
-	movea.l a2,a0
-	dc.b $45,$5A,$20,$53,$41,$4E,$20,$20,$20,$00
+	dc.b "     JEZ SAN   ",$00
 	dc.b "ARGONAUT       ",$00
 	dc.b $20,$20,$20,$20,$20,$20,$20,$53,$4F,$46,$54,$57,$41,$52,$45,$00
 	dc.b "RICHARD CLUCAS ",$00
@@ -9609,7 +9584,7 @@ loc_0_0000A47C:
 	adda.w #$2,a1
 	bsr.w loc_0_00005A8E
 loc_0_0000A49E:
-	bsr.w *+1690
+	bsr.w loc_0_0000AB38
 	tst.b app_0337(a6)
 	beq.b loc_0_0000A49E
 	bsr.w loc_0_00008DAA
@@ -9626,7 +9601,7 @@ loc_0_0000A4B8:
 loc_0_0000A4D6:
 	bsr.w loc_0_00008AF6
 loc_0_0000A4DA:
-	bsr.w *+1630
+	bsr.w loc_0_0000AB38
 	cmp.w #$5A,d0
 	bcc.w loc_0_0000A4DA
 	andi.l #255,d0
@@ -9704,7 +9679,7 @@ loc_0_0000A5D8:
 loc_0_0000A5E6:
 	bsr.w loc_0_00008AF6
 loc_0_0000A5EA:
-	bsr.w *+1358
+	bsr.w loc_0_0000AB38
 	cmp.w #$5A,d0
 	bcc.w loc_0_0000A5EA
 	andi.l #255,d0
@@ -9863,15 +9838,22 @@ loc_0_0000AB22:
 loc_0_0000AB32:
 	dc.b $00,$00,$00,$00
 loc_0_0000AB36:
-	ori.b #$4EF9,d0
-	dc.l loc_0_00002172
+	dc.w $0000
+loc_0_0000AB38:
+	jmp loc_0_00002172.l
 loc_0_0000AB3E:
-	dc.b $4E,$F9
-	dc.l loc_0_00002068
+	jmp loc_0_00002068.l
 loc_0_0000AB44:
-	dc.b $4A,$2E,$03,$3B,$66,$00,$00,$52,$B0,$3C,$00,$18,$6A,$0C,$08,$2E
-	dc.b $00,$00,$03,$20,$66,$0E,$60,$00,$00,$40,$08,$2E,$00,$01,$03,$20
-	dc.b $67,$00,$00,$36
+	tst.b app_033B(a6)
+	bne.w loc_0_0000AB9C
+	cmp.b #$18,d0
+	bpl.b loc_0_0000AB5E
+	btst.b #0,app_0320(a6)
+	bne.b loc_0_0000AB68
+	bra.w loc_0_0000AB9C
+loc_0_0000AB5E:
+	btst.b #1,app_0320(a6)
+	beq.w loc_0_0000AB9C
 loc_0_0000AB68:
 	movem.l d0-d2/a0-a1,-(a7)
 	addi.w #32,d2

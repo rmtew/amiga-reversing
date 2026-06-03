@@ -126,6 +126,235 @@ Knowing only that an opword is "known" is insufficient. Without `byte_length`,
 analysis cannot know where executable flow resumes. Without `flow_kind`, it
 cannot know whether fallthrough is valid.
 
+### Implemented Slice: Shared Flow And False-Code Signals
+
+The first implementation slice made the flow predicates shared instead of
+mirrored locally:
+
+```c
+int platform_instruction_has_normal_fallthrough(const M68kInstructionIR *instruction);
+int platform_instruction_has_terminal_state_flow(const M68kInstructionIR *instruction);
+```
+
+Analysis and source-quality run construction now ask the same question:
+
+```text
+rts/jmp/bra/trap-never-returns?
+  -> no normal fallthrough
+  -> accepted run stops here
+
+ordinary instruction or conditional branch?
+  -> normal fallthrough may continue
+```
+
+This matters because accepted-code ranges must not smear across a terminal
+instruction merely because the next bytes also decode.
+
+The runtime-copy rule was also tightened. A runtime address reference to the
+start of a discovered copied range is not enough to seed code:
+
+```text
+runtime ref to copied range start
+  + operand is data/storage use
+  -> keep storage bytes as data
+
+runtime ref to copied range start
+  + operand is a control target
+  -> may seed runtime-view code
+```
+
+This fixes the Damocles/Starglider class where a storage pointer into copied
+bytes was upgraded into executable source.
+
+Adjacent direct stub discovery was narrowed in the same spirit. For plain
+same-section direct stubs, a sibling entry is not accepted from opcode shape
+alone:
+
+```text
+reachable stub:
+    bra.w real_target
+
+neighboring bytes:
+    bra.w possible_target
+
+possible_target has existing code proof?
+  yes -> sibling stub may be accepted
+  no  -> neighboring bytes stay data/review material
+```
+
+Relocation-backed jump templates remain supported by their relocation-specific
+path, but the remaining Starglider evidence shows why addends/relocations must
+still be treated warily: a relocated value inside bytes that decode as `jmp`
+does not by itself prove the containing bytes are code.
+
+Source quality now has an additional blocker for the false-code shape that
+Starglider exposes:
+
+```text
+accepted code run
+  + executable/control origin
+  + ends at accepted_gap
+  + no terminal/proven continuation
+  + non-control operand/data access also targets the run
+  -> unterminated_or_invalid_code_range blocker
+```
+
+For Starglider this catches the high-score/name area:
+
+```text
+$9278..$92BE
+  accepted as code by relocation-backed control inference
+  also reached by real PC-relative data operands
+  decodes until an accepted gap without terminal flow
+  -> source-quality failure, not clean restored source
+```
+
+That blocker is not the final repair. The follow-through is to use the
+diagnostic as a work item for the framework: trace the producer, then prevent
+or demote the false relocation-backed template acceptance at cause. The correct
+outcome is data/table/string ownership for the high-score area, not a permanent
+"known blocker" annotation.
+
+### Implemented Slice: Round-Trip Analysis Export And Guarded Dispatch
+
+The round-trip report now has an optional analysis export path:
+
+```powershell
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report `
+  --json `
+  --analysis-export-dir C:\tmp\m68k-roundtrip-analysis
+```
+
+For focused work, target ids can be selected directly:
+
+```powershell
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report `
+  --target amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282 `
+  --analysis-export-dir C:\tmp\m68k-roundtrip-analysis `
+  --analysis-export-scope all `
+  --json
+```
+
+By default this writes per-target analysis JSON only for failing rows. The
+export contains the round-trip row, normal C source analysis, and source-quality
+explanation:
+
+```json
+{
+  "target": "amiga_hunk_genam",
+  "roundtrip_row": { "...": "..." },
+  "analysis": { "...": "C source analysis facts" },
+  "source_quality_explanation": { "...": "diagnostics and proof context" }
+}
+```
+
+This replaces one-off diagnostic scripts. A failing round-trip now carries the
+facts needed to find the producer:
+
+```text
+round-trip failure
+  -> exported analysis JSON
+  -> code_start_refs / accepted_runs / structured_data / diagnostics
+  -> fix the analysis producer at cause
+  -> rerun round-trip
+```
+
+The GenAm failure exposed a separate false-code producer. Its real shape is a
+zero-guarded PC-indexed word dispatch table:
+
+```asm
+    move.w table(pc,d1.w),d0
+    beq.b  invalid_or_default_case
+    move.b (a4)+,d1
+    jsr    table(pc,d0.w)
+
+table:
+    dc.w   0
+    dc.w   target_1-table
+    dc.w   target_2-table
+```
+
+The zero entry is not a call to `table`. The `beq` proves that zero branches
+around the indirect `jsr`; on the path to the `jsr`, the loaded word is
+non-zero. Treating `0` as `table-table` promoted the table bytes as code and
+produced an unterminated accepted run.
+
+The fix is general and evidence-based:
+
+```text
+indexed word load feeds indexed indirect control transfer
+  + nearby/origin-adjacent beq branches around the indirect site
+  -> zero table entries are null/default entries
+  -> skip zero entries when promoting control targets
+
+indexed control operand base target
+  -> table/data base evidence
+  -> not a direct code target by itself
+```
+
+This preserves valid zero-displacement dispatch entries when there is no guard,
+while preventing guarded null entries from becoming false code. The isolated
+regression is `facts_v2_pc_indexed_word_dispatch_zero_guard_skips_null_entries`.
+The corpus result after the fix:
+
+```text
+rendered-source round-trip targets: 55
+failures: 0
+amiga_hunk_genam: exact
+Damocles Tetragon 02: exact
+```
+
+### Implemented Slice: Relocation-Backed Jump Template Hardening
+
+The Starglider validation failure proved that a relocated value inside bytes
+that decode as `jmp` is not enough proof of code:
+
+```text
+text/string/data bytes
+  + relocated absolute value
+  + bytes happen to decode as jmp abs.l
+  + target has no existing code proof
+  -> review/data evidence, not accepted code
+```
+
+The failing shape was a same-section relocation-backed jump-template scan that
+promoted a nearby sibling entry too eagerly:
+
+```text
+real relocation-backed stub in section 0
+nearby bytes decode as another absolute jmp
+target $9278 is data/string/high-score storage
+  -> old behavior: promote $9278 as code
+  -> new behavior: require existing target code proof for same-section sibling
+```
+
+Cross-section relocation-backed templates remain supported because loader
+stubs commonly jump from one section into another code section. The wary rule is
+only for same-section sibling promotion, where the relocation/addend may simply
+be restored data embedded in bytes that also decode legally.
+
+The source-quality diagnostic exposed the bad producer. The fix was made at
+that producer, not by accepting a permanent validation failure:
+
+```text
+validation failure
+  -> analysis export identifies relocation-backed template producer
+  -> same-section sibling needs candidate_target_has_existing_code_proof
+  -> false code is never accepted
+  -> regenerated source is clean
+```
+
+Corpus result after this slice:
+
+```text
+rendered-source update round-trip targets: 55
+failures: 0
+amiga_hunk_genam: exact
+Damocles Tetragon 02: exact
+Starglider: passes source-quality validation
+Starglider 2 bootblock: passes source-quality validation
+```
+
 ### In-Image Address Identity
 
 Damocles currently has labels and numeric accesses that disagree:

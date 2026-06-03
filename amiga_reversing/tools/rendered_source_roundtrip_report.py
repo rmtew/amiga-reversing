@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any, cast
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
+from amiga_reversing.disasm.c_backend import (
+    analyze_project_source_with_c_backend,
+    source_quality_explain_project_source_with_c_backend,
+)
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.reproduction import run_reproduction
@@ -27,6 +31,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Targets root to scan. Defaults to repository targets/.",
     )
     parser.add_argument(
+        "--target",
+        action="append",
+        default=[],
+        help="Target id to verify. May be supplied more than once. Defaults to all rendered sources.",
+    )
+    parser.add_argument(
         "--update-rendered-source",
         action="store_true",
         help="Rewrite each supported target .s from the current renderer before round-trip verification.",
@@ -42,12 +52,30 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Do not write the deterministic JSON report.",
     )
+    parser.add_argument(
+        "--analysis-export-dir",
+        type=Path,
+        default=None,
+        help="Optional directory for per-target analysis JSON exports.",
+    )
+    parser.add_argument(
+        "--analysis-export-scope",
+        choices=("failures", "all"),
+        default="failures",
+        help="When --analysis-export-dir is set, export only failing rows or all rows.",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of a text summary.")
     args = parser.parse_args(argv)
 
-    targets = _rendered_source_targets(cast(Path, args.targets_root))
+    targets = _filter_targets(_rendered_source_targets(cast(Path, args.targets_root)), cast(list[str], args.target))
     rows = [
-        _run_target(target, source_path, update_rendered_source=bool(args.update_rendered_source))
+        _run_target(
+            target,
+            source_path,
+            update_rendered_source=bool(args.update_rendered_source),
+            analysis_export_dir=cast(Path | None, args.analysis_export_dir),
+            analysis_export_scope=str(args.analysis_export_scope),
+        )
         for target, source_path in targets
     ]
     summary = _summary(rows)
@@ -95,7 +123,7 @@ def _report_payload(summary: dict[str, int], rows: list[dict[str, Any]]) -> dict
 
 
 def _report_row(row: dict[str, Any]) -> dict[str, Any]:
-    return {
+    report_row = {
         "target": row["target"],
         "status": row.get("status"),
         "rendered_source_full_file_exact": row["rendered_source_full_file_exact"],
@@ -105,6 +133,11 @@ def _report_row(row: dict[str, Any]) -> dict[str, Any]:
         "tool_error": row.get("tool_error"),
         "message": row.get("message"),
     }
+    if row.get("analysis_export_path") is not None:
+        report_row["analysis_export_path"] = row["analysis_export_path"]
+    if row.get("analysis_export_error") is not None:
+        report_row["analysis_export_error"] = row["analysis_export_error"]
+    return report_row
 
 
 def _rendered_source_targets(targets_root: Path) -> list[tuple[str, Path]]:
@@ -112,6 +145,17 @@ def _rendered_source_targets(targets_root: Path) -> list[tuple[str, Path]]:
     for path in targets_root.rglob("*.s"):
         targets[_project_id_for_source(path, targets_root)] = path
     return sorted(targets.items())
+
+
+def _filter_targets(targets: list[tuple[str, Path]], requested: list[str]) -> list[tuple[str, Path]]:
+    if not requested:
+        return targets
+    target_by_id = dict(targets)
+    missing = sorted(set(requested) - set(target_by_id))
+    if missing:
+        raise SystemExit(f"unknown rendered-source target(s): {', '.join(missing)}")
+    requested_set = set(requested)
+    return [(target, path) for target, path in targets if target in requested_set]
 
 
 def _project_id_for_source(path: Path, targets_root: Path) -> str:
@@ -122,9 +166,16 @@ def _project_id_for_source(path: Path, targets_root: Path) -> str:
     return parts[-1]
 
 
-def _run_target(target: str, source_path: Path, *, update_rendered_source: bool = False) -> dict[str, Any]:
+def _run_target(
+    target: str,
+    source_path: Path,
+    *,
+    update_rendered_source: bool = False,
+    analysis_export_dir: Path | None = None,
+    analysis_export_scope: str = "failures",
+) -> dict[str, Any]:
     if _target_is_macos(target, source_path):
-        return {
+        row = {
             "target": target,
             "status": "unsupported",
             "rendered_source_full_file_exact": False,
@@ -134,6 +185,8 @@ def _run_target(target: str, source_path: Path, *, update_rendered_source: bool 
             "message": "Mac OS rendered-source assembly is not currently supported.",
             "source_updated": False,
         }
+        _maybe_export_analysis(row, source_path, analysis_export_dir, analysis_export_scope)
+        return row
     rendered_source_text: str | None = None
     rendered_source_profile: dict[str, object] | None = None
     try:
@@ -159,7 +212,7 @@ def _run_target(target: str, source_path: Path, *, update_rendered_source: bool 
                 pre_rendered_source_profile=rendered_source_profile,
             )
     except Exception as exc:
-        return {
+        row = {
             "target": target,
             "status": "exception",
             "rendered_source_full_file_exact": False,
@@ -168,10 +221,12 @@ def _run_target(target: str, source_path: Path, *, update_rendered_source: bool 
             "tool_error": f"{type(exc).__name__}: {exc}",
             "source_updated": False,
         }
+        _maybe_export_analysis(row, source_path, analysis_export_dir, analysis_export_scope)
+        return row
     comparison = cast(dict[str, Any], result.get("comparison") or {})
     full_file_exact = comparison.get("full_file_exact") is True
     content_exact = comparison.get("content_exact") is True or comparison.get("semantic_exact") is True
-    return {
+    row = {
         "target": target,
         "status": result.get("status"),
         "rendered_source_full_file_exact": full_file_exact,
@@ -182,6 +237,64 @@ def _run_target(target: str, source_path: Path, *, update_rendered_source: bool 
         "message": result.get("message"),
         "source_updated": update_rendered_source,
     }
+    _maybe_export_analysis(row, source_path, analysis_export_dir, analysis_export_scope)
+    return row
+
+
+def _maybe_export_analysis(
+    row: dict[str, Any],
+    source_path: Path,
+    analysis_export_dir: Path | None,
+    analysis_export_scope: str,
+) -> None:
+    if analysis_export_dir is None:
+        return
+    if analysis_export_scope != "all" and _row_is_success(row):
+        return
+    try:
+        export_path = _export_target_analysis(row, source_path, analysis_export_dir)
+    except Exception as exc:
+        row["analysis_export_error"] = f"{type(exc).__name__}: {exc}"
+    else:
+        row["analysis_export_path"] = _display_path(export_path)
+
+
+def _row_is_success(row: dict[str, Any]) -> bool:
+    return (
+        row.get("rendered_source_full_file_exact") is True
+        or row.get("rendered_source_content_exact") is True
+        or row.get("status") == "unsupported"
+    )
+
+
+def _export_target_analysis(row: dict[str, Any], source_path: Path, analysis_export_dir: Path) -> Path:
+    target = str(row["target"])
+    paths = resolve_project_paths(target, project_root=PROJECT_ROOT)
+    payload: dict[str, Any] = {
+        "schema_version": 1,
+        "target": target,
+        "source_path": _display_path(source_path),
+        "roundtrip_row": _report_row(row),
+    }
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        payload["analysis"] = analyze_project_source_with_c_backend(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        payload["source_quality_explanation"] = source_quality_explain_project_source_with_c_backend(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+    analysis_export_dir.mkdir(parents=True, exist_ok=True)
+    export_path = analysis_export_dir / f"{_safe_filename(target)}.analysis.json"
+    export_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
+    return export_path
+
+
+def _safe_filename(value: str) -> str:
+    return "".join(char if char.isalnum() or char in "._-" else "_" for char in value)
 
 
 def _update_rendered_source(target: str, source_path: Path) -> tuple[str, dict[str, object]]:

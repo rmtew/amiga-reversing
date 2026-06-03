@@ -37,12 +37,7 @@ app_006A RS.L 1
 app_06CA RS.L 1
     RS.B 14748
 app_406A RS.L 1
-    RS.B 5628
-app_566A RS.L 1
-app_566E RS.L 1
-    RS.B 504
-app_586A RS.L 1
-    RS.B 508
+    RS.B 6652
 app_5A6A RS.L 1
 app_SIZEOF EQU __RS
 
@@ -819,79 +814,24 @@ loc_6_00000164:
 loc_6_0000016A:
     ORG $78000
 abs_6_00078000:
-	bra.w abs_6_000780B4
+	dc.b $60,$00,$00,$B2
 abs_6_00078004:
 	bra.w abs_6_000780EA
-abs_6_00078008:
-	bra.w abs_6_00078024
-abs_6_0007800C:
-	bra.w abs_6_0007803C
-abs_6_00078010:
-	bra.w abs_6_00078054
-abs_6_00078014:
-	bra.w abs_6_0007806C
-abs_6_00078018:
-	bra.w abs_6_00078084
-abs_6_0007801C:
-	bra.w abs_6_0007809C
-abs_6_00078020:
-	bra.w abs_6_0007902E
-abs_6_00078024:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	bsr.w abs_6_00078B48
-	movem.l (a7)+,d1-d7/a0-a6
-	rts
-abs_6_0007803C:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	bsr.w abs_6_00078D80
-	movem.l (a7)+,d1-d7/a0-a6
-	rts
-abs_6_00078054:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	bsr.w abs_6_00078DEE
-	movem.l (a7)+,d1-d7/a0-a6
-	rts
-abs_6_0007806C:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	bsr.w abs_6_0007906E
-	movem.l (a7)+,d1-d7/a0-a6
-	rts
-abs_6_00078084:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	bsr.w abs_6_000790F2
-	movem.l (a7)+,d1-d7/a0-a6
-	rts
-abs_6_0007809C:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	bsr.w abs_6_00079270
-	movem.l (a7)+,d1-d7/a0-a6
-	rts
-abs_6_000780B4:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	move.l a1,$0004(a6)
-	move.l d0,$0008(a6)
-	bsr.w abs_6_00078B48
-	bmi.w abs_6_0007824A
-	movea.l $0004(a6),a0
-	move.l $0008(a6),d0
-	bsr.w abs_6_00078D80
-	bmi.w abs_6_0007824A
-	bsr.w abs_6_00078DEE
-	bra.w abs_6_00078242
+	dc.b $60,$00,$00,$1A,$60,$00,$00,$2E,$60,$00,$00,$42,$60,$00,$00,$56
+	dc.b $60,$00,$00,$6A,$60,$00,$00,$7E,$60,$00,$10,$0C,$48,$E7,$7F,$FE
+	dc.b $4B,$F9,$00,$DF,$F0,$00,$4D,$FA,$14,$1A,$61,$00,$0B,$14,$4C,$DF
+	dc.b $7F,$FE,$4E,$75,$48,$E7,$7F,$FE,$4B,$F9,$00,$DF,$F0,$00,$4D,$FA
+	dc.b $14,$02,$61,$00,$0D,$34,$4C,$DF,$7F,$FE,$4E,$75,$48,$E7,$7F,$FE
+	dc.b $4B,$F9,$00,$DF,$F0,$00,$4D,$FA,$13,$EA,$61,$00,$0D,$8A,$4C,$DF
+	dc.b $7F,$FE,$4E,$75,$48,$E7,$7F,$FE,$4B,$F9,$00,$DF,$F0,$00,$4D,$FA
+	dc.b $13,$D2,$61,$00,$0F,$F2,$4C,$DF,$7F,$FE,$4E,$75,$48,$E7,$7F,$FE
+	dc.b $4B,$F9,$00,$DF,$F0,$00,$4D,$FA,$13,$BA,$61,$00,$10,$5E,$4C,$DF
+	dc.b $7F,$FE,$4E,$75,$48,$E7,$7F,$FE,$4B,$F9,$00,$DF,$F0,$00,$4D,$FA
+	dc.b $13,$A2,$61,$00,$11,$C4,$4C,$DF,$7F,$FE,$4E,$75,$48,$E7,$7F,$FE
+	dc.b $4B,$F9,$00,$DF,$F0,$00,$4D,$FA,$13,$8A,$2D,$49,$00,$04,$2D,$40
+	dc.b $00,$08,$61,$00,$0A,$7C,$6B,$00,$01,$7A,$20,$6E,$00,$04,$20,$2E
+	dc.b $00,$08,$61,$00,$0C,$A4,$6B,$00,$01,$6A,$61,$00,$0D,$0A,$60,$00
+	dc.b $01,$5A
 abs_6_000780EA:
 	movem.l d1-d7/a0-a6,-(a7)
 	lea.l _custom.l,a5
@@ -1843,69 +1783,14 @@ abs_6_00078F54:
 	bsr.w abs_6_00078E9C
 	movem.l (a7)+,d0-d3/a0-a1
 	rts
-abs_6_00078F68:
-	movem.l d1-d2/a0,-(a7)
-	lea.l app_566E(a6),a0
-	moveq.l #2,d2
-	moveq.l #0,d0
-abs_6_00078F74:
-	move.l (a0)+,d1
-abs_6_00078F76:
-	btst d0,d1
-	bne.b abs_6_00078F8C
-	addq.w #1,d2
-	cmpi.w #1760,d2
-	beq.b abs_6_00078F98
-	addq.b #1,d0
-	andi.b #31,d0
-	bne.b abs_6_00078F76
-	bra.b abs_6_00078F74
-abs_6_00078F8C:
-	bclr d0,d1
-	move.l d1,-(a0)
-abs_6_00078F90:
-	move.l d2,d0
-	movem.l (a7)+,d1-d2/a0
-	rts
-abs_6_00078F98:
-	moveq.l #-6,d2
-	bra.b abs_6_00078F90
-abs_6_00078F9C:
-	movem.l d0-d1/a0,-(a7)
-	bsr.b abs_6_00078FBC
-	bset d0,d1
-	move.l d1,(a0)
-	movem.l (a7)+,d0-d1/a0
-	rts
-abs_6_00078FAC:
-	movem.l d0-d1/a0,-(a7)
-	bsr.b abs_6_00078FBC
-	bclr d0,d1
-	move.l d1,(a0)
-	movem.l (a7)+,d0-d1/a0
-	rts
-abs_6_00078FBC:
-	subq.w #2,d0
-	move.w d0,d1
-	lsr.w #5,d0
-	lsl.w #2,d0
-	lea.l app_566E(a6),a0
-	adda.w d0,a0
-	moveq.l #31,d0
-	and.l d1,d0
-	move.l (a0),d1
-	btst d0,d1
-	rts
-abs_6_00078FD4:
-	clr.l $0014(a0)
-	bsr.b abs_6_00078FE8
-	move.l d0,$0014(a0)
-	rts
-abs_6_00078FE0:
-	clr.l (a0)
-	bsr.b abs_6_00078FE8
-	move.l d0,(a0)
-	rts
+	dc.b $48,$E7,$60,$80,$41,$EE,$56,$6E,$74,$02,$70,$00,$22,$18,$01,$01
+	dc.b $66,$12,$52,$42,$0C,$42,$06,$E0,$67,$16,$52,$00,$02,$00,$00,$1F
+	dc.b $66,$EC,$60,$E8,$01,$81,$21,$01,$20,$02,$4C,$DF,$01,$06,$4E,$75
+	dc.b $74,$FA,$60,$F4,$48,$E7,$C0,$80,$61,$1A,$01,$C1,$20,$81,$4C,$DF
+	dc.b $01,$03,$4E,$75,$48,$E7,$C0,$80,$61,$0A,$01,$81,$20,$81,$4C,$DF
+	dc.b $01,$03,$4E,$75,$55,$40,$32,$00,$EA,$48,$E5,$48,$41,$EE,$56,$6E
+	dc.b $D0,$C0,$70,$1F,$C0,$81,$22,$10,$01,$01,$4E,$75,$42,$A8,$00,$14
+	dc.b $61,$0E,$21,$40,$00,$14,$4E,$75,$42,$90,$61,$04,$20,$80,$4E,$75
 abs_6_00078FE8:
 	movem.l d1/a0,-(a7)
 	moveq.l #127,d1
@@ -1916,356 +1801,75 @@ abs_6_00078FF0:
 	movem.l (a7)+,d1/a0
 	tst.l d0
 	rts
-abs_6_00078FFE:
-	movem.l d0/a0-a1,-(a7)
-	moveq.l #31,d0
-abs_6_00079004:
-	move.l (a0)+,(a1)+
-	move.l (a0)+,(a1)+
-	move.l (a0)+,(a1)+
-	move.l (a0)+,(a1)+
-	dbf.w d0,abs_6_00079004
-	movem.l (a7)+,d0/a0-a1
-	rts
-abs_6_00079016:
-	movem.l d0/a0,-(a7)
-	moveq.l #31,d0
-abs_6_0007901C:
-	clr.l (a0)+
-	clr.l (a0)+
-	clr.l (a0)+
-	clr.l (a0)+
-	dbf.w d0,abs_6_0007901C
-	movem.l (a7)+,d0/a0
-	rts
-abs_6_0007902E:
-	move.l a5,-(a7)
-	lea.l _custom.l,a5
-	lea.l abs_6_0007944A(pc),a6
-	move.l a7,app_5A6A(a6)
-	clr.w $0060(a6)
-	movem.l d0/a0,-(a7)
-	bsr.w abs_6_0007874C
-	bmi.b abs_6_00079062
-	move.l (a7)+,d7
-	bsr.w abs_6_0007887C
-	bmi.b abs_6_00079062
-	movea.l (a7)+,a0
-	nop
-	lea.l abs_6_0007944A(pc),a6
-	lea.l _custom.l,a5
-abs_6_00079062:
-	bsr.w abs_6_00078712
-	movea.l app_5A6A(a6),a7
-	movea.l (a7)+,a5
-	rts
-abs_6_0007906E:
-	bsr.w abs_6_00078B76
-	move.l a0,$0010(a6)
-	bsr.w abs_6_0007874C
-	bmi.b abs_6_000790F0
-	bsr.w abs_6_00079332
-	bmi.b abs_6_000790F0
-	move.l $0044(a6),d0
-	bne.b abs_6_00079090
-	bsr.w abs_6_00078F68
-	bmi.b abs_6_000790F0
-	bra.b abs_6_00079094
-abs_6_00079090:
-	bsr.w abs_6_00078FAC
-abs_6_00079094:
-	move.l d0,$0044(a6)
-	move.l d0,$0054(a6)
-	lea.l app_586A(a6),a0
-	bsr.w abs_6_00079016
-	move.l #$2,(a0)
-	move.l #$FFFFFFFD,$01FC(a0)
-	move.l $0044(a6),$0004(a0)
-	move.l $005C(a6),$01F0(a0)
-	move.l #$370,$01F4(a0)
-	movea.l $0010(a6),a1
-	lea.l $01B1(a0),a0
-	moveq.l #0,d0
-abs_6_000790D0:
-	tst.b (a1)
-	beq.b abs_6_000790E0
-	move.b (a1)+,$0(a0,d0.w)
-	addq.w #1,d0
-	cmpi.w #30,d0
-	bne.b abs_6_000790D0
-abs_6_000790E0:
-	move.b d0,-(a0)
-	clr.l $001E(a6)
-	clr.l $0016(a6)
-	clr.l $001A(a6)
-	moveq.l #0,d0
-abs_6_000790F0:
-	rts
-abs_6_000790F2:
-	movem.l d1-d7/a0-a4,-(a7)
-	clr.l $002A(a6)
-	move.l d0,$0026(a6)
-	move.l a0,$0022(a6)
-abs_6_00079102:
-	tst.l $0026(a6)
-	beq.w abs_6_000791B4
-	tst.l $0016(a6)
-	bne.b abs_6_0007915E
-	bsr.w abs_6_00078F68
-	bmi.w abs_6_000791B8
-	move.l d0,$0050(a6)
-	tst.l $001E(a6)
-	bne.b abs_6_0007912E
-	lea.l app_586A(a6),a0
-	move.l $0050(a6),$0010(a0)
-	bra.b abs_6_00079136
-abs_6_0007912E:
-	bsr.w abs_6_000791F0
-	bmi.w abs_6_000791B8
-abs_6_00079136:
-	move.l $0050(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_000791B8
-	bsr.w abs_6_00079016
-	move.l $0050(a6),$0058(a6)
-	addq.l #1,$001E(a6)
-	move.l #$1E8,$0016(a6)
-	lea.l $0018(a0),a0
-	move.l a0,$002E(a6)
-abs_6_0007915E:
-	move.l $0026(a6),d0
-	cmp.l $0016(a6),d0
-	bcs.b abs_6_0007916C
-	move.l $0016(a6),d0
-abs_6_0007916C:
-	sub.l d0,$0016(a6)
-	sub.l d0,$0026(a6)
-	add.l d0,$001A(a6)
-	add.l d0,$002A(a6)
-	movea.l $002E(a6),a0
-	movea.l $0022(a6),a1
-	move.w d0,d1
-	lsr.w #3,d0
-	andi.w #7,d1
-	add.w d1,d1
-	neg.w d1
-	jmp abs_6_000791A4(pc,d1.w)
-abs_6_00079194:
-	move.b (a1)+,(a0)+
-abs_6_00079196:
-	move.b (a1)+,(a0)+
-abs_6_00079198:
-	move.b (a1)+,(a0)+
-abs_6_0007919A:
-	move.b (a1)+,(a0)+
-abs_6_0007919C:
-	move.b (a1)+,(a0)+
-abs_6_0007919E:
-	move.b (a1)+,(a0)+
-abs_6_000791A0:
-	move.b (a1)+,(a0)+
-abs_6_000791A2:
-	move.b (a1)+,(a0)+
-abs_6_000791A4:
-	dbf.w d0,abs_6_00079194
-	move.l a0,$002E(a6)
-	move.l a1,$0022(a6)
-	bra.w abs_6_00079102
-abs_6_000791B4:
-	move.l $002A(a6),d0
-abs_6_000791B8:
-	movem.l (a7)+,d1-d7/a0-a4
-	rts
-abs_6_000791BE:
-	movea.l $0032(a6),a0
-	move.l d0,$0010(a0)
-	move.l #$8,(a0)
-	move.l $0044(a6),$0004(a0)
-	move.l $001E(a6),$0008(a0)
-	move.l #$1E8,d0
-	sub.l $0016(a6),d0
-	move.l d0,$000C(a0)
-	bsr.w abs_6_00078FD4
-	st.b app_0065(a6)
-	rts
-abs_6_000791F0:
-	bsr.b abs_6_000791BE
-	lea.l app_586A(a6),a0
-	move.l $0008(a0),d0
-	cmpi.l #72,d0
-	bne.b abs_6_00079254
-	bsr.w abs_6_00078F68
-	bmi.b abs_6_0007926E
-	move.l d0,$004C(a6)
-	move.l d0,$01F8(a0)
-	bsr.w abs_6_00078FD4
-	move.l $0054(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_0007926E
-	movea.l a0,a1
-	lea.l app_586A(a6),a0
-	bsr.w abs_6_00078FFE
-	st.b app_0065(a6)
-	lea.l app_586A(a6),a0
-	bsr.w abs_6_00079016
-	move.l #$10,(a0)
-	move.l #$FFFFFFFD,$01FC(a0)
-	move.l $004C(a6),$0004(a0)
-	move.l $0044(a6),$01F4(a0)
-	move.l $004C(a6),$0054(a6)
-abs_6_00079254:
-	addq.l #1,$0008(a0)
-	move.l $0008(a0),d0
-	lsl.l #2,d0
-	neg.l d0
-	addi.l #312,d0
-	move.l $0058(a6),$0(a0,d0.w)
-	moveq.l #0,d0
-abs_6_0007926E:
-	rts
-abs_6_00079270:
-	tst.l $001A(a6)
-	beq.w abs_6_00079320
-	moveq.l #0,d0
-	bsr.w abs_6_000791F0
-	move.l $0054(a6),d0
-	cmp.l $0044(a6),d0
-	beq.b abs_6_000792C2
-	lea.l app_586A(a6),a0
-	bsr.w abs_6_00078FD4
-	move.l $0054(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.w abs_6_00079326
-	movea.l a0,a1
-	lea.l app_586A(a6),a0
-	bsr.w abs_6_00078FFE
-	st.b app_0065(a6)
-	move.l $0044(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_00079326
-	bsr.w abs_6_00078FE8
-	bne.b abs_6_0007932E
-	lea.l app_586A(a6),a1
-	bsr.w abs_6_00078FFE
-abs_6_000792C2:
-	lea.l app_586A(a6),a0
-	move.l $001A(a6),$0144(a0)
-	bsr.w abs_6_00078FD4
-	move.l $0044(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_00079326
-	movea.l a0,a1
-	lea.l app_586A(a6),a0
-	bsr.w abs_6_00078FFE
-	st.b app_0065(a6)
-	move.l $0048(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_00079326
-	movea.l a0,a1
-	lea.l app_566A(a6),a0
-	bsr.w abs_6_00078FE0
-	bsr.w abs_6_00078FFE
-	st.b app_0065(a6)
-	move.l $003E(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_00079326
-	move.w $0042(a6),d0
-	move.l $0044(a6),$0(a0,d0.w)
-	bsr.w abs_6_00078FD4
-	st.b app_0065(a6)
-abs_6_00079320:
-	bsr.w abs_6_00078DEE
-	rts
-abs_6_00079326:
-	move.l d0,-(a7)
-	bsr.b abs_6_00079320
-	move.l (a7)+,d0
-	rts
-abs_6_0007932E:
-	moveq.l #-4,d0
-	bra.b abs_6_00079326
-abs_6_00079332:
-	clr.l $0044(a6)
-	clr.l $005C(a6)
-	move.l #$370,d0
-	bsr.w abs_6_00078C40
-	bmi.w abs_6_00079444
-	bsr.w abs_6_00078FE8
-	bne.w abs_6_00079446
-	tst.l $0138(a0)
-	beq.w abs_6_00079446
-	move.l $013C(a0),d0
-	move.l d0,$0048(a6)
-	bsr.w abs_6_00078C40
-	bmi.w abs_6_00079444
-	bsr.w abs_6_00078FE8
-	bne.w abs_6_00079446
-	lea.l app_566A(a6),a1
-	bsr.w abs_6_00078FFE
-	bsr.w abs_6_00078B9C
-	bmi.w abs_6_00079444
-	bne.w abs_6_00079442
-	move.l $003A(a6),$0044(a6)
-	move.l $01F0(a0),$005C(a6)
-	move.l $003E(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.w abs_6_00079444
-	bsr.w abs_6_00078FE8
-	bne.w abs_6_00079446
-	cmpi.l #880,$003A(a6)
-	bne.b abs_6_000793B6
-	move.w $0014(a6),d0
-	lsl.w #2,d0
-	bra.b abs_6_000793BC
-abs_6_000793B6:
-	move.l #$1F0,d0
-abs_6_000793BC:
-	move.w d0,$0042(a6)
-	move.l $005C(a6),$0(a0,d0.l)
-	bsr.w abs_6_00078FD4
-	st.b app_0065(a6)
-	move.l $0044(a6),d0
-abs_6_000793D2:
-	bsr.w abs_6_00078F9C
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_00079444
-	bsr.w abs_6_00078FE8
-	bne.b abs_6_00079446
-	cmpi.l #4294967293,$01FC(a0)
-	bne.b abs_6_00079446
-	cmpi.l #880,$01F4(a0)
-	bne.b abs_6_00079446
-	move.l $0008(a0),d1
-	lea.l $0138(a0),a1
-abs_6_000793FE:
-	move.l -(a1),d0
-	cmpi.l #1760,d0
-	bcc.b abs_6_00079446
-	bsr.w abs_6_00078F9C
-	subq.l #1,d1
-	bne.b abs_6_000793FE
-	move.l $01F8(a0),d0
-	bne.b abs_6_000793D2
-	lea.l app_566A(a6),a0
-	bsr.w abs_6_00078FE0
-	move.l $0048(a6),d0
-	bsr.w abs_6_00078C40
-	bmi.b abs_6_00079444
-	bsr.w abs_6_00078FE8
-	bmi.b abs_6_00079446
-	movea.l a0,a1
-	lea.l app_566A(a6),a0
-	bsr.w abs_6_00078FE0
-	bsr.w abs_6_00078FFE
-	bsr.w abs_6_00078E02
-	bmi.b abs_6_00079444
-abs_6_00079442:
-	moveq.l #0,d0
-abs_6_00079444:
-	rts
-abs_6_00079446:
-	moveq.l #-4,d0
-	rts
+	dc.b $48,$E7,$80,$C0,$70,$1F,$22,$D8,$22,$D8,$22,$D8,$22,$D8,$51,$C8
+	dc.b $FF,$F6,$4C,$DF,$03,$01,$4E,$75,$48,$E7,$80,$80,$70,$1F,$42,$98
+	dc.b $42,$98,$42,$98,$42,$98,$51,$C8,$FF,$F6,$4C,$DF,$01,$01,$4E,$75
+	dc.b $2F,$0D,$4B,$F9,$00,$DF,$F0,$00,$4D,$FA,$04,$12,$2D,$4F,$5A,$6A
+	dc.b $42,$6E,$00,$60,$48,$E7,$80,$80,$61,$00,$F7,$04,$6B,$16,$2E,$1F
+	dc.b $61,$00,$F8,$2C,$6B,$0E,$20,$5F,$4E,$71,$4D,$FA,$03,$F0,$4B,$F9
+	dc.b $00,$DF,$F0,$00,$61,$00,$F6,$AE,$2E,$6E,$5A,$6A,$2A,$5F,$4E,$75
+	dc.b $61,$00,$FB,$06,$2D,$48,$00,$10,$61,$00,$F6,$D4,$6B,$74,$61,$00
+	dc.b $02,$B4,$6B,$6E,$20,$2E,$00,$44,$66,$08,$61,$00,$FE,$DE,$6B,$62
+	dc.b $60,$04,$61,$00,$FF,$1A,$2D,$40,$00,$44,$2D,$40,$00,$54,$41,$EE
+	dc.b $58,$6A,$61,$00,$FF,$74,$20,$BC,$00,$00,$00,$02,$21,$7C,$FF,$FF
+	dc.b $FF,$FD,$01,$FC,$21,$6E,$00,$44,$00,$04,$21,$6E,$00,$5C,$01,$F0
+	dc.b $21,$7C,$00,$00,$03,$70,$01,$F4,$22,$6E,$00,$10,$41,$E8,$01,$B1
+	dc.b $70,$00,$4A,$11,$67,$0C,$11,$99,$00,$00,$52,$40,$0C,$40,$00,$1E
+	dc.b $66,$F0,$11,$00,$42,$AE,$00,$1E,$42,$AE,$00,$16,$42,$AE,$00,$1A
+	dc.b $70,$00,$4E,$75,$48,$E7,$7F,$F8,$42,$AE,$00,$2A,$2D,$40,$00,$26
+	dc.b $2D,$48,$00,$22,$4A,$AE,$00,$26,$67,$00,$00,$AC,$4A,$AE,$00,$16
+	dc.b $66,$4E,$61,$00,$FE,$56,$6B,$00,$00,$A2,$2D,$40,$00,$50,$4A,$AE
+	dc.b $00,$1E,$66,$0C,$41,$EE,$58,$6A,$21,$6E,$00,$50,$00,$10,$60,$08
+	dc.b $61,$00,$00,$C0,$6B,$00,$00,$84,$20,$2E,$00,$50,$61,$00,$FB,$04
+	dc.b $6B,$78,$61,$00,$FE,$D4,$2D,$6E,$00,$50,$00,$58,$52,$AE,$00,$1E
+	dc.b $2D,$7C,$00,$00,$01,$E8,$00,$16,$41,$E8,$00,$18,$2D,$48,$00,$2E
+	dc.b $20,$2E,$00,$26,$B0,$AE,$00,$16,$65,$04,$20,$2E,$00,$16,$91,$AE
+	dc.b $00,$16,$91,$AE,$00,$26,$D1,$AE,$00,$1A,$D1,$AE,$00,$2A,$20,$6E
+	dc.b $00,$2E,$22,$6E,$00,$22,$32,$00,$E6,$48,$02,$41,$00,$07,$D2,$41
+	dc.b $44,$41,$4E,$FB,$10,$12,$10,$D9,$10,$D9,$10,$D9,$10,$D9,$10,$D9
+	dc.b $10,$D9,$10,$D9,$10,$D9,$51,$C8,$FF,$EE,$2D,$48,$00,$2E,$2D,$49
+	dc.b $00,$22,$60,$00,$FF,$50,$20,$2E,$00,$2A,$4C,$DF,$1F,$FE,$4E,$75
+	dc.b $20,$6E,$00,$32,$21,$40,$00,$10,$20,$BC,$00,$00,$00,$08,$21,$6E
+	dc.b $00,$44,$00,$04,$21,$6E,$00,$1E,$00,$08,$20,$3C,$00,$00,$01,$E8
+	dc.b $90,$AE,$00,$16,$21,$40,$00,$0C,$61,$00,$FD,$EC,$50,$EE,$00,$65
+	dc.b $4E,$75,$61,$CC,$41,$EE,$58,$6A,$20,$28,$00,$08,$0C,$80,$00,$00
+	dc.b $00,$48,$66,$52,$61,$00,$FD,$64,$6B,$66,$2D,$40,$00,$4C,$21,$40
+	dc.b $01,$F8,$61,$00,$FD,$C2,$20,$2E,$00,$54,$61,$00,$FA,$26,$6B,$50
+	dc.b $22,$48,$41,$EE,$58,$6A,$61,$00,$FD,$D8,$50,$EE,$00,$65,$41,$EE
+	dc.b $58,$6A,$61,$00,$FD,$E4,$20,$BC,$00,$00,$00,$10,$21,$7C,$FF,$FF
+	dc.b $FF,$FD,$01,$FC,$21,$6E,$00,$4C,$00,$04,$21,$6E,$00,$44,$01,$F4
+	dc.b $2D,$6E,$00,$4C,$00,$54,$52,$A8,$00,$08,$20,$28,$00,$08,$E5,$88
+	dc.b $44,$80,$06,$80,$00,$00,$01,$38,$21,$AE,$00,$58,$00,$00,$70,$00
+	dc.b $4E,$75,$4A,$AE,$00,$1A,$67,$00,$00,$AA,$70,$00,$61,$00,$FF,$74
+	dc.b $20,$2E,$00,$54,$B0,$AE,$00,$44,$67,$3A,$41,$EE,$58,$6A,$61,$00
+	dc.b $FD,$46,$20,$2E,$00,$54,$61,$00,$F9,$AA,$6B,$00,$00,$8C,$22,$48
+	dc.b $41,$EE,$58,$6A,$61,$00,$FD,$5A,$50,$EE,$00,$65,$20,$2E,$00,$44
+	dc.b $61,$00,$F9,$90,$6B,$72,$61,$00,$FD,$32,$66,$74,$43,$EE,$58,$6A
+	dc.b $61,$00,$FD,$3E,$41,$EE,$58,$6A,$21,$6E,$00,$1A,$01,$44,$61,$00
+	dc.b $FD,$06,$20,$2E,$00,$44,$61,$00,$F9,$6A,$6B,$4C,$22,$48,$41,$EE
+	dc.b $58,$6A,$61,$00,$FD,$1C,$50,$EE,$00,$65,$20,$2E,$00,$48,$61,$00
+	dc.b $F9,$52,$6B,$34,$22,$48,$41,$EE,$56,$6A,$61,$00,$FC,$E6,$61,$00
+	dc.b $FD,$00,$50,$EE,$00,$65,$20,$2E,$00,$3E,$61,$00,$F9,$36,$6B,$18
+	dc.b $30,$2E,$00,$42,$21,$AE,$00,$44,$00,$00,$61,$00,$FC,$BA,$50,$EE
+	dc.b $00,$65,$61,$00,$FA,$CC,$4E,$75,$2F,$00,$61,$F6,$20,$1F,$4E,$75
+	dc.b $70,$FC,$60,$F4,$42,$AE,$00,$44,$42,$AE,$00,$5C,$20,$3C,$00,$00
+	dc.b $03,$70,$61,$00,$F8,$FE,$6B,$00,$00,$FE,$61,$00,$FC,$9E,$66,$00
+	dc.b $00,$F8,$4A,$A8,$01,$38,$67,$00,$00,$F0,$20,$28,$01,$3C,$2D,$40
+	dc.b $00,$48,$61,$00,$F8,$DE,$6B,$00,$00,$DE,$61,$00,$FC,$7E,$66,$00
+	dc.b $00,$D8,$43,$EE,$56,$6A,$61,$00,$FC,$88,$61,$00,$F8,$22,$6B,$00
+	dc.b $00,$C6,$66,$00,$00,$C0,$2D,$6E,$00,$3A,$00,$44,$2D,$68,$01,$F0
+	dc.b $00,$5C,$20,$2E,$00,$3E,$61,$00,$F8,$AA,$6B,$00,$00,$AA,$61,$00
+	dc.b $FC,$4A,$66,$00,$00,$A4,$0C,$AE,$00,$00,$03,$70,$00,$3A,$66,$08
+	dc.b $30,$2E,$00,$14,$E5,$48,$60,$06,$20,$3C,$00,$00,$01,$F0,$3D,$40
+	dc.b $00,$42,$21,$AE,$00,$5C,$08,$00,$61,$00,$FC,$0C,$50,$EE,$00,$65
+	dc.b $20,$2E,$00,$44,$61,$00,$FB,$C8,$61,$00,$F8,$68,$6B,$68,$61,$00
+	dc.b $FC,$0A,$66,$64,$0C,$A8,$FF,$FF,$FF,$FD,$01,$FC,$66,$5A,$0C,$A8
+	dc.b $00,$00,$03,$70,$01,$F4,$66,$50,$22,$28,$00,$08,$43,$E8,$01,$38
+	dc.b $20,$21,$0C,$80,$00,$00,$06,$E0,$64,$3E,$61,$00,$FB,$92,$53,$81
+	dc.b $66,$EE,$20,$28,$01,$F8,$66,$BC,$41,$EE,$56,$6A,$61,$00,$FB,$C4
+	dc.b $20,$2E,$00,$48,$61,$00,$F8,$1C,$6B,$1C,$61,$00,$FB,$BE,$6B,$18
+	dc.b $22,$48,$41,$EE,$56,$6A,$61,$00,$FB,$AA,$61,$00,$FB,$C4,$61,$00
+	dc.b $F9,$C4,$6B,$02,$70,$00,$4E,$75,$70,$FC,$4E,$75
     ORG $15B4
 loc_6_000015B4:
     ORG $7944A

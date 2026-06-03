@@ -716,6 +716,12 @@ static int classify_run_end_from_decode(const M68kDecodeSectionIR *decode_sectio
   return 0;
 }
 
+static int source_quality_candidate_stops_linear_flow(const M68kDecodeCandidate *candidate) {
+  M68kInstructionIR instruction;
+  if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  return !platform_instruction_has_normal_fallthrough(&instruction);
+}
+
 static int accepted_run_decode_coverage_gap(const M68kSectionAnalysisIR *section,
     const M68kDecodeSectionIR *decode_section, const M68kAcceptedCodeRunIR *run, uint32_t *out_offset) {
   uint32_t offset;
@@ -1297,6 +1303,54 @@ static int append_accepted_run_noncode_fallthrough_diagnostics(M68kSourceAnalysi
   if (source_analysis == NULL) return -1;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     if (append_accepted_run_noncode_fallthrough_diagnostics_for_section(
+        &source_analysis->sections[section_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int accepted_gap_run_has_noncontrol_operand_access(const M68kSectionAnalysisIR *section,
+    const M68kAcceptedCodeRunIR *run) {
+  size_t access_index;
+  if (section == NULL || run == NULL) return 0;
+  for (access_index = 0U; access_index < section->expected_symbol_access_count; ++access_index) {
+    const M68kExpectedSymbolAccessIR *access = &section->expected_symbol_accesses[access_index];
+    if (access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET ||
+        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT ||
+        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_EQUATE ||
+        !access->has_target || access->target_section_index != section->section_index) {
+      continue;
+    }
+    if (access->offset >= run->start_offset && access->offset < run->end_offset) continue;
+    if (access->target_offset >= run->start_offset && access->target_offset < run->end_offset) return 1;
+  }
+  return 0;
+}
+
+static int append_unterminated_accepted_gap_diagnostics_for_section(M68kSectionAnalysisIR *section) {
+  size_t run_index;
+  if (section == NULL) return -1;
+  for (run_index = 0U; run_index < section->accepted_code_run_count; ++run_index) {
+    const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[run_index];
+    if (run->end_kind != M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP) continue;
+    if (!accepted_run_has_executable_origin(section, run->start_offset, run->end_offset)) continue;
+    if (!accepted_gap_run_has_noncontrol_operand_access(section, run)) continue;
+    if (append_run_diagnostic(section, run,
+        M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE,
+        M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
+        "accepted code run ends without terminal flow or structural continuation proof") != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_unterminated_accepted_gap_diagnostics(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    if (append_unterminated_accepted_gap_diagnostics_for_section(
         &source_analysis->sections[section_index]) != 0) {
       return -1;
     }
@@ -3366,7 +3420,21 @@ static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section,
       continue;
     }
     start = cursor;
-    while ((size_t)cursor < section->certain_code_size && section->certain_code_byte[cursor] != 0U) ++cursor;
+    while ((size_t)cursor < section->certain_code_size && section->certain_code_byte[cursor] != 0U) {
+      const M68kDecodeCandidate *candidate = NULL;
+      uint32_t next_offset = cursor + 1U;
+      if (decode_section != NULL && section->certain_code_start != NULL &&
+          section->certain_code_start[cursor] != 0U) {
+        candidate = m68k_decode_ir_find_candidate_at_offset(decode_section, cursor);
+        if (candidate != NULL && candidate->byte_count != 0U &&
+            candidate->byte_count <= UINT32_MAX - cursor &&
+            cursor + candidate->byte_count <= section->certain_code_size) {
+          next_offset = cursor + candidate->byte_count;
+        }
+      }
+      cursor = next_offset;
+      if (candidate != NULL && source_quality_candidate_stops_linear_flow(candidate)) break;
+    }
     memset(&run, 0, sizeof(run));
     run.start_offset = start;
     run.end_offset = cursor;
@@ -3463,6 +3531,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_accepted_run_noncode_fallthrough_diagnostics(source_analysis) != 0) return -1;
+  if (append_unterminated_accepted_gap_diagnostics(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;

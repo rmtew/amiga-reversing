@@ -80,6 +80,20 @@ fail:
 #endif
 }
 
+int platform_instruction_has_normal_fallthrough(const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  if (instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 1;
+  if (metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
+    return 0;
+  }
+  return !(metadata->flow_kind == M68K_SIM_FLOW_TRAP &&
+    metadata->exception_trigger == M68K_SIM_EXCEPTION_TRIGGER_ALWAYS &&
+    metadata->exception_pc_source == M68K_SIM_EXCEPTION_PC_CURRENT);
+}
+
 int platform_instruction_has_terminal_state_flow(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   if (instruction == NULL) return 0;

@@ -995,11 +995,7 @@ static int instruction_has_call_or_jump_flow_local(const M68kInstructionIR *inst
 }
 
 static int instruction_has_terminal_state_flow_local(const M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata;
-  if (instruction == NULL) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  return metadata != NULL &&
-    (metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_JUMP);
+  return platform_instruction_has_terminal_state_flow(instruction);
 }
 
 static int candidate_has_call_flow_local(const M68kDecodeCandidate *candidate) {

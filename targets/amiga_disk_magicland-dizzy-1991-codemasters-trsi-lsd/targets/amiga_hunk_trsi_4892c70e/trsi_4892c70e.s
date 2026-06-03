@@ -1,8 +1,7 @@
 ; Memory map
-;   section[$00000070-$00000200] -> runtime[$00000100-$00000290] discovered_copy materialized
+;   section[$00000070-$00000200] -> runtime[$00000100-$00000290] discovered_copy suppressed
 ;   Absolute memory refs:
-;     absolute[$00030000] refs=2 access=a
-;     absolute[$000434C0] refs=1 access=a
+;     absolute[$00030000] refs=1 access=a
 
 ; AmigaOS compatibility
 ;   required OS floor: unknown
@@ -13,22 +12,21 @@
 
 _custom	EQU	$DFF000
 _ciab	EQU	$BFD000
+runtime_code_00000100	EQU	$100
 m68k_vector_illegal_instruction	EQU	$10
 absolute_slot_00030000	EQU	$30000
-absolute_slot_000434C0	EQU	$434C0
-runtime_address_00030000	EQU	$30000
 
     SECTION section,code
 loc_0_00000000:
 	lea.l _custom+color.l,a6
 	lea.l _ciab+ciaprb.l,a3
-	lea.l loc_0_00000070-(*+2)(pc),a0
+	lea.l loc_0_00000070(pc),a0
 	move.w (a0)+,-$00E6(a6)
 	move.w (a0)+,-$00EA(a6)
 	move.b #$81,(a3)
 	lea.l loc_0_00000208(pc),a2
 	st.b (a3)
-	lea.l abs_0_00000100.l,a4
+	lea.l runtime_code_00000100.l,a4
 	moveq.l #99,d0
 loc_0_0000002A:
 	move.l (a0)+,(a4)+
@@ -52,238 +50,32 @@ loc_0_0000004E:
 	dc.b $20,$4D,$72,$2E,$53,$70,$69,$76,$20,$4F,$66,$20,$43,$61,$76,$65
 	dc.b $21,$20
 loc_0_00000070:
-    ORG $100
-abs_0_00000100:
-	negx.b d0
-	andi.b #$265A,d0
-	move.l (a2)+,d0
-	adda.l a0,a3
-	movea.l a2,a1
-	adda.l d0,a1
-	cmpa.l a0,a1
-	bcs.b abs_0_00000122
-	cmpa.l a3,a1
-	bcc.b abs_0_00000122
-	lea.l absolute_slot_000434C0.l,a2
-abs_0_0000011C:
-	move.l -(a1),-(a2)
-	subq.l #4,d0
-	bne.b abs_0_0000011C
-abs_0_00000122:
-	move.l (a2)+,d0
-	lsr.w #1,d6
-	bra.b abs_0_00000130
-abs_0_00000128:
-	move.w a1,(a6)
-	add.l d0,d0
-	bne.b abs_0_00000132
-	move.l (a2)+,d0
-abs_0_00000130:
-	addx.l d0,d0
-abs_0_00000132:
-	bcs.w abs_0_000001BC
-	moveq.l #0,d3
-abs_0_00000138:
-	moveq.l #0,d2
-	add.l d0,d0
-	bne.b abs_0_00000142
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000142:
-	addx.w d2,d2
-	add.l d0,d0
-	bne.b abs_0_0000014C
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_0000014C:
-	addx.w d2,d2
-	add.l d0,d0
-	bne.b abs_0_00000156
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000156:
-	addx.w d2,d2
-	add.l d2,d3
-	cmp.w d7,d2
-	beq.b abs_0_00000138
-abs_0_0000015E:
-	add.l d0,d0
-	bne.b abs_0_00000166
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000166:
-	addx.b d2,d2
-	add.l d0,d0
-	bne.b abs_0_00000170
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000170:
-	addx.b d2,d2
-	add.l d0,d0
-	bne.b abs_0_0000017A
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_0000017A:
-	addx.b d2,d2
-	add.l d0,d0
-	bne.b abs_0_00000184
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000184:
-	addx.b d2,d2
-	add.l d0,d0
-	bne.b abs_0_0000018E
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_0000018E:
-	addx.b d2,d2
-	add.l d0,d0
-	bne.b abs_0_00000198
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000198:
-	addx.b d2,d2
-	add.l d0,d0
-	bne.b abs_0_000001A2
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_000001A2:
-	addx.b d2,d2
-	add.l d0,d0
-	bne.b abs_0_000001AC
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_000001AC:
-	addx.b d2,d2
-	move.b d2,(a0)+
-	subq.l #1,d3
-	bne.b abs_0_0000015E
-	bra.w abs_0_0000027C
-abs_0_000001B8:
-	dc.b $01,$02,$03,$FF	; lookup_table
-abs_0_000001BC:
-	moveq.l #0,d2
-	add.l d0,d0
-	bne.b abs_0_000001C6
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_000001C6:
-	addx.w d2,d2
-	add.l d0,d0
-	bne.b abs_0_000001D0
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_000001D0:
-	addx.w d2,d2
-	moveq.l #0,d3
-	moveq.l #0,d1
-	move.b abs_0_000001B8(pc,d2.w),d3
-	bmi.b abs_0_000001EA
-abs_0_000001DC:
-	add.l d0,d0
-	bne.b abs_0_000001E4
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_000001E4:
-	addx.w d1,d1
-	dbf.w d3,abs_0_000001DC
-abs_0_000001EA:
-	add.l d0,d0
-	bne.b abs_0_000001F2
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_000001F2:
-	addx.w d1,d1
-	add.l d0,d0
-	bne.b abs_0_000001FC
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_000001FC:
-	addx.w d1,d1
-	add.l d0,d0
-	bne.b abs_0_00000206
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000206:
-	addx.w d1,d1
-	add.l d0,d0
-	bne.b abs_0_00000210
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000210:
-	addx.w d1,d1
-	add.l d0,d0
-	bne.b abs_0_0000021A
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_0000021A:
-	addx.w d1,d1
-	add.l d0,d0
-	bne.b abs_0_00000224
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000224:
-	addx.w d1,d1
-	add.l d0,d0
-	bne.b abs_0_0000022E
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_0000022E:
-	addx.w d1,d1
-	add.l d0,d0
-	bne.b abs_0_00000238
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000238:
-	addx.w d1,d1
-	cmp.w d5,d2
-	bcs.b abs_0_00000270
-	moveq.l #0,d2
-abs_0_00000240:
-	moveq.l #0,d3
-	add.l d0,d0
-	bne.b abs_0_0000024A
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_0000024A:
-	addx.w d3,d3
-	add.l d0,d0
-	bne.b abs_0_00000254
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000254:
-	addx.w d3,d3
-	add.l d0,d0
-	bne.b abs_0_0000025E
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_0000025E:
-	addx.w d3,d3
-	add.l d0,d0
-	bne.b abs_0_00000268
-	move.l (a2)+,d0
-	addx.l d0,d0
-abs_0_00000268:
-	addx.w d3,d3
-	add.l d3,d2
-	cmp.w d6,d3
-	beq.b abs_0_00000240
-abs_0_00000270:
-	addq.l #3,d2
-	movea.l a0,a1
-	suba.w d1,a1
-abs_0_00000276:
-	move.b (a1)+,(a0)+
-	subq.l #1,d2
-	bne.b abs_0_00000276
-abs_0_0000027C:
-	cmpa.l a3,a0
-	bcs.w abs_0_00000128
-	move.w -(a4),-$00EA(a6)
-	move.w -(a4),-$00E6(a6)
-	jmp runtime_address_00030000.l
-    ORG $200
-	dc.b $C0,$00,$82,$00,$53,$33,$31,$30
+	dc.w $4000,$0200,$265A,$201A,$D7C8,$224A,$D3C0,$B3C8	; lookup_table
+	dc.w $6510,$B3CB,$640C,$45F9,$0004,$34C0,$2521,$5980	; lookup_table
+	dc.w $66FA,$201A,$E24E,$6008,$3C89,$D080,$6604,$201A	; lookup_table
+	dc.w $D180,$6500,$0088,$7600,$7400,$D080,$6604,$201A	; lookup_table
+	dc.w $D180,$D542,$D080,$6604,$201A,$D180,$D542,$D080	; lookup_table
+	dc.w $6604,$201A,$D180,$D542,$D682,$B447,$67DA,$D080	; lookup_table
+	dc.w $6604,$201A,$D180,$D502,$D080,$6604,$201A,$D180	; lookup_table
+	dc.w $D502,$D080,$6604,$201A,$D180,$D502,$D080,$6604	; lookup_table
+	dc.w $201A,$D180,$D502,$D080,$6604,$201A,$D180,$D502	; lookup_table
+	dc.w $D080,$6604,$201A,$D180,$D502,$D080,$6604,$201A	; lookup_table
+	dc.w $D180,$D502,$D080,$6604,$201A,$D180,$D502,$10C2	; lookup_table
+	dc.w $5383,$66AA,$6000,$00C6,$0102,$03FF,$7400,$D080	; lookup_table
+	dc.w $6604,$201A,$D180,$D542,$D080,$6604,$201A,$D180	; lookup_table
+	dc.w $D542,$7600,$7200,$163B,$20E0,$6B0E,$D080,$6604	; lookup_table
+	dc.w $201A,$D180,$D341,$51CB,$FFF4,$D080,$6604,$201A	; lookup_table
+	dc.w $D180,$D341,$D080,$6604,$201A,$D180,$D341,$D080	; lookup_table
+	dc.w $6604,$201A,$D180,$D341,$D080,$6604,$201A,$D180	; lookup_table
+	dc.w $D341,$D080,$6604,$201A,$D180,$D341,$D080,$6604	; lookup_table
+	dc.w $201A,$D180,$D341,$D080,$6604,$201A,$D180,$D341	; lookup_table
+	dc.w $D080,$6604,$201A,$D180,$D341,$B445,$6532,$7400	; lookup_table
+	dc.w $7600,$D080,$6604,$201A,$D180,$D743,$D080,$6604	; lookup_table
+	dc.w $201A,$D180,$D743,$D080,$6604,$201A,$D180,$D743	; lookup_table
+	dc.w $D080,$6604,$201A,$D180,$D743,$D483,$B646,$67D0	; lookup_table
+	dc.w $5682,$2248,$92C1,$10D9,$5382,$66FA,$B1CB,$6500	; lookup_table
+	dc.w $FEA8,$3D64,$FF16,$3D64,$FF1A,$4EF9,$0003,$0000	; lookup_table
+	dc.w $C000,$8200,$5333,$3130	; lookup_table
 loc_0_00000208:
 	dc.b $00,$01,$34,$C0,$00,$00,$CF,$EC,$7E,$0C,$FE,$40,$37,$FC,$07,$00
 	dc.b $00,$C0,$44,$0C,$FF,$1F,$FF,$E0,$18,$33,$5C,$21,$1F,$B9,$C0,$8F
