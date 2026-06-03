@@ -743,8 +743,11 @@ static int classify_run_end_from_cfg(const M68kSectionAnalysisIR *section, uint3
   return 0;
 }
 
-static int classify_run_end_from_decode(const M68kDecodeSectionIR *decode_section, uint32_t start, uint32_t end,
-    M68kAcceptedCodeRunIR *run) {
+static int source_quality_recovered_platform_call_covers_opword(const M68kSectionAnalysisIR *section,
+    uint32_t offset, uint32_t run_end);
+
+static int classify_run_end_from_decode(const M68kSectionAnalysisIR *section, const M68kDecodeSectionIR *decode_section,
+    uint32_t start, uint32_t end, M68kAcceptedCodeRunIR *run) {
   uint32_t offset;
   if (decode_section == NULL || run == NULL || end <= start) return 0;
   offset = start;
@@ -753,6 +756,10 @@ static int classify_run_end_from_decode(const M68kDecodeSectionIR *decode_sectio
     M68kInstructionIR instruction;
     const M68kSimFormMetadata *metadata;
     uint32_t next_offset;
+    if (candidate == NULL && source_quality_recovered_platform_call_covers_opword(section, offset, end)) {
+      offset += 2U;
+      continue;
+    }
     if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > end - offset) break;
     next_offset = offset + candidate->byte_count;
     if (next_offset != end) {
@@ -789,6 +796,22 @@ static int source_quality_candidate_stops_linear_flow(const M68kDecodeCandidate 
   return !platform_instruction_has_normal_fallthrough(&instruction);
 }
 
+static int source_quality_recovered_platform_call_covers_opword(const M68kSectionAnalysisIR *section,
+    uint32_t offset, uint32_t run_end) {
+  size_t index;
+  if (section == NULL || offset > UINT32_MAX - 2U || offset + 2U > run_end) return 0;
+  for (index = 0U; index < section->recovered_platform_call_count; ++index) {
+    const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[index];
+    if (call->offset == offset &&
+        (call->symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_UNKNOWN ||
+         call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_UNKNOWN ||
+         call->note_base_ref.platform_kind != M68K_PLATFORM_BACKEND_UNKNOWN)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int accepted_run_decode_coverage_gap(const M68kSectionAnalysisIR *section,
     const M68kDecodeSectionIR *decode_section, const M68kAcceptedCodeRunIR *run, uint32_t *out_offset) {
   uint32_t offset;
@@ -812,6 +835,10 @@ static int accepted_run_decode_coverage_gap(const M68kSectionAnalysisIR *section
       return 1;
     }
     candidate = m68k_decode_ir_find_candidate_at_offset(decode_section, offset);
+    if (candidate == NULL && source_quality_recovered_platform_call_covers_opword(section, offset, run->end_offset)) {
+      expected_offset = offset + 2U;
+      continue;
+    }
     if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > run->end_offset - offset) {
       if (out_offset != NULL) *out_offset = offset;
       return 1;
@@ -3603,7 +3630,7 @@ static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section,
     run.end_kind = (size_t)cursor >= section->certain_code_size ?
       M68K_ACCEPTED_CODE_RUN_END_SECTION_BOUNDARY : M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP;
     run.has_origin = (uint8_t)accepted_run_has_origin(section, start, cursor);
-    (void)classify_run_end_from_decode(decode_section, start, cursor, &run);
+    (void)classify_run_end_from_decode(section, decode_section, start, cursor, &run);
     if (classify_run_end_from_cfg(section, start, cursor, &run) < 0) return -1;
     if (section->certain_code_start != NULL) {
       uint32_t offset;

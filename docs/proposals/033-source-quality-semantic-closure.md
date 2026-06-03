@@ -1637,6 +1637,27 @@ This keeps the policy strict without making every ordinary code/data range
 conflict into a manual failure. Manual evidence is only special when it tries to
 force code through facts the analysis already knows contradict it.
 
+Platform opword partial-decode coverage is also now explicit:
+
+```text
+accepted code start at $0000
+  bytes: A9 00 4E 75
+  no recovered platform call at $0000
+  -> partial_code_block_decode at $0000
+
+accepted code start at $0000
+  bytes: A9 00 4E 75
+  recovered Mac OS platform call at $0000
+  -> platform opword covers $0000..$0002
+  -> decoded rts at $0002 supplies terminal run end
+  -> no partial_code_block_decode
+```
+
+The rule is deliberately fact-based. Source-quality does not bless all A-line
+or F-line words as executable. It only treats a two-byte platform opword as
+covered when analysis has already recorded a recovered platform call at that
+offset.
+
 ## Implementation Slices
 
 Each slice must fix the obvious cause of any validation failure it exposes.
@@ -1963,7 +1984,7 @@ Implementation order:
 3. Done: export provenance through code-start refs and M68kCodeOriginIR.
 4. Done: add source-quality tests for manual seed at valid code, data overlap,
    mid-instruction, partial decode, and unterminated accepted-gap runs.
-5. Add partial-code-block fixtures:
+5. Done: add partial-code-block fixtures:
    generic accepted run whose decode stops before a credible terminal;
    same byte shape under Mac OS where an A-line/F-line platform opword proves
    executable flow; same opword under Amiga/raw where no platform proof exists
