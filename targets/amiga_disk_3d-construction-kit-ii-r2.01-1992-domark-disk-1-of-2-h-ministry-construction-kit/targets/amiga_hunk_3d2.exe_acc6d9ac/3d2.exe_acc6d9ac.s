@@ -1,6 +1,7 @@
 ; Memory map
 ;   section[$00000068-$000001F0] -> runtime[$00000100-$00000288] discovered_copy suppressed
 ;   Absolute memory refs:
+;     absolute[$00000000] refs=2 access=a
 ;     absolute[$00050000] refs=1 access=a
 
 ; AmigaOS compatibility

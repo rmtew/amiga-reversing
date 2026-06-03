@@ -1,5 +1,6 @@
 ; Memory map
 ;   Absolute memory refs:
+;     absolute[$00000028] refs=1 access=a
 ;     absolute[$FFFFFE00] refs=1 access=a
 ;     absolute[$FFFFFFFF] refs=3 access=a
 

@@ -3,6 +3,7 @@
 ;   section[$0000005C-$00059040] -> runtime[$00000400-$000593E4] discovered_copy materialized
 ;   section[$0000005D-$00059040] -> runtime[$00000401-$000593E4] discovered_copy suppressed
 ;   Absolute memory refs:
+;     absolute[$00000060] refs=1 access=a
 ;     absolute[$000002A9] refs=1 access=r
 ;     absolute[$000005CE] refs=1 access=a
 ;     absolute[$000088A4] refs=1 access=a

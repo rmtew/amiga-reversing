@@ -1,6 +1,7 @@
 ; Memory map
 ;   code[$00000000-$00001D00] -> runtime[$00000400-$00002100] policy materialized
 ;   Absolute memory refs:
+;     absolute[$00000064] refs=1 access=a
 ;     absolute[$0000041A] refs=1 access=a
 ;     absolute[$00000AA6] refs=1 access=a
 ;     absolute[$00000AB0] refs=2 access=a

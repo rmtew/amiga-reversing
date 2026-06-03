@@ -5463,8 +5463,10 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68kRenderPlan listing_plan;
   M68kSourceAnalysisIR *source_analysis = NULL;
   M68kSourceAnalysisIR *listing_analysis = NULL;
+  M68kRenderEvidenceIR listing_evidence;
   char *source = NULL;
   char *plan_source = NULL;
+  char *listing_analysis_json = NULL;
   M68kFactsV2Profile listing_profile;
   size_t row_index;
     int saw_section_row = 0;
@@ -5562,11 +5564,19 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
     M68K_C_ASSERT(saw_expected_target_label_access);
     M68K_C_ASSERT(saw_rendered_target_label_access);
     M68K_C_ASSERT(saw_rendered_branch_target_access);
-    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, NULL,
-      &listing_plan, &listing_profile, listing_analysis, 1U, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
+      NULL, &listing_plan, &listing_profile, listing_analysis, &listing_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(listing_plan.row_count != 0U);
+  M68K_C_ASSERT(listing_evidence.section_count != 0U);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json_with_render_evidence(listing_analysis, &listing_evidence,
+    &listing_analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(listing_analysis_json != NULL);
+  M68K_C_ASSERT(strstr(listing_analysis_json, "\"rendered_symbol_access_count\":") != NULL);
+  M68K_C_ASSERT(strstr(listing_analysis_json, "\"access_kind\":\"branch_target\"") != NULL);
   M68K_C_ASSERT_U32(listing_profile.asm_source_bytes, listing_profile.asm_source_plan_bytes);
   M68K_C_ASSERT_U32(listing_profile.asm_source_lines, listing_profile.asm_source_plan_lines);
+  free(listing_analysis_json);
+  m68k_ir_render_evidence_destroy(&listing_evidence);
   m68k_render_plan_destroy(&listing_plan);
   m68k_ir_source_analysis_destroy(listing_analysis);
   free(listing_analysis);

@@ -3089,6 +3089,23 @@ int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *
   return 0;
 }
 
+int m68k_ir_render_evidence_append_all(M68kRenderEvidenceIR *evidence,
+    const M68kRenderEvidenceIR *source) {
+  size_t section_index;
+  if (evidence == NULL || evidence->arena == NULL || source == NULL) return -1;
+  for (section_index = 0U; section_index < source->section_count; ++section_index) {
+    const M68kRenderEvidenceSectionIR *section = &source->sections[section_index];
+    size_t access_index;
+    for (access_index = 0U; access_index < section->rendered_symbol_access_count; ++access_index) {
+      if (m68k_ir_render_evidence_append_rendered_symbol_access(evidence, section->section_index,
+          &section->rendered_symbol_accesses[access_index]) != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeOriginIR *origin) {
   size_t index;

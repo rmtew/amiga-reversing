@@ -2,6 +2,7 @@
 ;   section_0[$00000148-$00000157] -> runtime[$00000004-$00000013] discovered_copy suppressed
 ;   section_0[$00000154-$00000FF8] -> runtime[$00000040-$00000EE4] discovered_copy materialized
 ;   Absolute memory refs:
+;     absolute[$00000064] refs=2 access=a
 ;     absolute[$8F406117] refs=1 access=r
 
 ; AmigaOS compatibility, inferred from recovered OS calls

@@ -10010,7 +10010,8 @@ static int facts_v2_has_asm_source_failures(const M68kFactsV2Profile *profile) {
 static int facts_v2_collect_profile_internal(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, int force_asm_source, int collect_asm_source_text,
     int allow_env_asm_source, int fail_on_asm_refused, int mark_source_blockers, char **out_asm_source,
-    M68kSourceAnalysisIR *out_source_analysis, M68kRenderPlan *out_asm_source_plan, M68kDiagSink diagnostics) {
+    M68kSourceAnalysisIR *out_source_analysis, M68kRenderPlan *out_asm_source_plan,
+    M68kRenderEvidenceIR *out_render_evidence, M68kDiagSink diagnostics) {
   M68kDecodeIR decode;
   M68kFactIR facts;
   M68kFactsV2WorkQueue queue;
@@ -10553,6 +10554,14 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (out_asm_source_plan != NULL && !facts_v2_has_asm_source_failures(out_profile)) {
     m68k_render_plan_move(out_asm_source_plan, &render_preview->asm_source_plan);
   }
+  if (out_render_evidence != NULL && !facts_v2_has_asm_source_failures(out_profile) &&
+      render_preview->render_evidence != NULL) {
+    if (m68k_ir_render_evidence_append_all(out_render_evidence, render_preview->render_evidence) != 0) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 render evidence export failed");
+      goto fail;
+    }
+  }
   {
     ArenaStats workflow_stats = arena_stats(workflow.arena);
     out_profile->workflow_arena_peak_used =
@@ -10593,13 +10602,13 @@ fail:
 
 int m68k_facts_v2_collect_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 0, NULL, NULL, NULL,
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 0, NULL, NULL, NULL, NULL,
     diagnostics);
 }
 
 int m68k_facts_v2_collect_direct_rebuild_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 1, NULL, NULL, NULL,
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 1, NULL, NULL, NULL, NULL,
     diagnostics);
 }
 
@@ -10609,7 +10618,7 @@ int m68k_facts_v2_render_asm_source_alloc(const M68kObject *object, const M68kAn
   M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
   if (out_source == NULL) return -1;
   *out_source = NULL;
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, 1, 0, out_source, NULL, NULL,
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, 1, 0, out_source, NULL, NULL, NULL,
     diagnostics);
 }
 
@@ -10622,21 +10631,33 @@ int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *obj
   *out_source = NULL;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
   return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
-    out_source, out_source_analysis, NULL, diagnostics);
+    out_source, out_source_analysis, NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(const M68kObject *object,
     const M68kAnalysisPolicy *policy, char **out_source, M68kRenderPlan *out_source_plan,
     M68kFactsV2Profile *out_profile, M68kSourceAnalysisIR *out_source_analysis, uint8_t fail_on_refused,
     M68kDiagSink diagnostics) {
+  return m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(object, policy, out_source,
+    out_source_plan, out_profile, out_source_analysis, NULL, fail_on_refused, diagnostics);
+}
+
+int m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, char **out_source, M68kRenderPlan *out_source_plan,
+    M68kFactsV2Profile *out_profile, M68kSourceAnalysisIR *out_source_analysis,
+    M68kRenderEvidenceIR *out_render_evidence, uint8_t fail_on_refused, M68kDiagSink diagnostics) {
   M68kFactsV2Profile local_profile;
   M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
+  int result;
   if (out_source_plan == NULL || out_source_analysis == NULL) return -1;
   if (out_source != NULL) *out_source = NULL;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
   m68k_render_plan_init(out_source_plan);
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
-    out_source, out_source_analysis, out_source_plan, diagnostics);
+  if (out_render_evidence != NULL && m68k_ir_render_evidence_create(out_render_evidence) != 0) return -1;
+  result = facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
+    out_source, out_source_analysis, out_source_plan, out_render_evidence, diagnostics);
+  if (result != 0 && out_render_evidence != NULL) m68k_ir_render_evidence_destroy(out_render_evidence);
+  return result;
 }
 
 int m68k_facts_v2_collect_source_analysis_profile(const M68kObject *object,
@@ -10647,7 +10668,7 @@ int m68k_facts_v2_collect_source_analysis_profile(const M68kObject *object,
   if (out_source_analysis == NULL) return -1;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
   return facts_v2_collect_profile_internal(object, policy, profile, 0, 0, 0, 0, 0, NULL,
-    out_source_analysis, NULL, diagnostics);
+    out_source_analysis, NULL, NULL, diagnostics);
 }
 
 void m68k_facts_v2_free_text(char *text) {

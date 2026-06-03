@@ -10872,11 +10872,13 @@ struct PlatformFileListingArtifact {
   M68kAnalysisPolicy policy;
   M68kSourceAnalysisIR source_analysis;
   M68kRenderPlan source_plan;
+  M68kRenderEvidenceIR render_evidence;
   M68kFactsV2Profile profile;
   Arena *listing_index_arena;
   PlatformListingRowIndex listing_row_index;
   size_t listing_total_rows;
   double source_seconds;
+  uint8_t render_evidence_live;
 };
 
 static int listing_artifact_set_error(char **out_error, const M68kDiagList *diagnostics,
@@ -10935,8 +10937,9 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
     return -1;
   }
   source_start = clock();
-  if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&artifact->object, &artifact->policy, NULL,
-      &artifact->source_plan, &artifact->profile, &artifact->source_analysis, 1U, m68k_diag_sink(diagnostics)) != 0) {
+  if (m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&artifact->object, &artifact->policy,
+      NULL, &artifact->source_plan, &artifact->profile, &artifact->source_analysis, &artifact->render_evidence, 1U,
+      m68k_diag_sink(diagnostics)) != 0) {
     if (artifact->profile.asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE) {
       snprintf(failure_message, sizeof(failure_message),
         "facts_v2 asm source first failure: kind=%s section=%u offset=%u aux=%u",
@@ -10950,6 +10953,7 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
       platform_file_add_error(diagnostics, "facts_v2 asm source render failed");
     return -1;
   }
+  artifact->render_evidence_live = 1U;
   source_end = clock();
   if (source_file_listing_row_index_from_render_plan(NULL, &artifact->source_plan,
       artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
@@ -12282,7 +12286,9 @@ int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileList
     return text_result_to_alloc(&result, out_text);
   }
   analysis_start = clock();
-  if (source_analysis_to_json(&artifact->source_analysis, &analysis_json, m68k_diag_sink(&result.diagnostics)) != 0) {
+  if (source_analysis_to_json_with_render_evidence(&artifact->source_analysis,
+      artifact->render_evidence_live ? &artifact->render_evidence : NULL, &analysis_json,
+      m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 source analysis json failed");
     goto cleanup;
@@ -12385,6 +12391,7 @@ cleanup:
 
 void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact) {
   if (artifact == NULL) return;
+  if (artifact->render_evidence_live) m68k_ir_render_evidence_destroy(&artifact->render_evidence);
   m68k_render_plan_destroy(&artifact->source_plan);
   m68k_ir_source_analysis_destroy(&artifact->source_analysis);
   m68k_object_destroy(&artifact->object);

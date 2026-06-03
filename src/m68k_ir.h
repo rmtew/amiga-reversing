@@ -2278,6 +2278,8 @@ int m68k_ir_render_evidence_create(M68kRenderEvidenceIR *evidence);
 void m68k_ir_render_evidence_destroy(M68kRenderEvidenceIR *evidence);
 int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
     uint32_t section_index, const M68kRenderedSymbolAccessIR *access);
+int m68k_ir_render_evidence_append_all(M68kRenderEvidenceIR *evidence,
+    const M68kRenderEvidenceIR *source);
 const M68kRenderEvidenceSectionIR *m68k_ir_render_evidence_section_by_index(
     const M68kRenderEvidenceIR *evidence, uint32_t section_index);
 int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,

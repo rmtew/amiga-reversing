@@ -840,7 +840,7 @@ address is `$DCCE` but its addend-adjusted target is `$DE66`, the expected
 operand symbol must use the raw storage symbol when one exists. The addend
 target is not a safe substitute for the operand actually being read or written.
 
-### Remaining Wrong Boundary: Render Evidence Mutates Source Analysis
+### Partly Implemented Boundary: Render Evidence Is Separate From Source Analysis
 
 `m68k_render_ir.c` records actual rendered symbol accesses during assembly
 source emission. That is the right moment to observe what render emitted. The
@@ -887,9 +887,10 @@ source_analysis.expected_symbol_accesses
 This is not the final cleanup. For compatibility with current JSON/reporting,
 render still mirrors rendered accesses into `M68kSectionAnalysisIR` while it
 also records them in `M68kRenderEvidenceIR`. The important ownership step is
-complete: source-quality validation no longer reads the section mirror.
+complete: source-quality validation no longer reads the section mirror, and
+new export paths can consume render evidence directly.
 
-The next implementation slice added the explicit JSON export path:
+The first implementation slice added the explicit JSON export path:
 
 ```c
 int source_analysis_to_json_with_render_evidence(
@@ -923,10 +924,39 @@ explicit render evidence export count is 1
 missing_expected_symbol_access does not fire
 ```
 
-The remaining cleanup is workflow lifetime/threading. The render preview owns
-`M68kRenderEvidenceIR` today, but target JSON export usually happens after the
-preview is destroyed. Once the workflow keeps or hands off that evidence, the
-section-level rendered-access mirror can be deleted from source analysis.
+The next slice fixed the listing-artifact lifetime path. Facts-v2 source export
+now has an evidence-producing form:
+
+```c
+int m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(
+    const M68kObject *object,
+    const M68kAnalysisPolicy *policy,
+    char **out_source,
+    M68kRenderPlan *out_source_plan,
+    M68kFactsV2Profile *out_profile,
+    M68kSourceAnalysisIR *out_source_analysis,
+    M68kRenderEvidenceIR *out_render_evidence,
+    uint8_t fail_on_refused,
+    M68kDiagSink diagnostics);
+```
+
+The listing artifact keeps that evidence beside the render plan:
+
+```text
+PlatformFileListingArtifact
+  -> source_analysis
+  -> source_plan
+  -> render_evidence
+
+platform_file_facts_v2_listing_artifact_analysis_json_alloc
+  -> source_analysis_to_json_with_render_evidence(...)
+```
+
+That removes the need for ad hoc scripts when inspecting listing/round-trip
+analysis JSON from the rendered output path. The remaining cleanup is narrower:
+migrate the remaining report/export consumers and tests away from
+`M68kSectionAnalysisIR.rendered_symbol_accesses`, then delete the compatibility
+mirror from render once no caller depends on it.
 
 ### Remaining Wrong Boundary: Renderer-Side Platform Decisions
 
