@@ -2236,8 +2236,8 @@ comes from:
 ```
 
 This is intentionally not a renderer-side analysis shortcut. The renderer
-accepts C-owned note text first and falls back to legacy display/access comment
-helpers only for semantic comments that have not yet been migrated.
+accepts C-owned note text first and falls back to legacy helpers only for
+semantic comments that have not yet been migrated.
 
 Current audio-register comment closure:
 
@@ -2339,12 +2339,35 @@ Examples:
 
 This closes the instruction-comment migration for the families covered by the
 old `attach_amiga_hardware_display_comment_for_render()` and
-`attach_amiga_hardware_access_comment_for_render()` paths. Render still has
-display formatting for structured copper-list data rows, but instruction
-comments now come from C source-quality semantic-use facts.
+`attach_amiga_hardware_access_comment_for_render()` paths. Instruction comments
+now come from C source-quality semantic-use facts.
+
+Current copper-row comment closure:
+
+```text
+structured data item has role=copper_list
+  -> source-quality walks intact 4-byte copper rows
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=copper_row,
+                                                     note_text=...)
+  -> renderer appends note_text for that row
+  -> renderer does not recompute wait/display-row comments
+```
+
+The producer mirrors the renderer's raw-word split rule: if a label lands on
+the second word of a would-be copper row, source-quality does not publish a
+`copper_row` fact for bytes that render must split. The focused fixture checks
+both source text and analysis JSON:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_row\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"display window start v=$2C h=$81\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"copper wait v=$2C h=$06 mask $FFFE\"") != NULL);
+```
 
 Remaining platform-comment work is the same rule applied to richer structured
-comments such as copper-list row display annotations, copper pointer combined
+comments such as copper runtime pointer row comments, copper pointer combined
 display setup comments, bitmap-memory comments, and other renderer helpers that
 still describe platform meaning while formatting data. Those need C
 semantic-use records with enough structured fields or note text for render to

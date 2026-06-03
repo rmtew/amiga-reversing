@@ -25593,7 +25593,9 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[60] = {
     0x00u, 0x8Eu, 0x2Cu, 0x81u,
     0x00u, 0x90u, 0x2Cu, 0xC1u,
@@ -25638,8 +25640,8 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
   m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "INCLUDE \"hardware/custom.i\"") != NULL);
   M68K_C_ASSERT(strstr(source, "INCLUDE \"graphics/copper.i\"") != NULL);
@@ -25673,9 +25675,19 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
     "\tdc.w COPPER_WAIT|$2C06,$FFFE\t; copper wait v=$2C h=$06 mask $FFFE\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $FFFF,$FFFE\n") != NULL);
   M68K_C_ASSERT(strstr(source, "; copper_list") == NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_row\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display window start v=$2C h=$81\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display window stop v=$2C h=$C1\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display fetch start $38\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display 4 bitplanes lores color\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"copper wait v=$2C h=$06 mask $FFFE\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -25809,6 +25821,8 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   M68K_C_ASSERT(strstr(analysis_json,
     "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_list\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_row\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display 4 bitplanes lores color\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"sink_address\":14676096") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":14") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,

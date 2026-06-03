@@ -653,6 +653,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "hardware_access";
     case M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE:
       return "hardware_value";
+    case M68K_PLATFORM_SEMANTIC_USE_COPPER_ROW:
+      return "copper_row";
     default:
       return "unknown";
   }

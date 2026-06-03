@@ -1775,6 +1775,26 @@ static int format_source_quality_amiga_hardware_value_note(const AmigaOsHardware
   return 0;
 }
 
+static int format_source_quality_copper_wait_note(uint16_t first, uint16_t second, char *buf, size_t buf_size) {
+  uint32_t wait_word = (uint32_t)(first & 0xFFFEU);
+  if (buf == NULL || buf_size == 0U || (first & 1U) == 0U || (second & 1U) != 0U) return 0;
+  buf[0] = '\0';
+  snprintf(buf, buf_size, "copper wait v=$%02X h=$%02X mask $%04X",
+    (unsigned)((wait_word >> 8) & 0xFFU), (unsigned)(wait_word & 0xFEU), (unsigned)second);
+  return strlen(buf) + 1U < buf_size;
+}
+
+static int format_source_quality_copper_display_row_note(uint16_t first, uint16_t second, char *buf,
+    size_t buf_size) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint32_t register_offset = (uint32_t)(first & 0x01FEU);
+  if (buf == NULL || buf_size == 0U || (first & 1U) != 0U) return 0;
+  buf[0] = '\0';
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+    register_offset);
+  return format_source_quality_amiga_hardware_value_note(hardware_register, (uint32_t)second, buf, buf_size);
+}
+
 static int format_source_quality_amiga_audio_register_note(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
     uint32_t value, int has_immediate, char *buf, size_t buf_size) {
   uint32_t word = value & 0xFFFFU;
@@ -1946,6 +1966,65 @@ static int append_hardware_note_platform_semantic_uses(M68kSourceAnalysisIR *sou
     if (append_hardware_note_platform_semantic_uses_for_section(section_analysis, section,
         accepted_start[section->section_index]) != 0) {
       return -1;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_section_has_label_at(const M68kSectionAnalysisIR *section, uint32_t offset);
+
+static int append_structured_copper_row_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode) {
+  size_t item_index;
+  if (source_analysis == NULL || decode == NULL) return 0;
+  for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
+    M68kSectionAnalysisIR *section_analysis;
+    const M68kDecodeSectionIR *section;
+    uint32_t cursor = 0U;
+    int raw_word_mode = 0;
+    if (!item->has_section_index || item->size < 4U ||
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) == 0U) {
+      continue;
+    }
+    section_analysis = source_analysis_section_by_index(source_analysis, item->section_index);
+    section = source_quality_decode_section_by_index(decode, item->section_index, NULL);
+    if (section_analysis == NULL || section == NULL || section->data == NULL ||
+        item->offset > section->size || item->size > section->size - item->offset) {
+      continue;
+    }
+    while (cursor + 4U <= item->size) {
+      uint32_t row_offset = item->offset + cursor;
+      uint16_t first;
+      uint16_t second;
+      char note[160];
+      M68kPlatformSemanticUseIR use;
+      if (raw_word_mode) {
+        cursor += 2U;
+        continue;
+      }
+      if (cursor + 2U < item->size && source_quality_section_has_label_at(section_analysis, row_offset + 2U)) {
+        cursor += 2U;
+        raw_word_mode = 1;
+        continue;
+      }
+      first = m68k_read_u16be(section->data + row_offset);
+      second = m68k_read_u16be(section->data + row_offset + 2U);
+      if (first == 0xFFFFU && second == 0xFFFEU) {
+        cursor += 4U;
+        continue;
+      }
+      if (format_source_quality_copper_wait_note(first, second, note, sizeof(note)) ||
+          format_source_quality_copper_display_row_note(first, second, note, sizeof(note))) {
+        memset(&use, 0, sizeof(use));
+        use.kind = M68K_PLATFORM_SEMANTIC_USE_COPPER_ROW;
+        use.offset = row_offset;
+        use.size = 4U;
+        use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+        use.note_text = note;
+        if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
+      }
+      cursor += 4U;
     }
   }
   return 0;
@@ -4114,6 +4193,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_accepted_run_noncode_fallthrough_diagnostics(source_analysis) != 0) return -1;
   if (append_unterminated_accepted_gap_diagnostics(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
+  if (append_structured_copper_row_platform_semantic_uses(source_analysis, decode) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;

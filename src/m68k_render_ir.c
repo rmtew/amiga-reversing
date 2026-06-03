@@ -33,6 +33,8 @@ static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t siz
 static void render_lookup_set_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 static int lookup_storage_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
+static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset, char *comment, size_t comment_size);
 
 static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
@@ -3142,83 +3144,9 @@ static int format_copper_runtime_pointer_comment(const uint8_t *data, uint32_t o
   return strlen(buf) + 1U < buf_size;
 }
 
-static int format_amiga_display_register_comment(const AmigaOsHardwareRegisterInfo *hardware_register,
-    uint32_t value, char *buf, size_t buf_size) {
-  uint32_t word = value & 0xFFFFU;
-  if (buf == NULL || buf_size == 0U) return 0;
-  buf[0] = '\0';
-  if (hardware_register == NULL) return 0;
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0) {
-    uint32_t plane_count = (word >> 12) & 7U;
-    const char *resolution = (word & 0x8000U) != 0U ? "hires" : "lores";
-    const char *color = (word & 0x0200U) != 0U ? " color" : "";
-    if (plane_count == 0U) return 0;
-    snprintf(buf, buf_size, "display %u bitplanes %s%s", (unsigned)plane_count, resolution, color);
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON1) {
-    snprintf(buf, buf_size, "display scroll pf1=%u pf2=%u",
-      (unsigned)(word & 0xFU), (unsigned)((word >> 4) & 0xFU));
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTRT) {
-    snprintf(buf, buf_size, "display window start v=$%02X h=$%02X",
-      (unsigned)((word >> 8) & 0xFFU), (unsigned)(word & 0xFFU));
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTOP) {
-    snprintf(buf, buf_size, "display window stop v=$%02X h=$%02X",
-      (unsigned)((word >> 8) & 0xFFU), (unsigned)(word & 0xFFU));
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTRT) {
-    snprintf(buf, buf_size, "display fetch start $%02X", (unsigned)(word & 0xFFU));
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTOP) {
-    snprintf(buf, buf_size, "display fetch stop $%02X", (unsigned)(word & 0xFFU));
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL1MOD ||
-      hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL2MOD) {
-    int16_t modulo = (int16_t)word;
-    snprintf(buf, buf_size, "bitplane modulo %d bytes", (int)modulo);
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE) {
-    uint32_t height = (word >> 6) & 0x3FFU;
-    uint32_t width_words = word & 0x3FU;
-    if (height == 0U) height = 1024U;
-    if (width_words == 0U) width_words = 64U;
-    snprintf(buf, buf_size, "blitter size %u rows x %u words (%u bytes/row)",
-      (unsigned)height, (unsigned)width_words, (unsigned)(width_words * 2U));
-    return strlen(buf) + 1U < buf_size;
-  }
-  return 0;
-}
-
-static int format_copper_display_register_comment(uint16_t first, uint16_t second, char *buf, size_t buf_size) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  uint32_t register_offset = (uint32_t)(first & 0x01FEU);
-  if (buf == NULL || buf_size == 0U || (first & 1U) != 0U) return 0;
-  buf[0] = '\0';
-  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
-    register_offset);
-  return format_amiga_display_register_comment(hardware_register, (uint32_t)second, buf, buf_size);
-}
-
-static int format_copper_wait_comment(uint16_t first, uint16_t second, char *buf, size_t buf_size) {
-  uint32_t wait_word = (uint32_t)(first & 0xFFFEU);
-  if (buf == NULL || buf_size == 0U || (first & 1U) == 0U || (second & 1U) != 0U) return 0;
-  buf[0] = '\0';
-  snprintf(buf, buf_size, "copper wait v=$%02X h=$%02X mask $%04X",
-    (unsigned)((wait_word >> 8) & 0xFFU), (unsigned)(wait_word & 0xFEU), (unsigned)second);
-  return strlen(buf) + 1U < buf_size;
-}
-
 static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *data, uint32_t offset,
-    uint32_t size, const char *comment, uint32_t *io_logical_pc) {
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const uint8_t *data, uint32_t offset, uint32_t size, const char *comment, uint32_t *io_logical_pc) {
   uint32_t cursor = 0U;
   int raw_word_mode = 0;
   if (preview == NULL || data == NULL || size == 0U) return;
@@ -3230,7 +3158,6 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     uint16_t first = m68k_read_u16be(data + offset + cursor);
     uint16_t second = m68k_read_u16be(data + offset + cursor + 2U);
     int copper_move = 0;
-    int copper_wait = 0;
     if (cursor != 0U &&
         lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
@@ -3258,7 +3185,6 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
         record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, offset + cursor, 0U);
         return;
       }
-      copper_wait = 1;
     } else if (!format_copper_register_symbol(first, left, sizeof(left))) {
       snprintf(left, sizeof(left), "$%04X", (unsigned)first);
     } else if (!render_asm_include_for_symbol_expr(preview, left)) {
@@ -3280,10 +3206,9 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       return;
     }
     row_comment[0] = '\0';
-    if (copper_wait) {
-      (void)format_copper_wait_comment(first, second, row_comment, sizeof(row_comment));
-    } else if (copper_move &&
-        !format_copper_display_register_comment(first, second, row_comment, sizeof(row_comment)))
+    (void)attach_platform_semantic_note_comment_for_render(source_analysis, section->section_index, offset + cursor,
+      row_comment, sizeof(row_comment));
+    if (row_comment[0] == '\0' && copper_move)
       (void)format_copper_runtime_pointer_comment(data, offset, cursor, size, first, second,
         row_comment, sizeof(row_comment));
     if (comment != NULL && comment[0] != '\0' && row_comment[0] != '\0')
@@ -3362,8 +3287,8 @@ static void render_asm_dc_b_string_with_labels(M68kRenderIRPreview *preview, con
 }
 
 static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, M68kRenderLookup *lookup, const M68kAnalysisStructuredDataItem *item,
-    uint32_t *io_logical_pc, int *out_updated_logical_pc) {
+    const uint8_t *accepted_start, M68kRenderLookup *lookup, const M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item, uint32_t *io_logical_pc, int *out_updated_logical_pc) {
   char comment[128];
   char expr[96];
   const char *comment_text;
@@ -3394,8 +3319,8 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   }
   if (available == item->size && structured_data_item_is_copper_list(item)) {
     const char *copper_comment = item->comment[0] != '\0' ? comment_text : NULL;
-    render_asm_copper_list_words(preview, lookup, section, accepted_start, section->data, item->offset, available,
-      copper_comment, io_logical_pc);
+    render_asm_copper_list_words(preview, lookup, source_analysis, section, accepted_start, section->data,
+      item->offset, available, copper_comment, io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
     return;
   }
@@ -10427,7 +10352,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
               render_asm_comment_line(out_preview,
                 lookup_instruction_comment(lookup, section->section_index, offset));
               render_asm_structured_data_item(out_preview, section, accepted_start[section_index], lookup,
-                structured_item, &asm_logical_pc, &structured_item_updated_pc);
+                source_analysis, structured_item, &asm_logical_pc, &structured_item_updated_pc);
               row = finish_asm_source_plan_row(out_preview, section->section_index, offset, structured_item->size,
                 1);
               set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
