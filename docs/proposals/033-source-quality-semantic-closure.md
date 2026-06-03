@@ -701,6 +701,18 @@ move.w #$7fff,$00dff09a.l
   -> expected_symbol_access:platform_hardware_register_value_domain_operand
 ```
 
+Stack-cleanup comments are now a recovered platform-call fact consumption case,
+not a render-time rediscovery case:
+
+```text
+pea 7.w
+trap #1
+addq.l #2,a7
+  -> source analysis records recovered_platform_call(note_kind=stack_cleanup)
+  -> render consumes that fact
+  -> addq.l #2,a7 ; KNOWN: stack cleanup for c_rawcin pop 2
+```
+
 Render should ultimately consume these C-owned facts instead of rescanning
 forward to find the next platform call or reclassifying hardware/register
 numbers while formatting.
@@ -770,6 +782,7 @@ PC-relative data operands crossing materialized runtime ORG boundaries
 PC-relative control operands crossing materialized runtime ORG boundaries
 platform call input value-domain operands
 direct hardware register value-domain operands
+stack-cleanup comments from recovered platform-call facts
 ```
 
 The remaining coverage gap is narrower:
@@ -778,7 +791,6 @@ The remaining coverage gap is narrower:
 platform semantic comments
 hardware/register value-domain operands through register-derived hardware bases
 runtime-address sink role symbols/comments
-stack-cleanup comments
 ```
 
 Until those producers are complete, the post-render gate can catch the covered
