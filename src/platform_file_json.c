@@ -3631,11 +3631,18 @@ static int append_source_quality_range_summary_json(JsonBuilder *builder,
 }
 
 static const M68kRenderedSymbolAccessIR *source_quality_find_rendered_label_statement(
-    const M68kSectionAnalysisIR *section, const M68kSourceQualityDiagnosticIR *diagnostic) {
+    const M68kSectionAnalysisIR *section, const M68kRenderEvidenceSectionIR *render_evidence_section,
+    const M68kSourceQualityDiagnosticIR *diagnostic) {
+  const M68kRenderedSymbolAccessIR *rendered_symbol_accesses;
+  size_t rendered_symbol_access_count;
   size_t index;
   if (section == NULL || diagnostic == NULL || !diagnostic->has_offset) return NULL;
-  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
-    const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[index];
+  rendered_symbol_accesses = render_evidence_section != NULL ?
+    render_evidence_section->rendered_symbol_accesses : section->rendered_symbol_accesses;
+  rendered_symbol_access_count = render_evidence_section != NULL ?
+    render_evidence_section->rendered_symbol_access_count : section->rendered_symbol_access_count;
+  for (index = 0U; index < rendered_symbol_access_count; ++index) {
+    const M68kRenderedSymbolAccessIR *access = &rendered_symbol_accesses[index];
     if (access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT &&
         access->offset == diagnostic->offset) {
       return access;
@@ -3668,7 +3675,8 @@ static size_t source_quality_symbol_origin_count_for_access(const M68kSectionAna
 }
 
 static int append_source_quality_rendered_label_detail_json(JsonBuilder *builder,
-    const M68kSectionAnalysisIR *section, const M68kSourceQualityDiagnosticIR *diagnostic) {
+    const M68kSectionAnalysisIR *section, const M68kRenderEvidenceSectionIR *render_evidence_section,
+    const M68kSourceQualityDiagnosticIR *diagnostic) {
   const M68kRenderedSymbolAccessIR *access;
   size_t index;
   size_t emitted = 0U;
@@ -3676,7 +3684,7 @@ static int append_source_quality_rendered_label_detail_json(JsonBuilder *builder
   if (diagnostic->kind != M68K_SOURCE_QUALITY_DIAGNOSTIC_UNREFERENCED_LABEL_STATEMENT) {
     return json_builder_append(builder, "null");
   }
-  access = source_quality_find_rendered_label_statement(section, diagnostic);
+  access = source_quality_find_rendered_label_statement(section, render_evidence_section, diagnostic);
   if (access == NULL) return json_builder_append(builder, "null");
   if (json_builder_appendf(builder, "{\"offset\":%u,\"symbol_name\":", (unsigned)access->offset) != 0)
     return -1;
@@ -3708,6 +3716,7 @@ static int append_source_quality_rendered_label_detail_json(JsonBuilder *builder
 
 static int append_source_quality_explanation_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section,
+    const M68kRenderEvidenceSectionIR *render_evidence_section,
     const M68kSourceQualityDiagnosticIR *diagnostic, uint8_t section_local) {
   const M68kAcceptedCodeRunIR *run;
   const M68kRangeOwnershipIR *blocking_range;
@@ -3723,7 +3732,8 @@ static int append_source_quality_explanation_json(JsonBuilder *builder,
   if (json_builder_append(builder, ",\"blocking_range\":") != 0) return -1;
   if (append_source_quality_range_summary_json(builder, blocking_range) != 0) return -1;
   if (json_builder_append(builder, ",\"rendered_label\":") != 0) return -1;
-  if (append_source_quality_rendered_label_detail_json(builder, section, diagnostic) != 0) return -1;
+  if (append_source_quality_rendered_label_detail_json(builder, section, render_evidence_section, diagnostic) != 0)
+    return -1;
   if (json_builder_append(builder, ",\"proof_refs\":[") != 0) return -1;
   if (run != NULL) {
     for (index = 0U; index < section->code_start_ref_count; ++index) {
@@ -3820,7 +3830,8 @@ static int append_source_quality_explanation_array_json(JsonBuilder *builder,
     const M68kSourceQualityDiagnosticIR *diagnostic = &diagnostics[diagnostic_index];
     if (!diagnostic->blocker) continue;
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (append_source_quality_explanation_json(builder, source_analysis, section, diagnostic, section_local) != 0)
+    if (append_source_quality_explanation_json(builder, source_analysis, section, NULL, diagnostic,
+        section_local) != 0)
       return -1;
   }
   return json_builder_append(builder, "]");
@@ -3858,7 +3869,7 @@ int source_analysis_source_quality_explanations_to_json(const M68kSourceAnalysis
     section = source_analysis_find_section_by_index(source_analysis, diagnostic->section_index);
     if (section == NULL) continue;
     if (emitted++ != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-    if (append_source_quality_explanation_json(&builder, source_analysis, section, diagnostic, 0U) != 0)
+    if (append_source_quality_explanation_json(&builder, source_analysis, section, NULL, diagnostic, 0U) != 0)
       goto oom;
   }
   if (json_builder_appendf(&builder, "],\"section_count\":%u,\"sections\":[",
@@ -4014,9 +4025,16 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (diagnostic_section == NULL) continue;
       if (emitted_explanation_count++ != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
-      if (append_source_quality_explanation_json(&builder, source_analysis, diagnostic_section,
-          diagnostic, 0U) != 0)
-        goto oom;
+      {
+        const M68kRenderEvidenceSectionIR *diagnostic_render_evidence_section =
+          render_evidence != NULL && diagnostic_section->section_index <= UINT32_MAX ?
+          m68k_ir_render_evidence_section_by_index(render_evidence,
+            (uint32_t)diagnostic_section->section_index) :
+          NULL;
+        if (append_source_quality_explanation_json(&builder, source_analysis, diagnostic_section,
+            diagnostic_render_evidence_section, diagnostic, 0U) != 0)
+          goto oom;
+      }
     }
   }
   if (json_builder_appendf(&builder,
@@ -4624,7 +4642,8 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         if (!diagnostic->blocker) continue;
         if (emitted_explanation_count++ != 0U && json_builder_append(&builder, ",") != 0)
           goto oom;
-        if (append_source_quality_explanation_json(&builder, source_analysis, section, diagnostic, 1U) != 0)
+        if (append_source_quality_explanation_json(&builder, source_analysis, section, render_evidence_section,
+            diagnostic, 1U) != 0)
           goto oom;
       }
     }

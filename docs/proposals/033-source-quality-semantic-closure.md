@@ -953,10 +953,20 @@ platform_file_facts_v2_listing_artifact_analysis_json_alloc
 ```
 
 That removes the need for ad hoc scripts when inspecting listing/round-trip
-analysis JSON from the rendered output path. The remaining cleanup is narrower:
-migrate the remaining report/export consumers and tests away from
-`M68kSectionAnalysisIR.rendered_symbol_accesses`, then delete the compatibility
-mirror from render once no caller depends on it.
+analysis JSON from the rendered output path.
+
+The follow-up slice made source-quality explanation details evidence-aware too:
+
+```text
+unreferenced_label_statement diagnostic
+  -> rendered_label detail
+  -> M68kRenderEvidenceIR when supplied
+  -> section mirror only for legacy/pure-analysis calls
+```
+
+The remaining cleanup is narrower: migrate remaining tests and legacy/pure
+analysis reporting away from `M68kSectionAnalysisIR.rendered_symbol_accesses`,
+then delete the compatibility mirror from render once no caller depends on it.
 
 ### Remaining Wrong Boundary: Renderer-Side Platform Decisions
 

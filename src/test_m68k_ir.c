@@ -11330,6 +11330,7 @@ static int test_source_quality_analyze_uses_render_evidence_without_section_muta
   M68kRenderEvidenceIR render_evidence;
   M68kExpectedSymbolAccessIR access;
   M68kRenderedSymbolAccessIR rendered_access;
+  M68kSourceQualityDiagnosticIR diagnostic;
   char *analysis_json = NULL;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
@@ -11372,6 +11373,22 @@ static int test_source_quality_analyze_uses_render_evidence_without_section_muta
   M68K_C_ASSERT(strstr(analysis_json, "\"rendered_symbol_access_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"label_statement\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_expected_symbol_access\"") == NULL);
+  free(analysis_json);
+  analysis_json = NULL;
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_UNREFERENCED_LABEL_STATEMENT;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
+  diagnostic.blocker = 1U;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = 4U;
+  M68K_C_ASSERT(source_analysis.section_count == 1U);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_source_quality_diagnostic(&source_analysis.sections[0],
+    &diagnostic));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json_with_render_evidence(&source_analysis, &render_evidence,
+    &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"rendered_label\":{\"offset\":4") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"loc_0_00000004\"") != NULL);
   free(analysis_json);
   m68k_ir_render_evidence_destroy(&render_evidence);
   m68k_ir_section_analysis_destroy(&section_analysis);
