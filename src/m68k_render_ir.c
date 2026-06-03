@@ -10058,7 +10058,7 @@ static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *prev
 
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
-    M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const uint8_t *accepted_bytes, const M68kDecodeCandidate *candidate,
     M68kInstructionIR *out_listing_instruction) {
   M68kInstructionIR instruction;
@@ -10446,7 +10446,7 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
 int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDecodeIR *decode,
     M68kRenderLookup *lookup, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
     uint8_t **accepted_bytes, int render_text_preview, int render_asm_source, int collect_asm_source_text,
-    int emit_asm_source_text, M68kRenderIRPreview *out_preview, M68kSourceAnalysisIR *source_analysis) {
+    int emit_asm_source_text, M68kRenderIRPreview *out_preview, const M68kSourceAnalysisIR *source_analysis) {
   size_t section_index;
   clock_t phase_start;
   clock_t phase_end;

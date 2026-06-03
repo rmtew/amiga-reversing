@@ -959,7 +959,7 @@ int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kSourc
 int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDecodeIR *decode,
   M68kRenderLookup *prepared_lookup, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   uint8_t **accepted_bytes, int render_text_preview, int render_asm_source, int collect_asm_source_text,
-  int emit_asm_source_text, M68kRenderIRPreview *out_preview, M68kSourceAnalysisIR *source_analysis);
+  int emit_asm_source_text, M68kRenderIRPreview *out_preview, const M68kSourceAnalysisIR *source_analysis);
 int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *lookup,
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
   Arena *scratch_arena, M68kSectionAnalysisIR *section_analysis);

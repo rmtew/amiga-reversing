@@ -2088,6 +2088,20 @@ same direction as the proposal: runtime-copy aliases no longer force storage
 Tetragon 01 now exposes the copper list structurally instead of as anonymous
 bytes. These are source-quality improvements, not round-trip regressions.
 
+Render/source-analysis ownership follow-through:
+
+```text
+m68k_render_ir_preview_emit_prepared
+  -> now receives const M68kSourceAnalysisIR *
+
+render_asm_instruction
+  -> now receives const M68kSourceAnalysisIR *
+```
+
+This does not move more analysis into rendering. It tightens the opposite
+contract: rendering may consume source-analysis facts and emit render evidence,
+but it may not mutate source-analysis state while formatting output.
+
 ### Slice 5: Address Identity And Range Closure
 
 Close the existing C-owned identity/range model instead of adding more
