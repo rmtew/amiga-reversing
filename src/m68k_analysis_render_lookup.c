@@ -7908,9 +7908,15 @@ static uint32_t runtime_address_ref_data_class_flags(const M68kRenderLookup *loo
       fact->kind != M68K_FACT_RUNTIME_ADDRESS_REF || fact->section_index >= decode->section_count) {
     return 0U;
   }
-  if (fact->has_sink_address) {
+  if (fact->has_sink_address && fact->sink_address != 0U) {
     return platform_facts_v2_runtime_address_sink_data_class_flags(lookup->object->platform_backend_kind,
       fact->sink_address);
+  }
+  if (fact->source_section_index < lookup->object->section_count) {
+    const M68kSection *source_section = &lookup->object->sections[fact->source_section_index];
+    uint32_t flags = platform_facts_v2_runtime_address_storage_sink_data_class_flags(
+      lookup->object->platform_backend_kind, source_section->data, source_section->data_size, fact->source_offset);
+    if (flags != 0U) return flags;
   }
   section = &decode->sections[fact->section_index];
   candidate = find_candidate_at_offset_local(section, fact->offset);

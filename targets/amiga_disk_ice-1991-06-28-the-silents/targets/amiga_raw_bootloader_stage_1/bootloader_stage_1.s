@@ -52,6 +52,7 @@ absolute_slot_0001E000	EQU	$1E000
 runtime_address_0001E000	EQU	$1E000
 _ciab	EQU	$BFD000
 _ciaa	EQU	$BFE001
+disk_buffer_00002000	EQU	$2000
 absolute_slot_00002000	EQU	$2000
 
     SECTION code,code
@@ -564,7 +565,7 @@ abs_0_00040636:
 	lea.l abs_0_00040502(pc),a1
 	clr.w (a1)
 	move.w #$4000,dsklen(a6)
-	lea.l absolute_slot_00002000.l,a0
+	lea.l disk_buffer_00002000.l,a0
 	move.l a0,dskpt(a6)	; disk_buffer pointer $00002000
 	move.w #ADKF_PRE560NS|ADKF_UARTBRK,adkcon(a6)
 	move.w #ADKF_SETCLR|ADKF_MFMPREC|ADKF_WORDSYNC|ADKF_FAST,adkcon(a6)

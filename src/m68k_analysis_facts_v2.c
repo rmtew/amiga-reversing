@@ -10034,6 +10034,66 @@ static void facts_v2_record_source_quality_diagnostics_from_analysis(M68kFactsV2
   }
 }
 
+static const M68kSourceQualityDiagnosticIR *facts_v2_first_source_quality_blocker_for_profile(
+    const M68kFactsV2Profile *profile, const M68kSourceAnalysisIR *source_analysis) {
+  size_t index, section_index;
+  const M68kSourceQualityDiagnosticIR *fallback = NULL;
+  if (profile == NULL || source_analysis == NULL) return NULL;
+  for (index = 0U; index < source_analysis->source_quality_diagnostic_count; ++index) {
+    const M68kSourceQualityDiagnosticIR *diagnostic = &source_analysis->source_quality_diagnostics[index];
+    if (!diagnostic->blocker) continue;
+    if (fallback == NULL) fallback = diagnostic;
+    if (diagnostic->kind == profile->first_source_quality_diagnostic_kind &&
+        (!diagnostic->has_section_index ||
+          diagnostic->section_index == profile->first_source_quality_diagnostic_section) &&
+        (!diagnostic->has_offset || diagnostic->offset == profile->first_source_quality_diagnostic_offset)) {
+      return diagnostic;
+    }
+  }
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    for (index = 0U; index < section->source_quality_diagnostic_count; ++index) {
+      const M68kSourceQualityDiagnosticIR *diagnostic = &section->source_quality_diagnostics[index];
+      if (!diagnostic->blocker) continue;
+      if (fallback == NULL) fallback = diagnostic;
+      if (diagnostic->kind == profile->first_source_quality_diagnostic_kind &&
+          (!diagnostic->has_section_index ||
+            diagnostic->section_index == profile->first_source_quality_diagnostic_section) &&
+          (!diagnostic->has_offset || diagnostic->offset == profile->first_source_quality_diagnostic_offset)) {
+        return diagnostic;
+      }
+    }
+  }
+  return fallback;
+}
+
+static void facts_v2_add_source_quality_failure_diagnostic(M68kDiagSink diagnostics,
+    const char *prefix, const M68kFactsV2Profile *profile, const M68kSourceAnalysisIR *source_analysis) {
+  const M68kSourceQualityDiagnosticIR *diagnostic =
+    facts_v2_first_source_quality_blocker_for_profile(profile, source_analysis);
+  if (profile == NULL) return;
+  if (diagnostic != NULL) {
+    m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "%s: kind=%u(%s) section=%u offset=%u aux=%u summary=\"%s\" evidence=\"%s\"",
+      prefix,
+      (unsigned)profile->asm_source_first_failure_kind,
+      m68k_source_quality_diagnostic_kind_name(diagnostic->kind),
+      (unsigned)profile->asm_source_first_failure_section,
+      (unsigned)profile->asm_source_first_failure_offset,
+      (unsigned)profile->asm_source_first_failure_aux_offset,
+      diagnostic->summary != NULL ? diagnostic->summary : "",
+      diagnostic->evidence_source != NULL ? diagnostic->evidence_source : "");
+    return;
+  }
+  m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+    "%s: kind=%u section=%u offset=%u aux=%u",
+    prefix,
+    (unsigned)profile->asm_source_first_failure_kind,
+    (unsigned)profile->asm_source_first_failure_section,
+    (unsigned)profile->asm_source_first_failure_offset,
+    (unsigned)profile->asm_source_first_failure_aux_offset);
+}
+
 static int facts_v2_has_asm_source_failures(const M68kFactsV2Profile *profile) {
   return profile != NULL && (profile->asm_source_instruction_render_failures != 0U ||
     profile->asm_source_instruction_byte_mismatches != 0U ||
@@ -10467,12 +10527,9 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     facts_v2_record_source_blocker_first_failure(out_profile);
     render_asm_source = 0;
     if (fail_on_asm_refused && force_asm_source) {
-      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-        "facts_v2 asm source refused because structural invariants failed: kind=%u section=%u offset=%u aux=%u",
-        (unsigned)out_profile->asm_source_first_failure_kind,
-        (unsigned)out_profile->asm_source_first_failure_section,
-        (unsigned)out_profile->asm_source_first_failure_offset,
-        (unsigned)out_profile->asm_source_first_failure_aux_offset);
+      facts_v2_add_source_quality_failure_diagnostic(diagnostics,
+        "facts_v2 asm source refused because structural invariants failed",
+        out_profile, source_analysis);
       goto fail;
     }
   }
@@ -10594,16 +10651,9 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->asm_source_enabled = 1U;
     out_profile->asm_source_refused = 1U;
     if (fail_on_asm_refused) {
-      char failure_message[192];
-      snprintf(failure_message, sizeof(failure_message),
-        "facts_v2 asm source refused because source rendering invariants failed: "
-        "kind=%u section=%u offset=%u aux=%u",
-        (unsigned)out_profile->asm_source_first_failure_kind,
-        (unsigned)out_profile->asm_source_first_failure_section,
-        (unsigned)out_profile->asm_source_first_failure_offset,
-        (unsigned)out_profile->asm_source_first_failure_aux_offset);
-      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-        failure_message);
+      facts_v2_add_source_quality_failure_diagnostic(diagnostics,
+        "facts_v2 asm source refused because source rendering invariants failed",
+        out_profile, source_analysis);
       goto fail;
     }
   }

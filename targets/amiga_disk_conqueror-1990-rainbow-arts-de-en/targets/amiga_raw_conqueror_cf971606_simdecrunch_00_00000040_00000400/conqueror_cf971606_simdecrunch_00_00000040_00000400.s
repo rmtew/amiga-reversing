@@ -66,7 +66,7 @@ sprite_00000B1C	EQU	$B1C
 sprite_00000B1C_hi	EQU	sprite_00000B1C/$10000
 sprite_00000B1C_lo	EQU	sprite_00000B1C-(sprite_00000B1C_hi*$10000)
 _ciab	EQU	$BFD000
-absolute_slot_00060000	EQU	$60000
+disk_buffer_00060000	EQU	$60000
 
     SECTION code,code
 loc_0_00000000:
@@ -425,7 +425,7 @@ abs_0_00000F04:
 	bne.b abs_0_00000F04
 	move.w #$4000,(a6)
 	move.w #$8210,$0072(a6)
-	lea.l absolute_slot_00060000.l,a3
+	lea.l disk_buffer_00060000.l,a3
 	move.l a3,-$0004(a6)
 	clr.l $0440(a3)
 	move.w #$1002,app_0078(a6)

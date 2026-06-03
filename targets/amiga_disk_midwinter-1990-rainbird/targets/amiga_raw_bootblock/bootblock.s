@@ -23,7 +23,7 @@ m68k_vector_level_1_interrupt_autovector	EQU	$64
 absolute_slot_000314E0	EQU	$314E0
 runtime_address_00031500	EQU	$31500
 _ciab	EQU	$BFD000
-absolute_slot_00070000	EQU	$70000
+disk_buffer_00070000	EQU	$70000
 
     SECTION code,code
 	dc.b "DOS",$00	; NOTE: boot magic
@@ -182,7 +182,7 @@ loc_0_000001F2:
 	movem.l d0-d7/a0-a6,-(a7)
 loc_0_000001F6:
 	moveq.l #10,d6
-	lea.l absolute_slot_00070000.l,a2
+	lea.l disk_buffer_00070000.l,a2
 	move.l a2,dskpt(a6)	; disk_buffer pointer $00070000
 	move.w #INTF_DSKBLK,intreq(a6)
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_DISK,dmacon(a6)

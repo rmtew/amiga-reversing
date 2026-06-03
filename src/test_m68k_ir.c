@@ -11292,7 +11292,8 @@ static int test_source_quality_analyze_blocks_missing_expected_symbol_access(voi
   M68K_C_ASSERT(strstr(analysis_json, "\"offset\":4") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"summary\":\"expected symbol access was not rendered\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"evidence_source\":\"expected_symbol_access:test_missing_symbol_access\"") != NULL);
+    "\"evidence_source\":\"expected_symbol_access:producer=test_missing_symbol_access access=label_statement "
+    "symbol=loc_0_00000004 operand=4294967295 target=0:4\"") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -27328,7 +27329,12 @@ static int test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer(void) 
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kPlatformSemanticUseIR *producer_use = NULL;
+  const M68kExpectedSymbolAccessIR *expected_access = NULL;
+  size_t index;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[56] = {
     0x23u, 0xFCu, 0x00u, 0x06u, 0x7Du, 0x00u, 0x00u, 0x00u, 0x00u, 0x30u,
     0x22u, 0x79u, 0x00u, 0x00u, 0x00u, 0x30u,
@@ -27341,6 +27347,7 @@ static int test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer(void) 
     0xDEu, 0xADu, 0xBEu, 0xEFu
   };
   memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
@@ -27350,16 +27357,46 @@ static int test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer(void) 
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "disk_buffer_00067D00\tEQU\t$67D00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #disk_buffer_00067D00,$00000030.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $00000030.l,a1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n") != NULL);
+  for (index = 0U; index < source_analysis.sections[0].platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[index];
+    if (use->offset == 0U && use->kind == M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER &&
+        use->has_operand_expr) {
+      producer_use = use;
+      break;
+    }
+  }
+  M68K_C_ASSERT(producer_use != NULL);
+  M68K_C_ASSERT_STR("disk_buffer_00067D00", producer_use->operand_expr);
+  M68K_C_ASSERT_U32(0U, producer_use->operand_index);
+  M68K_C_ASSERT(producer_use->has_runtime_address);
+  M68K_C_ASSERT_U32(0x67D00U, producer_use->runtime_address);
+  for (index = 0U; index < source_analysis.sections[0].expected_symbol_access_count; ++index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[index];
+    if (access->offset == 0U && access->operand_index == 0U &&
+        strcmp(access->symbol_name, "disk_buffer_00067D00") == 0) {
+      expected_access = access;
+      break;
+    }
+  }
+  M68K_C_ASSERT(expected_access != NULL);
+  M68K_C_ASSERT_U32(M68K_EXPECTED_SYMBOL_ACCESS_EQUATE, expected_access->access_kind);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_expr\":\"disk_buffer_00067D00\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":425216") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"runtime_sink_pointer_operand\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -27425,13 +27462,83 @@ static int test_facts_v2_external_runtime_sink_address_renders_pointer_comment(v
   return 0;
 }
 
+static int test_facts_v2_materialized_runtime_sink_does_not_force_equate(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  int saw_sink_equate = 0;
+  int saw_sink_operand_expr = 0;
+  size_t index;
+  char *source = NULL;
+  uint8_t bytes[40] = {
+    0x23u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x20u, 0x00u, 0xDFu, 0xF0u, 0xA0u,
+    0x4Eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0xDEu, 0xADu, 0xBEu, 0xEFu, 0xCAu, 0xFEu, 0xBAu, 0xBEu
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "_custom+aud0+ac_ptr.l") != NULL);
+  M68K_C_ASSERT(strstr(source, "sound_sample_00000020\tEQU") == NULL);
+  for (index = 0U; index < source_analysis.sections[0].expected_symbol_access_count; ++index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[index];
+    if (access->offset == 0U && access->operand_index == 0U &&
+        strcmp(access->symbol_name, "sound_sample_00000020") == 0) {
+      saw_sink_equate = 1;
+    }
+  }
+  M68K_C_ASSERT(!saw_sink_equate);
+  for (index = 0U; index < source_analysis.sections[0].platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[index];
+    if (use->offset == 0U && use->has_operand_expr &&
+        strcmp(use->operand_expr, "sound_sample_00000020") == 0) {
+      saw_sink_operand_expr = 1;
+    }
+  }
+  M68K_C_ASSERT(!saw_sink_operand_expr);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_copper_storage_sink_origin_renders_bitmap_symbol(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kPlatformSemanticUseIR *producer_use = NULL;
+  const M68kExpectedSymbolAccessIR *expected_access = NULL;
+  size_t index;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[52] = {
     0x41u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x24u,
     0x20u, 0x3Cu, 0x00u, 0x06u, 0x00u, 0x00u,
@@ -27444,6 +27551,7 @@ static int test_facts_v2_copper_storage_sink_origin_renders_bitmap_symbol(void) 
     0x00u, 0x06u, 0x00u, 0x00u
   };
   memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
@@ -27463,16 +27571,46 @@ static int test_facts_v2_copper_storage_sink_origin_renders_bitmap_symbol(void) 
   policy.runtime_entry_points[0].has_section_index = 1U;
   policy.runtime_entry_points[0].section_index = 0U;
   policy.runtime_entry_points[0].runtime_address = 0x100U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "bitmap_00060000\tEQU\t$60000\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #bitmap_00060000,d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #bitmap_00060000,abs_0_00000130.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,$0006(a0)\n") != NULL);
+  for (index = 0U; index < source_analysis.sections[0].platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[index];
+    if (use->offset == 16U && use->kind == M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER &&
+        use->has_operand_expr) {
+      producer_use = use;
+      break;
+    }
+  }
+  M68K_C_ASSERT(producer_use != NULL);
+  M68K_C_ASSERT_STR("bitmap_00060000", producer_use->operand_expr);
+  M68K_C_ASSERT_U32(0U, producer_use->operand_index);
+  M68K_C_ASSERT(producer_use->has_runtime_address);
+  M68K_C_ASSERT_U32(0x60000U, producer_use->runtime_address);
+  for (index = 0U; index < source_analysis.sections[0].expected_symbol_access_count; ++index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[index];
+    if (access->offset == 16U && access->operand_index == 0U &&
+        strcmp(access->symbol_name, "bitmap_00060000") == 0) {
+      expected_access = access;
+      break;
+    }
+  }
+  M68K_C_ASSERT(expected_access != NULL);
+  M68K_C_ASSERT_U32(M68K_EXPECTED_SYMBOL_ACCESS_EQUATE, expected_access->access_kind);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_expr\":\"bitmap_00060000\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":393216") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"runtime_sink_pointer_operand\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -29461,6 +29599,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer},
     {"facts_v2_external_runtime_sink_address_renders_pointer_comment",
       test_facts_v2_external_runtime_sink_address_renders_pointer_comment},
+    {"facts_v2_materialized_runtime_sink_does_not_force_equate",
+      test_facts_v2_materialized_runtime_sink_does_not_force_equate},
     {"facts_v2_copper_storage_sink_origin_renders_bitmap_symbol",
       test_facts_v2_copper_storage_sink_origin_renders_bitmap_symbol},
     {"facts_v2_copper_storage_sink_preserves_branch_distinct_bitmap_origins",

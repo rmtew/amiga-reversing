@@ -263,6 +263,20 @@ round-trip failure
   -> rerun round-trip
 ```
 
+Source-quality refusal diagnostics should surface the same trail in normal tool
+output, not only in exported JSON:
+
+```text
+kind=missing_expected_symbol_access
+summary="expected symbol access was not rendered"
+evidence="expected_symbol_access:producer=runtime_sink_pointer_operand access=equate symbol=bitmap_00060000 operand=0"
+```
+
+The rule is that a blocker is actionable framework work. The diagnostic must
+name the producer, intended access kind, symbol, operand, and target when known
+so the worker can fix the producer at cause instead of writing another temporary
+inspection script.
+
 The export must not use the pure `analyze_project_source_with_c_backend()` path.
 That path is intentionally analysis-only and has no render evidence. Round-trip
 export now uses the listing artifact analysis payload, which is backed by the
@@ -2940,10 +2954,64 @@ runtime-address ref at sink write
 ```
 
 This keeps the role decision in source-quality. Render still owns only textual
-declaration and operand formatting. Broader legacy runtime-address value
-fallbacks remain for cases that are not yet represented by semantic-use facts;
-each one should be removed only after the equivalent C fact exists and focused
-tests assert the exported source-analysis record.
+declaration and operand formatting.
+
+The same pass also covers the producer form that originally depended on a local
+renderer scan:
+
+```asm
+bitmap_00060000 EQU $60000
+
+    move.l  #bitmap_00060000,d0
+    move.w  d0,$0006(a0)
+    move.l  #bitmap_00060000,abs_0_00000130.l
+```
+
+The rule is deliberately narrow:
+
+```text
+accepted instruction
+  + one operand stores/addresses materialized local runtime storage
+  + another immediate equals a runtime address already proven as a sink role
+  + that immediate operand does not already have a materialized source target
+  -> platform_semantic_use(kind=runtime_sink_pointer,
+       operand_index=immediate_operand,
+       operand_expr="bitmap_00060000",
+       runtime_address=$00060000)
+  -> expected_symbol_access(producer=runtime_sink_pointer_operand)
+```
+
+This is not address-shaped-number promotion. The immediate only becomes a
+symbol when an existing runtime-address ref has already proved a structured
+sink role such as `bitmap` or `disk_buffer`. If the immediate points back into
+current materialized source, the source-target label wins and no runtime sink
+operand expression is installed. Focused C tests now assert both render output
+and exported source-analysis JSON for `disk_buffer_00067D00` and
+`bitmap_00060000`.
+
+The corpus follow-through exposed two precedence rules that are part of the
+feature, not target exceptions:
+
+```text
+same operand/address has a stronger semantic operand expression
+  -> generic absolute-address observation does not also require an equate
+
+same operand/address maps to materialized source storage
+  -> materialized label/data ownership wins
+  -> no external runtime sink equate is coined
+```
+
+This is why Midwinter II should render `loc_0_000351C2.l` for an in-image
+target and only keep a structured sink comment, while Conqueror should not
+require both `disk_buffer_00060000` and a generic `absolute_slot_00060000` for
+the same operand. After applying these rules, the full rendered-source
+round-trip corpus has zero source-quality failures, including Damocles Tetragon
+02.
+
+With that fact in place, the old renderer helper that searched candidates for
+local runtime storage and coined external runtime-address symbols was deleted.
+Render consumes `platform_semantic_use.operand_expr`; it no longer decides that
+an immediate is a bitmap/disk-buffer pointer by scanning runtime refs itself.
 
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
