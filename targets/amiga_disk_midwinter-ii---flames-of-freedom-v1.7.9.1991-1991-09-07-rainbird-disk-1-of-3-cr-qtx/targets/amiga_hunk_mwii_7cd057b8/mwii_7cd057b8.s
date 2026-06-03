@@ -34462,13 +34462,13 @@ loc_0_000274F0:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
 loc_0_000274FC:
-	move.l #loc_3_00000000,_custom+aud0+ac_ptr.l	; sound_sample pointer $00000000
+	move.l #loc_3_00000000,_custom+aud0+ac_ptr.l	; sound_sample pointer
 	move.w #$64,_custom+aud0+ac_len.l	; sound sample length 200 bytes
-	move.l #loc_3_00000000,_custom+aud1+ac_ptr.l	; sound_sample pointer $00000000
+	move.l #loc_3_00000000,_custom+aud1+ac_ptr.l	; sound_sample pointer
 	move.w #$64,_custom+aud1+ac_len.l	; sound sample length 200 bytes
-	move.l #loc_3_00000000,_custom+aud2+ac_ptr.l	; sound_sample pointer $00000000
+	move.l #loc_3_00000000,_custom+aud2+ac_ptr.l	; sound_sample pointer
 	move.w #$64,_custom+aud2+ac_len.l	; sound sample length 200 bytes
-	move.l #loc_3_00000000,_custom+aud3+ac_ptr.l	; sound_sample pointer $00000000
+	move.l #loc_3_00000000,_custom+aud3+ac_ptr.l	; sound_sample pointer
 	move.w #$64,_custom+aud3+ac_len.l	; sound sample length 200 bytes
 	rts
 loc_0_00027546:

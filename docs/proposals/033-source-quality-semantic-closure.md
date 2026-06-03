@@ -2169,10 +2169,9 @@ Implementation order:
 2. Add/verify corpus/xref lanes for analysis:platform_semantic_use:*.
 3. Move hardware/display/access comments from render to semantic-use producers.
 4. Move next-call input immediate symbol rendering to consume source-quality/platform facts.
-5. Done for runtime-address sink role comments: render now gets the role name
-   from C-owned M68kPlatformSemanticUseIR first, with hardware metadata only as
-   the formatting fallback when no semantic-use fact exists.
-6. Delete the renderer scans once equivalent C facts drive the same source.
+5. Done for runtime-address sink pointer comments: source-quality emits
+   `runtime_sink_pointer` semantic uses and render appends their `note_text`.
+6. Delete renderer scans once equivalent C facts drive the same source.
 ```
 
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
@@ -2699,6 +2698,66 @@ The render-owned stack-cleanup formatter was deleted. The focused fixture
 asserts both the pre-render semantic-use record and the unchanged rendered
 comment, so a future failure shows whether analysis stopped publishing the fact
 or render stopped consuming it.
+
+### Implemented Slice: Runtime Sink Pointer Notes
+
+Runtime sink comments now follow the same rule. Previously render inspected the
+instruction destination, resolved the Amiga hardware register, looked for an
+external runtime-address ref, chose a role, and constructed the inline comment:
+
+```asm
+    move.l #disk_buffer_00067D00,_custom+dskpt.l ; disk_buffer pointer $00067D00
+```
+
+That was source-quality analysis in the renderer. The C source-quality pass now
+publishes the explanation as a semantic use:
+
+```text
+hardware write observation to _custom+dskpt
+  + runtime-address ref $00067D00 at the same instruction
+  -> platform_semantic_use(kind=runtime_sink_pointer,
+       role_flags=disk_buffer,
+       note_text="disk_buffer pointer $00067D00")
+  -> renderer appends note_text only
+```
+
+The producer has two lanes because the source evidence has two shapes:
+
+```text
+absolute hardware observation
+  move.l #$00067D00,_custom+dskpt.l
+  -> sink address is present in the address observation
+
+hardware-base register state
+  lea.l  _custom.l,a5
+  move.l a0,bltapt(a5)
+  -> source-quality tracks a5 as _custom
+  -> sink address is base(_custom)+$50
+```
+
+Both lanes use the same note formatter. Full long writes to runtime-address
+sink registers get pointer notes. Word writes to pointer halves such as
+`bplpt+$02(a0)` do not get generic pointer notes; those need high/low pair proof
+from the copper/list or platform-specific path.
+
+The renderer-side fallback used to print an external address suffix for some
+in-image zero labels:
+
+```asm
+    move.l #loc_3_00000000,_custom+aud0+ac_ptr.l ; sound_sample pointer $00000000
+```
+
+The source-quality fact now keeps the role but avoids pretending that a normal
+source label is an external runtime address:
+
+```asm
+    move.l #loc_3_00000000,_custom+aud0+ac_ptr.l ; sound_sample pointer
+```
+
+The renderer-side runtime-sink comment scanner and its role fallback were
+deleted. Focused coverage asserts both the rendered comment and the exported
+`runtime_sink_pointer` JSON record, so the pipeline can distinguish producer
+failure from render consumption failure.
 
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while

@@ -26751,7 +26751,7 @@ abs_0_0005D968:
 	move.w d1,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9CC
-	move.l a2,$00A0(a6)
+	move.l a2,$00A0(a6)	; sound_sample pointer
 	move.w d1,$00A4(a6)
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
@@ -26760,7 +26760,7 @@ abs_0_0005D9CE:
 	move.w #$20,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9EC
-	move.l abs_0_0005DD0C(pc),$00A0(a6)
+	move.l abs_0_0005DD0C(pc),$00A0(a6)	; sound_sample pointer
 	move.w #$20,$00A4(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
 	subq.w #1,$001E(a0)
@@ -26798,7 +26798,7 @@ abs_0_0005DA1A:
 	move.w d1,$0008(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DA6E
-	move.l $0000(a5),$00A0(a6)
+	move.l $0000(a5),$00A0(a6)	; sound_sample pointer
 	move.w $0008(a5),$00A4(a6)
 	move.w d1,$00A8(a6)
 abs_0_0005DA6E:

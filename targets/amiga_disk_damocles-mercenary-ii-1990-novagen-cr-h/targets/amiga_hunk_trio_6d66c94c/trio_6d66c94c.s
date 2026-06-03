@@ -619,7 +619,7 @@ loc_0_0000083E:
 loc_0_0000086C:
 	bsr.w loc_0_00000048
 	move.l #loc_1_00000B5C,_custom+bltapt.l	; blitter_source pointer $00000B5C
-	move.l #loc_2_00000000,_custom+bltdpt.l	; blitter_destination pointer $00000000
+	move.l #loc_2_00000000,_custom+bltdpt.l	; blitter_destination pointer
 	move.w #$2A,_custom+bltamod.l
 	move.w #$0,_custom+bltdmod.l
 	move.w #$0,_custom+bltcon1.l

@@ -18341,6 +18341,61 @@ static int test_facts_v2_render_asm_source_inherits_hardware_base_into_local_hel
   return 0;
 }
 
+static int test_facts_v2_hardware_base_runtime_sink_exports_pointer_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kPlatformSemanticUseIR *sink_use = NULL;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  size_t use_index;
+  uint8_t bytes[18] = {
+    0x4Bu, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
+    0x20u, 0x7Cu, 0x00u, 0x07u, 0x7Du, 0x00u,
+    0x2Bu, 0x48u, 0x00u, 0x50u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l _custom.l,a5\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l #blitter_source_00077D00,a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l a0,bltapt(a5)\t; blitter_source pointer $00077D00\n") != NULL);
+  for (use_index = 0U; use_index < source_analysis.sections[0].platform_semantic_use_count; ++use_index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[use_index];
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER && use->offset == 12U) {
+      sink_use = use;
+      break;
+    }
+  }
+  M68K_C_ASSERT(sink_use != NULL);
+  M68K_C_ASSERT_STR("blitter_source pointer $00077D00", sink_use->note_text);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"runtime_sink_pointer\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"blitter_source pointer $00077D00\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata(void) {
   char symbol_expr[64];
   const AmigaOsHardwareRegisterInfo *cop1lc =
@@ -27294,12 +27349,17 @@ static int test_facts_v2_external_runtime_sink_address_renders_pointer_comment(v
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kPlatformSemanticUseIR *sink_use = NULL;
+  size_t use_index;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[12] = {
     0x23u, 0xFCu, 0x00u, 0x06u, 0x7Du, 0x00u, 0x00u, 0xDFu, 0xF0u, 0x20u,
     0x4Eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
@@ -27309,15 +27369,30 @@ static int test_facts_v2_external_runtime_sink_address_renders_pointer_comment(v
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "disk_buffer_00067D00\tEQU\t$67D00\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.l #disk_buffer_00067D00,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n") != NULL);
+  for (use_index = 0U; use_index < source_analysis.sections[0].platform_semantic_use_count; ++use_index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[use_index];
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER) {
+      sink_use = use;
+      break;
+    }
+  }
+  M68K_C_ASSERT(sink_use != NULL);
+  M68K_C_ASSERT_STR("disk_buffer pointer $00067D00", sink_use->note_text);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"runtime_sink_pointer\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"disk_buffer pointer $00067D00\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -28843,6 +28918,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_merges_hardware_base_by_id},
     {"facts_v2_render_asm_source_inherits_hardware_base_into_local_helper",
       test_facts_v2_render_asm_source_inherits_hardware_base_into_local_helper},
+    {"facts_v2_hardware_base_runtime_sink_exports_pointer_comment",
+      test_facts_v2_hardware_base_runtime_sink_exports_pointer_comment},
     {"facts_v2_analysis_records_absolute_operand_observations",
       test_facts_v2_analysis_records_absolute_operand_observations},
     {"facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute",

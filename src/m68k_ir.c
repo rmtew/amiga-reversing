@@ -667,6 +667,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "platform_call_input";
     case M68K_PLATFORM_SEMANTIC_USE_PLATFORM_STACK_CLEANUP:
       return "platform_stack_cleanup";
+    case M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER:
+      return "runtime_sink_pointer";
     default:
       return "unknown";
   }
