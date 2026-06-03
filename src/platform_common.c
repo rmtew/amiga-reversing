@@ -1,5 +1,7 @@
 #include "platform_common.h"
 
+#include "m68k_simulator.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,6 +78,15 @@ fail:
   if (out_hex != NULL) out_hex[0] = '\0';
   return -1;
 #endif
+}
+
+int platform_instruction_has_terminal_state_flow(const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  if (instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  return metadata != NULL &&
+    (metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+     (metadata->flow_kind == M68K_SIM_FLOW_TRAP && metadata->flow_conditional == 0U));
 }
 
 int amiga_value_domain_symbolic_expr(const char *domain_name, uint32_t value, char *expr,

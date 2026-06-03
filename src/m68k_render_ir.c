@@ -3885,15 +3885,6 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
   return NULL;
 }
 
-static int instruction_has_terminal_platform_flow(const M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata;
-  if (instruction == NULL) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  return metadata != NULL &&
-    (metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
-     (metadata->flow_kind == M68K_SIM_FLOW_TRAP && metadata->flow_conditional == 0U));
-}
-
 static int instruction_has_call_flow(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   if (instruction == NULL) return 0;
@@ -3926,7 +3917,7 @@ static void platform_state_update_hardware_base_after_instruction(M68kRenderPlat
   uint8_t dest_reg = 0U;
   const char *source_base_symbol;
   if (state == NULL || instruction == NULL) return;
-  if (instruction_has_terminal_platform_flow(instruction)) {
+  if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_all_hardware_bases(state);
     return;
   }
@@ -3957,7 +3948,7 @@ static void platform_state_update_app_base_after_instruction(M68kRenderPlatformS
   uint8_t dest_reg = 0U;
   int source_is_app_base;
   if (state == NULL || instruction == NULL) return;
-  if (instruction_has_terminal_platform_flow(instruction)) {
+  if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_all_app_bases(state);
     return;
   }
@@ -3998,7 +3989,7 @@ static void platform_state_update_layout_base_after_instruction(M68kRenderPlatfo
   uint8_t dest_reg = 0U;
   const char *source_layout_base;
   if (state == NULL || instruction == NULL) return;
-  if (instruction_has_terminal_platform_flow(instruction)) {
+  if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_all_layout_bases(state);
     return;
   }
@@ -4087,7 +4078,7 @@ static void platform_state_update_library_slots_after_instruction(M68kRenderPlat
 void platform_state_update_after_instruction(M68kRenderPlatformState *state, const M68kRenderLookup *lookup,
     const M68kInstructionIR *instruction) {
   if (state == NULL || instruction == NULL) return;
-  if (instruction_has_terminal_platform_flow(instruction)) {
+  if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_register(state, 6U);
     platform_state_clear_all_data_libraries(state);
     platform_state_clear_all_local_base_slots(state);

@@ -701,6 +701,17 @@ move.w #$7fff,$00dff09a.l
   -> expected_symbol_access:platform_hardware_register_value_domain_operand
 ```
 
+Register-derived hardware-register value-domain symbols are also covered:
+
+```text
+lea.l _custom.l,a0
+move.w #$7fff,intena(a0)
+  -> source analysis tracks a0 as hardware base _custom
+  -> intena(a0) resolves to the hardware register value domain
+  -> value domain formats INTF_CLRALL
+  -> expected_symbol_access:platform_hardware_base_register_value_domain_operand
+```
+
 Stack-cleanup comments are now a recovered platform-call fact consumption case,
 not a render-time rediscovery case:
 
@@ -782,6 +793,7 @@ PC-relative data operands crossing materialized runtime ORG boundaries
 PC-relative control operands crossing materialized runtime ORG boundaries
 platform call input value-domain operands
 direct hardware register value-domain operands
+register-derived hardware register value-domain operands
 stack-cleanup comments from recovered platform-call facts
 ```
 
@@ -789,7 +801,6 @@ The remaining coverage gap is narrower:
 
 ```text
 platform semantic comments
-hardware/register value-domain operands through register-derived hardware bases
 runtime-address sink role symbols/comments
 ```
 
