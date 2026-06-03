@@ -1719,6 +1719,47 @@ static int append_expected_label_statement_symbol_accesses(M68kSourceAnalysisIR 
   return 0;
 }
 
+static int append_expected_storage_label_statement_symbol_accesses_for_section(
+    M68kSectionAnalysisIR *section_analysis) {
+  size_t view_index;
+  if (section_analysis == NULL) return -1;
+  for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+    const M68kSymbolOriginIR *origin;
+    M68kExpectedSymbolAccessIR access;
+    if (view->materialized == 0U || view->runtime_address == view->storage_offset ||
+        view->storage_offset >= section_analysis->section_size) {
+      continue;
+    }
+    origin = source_quality_symbol_origin_at(section_analysis, view->storage_offset);
+    if (origin == NULL) continue;
+    memset(&access, 0, sizeof(access));
+    access.symbol_name = origin->symbol_name;
+    access.producer = "storage_label_statement";
+    access.offset = view->storage_offset;
+    access.target_section_index = (uint32_t)section_analysis->section_index;
+    access.target_offset = view->storage_offset;
+    access.operand_index = UINT32_MAX;
+    access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_STORAGE_LABEL;
+    access.confidence = origin->confidence;
+    access.has_target = 1U;
+    if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_expected_storage_label_statement_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    if (append_expected_storage_label_statement_symbol_accesses_for_section(
+        &source_analysis->sections[section_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const M68kFactIR *facts, const uint8_t *accepted_start) {
   size_t candidate_index;
@@ -2681,6 +2722,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     if (append_orphan_conflict_ranges_for_section(section) != 0) return -1;
   }
   if (append_expected_label_statement_symbol_accesses(source_analysis) != 0) return -1;
+  if (append_expected_storage_label_statement_symbol_accesses(source_analysis) != 0) return -1;
   if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
     return -1;
   if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;

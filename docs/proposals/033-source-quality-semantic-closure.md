@@ -731,6 +731,7 @@ section-storage address observations
 absolute address observations
 accepted table-entry targets
 rendered storage-label evidence
+materialized runtime range-start storage-label obligations
 ```
 
 The remaining coverage gap is narrower:
@@ -739,7 +740,7 @@ The remaining coverage gap is narrower:
 PC-relative storage operands that are not already represented as ordinary data
   operands
 generated non-manual equates
-accepted storage labels whose definition must be visibly emitted
+storage labels needed only because an operand crosses a runtime ORG boundary
 platform semantic operands and comments
 ```
 
@@ -753,24 +754,27 @@ exists" rule:
 ```text
 append_expected_pc_relative_storage_operand_accesses()
 append_expected_generated_equate_operand_accesses()
-append_expected_storage_label_statements()
 append_expected_platform_symbol_operand_accesses()
 ```
 
 Current storage-label progress:
 
 ```text
+source-quality analysis sees materialized runtime view start
+  -> expected_symbol_access(access_kind=storage_label,
+                            producer=storage_label_statement)
+
 renderer emits a storage-domain label before switching ORG to runtime domain
   -> rendered_symbol_access(access_kind=storage_label)
   -> post-render gate can match an expected storage-label obligation
 
-source-quality analysis proves that storage label must exist
-  -> still remaining: append_expected_storage_label_statements()
+remaining: storage-domain labels that are required only by PC-relative operands
+crossing a runtime ORG boundary need an operand-driven producer before render
 ```
 
-The remaining producer must be C-owned. It cannot reuse the current
-renderer-only `needs_storage_label` decision; that condition has to move into
-source analysis first so render only formats and records the label.
+The remaining producer must be C-owned. It cannot reuse the renderer-only
+`storage_label_target_refs` side effect; the operand/cross-ORG condition has to
+move into source analysis first so render only formats and records the label.
 
 Each new producer must set a precise producer id/string in
 `M68kExpectedSymbolAccessIR`. A missing or empty producer should be treated as a
@@ -1129,13 +1133,14 @@ absolute_address_observation
 table_entry_target
 merged producer evidence for duplicate obligations
 rendered storage-label evidence
+storage_label_statement for materialized runtime range starts
 ```
 
 Add the remaining precise C producers:
 
 - PC-relative storage operands not already covered by data operands
 - generated non-manual equates
-- accepted storage-label definitions
+- storage labels needed only because an operand crosses a runtime ORG boundary
 - platform semantic operands and comments
 
 Do not reuse generic label-created or label-required facts. Those pseudo-facts

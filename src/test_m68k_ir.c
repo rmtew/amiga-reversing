@@ -11179,6 +11179,45 @@ static int test_source_quality_analyze_accepts_rendered_expected_storage_label_a
   return 0;
 }
 
+static int test_source_quality_analyze_expects_materialized_runtime_storage_label(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kSymbolOriginIR origin;
+  M68kRuntimeViewIR view;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  memset(&origin, 0, sizeof(origin));
+  origin.symbol_name = "abs_0_00000004";
+  origin.offset = 4U;
+  origin.source_section_index = 0U;
+  origin.source_offset = 4U;
+  origin.origin_kind = M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL;
+  origin.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_symbol_origin(&section_analysis, &origin));
+  memset(&view, 0, sizeof(view));
+  view.storage_offset = 4U;
+  view.runtime_address = 0x400U;
+  view.size = 8U;
+  view.materialized = 1U;
+  view.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_view(&section_analysis, &view));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"abs_0_00000004\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"storage_label_statement\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"storage_label\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_uses_render_evidence_without_section_mutation(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -26670,6 +26709,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_accepts_rendered_expected_symbol_access},
     {"source_quality_analyze_accepts_rendered_expected_storage_label_access",
       test_source_quality_analyze_accepts_rendered_expected_storage_label_access},
+    {"source_quality_analyze_expects_materialized_runtime_storage_label",
+      test_source_quality_analyze_expects_materialized_runtime_storage_label},
     {"source_quality_analyze_uses_render_evidence_without_section_mutation",
       test_source_quality_analyze_uses_render_evidence_without_section_mutation},
     {"source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access",
