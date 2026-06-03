@@ -1989,7 +1989,8 @@ Implementation order:
    same byte shape under Mac OS where an A-line/F-line platform opword proves
    executable flow; same opword under Amiga/raw where no platform proof exists
    and source export is refused.
-6. Change accepted-gap severity to blocker when negative evidence is present.
+6. Done: accepted-gap accepted-code runs become blockers when overlapping
+   range ownership carries negative evidence or unresolved non-code conflict.
 7. Stop promoting weak shape-only runs; keep them as review/candidate facts.
    During migration, demote any existing shape-only accepted runs before render.
 ```
@@ -2021,6 +2022,28 @@ weak decode island promoted without hard evidence
 
 platform opword accepted as executable code
   -> next: require platform hook byte length and flow kind
+
+accepted gap overlaps negative range evidence
+  -> done: fail as unterminated_or_invalid_code_range
+  -> covered by isolated C fixture:
+     source_quality_analyze_blocks_accepted_gap_with_negative_range_evidence
+
+Starglider 2 runtime copy label validation
+  -> validation found an unreferenced rendered label at runtime $380
+  -> root cause was producer-side runtime translation choosing a broad copy
+     range before the narrower conflicting discovered copy
+  -> done: runtime address refs now keep conflicting discovered copies for
+     reference resolution and choose the most specific matching runtime range
+  -> materialization remains suppressed for conflicting discovered copies
+  -> covered by isolated C fixture:
+     facts_v2_runtime_ref_prefers_specific_conflicting_copy
+
+rendered source evidence for runtime aliases
+  -> done: rendered label/access matching accepts an exact symbol-name match
+     when target offsets differ because producer analysis has competing storage
+     and runtime views for the same address
+  -> covered by isolated C fixture:
+     source_quality_analyze_accepts_runtime_label_name_reference
 ```
 
 When this validation fires on a real target during the proposal work, the slice
@@ -2037,6 +2060,23 @@ validation failure found
 
 Treating the diagnostic itself as the deliverable would only make the framework
 better at reporting broken source. The proposal outcome is corrected source.
+
+Round-trip follow-through on this slice:
+
+```text
+platform-rendered-source-roundtrip --update-rendered-source --json
+  -> 55 targets checked
+  -> 0 failures
+  -> 39 full-file exact
+  -> 15 content-exact only
+  -> 1 unsupported Mac OS assembly target
+```
+
+The rerendered target diffs were reviewed. The useful source changes are in the
+same direction as the proposal: runtime-copy aliases no longer force storage
+`ORG`s where the copied range should remain a runtime view, and Damocles
+Tetragon 01 now exposes the copper list structurally instead of as anonymous
+bytes. These are source-quality improvements, not round-trip regressions.
 
 ### Slice 5: Address Identity And Range Closure
 

@@ -11657,6 +11657,51 @@ static int test_source_quality_analyze_blocks_unreferenced_label_statement(void)
   return 0;
 }
 
+static int test_source_quality_analyze_accepts_runtime_label_name_reference(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kRenderEvidenceIR render_evidence;
+  M68kRenderedSymbolAccessIR label_access;
+  M68kRenderedSymbolAccessIR operand_access;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  M68K_C_ASSERT_INT(0, m68k_ir_render_evidence_create(&render_evidence));
+  section_analysis.section_index = 0U;
+  memset(&label_access, 0, sizeof(label_access));
+  label_access.symbol_name = "abs_0_00000380";
+  label_access.offset = 0x1CCU;
+  label_access.target_section_index = 0U;
+  label_access.target_offset = 0x1CCU;
+  label_access.operand_index = UINT32_MAX;
+  label_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
+  label_access.has_target = 1U;
+  memset(&operand_access, 0, sizeof(operand_access));
+  operand_access.symbol_name = "abs_0_00000380";
+  operand_access.offset = 0x28U;
+  operand_access.target_section_index = 0U;
+  operand_access.target_offset = 0x38U;
+  operand_access.operand_index = 1U;
+  operand_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
+  operand_access.has_target = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_render_evidence_append_rendered_symbol_access(&render_evidence, 0U,
+    &label_access));
+  M68K_C_ASSERT_INT(0, m68k_ir_render_evidence_append_rendered_symbol_access(&render_evidence, 0U,
+    &operand_access));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze_rendered_symbol_accesses(&source_analysis, &render_evidence));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json_with_render_evidence(&source_analysis, &render_evidence,
+    &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"rendered_symbol_access_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unreferenced_label_statement\"") == NULL);
+  free(analysis_json);
+  m68k_ir_render_evidence_destroy(&render_evidence);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_accepts_unreferenced_structured_label_statement(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -14058,6 +14103,62 @@ static int test_source_quality_analyze_blocks_unterminated_accepted_gap_code_run
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_decode_ir_destroy(&decode);
   m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_source_quality_analyze_blocks_accepted_gap_with_negative_range_evidence(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  M68kRangeOwnershipIR conflict_range;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[4] = 1U;
+  certain_start[6] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = sizeof(certain_byte);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 4U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  memset(&conflict_range, 0, sizeof(conflict_range));
+  conflict_range.start_offset = 6U;
+  conflict_range.end_offset = 8U;
+  conflict_range.kind = M68K_RANGE_OWNERSHIP_CONFLICT;
+  conflict_range.status = M68K_RANGE_OWNERSHIP_STATUS_CONFLICT;
+  conflict_range.positive_evidence_flags = M68K_RANGE_EVIDENCE_CODE_SHAPE;
+  conflict_range.negative_evidence_flags = M68K_RANGE_NEGATIVE_STRUCTURED_DATA_OVERLAP;
+  conflict_range.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_range_ownership(&section_analysis, &conflict_range));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"accepted_gap\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"negative_evidence_flags\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"summary\":\"accepted code run ends without terminal flow or structural continuation proof\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   return 0;
 }
 
@@ -17028,6 +17129,87 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
   free(analysis_json);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&parsed_source);
+  return 0;
+}
+
+static int test_facts_v2_runtime_ref_prefers_specific_conflicting_copy(void) {
+  AsmSourceFile parsed_source;
+  M68kDiagList diagnostics;
+  M68kObject object;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *analysis_json = NULL;
+  size_t runtime_view_index;
+  size_t ref_index;
+  uint32_t small_offset = UINT32_MAX;
+  int found_conflicting_copy = 0;
+  int found_runtime_ref = 0;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tlea broad(pc),a0\n"
+    "\tmovea.l #$200,a1\n"
+    "\tmoveq #$7f,d0\n"
+    "copy_broad:\n"
+    "\tmove.l (a0)+,(a1)+\n"
+    "\tdbf d0,copy_broad\n"
+    "\tlea small(pc),a0\n"
+    "\tmovea.l #$380,a1\n"
+    "\tmoveq #4,d0\n"
+    "copy_small:\n"
+    "\tmove.l (a0)+,(a1)+\n"
+    "\tdbf d0,copy_small\n"
+    "\tlea $380.w,a2\n"
+    "\trts\n"
+    "small:\n"
+    "\tdc.l $11111111,$22222222,$33333333,$44444444,$55555555\n"
+    "broad:\n"
+    "\tdcb.b $200,$00\n";
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
+  memset(&object, 0, sizeof(object));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  m68k_diag_list_reset(&diagnostics);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &object,
+    m68k_diag_sink(&diagnostics)));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source_analysis.section_count == 1U);
+  for (runtime_view_index = 0U; runtime_view_index < source_analysis.sections[0].runtime_view_count;
+       ++runtime_view_index) {
+    const M68kRuntimeViewIR *view = &source_analysis.sections[0].runtime_views[runtime_view_index];
+    if (view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY &&
+        view->runtime_address == 0x380U && view->size == 20U) {
+      M68K_C_ASSERT_U32(0U, view->materialized);
+      M68K_C_ASSERT_U32(M68K_RUNTIME_VIEW_SUPPRESSED_CONFLICTING_DISCOVERED_COPY,
+        view->materialization_reason);
+      small_offset = view->storage_offset;
+      found_conflicting_copy = 1;
+    }
+  }
+  M68K_C_ASSERT(found_conflicting_copy);
+  M68K_C_ASSERT(small_offset != UINT32_MAX);
+  for (ref_index = 0U; ref_index < source_analysis.sections[0].runtime_address_ref_count; ++ref_index) {
+    const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[ref_index];
+    if (ref->has_runtime_address && ref->runtime_address == 0x380U &&
+        ref->target_section_index == 0U && ref->target_offset == small_offset) {
+      found_runtime_ref = 1;
+      break;
+    }
+  }
+  M68K_C_ASSERT(found_runtime_ref);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":896") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   m68k_source_model_free(&parsed_source);
   return 0;
@@ -28045,6 +28227,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_accepts_runtime_address_ref_symbol_access},
     {"source_quality_analyze_blocks_unreferenced_label_statement",
       test_source_quality_analyze_blocks_unreferenced_label_statement},
+    {"source_quality_analyze_accepts_runtime_label_name_reference",
+      test_source_quality_analyze_accepts_runtime_label_name_reference},
     {"source_quality_analyze_accepts_unreferenced_structured_label_statement",
       test_source_quality_analyze_accepts_unreferenced_structured_label_statement},
     {"source_quality_analyze_accepts_unreferenced_object_symbol_label_statement",
@@ -28121,6 +28305,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_blocks_manual_seed_structured_data_overlap},
     {"source_quality_analyze_blocks_unterminated_accepted_gap_code_run",
       test_source_quality_analyze_blocks_unterminated_accepted_gap_code_run},
+    {"source_quality_analyze_blocks_accepted_gap_with_negative_range_evidence",
+      test_source_quality_analyze_blocks_accepted_gap_with_negative_range_evidence},
     {"source_quality_analyze_blocks_manual_unterminated_gap_as_manual_conflict",
       test_source_quality_analyze_blocks_manual_unterminated_gap_as_manual_conflict},
     {"source_quality_analyze_uses_covering_cfg_terminal_run_end",
@@ -28215,6 +28401,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_runtime_range_conflict_fails_instead_of_last_map},
     {"facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort",
       test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort},
+    {"facts_v2_runtime_ref_prefers_specific_conflicting_copy",
+      test_facts_v2_runtime_ref_prefers_specific_conflicting_copy},
     {"facts_v2_policy_runtime_range_wins_over_inferred_copy_conflict",
       test_facts_v2_policy_runtime_range_wins_over_inferred_copy_conflict},
     {"facts_v2_render_asm_source_preserves_exact_byte_immediate_word",

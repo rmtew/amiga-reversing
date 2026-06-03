@@ -1108,8 +1108,10 @@ static int rendered_symbol_access_references_label(const M68kRenderedSymbolAcces
     return 0;
   }
   if (label->has_target && access->has_target) {
-    return label->target_section_index == access->target_section_index &&
-      label->target_offset == access->target_offset;
+    if (label->target_section_index == access->target_section_index &&
+        label->target_offset == access->target_offset) {
+      return 1;
+    }
   }
   return label->symbol_name != NULL && access->symbol_name != NULL &&
     strcmp(label->symbol_name, access->symbol_name) == 0;
@@ -1516,6 +1518,23 @@ static int accepted_gap_run_has_noncontrol_operand_access(const M68kSectionAnaly
   return 0;
 }
 
+static int accepted_gap_run_has_negative_range_evidence(const M68kSectionAnalysisIR *section,
+    const M68kAcceptedCodeRunIR *run) {
+  size_t range_index;
+  if (section == NULL || run == NULL) return 0;
+  for (range_index = 0U; range_index < section->range_ownership_count; ++range_index) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
+    if (!range_ownership_overlaps(run->start_offset, run->end_offset, range)) continue;
+    if (range->kind == M68K_RANGE_OWNERSHIP_CODE &&
+        range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED &&
+        range->negative_evidence_flags == 0U) {
+      continue;
+    }
+    if (range->negative_evidence_flags != 0U || range_ownership_blocks_hard_control_proof(range)) return 1;
+  }
+  return 0;
+}
+
 static int append_unterminated_accepted_gap_diagnostics_for_section(M68kSectionAnalysisIR *section) {
   size_t run_index;
   if (section == NULL) return -1;
@@ -1523,7 +1542,10 @@ static int append_unterminated_accepted_gap_diagnostics_for_section(M68kSectionA
     const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[run_index];
     if (run->end_kind != M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP) continue;
     if (!accepted_run_has_executable_origin(section, run->start_offset, run->end_offset)) continue;
-    if (!accepted_gap_run_has_noncontrol_operand_access(section, run)) continue;
+    if (!accepted_gap_run_has_noncontrol_operand_access(section, run) &&
+        !accepted_gap_run_has_negative_range_evidence(section, run)) {
+      continue;
+    }
     if (append_run_diagnostic(section, run,
         source_quality_kind_for_manual_run_conflict(section, run,
           M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE),

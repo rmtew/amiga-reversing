@@ -6,8 +6,8 @@
 ;     absolute[$00031000] refs=4 access=r
 ;     absolute[$00031004-$00031008] refs=1 access=w
 ;     absolute[$00031064] refs=1 access=r
-;     absolute[$00032000] refs=4 access=r
-;     absolute[$00035000] refs=3 access=r
+;     absolute[$00032000-$00038000] refs=9 access=ra
+;     absolute[$00038000-$0003B000] refs=1 access=a
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3
@@ -17,20 +17,31 @@
 
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/resident.i"
+    INCLUDE "graphics/copper.i"
+    INCLUDE "graphics/display.i"
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
     INCLUDE "hardware/dmabits.i"
     INCLUDE "hardware/intbits.i"
 
 _custom	EQU	$DFF000
-runtime_address_00032000	EQU	$32000
 runtime_address_00031000	EQU	$31000
 runtime_address_00031064	EQU	$31064
 copper_list_00042000	EQU	$42000
 runtime_address_00044000	EQU	$44000
 runtime_address_00043000	EQU	$43000
-runtime_address_00035000	EQU	$35000
 _ciaa	EQU	$BFE001
+BPLCON2_PF2P2	EQU	$20
+BPLCON2_PF1P2	EQU	$4
+bitmap_00032000	EQU	$32000
+bitmap_00032000_hi	EQU	bitmap_00032000/$10000
+bitmap_00032000_lo	EQU	bitmap_00032000-(bitmap_00032000_hi*$10000)
+bitmap_00035000	EQU	$35000
+bitmap_00035000_hi	EQU	bitmap_00035000/$10000
+bitmap_00035000_lo	EQU	bitmap_00035000-(bitmap_00035000_hi*$10000)
+bitmap_00038000	EQU	$38000
+bitmap_00038000_hi	EQU	bitmap_00038000/$10000
+bitmap_00038000_lo	EQU	bitmap_00038000-(bitmap_00038000_hi*$10000)
 
     SECTION code,code
 loc_0_00000000:
@@ -59,7 +70,7 @@ abs_0_00040050:
 abs_0_00040060:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER,_custom+dmacon.l
 	move.w #INTF_INTEN,_custom+intena.l
-	movea.l #runtime_address_00032000,a0
+	movea.l #$32000,a0
 	move.w #$2800,d0
 abs_0_0004007A:
 	clr.l (a0)+
@@ -107,7 +118,7 @@ abs_0_000400A0:
 	lea.l abs_0_00040050(pc),a0
 	move.w #$10,d0
 	jsr -$003C(a6)
-	movea.l #abs_0_00042000,a0
+	movea.l #$42000,a0
 	lea.l abs_0_000402D2(pc),a1
 	lea.l abs_0_000403D6(pc),a2
 abs_0_00040144:
@@ -173,20 +184,20 @@ abs_0_00040194:
 	bgt.b abs_0_0004020A
 	bra.b abs_0_00040216
 abs_0_000401FE:
-	movea.l #runtime_address_00032000,a1
+	movea.l #$32000,a1
 	adda.l d1,a1
 	bset.b d2,(a1)
 	bra.b abs_0_0004022A
 abs_0_0004020A:
-	movea.l #runtime_address_00035000,a1
+	movea.l #$35000,a1
 	adda.l d1,a1
 	bset.b d2,(a1)
 	bra.b abs_0_0004022A
 abs_0_00040216:
-	movea.l #runtime_address_00032000,a1
+	movea.l #$32000,a1
 	adda.l d1,a1
 	bset.b d2,(a1)
-	movea.l #runtime_address_00035000,a1
+	movea.l #$35000,a1
 	adda.l d1,a1
 	bset.b d2,(a1)
 abs_0_0004022A:
@@ -232,37 +243,84 @@ abs_0_000402AC:
 	asl.w #3,d2
 	sub.w d0,d2
 	subq.b #1,d2
-	movea.l #runtime_address_00032000,a1
+	movea.l #$32000,a1
 	adda.l d1,a1
 	bclr.b d2,(a1)
-	movea.l #runtime_address_00035000,a1
+	movea.l #$35000,a1
 	adda.l d1,a1
 	bclr.b d2,(a1)
 	rts
 abs_0_000402D2:
-	dc.b $01,$80,$00,$00,$01,$82,$03,$35,$01,$84,$06,$68,$01,$86,$0A,$AC
-	dc.b $01,$8A,$0F,$00,$01,$8C,$0F,$00,$01,$00,$02,$00,$01,$04,$00,$24
-	dc.b $00,$8E,$05,$81,$00,$90,$40,$C1,$00,$92,$00,$38,$00,$94,$00,$D0
-	dc.b $01,$02,$00,$00,$01,$08,$00,$00,$01,$0A,$00,$00,$00,$E0,$00,$03
-	dc.b $00,$E2,$20,$00,$00,$E4,$00,$03,$00,$E6,$50,$00,$00,$E8,$00,$03
-	dc.b $00,$EA,$80,$00,$2C,$01,$FF,$FE,$01,$00,$32,$00,$9E,$01,$FF,$FE
-	dc.b $01,$8E,$0F,$00,$01,$88,$0F,$00,$01,$80,$00,$02,$A0,$01,$FF,$FE
-	dc.b $01,$80,$00,$03,$A2,$01,$FF,$FE,$01,$80,$00,$05,$A4,$01,$FF,$FE
-	dc.b $01,$80,$00,$07,$A6,$01,$FF,$FE,$01,$80,$00,$09,$A8,$01,$FF,$FE
-	dc.b $01,$80,$00,$0B,$AA,$01,$FF,$FE,$01,$80,$00,$0D,$AC,$01,$FF,$FE
-	dc.b $01,$80,$00,$0F,$AE,$01,$FF,$FE,$01,$80,$00,$0D,$B0,$01,$FF,$FE
-	dc.b $01,$80,$00,$0B,$B2,$01,$FF,$FE,$01,$80,$00,$09,$B4,$01,$FF,$FE
-	dc.b $01,$80,$00,$07,$B6,$01,$FF,$FE,$01,$80,$00,$05,$B8,$01,$FF,$FE
-	dc.b $01,$80,$00,$03,$BA,$01,$FF,$FE,$01,$80,$00,$01,$BC,$01,$FF,$FE
-	dc.b $01,$80,$00,$01,$BE,$01,$FF,$FE,$01,$80,$00,$00,$FF,$DF,$FF,$FE
-	dc.b $01,$88,$04,$44,$01,$8E,$04,$45,$2B,$01,$FF,$FE,$01,$00,$02,$00
-	dc.b $FF,$FF,$FF,$FE
+    ; display layout 3 bitmap planes $00032000..$00038000 step $3000
+	dc.w color,$0000
+	dc.w color+$02,$0335
+	dc.w color+$04,$0668
+	dc.w color+$06,$0AAC
+	dc.w color+$0A,$0F00
+	dc.w color+$0C,$0F00
+	dc.w bplcon0,COLORON
+	dc.w bplcon2,BPLCON2_PF2P2|BPLCON2_PF1P2
+	dc.w diwstrt,$0581	; display window start v=$05 h=$81
+	dc.w diwstop,$40C1	; display window stop v=$40 h=$C1
+	dc.w ddfstrt,$0038	; display fetch start $38
+	dc.w ddfstop,$00D0	; display fetch stop $D0
+	dc.w bplcon1,$0000	; display scroll pf1=0 pf2=0
+	dc.w bpl1mod,$0000	; bitplane modulo 0 bytes
+	dc.w bpl2mod,$0000	; bitplane modulo 0 bytes
+	dc.w bplpt,bitmap_00032000_hi	; bitmap pointer $00032000
+	dc.w bplpt+$02,bitmap_00032000_lo
+	dc.w bplpt+$04,bitmap_00035000_hi	; bitmap pointer $00035000
+	dc.w bplpt+$06,bitmap_00035000_lo
+	dc.w bplpt+$08,bitmap_00038000_hi	; bitmap pointer $00038000
+	dc.w bplpt+$0A,bitmap_00038000_lo
+	dc.w COPPER_WAIT|$2C00,$FFFE	; copper wait v=$2C h=$00 mask $FFFE
+	dc.w bplcon0,(3<<PLNCNTSHFT)|COLORON	; display 3 bitplanes lores color
+	dc.w COPPER_WAIT|$9E00,$FFFE	; copper wait v=$9E h=$00 mask $FFFE
+	dc.w color+$0E,$0F00
+	dc.w color+$08,$0F00
+	dc.w color,$0002
+	dc.w COPPER_WAIT|$A000,$FFFE	; copper wait v=$A0 h=$00 mask $FFFE
+	dc.w color,$0003
+	dc.w COPPER_WAIT|$A200,$FFFE	; copper wait v=$A2 h=$00 mask $FFFE
+	dc.w color,$0005
+	dc.w COPPER_WAIT|$A400,$FFFE	; copper wait v=$A4 h=$00 mask $FFFE
+	dc.w color,$0007
+	dc.w COPPER_WAIT|$A600,$FFFE	; copper wait v=$A6 h=$00 mask $FFFE
+	dc.w color,$0009
+	dc.w COPPER_WAIT|$A800,$FFFE	; copper wait v=$A8 h=$00 mask $FFFE
+	dc.w color,$000B
+	dc.w COPPER_WAIT|$AA00,$FFFE	; copper wait v=$AA h=$00 mask $FFFE
+	dc.w color,$000D
+	dc.w COPPER_WAIT|$AC00,$FFFE	; copper wait v=$AC h=$00 mask $FFFE
+	dc.w color,$000F
+	dc.w COPPER_WAIT|$AE00,$FFFE	; copper wait v=$AE h=$00 mask $FFFE
+	dc.w color,$000D
+	dc.w COPPER_WAIT|$B000,$FFFE	; copper wait v=$B0 h=$00 mask $FFFE
+	dc.w color,$000B
+	dc.w COPPER_WAIT|$B200,$FFFE	; copper wait v=$B2 h=$00 mask $FFFE
+	dc.w color,$0009
+	dc.w COPPER_WAIT|$B400,$FFFE	; copper wait v=$B4 h=$00 mask $FFFE
+	dc.w color,$0007
+	dc.w COPPER_WAIT|$B600,$FFFE	; copper wait v=$B6 h=$00 mask $FFFE
+	dc.w color,$0005
+	dc.w COPPER_WAIT|$B800,$FFFE	; copper wait v=$B8 h=$00 mask $FFFE
+	dc.w color,$0003
+	dc.w COPPER_WAIT|$BA00,$FFFE	; copper wait v=$BA h=$00 mask $FFFE
+	dc.w color,$0001
+	dc.w COPPER_WAIT|$BC00,$FFFE	; copper wait v=$BC h=$00 mask $FFFE
+	dc.w color,$0001
+	dc.w COPPER_WAIT|$BE00,$FFFE	; copper wait v=$BE h=$00 mask $FFFE
+	dc.w color,$0000
+	dc.w COPPER_WAIT|$FFDE,$FFFE	; copper wait v=$FF h=$DE mask $FFFE
+	dc.w color+$08,$0444
+	dc.w color+$0E,$0445
+	dc.w COPPER_WAIT|$2B00,$FFFE	; copper wait v=$2B h=$00 mask $FFFE
+	dc.w bplcon0,COLORON
+	dc.w $FFFF,$FFFE
 abs_0_000403D6:
 	dc.b $13,$88
 abs_0_000403D8:
 	dc.w $0000
 	dc.b "RV (20-07-1988)",$00
 	dc.b $41,$FA,$65,$72,$20,$6F
-	dcb.b $1C10,$00
-abs_0_00042000:
-	dcb.b $E000,$00
+	dcb.b $FC10,$00

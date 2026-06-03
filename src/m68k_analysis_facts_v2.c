@@ -4593,6 +4593,30 @@ static void runtime_address_space_init(M68kRuntimeAddressSpace *space, Arena *ar
   space->arena = arena;
 }
 
+static int runtime_address_space_append_range(M68kRuntimeAddressSpace *space, size_t section_index,
+    uint32_t source_offset, uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence) {
+  M68kRuntimeAddressRange *grown;
+  size_t next_capacity;
+  if (space == NULL || size == 0U) return 0;
+  if (space->count == space->capacity) {
+    next_capacity = space->capacity == 0U ? 16U : space->capacity * 2U;
+    grown = (M68kRuntimeAddressRange *)arena_realloc_copy(space->arena, space->ranges,
+      space->capacity * sizeof(*space->ranges), next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    space->ranges = grown;
+    space->capacity = next_capacity;
+  }
+  memset(&space->ranges[space->count], 0, sizeof(space->ranges[space->count]));
+  space->ranges[space->count].section_index = section_index;
+  space->ranges[space->count].source_offset = source_offset;
+  space->ranges[space->count].runtime_address = runtime_address;
+  space->ranges[space->count].size = size;
+  space->ranges[space->count].kind = kind;
+  space->ranges[space->count].confidence = confidence;
+  ++space->count;
+  return 0;
+}
+
 static int runtime_address_conflict_is_temporal_overlay(const M68kRuntimeAddressRange *existing,
     size_t section_index, uint32_t source_offset, uint32_t runtime_address, uint32_t size, uint8_t kind) {
   uint64_t existing_start, existing_end, new_start, new_end;
@@ -4613,8 +4637,6 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
     uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence, M68kFactIR *facts,
     M68kFactsV2Profile *profile) {
   size_t index;
-  M68kRuntimeAddressRange *grown;
-  size_t next_capacity;
   if (space == NULL || facts == NULL || size == 0U) return 0;
   for (index = 0U; index < space->count; ++index) {
     M68kRuntimeAddressRange *existing = &space->ranges[index];
@@ -4647,10 +4669,13 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
         if (existing->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
             confidence < M68K_FACT_CONFIDENCE_REQUIRED) {
           if (kind == M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY &&
-              confidence < M68K_FACT_CONFIDENCE_REQUIRED &&
-              append_runtime_address_range_fact(facts, section_index, source_offset, runtime_address, size,
-                M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY, confidence) != 0) {
-            return -1;
+              confidence < M68K_FACT_CONFIDENCE_REQUIRED) {
+            if (append_runtime_address_range_fact(facts, section_index, source_offset, runtime_address, size,
+                M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY, confidence) != 0 ||
+                runtime_address_space_append_range(space, section_index, source_offset, runtime_address, size,
+                  M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY, confidence) != 0) {
+              return -1;
+            }
           }
           return 0;
         }
@@ -4658,22 +4683,10 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
       }
     }
   }
-  if (space->count == space->capacity) {
-    next_capacity = space->capacity == 0U ? 16U : space->capacity * 2U;
-    grown = (M68kRuntimeAddressRange *)arena_realloc_copy(space->arena, space->ranges,
-      space->capacity * sizeof(*space->ranges), next_capacity * sizeof(*grown));
-    if (grown == NULL) return -1;
-    space->ranges = grown;
-    space->capacity = next_capacity;
+  if (runtime_address_space_append_range(space, section_index, source_offset, runtime_address, size, kind,
+      confidence) != 0) {
+    return -1;
   }
-  memset(&space->ranges[space->count], 0, sizeof(space->ranges[space->count]));
-  space->ranges[space->count].section_index = section_index;
-  space->ranges[space->count].source_offset = source_offset;
-  space->ranges[space->count].runtime_address = runtime_address;
-  space->ranges[space->count].size = size;
-  space->ranges[space->count].kind = kind;
-  space->ranges[space->count].confidence = confidence;
-  ++space->count;
   if (profile != NULL) ++profile->runtime_address_ranges;
   return append_runtime_address_range_fact(facts, section_index, source_offset, runtime_address, size, kind,
     confidence);
@@ -4682,6 +4695,9 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
 static int runtime_address_space_translate(const M68kRuntimeAddressSpace *space, size_t section_index,
     uint32_t runtime_address, uint32_t section_size, uint32_t *out_source_offset) {
   size_t index;
+  uint32_t best_source_offset = 0U;
+  uint32_t best_size = UINT32_MAX;
+  int found = 0;
   if (space == NULL || out_source_offset == NULL) return 0;
   for (index = space->count; index > 0U; --index) {
     const M68kRuntimeAddressRange *map = &space->ranges[index - 1U];
@@ -4692,10 +4708,15 @@ static int runtime_address_space_translate(const M68kRuntimeAddressSpace *space,
     if (delta >= map->size) continue;
     if (map->source_offset > UINT32_MAX - delta) continue;
     if (map->source_offset + delta >= section_size) continue;
-    *out_source_offset = map->source_offset + delta;
-    return 1;
+    if (!found || map->size < best_size) {
+      best_source_offset = map->source_offset + delta;
+      best_size = map->size;
+      found = 1;
+    }
   }
-  return 0;
+  if (!found) return 0;
+  *out_source_offset = best_source_offset;
+  return 1;
 }
 
 static int runtime_address_space_section_has_range(const M68kRuntimeAddressSpace *space, size_t section_index) {

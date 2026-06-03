@@ -1,5 +1,5 @@
 ; Memory map
-;   section_2[$0000006A-$0000014C] -> runtime[$00000100-$000001E2] discovered_copy materialized
+;   section_2[$0000006A-$0000014C] -> runtime[$00000100-$000001E2] discovered_copy suppressed
 ;   Absolute memory refs:
 ;     absolute[$00000800] refs=1 access=a
 ;     absolute[$00001000] refs=1 access=a
@@ -26,6 +26,7 @@ runtime_address_00040000	EQU	$40000
 _ciab	EQU	$BFD000
 m68k_vector_privilege_violation	EQU	$20
 stack_top_00000800	EQU	$800
+runtime_code_00000100	EQU	$100
 absolute_slot_00059484	EQU	$59484
 absolute_slot_00002700	EQU	$2700
 absolute_slot_00001000	EQU	$1000
@@ -232,9 +233,9 @@ loc_2_00000000:
 loc_2_00000028:
 	move #$2700,sr
 	lea.l stack_top_00000800.l,a7
-	lea.l abs_2_00000100.l,a1
+	lea.l runtime_code_00000100.l,a1
 	movea.l a1,a2
-	lea.l loc_2_0000006A-(*+2)(pc),a0
+	lea.l loc_2_0000006A(pc),a0
 	lea.l _custom+color.l,a5
 	move.w #$E1,d0
 loc_2_00000048:
@@ -246,118 +247,115 @@ loc_2_00000048:
 	jmp $0040(a2)
 	dc.b " TETRAGON "	; mode=required, data_role=string, unit=byte
 loc_2_0000006A:
-    ORG $100
-abs_2_00000100:
 	moveq.l #-83,d7
 	lea.l absolute_slot_00001000.l,a0
 	lea.l absolute_slot_0007FFFF.l,a2
-abs_2_0000010E:
+loc_2_00000078:
 	move.b (a1)+,d0
 	cmp.b d7,d0
-	bne.b abs_2_00000124
+	bne.b loc_2_0000008E
 	moveq.l #0,d1
 	move.b (a1)+,d1
-	beq.b abs_2_00000124
+	beq.b loc_2_0000008E
 	move.b (a1)+,d0
 	addq.w #1,d1
-abs_2_0000011E:
+loc_2_00000088:
 	move.b d0,(a0)+
-	dbf.w d1,abs_2_0000011E
-abs_2_00000124:
+	dbf.w d1,loc_2_00000088
+loc_2_0000008E:
 	move.w d0,(a5)
 	move.b d0,(a0)+
 	cmpa.l a2,a1
-	blt.b abs_2_0000010E
+	blt.b loc_2_00000078
 	move.w #$7FFF,$009E(a6)
 	jmp runtime_address_00059484.l
 	dc.b "=|",$7F,$FF,$00,$9A,"Ns"	; mode=required, data_role=string, unit=byte
-abs_2_00000140:
+loc_2_000000AA:
 	adda.l #$47368,a0
 	lea.l absolute_slot_000130B6.l,a1
 	movea.l -(a0),a2
 	adda.l a1,a2
 	move.l -(a0),d0
-abs_2_00000152:
+loc_2_000000BC:
 	lsr.l #1,d0
-	bne.b abs_2_00000158
-	bsr.b abs_2_0000018C
-abs_2_00000158:
-	bcs.b abs_2_000001C6
+	bne.b loc_2_000000C2
+	bsr.b loc_2_000000F6
+loc_2_000000C2:
+	bcs.b loc_2_00000130
 	moveq.l #8,d1
 	moveq.l #1,d3
 	lsr.l #1,d0
-	bne.b abs_2_00000164
-	bsr.b abs_2_0000018C
-abs_2_00000164:
-	bcs.b abs_2_000001A2
+	bne.b loc_2_000000CE
+	bsr.b loc_2_000000F6
+loc_2_000000CE:
+	bcs.b loc_2_0000010C
 	moveq.l #3,d1
 	moveq.l #0,d4
-abs_2_0000016A:
-	bsr.b abs_2_000001B4
+loc_2_000000D4:
+	bsr.b loc_2_0000011E
 	move.w d2,d3
 	add.w d4,d3
-abs_2_00000170:
+loc_2_000000DA:
 	moveq.l #7,d1
-abs_2_00000172:
+loc_2_000000DC:
 	lsr.l #1,d0
-	bne.b abs_2_00000178
-	bsr.b abs_2_0000018C
-abs_2_00000178:
+	bne.b loc_2_000000E2
+	bsr.b loc_2_000000F6
+loc_2_000000E2:
 	roxl.l #1,d2
-	dbf.w d1,abs_2_00000172
+	dbf.w d1,loc_2_000000DC
 	move.b d2,-(a2)
-	dbf.w d3,abs_2_00000170
-	bra.b abs_2_000001AC
-abs_2_00000186:
+	dbf.w d3,loc_2_000000DA
+	bra.b loc_2_00000116
+loc_2_000000F0:
 	moveq.l #7,d1
 	moveq.l #8,d4
-	bra.b abs_2_0000016A
-abs_2_0000018C:
+	bra.b loc_2_000000D4
+loc_2_000000F6:
 	move.l -(a0),d0
 	move.b d0,d7
 	move.w d7,(a5)
 	move #$10,ccr
 	roxr.l #1,d0
 	rts
-abs_2_0000019A:
+loc_2_00000104:
 	moveq.l #8,d1
 	move.w d2,d3
 	nop
 	addq.w #2,d3
-abs_2_000001A2:
-	bsr.b abs_2_000001B4
-abs_2_000001A4:
+loc_2_0000010C:
+	bsr.b loc_2_0000011E
+loc_2_0000010E:
 	move.b -$1(a2,d2.w),-(a2)
-	dbf.w d3,abs_2_000001A4
-abs_2_000001AC:
+	dbf.w d3,loc_2_0000010E
+loc_2_00000116:
 	cmpa.l a2,a1
-	blt.b abs_2_00000152
-	bra.w abs_2_00000100
-abs_2_000001B4:
+	blt.b loc_2_000000BC
+	bra.w loc_2_0000006A
+loc_2_0000011E:
 	subq.w #1,d1
 	moveq.l #0,d2
-abs_2_000001B8:
+loc_2_00000122:
 	lsr.l #1,d0
-	bne.b abs_2_000001BE
-	bsr.b abs_2_0000018C
-abs_2_000001BE:
+	bne.b loc_2_00000128
+	bsr.b loc_2_000000F6
+loc_2_00000128:
 	roxl.l #1,d2
-	dbf.w d1,abs_2_000001B8
+	dbf.w d1,loc_2_00000122
 	rts
-abs_2_000001C6:
+loc_2_00000130:
 	moveq.l #2,d1
-	bsr.b abs_2_000001B4
+	bsr.b loc_2_0000011E
 	cmpi.b #2,d2
-	blt.b abs_2_0000019A
+	blt.b loc_2_00000104
 	cmpi.b #3,d2
-	beq.b abs_2_00000186
+	beq.b loc_2_000000F0
 	moveq.l #8,d1
-	bsr.b abs_2_000001B4
+	bsr.b loc_2_0000011E
 	move.w d2,d3
 	addq.w #4,d3
 	moveq.l #8,d1
-	bra.b abs_2_000001A2
-    ORG $14C
+	bra.b loc_2_0000010C
 loc_2_0000014C:
 	dc.b $E2,$16,$BB,$50,$FD,$1C,$57,$11,$FE,$01,$D3,$24,$AE,$ED,$24,$B7
 	dc.b $0C,$44,$C3,$ED,$B5,$67,$9B,$15,$00,$17,$72,$82,$22,$3C,$D5,$1C
