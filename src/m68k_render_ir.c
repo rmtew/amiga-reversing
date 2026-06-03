@@ -3113,37 +3113,6 @@ static int format_copper_runtime_pointer_value_expr(M68kRenderIRPreview *preview
   return 0;
 }
 
-static int format_copper_runtime_pointer_comment(const uint8_t *data, uint32_t offset, uint32_t cursor,
-    uint32_t size, uint16_t first, uint16_t second, char *buf, size_t buf_size) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  uint32_t register_offset = (uint32_t)(first & 0x01FEU);
-  uint32_t pointer_index;
-  uint16_t next_first;
-  uint16_t next_second;
-  uint32_t pointer_address;
-  if (data == NULL || buf == NULL || buf_size == 0U || cursor + 8U > size) return 0;
-  buf[0] = '\0';
-  hardware_register = copper_runtime_pointer_register(first);
-  if (hardware_register == NULL) return 0;
-  if (register_offset < hardware_register->offset ||
-      ((register_offset - hardware_register->offset) & 3U) != 0U) {
-    return 0;
-  }
-  next_first = m68k_read_u16be(data + offset + cursor + 4U);
-  next_second = m68k_read_u16be(data + offset + cursor + 6U);
-  if ((next_first & 1U) != 0U || (uint32_t)(next_first & 0x01FEU) != register_offset + 2U) return 0;
-  pointer_index = (register_offset - hardware_register->offset) / 4U;
-  pointer_address = ((uint32_t)second << 16) | next_second;
-  if (pointer_address == 0U) {
-    snprintf(buf, buf_size, "%s pointer %u disabled", hardware_register->runtime_target_role,
-      (unsigned)pointer_index);
-  } else {
-    snprintf(buf, buf_size, "%s pointer $%08X", hardware_register->runtime_target_role,
-      (unsigned)pointer_address);
-  }
-  return strlen(buf) + 1U < buf_size;
-}
-
 static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const uint8_t *data, uint32_t offset, uint32_t size, const char *comment, uint32_t *io_logical_pc) {
@@ -3208,9 +3177,6 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     row_comment[0] = '\0';
     (void)attach_platform_semantic_note_comment_for_render(source_analysis, section->section_index, offset + cursor,
       row_comment, sizeof(row_comment));
-    if (row_comment[0] == '\0' && copper_move)
-      (void)format_copper_runtime_pointer_comment(data, offset, cursor, size, first, second,
-        row_comment, sizeof(row_comment));
     if (comment != NULL && comment[0] != '\0' && row_comment[0] != '\0')
       snprintf(line, sizeof(line), "\tdc.w %s,%s\t; %s; %s\n", left, right, comment, row_comment);
     else if (comment != NULL && comment[0] != '\0')

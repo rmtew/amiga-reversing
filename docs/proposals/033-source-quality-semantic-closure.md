@@ -2350,7 +2350,7 @@ structured data item has role=copper_list
   -> source-quality exports M68kPlatformSemanticUseIR(kind=copper_row,
                                                      note_text=...)
   -> renderer appends note_text for that row
-  -> renderer does not recompute wait/display-row comments
+  -> renderer does not recompute wait/display/pointer row comments
 ```
 
 The producer mirrors the renderer's raw-word split rule: if a label lands on
@@ -2364,15 +2364,30 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"display window start v=$2C h=$81\"") != NULL);
 M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"copper wait v=$2C h=$06 mask $FFFE\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"bitmap pointer $12345678\"") != NULL);
 ```
 
 Remaining platform-comment work is the same rule applied to richer structured
-comments such as copper runtime pointer row comments, copper pointer combined
-display setup comments, bitmap-memory comments, and other renderer helpers that
-still describe platform meaning while formatting data. Those need C
-semantic-use records with enough structured fields or note text for render to
-format without re-deciding the semantic meaning. Once each family is migrated,
-the corresponding renderer fallback must be deleted.
+comments such as copper pointer combined display setup comments, bitmap-memory
+comments, and other renderer helpers that still describe platform meaning while
+formatting data. Those need C semantic-use records with enough structured
+fields or note text for render to format without re-deciding the semantic
+meaning. Once each family is migrated, the corresponding renderer fallback must
+be deleted.
+
+The copper-row note migration deliberately does not claim the expression-symbol
+case is done. Render still formats the high/low symbol expressions for runtime
+addresses:
+
+```asm
+    dc.w bplpt,bitmap_12345678_hi     ; bitmap pointer $12345678
+    dc.w bplpt+$02,bitmap_12345678_lo
+```
+
+After this slice, the comment is C-owned `note_text`; the `bitmap_*_hi/lo`
+symbol obligation and expression choice are still a later source-quality
+closure item.
 
 ### Slice 7: Table And Data Reference Closure
 

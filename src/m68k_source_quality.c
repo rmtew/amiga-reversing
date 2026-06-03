@@ -1795,6 +1795,60 @@ static int format_source_quality_copper_display_row_note(uint16_t first, uint16_
   return format_source_quality_amiga_hardware_value_note(hardware_register, (uint32_t)second, buf, buf_size);
 }
 
+static const AmigaOsHardwareRegisterInfo *source_quality_copper_runtime_pointer_register(uint16_t register_word) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  uint32_t register_offset = (uint32_t)(register_word & 0x01FEU);
+  if ((register_word & 1U) != 0U) return NULL;
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+    register_offset);
+  if (hardware_register == NULL) {
+    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+      register_offset);
+    if (hardware_range != NULL) {
+      hardware_register =
+        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
+    }
+  }
+  if (hardware_register == NULL ||
+      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
+      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
+    return NULL;
+  }
+  return hardware_register;
+}
+
+static int format_source_quality_copper_runtime_pointer_note(const uint8_t *data, uint32_t offset, uint32_t cursor,
+    uint32_t size, uint16_t first, uint16_t second, char *buf, size_t buf_size) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint32_t register_offset = (uint32_t)(first & 0x01FEU);
+  uint32_t pointer_index;
+  uint16_t next_first;
+  uint16_t next_second;
+  uint32_t pointer_address;
+  if (data == NULL || buf == NULL || buf_size == 0U || cursor + 8U > size) return 0;
+  buf[0] = '\0';
+  hardware_register = source_quality_copper_runtime_pointer_register(first);
+  if (hardware_register == NULL) return 0;
+  if (register_offset < hardware_register->offset ||
+      ((register_offset - hardware_register->offset) & 3U) != 0U) {
+    return 0;
+  }
+  next_first = m68k_read_u16be(data + offset + cursor + 4U);
+  next_second = m68k_read_u16be(data + offset + cursor + 6U);
+  if ((next_first & 1U) != 0U || (uint32_t)(next_first & 0x01FEU) != register_offset + 2U) return 0;
+  pointer_index = (register_offset - hardware_register->offset) / 4U;
+  pointer_address = ((uint32_t)second << 16) | next_second;
+  if (pointer_address == 0U) {
+    snprintf(buf, buf_size, "%s pointer %u disabled", hardware_register->runtime_target_role,
+      (unsigned)pointer_index);
+  } else {
+    snprintf(buf, buf_size, "%s pointer $%08X", hardware_register->runtime_target_role,
+      (unsigned)pointer_address);
+  }
+  return strlen(buf) + 1U < buf_size;
+}
+
 static int format_source_quality_amiga_audio_register_note(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
     uint32_t value, int has_immediate, char *buf, size_t buf_size) {
   uint32_t word = value & 0xFFFFU;
@@ -2015,7 +2069,9 @@ static int append_structured_copper_row_platform_semantic_uses(M68kSourceAnalysi
         continue;
       }
       if (format_source_quality_copper_wait_note(first, second, note, sizeof(note)) ||
-          format_source_quality_copper_display_row_note(first, second, note, sizeof(note))) {
+          format_source_quality_copper_display_row_note(first, second, note, sizeof(note)) ||
+          format_source_quality_copper_runtime_pointer_note(section->data, item->offset, cursor, item->size,
+            first, second, note, sizeof(note))) {
         memset(&use, 0, sizeof(use));
         use.kind = M68K_PLATFORM_SEMANTIC_USE_COPPER_ROW;
         use.offset = row_offset;

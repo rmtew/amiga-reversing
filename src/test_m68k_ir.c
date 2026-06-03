@@ -25682,6 +25682,8 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display window stop v=$2C h=$C1\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display fetch start $38\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"display 4 bitplanes lores color\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"bitmap pointer $12345678\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"sprite pointer 0 disabled\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"copper wait v=$2C h=$06 mask $FFFE\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
