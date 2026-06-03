@@ -1689,6 +1689,60 @@ static int append_runtime_ref_platform_semantic_uses(M68kSourceAnalysisIR *sourc
   return 0;
 }
 
+static int append_bitmap_memory_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t ref_index;
+    for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
+      size_t base_index;
+      uint8_t plane_index = 0U;
+      uint32_t base_address = 0U;
+      uint32_t delta = 0U;
+      int matched = 0;
+      char note[128];
+      M68kPlatformSemanticUseIR use;
+      if ((ref->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) == 0U ||
+          !ref->has_runtime_address || ref->size != 0U) {
+        continue;
+      }
+      for (base_index = 0U; base_index < section->runtime_address_ref_count; ++base_index) {
+        const M68kRuntimeAddressRefIR *base_ref = &section->runtime_address_refs[base_index];
+        if ((base_ref->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) == 0U ||
+            !base_ref->has_runtime_address || base_ref->size == 0U) {
+          continue;
+        }
+        if (ref->runtime_address >= base_ref->runtime_address &&
+            ref->runtime_address - base_ref->runtime_address < base_ref->size) {
+          base_address = base_ref->runtime_address;
+          delta = ref->runtime_address - base_ref->runtime_address;
+          matched = 1;
+          break;
+        }
+        if (plane_index != UINT8_MAX) ++plane_index;
+      }
+      if (!matched) continue;
+      if (delta == 0U) {
+        snprintf(note, sizeof(note), "bitmap memory plane %u base $%08X",
+          (unsigned)plane_index, (unsigned)base_address);
+      } else {
+        snprintf(note, sizeof(note), "bitmap memory plane %u +$%X ($%08X)",
+          (unsigned)plane_index, (unsigned)delta, (unsigned)(base_address + delta));
+      }
+      memset(&use, 0, sizeof(use));
+      use.kind = M68K_PLATFORM_SEMANTIC_USE_BITMAP_MEMORY;
+      use.offset = ref->offset;
+      use.size = ref->source_size;
+      use.confidence = ref->confidence;
+      use.note_text = note;
+      if (m68k_ir_section_analysis_append_platform_semantic_use(section, &use) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 static const M68kDecodeSectionIR *source_quality_decode_section_by_index(const M68kDecodeIR *decode,
     uint32_t section_index, size_t *out_decode_index);
 static int source_quality_candidate_is_accepted_start(const M68kDecodeSectionIR *section,
@@ -4346,6 +4400,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_copper_row_platform_semantic_uses(source_analysis, decode) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
+  if (append_bitmap_memory_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;

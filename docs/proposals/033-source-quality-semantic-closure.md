@@ -2373,12 +2373,31 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"kind_name\":\"copper_display_layout\"") != NULL);
 ```
 
+Bitmap-memory comments now follow the same rule:
+
+```text
+bitmap runtime refs from copper bitmap planes
+  + later absolute/base-relative bitmap memory use
+  -> render lookup records the runtime address ref only
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=bitmap_memory,
+                                                     note_text=...)
+  -> renderer appends note_text on the instruction
+```
+
+The focused fixture asserts the analysis fact:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"bitmap_memory\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"bitmap memory plane 0 +$10 ($00010010)\"") != NULL);
+```
+
 Remaining platform-comment work is the same rule applied to richer structured
-comments such as copper pointer combined display setup comments, bitmap-memory
-comments, and other renderer helpers that still describe platform meaning while
-formatting data. Display-layout comments no longer come from
-`m68k_analysis_render_lookup.c`; the remaining render-lookup copper path there
-is bitmap runtime-ref inference, not the layout comment. The remaining comment
+comments such as copper pointer combined display setup comments and other
+renderer helpers that still describe platform meaning while formatting data.
+Display-layout and bitmap-memory comments no longer come from
+`m68k_analysis_render_lookup.c`; the remaining render-lookup copper/bitmap path
+there is runtime-ref inference, not these comments. The remaining comment
 families need C semantic-use records with enough structured fields or note text
 for render to format without re-deciding the semantic meaning. Once each family
 is migrated, the corresponding renderer fallback must be deleted.

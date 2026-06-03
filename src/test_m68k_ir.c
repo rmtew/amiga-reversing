@@ -26361,6 +26361,7 @@ static int test_facts_v2_copper_bitmap_memory_uses_are_commented(void) {
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint32_t bitmap_use_refs = 0U;
   size_t index;
   uint8_t bytes[40] = {
@@ -26406,8 +26407,14 @@ static int test_facts_v2_copper_bitmap_memory_uses_are_commented(void) {
     }
   }
   M68K_C_ASSERT_U32(2U, bitmap_use_refs);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"bitmap_memory\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"note_text\":\"bitmap memory plane 0 +$10 ($00010010)\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);

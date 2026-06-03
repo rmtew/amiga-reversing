@@ -8277,29 +8277,9 @@ static int bitmap_runtime_address_for_value(const M68kRenderLookup *lookup, uint
   return 0;
 }
 
-static int format_bitmap_memory_comment(const M68kRenderBitmapRuntimeAddress *address,
-    char *comment, size_t comment_size) {
-  int written;
-  if (comment != NULL && comment_size != 0U) comment[0] = '\0';
-  if (address == NULL || !address->matched || comment == NULL || comment_size == 0U) return 0;
-  if (address->delta == 0U) {
-    written = snprintf(comment, comment_size, "bitmap memory plane %u base $%08X",
-      (unsigned)address->plane_index, (unsigned)address->base);
-  } else {
-    written = snprintf(comment, comment_size, "bitmap memory plane %u +$%X ($%08X)",
-      (unsigned)address->plane_index, (unsigned)address->delta,
-      (unsigned)(address->base + address->delta));
-  }
-  return written > 0 && (size_t)written < comment_size;
-}
-
-static int render_lookup_add_bitmap_memory_comment(M68kRenderLookup *lookup, size_t section_index,
+static int render_lookup_add_bitmap_memory_runtime_ref(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, const M68kRenderBitmapRuntimeAddress *address) {
-  char comment[96];
-  int result;
-  if (!format_bitmap_memory_comment(address, comment, sizeof(comment))) return 0;
-  result = render_lookup_add_instruction_comment(lookup, section_index, offset, comment);
-  if (result != 0) return result;
+  if (address == NULL || !address->matched) return 0;
   return render_lookup_add_inferred_runtime_address_ref(lookup, section_index, offset, 0U,
     address->base + address->delta, 0U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
 }
@@ -8341,7 +8321,7 @@ static int render_lookup_comment_bitmap_memory_uses_for_instruction(M68kRenderLo
       metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE;
     if (operand_absolute_offset_local(operand, &absolute) &&
         bitmap_runtime_address_for_value(lookup, absolute, &address)) {
-      if (render_lookup_add_bitmap_memory_comment(lookup, section->section_index, candidate->offset,
+      if (render_lookup_add_bitmap_memory_runtime_ref(lookup, section->section_index, candidate->offset,
           &address) != 0) {
         return -1;
       }
@@ -8349,7 +8329,7 @@ static int render_lookup_comment_bitmap_memory_uses_for_instruction(M68kRenderLo
     }
     if ((access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE) &&
         operand_runtime_address_from_bitmap_base(state, operand, &address)) {
-      if (render_lookup_add_bitmap_memory_comment(lookup, section->section_index, candidate->offset,
+      if (render_lookup_add_bitmap_memory_runtime_ref(lookup, section->section_index, candidate->offset,
           &address) != 0) {
         return -1;
       }

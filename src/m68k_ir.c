@@ -657,6 +657,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "copper_row";
     case M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT:
       return "copper_display_layout";
+    case M68K_PLATFORM_SEMANTIC_USE_BITMAP_MEMORY:
+      return "bitmap_memory";
     default:
       return "unknown";
   }
