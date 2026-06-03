@@ -3293,6 +3293,10 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
         M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT, semantic_comment, sizeof(semantic_comment))) {
       render_asm_comment_line(preview, semantic_comment);
     }
+    if (attach_platform_semantic_kind_note_comment_for_render(source_analysis, section->section_index, item->offset,
+        M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP, semantic_comment, sizeof(semantic_comment))) {
+      render_asm_comment_line(preview, semantic_comment);
+    }
     render_asm_copper_list_words(preview, lookup, source_analysis, section, accepted_start, section->data,
       item->offset, available, copper_comment, io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
@@ -6661,12 +6665,23 @@ static const char *platform_semantic_use_role_for_render(const M68kPlatformSeman
   }
 }
 
+static const M68kSectionAnalysisIR *source_analysis_section_for_render(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index) {
+  size_t index;
+  if (source_analysis == NULL || section_index > UINT32_MAX) return NULL;
+  for (index = 0U; index < source_analysis->section_count; ++index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[index];
+    if (section->section_index == (uint32_t)section_index) return section;
+  }
+  return NULL;
+}
+
 static const char *source_analysis_platform_semantic_use_role_for_instruction(
     const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset) {
   const M68kSectionAnalysisIR *section;
   size_t index;
-  if (source_analysis == NULL || section_index >= source_analysis->section_count) return NULL;
-  section = &source_analysis->sections[section_index];
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (section == NULL) return NULL;
   for (index = 0U; index < section->platform_semantic_use_count; ++index) {
     const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
     const char *role;
@@ -6681,15 +6696,14 @@ static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnal
     size_t section_index, uint32_t offset, char *comment, size_t comment_size) {
   const M68kSectionAnalysisIR *section;
   size_t index;
-  if (source_analysis == NULL || section_index >= source_analysis->section_count ||
-      comment == NULL || comment_size == 0U) {
-    return 0;
-  }
-  section = &source_analysis->sections[section_index];
+  if (comment == NULL || comment_size == 0U) return 0;
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (section == NULL) return 0;
   for (index = 0U; index < section->platform_semantic_use_count; ++index) {
     const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
     if (use->offset != offset || use->note_text == NULL || use->note_text[0] == '\0') continue;
     if (use->kind == M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT) continue;
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP) continue;
     (void)append_comment_part_local(comment, comment_size, use->note_text);
     return 1;
   }
@@ -6700,18 +6714,30 @@ static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourc
     size_t section_index, uint32_t offset, uint8_t kind, char *comment, size_t comment_size) {
   const M68kSectionAnalysisIR *section;
   size_t index;
-  if (source_analysis == NULL || section_index >= source_analysis->section_count ||
-      comment == NULL || comment_size == 0U) {
-    return 0;
-  }
+  if (comment == NULL || comment_size == 0U) return 0;
   comment[0] = '\0';
-  section = &source_analysis->sections[section_index];
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (section == NULL) return 0;
   for (index = 0U; index < section->platform_semantic_use_count; ++index) {
     const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
     if (use->kind != kind || use->offset != offset || use->note_text == NULL || use->note_text[0] == '\0') continue;
     (void)append_comment_part_local(comment, comment_size, use->note_text);
   }
   return comment[0] != '\0';
+}
+
+static void render_platform_semantic_header_comments_for_raw_data(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset) {
+  char semantic_comment[160];
+  semantic_comment[0] = '\0';
+  if (attach_platform_semantic_kind_note_comment_for_render(source_analysis, section_index, offset,
+      M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT, semantic_comment, sizeof(semantic_comment))) {
+    render_asm_comment_line(preview, semantic_comment);
+  }
+  if (attach_platform_semantic_kind_note_comment_for_render(source_analysis, section_index, offset,
+      M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP, semantic_comment, sizeof(semantic_comment))) {
+    render_asm_comment_line(preview, semantic_comment);
+  }
 }
 
 static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_register(const M68kFact *fact) {
@@ -10417,6 +10443,8 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
                 begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, (uint32_t)section_index);
                 render_asm_comment_line(out_preview,
                   lookup_instruction_comment(lookup, section->section_index, start));
+                render_platform_semantic_header_comments_for_raw_data(out_preview, source_analysis,
+                  section->section_index, start);
                 finish_asm_source_plan_row(out_preview, section->section_index, start, 0U, 1);
                 if (initialized_span) {
                   render_asm_data_dc_b_plan_rows(out_preview, lookup, section_index, section, start, offset - start,

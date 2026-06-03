@@ -26761,7 +26761,7 @@ abs_0_0005D9CE:
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9EC
 	move.l abs_0_0005DD0C(pc),$00A0(a6)
-	move.w #$20,$00A4(a6)
+	move.w #$20,$00A4(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
 	subq.w #1,$001E(a0)
 	beq.b abs_0_0005DA16
@@ -26813,7 +26813,7 @@ abs_0_0005DA6E:
 	move.w d0,$0006(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DA94
-	move.w d0,$00A6(a6)
+	move.w d0,$00A6(a6)	; audio period
 abs_0_0005DA94:
 	sf.b $0016(a0)
 	move.l a1,$0004(a0)
@@ -26888,7 +26888,7 @@ abs_0_0005DB64:
 	move.w d0,$0006(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DB72
-	move.w d0,$00A6(a6)
+	move.w d0,$00A6(a6)	; audio period
 abs_0_0005DB72:
 	subq.b #1,$002B(a0)
 	bcc.b abs_0_0005DBA4

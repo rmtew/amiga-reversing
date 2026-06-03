@@ -1984,6 +1984,194 @@ static int format_source_quality_copper_display_layout_note(const uint8_t *data,
   return strlen(buf) + 1U < buf_size;
 }
 
+typedef struct M68kSourceQualityDisplaySetup {
+  uint8_t has_bplcon0;
+  uint8_t has_diwstrt;
+  uint8_t has_diwstop;
+  uint8_t has_ddfstrt;
+  uint8_t has_ddfstop;
+  uint8_t has_bpl1mod;
+  uint8_t has_bpl2mod;
+  uint16_t bplcon0;
+  uint16_t diwstrt;
+  uint16_t diwstop;
+  uint16_t ddfstrt;
+  uint16_t ddfstop;
+  int16_t bpl1mod;
+  int16_t bpl2mod;
+} M68kSourceQualityDisplaySetup;
+
+static int source_quality_instruction_move_operand_indices_from_metadata(const M68kInstructionIR *instruction,
+    size_t *out_source_index, size_t *out_dest_index, const M68kSimFormMetadata **out_metadata) {
+  const M68kSimFormMetadata *metadata;
+  if (out_source_index != NULL) *out_source_index = 0U;
+  if (out_dest_index != NULL) *out_dest_index = 0U;
+  if (out_metadata != NULL) *out_metadata = NULL;
+  if (instruction == NULL || instruction->operand_count == 0U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_MOVE ||
+      metadata->source_operand_index >= instruction->operand_count ||
+      metadata->dest_operand_index >= instruction->operand_count) {
+    return 0;
+  }
+  if (out_source_index != NULL) *out_source_index = metadata->source_operand_index;
+  if (out_dest_index != NULL) *out_dest_index = metadata->dest_operand_index;
+  if (out_metadata != NULL) *out_metadata = metadata;
+  return 1;
+}
+
+static int source_quality_candidate_operand_absolute_value(const M68kDecodeCandidate *candidate,
+    size_t operand_index, uint32_t *out_value) {
+  const M68kAsmOperandValue *operand;
+  uint8_t kind;
+  if (out_value != NULL) *out_value = 0U;
+  if (candidate == NULL || operand_index >= candidate->operand_count || out_value == NULL) return 0;
+  operand = &candidate->operands[operand_index];
+  kind = candidate->operand_kinds[operand_index];
+  if (kind == M68K_ASM_OPERAND_ABSL ||
+      (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7U &&
+       (operand->ea_reg == 0U || operand->ea_reg == 1U))) {
+    *out_value = operand->value;
+    return 1;
+  }
+  return 0;
+}
+
+static int source_quality_display_setup_record_register_write(M68kSourceQualityDisplaySetup *setup,
+    const AmigaOsHardwareRegisterInfo *hardware_register, uint32_t value) {
+  uint16_t word = (uint16_t)value;
+  if (setup == NULL || hardware_register == NULL) return 0;
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0) {
+    setup->has_bplcon0 = 1U;
+    setup->bplcon0 = word;
+    return 1;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTRT) {
+    setup->has_diwstrt = 1U;
+    setup->diwstrt = word;
+    return 1;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTOP) {
+    setup->has_diwstop = 1U;
+    setup->diwstop = word;
+    return 1;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTRT) {
+    setup->has_ddfstrt = 1U;
+    setup->ddfstrt = word;
+    return 1;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTOP) {
+    setup->has_ddfstop = 1U;
+    setup->ddfstop = word;
+    return 1;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL1MOD) {
+    setup->has_bpl1mod = 1U;
+    setup->bpl1mod = (int16_t)word;
+    return 1;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL2MOD) {
+    setup->has_bpl2mod = 1U;
+    setup->bpl2mod = (int16_t)word;
+    return 1;
+  }
+  return 0;
+}
+
+static int source_quality_display_setup_collect_immediate_write(M68kSourceQualityDisplaySetup *setup,
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  size_t source_index = 0U, dest_index = 0U;
+  uint32_t value = 0U;
+  uint32_t dest_address = 0U;
+  if (setup == NULL || candidate == NULL || instruction == NULL || instruction->size_suffix != 'w' ||
+      !source_quality_instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index,
+        &metadata) ||
+      metadata == NULL || metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[source_index], &value) ||
+      !source_quality_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
+    return 0;
+  }
+  hardware_register = amiga_os_find_hardware_register_by_cpu_address(dest_address);
+  return source_quality_display_setup_record_register_write(setup, hardware_register, value);
+}
+
+static int source_quality_collect_display_setup_before_offset(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t end_offset, M68kSourceQualityDisplaySetup *setup) {
+  size_t candidate_index;
+  if (setup != NULL) memset(setup, 0, sizeof(*setup));
+  if (section == NULL || accepted_start == NULL || setup == NULL) return 0;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    M68kInstructionIR instruction;
+    if (candidate->offset >= end_offset) break;
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    (void)source_quality_display_setup_collect_immediate_write(setup, candidate, &instruction);
+  }
+  return setup->has_bplcon0 || setup->has_diwstrt || setup->has_diwstop ||
+    setup->has_ddfstrt || setup->has_ddfstop || setup->has_bpl1mod || setup->has_bpl2mod;
+}
+
+static int format_source_quality_display_setup_note(const M68kSourceQualityDisplaySetup *setup, char *buf,
+    size_t buf_size) {
+  uint32_t plane_count;
+  uint32_t fetch_bytes_per_row = 0U;
+  uint32_t visible_rows = 0U;
+  const char *resolution;
+  const char *color;
+  int written;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (setup == NULL || buf == NULL || buf_size == 0U || !setup->has_bplcon0) return 0;
+  plane_count = ((uint32_t)setup->bplcon0 >> 12) & 7U;
+  if (plane_count == 0U) return 0;
+  resolution = (setup->bplcon0 & 0x8000U) != 0U ? "hires" : "lores";
+  color = (setup->bplcon0 & 0x0200U) != 0U ? " color" : "";
+  written = snprintf(buf, buf_size, "display setup %u bitplanes %s%s",
+    (unsigned)plane_count, resolution, color);
+  if (written <= 0 || (size_t)written >= buf_size) return 0;
+  if (setup->has_diwstrt && setup->has_diwstop) {
+    uint32_t start_v = ((uint32_t)setup->diwstrt >> 8) & 0xFFU;
+    uint32_t stop_v = ((uint32_t)setup->diwstop >> 8) & 0xFFU;
+    written = snprintf(buf + strlen(buf), buf_size - strlen(buf),
+      " window v=$%02X..$%02X h=$%02X..$%02X",
+      (unsigned)start_v, (unsigned)stop_v,
+      (unsigned)(setup->diwstrt & 0xFFU), (unsigned)(setup->diwstop & 0xFFU));
+    if (written <= 0 || (size_t)written >= buf_size - strlen(buf)) return 0;
+    if (stop_v > start_v) {
+      visible_rows = stop_v - start_v;
+      written = snprintf(buf + strlen(buf), buf_size - strlen(buf), " rows %u", (unsigned)visible_rows);
+      if (written <= 0 || (size_t)written >= buf_size - strlen(buf)) return 0;
+    }
+  }
+  if (setup->has_ddfstrt && setup->has_ddfstop) {
+    uint32_t start_fetch = (uint32_t)setup->ddfstrt & 0xFFU;
+    uint32_t stop_fetch = (uint32_t)setup->ddfstop & 0xFFU;
+    written = snprintf(buf + strlen(buf), buf_size - strlen(buf),
+      " fetch $%02X..$%02X", (unsigned)start_fetch, (unsigned)stop_fetch);
+    if (written <= 0 || (size_t)written >= buf_size - strlen(buf)) return 0;
+    if (stop_fetch >= start_fetch) {
+      fetch_bytes_per_row = (((stop_fetch - start_fetch) >> 3) + 1U) * 2U;
+      written = snprintf(buf + strlen(buf), buf_size - strlen(buf),
+        " row %u bytes/plane", (unsigned)fetch_bytes_per_row);
+      if (written <= 0 || (size_t)written >= buf_size - strlen(buf)) return 0;
+    }
+  }
+  if (setup->has_bpl1mod && setup->has_bpl2mod) {
+    written = snprintf(buf + strlen(buf), buf_size - strlen(buf),
+      " mod %d/%d", (int)setup->bpl1mod, (int)setup->bpl2mod);
+    if (written <= 0 || (size_t)written >= buf_size - strlen(buf)) return 0;
+  }
+  if (fetch_bytes_per_row != 0U && visible_rows != 0U) {
+    written = snprintf(buf + strlen(buf), buf_size - strlen(buf),
+      " span $%X/plane", (unsigned)(fetch_bytes_per_row * visible_rows));
+    if (written <= 0 || (size_t)written >= buf_size - strlen(buf)) return 0;
+  }
+  return 1;
+}
+
 static int format_source_quality_amiga_audio_register_note(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
     uint32_t value, int has_immediate, char *buf, size_t buf_size) {
   uint32_t word = value & 0xFFFFU;
@@ -2230,6 +2418,63 @@ static int append_structured_copper_row_platform_semantic_uses(M68kSourceAnalysi
         if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
       }
       cursor += 4U;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_has_copper_list_item_at(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset) {
+  size_t item_index;
+  if (source_analysis == NULL) return 0;
+  for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
+    if (item->has_section_index && item->section_index == section_index && item->offset == offset &&
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) != 0U) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int append_copper_display_setup_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, NULL);
+    size_t ref_index;
+    if (section == NULL || section->section_index >= decode->section_count) continue;
+    for (ref_index = 0U; ref_index < section_analysis->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[ref_index];
+      M68kSectionAnalysisIR *target_section;
+      M68kSourceQualityDisplaySetup setup;
+      M68kPlatformSemanticUseIR use;
+      char note[192];
+      if ((ref->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) == 0U ||
+          !ref->has_target || ref->target_section_index > UINT32_MAX ||
+          !source_quality_has_copper_list_item_at(source_analysis, ref->target_section_index, ref->target_offset)) {
+        continue;
+      }
+      target_section = source_analysis_section_by_index(source_analysis, (uint32_t)ref->target_section_index);
+      if (target_section == NULL) continue;
+      if (!source_quality_collect_display_setup_before_offset(section, accepted_start[section->section_index],
+          ref->offset, &setup) ||
+          !format_source_quality_display_setup_note(&setup, note, sizeof(note))) {
+        continue;
+      }
+      memset(&use, 0, sizeof(use));
+      use.kind = M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP;
+      use.offset = ref->target_offset;
+      use.size = ref->size;
+      use.confidence = ref->confidence;
+      use.has_target = 1U;
+      use.target_section_index = (uint32_t)ref->target_section_index;
+      use.target_offset = ref->target_offset;
+      use.note_text = note;
+      if (m68k_ir_section_analysis_append_platform_semantic_use(target_section, &use) != 0) return -1;
     }
   }
   return 0;
@@ -2800,6 +3045,42 @@ static void source_quality_hardware_base_state_clear_all(SourceQualityHardwareBa
   memset(state->address_base_id, 0, sizeof(state->address_base_id));
 }
 
+static void source_quality_hardware_base_state_apply_policy_register_seeds(SourceQualityHardwareBaseState *state,
+    const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
+  uint16_t index;
+  if (state == NULL || policy == NULL || section_index > UINT32_MAX) return;
+  for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    uint16_t base_id;
+    if (seed->has_section_index && seed->section_index != (uint32_t)section_index) continue;
+    if (seed->has_entry_offset) {
+      if (seed->entry_offset != offset) continue;
+    } else if (!policy->has_entry_offset || section_index != 0U || policy->entry_offset != offset) continue;
+    if ((seed->kind != M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE &&
+         seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) ||
+        seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) {
+      continue;
+    }
+    base_id = amiga_os_hardware_base_id(seed->name);
+    if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) continue;
+    source_quality_hardware_base_state_set(state, seed->reg_index, base_id);
+  }
+}
+
+static void source_quality_hardware_base_state_apply_inferred_register_seeds(SourceQualityHardwareBaseState *state,
+    const M68kSourceQualityHardwareBaseSeed *seeds, size_t seed_count, size_t section_index, uint32_t offset) {
+  size_t index;
+  if (state == NULL || seeds == NULL || section_index > UINT32_MAX) return;
+  for (index = 0U; index < seed_count; ++index) {
+    const M68kSourceQualityHardwareBaseSeed *seed = &seeds[index];
+    if (seed->conflicted != 0U || seed->section_index != section_index || seed->offset != offset ||
+        seed->reg_index >= 8U || seed->hardware_base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+      continue;
+    }
+    source_quality_hardware_base_state_set(state, seed->reg_index, seed->hardware_base_id);
+  }
+}
+
 static int source_quality_operand_hardware_base_id(const SourceQualityHardwareBaseState *state,
     const M68kOperandIR *operand, uint16_t *out_base_id) {
   uint8_t reg = 0U;
@@ -2857,7 +3138,9 @@ static void source_quality_hardware_base_state_update_after_instruction(SourceQu
 }
 
 static int append_hardware_base_note_platform_semantic_uses_for_section(
-    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kAnalysisPolicy *policy, const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds,
+    size_t hardware_base_seed_count) {
   SourceQualityHardwareBaseState state;
   size_t candidate_index;
   if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
@@ -2869,6 +3152,10 @@ static int append_hardware_base_note_platform_semantic_uses_for_section(
     uint8_t operand_index;
     if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+      candidate->offset);
+    source_quality_hardware_base_state_apply_inferred_register_seeds(&state, hardware_base_seeds,
+      hardware_base_seed_count, section->section_index, candidate->offset);
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) {
       source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
@@ -2945,7 +3232,8 @@ static int append_hardware_base_note_platform_semantic_uses_for_section(
 }
 
 static int append_hardware_base_note_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start, const M68kAnalysisPolicy *policy,
+    const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds, size_t hardware_base_seed_count) {
   size_t section_index;
   if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
@@ -2954,7 +3242,7 @@ static int append_hardware_base_note_platform_semantic_uses(M68kSourceAnalysisIR
       (uint32_t)section_analysis->section_index, NULL);
     if (section == NULL || section->section_index >= decode->section_count) continue;
     if (append_hardware_base_note_platform_semantic_uses_for_section(section_analysis, section,
-        accepted_start[section->section_index]) != 0) {
+        accepted_start[section->section_index], policy, hardware_base_seeds, hardware_base_seed_count) != 0) {
       return -1;
     }
   }
@@ -4360,9 +4648,10 @@ static int append_orphan_conflict_ranges_for_section(M68kSectionAnalysisIR *sect
   return 0;
 }
 
-int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
+int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start,
-    uint8_t *const *accepted_bytes) {
+    uint8_t *const *accepted_bytes, const M68kAnalysisPolicy *policy,
+    const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds, size_t hardware_base_seed_count) {
   size_t section_index;
   if (source_analysis == NULL) return -1;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
@@ -4399,10 +4688,13 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_unterminated_accepted_gap_diagnostics(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_copper_row_platform_semantic_uses(source_analysis, decode) != 0) return -1;
+  if (append_copper_display_setup_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_bitmap_memory_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start, policy,
+      hardware_base_seeds, hardware_base_seed_count) != 0)
+    return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_structured_data_table_entries(source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
     return -1;
@@ -4411,6 +4703,19 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
   if (append_expected_address_observation_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   return 0;
+}
+
+int m68k_source_quality_analyze_with_policy(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start,
+    uint8_t *const *accepted_bytes, const M68kAnalysisPolicy *policy) {
+  return m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(source_analysis, decode, facts,
+    accepted_start, accepted_bytes, policy, NULL, 0U);
+}
+
+int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start,
+    uint8_t *const *accepted_bytes) {
+  return m68k_source_quality_analyze_with_policy(source_analysis, decode, facts, accepted_start, accepted_bytes, NULL);
 }
 
 int m68k_source_quality_analyze_rendered_symbol_accesses(M68kSourceAnalysisIR *source_analysis,

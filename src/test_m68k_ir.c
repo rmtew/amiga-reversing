@@ -26816,7 +26816,9 @@ static int test_facts_v2_copper_pointer_renders_combined_display_setup_comment(v
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[88] = {
     0x33u, 0xFCu, 0x42u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x00u,
     0x33u, 0xFCu, 0x00u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x08u,
@@ -26849,17 +26851,25 @@ static int test_facts_v2_copper_pointer_renders_combined_display_setup_comment(v
   policy.runtime_ranges[0].offset = 0U;
   policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
   policy.runtime_ranges[0].runtime_address = 0U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
     "display layout 2 bitmap planes $00070000..$00072000 step $2000") != NULL);
   M68K_C_ASSERT(strstr(source,
     "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 "
     "fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"display_setup\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"note_text\":\"display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 "
+    "fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -27292,6 +27302,98 @@ static int test_facts_v2_dsklen_write_renders_dma_size_comment(void) {
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w #$9F40,_custom+dsklen.l\t; disk DMA read 16000 bytes\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"disk_dma\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"disk DMA read 16000 bytes\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_policy_custom_base_dsklen_write_exports_dma_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[8] = {
+    0x3Du, 0x7Cu, 0x9Fu, 0x40u, 0x00u, 0x24u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "_custom");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$9F40,dsklen(a6)\t; disk DMA read 16000 bytes\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"disk_dma\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"disk DMA read 16000 bytes\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_inferred_custom_base_helper_exports_dma_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[20] = {
+    0x4Du, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
+    0x61u, 0x00u, 0x00u, 0x04u,
+    0x4Eu, 0x75u,
+    0x3Du, 0x7Cu, 0x9Fu, 0x40u, 0x00u, 0x24u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$9F40,dsklen(a6)\t; disk DMA read 16000 bytes\n") != NULL);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"disk_dma\"") != NULL);
@@ -28881,6 +28983,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_runtime_memory_immediate_requires_sink_role},
     {"facts_v2_dsklen_write_renders_dma_size_comment",
       test_facts_v2_dsklen_write_renders_dma_size_comment},
+    {"facts_v2_policy_custom_base_dsklen_write_exports_dma_comment",
+      test_facts_v2_policy_custom_base_dsklen_write_exports_dma_comment},
+    {"facts_v2_inferred_custom_base_helper_exports_dma_comment",
+      test_facts_v2_inferred_custom_base_helper_exports_dma_comment},
     {"facts_v2_render_asm_source_marks_structured_data_code_overlap",
       test_facts_v2_render_asm_source_marks_structured_data_code_overlap},
     {"facts_v2_render_asm_source_renders_call_input_domain_immediate",

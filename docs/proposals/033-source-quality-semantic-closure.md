@@ -2392,12 +2392,73 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"bitmap memory plane 0 +$10 ($00010010)\"") != NULL);
 ```
 
+Copper pointer display-setup comments now follow the same rule too:
+
+```text
+accepted immediate writes to display hardware registers
+  + runtime ref to a structured copper list
+  -> render lookup records/classifies the copper-list runtime ref only
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=display_setup,
+                                                     note_text=...)
+  -> renderer emits the note as a copper-list header comment
+```
+
+The focused fixture asserts the source-analysis fact:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"display_setup\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"display setup 4 bitplanes lores color ...\"") != NULL);
+```
+
+This note is intentionally list-level, like `copper_display_layout`, because it
+shares the copper-list start offset with the first row. Rendering it as an
+inline row comment would compete with the row's own `bitmap pointer` note.
+
+The same placement rule applies when the copper list cannot be emitted through
+the structured copper-list renderer and must remain raw bytes:
+
+```asm
+abs_0_000517FC:
+    ; display layout 4 bitmap planes $00068000..$0006DDC0 step $1F40
+    dc.b $2B,$01,$FF,$FE,$01,$00,$42,$00,...
+```
+
+That is rendering support, not render-time analysis. The renderer is only
+placing an existing `M68kPlatformSemanticUseIR(kind=copper_display_layout)` at
+the raw span start. If the fact is absent, the renderer must not rediscover it
+from bytes.
+
+Hardware-base semantic notes follow the same source-quality rule. Render lookup
+may still infer that a local helper inherits a hardware base register, because
+that is part of existing platform flow analysis:
+
+```asm
+    lea.l _custom.l,a6
+    bsr.w helper
+    rts
+helper:
+    move.w #$9F40,dsklen(a6)    ; disk DMA read 16000 bytes
+    rts
+```
+
+But the comment must be exported from source-quality:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"disk_dma\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"disk DMA read 16000 bytes\"") != NULL);
+```
+
+This requires passing inferred hardware-base seeds into source-quality analysis
+as neutral seed records. It avoids a second renderer-only semantic path while
+keeping existing targets that rely on helper base propagation.
+
 Remaining platform-comment work is the same rule applied to richer structured
-comments such as copper pointer combined display setup comments and other
-renderer helpers that still describe platform meaning while formatting data.
-Display-layout and bitmap-memory comments no longer come from
-`m68k_analysis_render_lookup.c`; the remaining render-lookup copper/bitmap path
-there is runtime-ref inference, not these comments. The remaining comment
+comments in other renderer helpers that still describe platform meaning while
+formatting data. Display-layout, display-setup, and bitmap-memory comments no
+longer come from `m68k_analysis_render_lookup.c`; the remaining render-lookup
+copper/bitmap path there is runtime-ref inference, not these comments. The remaining comment
 families need C semantic-use records with enough structured fields or note text
 for render to format without re-deciding the semantic meaning. Once each family
 is migrated, the corresponding renderer fallback must be deleted.
