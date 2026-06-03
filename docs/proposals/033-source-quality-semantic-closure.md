@@ -887,9 +887,46 @@ source_analysis.expected_symbol_accesses
 This is not the final cleanup. For compatibility with current JSON/reporting,
 render still mirrors rendered accesses into `M68kSectionAnalysisIR` while it
 also records them in `M68kRenderEvidenceIR`. The important ownership step is
-complete: source-quality validation no longer reads the section mirror. The
-next cleanup is to give JSON/reporting an explicit render-evidence export path
-and delete the section-level rendered-access mirror from source analysis.
+complete: source-quality validation no longer reads the section mirror.
+
+The next implementation slice added the explicit JSON export path:
+
+```c
+int source_analysis_to_json_with_render_evidence(
+    const M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderEvidenceIR *render_evidence,
+    char **out_json,
+    M68kDiagSink diagnostics);
+```
+
+The default `source_analysis_to_json()` keeps the compatibility behavior and
+exports section-mirrored rendered accesses. The render-evidence-aware form uses
+`M68kRenderEvidenceIR` directly when supplied:
+
+```text
+source_analysis_to_json()
+  -> rendered_symbol_accesses from M68kSectionAnalysisIR mirror
+
+source_analysis_to_json_with_render_evidence()
+  -> rendered_symbol_accesses from M68kRenderEvidenceIR
+  -> emits no rendered accesses for sections missing from the evidence object
+  -> never consults the section mirror when an evidence object is supplied
+```
+
+The regression fixture
+`source_quality_analyze_uses_render_evidence_without_section_mutation` now
+proves both sides:
+
+```text
+section mirror count remains 0
+explicit render evidence export count is 1
+missing_expected_symbol_access does not fire
+```
+
+The remaining cleanup is workflow lifetime/threading. The render preview owns
+`M68kRenderEvidenceIR` today, but target JSON export usually happens after the
+preview is destroyed. Once the workflow keeps or hands off that evidence, the
+section-level rendered-access mirror can be deleted from source analysis.
 
 ### Remaining Wrong Boundary: Renderer-Side Platform Decisions
 

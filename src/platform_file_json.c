@@ -3894,7 +3894,8 @@ oom:
   return -1;
 }
 
-int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
+static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderEvidenceIR *render_evidence, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t field_index, section_index, incomplete_index, source_quality_index;
   size_t address_identity_index, absolute_address_range_index;
@@ -4208,6 +4209,18 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       (unsigned)source_analysis->section_count) != 0) goto oom;
   for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    const M68kRenderEvidenceSectionIR *render_evidence_section =
+      render_evidence != NULL && section->section_index <= UINT32_MAX ?
+      m68k_ir_render_evidence_section_by_index(render_evidence, (uint32_t)section->section_index) :
+      NULL;
+    const M68kRenderedSymbolAccessIR *rendered_symbol_accesses =
+      render_evidence != NULL ?
+      (render_evidence_section != NULL ? render_evidence_section->rendered_symbol_accesses : NULL) :
+      section->rendered_symbol_accesses;
+    size_t rendered_symbol_access_count =
+      render_evidence != NULL ?
+      (render_evidence_section != NULL ? render_evidence_section->rendered_symbol_access_count : 0U) :
+      section->rendered_symbol_access_count;
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, address_observation_index;
@@ -4705,13 +4718,13 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     }
     if (json_builder_appendf(&builder,
         "],\"rendered_symbol_access_count\":%u,\"rendered_symbol_accesses\":[",
-        (unsigned)section->rendered_symbol_access_count) != 0)
+        (unsigned)rendered_symbol_access_count) != 0)
       goto oom;
     for (rendered_symbol_access_index = 0U;
-        rendered_symbol_access_index < section->rendered_symbol_access_count;
+        rendered_symbol_access_index < rendered_symbol_access_count;
         ++rendered_symbol_access_index) {
       const M68kRenderedSymbolAccessIR *access =
-        &section->rendered_symbol_accesses[rendered_symbol_access_index];
+        &rendered_symbol_accesses[rendered_symbol_access_index];
       if (rendered_symbol_access_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
@@ -5758,6 +5771,15 @@ oom:
   json_builder_destroy(&builder);
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
   return -1;
+}
+
+int source_analysis_to_json_with_render_evidence(const M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderEvidenceIR *render_evidence, char **out_json, M68kDiagSink diagnostics) {
+  return source_analysis_to_json_impl(source_analysis, render_evidence, out_json, diagnostics);
+}
+
+int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
+  return source_analysis_to_json_impl(source_analysis, NULL, out_json, diagnostics);
 }
 
 int source_analysis_platform_calls_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json,

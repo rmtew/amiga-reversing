@@ -11354,6 +11354,15 @@ static int test_source_quality_analyze_uses_render_evidence_without_section_muta
   M68K_C_ASSERT(strstr(analysis_json, "\"rendered_symbol_access_count\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_expected_symbol_access\"") == NULL);
   free(analysis_json);
+  analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, source_analysis_to_json_with_render_evidence(&source_analysis, &render_evidence,
+    &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"rendered_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"label_statement\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_expected_symbol_access\"") == NULL);
+  free(analysis_json);
   m68k_ir_render_evidence_destroy(&render_evidence);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
