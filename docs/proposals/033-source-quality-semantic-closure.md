@@ -2274,9 +2274,44 @@ M68K_C_ASSERT(strstr(analysis_json,
 M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio data word\"") != NULL);
 ```
 
+Current hardware-access comment closure:
+
+```text
+accepted hardware register/range access
+  + read from JOY0DAT/JOY1DAT/INTREQR
+    or non-immediate write into COLOR range
+  + absolute operand or proven _custom base-relative operand
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=hardware_access,
+                                                      note_text=...)
+  -> renderer appends note_text
+  -> render no longer contains those access-comment recognizers
+```
+
+Examples:
+
+```asm
+    move.w  d0,_custom+color+$1E.l   ; palette color 15
+    move.l  a0,_custom+color.l       ; palette colors 0-1
+    move.w  _custom+joy0dat.l,d0     ; joystick/mouse port 0 data
+    move.w  _custom+intreqr.l,d0     ; interrupt request state
+```
+
+The fix uses the same two evidence paths as audio:
+
+```text
+absolute hardware observation
+  -> source-quality note
+
+accepted instruction + source-quality hardware-base tracker
+  -> base-relative hardware note
+```
+
+The rendered output is unchanged, but the source of truth moved. Tests assert
+both `kind_name:"hardware_access"` and the expected `note_text` values for
+palette, joystick/mouse, and interrupt-state comments.
+
 Remaining platform-comment work is the same rule applied to richer comments
-that need value-domain payloads, such as display setup, palette writes, and
-read-side hardware status comments.
+that need value-domain payloads, such as display setup.
 Those need C semantic-use records with enough structured fields or note text
 for render to format without re-deciding the semantic meaning. Once each family
 is migrated, the corresponding renderer fallback must be deleted.

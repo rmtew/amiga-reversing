@@ -18200,6 +18200,12 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"sound sample length 9320 bytes\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio period\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio data word\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"hardware_access\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"palette color 15\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"palette colors 0-1\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"joystick/mouse port 0 data\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"joystick/mouse port 1 data\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"interrupt request state\"") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,bplpt+$02(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,sprpt+$1E(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $0004.w,a6\n") != NULL);

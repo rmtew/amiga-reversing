@@ -1752,6 +1752,55 @@ static int format_source_quality_amiga_audio_register_note(const AmigaOsHardware
   return 0;
 }
 
+static uint32_t source_quality_byte_width_for_instruction_size(const M68kInstructionIR *instruction) {
+  if (instruction == NULL) return 0U;
+  if (instruction->size_suffix == 'b') return 1U;
+  if (instruction->size_suffix == 'w') return 2U;
+  if (instruction->size_suffix == 'l') return 4U;
+  return 0U;
+}
+
+static int format_source_quality_amiga_hardware_register_access_note(
+    const AmigaOsHardwareRegisterInfo *hardware_register, uint8_t access_kind, char *buf, size_t buf_size) {
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_register == NULL || access_kind != M68K_SIM_ACCESS_MEMORY_READ) return 0;
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_JOY0DAT) {
+    snprintf(buf, buf_size, "joystick/mouse port 0 data");
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_JOY1DAT) {
+    snprintf(buf, buf_size, "joystick/mouse port 1 data");
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_INTREQR) {
+    snprintf(buf, buf_size, "interrupt request state");
+    return strlen(buf) + 1U < buf_size;
+  }
+  return 0;
+}
+
+static int format_source_quality_amiga_hardware_range_access_note(
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range, uint32_t offset, uint8_t access_kind,
+    uint32_t byte_width, char *buf, size_t buf_size) {
+  uint32_t index;
+  uint32_t color_count;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_range == NULL || hardware_range->symbol_id != AMIGA_OS_SYMBOL_ID_COLOR ||
+      access_kind != M68K_SIM_ACCESS_MEMORY_WRITE || offset < hardware_range->offset) {
+    return 0;
+  }
+  index = (offset - hardware_range->offset) / 2U;
+  color_count = byte_width > 2U ? byte_width / 2U : 1U;
+  if (color_count > 1U) {
+    snprintf(buf, buf_size, "palette colors %u-%u", (unsigned)index, (unsigned)(index + color_count - 1U));
+  } else {
+    snprintf(buf, buf_size, "palette color %u", (unsigned)index);
+  }
+  return strlen(buf) + 1U < buf_size;
+}
+
 static int append_hardware_note_platform_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   size_t observation_index;
@@ -1762,12 +1811,14 @@ static int append_hardware_note_platform_semantic_uses_for_section(M68kSectionAn
     M68kInstructionIR instruction;
     const AmigaOsHardwareRegisterInfo *hardware_register;
     const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range;
     M68kPlatformSemanticUseIR use;
     uint32_t value = 0U;
     uint8_t source_index;
     int has_immediate_source = 0;
     char note[160];
-    if (observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER ||
+    if ((observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER &&
+         observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) ||
         observation->operand_index == UINT32_MAX) {
       continue;
     }
@@ -1777,7 +1828,8 @@ static int append_hardware_note_platform_semantic_uses_for_section(M68kSectionAn
     if (observation->operand_index >= instruction.operand_count) continue;
     hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(observation->address);
     hardware_register = amiga_os_find_hardware_register_by_cpu_address(observation->address);
-    if (hardware_register == NULL && hardware_field == NULL) continue;
+    hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(observation->address);
+    if (hardware_register == NULL && hardware_field == NULL && hardware_range == NULL) continue;
     for (source_index = 0U; source_index < instruction.operand_count; ++source_index) {
       if (source_index == observation->operand_index) continue;
       if (m68k_ir_operand_immediate_value(&instruction.operands[source_index], &value)) {
@@ -1802,9 +1854,18 @@ static int append_hardware_note_platform_semantic_uses_for_section(M68kSectionAn
           observation->access_kind != M68K_SIM_ACCESS_MEMORY_READ) {
         continue;
       }
-      if (!format_source_quality_amiga_audio_register_note(hardware_field, 0U, 0, note, sizeof(note))) continue;
       memset(&use, 0, sizeof(use));
-      use.kind = M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER;
+      if (format_source_quality_amiga_audio_register_note(hardware_field, 0U, 0, note, sizeof(note))) {
+        use.kind = M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER;
+      } else if (format_source_quality_amiga_hardware_register_access_note(hardware_register, observation->access_kind,
+          note, sizeof(note)) ||
+          format_source_quality_amiga_hardware_range_access_note(hardware_range, observation->owner_offset,
+            observation->access_kind, source_quality_byte_width_for_instruction_size(&instruction), note,
+            sizeof(note))) {
+        use.kind = M68K_PLATFORM_SEMANTIC_USE_HARDWARE_ACCESS;
+      } else {
+        continue;
+      }
     }
     use.offset = candidate->offset;
     use.size = candidate->byte_count;
@@ -2453,7 +2514,7 @@ static void source_quality_hardware_base_state_update_after_instruction(SourceQu
     source_quality_hardware_base_state_clear(state, dest_reg);
 }
 
-static int append_hardware_base_audio_note_platform_semantic_uses_for_section(
+static int append_hardware_base_note_platform_semantic_uses_for_section(
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   SourceQualityHardwareBaseState state;
   size_t candidate_index;
@@ -2475,7 +2536,9 @@ static int append_hardware_base_audio_note_platform_semantic_uses_for_section(
       uint8_t access_kind = metadata->operand_access_kinds[operand_index];
       uint8_t base_reg = 0U;
       int16_t displacement = 0;
+      const AmigaOsHardwareRegisterInfo *hardware_register;
       const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+      const AmigaOsHardwareRegisterRangeInfo *hardware_range;
       M68kPlatformSemanticUseIR use;
       uint32_t value = 0U;
       uint8_t source_index;
@@ -2490,7 +2553,11 @@ static int append_hardware_base_audio_note_platform_semantic_uses_for_section(
       }
       hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(state.address_base_id[base_reg],
         (uint32_t)(uint16_t)displacement);
-      if (hardware_field == NULL) continue;
+      hardware_register = amiga_os_find_hardware_register_by_base_id_offset(state.address_base_id[base_reg],
+        (uint32_t)(uint16_t)displacement);
+      hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(state.address_base_id[base_reg],
+        (uint32_t)(uint16_t)displacement);
+      if (hardware_field == NULL && hardware_register == NULL && hardware_range == NULL) continue;
       for (source_index = 0U; source_index < instruction.operand_count; ++source_index) {
         if (source_index == operand_index) continue;
         if (m68k_ir_operand_immediate_value(&instruction.operands[source_index], &value)) {
@@ -2502,12 +2569,20 @@ static int append_hardware_base_audio_note_platform_semantic_uses_for_section(
         if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
         value = source_quality_immediate_domain_value_for_instruction_size(&instruction, value);
       }
-      if (!format_source_quality_amiga_audio_register_note(hardware_field, value, has_immediate_source, note,
+      if (format_source_quality_amiga_audio_register_note(hardware_field, value, has_immediate_source, note,
           sizeof(note))) {
+        memset(&use, 0, sizeof(use));
+        use.kind = M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER;
+      } else if (!has_immediate_source &&
+          (format_source_quality_amiga_hardware_register_access_note(hardware_register, access_kind, note,
+             sizeof(note)) ||
+           format_source_quality_amiga_hardware_range_access_note(hardware_range, (uint32_t)(uint16_t)displacement,
+             access_kind, source_quality_byte_width_for_instruction_size(&instruction), note, sizeof(note)))) {
+        memset(&use, 0, sizeof(use));
+        use.kind = M68K_PLATFORM_SEMANTIC_USE_HARDWARE_ACCESS;
+      } else {
         continue;
       }
-      memset(&use, 0, sizeof(use));
-      use.kind = M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER;
       use.offset = candidate->offset;
       use.size = candidate->byte_count;
       use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -2519,7 +2594,7 @@ static int append_hardware_base_audio_note_platform_semantic_uses_for_section(
   return 0;
 }
 
-static int append_hardware_base_audio_note_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
+static int append_hardware_base_note_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
   size_t section_index;
   if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
@@ -2528,7 +2603,7 @@ static int append_hardware_base_audio_note_platform_semantic_uses(M68kSourceAnal
     const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
       (uint32_t)section_analysis->section_index, NULL);
     if (section == NULL || section->section_index >= decode->section_count) continue;
-    if (append_hardware_base_audio_note_platform_semantic_uses_for_section(section_analysis, section,
+    if (append_hardware_base_note_platform_semantic_uses_for_section(section_analysis, section,
         accepted_start[section->section_index]) != 0) {
       return -1;
     }
@@ -3975,7 +4050,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_hardware_base_audio_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_structured_data_table_entries(source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
     return -1;
