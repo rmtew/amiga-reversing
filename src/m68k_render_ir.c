@@ -6588,7 +6588,13 @@ static int attach_platform_semantic_operand_expr_for_render(M68kRenderIRPreview 
       continue;
     }
     if (instruction->operands[use->operand_index].symbol_ref.has_name != 0U) continue;
-    if (!render_asm_include_for_symbol_expr(preview, use->operand_expr)) {
+    if (use->has_runtime_address) {
+      if (!render_asm_declare_symbol_hex_once(preview, use->operand_expr, use->runtime_address)) {
+        ++preview->asm_source_instruction_render_failures;
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, (uint32_t)section_index, offset, 0U);
+        return -1;
+      }
+    } else if (!render_asm_include_for_symbol_expr(preview, use->operand_expr)) {
       ++preview->asm_source_instruction_render_failures;
       record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, (uint32_t)section_index, offset, 0U);
       return -1;
@@ -9489,6 +9495,10 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       !attach_proven_instruction_relocations(preview, lookup, section->section_index, candidate, &instruction)) {
     return 0;
   }
+  if (attach_platform_semantic_operand_expr_for_render(preview, source_analysis, section->section_index,
+      candidate->offset, &instruction) < 0) {
+    return 0;
+  }
   (void)attach_absolute_word_control_symbols(lookup, section->section_index, candidate, &instruction);
   (void)attach_platform_pc_relative_section_anchor_symbols(lookup, section->section_index, candidate, &instruction);
   (void)attach_pc_relative_interior_data_anchor_symbols(lookup, section, accepted_start, candidate, &instruction);
@@ -9513,10 +9523,6 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   }
   m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(lookup, platform_state, decode, accepted_start_all, section,
     accepted_start, candidate, &instruction, &vector_resolution);
-  if (attach_platform_semantic_operand_expr_for_render(preview, source_analysis, section->section_index,
-      candidate->offset, &instruction) < 0) {
-    return 0;
-  }
   (void)attach_platform_semantic_target_operand_for_render(lookup, source_analysis, section->section_index,
     candidate->offset, &instruction);
   (void)attach_platform_semantic_note_comment_for_render(source_analysis, lookup, section->section_index,

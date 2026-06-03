@@ -4499,6 +4499,10 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         if (json_builder_append_json_string(&builder, use->operand_expr) != 0)
           goto oom;
       }
+      if (use->has_runtime_address) {
+        if (json_builder_appendf(&builder, ",\"runtime_address\":%u", (unsigned)use->runtime_address) != 0)
+          goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }

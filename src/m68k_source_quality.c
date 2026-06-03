@@ -2714,20 +2714,34 @@ static void source_quality_runtime_sink_note_text(const M68kSectionAnalysisIR *s
   }
 }
 
-static void source_quality_runtime_sink_set_target_operand(M68kPlatformSemanticUseIR *use,
-    const M68kRuntimeAddressRefIR *runtime_ref, const M68kInstructionIR *instruction) {
+static void source_quality_runtime_sink_set_operand_fact(M68kPlatformSemanticUseIR *use,
+    const AmigaOsHardwareRegisterInfo *hardware_register, const M68kRuntimeAddressRefIR *runtime_ref,
+    const M68kInstructionIR *instruction, char *operand_expr, size_t operand_expr_size) {
   uint32_t value = 0U;
   if (use == NULL || runtime_ref == NULL || instruction == NULL ||
-      !runtime_ref->has_target || runtime_ref->target_section_index > UINT32_MAX ||
       runtime_ref->operand_index >= instruction->operand_count ||
       !m68k_ir_operand_immediate_value(&instruction->operands[runtime_ref->operand_index], &value) ||
       !runtime_ref->has_runtime_address || value != runtime_ref->runtime_address) {
     return;
   }
-  use->has_target = 1U;
-  use->target_section_index = (uint32_t)runtime_ref->target_section_index;
-  use->target_offset = runtime_ref->target_offset;
   use->operand_index = runtime_ref->operand_index;
+  if (runtime_ref->has_target && runtime_ref->target_section_index <= UINT32_MAX) {
+    use->has_target = 1U;
+    use->target_section_index = (uint32_t)runtime_ref->target_section_index;
+    use->target_offset = runtime_ref->target_offset;
+    return;
+  }
+  if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
+      hardware_register->runtime_target_role[0] == '\0' || operand_expr == NULL || operand_expr_size == 0U) {
+    return;
+  }
+  platform_format_runtime_address_symbol_name(hardware_register->runtime_target_role, runtime_ref->runtime_address, "",
+    operand_expr, operand_expr_size);
+  if (operand_expr[0] == '\0') return;
+  use->operand_expr = operand_expr;
+  use->has_operand_expr = 1U;
+  use->runtime_address = runtime_ref->runtime_address;
+  use->has_runtime_address = 1U;
 }
 
 static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
@@ -2742,6 +2756,7 @@ static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnal
     M68kInstructionIR instruction;
     M68kPlatformSemanticUseIR use;
     char note[160];
+    char operand_expr[M68K_IR_SYMBOL_NAME_SIZE];
     if (!observation->has_address ||
         observation->access_kind != M68K_SIM_ACCESS_MEMORY_WRITE ||
         (observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER &&
@@ -2765,7 +2780,8 @@ static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnal
       observation->address);
     use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     use.note_text = note;
-    source_quality_runtime_sink_set_target_operand(&use, runtime_ref, &instruction);
+    source_quality_runtime_sink_set_operand_fact(&use, hardware_register, runtime_ref, &instruction, operand_expr,
+      sizeof(operand_expr));
     if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
   }
   return 0;
@@ -3962,6 +3978,7 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
       const M68kRuntimeAddressRefIR *runtime_ref;
       M68kPlatformSemanticUseIR use;
       char note[160];
+      char operand_expr[M68K_IR_SYMBOL_NAME_SIZE];
       if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
       if (instruction.size_suffix != 'l') continue;
       if (!source_quality_operand_address_displacement(&instruction.operands[operand_index], &base_reg,
@@ -3986,7 +4003,8 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
         sink_address);
       use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
       use.note_text = note;
-      source_quality_runtime_sink_set_target_operand(&use, runtime_ref, &instruction);
+      source_quality_runtime_sink_set_operand_fact(&use, hardware_register, runtime_ref, &instruction, operand_expr,
+        sizeof(operand_expr));
       if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
     }
     source_quality_hardware_base_state_update_after_instruction(&state, &instruction);

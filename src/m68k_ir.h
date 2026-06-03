@@ -1410,6 +1410,7 @@ typedef struct M68kPlatformSemanticUseIR {
   uint32_t target_offset;
   uint32_t secondary_target_section_index;
   uint32_t secondary_target_offset;
+  uint32_t runtime_address;
   uint32_t role_flags;
   uint8_t kind;
   uint8_t source_pattern_id;
@@ -1417,6 +1418,7 @@ typedef struct M68kPlatformSemanticUseIR {
   uint8_t has_target;
   uint8_t has_secondary_target;
   uint8_t has_operand_expr;
+  uint8_t has_runtime_address;
 } M68kPlatformSemanticUseIR;
 
 typedef struct M68kCodeStartRefIR {

@@ -2913,6 +2913,38 @@ storage/runtime spelling is render support. It no longer discovers that the
 operand is a sink pointer or maps the immediate back into source bytes. The old
 `attach_amiga_runtime_sink_immediate_symbols()` scan was deleted.
 
+External runtime sink operands use the same semantic-use record instead of a
+renderer-only role scan. Earlier render inspected runtime refs, resolved the
+hardware sink role, coined a symbol, declared an `EQU`, and rewrote the
+immediate:
+
+```asm
+disk_buffer_00067D00 EQU $67D00
+
+    move.l  #disk_buffer_00067D00,_custom+dskpt.l ; disk_buffer pointer $00067D00
+```
+
+Source-quality now publishes the full fact needed by render:
+
+```text
+runtime-address ref at sink write
+  + ref has no source target
+  + hardware sink role is disk_buffer
+  + source operand is the immediate runtime address
+  -> platform_semantic_use(kind=runtime_sink_pointer,
+       operand_index=source_operand,
+       operand_expr="disk_buffer_00067D00",
+       runtime_address=$00067D00)
+  -> renderer declares operand_expr EQU runtime_address
+  -> renderer attaches operand_expr to the operand
+```
+
+This keeps the role decision in source-quality. Render still owns only textual
+declaration and operand formatting. Broader legacy runtime-address value
+fallbacks remain for cases that are not yet represented by semantic-use facts;
+each one should be removed only after the equivalent C fact exists and focused
+tests assert the exported source-analysis record.
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no

@@ -2878,6 +2878,8 @@ int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR 
         existing->secondary_target_section_index == use->secondary_target_section_index &&
         existing->secondary_target_offset == use->secondary_target_offset &&
         existing->has_operand_expr == use->has_operand_expr &&
+        existing->has_runtime_address == use->has_runtime_address &&
+        existing->runtime_address == use->runtime_address &&
         existing->operand_index == use->operand_index &&
         text_equal_nullable(existing->note_text, use->note_text) &&
         text_equal_nullable(existing->operand_expr, use->operand_expr)) {

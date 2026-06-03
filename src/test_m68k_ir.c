@@ -27405,10 +27405,17 @@ static int test_facts_v2_external_runtime_sink_address_renders_pointer_comment(v
   }
   M68K_C_ASSERT(sink_use != NULL);
   M68K_C_ASSERT_STR("disk_buffer pointer $00067D00", sink_use->note_text);
+  M68K_C_ASSERT(sink_use->has_operand_expr);
+  M68K_C_ASSERT_STR("disk_buffer_00067D00", sink_use->operand_expr);
+  M68K_C_ASSERT_U32(0U, sink_use->operand_index);
+  M68K_C_ASSERT(sink_use->has_runtime_address);
+  M68K_C_ASSERT_U32(0x67D00U, sink_use->runtime_address);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"runtime_sink_pointer\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"disk_buffer pointer $00067D00\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_expr\":\"disk_buffer_00067D00\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":425216") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);
