@@ -1101,6 +1101,17 @@ static uint32_t code_start_evidence_from_reason_local(uint32_t reason) {
   }
 }
 
+static uint32_t code_start_evidence_from_entry_point_provenance_local(uint8_t provenance) {
+  switch (provenance) {
+    case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_MANUAL_ACTION_LOG:
+      return M68K_CODE_ORIGIN_EVIDENCE_MANUAL_ACTION_LOG_ENTRY_POINT;
+    case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL:
+      return M68K_CODE_ORIGIN_EVIDENCE_DECISION_JOURNAL_ENTRY_POINT;
+    default:
+      return M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT;
+  }
+}
+
 static int append_code_start_fact_with_evidence(M68kFactIR *facts, size_t section_index, uint32_t offset,
     uint8_t confidence, uint32_t reason, uint32_t evidence_kind, size_t source_section_index,
     uint32_t source_offset, uint8_t has_runtime_address, uint32_t runtime_address) {
@@ -1470,8 +1481,10 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
     const M68kAnalysisEntryPoint *entry = &policy->entry_points[entry_index];
     size_t target_section = entry->has_section_index ? entry->section_index : 0U;
     if (target_section >= object->section_count) continue;
-    if (enqueue_code_start(facts, queue, profile, target_section, entry->offset, M68K_FACT_CONFIDENCE_REQUIRED,
-        M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT, target_section, entry->offset) != 0) return -1;
+    if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, target_section, entry->offset,
+        M68K_FACT_CONFIDENCE_REQUIRED, M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT,
+        code_start_evidence_from_entry_point_provenance_local(entry->provenance),
+        target_section, entry->offset, 0U, 0U, NULL, 0U) != 0) return -1;
     if (label_lookup_create_label(label_lookup, target_section, entry->offset,
         M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
   }

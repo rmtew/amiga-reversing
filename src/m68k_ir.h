@@ -85,9 +85,17 @@ typedef struct M68kAnalysisRegisterSeed {
   char context_name[64];
 } M68kAnalysisRegisterSeed;
 
+typedef enum M68kAnalysisEntryPointProvenance {
+  M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DEFAULT = 0,
+  M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_TARGET_METADATA = 1,
+  M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_MANUAL_ACTION_LOG = 2,
+  M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL = 3
+} M68kAnalysisEntryPointProvenance;
+
 typedef struct M68kAnalysisEntryPoint {
   uint8_t has_section_index;
-  uint8_t reserved[3];
+  uint8_t provenance;
+  uint8_t reserved[2];
   uint32_t section_index;
   uint32_t offset;
 } M68kAnalysisEntryPoint;
@@ -1839,7 +1847,9 @@ typedef enum M68kCodeOriginEvidenceKind {
   M68K_CODE_ORIGIN_EVIDENCE_DISPATCH_TABLE_CONTROL_TARGET = 15,
   M68K_CODE_ORIGIN_EVIDENCE_CALLBACK_FIELD_CONTROL_TARGET = 16,
   M68K_CODE_ORIGIN_EVIDENCE_VECTOR_STORE_CONTROL_TARGET = 17,
-  M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_COPY_CONTROL_TARGET = 18
+  M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_COPY_CONTROL_TARGET = 18,
+  M68K_CODE_ORIGIN_EVIDENCE_MANUAL_ACTION_LOG_ENTRY_POINT = 19,
+  M68K_CODE_ORIGIN_EVIDENCE_DECISION_JOURNAL_ENTRY_POINT = 20
 } M68kCodeOriginEvidenceKind;
 
 typedef enum M68kAcceptedCodeRunEndKind {

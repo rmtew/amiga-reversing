@@ -39,6 +39,17 @@ static uint32_t code_origin_evidence_from_ref(const M68kCodeStartRefIR *ref) {
   return ref->evidence_kind;
 }
 
+static int code_origin_evidence_is_manual_seed(uint32_t evidence_kind) {
+  return evidence_kind == M68K_CODE_ORIGIN_EVIDENCE_MANUAL_ACTION_LOG_ENTRY_POINT ||
+    evidence_kind == M68K_CODE_ORIGIN_EVIDENCE_DECISION_JOURNAL_ENTRY_POINT;
+}
+
+static uint8_t code_origin_class_from_ref(const M68kCodeStartRefIR *ref) {
+  if (ref == NULL) return M68K_CODE_ORIGIN_UNKNOWN;
+  if (code_origin_evidence_is_manual_seed(ref->evidence_kind)) return M68K_CODE_ORIGIN_MANUAL_SEED;
+  return code_origin_class_from_reason(ref->reason);
+}
+
 static int code_origin_class_is_executable_proof(uint8_t origin_class) {
   return origin_class == M68K_CODE_ORIGIN_STRONG_ENTRY ||
     origin_class == M68K_CODE_ORIGIN_PROVEN_CONTROL_TARGET ||
@@ -62,7 +73,7 @@ static int append_code_origins_for_section(M68kSectionAnalysisIR *section) {
     origin.runtime_address = ref->runtime_address;
     origin.reason = ref->reason;
     origin.evidence_kind = code_origin_evidence_from_ref(ref);
-    origin.origin_class = code_origin_class_from_reason(ref->reason);
+    origin.origin_class = code_origin_class_from_ref(ref);
     origin.confidence = ref->confidence;
     origin.has_runtime_address = ref->has_runtime_address;
     if (m68k_ir_section_analysis_append_code_origin(section, &origin) != 0) return -1;
@@ -520,11 +531,32 @@ static int accepted_run_has_executable_origin(const M68kSectionAnalysisIR *secti
   for (index = 0U; index < section->code_start_ref_count; ++index) {
     const M68kCodeStartRefIR *ref = &section->code_start_refs[index];
     if (ref->offset >= start && ref->offset < end &&
-        code_origin_class_is_executable_proof(code_origin_class_from_reason(ref->reason))) {
+        code_origin_class_is_executable_proof(code_origin_class_from_ref(ref))) {
       return 1;
     }
   }
   return 0;
+}
+
+static int accepted_run_has_manual_origin(const M68kSectionAnalysisIR *section, uint32_t start, uint32_t end) {
+  size_t index;
+  if (section == NULL) return 0;
+  for (index = 0U; index < section->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &section->code_start_refs[index];
+    if (ref->offset >= start && ref->offset < end && code_origin_evidence_is_manual_seed(ref->evidence_kind)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static uint8_t source_quality_kind_for_manual_run_conflict(const M68kSectionAnalysisIR *section,
+    const M68kAcceptedCodeRunIR *run, uint8_t fallback_kind) {
+  if (section != NULL && run != NULL &&
+      accepted_run_has_manual_origin(section, run->start_offset, run->end_offset)) {
+    return M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT;
+  }
+  return fallback_kind;
 }
 
 static int range_ownership_is_accepted_noncode(const M68kRangeOwnershipIR *range) {
@@ -784,7 +816,9 @@ static int append_run_offset_diagnostic(M68kSectionAnalysisIR *section, const M6
   diagnostic.kind = kind;
   diagnostic.severity = severity;
   diagnostic.blocker = blocker;
-  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
+  diagnostic.origin = kind == M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT
+    ? M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_MANUAL_EVIDENCE
+    : M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
   diagnostic.has_section_index = 1U;
   diagnostic.section_index = (uint32_t)section->section_index;
   diagnostic.has_offset = 1U;
@@ -805,7 +839,9 @@ static int append_run_diagnostic(M68kSectionAnalysisIR *section, const M68kAccep
   diagnostic.kind = kind;
   diagnostic.severity = severity;
   diagnostic.blocker = blocker;
-  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
+  diagnostic.origin = kind == M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT
+    ? M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_MANUAL_EVIDENCE
+    : M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
   diagnostic.has_section_index = 1U;
   diagnostic.section_index = (uint32_t)section->section_index;
   diagnostic.has_offset = 1U;
@@ -1297,7 +1333,8 @@ static int append_accepted_run_noncode_fallthrough_diagnostics_for_section(M68kS
       const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
       if (range->start_offset != run->end_offset || !range_ownership_is_accepted_noncode(range)) continue;
       if (append_run_diagnostic(section, run,
-          M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE,
+          source_quality_kind_for_manual_run_conflict(section, run,
+            M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE),
           M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
           "accepted code run falls through into accepted non-code range") != 0) {
         free(proof_state);
@@ -1349,7 +1386,8 @@ static int append_unterminated_accepted_gap_diagnostics_for_section(M68kSectionA
     if (!accepted_run_has_executable_origin(section, run->start_offset, run->end_offset)) continue;
     if (!accepted_gap_run_has_noncontrol_operand_access(section, run)) continue;
     if (append_run_diagnostic(section, run,
-        M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE,
+        source_quality_kind_for_manual_run_conflict(section, run,
+          M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE),
         M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
         "accepted code run ends without terminal flow or structural continuation proof") != 0) {
       return -1;
@@ -3466,7 +3504,8 @@ static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section,
       uint32_t partial_offset;
       if (accepted_run_decode_coverage_gap(section, decode_section, &run, &partial_offset)) {
         if (append_run_offset_diagnostic(section, &run, partial_offset,
-            M68K_SOURCE_QUALITY_DIAGNOSTIC_PARTIAL_CODE_BLOCK_DECODE,
+            source_quality_kind_for_manual_run_conflict(section, &run,
+              M68K_SOURCE_QUALITY_DIAGNOSTIC_PARTIAL_CODE_BLOCK_DECODE),
             M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
             "accepted code run contains bytes not covered by decoded instructions",
             "accepted_code_run_decode_coverage") != 0) {

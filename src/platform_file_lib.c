@@ -1771,14 +1771,37 @@ int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *poli
   return 1;
 }
 
-int platform_file_analysis_policy_add_entry_point_arg(M68kAnalysisPolicy *policy, const char *text) {
+static int analysis_entry_point_provenance_is_known_local(uint8_t provenance) {
+  return provenance == M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DEFAULT ||
+    provenance == M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_TARGET_METADATA ||
+    provenance == M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_MANUAL_ACTION_LOG ||
+    provenance == M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL;
+}
+
+static const char *analysis_entry_point_provenance_name_local(uint8_t provenance) {
+  switch (provenance) {
+    case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_TARGET_METADATA:
+      return "target_metadata";
+    case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_MANUAL_ACTION_LOG:
+      return "manual_action_log";
+    case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL:
+      return "decision_journal";
+    default:
+      return "default";
+  }
+}
+
+int platform_file_analysis_policy_add_entry_point_arg_with_provenance(M68kAnalysisPolicy *policy, const char *text,
+    uint8_t provenance) {
   char buffer[64];
   char *separator;
   M68kAnalysisEntryPoint *entry;
   if (text == NULL || policy == NULL || policy->entry_point_count >= M68K_ANALYSIS_ENTRY_POINT_LIMIT) return 0;
+  if (!analysis_entry_point_provenance_is_known_local(provenance)) return 0;
   if (!copy_policy_text(buffer, sizeof(buffer), text)) return 0;
   entry = &policy->entry_points[policy->entry_point_count];
   memset(entry, 0, sizeof(*entry));
+  entry->provenance = provenance;
   separator = strchr(buffer, ':');
   if (separator != NULL) {
     *separator = '\0';
@@ -1790,6 +1813,11 @@ int platform_file_analysis_policy_add_entry_point_arg(M68kAnalysisPolicy *policy
   }
   policy->entry_point_count += 1U;
   return 1;
+}
+
+int platform_file_analysis_policy_add_entry_point_arg(M68kAnalysisPolicy *policy, const char *text) {
+  return platform_file_analysis_policy_add_entry_point_arg_with_provenance(policy, text,
+    M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DEFAULT);
 }
 
 M68kAnalysisPolicy *platform_file_analysis_policy_create(uint8_t max_cpu) {
@@ -2040,12 +2068,25 @@ static int append_metadata_entry_point_local(const char *object_start, const cha
   int has_offset = 0;
   int has_hunk = 0;
   char entry_arg[64];
+  char seed_origin[64];
+  char source_path[192];
+  uint8_t provenance = M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_TARGET_METADATA;
+  seed_origin[0] = '\0';
+  source_path[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &offset, &has_offset) ||
-      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk)) return 0;
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_optional_string_field_local(object_start, object_end, "seed_origin", seed_origin, sizeof(seed_origin)) ||
+      !json_optional_string_field_local(object_start, object_end, "source_path", source_path, sizeof(source_path)))
+    return 0;
   if (!has_offset) return 1;
+  if (strcmp(seed_origin, "manual_analysis") == 0) {
+    provenance = strstr(source_path, "decision_journal.jsonl") != NULL
+      ? M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL
+      : M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_MANUAL_ACTION_LOG;
+  }
   if (has_hunk) snprintf(entry_arg, sizeof(entry_arg), "%u:%u", (unsigned)hunk, (unsigned)offset);
   else snprintf(entry_arg, sizeof(entry_arg), "%u", (unsigned)offset);
-  return platform_file_analysis_policy_add_entry_point_arg(policy, entry_arg);
+  return platform_file_analysis_policy_add_entry_point_arg_with_provenance(policy, entry_arg, provenance);
 }
 
 static int append_metadata_seeded_code_label_local(const char *object_start, const char *object_end,
@@ -8803,7 +8844,10 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
     if (append_nullable_u32_json_local(builder, entry->has_section_index, entry->section_index) != 0) return -1;
-    if (json_builder_appendf(builder, ",\"offset\":%u}", (unsigned)entry->offset) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"offset\":%u,\"provenance\":", (unsigned)entry->offset) != 0) return -1;
+    if (json_builder_append_json_string(builder, analysis_entry_point_provenance_name_local(entry->provenance)) != 0)
+      return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
   }
   if (json_builder_append(builder, "],\"register_seeds\":[") != 0) return -1;
   for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {

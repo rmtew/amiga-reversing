@@ -503,6 +503,10 @@ const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind) {
       return "vector_store_control_target";
     case M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_COPY_CONTROL_TARGET:
       return "runtime_copy_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_MANUAL_ACTION_LOG_ENTRY_POINT:
+      return "manual_action_log_entry_point";
+    case M68K_CODE_ORIGIN_EVIDENCE_DECISION_JOURNAL_ENTRY_POINT:
+      return "decision_journal_entry_point";
     default:
       return "unknown";
   }

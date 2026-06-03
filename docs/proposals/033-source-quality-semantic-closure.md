@@ -1555,6 +1555,57 @@ enough evidence to emit a source-quality diagnostic, the analysis is failed; if
 it does not, the condition belongs in a separate review/candidate fact, not in
 the diagnostic stream.
 
+Manual entry-point provenance now survives the C boundary:
+
+```text
+target metadata seeded_code_entrypoints
+  -> seed_origin/manual source_path parsed by C metadata loader
+  -> M68kAnalysisEntryPoint.provenance
+  -> M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT
+     + manual_action_log_entry_point / decision_journal_entry_point evidence
+  -> M68kCodeOriginIR(origin_class=manual_seed)
+```
+
+The fact reason stays `policy_entry_point` so existing entry-point behavior and
+render compatibility are preserved. The evidence kind carries the stronger
+source identity. Source-quality uses that evidence to classify manual origins
+and to emit `manual_evidence_conflict` when the manual seed is part of a bad
+accepted-code run.
+
+The source-analysis render lookup also now treats code-start evidence as part
+of the retained proof value without multiplying code-start refs. When multiple
+facts describe the same start, it keeps one ref and prefers manual evidence over
+generic evidence, and known evidence over unknown accepted-code evidence:
+
+```text
+same section/offset/reason/source
+  unknown accepted-code evidence
+  decision-journal entry evidence
+    -> one code_start_ref
+    -> evidence_kind=decision_journal_entry_point
+```
+
+That matters because the first isolated propagation test exposed this bug: the
+manual fact was produced correctly, but the lookup could later replace it with
+a size-bearing accepted-code fact that had no provenance. The fix is at cause,
+not a test workaround.
+
+Current focused coverage:
+
+```text
+facts_v2_policy_entry_point_preserves_manual_provenance
+  -> policy entry provenance reaches source_analysis code_start_refs
+  -> source_analysis JSON exports manual_seed origin
+
+source_quality_analyze_exports_manual_code_origin
+  -> manual evidence maps policy entry reason to manual_seed origin
+
+source_quality_analyze_blocks_manual_partial_code_as_manual_conflict
+  -> same invalid partial decode shape as the generic fixture
+  -> diagnostic kind changes to manual_evidence_conflict
+  -> diagnostic origin is manual_evidence
+```
+
 ## Implementation Slices
 
 Each slice must fix the obvious cause of any validation failure it exposes.
@@ -1875,11 +1926,11 @@ run simply reaches data with no terminal/transfer
 Implementation order:
 
 ```text
-1. Add entry-point provenance/source fields to M68kAnalysisEntryPoint.
-2. Preserve manual_action_log and decision_journal provenance through metadata
-   parsing into M68K_FACT_CODE_START_REF.
-3. Export provenance in M68kCodeOriginIR.
-4. Add source-quality tests for manual seed at valid code, data overlap,
+1. Done: add entry-point provenance/source fields to M68kAnalysisEntryPoint.
+2. Done: preserve manual_action_log and decision_journal provenance through
+   metadata parsing into code-start evidence.
+3. Done: export provenance through code-start refs and M68kCodeOriginIR.
+4. In progress: add source-quality tests for manual seed at valid code, data overlap,
    mid-instruction, and unterminated accepted-gap runs.
 5. Add partial-code-block fixtures:
    generic accepted run whose decode stops before a credible terminal;

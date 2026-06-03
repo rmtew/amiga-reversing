@@ -6517,6 +6517,18 @@ int render_lookup_add_runtime_address_range(M68kRenderLookup *lookup, const M68k
   return 0;
 }
 
+static uint8_t code_start_ref_evidence_priority(uint32_t evidence_kind) {
+  switch (evidence_kind) {
+    case M68K_CODE_ORIGIN_EVIDENCE_MANUAL_ACTION_LOG_ENTRY_POINT:
+    case M68K_CODE_ORIGIN_EVIDENCE_DECISION_JOURNAL_ENTRY_POINT:
+      return 3U;
+    case M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN:
+      return 0U;
+    default:
+      return 2U;
+  }
+}
+
 int render_lookup_add_code_start_ref(M68kRenderLookup *lookup, const M68kFact *fact) {
   M68kRenderCodeStartRef *grown;
   size_t next_capacity;
@@ -6533,7 +6545,12 @@ int render_lookup_add_code_start_ref(M68kRenderLookup *lookup, const M68kFact *f
         existing->reason == fact->reason && existing->source_section_index == fact->source_section_index &&
         existing->source_offset == fact->source_offset && existing->has_runtime_address == fact->has_runtime_address &&
         existing->runtime_address == fact->runtime_address) {
-      if (existing->size == 0U && fact->size != 0U) lookup->code_start_refs[index].fact = fact;
+      uint8_t fact_priority = code_start_ref_evidence_priority(fact->code_start_evidence_kind);
+      uint8_t existing_priority = code_start_ref_evidence_priority(existing->code_start_evidence_kind);
+      if (fact_priority > existing_priority ||
+          (fact_priority == existing_priority && existing->size == 0U && fact->size != 0U)) {
+        lookup->code_start_refs[index].fact = fact;
+      }
       return 0;
     }
   }
