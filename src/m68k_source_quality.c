@@ -218,6 +218,15 @@ static uint8_t address_identity_role_from_owner(uint8_t owner_kind) {
   }
 }
 
+static uint8_t address_identity_owner_from_observation(const M68kAddressObservationIR *observation) {
+  if (observation == NULL) return M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR &&
+      platform_address_use_shape_from_observation(observation) != M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL) {
+    return M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
+  }
+  return observation->owner_kind;
+}
+
 static uint8_t absolute_range_status_from_identity(const M68kAddressIdentityIR *identity) {
   if (identity == NULL) return M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNKNOWN;
   if (identity->conflicted) return M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_CONFLICT;
@@ -407,23 +416,26 @@ static void address_identity_merge_observation(M68kAddressIdentityIR *identity,
     const M68kAddressObservationIR *observation, uint32_t section_index) {
   if (identity == NULL || observation == NULL) return;
   if (identity->observation_count == 0U) {
+    uint8_t owner_kind = address_identity_owner_from_observation(observation);
     identity->source_section_index = section_index;
     identity->source_offset = observation->offset;
     identity->absolute_address = observation->address;
     identity->has_absolute_address = observation->has_address;
-    identity->owner_kind = observation->owner_kind;
-    identity->role_kind = address_identity_role_from_owner(observation->owner_kind);
+    identity->owner_kind = owner_kind;
+    identity->role_kind = address_identity_role_from_owner(owner_kind);
     identity->conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
     if (observation->source == M68K_ADDRESS_OBSERVATION_SOURCE_RUNTIME_ADDRESS_REF ||
         observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE) {
       identity->runtime_address = observation->address;
       identity->has_runtime_address = 1U;
     }
-  } else if (identity->owner_kind != observation->owner_kind &&
-      observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN) {
-    identity->conflicted = 1U;
-    identity->conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
-    ++identity->conflict_count;
+  } else {
+    uint8_t owner_kind = address_identity_owner_from_observation(observation);
+    if (identity->owner_kind != owner_kind && owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN) {
+      identity->conflicted = 1U;
+      identity->conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
+      ++identity->conflict_count;
+    }
   }
   if (observation->source == M68K_ADDRESS_OBSERVATION_SOURCE_RUNTIME_ADDRESS_REF ||
       observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE) {

@@ -355,6 +355,62 @@ Starglider: passes source-quality validation
 Starglider 2 bootblock: passes source-quality validation
 ```
 
+### Implemented Slice: Low-Memory Identity And Vector Naming
+
+Damocles Tetragon payload 2 also exposed that low-memory addresses can be
+observed inside the CPU-vector address range without being vector semantics.
+The fix is not target-specific. Source-quality analysis now splits the raw
+address space from the semantic identity used for symbols and ranges:
+
+```text
+write.l #handler,$70
+  -> raw observation owner: CPU_VECTOR
+  -> use_shape: true_vector_install
+  -> identity/range owner: CPU_VECTOR
+  -> exported owner symbol: m68k_vector_level_4_interrupt_autovector
+
+lea.l $74,a2
+move.l value,$63A8(a2)
+  -> raw observation owner: CPU_VECTOR address space
+  -> use_shape: low_memory_base / low_memory_storage
+  -> identity/range owner: ABSOLUTE_MEMORY storage
+  -> no vector owner symbol
+```
+
+The raw observation can still say that `$74` is numerically inside the vector
+area. The address identity and absolute range only become vector-owned when the
+instruction shape proves a true vector install. Analysis JSON follows the same
+rule, so round-trip exports no longer make low-memory base/storage facts appear
+as `m68k_vector_*` definitions.
+
+The isolated regression is in
+`test_source_quality_analyze_exports_platform_address_uses`:
+
+```c
+low_base_ref.address = 0x74U;
+low_base_ref.access_kind = M68K_SIM_ACCESS_COMPUTE_ADDRESS;
+low_base_ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+```
+
+The expected result is a `low_memory_base` platform-use fact, storage identity,
+and an unowned one-off absolute range. A true write to `$70` remains a vector
+install and keeps the vector symbol.
+
+Focused Damocles verification exports analysis JSON for the exact target:
+
+```powershell
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report `
+  --target amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_02_00000060 `
+  --analysis-export-dir C:\tmp\m68k-roundtrip-analysis `
+  --analysis-export-scope all `
+  --no-write-report --json
+```
+
+The source round-trip remains exact. The exported JSON contains
+`low_memory_base` and true-vector install facts, keeps
+`m68k_vector_level_4_interrupt_autovector` for the write to `$70`, and does not
+emit `m68k_vector_level_5_interrupt_autovector` for the `$74` low-memory base.
+
 ### In-Image Address Identity
 
 Damocles currently has labels and numeric accesses that disagree:

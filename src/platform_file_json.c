@@ -240,9 +240,11 @@ static void address_observation_owner_symbols(const M68kAddressObservationIR *ob
     if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {
       symbol = "ExecBase";
     } else if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR) {
-      const M68kCpuExceptionVectorInfo *vector =
-        m68k_cpu_find_exception_vector_by_address(observation->address);
-      symbol = vector != NULL ? vector->symbol_name : NULL;
+      if (observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) {
+        const M68kCpuExceptionVectorInfo *vector =
+          m68k_cpu_find_exception_vector_by_address(observation->address);
+        symbol = vector != NULL ? vector->symbol_name : NULL;
+      }
     } else if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) {
       const AmigaOsHardwareRegisterInfo *hardware_register =
         amiga_os_find_hardware_register_by_cpu_address(observation->address);
