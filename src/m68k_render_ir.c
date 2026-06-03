@@ -951,6 +951,8 @@ static int record_rendered_storage_label_statement_access(M68kRenderIRPreview *p
 static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
   uint32_t source_offset, size_t target_section_index, uint32_t target_offset,
   const char *symbol_name);
+static int record_rendered_data_equate_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
+  uint32_t source_offset, const char *symbol_name);
 static int record_rendered_data_label_target_access(M68kRenderIRPreview *preview,
   const M68kRenderLookup *lookup, size_t source_section_index, uint32_t source_offset,
   size_t target_section_index, uint32_t target_offset);
@@ -982,6 +984,18 @@ static int record_rendered_data_symbol_access(M68kRenderIRPreview *preview, size
   access.operand_index = UINT32_MAX;
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
   access.has_target = 1U;
+  return record_rendered_symbol_access(preview, source_section_index, &access);
+}
+
+static int record_rendered_data_equate_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
+    uint32_t source_offset, const char *symbol_name) {
+  M68kRenderedSymbolAccessIR access;
+  if (symbol_name == NULL || symbol_name[0] == '\0' || source_section_index > UINT32_MAX) return 0;
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = (char *)symbol_name;
+  access.offset = source_offset;
+  access.operand_index = UINT32_MAX;
+  access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
   return record_rendered_symbol_access(preview, source_section_index, &access);
 }
 
@@ -3129,6 +3143,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     uint16_t first = m68k_read_u16be(data + offset + cursor);
     uint16_t second = m68k_read_u16be(data + offset + cursor + 2U);
     int copper_move = 0;
+    int right_is_runtime_pointer_symbol = 0;
     if (cursor != 0U &&
         lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
@@ -3168,7 +3183,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     if (copper_move &&
         format_copper_runtime_pointer_value_expr(preview, data, offset, cursor, size, first, second,
           right, sizeof(right))) {
-      ;
+      right_is_runtime_pointer_symbol = 1;
     } else if (!copper_move || !format_copper_register_value_expr(first, second, right, sizeof(right))) {
       snprintf(right, sizeof(right), "$%04X", (unsigned)second);
     } else if (!render_asm_include_for_symbol_expr(preview, right)) {
@@ -3188,6 +3203,12 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     else
       snprintf(line, sizeof(line), "\tdc.w %s,%s\n", left, right);
     hash_asm_text(preview, line);
+    if (right_is_runtime_pointer_symbol &&
+        record_rendered_data_equate_symbol_access(preview, section->section_index, offset + cursor, right) != 0) {
+      ++preview->asm_source_instruction_render_failures;
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, offset + cursor, 0U);
+      return;
+    }
     ++preview->asm_source_lines;
     if (io_logical_pc != NULL) *io_logical_pc += 4U;
     cursor += 4U;

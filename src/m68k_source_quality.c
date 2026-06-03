@@ -2437,6 +2437,57 @@ static int source_quality_has_copper_list_item_at(const M68kSourceAnalysisIR *so
   return 0;
 }
 
+static int source_quality_copper_list_item_renders_word_row_at(const M68kSourceAnalysisIR *source_analysis,
+    const M68kSectionAnalysisIR *section_analysis, size_t section_index, uint32_t offset) {
+  size_t item_index;
+  const M68kAnalysisStructuredDataItem *selected_item = NULL;
+  if (source_analysis == NULL || section_analysis == NULL || section_index > UINT32_MAX) return 0;
+  for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
+    if (!item->has_section_index || item->section_index != section_index || item->size == 0U ||
+        item->offset > UINT32_MAX - item->size ||
+        offset < item->offset || offset >= item->offset + item->size) {
+      continue;
+    }
+    if (selected_item == NULL || item->offset > selected_item->offset) {
+      selected_item = item;
+    }
+  }
+  if (selected_item == NULL || selected_item->kind != M68K_ANALYSIS_STRUCTURED_DATA_WORDS ||
+      (selected_item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) == 0U) {
+    return 0;
+  }
+  for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
+    if (item == selected_item || !item->has_section_index || item->section_index != section_index) continue;
+    if (item->offset > selected_item->offset && item->offset < selected_item->offset + selected_item->size) {
+      return 0;
+    }
+  }
+  {
+    uint32_t cursor = 0U;
+    int raw_word_mode = 0;
+    while (cursor + 4U <= selected_item->size) {
+      uint32_t row_offset = selected_item->offset + cursor;
+      if (raw_word_mode) {
+        if (row_offset == offset) return 0;
+        cursor += 2U;
+        continue;
+      }
+      if (cursor + 2U < selected_item->size &&
+          source_quality_section_has_label_at(section_analysis, row_offset + 2U)) {
+        if (row_offset == offset) return 0;
+        cursor += 2U;
+        raw_word_mode = 1;
+        continue;
+      }
+      if (row_offset == offset) return 1;
+      cursor += 4U;
+    }
+  }
+  return 0;
+}
+
 static int append_copper_display_setup_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
   size_t section_index;
@@ -3798,6 +3849,64 @@ static int append_expected_runtime_ref_symbol_accesses(M68kSourceAnalysisIR *sou
   return 0;
 }
 
+static int append_expected_copper_runtime_pointer_word_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    const M68kDecodeSectionIR *decode_section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section->section_index, NULL);
+    size_t ref_index;
+    if (decode_section == NULL || decode_section->data == NULL) continue;
+    for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
+      const AmigaOsHardwareRegisterInfo *hardware_register;
+      M68kExpectedSymbolAccessIR access;
+      uint32_t pointer_address = 0U;
+      uint16_t first;
+      char high_symbol[80];
+      char low_symbol[80];
+      if (!ref->has_runtime_address || ref->runtime_address == 0U ||
+          (ref->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) == 0U ||
+          ref->offset > decode_section->size || 8U > decode_section->size - ref->offset ||
+          !source_quality_copper_list_item_renders_word_row_at(source_analysis, section, section->section_index,
+            ref->offset) ||
+          !source_quality_copper_list_item_renders_word_row_at(source_analysis, section, section->section_index,
+            ref->offset + 4U) ||
+          !source_quality_copper_bitmap_pointer_at(decode_section->data, ref->offset, 0U, 8U,
+            &pointer_address) ||
+          pointer_address != ref->runtime_address) {
+        continue;
+      }
+      first = m68k_read_u16be(decode_section->data + ref->offset);
+      hardware_register = source_quality_copper_runtime_pointer_register(first);
+      if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
+          hardware_register->runtime_target_role[0] == '\0') {
+        continue;
+      }
+      platform_format_runtime_address_symbol_name(hardware_register->runtime_target_role, ref->runtime_address,
+        "_hi", high_symbol, sizeof(high_symbol));
+      platform_format_runtime_address_symbol_name(hardware_register->runtime_target_role, ref->runtime_address,
+        "_lo", low_symbol, sizeof(low_symbol));
+      if (high_symbol[0] == '\0' || low_symbol[0] == '\0') continue;
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = high_symbol;
+      access.producer = "copper_runtime_pointer_word_symbol";
+      access.offset = ref->offset;
+      access.operand_index = UINT32_MAX;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
+      access.confidence = ref->confidence;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section, &access) != 0) return -1;
+      access.symbol_name = low_symbol;
+      access.offset = ref->offset + 4U;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section, &access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 static int source_quality_instruction_has_call_flow(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   if (instruction == NULL) return 0;
@@ -4675,6 +4784,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_expected_pc_relative_storage_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
   if (append_expected_runtime_ref_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_expected_copper_runtime_pointer_word_symbol_accesses(source_analysis, decode) != 0) return -1;
   if (append_expected_platform_call_input_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_hardware_register_value_domain_symbol_accesses(source_analysis, decode, accepted_start) != 0)
     return -1;

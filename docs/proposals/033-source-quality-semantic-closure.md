@@ -2463,18 +2463,54 @@ families need C semantic-use records with enough structured fields or note text
 for render to format without re-deciding the semantic meaning. Once each family
 is migrated, the corresponding renderer fallback must be deleted.
 
-The copper-row note migration deliberately does not claim the expression-symbol
-case is done. Render still formats the high/low symbol expressions for runtime
-addresses:
+The copper runtime-pointer expression-symbol case now follows the same
+ownership rule. Source-quality recognizes bitmap pointer word pairs inside
+structured copper lists and publishes explicit expected symbol accesses for the
+two emitted words:
 
 ```asm
     dc.w bplpt,bitmap_12345678_hi     ; bitmap pointer $12345678
     dc.w bplpt+$02,bitmap_12345678_lo
 ```
 
-After this slice, the comment is C-owned `note_text`; the `bitmap_*_hi/lo`
-symbol obligation and expression choice are still a later source-quality
-closure item.
+```text
+copper-list structured data item
+  + runtime-address ref role=bitmap at the high-word row
+  + adjacent low-word row proves the same pointer
+  + the containing copper list can render as structured word rows
+  -> expected symbol access bitmap_12345678_hi at high row
+  -> expected symbol access bitmap_12345678_lo at low row
+  -> renderer records rendered data-equate accesses for those rows
+  -> post-render source-quality gate fails if either symbol disappears
+```
+
+The renderability condition is part of the obligation. If an enclosing copper
+span is emitted as raw bytes because it is a byte-classified item, overlaps
+accepted code, or contains a blocking nested structured boundary, source-quality
+may still publish list-level semantic notes such as display layout, but it must
+not require `bitmap_*_hi/lo` symbol accesses that the source renderer cannot
+emit:
+
+```asm
+abs_0_000517FC:
+    ; display layout 4 bitmap planes $00068000..$0006DDC0 step $1F40
+    dc.b $2B,$01,$FF,$FE,$01,$00,$42,$00,...
+```
+
+Rendering still formats and declares the `EQU` expressions because that is text
+emission support:
+
+```asm
+bitmap_12345678        EQU     $12345678
+bitmap_12345678_hi     EQU     bitmap_12345678/$10000
+bitmap_12345678_lo     EQU     bitmap_12345678-(bitmap_12345678_hi*$10000)
+```
+
+It no longer owns the semantic obligation. The focused fixture
+`facts_v2_copper_bitmap_pointers_render_display_layout_comment` now checks the
+four C-owned expected accesses with producer
+`copper_runtime_pointer_word_symbol`, while render evidence proves the source
+actually used them.
 
 ### Slice 7: Table And Data Reference Closure
 
