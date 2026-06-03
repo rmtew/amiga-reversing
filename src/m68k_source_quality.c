@@ -1849,6 +1849,87 @@ static int format_source_quality_copper_runtime_pointer_note(const uint8_t *data
   return strlen(buf) + 1U < buf_size;
 }
 
+static int source_quality_copper_bitmap_pointer_at(const uint8_t *data, uint32_t offset, uint32_t cursor,
+    uint32_t size, uint32_t *out_pointer) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint16_t first;
+  uint16_t second;
+  uint16_t next_first;
+  uint16_t next_second;
+  uint32_t register_offset;
+  if (out_pointer != NULL) *out_pointer = 0U;
+  if (data == NULL || out_pointer == NULL || cursor + 8U > size) return 0;
+  first = m68k_read_u16be(data + offset + cursor);
+  second = m68k_read_u16be(data + offset + cursor + 2U);
+  next_first = m68k_read_u16be(data + offset + cursor + 4U);
+  next_second = m68k_read_u16be(data + offset + cursor + 6U);
+  if ((first & 1U) != 0U || (next_first & 1U) != 0U) return 0;
+  register_offset = (uint32_t)(first & 0x01FEU);
+  hardware_register = source_quality_copper_runtime_pointer_register(first);
+  if (hardware_register == NULL ||
+      hardware_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP) {
+    return 0;
+  }
+  if (register_offset < hardware_register->offset ||
+      ((register_offset - hardware_register->offset) & 3U) != 0U) {
+    return 0;
+  }
+  if ((uint32_t)(next_first & 0x01FEU) != register_offset + 2U) return 0;
+  *out_pointer = ((uint32_t)second << 16) | next_second;
+  return *out_pointer != 0U;
+}
+
+static uint8_t source_quality_collect_copper_bitmap_pointers(const uint8_t *data, uint32_t offset, uint32_t size,
+    uint32_t *pointers, uint8_t pointer_limit) {
+  uint32_t cursor;
+  uint8_t pointer_count = 0U;
+  if (data == NULL || pointers == NULL || pointer_limit == 0U || size == 0U) return 0U;
+  for (cursor = 0U; cursor + 8U <= size && pointer_count < pointer_limit; cursor += 4U) {
+    uint32_t pointer = 0U;
+    if (!source_quality_copper_bitmap_pointer_at(data, offset, cursor, size, &pointer)) continue;
+    pointers[pointer_count++] = pointer;
+  }
+  return pointer_count;
+}
+
+static uint32_t source_quality_copper_bitmap_pointer_even_step(const uint32_t *pointers, uint8_t pointer_count) {
+  uint32_t step = 0U;
+  uint8_t index;
+  if (pointers == NULL || pointer_count < 2U || pointers[1] <= pointers[0]) return 0U;
+  step = pointers[1] - pointers[0];
+  if (step == 0U) return 0U;
+  for (index = 2U; index < pointer_count; ++index) {
+    if (pointers[index] <= pointers[index - 1U] || pointers[index] - pointers[index - 1U] != step) {
+      return 0U;
+    }
+  }
+  return step;
+}
+
+static int format_source_quality_copper_display_layout_note(const uint8_t *data, uint32_t offset, uint32_t size,
+    char *buf, size_t buf_size) {
+  uint32_t pointers[8];
+  uint8_t pointer_count;
+  uint32_t step;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (data == NULL || buf == NULL || buf_size == 0U || size == 0U) return 0;
+  pointer_count = source_quality_collect_copper_bitmap_pointers(data, offset, size, pointers,
+    (uint8_t)(sizeof(pointers) / sizeof(pointers[0])));
+  if (pointer_count == 0U) return 0;
+  step = source_quality_copper_bitmap_pointer_even_step(pointers, pointer_count);
+  if (step != 0U) {
+    snprintf(buf, buf_size, "display layout %u bitmap planes $%08X..$%08X step $%X",
+      (unsigned)pointer_count, (unsigned)pointers[0], (unsigned)pointers[pointer_count - 1U],
+      (unsigned)step);
+  } else if (pointer_count == 1U) {
+    snprintf(buf, buf_size, "display layout 1 bitmap plane $%08X", (unsigned)pointers[0]);
+  } else {
+    snprintf(buf, buf_size, "display layout %u bitmap plane bases from $%08X",
+      (unsigned)pointer_count, (unsigned)pointers[0]);
+  }
+  return strlen(buf) + 1U < buf_size;
+}
+
 static int format_source_quality_amiga_audio_register_note(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
     uint32_t value, int has_immediate, char *buf, size_t buf_size) {
   uint32_t word = value & 0xFFFFU;
@@ -2046,6 +2127,20 @@ static int append_structured_copper_row_platform_semantic_uses(M68kSourceAnalysi
     if (section_analysis == NULL || section == NULL || section->data == NULL ||
         item->offset > section->size || item->size > section->size - item->offset) {
       continue;
+    }
+    {
+      char note[160];
+      M68kPlatformSemanticUseIR use;
+      if (format_source_quality_copper_display_layout_note(section->data, item->offset, item->size,
+          note, sizeof(note))) {
+        memset(&use, 0, sizeof(use));
+        use.kind = M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT;
+        use.offset = item->offset;
+        use.size = item->size;
+        use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+        use.note_text = note;
+        if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
+      }
     }
     while (cursor + 4U <= item->size) {
       uint32_t row_offset = item->offset + cursor;

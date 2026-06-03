@@ -35,6 +35,8 @@ static int lookup_storage_label_has_inbound_target_ref(const M68kRenderLookup *l
     uint32_t offset);
 static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
     size_t section_index, uint32_t offset, char *comment, size_t comment_size);
+static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset, uint8_t kind, char *comment, size_t comment_size);
 
 static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
@@ -3285,6 +3287,12 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   }
   if (available == item->size && structured_data_item_is_copper_list(item)) {
     const char *copper_comment = item->comment[0] != '\0' ? comment_text : NULL;
+    char semantic_comment[160];
+    semantic_comment[0] = '\0';
+    if (attach_platform_semantic_kind_note_comment_for_render(source_analysis, section->section_index, item->offset,
+        M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT, semantic_comment, sizeof(semantic_comment))) {
+      render_asm_comment_line(preview, semantic_comment);
+    }
     render_asm_copper_list_words(preview, lookup, source_analysis, section, accepted_start, section->data,
       item->offset, available, copper_comment, io_logical_pc);
     if (out_updated_logical_pc != NULL && io_logical_pc != NULL) *out_updated_logical_pc = 1;
@@ -6681,10 +6689,29 @@ static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnal
   for (index = 0U; index < section->platform_semantic_use_count; ++index) {
     const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
     if (use->offset != offset || use->note_text == NULL || use->note_text[0] == '\0') continue;
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT) continue;
     (void)append_comment_part_local(comment, comment_size, use->note_text);
     return 1;
   }
   return 0;
+}
+
+static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset, uint8_t kind, char *comment, size_t comment_size) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count ||
+      comment == NULL || comment_size == 0U) {
+    return 0;
+  }
+  comment[0] = '\0';
+  section = &source_analysis->sections[section_index];
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    if (use->kind != kind || use->offset != offset || use->note_text == NULL || use->note_text[0] == '\0') continue;
+    (void)append_comment_part_local(comment, comment_size, use->note_text);
+  }
+  return comment[0] != '\0';
 }
 
 static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_register(const M68kFact *fact) {

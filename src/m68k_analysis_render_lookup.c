@@ -8214,31 +8214,6 @@ static uint32_t copper_bitmap_pointer_even_step(const uint32_t *pointers, uint8_
   return step;
 }
 
-static int format_copper_display_layout_comment(const M68kDecodeSectionIR *section, uint32_t offset,
-    uint32_t size, char *comment, size_t comment_size) {
-  uint32_t pointers[8];
-  uint8_t pointer_count = 0U;
-  uint32_t step = 0U;
-  if (comment != NULL && comment_size != 0U) comment[0] = '\0';
-  if (section == NULL || section->data == NULL || comment == NULL || comment_size == 0U || size == 0U)
-    return 0;
-  pointer_count = collect_copper_bitmap_pointers(section, offset, size, NULL, pointers,
-    (uint8_t)(sizeof(pointers) / sizeof(pointers[0])));
-  if (pointer_count == 0U) return 0;
-  step = copper_bitmap_pointer_even_step(pointers, pointer_count);
-  if (step != 0U) {
-    snprintf(comment, comment_size, "display layout %u bitmap planes $%08X..$%08X step $%X",
-      (unsigned)pointer_count, (unsigned)pointers[0], (unsigned)pointers[pointer_count - 1U],
-      (unsigned)step);
-  } else if (pointer_count == 1U) {
-    snprintf(comment, comment_size, "display layout 1 bitmap plane $%08X", (unsigned)pointers[0]);
-  } else {
-    snprintf(comment, comment_size, "display layout %u bitmap plane bases from $%08X",
-      (unsigned)pointer_count, (unsigned)pointers[0]);
-  }
-  return strlen(comment) + 1U < comment_size;
-}
-
 static int render_lookup_add_copper_bitmap_runtime_refs(M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size) {
   uint32_t row_offsets[8];
@@ -8962,15 +8937,8 @@ static int render_lookup_infer_platform_runtime_structured_data(M68kRenderLookup
       role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
       size = copper_list_size_at(&decode->sections[fact->target_section_index], fact->target_offset);
       if (size != 0U) {
-        char layout_comment[128];
         char setup_comment[192];
         M68kRenderDisplaySetup display_setup;
-        if (format_copper_display_layout_comment(&decode->sections[fact->target_section_index],
-            fact->target_offset, size, layout_comment, sizeof(layout_comment)) &&
-            render_lookup_add_instruction_comment(lookup, fact->target_section_index, fact->target_offset,
-              layout_comment) != 0) {
-          return -1;
-        }
         if (accepted_start != NULL && fact->section_index < decode->section_count &&
             collect_display_setup_before_offset(&decode->sections[fact->section_index],
               accepted_start[fact->section_index], fact->offset, &display_setup) &&

@@ -26284,6 +26284,7 @@ static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(vo
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   const M68kRuntimeAddressRefIR *first_bitmap = NULL;
   const M68kRuntimeAddressRefIR *second_bitmap = NULL;
   size_t index;
@@ -26338,8 +26339,14 @@ static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(vo
   M68K_C_ASSERT_U32(0x12000U, second_bitmap->runtime_address);
   M68K_C_ASSERT_U32(0x2000U, second_bitmap->size);
   M68K_C_ASSERT_U32(0U, second_bitmap->has_target);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_display_layout\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"note_text\":\"display layout 2 bitmap planes $00010000..$00012000 step $2000\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);

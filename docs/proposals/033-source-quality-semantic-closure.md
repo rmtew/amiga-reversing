@@ -2349,7 +2349,10 @@ structured data item has role=copper_list
   -> source-quality walks intact 4-byte copper rows
   -> source-quality exports M68kPlatformSemanticUseIR(kind=copper_row,
                                                      note_text=...)
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=copper_display_layout,
+                                                     note_text=...)
   -> renderer appends note_text for that row
+  -> renderer emits the whole-list layout note as a comment line
   -> renderer does not recompute wait/display/pointer row comments
 ```
 
@@ -2366,15 +2369,19 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"copper wait v=$2C h=$06 mask $FFFE\"") != NULL);
 M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"bitmap pointer $12345678\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"kind_name\":\"copper_display_layout\"") != NULL);
 ```
 
 Remaining platform-comment work is the same rule applied to richer structured
 comments such as copper pointer combined display setup comments, bitmap-memory
 comments, and other renderer helpers that still describe platform meaning while
-formatting data. Those need C semantic-use records with enough structured
-fields or note text for render to format without re-deciding the semantic
-meaning. Once each family is migrated, the corresponding renderer fallback must
-be deleted.
+formatting data. Display-layout comments no longer come from
+`m68k_analysis_render_lookup.c`; the remaining render-lookup copper path there
+is bitmap runtime-ref inference, not the layout comment. The remaining comment
+families need C semantic-use records with enough structured fields or note text
+for render to format without re-deciding the semantic meaning. Once each family
+is migrated, the corresponding renderer fallback must be deleted.
 
 The copper-row note migration deliberately does not claim the expression-symbol
 case is done. Render still formats the high/low symbol expressions for runtime
