@@ -11346,6 +11346,126 @@ static int test_source_quality_analyze_accepts_runtime_alias_for_absolute_slot_a
   return 0;
 }
 
+static int test_source_quality_analyze_expects_runtime_address_ref_symbol_access(void) {
+  M68kObject object;
+  M68kSection object_section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kRuntimeAddressRefIR ref;
+  uint8_t bytes[8] = {
+    0x20u, 0x3Cu, 0x00u, 0x04u, 0x41u, 0x8Cu,
+    0x4Eu, 0x75u
+  };
+  uint8_t accepted_start[8];
+  uint8_t *accepted_start_maps[1];
+  char *analysis_json = NULL;
+  memset(&object_section, 0, sizeof(object_section));
+  memset(accepted_start, 0, sizeof(accepted_start));
+  accepted_start[0] = 1U;
+  accepted_start_maps[0] = accepted_start;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object_section.kind = M68K_SECTION_CODE;
+  object_section.size = sizeof(bytes);
+  object_section.data_size = sizeof(bytes);
+  object_section.data = bytes;
+  added = m68k_object_add_section(&object, &object_section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = sizeof(bytes);
+  memset(&ref, 0, sizeof(ref));
+  ref.offset = 0U;
+  ref.operand_index = 0U;
+  ref.runtime_address = 0x4418CU;
+  ref.has_runtime_address = 1U;
+  ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_address_ref(&section_analysis, &ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, &decode, NULL, accepted_start_maps, NULL));
+  M68K_C_ASSERT_INT(0, test_source_quality_analyze_rendered_symbol_accesses_from_section(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"runtime_address_0004418C\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"runtime_address_ref\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_expected_symbol_access\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_source_quality_analyze_accepts_runtime_address_ref_symbol_access(void) {
+  M68kObject object;
+  M68kSection object_section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kRuntimeAddressRefIR ref;
+  M68kRenderedSymbolAccessIR rendered_access;
+  uint8_t bytes[8] = {
+    0x20u, 0x3Cu, 0x00u, 0x04u, 0x41u, 0x8Cu,
+    0x4Eu, 0x75u
+  };
+  uint8_t accepted_start[8];
+  uint8_t *accepted_start_maps[1];
+  char *analysis_json = NULL;
+  memset(&object_section, 0, sizeof(object_section));
+  memset(accepted_start, 0, sizeof(accepted_start));
+  accepted_start[0] = 1U;
+  accepted_start_maps[0] = accepted_start;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object_section.kind = M68K_SECTION_CODE;
+  object_section.size = sizeof(bytes);
+  object_section.data_size = sizeof(bytes);
+  object_section.data = bytes;
+  added = m68k_object_add_section(&object, &object_section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = sizeof(bytes);
+  memset(&ref, 0, sizeof(ref));
+  ref.offset = 0U;
+  ref.operand_index = 0U;
+  ref.runtime_address = 0x4418CU;
+  ref.has_runtime_address = 1U;
+  ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_address_ref(&section_analysis, &ref));
+  memset(&rendered_access, 0, sizeof(rendered_access));
+  rendered_access.symbol_name = "runtime_address_0004418C";
+  rendered_access.offset = 0U;
+  rendered_access.operand_index = 0U;
+  rendered_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_rendered_symbol_access(
+    &section_analysis, &rendered_access));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, &decode, NULL, accepted_start_maps, NULL));
+  M68K_C_ASSERT_INT(0, test_source_quality_analyze_rendered_symbol_accesses_from_section(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"runtime_address_ref\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"rendered_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_expected_symbol_access\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_source_quality_analyze_blocks_unreferenced_label_statement(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -27199,6 +27319,10 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_uses_render_evidence_without_section_mutation},
     {"source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access",
       test_source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access},
+    {"source_quality_analyze_expects_runtime_address_ref_symbol_access",
+      test_source_quality_analyze_expects_runtime_address_ref_symbol_access},
+    {"source_quality_analyze_accepts_runtime_address_ref_symbol_access",
+      test_source_quality_analyze_accepts_runtime_address_ref_symbol_access},
     {"source_quality_analyze_blocks_unreferenced_label_statement",
       test_source_quality_analyze_blocks_unreferenced_label_statement},
     {"source_quality_analyze_accepts_unreferenced_structured_label_statement",

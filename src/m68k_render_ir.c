@@ -3048,27 +3048,6 @@ static const AmigaOsHardwareRegisterInfo *copper_runtime_pointer_register(uint16
   return hardware_register;
 }
 
-static void format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,
-    char *buf, size_t buf_size) {
-  char prefix[40];
-  size_t used = 0U;
-  size_t index;
-  if (buf == NULL || buf_size == 0U) return;
-  if (role == NULL || role[0] == '\0') role = "memory";
-  for (index = 0U; role[index] != '\0' && used + 1U < sizeof(prefix); ++index) {
-    char ch = role[index];
-    if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
-        (ch >= '0' && ch <= '9') || ch == '_') {
-      prefix[used++] = ch;
-    } else if (used != 0U && prefix[used - 1U] != '_') {
-      prefix[used++] = '_';
-    }
-  }
-  if (used == 0U) snprintf(prefix, sizeof(prefix), "memory");
-  else prefix[used] = '\0';
-  snprintf(buf, buf_size, "%s_%08X%s", prefix, (unsigned)address, suffix != NULL ? suffix : "");
-}
-
 static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPreview *preview,
     const char *role, uint32_t address, char *high_symbol, size_t high_symbol_size,
     char *low_symbol, size_t low_symbol_size) {
@@ -3078,9 +3057,9 @@ static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPrevi
   if (high_symbol != NULL && high_symbol_size != 0U) high_symbol[0] = '\0';
   if (low_symbol != NULL && low_symbol_size != 0U) low_symbol[0] = '\0';
   if (preview == NULL || address == 0U) return 0;
-  format_runtime_address_symbol_name(role, address, "", base_symbol, sizeof(base_symbol));
-  format_runtime_address_symbol_name(role, address, "_hi", high_symbol, high_symbol_size);
-  format_runtime_address_symbol_name(role, address, "_lo", low_symbol, low_symbol_size);
+  platform_format_runtime_address_symbol_name(role, address, "", base_symbol, sizeof(base_symbol));
+  platform_format_runtime_address_symbol_name(role, address, "_hi", high_symbol, high_symbol_size);
+  platform_format_runtime_address_symbol_name(role, address, "_lo", low_symbol, low_symbol_size);
   if (high_symbol == NULL || high_symbol[0] == '\0' || low_symbol == NULL || low_symbol[0] == '\0') return 0;
   snprintf(high_expr, sizeof(high_expr), "%s/$10000", base_symbol);
   snprintf(low_expr, sizeof(low_expr), "%s-(%s*$10000)", base_symbol, high_symbol);
@@ -3093,7 +3072,7 @@ static int render_asm_define_runtime_address_symbol_once(M68kRenderIRPreview *pr
     const char *role, uint32_t address, char *symbol, size_t symbol_size) {
   if (symbol != NULL && symbol_size != 0U) symbol[0] = '\0';
   if (preview == NULL || symbol == NULL || symbol_size == 0U || address == 0U) return 0;
-  format_runtime_address_symbol_name(role, address, "", symbol, symbol_size);
+  platform_format_runtime_address_symbol_name(role, address, "", symbol, symbol_size);
   if (symbol[0] == '\0') return 0;
   return render_asm_declare_symbol_hex_once(preview, symbol, address);
 }

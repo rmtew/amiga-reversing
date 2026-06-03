@@ -2534,6 +2534,66 @@ static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *s
   return 0;
 }
 
+static int source_quality_runtime_ref_operand_contains_value(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kRuntimeAddressRefIR *ref) {
+  const M68kDecodeCandidate *candidate;
+  M68kInstructionIR instruction;
+  uint32_t value = 0U;
+  if (section == NULL || accepted_start == NULL || ref == NULL ||
+      ref->operand_index == UINT32_MAX || ref->offset >= section->size || !accepted_start[ref->offset]) {
+    return 0;
+  }
+  candidate = m68k_decode_ir_find_candidate_at_offset(section, ref->offset);
+  if (candidate == NULL || ref->operand_index >= candidate->operand_count ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      ref->operand_index >= instruction.operand_count) {
+    return 0;
+  }
+  if (!m68k_ir_operand_immediate_value(&instruction.operands[ref->operand_index], &value) &&
+      !source_quality_operand_absolute_offset(&instruction.operands[ref->operand_index], &value)) {
+    return 0;
+  }
+  return value == ref->runtime_address;
+}
+
+static int append_expected_runtime_ref_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *decode_section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section->section_index, &decode_index);
+    size_t ref_index;
+    if (decode_section == NULL) continue;
+    for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
+      M68kExpectedSymbolAccessIR access;
+      char symbol[80];
+      if (!ref->has_runtime_address || ref->has_target || ref->has_sink_address || ref->runtime_address == 0U ||
+          ref->operand_index == UINT32_MAX || ref->data_class_flags != 0U ||
+          (ref->data_class != NULL && ref->data_class[0] != '\0') ||
+          !source_quality_runtime_ref_operand_contains_value(decode_section, accepted_start[decode_index], ref)) {
+        continue;
+      }
+      platform_format_runtime_address_symbol_name("runtime_address", ref->runtime_address, "",
+        symbol, sizeof(symbol));
+      if (symbol[0] == '\0') continue;
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = symbol;
+      access.producer = "runtime_address_ref";
+      access.offset = ref->offset;
+      access.operand_index = ref->operand_index;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
+      access.confidence = ref->confidence;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section, &access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 static int source_quality_instruction_has_call_flow(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   if (instruction == NULL) return 0;
@@ -3394,6 +3454,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_pc_relative_storage_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
+  if (append_expected_runtime_ref_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_platform_call_input_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_hardware_register_value_domain_symbol_accesses(source_analysis, decode, accepted_start) != 0)
     return -1;

@@ -29,6 +29,8 @@ int platform_amiga_format_hardware_register_range_symbol(const AmigaOsHardwareRe
   uint32_t offset, int include_hardware_base, char *buf, size_t buf_size);
 int amiga_value_domain_symbolic_expr(const char *domain_name, uint32_t value, char *expr, size_t expr_size);
 int platform_instruction_has_terminal_state_flow(const struct M68kInstructionIR *instruction);
+void platform_format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,
+  char *buf, size_t buf_size);
 
 typedef enum PlatformResolvedIndirectKind {
   PLATFORM_RESOLVED_INDIRECT_NONE = 0,

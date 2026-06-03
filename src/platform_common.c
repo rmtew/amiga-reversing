@@ -89,6 +89,27 @@ int platform_instruction_has_terminal_state_flow(const M68kInstructionIR *instru
      (metadata->flow_kind == M68K_SIM_FLOW_TRAP && metadata->flow_conditional == 0U));
 }
 
+void platform_format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,
+    char *buf, size_t buf_size) {
+  char prefix[40];
+  size_t used = 0U;
+  size_t index;
+  if (buf == NULL || buf_size == 0U) return;
+  if (role == NULL || role[0] == '\0') role = "memory";
+  for (index = 0U; role[index] != '\0' && used + 1U < sizeof(prefix); ++index) {
+    char ch = role[index];
+    if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+        (ch >= '0' && ch <= '9') || ch == '_') {
+      prefix[used++] = ch;
+    } else if (used != 0U && prefix[used - 1U] != '_') {
+      prefix[used++] = '_';
+    }
+  }
+  if (used == 0U) snprintf(prefix, sizeof(prefix), "memory");
+  else prefix[used] = '\0';
+  snprintf(buf, buf_size, "%s_%08X%s", prefix, (unsigned)address, suffix != NULL ? suffix : "");
+}
+
 int amiga_value_domain_symbolic_expr(const char *domain_name, uint32_t value, char *expr,
     size_t expr_size) {
   const AmigaOsValueDomainInfo *domain;
