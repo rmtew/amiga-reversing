@@ -27135,7 +27135,9 @@ static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[112];
   memset(bytes, 0, sizeof(bytes));
   bytes[0] = 0x41u; bytes[1] = 0xF9u; bytes[2] = 0x00u; bytes[3] = 0x00u;
@@ -27167,8 +27169,8 @@ static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance
   policy.runtime_ranges[0].offset = 0U;
   policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
   policy.runtime_ranges[0].runtime_address = 0U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000028(pc,d0.w),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l $0030(a0),a0\n") != NULL);
@@ -27177,9 +27179,16 @@ static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance
     "; source loc_0_00000060 + dynamic offset from loc_0_00000028 | sound_sample pointer\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.w d0,_custom+aud0+ac_per.l\t; period from loc_0_0000002A transformed | audio period\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"audio_period_source\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":42") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"transformed\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }

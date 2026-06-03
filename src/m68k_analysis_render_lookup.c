@@ -8403,13 +8403,6 @@ static int render_lookup_infer_amiga_bitmap_memory_uses(M68kRenderLookup *lookup
   return 0;
 }
 
-typedef struct M68kRenderAudioPeriodSource {
-  uint8_t known;
-  uint8_t transformed;
-  size_t section_index;
-  uint32_t offset;
-} M68kRenderAudioPeriodSource;
-
 typedef struct M68kRenderHardwareRangePointer {
   uint8_t known;
   const AmigaOsHardwareRegisterRangeInfo *range;
@@ -8427,42 +8420,6 @@ typedef struct M68kRenderPalettePointerSave {
   M68kRenderDataPointerValue addr_regs[8];
   M68kRenderHardwareRangePointer hardware_addr_regs[8];
 } M68kRenderPalettePointerSave;
-
-static void audio_period_sources_clear(M68kRenderAudioPeriodSource sources[8]) {
-  memset(sources, 0, 8U * sizeof(sources[0]));
-}
-
-static int audio_period_write_source_reg(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t *out_reg) {
-  const M68kSimFormMetadata *metadata;
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
-  size_t source_index = 0U, dest_index = 0U;
-  uint32_t dest_address = 0U;
-  if (out_reg != NULL) *out_reg = 0U;
-  if (candidate == NULL || instruction == NULL || out_reg == NULL ||
-      instruction->size_suffix != 'w' ||
-      !instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata) ||
-      metadata == NULL || metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
-      !operand_is_data_register_local(&instruction->operands[source_index], out_reg) ||
-      !asm_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
-    return 0;
-  }
-  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER;
-}
-
-static void format_pointer_source_label(const M68kRenderLookup *lookup, char *buf, size_t buf_size,
-    size_t section_index, uint32_t offset);
-
-static int render_lookup_add_audio_period_source_comment(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, const M68kRenderAudioPeriodSource *source) {
-  char label[64];
-  char comment[128];
-  if (lookup == NULL || source == NULL || !source->known) return 0;
-  format_pointer_source_label(lookup, label, sizeof(label), source->section_index, source->offset);
-  snprintf(comment, sizeof(comment), "period from %s%s", label, source->transformed ? " transformed" : "");
-  return render_lookup_add_instruction_comment(lookup, section_index, offset, comment);
-}
 
 static void format_pointer_source_label(const M68kRenderLookup *lookup, char *buf, size_t buf_size,
     size_t section_index, uint32_t offset) {
@@ -8524,48 +8481,9 @@ static int render_lookup_add_audio_pointer_source_comment(M68kRenderLookup *look
   return render_lookup_add_instruction_comment(lookup, section_index, candidate->offset, comment);
 }
 
-static void audio_period_sources_update_after_instruction(M68kRenderAudioPeriodSource sources[8],
-    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata;
-  size_t source_index = 0U, dest_index = 0U, operand_index;
-  size_t table_section_index = 0U;
-  uint32_t table_offset = 0U;
-  uint8_t dest_reg = 0U;
-  if (sources == NULL || instruction == NULL) return;
-  if (instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata) &&
-      metadata != NULL && metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ &&
-      instruction->size_suffix == 'w' && operand_is_data_register_local(&instruction->operands[dest_index],
-        &dest_reg) && candidate_data_target_for_operand(candidate, (uint32_t)source_index,
-        &table_section_index, &table_offset)) {
-    sources[dest_reg].known = 1U;
-    sources[dest_reg].transformed = 0U;
-    sources[dest_reg].section_index = table_section_index;
-    sources[dest_reg].offset = table_offset;
-    return;
-  }
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) {
-    audio_period_sources_clear(sources);
-    return;
-  }
-  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    uint8_t reg = 0U;
-    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_REGISTER_WRITE ||
-        !operand_is_data_register_local(&instruction->operands[operand_index], &reg)) {
-      continue;
-    }
-    if (sources[reg].known && instruction->operand_count > 1U &&
-        metadata->operand_access_kinds[0] == M68K_SIM_ACCESS_IMMEDIATE) {
-      sources[reg].transformed = 1U;
-    } else {
-      memset(&sources[reg], 0, sizeof(sources[reg]));
-    }
-  }
-}
-
-static int render_lookup_infer_amiga_audio_source_comments(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+static int render_lookup_infer_amiga_audio_pointer_source_comments(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode,
     uint8_t **accepted_start, uint8_t **accepted_bytes) {
-  M68kRenderAudioPeriodSource period_sources[8];
   size_t section_index;
   if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL || lookup->object == NULL ||
       lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
@@ -8575,25 +8493,16 @@ static int render_lookup_infer_amiga_audio_source_comments(M68kRenderLookup *loo
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kRenderDataPointerState data_state;
     size_t candidate_index;
-    audio_period_sources_clear(period_sources);
     data_pointer_state_clear_all(&data_state);
     for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
       const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
       M68kInstructionIR instruction;
-      uint8_t source_reg = 0U;
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      if (audio_period_write_source_reg(candidate, &instruction, &source_reg) && source_reg < 8U &&
-          period_sources[source_reg].known &&
-          render_lookup_add_audio_period_source_comment(lookup, section_index, candidate->offset,
-            &period_sources[source_reg]) != 0) {
-        return -1;
-      }
       if (render_lookup_add_audio_pointer_source_comment(lookup, decode, accepted_bytes, section_index,
           candidate, &instruction, &data_state) != 0) {
         return -1;
       }
-      audio_period_sources_update_after_instruction(period_sources, candidate, &instruction);
       data_pointer_state_update_after_instruction_ex(&data_state, lookup, section, candidate, &instruction, 1U);
     }
   }
@@ -13977,7 +13886,8 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   start = clock();
   if (render_lookup_infer_amiga_palette_uploads(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (render_lookup_infer_amiga_bitmap_memory_uses(lookup, decode, accepted_start) != 0) return -1;
-  if (render_lookup_infer_amiga_audio_source_comments(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
+  if (render_lookup_infer_amiga_audio_pointer_source_comments(lookup, decode, accepted_start, accepted_bytes) != 0)
+    return -1;
   end = clock();
   if (stats != NULL) stats->hardware_data_seconds = elapsed_seconds_local(start, end);
   start = clock();

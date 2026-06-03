@@ -659,6 +659,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "copper_display_layout";
     case M68K_PLATFORM_SEMANTIC_USE_BITMAP_MEMORY:
       return "bitmap_memory";
+    case M68K_PLATFORM_SEMANTIC_USE_AUDIO_PERIOD_SOURCE:
+      return "audio_period_source";
     default:
       return "unknown";
   }

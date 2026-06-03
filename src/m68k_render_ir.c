@@ -34,7 +34,7 @@ static void render_lookup_set_label(M68kRenderLookup *lookup, size_t section_ind
 static int lookup_storage_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
 static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
-    size_t section_index, uint32_t offset, char *comment, size_t comment_size);
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, char *comment, size_t comment_size);
 static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
     size_t section_index, uint32_t offset, uint8_t kind, char *comment, size_t comment_size);
 
@@ -3192,8 +3192,8 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       return;
     }
     row_comment[0] = '\0';
-    (void)attach_platform_semantic_note_comment_for_render(source_analysis, section->section_index, offset + cursor,
-      row_comment, sizeof(row_comment));
+    (void)attach_platform_semantic_note_comment_for_render(source_analysis, lookup, section->section_index,
+      offset + cursor, row_comment, sizeof(row_comment));
     if (comment != NULL && comment[0] != '\0' && row_comment[0] != '\0')
       snprintf(line, sizeof(line), "\tdc.w %s,%s\t; %s; %s\n", left, right, comment, row_comment);
     else if (comment != NULL && comment[0] != '\0')
@@ -6713,22 +6713,52 @@ static const char *source_analysis_platform_semantic_use_role_for_instruction(
   return NULL;
 }
 
+static void format_platform_semantic_target_label_for_render(const M68kRenderLookup *lookup, char *buf,
+    size_t buf_size, size_t section_index, uint32_t offset) {
+  uint32_t runtime_address = 0U;
+  if (buf == NULL || buf_size == 0U) return;
+  if (lookup_source_should_render_runtime_label(lookup, section_index, offset, &runtime_address)) {
+    snprintf(buf, buf_size, "loc_%u_%08X", (unsigned)section_index, (unsigned)runtime_address);
+    return;
+  }
+  (void)format_lookup_asm_label_with_generation(lookup, buf, buf_size, section_index, offset);
+}
+
+static int append_audio_period_source_comment_for_render(const M68kPlatformSemanticUseIR *use,
+    const M68kRenderLookup *lookup, char *comment, size_t comment_size) {
+  char label[64];
+  char note[128];
+  if (use == NULL || lookup == NULL || comment == NULL || comment_size == 0U || !use->has_target) return 0;
+  format_platform_semantic_target_label_for_render(lookup, label, sizeof(label), use->target_section_index,
+    use->target_offset);
+  snprintf(note, sizeof(note), "period from %s%s", label,
+    use->note_text != NULL && strcmp(use->note_text, "transformed") == 0 ? " transformed" : "");
+  (void)append_comment_part_local(comment, comment_size, note);
+  return 1;
+}
+
 static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
-    size_t section_index, uint32_t offset, char *comment, size_t comment_size) {
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, char *comment, size_t comment_size) {
   const M68kSectionAnalysisIR *section;
   size_t index;
+  int appended_target_note = 0;
   if (comment == NULL || comment_size == 0U) return 0;
   section = source_analysis_section_for_render(source_analysis, section_index);
   if (section == NULL) return 0;
   for (index = 0U; index < section->platform_semantic_use_count; ++index) {
     const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
-    if (use->offset != offset || use->note_text == NULL || use->note_text[0] == '\0') continue;
+    if (use->offset != offset) continue;
     if (use->kind == M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT) continue;
     if (use->kind == M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP) continue;
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_AUDIO_PERIOD_SOURCE) {
+      if (append_audio_period_source_comment_for_render(use, lookup, comment, comment_size)) appended_target_note = 1;
+      continue;
+    }
+    if (use->note_text == NULL || use->note_text[0] == '\0') continue;
     (void)append_comment_part_local(comment, comment_size, use->note_text);
     return 1;
   }
-  return 0;
+  return appended_target_note;
 }
 
 static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
@@ -9852,8 +9882,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       section, candidate, &instruction) < 0) {
     return 0;
   }
-  (void)attach_platform_semantic_note_comment_for_render(source_analysis, section->section_index, candidate->offset,
-    platform_comment, sizeof(platform_comment));
+  (void)attach_platform_semantic_note_comment_for_render(source_analysis, lookup, section->section_index,
+    candidate->offset, platform_comment, sizeof(platform_comment));
   (void)attach_amiga_hardware_register_symbols(platform_state, source_analysis, section, candidate, &instruction,
     &instruction);
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);

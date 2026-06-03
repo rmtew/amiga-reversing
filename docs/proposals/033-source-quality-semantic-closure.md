@@ -2483,17 +2483,58 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"audio sample length derived from -$0002(a0) header word\"") != NULL);
 ```
 
+Audio period-source provenance is now C-owned too, but it uses a target-bearing
+semantic fact rather than baking a rendered label into source-quality text:
+
+```asm
+    move.w  period_table(pc,d0.w),d0
+    asl.l   #2,d0
+    move.w  d0,_custom+aud0+ac_per.l
+            ; period from period_table+$02 transformed | audio period
+```
+
+```text
+accepted word load from C-known data target
+  + register-preserving immediate transform
+  + later write of that register to ac_per
+  -> source-quality exports M68kPlatformSemanticUseIR(
+       kind=audio_period_source,
+       has_target=true,
+       target_section_index=...,
+       target_offset=...,
+       note_text="transformed")
+  -> renderer formats the target label from the target fields
+  -> generic audio-register note still contributes "audio period"
+```
+
+This keeps the ownership line intact:
+
+```text
+C analysis proves "period source target is section/offset, transformed"
+renderer spells that target as loc/runtime/policy label text
+```
+
+The fixture asserts exported analysis, not just rendered text:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"kind_name\":\"audio_period_source\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"target_section_index\":0,\"target_offset\":42") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"transformed\"") != NULL);
+```
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no
 longer come from `m68k_analysis_render_lookup.c`; the remaining render-lookup
-copper/bitmap path there is runtime-ref inference, not these comments. Audio
-period source provenance and dynamic audio pointer source provenance are still
-renderer-owned comments and need the same C semantic-use migration. The
-remaining comment families need C semantic-use records with enough structured
-fields or note text for render to format without re-deciding the semantic
-meaning. Once each family is migrated, the corresponding renderer fallback must
-be deleted.
+copper/bitmap path there is runtime-ref inference, not these comments. Dynamic
+audio pointer source provenance is still a renderer-owned comment and needs the
+same C semantic-use migration. The remaining comment families need C
+semantic-use records with enough structured fields or note text for render to
+format without re-deciding the semantic meaning. Once each family is migrated,
+the corresponding renderer fallback must be deleted.
 
 The copper runtime-pointer expression-symbol case now follows the same
 ownership rule. Source-quality recognizes bitmap pointer word pairs inside
