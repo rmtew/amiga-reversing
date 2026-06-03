@@ -708,8 +708,6 @@ int structured_data_item_render_comment(const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *comment, size_t comment_size);
 int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *expr, size_t expr_size);
-int amiga_hardware_register_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
-  uint32_t value, int use_bit_domain, char *expr, size_t expr_size);
 void record_source_export_failure(M68kRenderIRPreview *preview, M68kSourceExportFailureKind kind, size_t section_index,
     uint32_t offset, uint32_t aux_offset);
 void record_numeric_runtime_ref(M68kRenderIRPreview *preview, const M68kFact *fact);

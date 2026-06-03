@@ -1129,6 +1129,7 @@ format_copper_register_value_expr()
 copper_runtime_pointer_register()
 attach_amiga_hardware_register_symbols()
 resolve_amiga_hardware_register_operand()
+attach_amiga_hardware_register_immediate_symbols()
 attach_amiga_hardware_display_comment_for_render()
 attach_amiga_hardware_access_comment_for_render()
 attach_amiga_runtime_sink_comment_for_render()
@@ -2246,9 +2247,12 @@ Implementation order:
 2. Add/verify corpus/xref lanes for analysis:platform_semantic_use:*.
 3. Move hardware/display/access comments from render to semantic-use producers.
 4. Move next-call input immediate symbol rendering to consume source-quality/platform facts.
-5. Done for runtime-address sink pointer comments: source-quality emits
+5. Done for hardware value-domain immediate operands: source-quality emits
+   `hardware_value` semantic uses with `operand_expr`; render only consumes the
+   expression.
+6. Done for runtime-address sink pointer comments: source-quality emits
    `runtime_sink_pointer` semantic uses and render appends their `note_text`.
-6. Delete renderer scans once equivalent C facts drive the same source.
+7. Delete renderer scans once equivalent C facts drive the same source.
 ```
 
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
@@ -2417,6 +2421,52 @@ This closes the instruction-comment migration for the families covered by the
 old `attach_amiga_hardware_display_comment_for_render()` and
 `attach_amiga_hardware_access_comment_for_render()` paths. Instruction comments
 now come from C source-quality semantic-use facts.
+
+Current hardware value-domain operand closure:
+
+```text
+accepted hardware register access
+  + source operand is an immediate value
+  + hardware register has a value/bit domain or a safe custom formatter
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=hardware_value,
+                                                      operand_index=N,
+                                                      operand_expr=...)
+  -> source-quality exports expected symbol accesses for the expression
+  -> renderer attaches operand_expr to that operand
+  -> renderer does not resolve hardware register state to rewrite immediates
+```
+
+This is separate from comments. A register write can need both an operand
+expression and a note, but the proof belongs in source-quality in both cases:
+
+```asm
+    move.w  #INTF_CLRALL,intreq(a5)
+    move.w  #DMAF_SETCLR|DMAF_MASTER,dmacon(a5)
+```
+
+The moved path covers direct absolute hardware accesses and base-relative
+hardware accesses. Base-relative facts are seed-aware, so callback targets and
+local helpers that inherit a hardware base register do not fall back to
+renderer-only state. The old
+`attach_amiga_hardware_register_immediate_symbols()` scan was deleted from
+`m68k_render_ir.c`; render now consumes `platform_semantic_use` operand
+expressions.
+
+Custom symbolic expressions such as BPLCON0 plane-count composition and BLTSIZE
+height/width composition remain supported, but as shared platform formatting:
+
+```c
+int platform_amiga_hardware_register_custom_immediate_expr(
+  const AmigaOsHardwareRegisterInfo *hardware_register,
+  uint32_t value,
+  int use_bit_domain,
+  char *expr,
+  size_t expr_size);
+```
+
+That helper formats a semantic case already proven by source-quality. It must
+not be used as a renderer-side license to discover whether an operand should be
+symbolic.
 
 Current copper-row comment closure:
 

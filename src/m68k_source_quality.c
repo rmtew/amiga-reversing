@@ -4887,16 +4887,17 @@ static int append_platform_call_input_semantic_use(M68kSectionAnalysisIR *sectio
   return m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use);
 }
 
-static int append_platform_call_input_operand_expr_semantic_use(M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeCandidate *candidate, const char *operand_expr) {
+static int append_platform_operand_expr_semantic_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeCandidate *candidate, uint8_t kind, uint32_t operand_index, const char *operand_expr,
+    uint8_t confidence) {
   M68kPlatformSemanticUseIR use;
   if (section_analysis == NULL || candidate == NULL || operand_expr == NULL || operand_expr[0] == '\0') return 0;
   memset(&use, 0, sizeof(use));
-  use.kind = M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT;
+  use.kind = kind;
   use.offset = candidate->offset;
   use.size = candidate->byte_count;
-  use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
-  use.operand_index = 0U;
+  use.confidence = confidence;
+  use.operand_index = operand_index;
   use.operand_expr = (char *)operand_expr;
   use.has_operand_expr = 1U;
   return m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use);
@@ -4924,7 +4925,9 @@ static int append_platform_call_input_operand_expr_semantic_uses_for_call(
       continue;
     value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
     if (!amiga_value_domain_symbolic_expr(value_domain_name, value, symbol_expr, sizeof(symbol_expr))) continue;
-    if (append_platform_call_input_operand_expr_semantic_use(section_analysis, producer, symbol_expr) != 0) {
+    if (append_platform_operand_expr_semantic_use(section_analysis, producer,
+        M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT, 0U, symbol_expr,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
       return -1;
     }
   }
@@ -5238,6 +5241,24 @@ static int append_expected_platform_call_input_symbol_accesses(M68kSourceAnalysi
   return 0;
 }
 
+static int source_quality_hardware_register_immediate_symbol_expr(
+    const AmigaOsHardwareRegisterInfo *hardware_register, const M68kInstructionIR *instruction,
+    int use_bit_domain, uint32_t value, char *symbol_expr, size_t symbol_expr_size) {
+  uint16_t domain_id;
+  const char *domain_name = NULL;
+  if (hardware_register == NULL || instruction == NULL || symbol_expr == NULL || symbol_expr_size == 0U) return 0;
+  if (!use_bit_domain) value = source_quality_immediate_domain_value_for_instruction_size(instruction, value);
+  if (platform_amiga_hardware_register_custom_immediate_expr(hardware_register, value, use_bit_domain, symbol_expr,
+      symbol_expr_size)) {
+    return 1;
+  }
+  domain_id = use_bit_domain ? hardware_register->bit_domain_id : hardware_register->value_domain_id;
+  if (domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
+  domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, domain_id);
+  if (domain_name == NULL || domain_name[0] == '\0') return 0;
+  return amiga_value_domain_symbolic_expr(domain_name, value, symbol_expr, symbol_expr_size);
+}
+
 static int append_expected_hardware_register_value_domain_symbol_accesses_for_section(
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   size_t observation_index;
@@ -5248,8 +5269,6 @@ static int append_expected_hardware_register_value_domain_symbol_accesses_for_se
     M68kInstructionIR instruction;
     const M68kSimFormMetadata *metadata;
     const AmigaOsHardwareRegisterInfo *hardware_register;
-    uint16_t domain_id;
-    const char *domain_name;
     int use_bit_domain;
     size_t operand_index;
     if (observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) continue;
@@ -5270,16 +5289,16 @@ static int append_expected_hardware_register_value_domain_symbol_accesses_for_se
       metadata->operation_type == M68K_SIM_OP_BIT_SET ||
       metadata->operation_type == M68K_SIM_OP_BIT_CLEAR ||
       metadata->operation_type == M68K_SIM_OP_BIT_CHANGE;
-    domain_id = use_bit_domain ? hardware_register->bit_domain_id : hardware_register->value_domain_id;
-    if (domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) continue;
-    domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, domain_id);
-    if (domain_name == NULL || domain_name[0] == '\0') continue;
     for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
       char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
       uint32_t value = 0U;
       if (!m68k_ir_operand_immediate_value(&instruction.operands[operand_index], &value)) continue;
-      if (!use_bit_domain) value = source_quality_immediate_domain_value_for_instruction_size(&instruction, value);
-      if (!amiga_value_domain_symbolic_expr(domain_name, value, symbol_expr, sizeof(symbol_expr))) continue;
+      if (!source_quality_hardware_register_immediate_symbol_expr(hardware_register, &instruction, use_bit_domain,
+          value, symbol_expr, sizeof(symbol_expr))) continue;
+      if (append_platform_operand_expr_semantic_use(section_analysis, candidate,
+          M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE, (uint32_t)operand_index, symbol_expr,
+          observation->confidence) != 0)
+        return -1;
       if (append_expected_platform_symbol_expr_accesses(section_analysis, symbol_expr,
           "platform_hardware_register_value_domain_operand", candidate->offset, (uint32_t)operand_index,
           observation->confidence) != 0)
@@ -5309,7 +5328,9 @@ static int append_expected_hardware_register_value_domain_symbol_accesses(M68kSo
 }
 
 static int append_expected_register_derived_hardware_value_domain_symbol_accesses_for_section(
-    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kAnalysisPolicy *policy, const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds,
+    size_t hardware_base_seed_count) {
   SourceQualityHardwareBaseState state;
   uint32_t offset;
   if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
@@ -5324,6 +5345,10 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
     candidate = m68k_decode_ir_find_candidate_at_offset(section, offset);
     if (candidate == NULL || candidate->byte_count == 0U) continue;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+      candidate->offset);
+    source_quality_hardware_base_state_apply_inferred_register_seeds(&state, hardware_base_seeds,
+      hardware_base_seed_count, section->section_index, candidate->offset);
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) {
       source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
@@ -5339,8 +5364,6 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
       uint8_t base_reg = 0U;
       int16_t displacement = 0;
       const AmigaOsHardwareRegisterInfo *hardware_register;
-      uint16_t domain_id;
-      const char *domain_name;
       size_t immediate_index;
       if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE &&
           access_kind != M68K_SIM_ACCESS_MEMORY_READ &&
@@ -5357,16 +5380,16 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
       hardware_register = amiga_os_find_hardware_register_by_base_id_offset(state.address_base_id[base_reg],
         (uint32_t)(uint16_t)displacement);
       if (hardware_register == NULL) continue;
-      domain_id = use_bit_domain ? hardware_register->bit_domain_id : hardware_register->value_domain_id;
-      if (domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) continue;
-      domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, domain_id);
-      if (domain_name == NULL || domain_name[0] == '\0') continue;
       for (immediate_index = 0U; immediate_index < instruction.operand_count; ++immediate_index) {
         char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
         uint32_t value = 0U;
         if (!m68k_ir_operand_immediate_value(&instruction.operands[immediate_index], &value)) continue;
-        if (!use_bit_domain) value = source_quality_immediate_domain_value_for_instruction_size(&instruction, value);
-        if (!amiga_value_domain_symbolic_expr(domain_name, value, symbol_expr, sizeof(symbol_expr))) continue;
+        if (!source_quality_hardware_register_immediate_symbol_expr(hardware_register, &instruction, use_bit_domain,
+            value, symbol_expr, sizeof(symbol_expr))) continue;
+        if (append_platform_operand_expr_semantic_use(section_analysis, candidate,
+            M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE, (uint32_t)immediate_index, symbol_expr,
+            M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
+          return -1;
         if (append_expected_platform_symbol_expr_accesses(section_analysis, symbol_expr,
             "platform_hardware_base_register_value_domain_operand", candidate->offset, (uint32_t)immediate_index,
             M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
@@ -5379,7 +5402,9 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
 }
 
 static int append_expected_register_derived_hardware_value_domain_symbol_accesses(
-    M68kSourceAnalysisIR *source_analysis, const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+    M68kSourceAnalysisIR *source_analysis, const M68kDecodeIR *decode, uint8_t *const *accepted_start,
+    const M68kAnalysisPolicy *policy, const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds,
+    size_t hardware_base_seed_count) {
   size_t section_index;
   if (source_analysis == NULL) return -1;
   if (decode == NULL || accepted_start == NULL) return 0;
@@ -5390,7 +5415,7 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
       (uint32_t)section_analysis->section_index, &decode_index);
     if (section == NULL) continue;
     if (append_expected_register_derived_hardware_value_domain_symbol_accesses_for_section(section_analysis, section,
-        accepted_start[decode_index]) != 0) {
+        accepted_start[decode_index], policy, hardware_base_seeds, hardware_base_seed_count) != 0) {
       return -1;
     }
   }
@@ -6013,7 +6038,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_expected_hardware_register_value_domain_symbol_accesses(source_analysis, decode, accepted_start) != 0)
     return -1;
   if (append_expected_register_derived_hardware_value_domain_symbol_accesses(source_analysis, decode,
-      accepted_start) != 0)
+      accepted_start, policy, hardware_base_seeds, hardware_base_seed_count) != 0)
     return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_manual_mid_instruction_diagnostics(source_analysis) != 0) return -1;

@@ -124,6 +124,84 @@ void platform_format_runtime_address_symbol_name(const char *role, uint32_t addr
   snprintf(buf, buf_size, "%s_%08X%s", prefix, (unsigned)address, suffix != NULL ? suffix : "");
 }
 
+static int platform_append_symbolic_expr_component(char *expr, size_t expr_size, const char *component) {
+  size_t used;
+  size_t component_len;
+  if (expr == NULL || expr_size == 0U || component == NULL || component[0] == '\0') return 0;
+  used = strlen(expr);
+  component_len = strlen(component);
+  if (used + (used != 0U ? 1U : 0U) + component_len + 1U > expr_size) return 0;
+  if (used != 0U) strcat(expr, "|");
+  strcat(expr, component);
+  return 1;
+}
+
+static int platform_amiga_bplcon0_symbolic_expr(uint32_t value, char *expr, size_t expr_size) {
+  uint32_t word = value & 0xFFFFU;
+  uint32_t remaining = word;
+  uint32_t plane_count = (word >> 12) & 7U;
+  char component[32];
+  if (expr == NULL || expr_size == 0U) return 0;
+  expr[0] = '\0';
+  if ((word & 0x8000U) != 0U) {
+    if (!platform_append_symbolic_expr_component(expr, expr_size, "MODE_640")) return 0;
+    remaining &= ~0x8000U;
+  }
+  if (plane_count != 0U) {
+    snprintf(component, sizeof(component), "(%u<<PLNCNTSHFT)", (unsigned)plane_count);
+    if (!platform_append_symbolic_expr_component(expr, expr_size, component)) return 0;
+    remaining &= ~0x7000U;
+  }
+  if ((word & 0x0800U) != 0U) {
+    if (!platform_append_symbolic_expr_component(expr, expr_size, "HOLDNMODIFY")) return 0;
+    remaining &= ~0x0800U;
+  }
+  if ((word & 0x0400U) != 0U) {
+    if (!platform_append_symbolic_expr_component(expr, expr_size, "DBLPF")) return 0;
+    remaining &= ~0x0400U;
+  }
+  if ((word & 0x0200U) != 0U) {
+    if (!platform_append_symbolic_expr_component(expr, expr_size, "COLORON")) return 0;
+    remaining &= ~0x0200U;
+  }
+  if ((word & 0x0004U) != 0U) {
+    if (!platform_append_symbolic_expr_component(expr, expr_size, "INTERLACE")) return 0;
+    remaining &= ~0x0004U;
+  }
+  if (remaining != 0U) return 0;
+  return expr[0] != '\0';
+}
+
+static int platform_amiga_bltsize_symbolic_expr(uint32_t value, char *expr, size_t expr_size) {
+  uint32_t word = value & 0xFFFFU;
+  uint32_t encoded_height = (word >> 6) & 0x3FFU;
+  uint32_t encoded_width_words = word & 0x3FU;
+  if (expr == NULL || expr_size == 0U || word == 0U) return 0;
+  expr[0] = '\0';
+  snprintf(expr, expr_size, "(%u<<6)|%u", (unsigned)encoded_height, (unsigned)encoded_width_words);
+  return strlen(expr) + 1U < expr_size;
+}
+
+static int platform_amiga_hardware_register_uses_custom_immediate_expr(
+    const AmigaOsHardwareRegisterInfo *hardware_register, int use_bit_domain) {
+  if (hardware_register == NULL || use_bit_domain) return 0;
+  if (hardware_register->base_id != AMIGA_OS_HARDWARE_BASE_ID_CUSTOM) return 0;
+  return hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0 ||
+    hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE;
+}
+
+int platform_amiga_hardware_register_custom_immediate_expr(
+    const AmigaOsHardwareRegisterInfo *hardware_register, uint32_t value, int use_bit_domain,
+    char *expr, size_t expr_size) {
+  if (platform_amiga_hardware_register_uses_custom_immediate_expr(hardware_register, use_bit_domain)) {
+    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0)
+      return platform_amiga_bplcon0_symbolic_expr(value, expr, expr_size);
+    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE)
+      return platform_amiga_bltsize_symbolic_expr(value, expr, expr_size);
+  }
+  return 0;
+}
+
 int amiga_value_domain_symbolic_expr(const char *domain_name, uint32_t value, char *expr,
     size_t expr_size) {
   const AmigaOsValueDomainInfo *domain;

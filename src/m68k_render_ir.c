@@ -3026,7 +3026,7 @@ static int format_copper_register_value_expr(uint16_t copper_register_word, uint
   if ((copper_register_word & 1U) != 0U) return 0;
   hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
   if (hardware_register == NULL) return 0;
-  if (amiga_hardware_register_custom_immediate_expr(hardware_register, value, 0, buf, buf_size)) return 1;
+  if (platform_amiga_hardware_register_custom_immediate_expr(hardware_register, value, 0, buf, buf_size)) return 1;
   if (hardware_register->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
   domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, hardware_register->value_domain_id);
   return amiga_value_domain_symbolic_expr(domain_name, value, buf, buf_size);
@@ -4153,13 +4153,6 @@ static const AmigaOsHardwareRegisterInfo *resolve_amiga_hardware_register_operan
   return NULL;
 }
 
-static uint32_t immediate_domain_value_for_instruction_size(const M68kInstructionIR *instruction, uint32_t value) {
-  if (instruction == NULL) return value;
-  if (instruction->size_suffix == 'b') return value & 0xFFU;
-  if (instruction->size_suffix == 'w') return value & 0xFFFFU;
-  return value;
-}
-
 static const char *manual_representation_symbol_name(const M68kRenderLookup *lookup,
     const M68kAnalysisManualRepresentation *representation) {
   const M68kAnalysisPolicy *policy;
@@ -4203,138 +4196,6 @@ static void apply_manual_operand_representations(const M68kRenderLookup *lookup,
     if (!is_immediate) continue;
     operand->manual_representation_style_id = representation->style_id;
   }
-}
-
-static int append_symbolic_expr_component(char *expr, size_t expr_size, const char *component) {
-  size_t used;
-  size_t component_len;
-  if (expr == NULL || expr_size == 0U || component == NULL || component[0] == '\0') return 0;
-  used = strlen(expr);
-  component_len = strlen(component);
-  if (used + (used != 0U ? 1U : 0U) + component_len + 1U > expr_size) return 0;
-  if (used != 0U) strcat(expr, "|");
-  strcat(expr, component);
-  return 1;
-}
-
-static int amiga_bplcon0_symbolic_expr(uint32_t value, char *expr, size_t expr_size) {
-  uint32_t word = value & 0xFFFFU;
-  uint32_t remaining = word;
-  uint32_t plane_count = (word >> 12) & 7U;
-  char component[32];
-  if (expr == NULL || expr_size == 0U) return 0;
-  expr[0] = '\0';
-  if ((word & 0x8000U) != 0U) {
-    if (!append_symbolic_expr_component(expr, expr_size, "MODE_640")) return 0;
-    remaining &= ~0x8000U;
-  }
-  if (plane_count != 0U) {
-    snprintf(component, sizeof(component), "(%u<<PLNCNTSHFT)", (unsigned)plane_count);
-    if (!append_symbolic_expr_component(expr, expr_size, component)) return 0;
-    remaining &= ~0x7000U;
-  }
-  if ((word & 0x0800U) != 0U) {
-    if (!append_symbolic_expr_component(expr, expr_size, "HOLDNMODIFY")) return 0;
-    remaining &= ~0x0800U;
-  }
-  if ((word & 0x0400U) != 0U) {
-    if (!append_symbolic_expr_component(expr, expr_size, "DBLPF")) return 0;
-    remaining &= ~0x0400U;
-  }
-  if ((word & 0x0200U) != 0U) {
-    if (!append_symbolic_expr_component(expr, expr_size, "COLORON")) return 0;
-    remaining &= ~0x0200U;
-  }
-  if ((word & 0x0004U) != 0U) {
-    if (!append_symbolic_expr_component(expr, expr_size, "INTERLACE")) return 0;
-    remaining &= ~0x0004U;
-  }
-  if (remaining != 0U) return 0;
-  return expr[0] != '\0';
-}
-
-static int amiga_bltsize_symbolic_expr(uint32_t value, char *expr, size_t expr_size) {
-  uint32_t word = value & 0xFFFFU;
-  uint32_t encoded_height = (word >> 6) & 0x3FFU;
-  uint32_t encoded_width_words = word & 0x3FU;
-  if (expr == NULL || expr_size == 0U || word == 0U) return 0;
-  expr[0] = '\0';
-  snprintf(expr, expr_size, "(%u<<6)|%u", (unsigned)encoded_height, (unsigned)encoded_width_words);
-  return strlen(expr) + 1U < expr_size;
-}
-
-static int amiga_hardware_register_uses_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
-    int use_bit_domain) {
-  if (hardware_register == NULL || use_bit_domain) return 0;
-  if (hardware_register->base_id != AMIGA_OS_HARDWARE_BASE_ID_CUSTOM) return 0;
-  return hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0 ||
-    hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE;
-}
-
-int amiga_hardware_register_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
-    uint32_t value, int use_bit_domain, char *expr, size_t expr_size) {
-  if (amiga_hardware_register_uses_custom_immediate_expr(hardware_register, use_bit_domain)) {
-    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0)
-      return amiga_bplcon0_symbolic_expr(value, expr, expr_size);
-    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE)
-      return amiga_bltsize_symbolic_expr(value, expr, expr_size);
-  }
-  return 0;
-}
-
-static int attach_amiga_hardware_register_immediate_symbols(const M68kRenderPlatformState *state,
-    M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata;
-  const AmigaOsHardwareRegisterInfo *hardware_register = NULL;
-  uint16_t domain_id = AMIGA_OS_VALUE_DOMAIN_ID_NONE;
-  const char *domain_name = NULL;
-  size_t operand_index;
-  int use_bit_domain = 0;
-  if (instruction == NULL || instruction->operand_count < 2U) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return 0;
-  use_bit_domain =
-    metadata->operation_type == M68K_SIM_OP_BIT_TEST ||
-    metadata->operation_type == M68K_SIM_OP_BIT_SET ||
-    metadata->operation_type == M68K_SIM_OP_BIT_CLEAR ||
-    metadata->operation_type == M68K_SIM_OP_BIT_CHANGE;
-  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
-    uint8_t access_kind = metadata->operand_access_kinds[operand_index];
-    if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE &&
-        access_kind != M68K_SIM_ACCESS_MEMORY_READ &&
-        access_kind != M68K_SIM_ACCESS_COMPUTE_ADDRESS) {
-      continue;
-    }
-    hardware_register = resolve_amiga_hardware_register_operand(state, &instruction->operands[operand_index]);
-    if (hardware_register == NULL) continue;
-    domain_id = use_bit_domain ? hardware_register->bit_domain_id : hardware_register->value_domain_id;
-    if (domain_id != AMIGA_OS_VALUE_DOMAIN_ID_NONE ||
-        amiga_hardware_register_uses_custom_immediate_expr(hardware_register, use_bit_domain)) {
-      break;
-    }
-  }
-  if (hardware_register == NULL) return 0;
-  if (domain_id != AMIGA_OS_VALUE_DOMAIN_ID_NONE) {
-    domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, domain_id);
-    if (domain_name == NULL || domain_name[0] == '\0') return 0;
-  }
-  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
-    M68kOperandIR *operand = &instruction->operands[operand_index];
-    uint32_t value = 0U;
-    char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
-    if (operand->symbol_ref.has_name != 0U) continue;
-    if (!m68k_ir_operand_immediate_value(operand, &value)) continue;
-    if (!use_bit_domain) value = immediate_domain_value_for_instruction_size(instruction, value);
-    if (!amiga_hardware_register_custom_immediate_expr(hardware_register, value, use_bit_domain, symbol_expr,
-          sizeof(symbol_expr)) &&
-        (domain_name == NULL ||
-         !amiga_value_domain_symbolic_expr(domain_name, value, symbol_expr, sizeof(symbol_expr)))) {
-      continue;
-    }
-    attach_amiga_platform_symbol(operand, symbol_expr);
-    return 1;
-  }
-  return 0;
 }
 
 static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id);
@@ -9670,7 +9531,6 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   (void)attach_amiga_hardware_register_symbols(platform_state, source_analysis, section, candidate, &instruction,
     &instruction);
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);
-  (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_absolute_stack_top_symbol(preview, &instruction);
   if (!attach_absolute_memory_address_use_symbols(preview, source_analysis, section, candidate, &instruction,
       platform_comment,

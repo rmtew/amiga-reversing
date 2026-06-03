@@ -27981,7 +27981,9 @@ static int test_facts_v2_render_asm_source_expects_hardware_value_domain_immedia
   {
     const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
     int found_expected = 0;
+    int found_operand_expr_use = 0;
     size_t expected_index;
+    size_t use_index;
     for (expected_index = 0U; expected_index < analysis_section->expected_symbol_access_count; ++expected_index) {
       const M68kExpectedSymbolAccessIR *expected = &analysis_section->expected_symbol_accesses[expected_index];
       if (expected->offset == 0U &&
@@ -27994,7 +27996,19 @@ static int test_facts_v2_render_asm_source_expects_hardware_value_domain_immedia
         found_expected = 1;
       }
     }
+    for (use_index = 0U; use_index < analysis_section->platform_semantic_use_count; ++use_index) {
+      const M68kPlatformSemanticUseIR *use = &analysis_section->platform_semantic_uses[use_index];
+      if (use->kind == M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE &&
+          use->offset == 0U &&
+          use->has_operand_expr &&
+          use->operand_index == 0U &&
+          use->operand_expr != NULL &&
+          strcmp(use->operand_expr, "INTF_CLRALL") == 0) {
+        found_operand_expr_use = 1;
+      }
+    }
     M68K_C_ASSERT(found_expected);
+    M68K_C_ASSERT(found_operand_expr_use);
   }
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -28042,7 +28056,10 @@ static int test_facts_v2_render_asm_source_expects_hardware_base_register_value_
     const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
     int found_expected = 0;
     int found_dma_expected = 0;
+    int found_operand_expr_use = 0;
+    int found_dma_operand_expr_use = 0;
     size_t expected_index;
+    size_t use_index;
     for (expected_index = 0U; expected_index < analysis_section->expected_symbol_access_count; ++expected_index) {
       const M68kExpectedSymbolAccessIR *expected = &analysis_section->expected_symbol_accesses[expected_index];
       if (expected->offset == 6U &&
@@ -28063,8 +28080,28 @@ static int test_facts_v2_render_asm_source_expects_hardware_base_register_value_
         found_dma_expected = 1;
       }
     }
+    for (use_index = 0U; use_index < analysis_section->platform_semantic_use_count; ++use_index) {
+      const M68kPlatformSemanticUseIR *use = &analysis_section->platform_semantic_uses[use_index];
+      if (use->kind != M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE ||
+          !use->has_operand_expr ||
+          use->operand_index != 0U ||
+          use->operand_expr == NULL) {
+        continue;
+      }
+      if (use->offset == 6U && strcmp(use->operand_expr, "INTF_CLRALL") == 0) {
+        found_operand_expr_use = 1;
+      }
+      if (use->offset == 12U &&
+          strcmp(use->operand_expr,
+            "DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER|DMAF_BLITTER|DMAF_DISK|DMAF_AUDIO")
+            == 0) {
+        found_dma_operand_expr_use = 1;
+      }
+    }
     M68K_C_ASSERT(found_expected);
     M68K_C_ASSERT(found_dma_expected);
+    M68K_C_ASSERT(found_operand_expr_use);
+    M68K_C_ASSERT(found_dma_operand_expr_use);
   }
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
