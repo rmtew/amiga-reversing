@@ -470,6 +470,14 @@ def _feature_label(feature: str) -> str:
         return f"Platform address use: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
     if feature == "analysis:platform_address_use":
         return "Platform address use"
+    if feature.startswith("analysis:platform_semantic_use_kind:"):
+        return f"Platform semantic use: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:platform_semantic_use_source:"):
+        return f"Platform semantic use source: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:platform_semantic_use:"):
+        return f"Platform semantic use: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:platform_semantic_use":
+        return "Platform semantic use"
     if feature.startswith("memory-layout-view:absolute_owner_access:"):
         parts = feature.split(":")
         if len(parts) >= 4:

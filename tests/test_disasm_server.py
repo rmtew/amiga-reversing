@@ -5394,6 +5394,20 @@ def test_corpus_feature_labels_expected_symbol_accesses() -> None:
     assert disasm_server.corpus_usage._feature_label("analysis:expected_symbol_access") == "Expected symbol access"
 
 
+def test_corpus_feature_labels_platform_semantic_uses() -> None:
+    assert (
+        disasm_server.corpus_usage._feature_label("analysis:platform_semantic_use_kind:bitmap_plane")
+        == "Platform semantic use: bitmap plane"
+    )
+    assert (
+        disasm_server.corpus_usage._feature_label(
+            "analysis:platform_semantic_use_source:postincrement_read_sequence"
+        )
+        == "Platform semantic use source: postincrement read sequence"
+    )
+    assert disasm_server.corpus_usage._feature_label("analysis:platform_semantic_use") == "Platform semantic use"
+
+
 def test_corpus_snippet_payload_preserves_explicit_row_indexes(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server.corpus_usage,

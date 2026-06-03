@@ -2082,18 +2082,22 @@ regenerate corpus/target_usage_snippet_rows
 then query target-pattern:source_quality_* and analysis:* lanes
 ```
 
-One discoverability gap was found in the wrapping layer: expected symbol access
-features were indexed but not given first-class labels in the Python/web corpus
-feature-label helpers. Those labels should remain Python/web presentation only;
-the feature itself must continue to come from C source-analysis JSON.
+Two discoverability gaps were found in the wrapping layer and closed without
+moving ownership out of C:
 
-A second discoverability gap remains around coverage, not existence:
-`platform_semantic_uses` is exported, but corpus/xref indexing must be checked
-against the current fact shape before promising
-`analysis:platform_semantic_use:*` rows. Until those lanes are verified,
-`target-pattern:source_quality_platform_semantics` may still need precursor
-features such as platform calls, hardware names, platform address uses, and
-expected symbol producers.
+```text
+expected_symbol_accesses
+  -> indexed from C source-analysis JSON
+  -> first-class Python/web labels for kind, producer, targeted, and base lanes
+
+platform_semantic_uses
+  -> indexed and xref-backed as analysis:platform_semantic_use:*
+  -> participates in target-pattern:source_quality_platform_semantics
+  -> first-class Python/web labels for base, kind, and source lanes
+```
+
+Those labels are presentation only. The feature rows still come from C
+source-analysis JSON via `src/scripts/target_usage_manifest.py`.
 
 ## Verification Gates
 
