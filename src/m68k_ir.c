@@ -661,6 +661,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "bitmap_memory";
     case M68K_PLATFORM_SEMANTIC_USE_AUDIO_PERIOD_SOURCE:
       return "audio_period_source";
+    case M68K_PLATFORM_SEMANTIC_USE_AUDIO_POINTER_SOURCE:
+      return "audio_pointer_source";
     default:
       return "unknown";
   }
@@ -2866,6 +2868,9 @@ int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR 
         existing->has_target == use->has_target &&
         existing->target_section_index == use->target_section_index &&
         existing->target_offset == use->target_offset &&
+        existing->has_secondary_target == use->has_secondary_target &&
+        existing->secondary_target_section_index == use->secondary_target_section_index &&
+        existing->secondary_target_offset == use->secondary_target_offset &&
         text_equal_nullable(existing->note_text, use->note_text)) {
       return 0;
     }

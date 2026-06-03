@@ -6737,6 +6737,26 @@ static int append_audio_period_source_comment_for_render(const M68kPlatformSeman
   return 1;
 }
 
+static int append_audio_pointer_source_comment_for_render(const M68kPlatformSemanticUseIR *use,
+    const M68kRenderLookup *lookup, char *comment, size_t comment_size) {
+  char label[64];
+  char dynamic_label[64];
+  char note[192];
+  if (use == NULL || lookup == NULL || comment == NULL || comment_size == 0U || !use->has_target) return 0;
+  (void)format_lookup_asm_label_with_generation(lookup, label, sizeof(label), use->target_section_index,
+    use->target_offset);
+  if (use->has_secondary_target) {
+    format_platform_semantic_target_label_for_render(lookup, dynamic_label, sizeof(dynamic_label),
+      use->secondary_target_section_index, use->secondary_target_offset);
+    snprintf(note, sizeof(note), "source %s + dynamic offset from %s", label, dynamic_label);
+  } else {
+    snprintf(note, sizeof(note), "source %s%s", label,
+      use->note_text != NULL && strcmp(use->note_text, "dynamic_offset") == 0 ? " + dynamic offset" : "");
+  }
+  (void)append_comment_part_local(comment, comment_size, note);
+  return 1;
+}
+
 static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, char *comment, size_t comment_size) {
   const M68kSectionAnalysisIR *section;
@@ -6752,6 +6772,10 @@ static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnal
     if (use->kind == M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP) continue;
     if (use->kind == M68K_PLATFORM_SEMANTIC_USE_AUDIO_PERIOD_SOURCE) {
       if (append_audio_period_source_comment_for_render(use, lookup, comment, comment_size)) appended_target_note = 1;
+      continue;
+    }
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_AUDIO_POINTER_SOURCE) {
+      if (append_audio_pointer_source_comment_for_render(use, lookup, comment, comment_size)) appended_target_note = 1;
       continue;
     }
     if (use->note_text == NULL || use->note_text[0] == '\0') continue;

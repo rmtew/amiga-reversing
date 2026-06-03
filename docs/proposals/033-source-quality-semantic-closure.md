@@ -2525,16 +2525,70 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"transformed\"") != NULL);
 ```
 
+Dynamic audio pointer-source provenance now follows the same pattern, with one
+important extension: the fact needs two targets when a dynamic offset table is
+known.
+
+```asm
+    lea.l   sound_sample,a0
+    adda.w  sample_offsets(pc,d0.w),a0
+    lea.l   $0030(a0),a0
+    move.l  a0,_custom+aud0+ac_ptr.l
+            ; source sound_sample+$30 + dynamic offset from sample_offsets | sound_sample pointer
+```
+
+```text
+accepted source pointer load
+  + accepted indexed offset add
+  + later write of that address register to ac_ptr
+  -> source-quality exports M68kPlatformSemanticUseIR(
+       kind=audio_pointer_source,
+       has_target=true,
+       target_section_index=sample source section,
+       target_offset=sample source offset,
+       has_secondary_target=true,
+       secondary_target_section_index=offset table section,
+       secondary_target_offset=offset table offset,
+       note_text="dynamic_offset")
+  -> renderer formats the primary and secondary targets as labels
+  -> generic audio-register note still contributes "sound_sample pointer"
+```
+
+The key rule is the same as for period source comments:
+
+```text
+C analysis proves "sample pointer source target, optional dynamic table target"
+renderer chooses only spelling: local label, runtime label, or generated label
+```
+
+The fixture now asserts that the dynamic pointer comment is backed by exported
+analysis:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"kind_name\":\"audio_pointer_source\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"target_section_index\":0,\"target_offset\":96") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"secondary_target_section_index\":0,\"secondary_target_offset\":40") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"dynamic_offset\"") != NULL);
+```
+
+The render-owned audio pointer fallback in `m68k_analysis_render_lookup.c` was
+deleted. If this comment disappears in future work, source-quality JSON will
+show whether the producer stopped finding the primary/secondary target or render
+stopped consuming the fact.
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no
 longer come from `m68k_analysis_render_lookup.c`; the remaining render-lookup
-copper/bitmap path there is runtime-ref inference, not these comments. Dynamic
-audio pointer source provenance is still a renderer-owned comment and needs the
-same C semantic-use migration. The remaining comment families need C
-semantic-use records with enough structured fields or note text for render to
-format without re-deciding the semantic meaning. Once each family is migrated,
-the corresponding renderer fallback must be deleted.
+copper/bitmap path there is runtime-ref inference, not these comments. The
+remaining comment families need C semantic-use records with enough structured
+fields or note text for render to format without re-deciding the semantic
+meaning. Once each family is migrated, the corresponding renderer fallback must
+be deleted.
 
 The copper runtime-pointer expression-symbol case now follows the same
 ownership rule. Source-quality recognizes bitmap pointer word pairs inside

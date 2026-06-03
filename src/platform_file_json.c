@@ -4477,6 +4477,15 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       } else if (json_builder_append(&builder, "null,\"target_offset\":null") != 0) {
         goto oom;
       }
+      if (json_builder_append(&builder, ",\"secondary_target_section_index\":") != 0)
+        goto oom;
+      if (use->has_secondary_target) {
+        if (json_builder_appendf(&builder, "%u,\"secondary_target_offset\":%u",
+            (unsigned)use->secondary_target_section_index, (unsigned)use->secondary_target_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null,\"secondary_target_offset\":null") != 0) {
+        goto oom;
+      }
       if (use->note_text != NULL && use->note_text[0] != '\0') {
         if (json_builder_append(&builder, ",\"note_text\":") != 0)
           goto oom;

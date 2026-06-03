@@ -27181,6 +27181,11 @@ static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance
     "\tmove.w d0,_custom+aud0+ac_per.l\t; period from loc_0_0000002A transformed | audio period\n") != NULL);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"audio_pointer_source\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":96") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"secondary_target_section_index\":0,\"secondary_target_offset\":40") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"dynamic_offset\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"audio_period_source\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":42") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"transformed\"") != NULL);

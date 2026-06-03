@@ -1392,7 +1392,8 @@ typedef enum M68kPlatformSemanticUseKind {
   M68K_PLATFORM_SEMANTIC_USE_COPPER_ROW = 14,
   M68K_PLATFORM_SEMANTIC_USE_COPPER_DISPLAY_LAYOUT = 15,
   M68K_PLATFORM_SEMANTIC_USE_BITMAP_MEMORY = 16,
-  M68K_PLATFORM_SEMANTIC_USE_AUDIO_PERIOD_SOURCE = 17
+  M68K_PLATFORM_SEMANTIC_USE_AUDIO_PERIOD_SOURCE = 17,
+  M68K_PLATFORM_SEMANTIC_USE_AUDIO_POINTER_SOURCE = 18
 } M68kPlatformSemanticUseKind;
 
 typedef struct M68kPlatformSemanticUseIR {
@@ -1401,11 +1402,14 @@ typedef struct M68kPlatformSemanticUseIR {
   uint32_t size;
   uint32_t target_section_index;
   uint32_t target_offset;
+  uint32_t secondary_target_section_index;
+  uint32_t secondary_target_offset;
   uint32_t role_flags;
   uint8_t kind;
   uint8_t source_pattern_id;
   uint8_t confidence;
   uint8_t has_target;
+  uint8_t has_secondary_target;
 } M68kPlatformSemanticUseIR;
 
 typedef struct M68kCodeStartRefIR {
