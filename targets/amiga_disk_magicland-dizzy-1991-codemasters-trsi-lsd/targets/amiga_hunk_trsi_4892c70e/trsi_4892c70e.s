@@ -26,7 +26,7 @@ loc_0_00000000:
 	move.w (a0)+,-$00E6(a6)
 	move.w (a0)+,-$00EA(a6)
 	move.b #$81,(a3)
-	lea.l loc_0_00000208-(*+2)(pc),a2
+	lea.l loc_0_00000208(pc),a2
 	st.b (a3)
 	lea.l abs_0_00000100.l,a4
 	moveq.l #99,d0

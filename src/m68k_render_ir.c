@@ -9639,6 +9639,7 @@ static void mark_cross_org_pc_relative_displacement_exprs(M68kRenderLookup *look
     M68kOperandIR *operand = &instruction->operands[operand_index];
     size_t relative_base;
     int64_t target;
+    uint32_t target_runtime_address = 0U;
     if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U ||
         operand->value.ea_reg != 2U || operand->symbol_ref.has_name == 0U ||
         operand->symbol_ref.kind != M68K_IR_SYMBOL_REF_PC_REL || operand->symbol_ref.has_section == 0 ||
@@ -9650,6 +9651,10 @@ static void mark_cross_org_pc_relative_displacement_exprs(M68kRenderLookup *look
       candidate->operand_count, m68k_decode_candidate_effective_size_suffix(candidate), operand_index, 0);
     target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[operand_index].value);
     if (relative_base > UINT32_MAX || target < 0 || target > UINT32_MAX) continue;
+    if (!lookup_source_should_render_runtime_label(lookup, section_index, (uint32_t)target,
+        &target_runtime_address) || target_runtime_address == (uint32_t)target) {
+      continue;
+    }
     if (!pc_relative_target_crosses_runtime_org(lookup, section_index, candidate->offset, (uint32_t)target)) continue;
     operand->symbol_ref.name_is_generated = format_storage_asm_label_with_generation(lookup,
       operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section_index, (uint32_t)target);

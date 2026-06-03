@@ -242,7 +242,7 @@ loc_2_00000048:
 	dbf.w d0,loc_2_00000048
 	pea.l absolute_slot_00059484.l
 	pea.l absolute_slot_00002700.w
-	lea.l loc_2_0000014C-(*+2)(pc),a0
+	lea.l loc_2_0000014C(pc),a0
 	jmp $0040(a2)
 	dc.b " TETRAGON "	; mode=required, data_role=string, unit=byte
 loc_2_0000006A:

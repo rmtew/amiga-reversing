@@ -732,15 +732,14 @@ absolute address observations
 accepted table-entry targets
 rendered storage-label evidence
 materialized runtime range-start storage-label obligations
+PC-relative data operands crossing materialized runtime ORG boundaries
 ```
 
 The remaining coverage gap is narrower:
 
 ```text
-PC-relative storage operands that are not already represented as ordinary data
-  operands
 generated non-manual equates
-storage labels needed only because an operand crosses a runtime ORG boundary
+non-data PC-relative storage operands that cross a runtime ORG boundary
 platform semantic operands and comments
 ```
 
@@ -752,7 +751,6 @@ The next coverage should stay as separate functions, not one broad "label
 exists" rule:
 
 ```text
-append_expected_pc_relative_storage_operand_accesses()
 append_expected_generated_equate_operand_accesses()
 append_expected_platform_symbol_operand_accesses()
 ```
@@ -768,8 +766,19 @@ renderer emits a storage-domain label before switching ORG to runtime domain
   -> rendered_symbol_access(access_kind=storage_label)
   -> post-render gate can match an expected storage-label obligation
 
-remaining: storage-domain labels that are required only by PC-relative operands
-crossing a runtime ORG boundary need an operand-driven producer before render
+source-quality analysis sees a PC-relative data operand cross a materialized
+runtime ORG boundary
+  -> expected_symbol_access(access_kind=operand,
+                            producer=pc_relative_storage_operand)
+  -> expected_symbol_access(access_kind=storage_label,
+                            producer=pc_relative_storage_label_statement)
+
+If the ordinary data-target producer already created the same operand
+obligation, producer evidence is merged; this records both reasons without
+duplicating the expected access.
+
+remaining: non-data PC-relative storage operands that cross a runtime ORG
+boundary need equivalent operand-driven producers before render
 ```
 
 The remaining producer must be C-owned. It cannot reuse the renderer-only
@@ -1134,13 +1143,34 @@ table_entry_target
 merged producer evidence for duplicate obligations
 rendered storage-label evidence
 storage_label_statement for materialized runtime range starts
+pc_relative_storage_operand for cross-ORG PC-relative data operands
+pc_relative_storage_label_statement for those operand-required storage labels
+```
+
+The PC-relative storage producers are deliberately narrow. Crossing a
+materialized runtime range is not enough by itself. The target offset must map
+to a distinct runtime address; otherwise an ordinary `loc_*` operand and label
+after an `ORG` is already valid source:
+
+```text
+lea.l loc_2_0000014C(pc),a0
+...
+section_2[$6A-$14C) -> runtime[$100-$1E2)
+
+target $14C is outside the copied runtime range
+  -> no storage-label obligation
+  -> ordinary label access is valid
+
+target inside copied runtime range and runtime != storage
+  -> operand may need storage-space spelling
+  -> expected pc_relative_storage_operand
+  -> expected pc_relative_storage_label_statement
 ```
 
 Add the remaining precise C producers:
 
-- PC-relative storage operands not already covered by data operands
 - generated non-manual equates
-- storage labels needed only because an operand crosses a runtime ORG boundary
+- non-data PC-relative storage operands that cross a runtime ORG boundary
 - platform semantic operands and comments
 
 Do not reuse generic label-created or label-required facts. Those pseudo-facts

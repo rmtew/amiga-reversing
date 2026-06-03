@@ -2106,6 +2106,125 @@ static int append_expected_address_observation_symbol_accesses(M68kSourceAnalysi
   return 0;
 }
 
+static int source_quality_pc_relative_operand_crosses_runtime_org(
+    const M68kSectionAnalysisIR *section_analysis, uint32_t source_offset, uint32_t target_offset) {
+  size_t view_index;
+  uint32_t low;
+  uint32_t high;
+  if (section_analysis == NULL || source_offset == target_offset) return 0;
+  if (source_offset < target_offset) {
+    low = source_offset;
+    high = target_offset;
+  } else {
+    low = target_offset;
+    high = source_offset;
+  }
+  for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+    if (view->materialized == 0U || view->runtime_address == view->storage_offset) continue;
+    if (view->storage_offset > low && view->storage_offset <= high) return 1;
+  }
+  return 0;
+}
+
+static int source_quality_source_offset_has_distinct_runtime_address(
+    const M68kSectionAnalysisIR *section_analysis, uint32_t source_offset, uint32_t *out_runtime_address) {
+  size_t view_index;
+  if (out_runtime_address != NULL) *out_runtime_address = 0U;
+  if (section_analysis == NULL) return 0;
+  for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+    uint32_t delta;
+    uint32_t runtime_address;
+    if (view->materialized == 0U || source_offset < view->storage_offset) continue;
+    delta = source_offset - view->storage_offset;
+    if (delta >= view->size || view->runtime_address > UINT32_MAX - delta) continue;
+    runtime_address = view->runtime_address + delta;
+    if (runtime_address == source_offset) continue;
+    if (out_runtime_address != NULL) *out_runtime_address = runtime_address;
+    return 1;
+  }
+  return 0;
+}
+
+static int source_quality_candidate_operand_is_pc_relative_d16(
+    const M68kDecodeCandidate *candidate, size_t operand_index) {
+  if (candidate == NULL || operand_index >= candidate->operand_count) return 0;
+  return candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_EA &&
+    candidate->operands[operand_index].ea_mode == 7U &&
+    candidate->operands[operand_index].ea_reg == 2U;
+}
+
+static int append_expected_pc_relative_storage_symbol_accesses_for_section(
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start) {
+  size_t candidate_index;
+  if (section_analysis == NULL || section == NULL) return -1;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    size_t target_index;
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      const M68kSymbolOriginIR *origin;
+      M68kExpectedSymbolAccessIR access;
+      if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section || !target->has_operand ||
+          target->section_index != section->section_index ||
+          target->section_index != section_analysis->section_index ||
+          !source_quality_candidate_operand_is_pc_relative_d16(candidate, target->operand_index) ||
+          !source_quality_source_offset_has_distinct_runtime_address(section_analysis, target->offset, NULL) ||
+          !source_quality_pc_relative_operand_crosses_runtime_org(section_analysis, candidate->offset,
+            target->offset)) {
+        continue;
+      }
+      origin = source_quality_symbol_origin_at(section_analysis, target->offset);
+      if (origin == NULL) continue;
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = origin->symbol_name;
+      access.producer = "pc_relative_storage_operand";
+      access.offset = candidate->offset;
+      access.target_section_index = (uint32_t)section_analysis->section_index;
+      access.target_offset = target->offset;
+      access.operand_index = (uint32_t)target->operand_index;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+      access.confidence = origin->confidence;
+      access.has_target = 1U;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = origin->symbol_name;
+      access.producer = "pc_relative_storage_label_statement";
+      access.offset = target->offset;
+      access.target_section_index = (uint32_t)section_analysis->section_index;
+      access.target_offset = target->offset;
+      access.operand_index = UINT32_MAX;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_STORAGE_LABEL;
+      access.confidence = origin->confidence;
+      access.has_target = 1U;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_expected_pc_relative_storage_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_expected_pc_relative_storage_symbol_accesses_for_section(section_analysis, section,
+        accepted_start[decode_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
   const M68kAnalysisPolicy *policy;
   uint16_t index;
@@ -2726,6 +2845,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
     return -1;
   if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_expected_pc_relative_storage_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_accepted_run_noncode_fallthrough_diagnostics(source_analysis) != 0) return -1;
