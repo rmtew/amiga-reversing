@@ -647,6 +647,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "audio_table";
     case M68K_PLATFORM_SEMANTIC_USE_DISK_DMA:
       return "disk_dma";
+    case M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER:
+      return "audio_register";
     default:
       return "unknown";
   }

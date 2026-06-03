@@ -18076,7 +18076,9 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   const char *section_line;
   const char *custom_include_line;
   const char *intf_decl_line;
@@ -18126,8 +18128,8 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   section_line = strstr(source, "    SECTION");
   custom_include_line = strstr(source, "INCLUDE \"hardware/custom.i\"");
@@ -18189,13 +18191,24 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(source, "\tmove.w _custom+joy0dat.l,d0\t; joystick/mouse port 0 data\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w _custom+joy1dat.l,d0\t; joystick/mouse port 1 data\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w _custom+intreqr.l,d0\t; interrupt request state\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"audio_register\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"sound sample length 128 bytes\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio period 291\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio volume 64\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"sound sample length 9320 bytes\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio period\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio data word\"") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,bplpt+$02(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,sprpt+$1E(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $0004.w,a6\n") != NULL);
   M68K_C_ASSERT(strstr(source, "m68k_vector_initial_pc") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }

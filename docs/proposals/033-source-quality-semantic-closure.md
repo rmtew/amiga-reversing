@@ -2239,9 +2239,44 @@ This is intentionally not a renderer-side analysis shortcut. The renderer
 accepts C-owned note text first and falls back to legacy display/access comment
 helpers only for semantic comments that have not yet been migrated.
 
+Current audio-register comment closure:
+
+```text
+accepted hardware field access
+  + destination/source is audN+ac_len/ac_per/ac_vol/ac_dat
+  + absolute field address or proven _custom base-relative field address
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=audio_register,
+                                                      note_text=...)
+  -> renderer appends note_text
+  -> render no longer contains audio-register comment decisions
+```
+
+The important follow-through was the base-relative case:
+
+```asm
+    lea.l   _custom.l,a0
+    move.w  #$40,aud0+ac_len(a0)       ; sound sample length 128 bytes
+    move.w  d0,_custom+aud0+ac_per.l   ; audio period
+```
+
+Absolute hardware observations already carried enough information for analysis
+to attach notes. The `_custom` base-relative form did not, so the fix was not
+to keep audio logic in render. Source-quality now scans accepted instructions
+with its hardware-base tracker and emits the same `audio_register` semantic-use
+notes for base-relative hardware fields.
+
+Regression coverage now checks both the visible source and exported facts:
+
+```c
+M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"audio_register\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"sound sample length 128 bytes\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio data word\"") != NULL);
+```
+
 Remaining platform-comment work is the same rule applied to richer comments
-that need value-domain payloads, such as display setup, audio
-period/volume/length, palette writes, and read-side hardware status comments.
+that need value-domain payloads, such as display setup, palette writes, and
+read-side hardware status comments.
 Those need C semantic-use records with enough structured fields or note text
 for render to format without re-deciding the semantic meaning. Once each family
 is migrated, the corresponding renderer fallback must be deleted.

@@ -3221,47 +3221,6 @@ static int format_amiga_disk_dma_register_comment(const AmigaOsHardwareRegisterI
   return strlen(buf) + 1U < buf_size;
 }
 
-static int format_amiga_audio_register_comment(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
-    uint32_t value, char *buf, size_t buf_size) {
-  uint32_t word = value & 0xFFFFU;
-  if (buf == NULL || buf_size == 0U) return 0;
-  buf[0] = '\0';
-  if (hardware_field == NULL) {
-    return 0;
-  }
-  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN) {
-    snprintf(buf, buf_size, "sound sample length %u bytes", (unsigned)(word * 2U));
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER) {
-    snprintf(buf, buf_size, "audio period %u", (unsigned)word);
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_VOL) {
-    snprintf(buf, buf_size, "audio volume %u", (unsigned)word);
-    return strlen(buf) + 1U < buf_size;
-  }
-  return 0;
-}
-
-static int format_amiga_audio_register_access_comment(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
-    char *buf, size_t buf_size) {
-  if (buf == NULL || buf_size == 0U) return 0;
-  buf[0] = '\0';
-  if (hardware_field == NULL) {
-    return 0;
-  }
-  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER) {
-    snprintf(buf, buf_size, "audio period");
-    return strlen(buf) + 1U < buf_size;
-  }
-  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_DAT) {
-    snprintf(buf, buf_size, "audio data word");
-    return strlen(buf) + 1U < buf_size;
-  }
-  return 0;
-}
-
 static int format_amiga_hardware_register_access_comment(const AmigaOsHardwareRegisterInfo *hardware_register,
     uint8_t access_kind, char *buf, size_t buf_size) {
   if (buf == NULL || buf_size == 0U) return 0;
@@ -6904,6 +6863,8 @@ static const char *platform_semantic_use_role_for_render(const M68kPlatformSeman
       return "audio table";
     case M68K_PLATFORM_SEMANTIC_USE_DISK_DMA:
       return "disk DMA";
+    case M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER:
+      return "audio register";
     default:
       return NULL;
   }
@@ -9921,7 +9882,6 @@ static void attach_amiga_hardware_display_comment_for_render(const M68kRenderPla
     const M68kInstructionIR *instruction, char *comment, size_t comment_size) {
   const M68kSimFormMetadata *metadata;
   const AmigaOsHardwareRegisterInfo *hardware_register;
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
   uint32_t value = 0U;
   uint8_t source_index = 0xFFU;
   uint8_t dest_index = 0xFFU;
@@ -9950,11 +9910,7 @@ static void attach_amiga_hardware_display_comment_for_render(const M68kRenderPla
       immediate_domain_value_for_instruction_size(instruction, value), note, sizeof(note))) {
     if (!format_amiga_disk_dma_register_comment(hardware_register,
         immediate_domain_value_for_instruction_size(instruction, value), note, sizeof(note))) {
-      hardware_field = resolve_amiga_hardware_register_field_operand(state, &instruction->operands[dest_index]);
-      if (!format_amiga_audio_register_comment(hardware_field,
-          immediate_domain_value_for_instruction_size(instruction, value), note, sizeof(note))) {
-        return;
-      }
+      return;
     }
   }
   (void)append_comment_part_local(comment, comment_size, note);
@@ -9964,7 +9920,6 @@ static void attach_amiga_hardware_access_comment_for_render(const M68kRenderPlat
     const M68kInstructionIR *instruction, char *comment, size_t comment_size) {
   const M68kSimFormMetadata *metadata;
   const AmigaOsHardwareRegisterInfo *hardware_register;
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
   const AmigaOsHardwareRegisterRangeInfo *hardware_range;
   uint32_t range_offset = 0U;
   uint8_t access_pass;
@@ -9993,14 +9948,11 @@ static void attach_amiga_hardware_access_comment_for_render(const M68kRenderPlat
       }
       hardware_register = resolve_amiga_hardware_register_operand(state, &instruction->operands[operand_index]);
       if (!format_amiga_hardware_register_access_comment(hardware_register, access_kind, note, sizeof(note))) {
-        hardware_field = resolve_amiga_hardware_register_field_operand(state, &instruction->operands[operand_index]);
-        if (!format_amiga_audio_register_access_comment(hardware_field, note, sizeof(note))) {
-          hardware_range = resolve_amiga_hardware_register_range_operand(state, &instruction->operands[operand_index],
-            &range_offset);
-          if (!format_amiga_hardware_range_access_comment(hardware_range, range_offset, access_kind,
-              byte_width_for_instruction_size(instruction), note, sizeof(note))) {
-            continue;
-          }
+        hardware_range = resolve_amiga_hardware_register_range_operand(state, &instruction->operands[operand_index],
+          &range_offset);
+        if (!format_amiga_hardware_range_access_comment(hardware_range, range_offset, access_kind,
+            byte_width_for_instruction_size(instruction), note, sizeof(note))) {
+          continue;
         }
       }
       (void)append_comment_part_local(comment, comment_size, note);
