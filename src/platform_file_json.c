@@ -9494,6 +9494,7 @@ static int listing_navigation_call_is_target(const M68kSectionAnalysisIR *sectio
     const M68kRecoveredPlatformCallIR *call) {
   if (call == NULL) return 0;
   if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL) return 0;
+  if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_HELPER_SYMBOL) return 0;
   if (call->note_kind == M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR &&
       listing_navigation_call_has_near_lvo_reference(section, offset, call))
     return 0;

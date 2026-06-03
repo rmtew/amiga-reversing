@@ -4431,6 +4431,426 @@ static int source_quality_find_platform_call_input_immediate(const M68kDecodeSec
   return 0;
 }
 
+static const char *source_quality_amiga_input_type_or_struct_name(const AmigaOsCallInputInfo *input) {
+  const char *name;
+  if (input == NULL) return NULL;
+  if (input->struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+    name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, input->struct_id);
+    if (name != NULL && name[0] != '\0') return name;
+  }
+  if (input->type_id != AMIGA_OS_TYPE_ID_NONE) {
+    name = amiga_os_name(M68K_PLATFORM_NAME_TYPE, input->type_id);
+    if (name != NULL && name[0] != '\0') return name;
+  }
+  return NULL;
+}
+
+static int format_source_quality_amiga_call_input_note(uint16_t stack_offset,
+    const AmigaOsCallInputInfo *input, char *buf, size_t buf_size) {
+  const char *symbol_name;
+  const char *type_name;
+  const char *semantic_kind;
+  const char *value_domain_name;
+  size_t used;
+  if (buf == NULL || buf_size == 0U || input == NULL || stack_offset == 0U) return 0;
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input->input_id);
+  type_name = source_quality_amiga_input_type_or_struct_name(input);
+  semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input->semantic_kind_id);
+  value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
+  snprintf(buf, buf_size, "KNOWN: arg +%u", (unsigned)stack_offset);
+  used = strlen(buf);
+  if (symbol_name != NULL && symbol_name[0] != '\0' && used + strlen(symbol_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", symbol_name);
+    used = strlen(buf);
+  }
+  if (type_name != NULL && type_name[0] != '\0' && used + strlen(type_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", type_name);
+    used = strlen(buf);
+  }
+  if (semantic_kind != NULL && semantic_kind[0] != '\0' && used + strlen(semantic_kind) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", semantic_kind);
+    used = strlen(buf);
+  }
+  if (value_domain_name != NULL && value_domain_name[0] != '\0' &&
+      used + strlen(value_domain_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", value_domain_name);
+  }
+  return 1;
+}
+
+static const AmigaOsCallInputInfo *source_quality_amiga_vector_input_by_register(
+    const AmigaOsLibraryVectorInfo *vector, uint8_t reg_kind, uint8_t reg_index) {
+  const AmigaOsCallInputInfo *inputs;
+  size_t input_count = 0U;
+  size_t index;
+  if (vector == NULL) return NULL;
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  if (inputs == NULL) return NULL;
+  for (index = 0U; index < input_count; ++index) {
+    if (inputs[index].reg_kind == reg_kind && inputs[index].reg_index == reg_index) return &inputs[index];
+  }
+  return NULL;
+}
+
+static const AmigaOsCallInputInfo *source_quality_amiga_vector_input_by_stack_index(
+    const AmigaOsLibraryVectorInfo *vector, size_t stack_index) {
+  const AmigaOsCallInputInfo *inputs;
+  size_t input_count = 0U;
+  if (vector == NULL) return NULL;
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  if (inputs == NULL || stack_index >= input_count) return NULL;
+  return &inputs[stack_index];
+}
+
+static int source_quality_operand_is_predec_a7(const M68kOperandIR *operand) {
+  if (operand == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_PREDEC) return operand->value.reg == 7U;
+  return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 4U && operand->value.ea_reg == 7U;
+}
+
+static int source_quality_operand_is_postinc_a7(const M68kOperandIR *operand) {
+  if (operand == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_POSTINC) return operand->value.reg == 7U;
+  return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 3U && operand->value.ea_reg == 7U;
+}
+
+static int source_quality_operand_is_stack_displacement(const M68kOperandIR *operand, int16_t *out_displacement) {
+  uint8_t reg = 0U;
+  int16_t displacement = 0;
+  if (out_displacement != NULL) *out_displacement = 0;
+  if (!source_quality_operand_address_displacement(operand, &reg, &displacement) || reg != 7U) return 0;
+  if (out_displacement != NULL) *out_displacement = displacement;
+  return 1;
+}
+
+static int source_quality_instruction_is_long_stack_push(const M68kInstructionIR *instruction) {
+  if (instruction == NULL) return 0;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_PEA && instruction->operand_count == 1U) return 1;
+  return instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
+    instruction->operand_count == 2U && source_quality_operand_is_predec_a7(&instruction->operands[1]);
+}
+
+static uint16_t source_quality_reglist_long_stack_size(uint32_t mask) {
+  uint16_t size = 0U;
+  unsigned bit;
+  for (bit = 0U; bit < 16U; ++bit) {
+    if ((mask & (1UL << bit)) != 0U) size = (uint16_t)(size + 4U);
+  }
+  return size;
+}
+
+static int source_quality_instruction_stack_delta(const M68kInstructionIR *instruction, int32_t *out_delta) {
+  size_t operand_index;
+  if (out_delta != NULL) *out_delta = 0;
+  if (instruction == NULL || out_delta == NULL) return 0;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_PEA && instruction->operand_count == 1U) {
+    *out_delta = 4;
+    return 1;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
+      instruction->operand_count == 2U && source_quality_operand_is_predec_a7(&instruction->operands[1])) {
+    *out_delta = 4;
+    return 1;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && instruction->size_suffix == 'l' &&
+      instruction->operand_count == 2U && source_quality_operand_is_postinc_a7(&instruction->operands[0])) {
+    *out_delta = -4;
+    return 1;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
+      instruction->operand_count == 2U) {
+    if (instruction->operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
+        source_quality_operand_is_predec_a7(&instruction->operands[1])) {
+      *out_delta = source_quality_reglist_long_stack_size(instruction->operands[0].value.value);
+      return 1;
+    }
+    if (source_quality_operand_is_postinc_a7(&instruction->operands[0]) &&
+        instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+      *out_delta = -(int32_t)source_quality_reglist_long_stack_size(instruction->operands[1].value.value);
+      return 1;
+    }
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U &&
+      source_quality_operand_address_register_index(&instruction->operands[1], NULL)) {
+    uint8_t reg = 0U;
+    int16_t displacement = 0;
+    if (!source_quality_operand_address_register_index(&instruction->operands[1], &reg) || reg != 7U ||
+        !source_quality_operand_is_stack_displacement(&instruction->operands[0], &displacement)) {
+      return 0;
+    }
+    *out_delta = -(int32_t)displacement;
+    return 1;
+  }
+  if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADD ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDA ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDI ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDQ ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBI ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ) &&
+      instruction->operand_count == 2U) {
+    uint8_t reg = 0U;
+    uint32_t value = 0U;
+    if (!source_quality_operand_address_register_index(&instruction->operands[1], &reg) || reg != 7U ||
+        !m68k_ir_operand_immediate_value(&instruction->operands[0], &value) || value > INT16_MAX) {
+      return 0;
+    }
+    *out_delta = (instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
+                  instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA ||
+                  instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBI ||
+                  instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ)
+      ? (int32_t)value
+      : -(int32_t)value;
+    return 1;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    if (source_quality_operand_is_predec_a7(&instruction->operands[operand_index]) ||
+        source_quality_operand_is_postinc_a7(&instruction->operands[operand_index])) {
+      return 0;
+    }
+  }
+  if (instruction->operand_count > 0U) {
+    uint8_t reg = 0U;
+    if (source_quality_operand_address_register_index(&instruction->operands[instruction->operand_count - 1U],
+        &reg) && reg == 7U) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static int source_quality_stack_frame_depth_before_candidate(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t before_offset, uint16_t *out_depth) {
+  const M68kDecodeCandidate *candidates[32];
+  size_t count = 0U;
+  int32_t depth = 0;
+  uint32_t cursor;
+  if (out_depth != NULL) *out_depth = 0U;
+  if (section == NULL || accepted_start == NULL || out_depth == NULL) return 0;
+  cursor = before_offset;
+  while (count < sizeof(candidates) / sizeof(candidates[0])) {
+    const M68kDecodeCandidate *candidate =
+      source_quality_previous_accepted_candidate(section, accepted_start, cursor);
+    if (candidate == NULL || candidate->byte_count == 0U) break;
+    candidates[count++] = candidate;
+    cursor = candidate->offset;
+  }
+  while (count > 0U) {
+    M68kInstructionIR instruction;
+    int32_t delta = 0;
+    --count;
+    if (m68k_decode_candidate_to_instruction(candidates[count], &instruction) != 0) return 0;
+    if (!source_quality_instruction_stack_delta(&instruction, &delta)) return 0;
+    depth += delta;
+    if (depth < 0 || depth > UINT16_MAX) return 0;
+  }
+  *out_depth = (uint16_t)depth;
+  return 1;
+}
+
+static int append_platform_call_input_semantic_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeCandidate *candidate, uint16_t stack_offset, const AmigaOsCallInputInfo *input) {
+  M68kPlatformSemanticUseIR use;
+  char note[192];
+  if (section_analysis == NULL || candidate == NULL || input == NULL || stack_offset == 0U) return 0;
+  if (!format_source_quality_amiga_call_input_note(stack_offset, input, note, sizeof(note))) return 0;
+  memset(&use, 0, sizeof(use));
+  use.kind = M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT;
+  use.offset = candidate->offset;
+  use.size = candidate->byte_count;
+  use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  use.note_text = note;
+  return m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use);
+}
+
+static int append_local_wrapper_call_input_semantic_uses(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call) {
+  const char *call_symbol;
+  const AmigaOsLibraryVectorInfo *vector;
+  uint32_t cursor;
+  uint16_t push_stack_offset = 4U;
+  size_t scan_count = 0U;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL || call == NULL ||
+      call->note_kind != M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL) {
+    return 0;
+  }
+  call_symbol = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
+  if (call_symbol == NULL || call_symbol[0] == '\0') {
+    call_symbol = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
+  }
+  vector = amiga_os_find_library_vector_by_symbol_name(call_symbol);
+  if (vector == NULL) return 0;
+  cursor = call->offset;
+  while (scan_count < 12U) {
+    const M68kDecodeCandidate *candidate =
+      source_quality_previous_accepted_candidate(section, accepted_start, cursor);
+    M68kInstructionIR instruction;
+    const AmigaOsCallInputInfo *input;
+    if (candidate == NULL || candidate->byte_count == 0U) break;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
+    if (!source_quality_instruction_is_long_stack_push(&instruction)) break;
+    input = source_quality_amiga_vector_input_by_stack_index(vector, (size_t)((push_stack_offset / 4U) - 1U));
+    if (input == NULL ||
+        append_platform_call_input_semantic_use(section_analysis, candidate, push_stack_offset, input) != 0) {
+      break;
+    }
+    push_stack_offset = (uint16_t)(push_stack_offset + 4U);
+    cursor = candidate->offset;
+    ++scan_count;
+  }
+  return 0;
+}
+
+static int append_stack_load_platform_call_input_semantic_uses(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const AmigaOsLibraryVectorInfo *vector, uint16_t stack_frame_depth) {
+  int16_t displacement = 0;
+  if (section_analysis == NULL || candidate == NULL || instruction == NULL || vector == NULL) return 0;
+  if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
+       instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) &&
+      instruction->size_suffix == 'l' && instruction->operand_count == 2U &&
+      source_quality_operand_is_stack_displacement(&instruction->operands[0], &displacement)) {
+    uint8_t reg = 0U;
+    uint8_t reg_kind = 0U;
+    const AmigaOsCallInputInfo *input;
+    if (source_quality_operand_data_register_index(&instruction->operands[1], &reg)) reg_kind = 1U;
+    else if (source_quality_operand_address_register_index(&instruction->operands[1], &reg)) reg_kind = 2U;
+    input = source_quality_amiga_vector_input_by_register(vector, reg_kind, reg);
+    if (input != NULL && displacement > (int16_t)stack_frame_depth) {
+      if (append_platform_call_input_semantic_use(section_analysis, candidate,
+          (uint16_t)(displacement - (int16_t)stack_frame_depth), input) != 0) {
+        return -1;
+      }
+      return 1;
+    }
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
+      instruction->operand_count == 2U && source_quality_operand_is_stack_displacement(&instruction->operands[0],
+        &displacement) && instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST &&
+      displacement > (int16_t)stack_frame_depth) {
+    uint32_t mask = instruction->operands[1].value.value;
+    uint16_t stack_offset = (uint16_t)(displacement - (int16_t)stack_frame_depth);
+    unsigned bit;
+    int added = 0;
+    for (bit = 0U; bit < 16U; ++bit) {
+      uint8_t reg_kind;
+      uint8_t reg_index;
+      const AmigaOsCallInputInfo *input;
+      if ((mask & (1UL << bit)) == 0U) continue;
+      reg_kind = bit < 8U ? 1U : 2U;
+      reg_index = (uint8_t)(bit < 8U ? bit : bit - 8U);
+      input = source_quality_amiga_vector_input_by_register(vector, reg_kind, reg_index);
+      if (input != NULL &&
+          append_platform_call_input_semantic_use(section_analysis, candidate, stack_offset, input) != 0) {
+        return -1;
+      }
+      if (input != NULL) added = 1;
+      stack_offset = (uint16_t)(stack_offset + 4U);
+    }
+    return added;
+  }
+  return 0;
+}
+
+static int append_platform_call_input_semantic_uses_for_call(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call,
+    const AmigaOsLibraryVectorInfo *vector) {
+  uint32_t cursor;
+  uint16_t push_stack_offset = 4U;
+  size_t scan_count = 0U;
+  int allow_register_stack_loads;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL || call == NULL || vector == NULL)
+    return 0;
+  if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL) return 0;
+  allow_register_stack_loads = call->note_kind == M68K_PLATFORM_CALL_NOTE_NONE ||
+    call->note_kind == M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL;
+  cursor = call->offset;
+  while (scan_count < 12U) {
+    const M68kDecodeCandidate *candidate =
+      source_quality_previous_accepted_candidate(section, accepted_start, cursor);
+    M68kInstructionIR instruction;
+    uint16_t stack_frame_depth = 0U;
+    int load_result;
+    if (candidate == NULL || candidate->byte_count == 0U) break;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
+    load_result = 0;
+    if (allow_register_stack_loads &&
+        source_quality_stack_frame_depth_before_candidate(section, accepted_start, candidate->offset,
+          &stack_frame_depth)) {
+      load_result = append_stack_load_platform_call_input_semantic_uses(section_analysis, candidate, &instruction,
+        vector, stack_frame_depth);
+      if (load_result < 0) return -1;
+    }
+    if (load_result > 0) {
+      cursor = candidate->offset;
+      ++scan_count;
+      continue;
+    }
+    if (source_quality_instruction_is_long_stack_push(&instruction)) {
+      const AmigaOsCallInputInfo *input = source_quality_amiga_vector_input_by_stack_index(vector,
+        (size_t)((push_stack_offset / 4U) - 1U));
+      if (input == NULL ||
+          append_platform_call_input_semantic_use(section_analysis, candidate, push_stack_offset, input) != 0) {
+        break;
+      }
+      push_stack_offset = (uint16_t)(push_stack_offset + 4U);
+      cursor = candidate->offset;
+      ++scan_count;
+      continue;
+    }
+    break;
+  }
+  return 0;
+}
+
+static int append_platform_call_input_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+  size_t call_index;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
+  for (call_index = 0U; call_index < section_analysis->recovered_platform_call_count; ++call_index) {
+    const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[call_index];
+    const char *call_symbol = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
+    const AmigaOsLibraryVectorInfo *vector;
+    if (call_symbol == NULL || call_symbol[0] == '\0') {
+      call_symbol = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
+    }
+    if (call_symbol == NULL || call_symbol[0] == '\0') continue;
+    if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_HELPER_SYMBOL) continue;
+    if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL) {
+      if (append_local_wrapper_call_input_semantic_uses(section_analysis, section, accepted_start, call) != 0) {
+        return -1;
+      }
+      continue;
+    }
+    vector = amiga_os_find_library_vector_by_symbol_name(call_symbol);
+    if (append_platform_call_input_semantic_uses_for_call(section_analysis, section, accepted_start, call,
+        vector) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_platform_call_input_semantic_uses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_platform_call_input_semantic_uses_for_section(section_analysis, section, accepted_start[decode_index])
+        != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_expected_platform_call_input_symbol_accesses_for_section(
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   size_t call_index;
@@ -5272,6 +5692,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_copper_display_setup_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_bitmap_memory_platform_semantic_uses(source_analysis) != 0) return -1;
+  if (append_platform_call_input_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_audio_source_platform_semantic_uses(source_analysis, decode, accepted_start, accepted_bytes) != 0)
     return -1;
   if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;

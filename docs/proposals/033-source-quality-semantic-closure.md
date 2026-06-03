@@ -2580,6 +2580,98 @@ deleted. If this comment disappears in future work, source-quality JSON will
 show whether the producer stopped finding the primary/secondary target or render
 stopped consuming the fact.
 
+### Implemented Slice: OS Call Input Notes
+
+The same ownership rule now covers Amiga OS call input comments. Previously the
+render lookup pass walked backward from a recovered OS call and attached
+comments directly:
+
+```asm
+    move.l  #$10000,-(a7)     ; KNOWN: arg +8 attributes
+    pea.l   buffer            ; KNOWN: arg +4 byteSize
+    jsr     local_allocmem_wrapper
+```
+
+That was analysis inside rendering. The renderer was deciding that the previous
+stack push represented a documented call input. Source-quality now owns that
+decision:
+
+```text
+recovered_platform_call at call site
+  -> resolve documented vector inputs from the call symbol or wrapper note
+  -> scan accepted setup instructions immediately before the call
+  -> direct/vector call:
+       allow stack pushes and caller-stack register loads
+     local wrapper dispatch:
+       allow stack pushes only
+     local helper dispatch:
+       do not infer caller arguments from the helper's internal OS call
+  -> export M68kPlatformSemanticUseIR(
+       kind=platform_call_input,
+       offset=setup instruction offset,
+       note_text="KNOWN: arg +N ...")
+  -> renderer appends note_text only
+```
+
+The wrapper distinction is important. This caller-side register load is not an
+argument setup for the wrapper call:
+
+```asm
+    move.l  $0008(a7),d1      ; no KNOWN comment
+    move.l  #$10000,-(a7)     ; KNOWN: arg +8 attributes
+    pea.l   $0060.w           ; KNOWN: arg +4 byteSize
+    jsr     local_allocmem_wrapper
+```
+
+Inside the wrapper, the same register load shape can be real call input setup
+because the immediate call is the direct `_LVOAllocMem(a6)` call:
+
+```asm
+local_allocmem_wrapper:
+    movem.l $0008(a7),d0-d1   ; KNOWN: arg +4 byteSize | KNOWN: arg +8 attributes
+    jsr     _LVOAllocMem(a6)
+    rts
+```
+
+Local helpers are stricter than wrappers. A helper that performs extra work
+before or after an OS vector proves that the helper itself uses the OS API, not
+that every caller stack push maps to that API's documented inputs. Analysis now
+records such calls with a distinct `LOCAL_HELPER_SYMBOL` note kind and
+source-quality skips caller argument comments for that note kind:
+
+```text
+caller:
+  jsr helper_that_may_call_allocmem
+
+helper:
+  tst.l d0
+  beq.s done
+  jsr _LVOAllocMem(a6)
+done:
+  rts
+
+result:
+  recovered helper/API fact exists
+  no platform_call_input semantic-use is attached to the caller
+```
+
+The focused fixture asserts both rendered source and analysis JSON:
+
+```c
+M68K_C_ASSERT(strstr(source,
+  "\tpea.l $0060.w\t; KNOWN: arg +4 byteSize") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"kind_name\":\"platform_call_input\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"KNOWN: arg +8 attributes") != NULL);
+```
+
+The old render-owned `render_lookup_add_call_setup_comments_for_vector` path was
+deleted. `render_lookup_infer_amiga_call_input_comments` still exists for now
+because it also creates vector-input string spans; that remaining work is not
+the call-input comment derivation and should be split/renamed when the string
+span path moves to analysis.
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no

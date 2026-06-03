@@ -24907,7 +24907,11 @@ static int test_facts_v2_render_asm_source_tracks_non_wrapper_local_helper_witho
   M68kSymbol symbol;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  size_t index;
+  int saw_helper_call = 0;
+  int saw_call_input_use = 0;
   uint8_t caller_bytes[8] = {
     0x4eu, 0xb9u, 0x00u, 0x00u, 0x00u, 0x00u,
     0x4eu, 0x75u
@@ -24928,6 +24932,7 @@ static int test_facts_v2_render_asm_source_tracks_non_wrapper_local_helper_witho
   memset(&data_section, 0, sizeof(data_section));
   memset(&fixup, 0, sizeof(fixup));
   memset(&symbol, 0, sizeof(symbol));
+  memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
@@ -24969,15 +24974,30 @@ static int test_facts_v2_render_asm_source_tracks_non_wrapper_local_helper_witho
   fixup.has_target_section = 1;
   M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
+    &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "local helper uses") == NULL);
   M68K_C_ASSERT(strstr(source, "via local wrapper") == NULL);
+  for (index = 0U; index < source_analysis.sections[0].recovered_platform_call_count; ++index) {
+    if (source_analysis.sections[0].recovered_platform_calls[index].note_kind ==
+        M68K_PLATFORM_CALL_NOTE_LOCAL_HELPER_SYMBOL) {
+      saw_helper_call = 1;
+    }
+  }
+  for (index = 0U; index < source_analysis.sections[0].platform_semantic_use_count; ++index) {
+    if (source_analysis.sections[0].platform_semantic_uses[index].kind ==
+        M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT) {
+      saw_call_input_use = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_helper_call);
+  M68K_C_ASSERT(!saw_call_input_use);
   M68K_C_ASSERT_U32(2U, profile.platform_call_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -24992,7 +25012,9 @@ static int test_facts_v2_render_asm_source_annotates_wrapper_stack_args_without_
   M68kSymbol symbol;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t caller_bytes[22] = {
     0x22u, 0x2fu, 0x00u, 0x08u,
     0x2fu, 0x3cu, 0x00u, 0x01u, 0x00u, 0x00u,
@@ -25014,6 +25036,7 @@ static int test_facts_v2_render_asm_source_annotates_wrapper_stack_args_without_
   memset(&data_section, 0, sizeof(data_section));
   memset(&fixup, 0, sizeof(fixup));
   memset(&symbol, 0, sizeof(symbol));
+  memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
@@ -25055,18 +25078,25 @@ static int test_facts_v2_render_asm_source_annotates_wrapper_stack_args_without_
   fixup.has_target_section = 1;
   M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
+    &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l $0008(a7),d1\t; KNOWN:") == NULL);
   M68K_C_ASSERT(strstr(source, "\tpea.l $0060.w\t; KNOWN: arg +4 byteSize") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #$10000,-(a7)\t; KNOWN: arg +8 attributes") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovem.l $0008(a7),d0-d1\t; KNOWN: arg +4 byteSize") != NULL);
   M68K_C_ASSERT(strstr(source, "KNOWN: arg +8 attributes") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"platform_call_input\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"KNOWN: arg +4 byteSize") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"KNOWN: arg +8 attributes") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "via local wrapper") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }

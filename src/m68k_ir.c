@@ -663,6 +663,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "audio_period_source";
     case M68K_PLATFORM_SEMANTIC_USE_AUDIO_POINTER_SOURCE:
       return "audio_pointer_source";
+    case M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT:
+      return "platform_call_input";
     default:
       return "unknown";
   }

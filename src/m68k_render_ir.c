@@ -6780,9 +6780,8 @@ static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnal
     }
     if (use->note_text == NULL || use->note_text[0] == '\0') continue;
     (void)append_comment_part_local(comment, comment_size, use->note_text);
-    return 1;
   }
-  return appended_target_note;
+  return appended_target_note || comment[0] != '\0';
 }
 
 static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,

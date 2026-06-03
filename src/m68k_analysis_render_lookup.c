@@ -1053,50 +1053,10 @@ static void typed_stored_value_platform_names(const M68kRenderTypedStoredValue *
   }
 }
 
-static int format_amiga_call_input_note_render(uint16_t stack_offset, const AmigaOsCallInputInfo *input,
-    char *buf, size_t buf_size) {
-  const char *symbol_name;
-  const char *type_name;
-  const char *semantic_kind;
-  const char *value_domain_name;
-  size_t used;
-  if (buf == NULL || buf_size == 0U || input == NULL || stack_offset == 0U) return 0;
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input->input_id);
-  type_name = amiga_input_type_or_struct_name(input);
-  semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input->semantic_kind_id);
-  value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
-  snprintf(buf, buf_size, "KNOWN: arg +%u", (unsigned)stack_offset);
-  used = strlen(buf);
-  if (symbol_name != NULL && symbol_name[0] != '\0' && used + strlen(symbol_name) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", symbol_name);
-    used = strlen(buf);
-  }
-  if (type_name != NULL && type_name[0] != '\0' && used + strlen(type_name) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", type_name);
-    used = strlen(buf);
-  }
-  if (semantic_kind != NULL && semantic_kind[0] != '\0' && used + strlen(semantic_kind) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", semantic_kind);
-    used = strlen(buf);
-  }
-  if (value_domain_name != NULL && value_domain_name[0] != '\0' &&
-      used + strlen(value_domain_name) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", value_domain_name);
-  }
-  return 1;
-}
-
 static int operand_is_predec_a7_local(const M68kOperandIR *operand) {
   if (operand == NULL) return 0;
   if (operand->kind == M68K_ASM_OPERAND_PREDEC) return operand->value.reg == 7U;
   return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 4U && operand->value.ea_reg == 7U;
-}
-
-static int instruction_is_long_stack_push_for_comment(const M68kInstructionIR *instruction) {
-  if (instruction == NULL) return 0;
-  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_PEA && instruction->operand_count == 1U) return 1;
-  return instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
-    instruction->operand_count == 2U && operand_is_predec_a7_local(&instruction->operands[1]);
 }
 
 static uint16_t reglist_long_stack_size_local(uint32_t mask) {
@@ -1217,59 +1177,6 @@ static int operand_is_stack_displacement_local(const M68kOperandIR *operand, int
   return 1;
 }
 
-static int render_lookup_add_stack_load_input_comments(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, const M68kInstructionIR *instruction, const AmigaOsLibraryVectorInfo *vector,
-    uint16_t stack_frame_depth) {
-  int16_t displacement = 0;
-  if (lookup == NULL || instruction == NULL || vector == NULL) return 0;
-  if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
-       instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) &&
-      instruction->size_suffix == 'l' && instruction->operand_count == 2U &&
-      operand_is_stack_displacement_local(&instruction->operands[0], &displacement)) {
-    uint8_t reg = 0U;
-    uint8_t reg_kind = 0U;
-    const AmigaOsCallInputInfo *input;
-    char comment[192];
-    if (operand_is_data_register_local(&instruction->operands[1], &reg)) reg_kind = 1U;
-    else if (instruction->operands[1].kind == M68K_ASM_OPERAND_AN) {
-      reg = (uint8_t)instruction->operands[1].value.reg;
-      reg_kind = 2U;
-    }
-    input = amiga_vector_input_by_register(vector, reg_kind, reg);
-    if (input != NULL && displacement > (int16_t)stack_frame_depth &&
-        format_amiga_call_input_note_render((uint16_t)(displacement - (int16_t)stack_frame_depth), input,
-          comment, sizeof(comment))) {
-      return render_lookup_add_instruction_comment(lookup, section_index, offset, comment) == 0;
-    }
-  }
-  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
-      instruction->operand_count == 2U && operand_is_stack_displacement_local(&instruction->operands[0], &displacement) &&
-      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST && displacement > (int16_t)stack_frame_depth) {
-    uint32_t mask = instruction->operands[1].value.value;
-    uint16_t stack_offset = (uint16_t)(displacement - (int16_t)stack_frame_depth);
-    unsigned bit;
-    int added = 0;
-    for (bit = 0U; bit < 16U; ++bit) {
-      uint8_t reg_kind;
-      uint8_t reg_index;
-      const AmigaOsCallInputInfo *input;
-      char comment[192];
-      if ((mask & (1UL << bit)) == 0U) continue;
-      reg_kind = bit < 8U ? 1U : 2U;
-      reg_index = (uint8_t)(bit < 8U ? bit : bit - 8U);
-      input = amiga_vector_input_by_register(vector, reg_kind, reg_index);
-      if (input != NULL && format_amiga_call_input_note_render(stack_offset, input, comment, sizeof(comment)) &&
-          render_lookup_add_instruction_comment(lookup, section_index, offset, comment) != 0) {
-        return 0;
-      }
-      if (input != NULL) added = 1;
-      stack_offset = (uint16_t)(stack_offset + 4U);
-    }
-    return added;
-  }
-  return 0;
-}
-
 static const M68kDecodeCandidate *find_previous_accepted_candidate(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, uint32_t before_offset) {
   uint32_t probe;
@@ -1280,77 +1187,6 @@ static const M68kDecodeCandidate *find_previous_accepted_candidate(const M68kDec
     if (accepted_start_at(section, accepted_start, probe)) return find_candidate_at_offset_local(section, probe);
   }
   return NULL;
-}
-
-static int stack_frame_depth_before_candidate(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    uint32_t before_offset, uint16_t *out_depth) {
-  const M68kDecodeCandidate *candidates[32];
-  size_t count = 0U;
-  int32_t depth = 0;
-  uint32_t cursor;
-  if (out_depth != NULL) *out_depth = 0U;
-  if (section == NULL || accepted_start == NULL || out_depth == NULL) return 0;
-  cursor = before_offset;
-  while (count < sizeof(candidates) / sizeof(candidates[0])) {
-    const M68kDecodeCandidate *candidate = find_previous_accepted_candidate(section, accepted_start, cursor);
-    if (candidate == NULL || candidate->byte_count == 0U) break;
-    if (candidate->offset + candidate->byte_count != cursor) break;
-    candidates[count++] = candidate;
-    cursor = candidate->offset;
-  }
-  while (count > 0U) {
-    M68kInstructionIR instruction;
-    int32_t delta = 0;
-    --count;
-    if (m68k_decode_candidate_to_instruction(candidates[count], &instruction) != 0) return 0;
-    if (!instruction_stack_delta_for_comment(&instruction, &delta)) return 0;
-    depth += delta;
-    if (depth < 0 || depth > UINT16_MAX) return 0;
-  }
-  *out_depth = (uint16_t)depth;
-  return 1;
-}
-
-static int render_lookup_add_call_setup_comments_for_vector(M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t call_offset,
-    const AmigaOsLibraryVectorInfo *vector, int allow_register_stack_loads) {
-  uint32_t cursor;
-  uint16_t push_stack_offset = 4U;
-  size_t scan_count = 0U;
-  if (lookup == NULL || section == NULL || accepted_start == NULL || vector == NULL) return 0;
-  cursor = call_offset;
-  while (scan_count < 12U) {
-    const M68kDecodeCandidate *candidate;
-    M68kInstructionIR instruction;
-    uint16_t stack_frame_depth = 0U;
-    candidate = find_previous_accepted_candidate(section, accepted_start, cursor);
-    if (candidate == NULL || candidate->byte_count == 0U) break;
-    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
-    if (allow_register_stack_loads &&
-        stack_frame_depth_before_candidate(section, accepted_start, candidate->offset, &stack_frame_depth) &&
-        render_lookup_add_stack_load_input_comments(lookup, section->section_index, candidate->offset, &instruction,
-        vector, stack_frame_depth)) {
-      cursor = candidate->offset;
-      ++scan_count;
-      continue;
-    }
-    if (instruction_is_long_stack_push_for_comment(&instruction)) {
-      const AmigaOsCallInputInfo *input =
-        amiga_vector_input_by_stack_index(vector, (size_t)((push_stack_offset / 4U) - 1U));
-      char comment[192];
-      if (input == NULL ||
-          !format_amiga_call_input_note_render(push_stack_offset, input, comment, sizeof(comment)) ||
-          render_lookup_add_instruction_comment(lookup, section->section_index, candidate->offset, comment) != 0) {
-        break;
-      }
-      push_stack_offset = (uint16_t)(push_stack_offset + 4U);
-      cursor = candidate->offset;
-      ++scan_count;
-      continue;
-    }
-    break;
-  }
-  return 0;
 }
 
 static int recovered_function_arg_temp_add(M68kRenderRecoveredFunctionArg *args, size_t *arg_count,
@@ -4532,8 +4368,10 @@ void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(cons
   if (resolution->wrapper_call_vector != NULL) {
     resolution->chosen_kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_INDEXED_LIBRARY_DISPATCH;
     resolution->chosen_note_kind = M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR;
-  } else if (resolution->direct_wrapper_vector != NULL || resolution->helper_call_vector != NULL) {
+  } else if (resolution->direct_wrapper_vector != NULL) {
     resolution->chosen_note_kind = M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL;
+  } else if (resolution->helper_call_vector != NULL) {
+    resolution->chosen_note_kind = M68K_PLATFORM_CALL_NOTE_LOCAL_HELPER_SYMBOL;
   }
 }
 
@@ -13676,11 +13514,6 @@ int render_lookup_infer_amiga_call_input_comments(M68kRenderLookup *lookup, cons
       vector = platform_vector != NULL ? platform_vector :
         (direct_wrapper_vector != NULL ? direct_wrapper_vector :
         (wrapper_call_vector != NULL ? wrapper_call_vector : immediate_vector));
-      if (vector != NULL &&
-          render_lookup_add_call_setup_comments_for_vector(lookup, section, accepted_start[section_index],
-            candidate->offset, vector, platform_vector != NULL || immediate_vector != NULL) != 0) {
-        return -1;
-      }
       if (vector != NULL && render_lookup_add_string_spans_for_vector_inputs(lookup, decode, vector,
           &data_pointer_state, accepted_bytes) != 0) {
         return -1;
