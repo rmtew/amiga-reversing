@@ -1991,8 +1991,9 @@ Implementation order:
    and source export is refused.
 6. Done: accepted-gap accepted-code runs become blockers when overlapping
    range ownership carries negative evidence or unresolved non-code conflict.
-7. Stop promoting weak shape-only runs; keep them as review/candidate facts.
-   During migration, demote any existing shape-only accepted runs before render.
+7. Done for current orphan terminal-decode path: weak shape-only runs remain
+   review/candidate facts, not accepted code. During migration, any future
+   legacy weak-shape accepted runs must be demoted before render.
 ```
 
 Current implementation progress:
@@ -2018,7 +2019,12 @@ accepted bytes without decode coverage
   -> fail now
 
 weak decode island promoted without hard evidence
-  -> next: stop promoting or demote before render
+  -> done for current orphan terminal-decode path: report only, no accepted code
+  -> covered by tightened isolated C fixtures:
+     facts_v2_orphan_absolute_operand_records_unresolved_memory_layout
+     facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner
+  -> remaining migration rule: any legacy weak_shape_only accepted run must be
+     demoted before render rather than rendered as code
 
 platform opword accepted as executable code
   -> next: require platform hook byte length and flow kind

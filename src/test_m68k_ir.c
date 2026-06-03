@@ -26144,6 +26144,12 @@ static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layou
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].code_start_ref_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].accepted_code_run_count);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].certain_code_start[2]);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].certain_code_byte[2]);
+  M68K_C_ASSERT(strstr(source, "\tlea.l") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $41,$F9,$00,$07,$00,$00,$4E,$75") != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_observation_count);
   ref = &source_analysis.sections[0].address_observations[0];
   M68K_C_ASSERT_U32(2U, ref->offset);
@@ -26199,6 +26205,12 @@ static int test_facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].code_start_ref_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].accepted_code_run_count);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].certain_code_start[2]);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].certain_code_byte[2]);
+  M68K_C_ASSERT(strstr(source, "\tlea.l") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $41,$F9,$00,$DF,$F0,$9A,$4E,$75") != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_observation_count);
   ref = &source_analysis.sections[0].address_observations[0];
   M68K_C_ASSERT_U32(2U, ref->offset);
