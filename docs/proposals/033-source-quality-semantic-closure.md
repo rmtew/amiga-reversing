@@ -883,11 +883,13 @@ source_analysis.expected_symbol_accesses
   -> source_quality_diagnostics
 ```
 
-This is not the final cleanup, but the renderer-side ownership boundary is now
-correct. Render no longer mirrors rendered accesses into
-`M68kSectionAnalysisIR`; it only appends to `M68kRenderEvidenceIR`. Source
-analysis is still passed to source export as read-only formatting input, but a
-render pass does not mutate it with emitted-output facts.
+The renderer-side ownership boundary is now enforced in the IR shape. Rendered
+accesses are not stored on `M68kSectionAnalysisIR` at all: the old
+`rendered_symbol_accesses` section fields and
+`m68k_ir_section_analysis_append_rendered_symbol_access()` API have been
+deleted. Render only appends to `M68kRenderEvidenceIR`. Source analysis is still
+passed to source export as read-only formatting input, but a render pass cannot
+mutate it with emitted-output facts.
 
 The first implementation slice added the explicit JSON export path:
 
@@ -899,28 +901,28 @@ int source_analysis_to_json_with_render_evidence(
     M68kDiagSink diagnostics);
 ```
 
-The default `source_analysis_to_json()` keeps the compatibility behavior for
-manual fixtures and legacy pure-analysis callers that explicitly populate
-section-rendered accesses. The render-evidence-aware form uses
-`M68kRenderEvidenceIR` directly when supplied:
+The default `source_analysis_to_json()` is pure analysis export. It has no
+rendered-access source to consult, so it emits zero rendered accesses. The
+render-evidence-aware form is the only JSON path that exports rendered accesses:
 
 ```text
 source_analysis_to_json()
-  -> rendered_symbol_accesses from M68kSectionAnalysisIR only if a caller
-     explicitly populated that legacy field
+  -> expected_symbol_accesses from M68kSourceAnalysisIR
+  -> rendered_symbol_access_count: 0
+  -> rendered_symbol_accesses: []
 
 source_analysis_to_json_with_render_evidence()
   -> rendered_symbol_accesses from M68kRenderEvidenceIR
   -> emits no rendered accesses for sections missing from the evidence object
-  -> never consults the section mirror when an evidence object is supplied
+  -> has no section mirror fallback
 ```
 
-The regression fixtures now prove both sides:
+The regression fixtures now prove the split:
 
 ```text
 rendered source export:
-  source_analysis.sections[*].rendered_symbol_access_count remains 0
   M68kRenderEvidenceIR records label/operand/equate access evidence
+  source_analysis_to_json() reports rendered_symbol_access_count: 0
 
 source_quality_analyze_uses_render_evidence_without_section_mutation:
   explicit render evidence export count is 1
@@ -964,13 +966,14 @@ The follow-up slice made source-quality explanation details evidence-aware too:
 unreferenced_label_statement diagnostic
   -> rendered_label detail
   -> M68kRenderEvidenceIR when supplied
-  -> section mirror only for legacy/pure-analysis calls
+  -> null rendered_label without render evidence
 ```
 
-The remaining cleanup is narrower: migrate legacy pure-analysis reporting and
-manual fixture helpers away from `M68kSectionAnalysisIR.rendered_symbol_accesses`,
-then delete the section field/API entirely once no non-render caller depends on
-it.
+The final cleanup in this area was to migrate legacy pure-analysis fixtures to
+explicit `M68kRenderEvidenceIR` helpers, then delete the section field/API
+entirely. Future source-quality tests that need rendered-output evidence should
+construct `M68kRenderEvidenceIR`; tests that only examine analysis facts should
+not mention rendered accesses.
 
 ### Remaining Wrong Boundary: Renderer-Side Platform Decisions
 

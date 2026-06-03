@@ -2975,38 +2975,6 @@ int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR
   return 0;
 }
 
-int m68k_ir_section_analysis_append_rendered_symbol_access(M68kSectionAnalysisIR *section_analysis,
-    const M68kRenderedSymbolAccessIR *access) {
-  M68kRenderedSymbolAccessIR copy;
-  size_t index;
-  if (section_analysis == NULL || access == NULL || section_analysis->arena == NULL) return -1;
-  if (access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN ||
-      access->symbol_name == NULL || access->symbol_name[0] == '\0') return 0;
-  for (index = 0U; index < section_analysis->rendered_symbol_access_count; ++index) {
-    const M68kRenderedSymbolAccessIR *existing = &section_analysis->rendered_symbol_accesses[index];
-    if (existing->offset == access->offset &&
-        existing->target_section_index == access->target_section_index &&
-        existing->target_offset == access->target_offset &&
-        existing->operand_index == access->operand_index &&
-        existing->access_kind == access->access_kind &&
-        existing->comment_only == access->comment_only &&
-        strcmp(existing->symbol_name, access->symbol_name) == 0) {
-      return 0;
-    }
-  }
-  section_analysis->rendered_symbol_accesses =
-    (M68kRenderedSymbolAccessIR *)arena_grow_array(section_analysis->arena,
-      section_analysis->rendered_symbol_accesses, section_analysis->rendered_symbol_access_count,
-      &section_analysis->rendered_symbol_access_capacity, 8U,
-      sizeof(*section_analysis->rendered_symbol_accesses));
-  if (section_analysis->rendered_symbol_accesses == NULL) return -1;
-  copy = *access;
-  copy.symbol_name = arena_strdup(section_analysis->arena, access->symbol_name);
-  if (copy.symbol_name == NULL) return -1;
-  section_analysis->rendered_symbol_accesses[section_analysis->rendered_symbol_access_count++] = copy;
-  return 0;
-}
-
 int m68k_ir_render_evidence_create(M68kRenderEvidenceIR *evidence) {
   if (evidence == NULL) return -1;
   memset(evidence, 0, sizeof(*evidence));
@@ -4582,13 +4550,6 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->expected_symbol_access_count; ++index) {
     if (m68k_ir_section_analysis_append_expected_symbol_access(&copy,
           &section_analysis->expected_symbol_accesses[index]) != 0) {
-      m68k_ir_section_analysis_destroy(&copy);
-      return -1;
-    }
-  }
-  for (index = 0; index < section_analysis->rendered_symbol_access_count; ++index) {
-    if (m68k_ir_section_analysis_append_rendered_symbol_access(&copy,
-          &section_analysis->rendered_symbol_accesses[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

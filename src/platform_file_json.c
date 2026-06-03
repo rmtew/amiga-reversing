@@ -3633,16 +3633,11 @@ static int append_source_quality_range_summary_json(JsonBuilder *builder,
 static const M68kRenderedSymbolAccessIR *source_quality_find_rendered_label_statement(
     const M68kSectionAnalysisIR *section, const M68kRenderEvidenceSectionIR *render_evidence_section,
     const M68kSourceQualityDiagnosticIR *diagnostic) {
-  const M68kRenderedSymbolAccessIR *rendered_symbol_accesses;
-  size_t rendered_symbol_access_count;
   size_t index;
-  if (section == NULL || diagnostic == NULL || !diagnostic->has_offset) return NULL;
-  rendered_symbol_accesses = render_evidence_section != NULL ?
-    render_evidence_section->rendered_symbol_accesses : section->rendered_symbol_accesses;
-  rendered_symbol_access_count = render_evidence_section != NULL ?
-    render_evidence_section->rendered_symbol_access_count : section->rendered_symbol_access_count;
-  for (index = 0U; index < rendered_symbol_access_count; ++index) {
-    const M68kRenderedSymbolAccessIR *access = &rendered_symbol_accesses[index];
+  if (section == NULL || diagnostic == NULL || !diagnostic->has_offset ||
+      render_evidence_section == NULL) return NULL;
+  for (index = 0U; index < render_evidence_section->rendered_symbol_access_count; ++index) {
+    const M68kRenderedSymbolAccessIR *access = &render_evidence_section->rendered_symbol_accesses[index];
     if (access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT &&
         access->offset == diagnostic->offset) {
       return access;
@@ -4232,13 +4227,9 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       m68k_ir_render_evidence_section_by_index(render_evidence, (uint32_t)section->section_index) :
       NULL;
     const M68kRenderedSymbolAccessIR *rendered_symbol_accesses =
-      render_evidence != NULL ?
-      (render_evidence_section != NULL ? render_evidence_section->rendered_symbol_accesses : NULL) :
-      section->rendered_symbol_accesses;
+      render_evidence_section != NULL ? render_evidence_section->rendered_symbol_accesses : NULL;
     size_t rendered_symbol_access_count =
-      render_evidence != NULL ?
-      (render_evidence_section != NULL ? render_evidence_section->rendered_symbol_access_count : 0U) :
-      section->rendered_symbol_access_count;
+      render_evidence_section != NULL ? render_evidence_section->rendered_symbol_access_count : 0U;
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, address_observation_index;

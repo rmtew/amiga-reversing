@@ -2028,9 +2028,6 @@ typedef struct M68kSectionAnalysisIR {
   M68kExpectedSymbolAccessIR *expected_symbol_accesses;
   size_t expected_symbol_access_count;
   size_t expected_symbol_access_capacity;
-  M68kRenderedSymbolAccessIR *rendered_symbol_accesses;
-  size_t rendered_symbol_access_count;
-  size_t rendered_symbol_access_capacity;
   M68kCodeOriginIR *code_origins;
   size_t code_origin_count;
   size_t code_origin_capacity;
@@ -2272,8 +2269,6 @@ int m68k_ir_section_analysis_append_symbol_origin(M68kSectionAnalysisIR *section
     const M68kSymbolOriginIR *origin);
 int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR *section_analysis,
     const M68kExpectedSymbolAccessIR *access);
-int m68k_ir_section_analysis_append_rendered_symbol_access(M68kSectionAnalysisIR *section_analysis,
-    const M68kRenderedSymbolAccessIR *access);
 int m68k_ir_render_evidence_create(M68kRenderEvidenceIR *evidence);
 void m68k_ir_render_evidence_destroy(M68kRenderEvidenceIR *evidence);
 int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
