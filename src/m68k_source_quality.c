@@ -1689,6 +1689,96 @@ static int append_runtime_ref_platform_semantic_uses(M68kSourceAnalysisIR *sourc
   return 0;
 }
 
+static const M68kDecodeSectionIR *source_quality_decode_section_by_index(const M68kDecodeIR *decode,
+    uint32_t section_index, size_t *out_decode_index);
+static int source_quality_candidate_is_accepted_start(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate);
+static uint32_t source_quality_immediate_domain_value_for_instruction_size(const M68kInstructionIR *instruction,
+    uint32_t value);
+
+static int format_source_quality_amiga_disk_dma_note(const AmigaOsHardwareRegisterInfo *hardware_register,
+    uint32_t value, char *buf, size_t buf_size) {
+  uint32_t word = value & 0xFFFFU;
+  uint32_t byte_length;
+  const char *direction;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_register == NULL ||
+      (hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKLEN &&
+       hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKSYNC)) {
+    return 0;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DSKSYNC) {
+    snprintf(buf, buf_size, "disk sync word $%04X", (unsigned)word);
+    return strlen(buf) + 1U < buf_size;
+  }
+  if ((word & AMIGA_OS_DSKLEN_DMA_ENABLE_MASK) == 0U) return 0;
+  byte_length = (word & AMIGA_OS_DSKLEN_LENGTH_MASK) * AMIGA_OS_DSKLEN_LENGTH_UNIT_BYTES;
+  if (byte_length == 0U) return 0;
+  direction = (word & AMIGA_OS_DSKLEN_WRITE_MASK) != 0U ? "write" : "read";
+  snprintf(buf, buf_size, "disk DMA %s %u bytes", direction, (unsigned)byte_length);
+  return strlen(buf) + 1U < buf_size;
+}
+
+static int append_hardware_disk_dma_platform_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+  size_t observation_index;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
+  for (observation_index = 0U; observation_index < section_analysis->address_observation_count; ++observation_index) {
+    const M68kAddressObservationIR *observation = &section_analysis->address_observations[observation_index];
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const AmigaOsHardwareRegisterInfo *hardware_register;
+    M68kPlatformSemanticUseIR use;
+    uint32_t value = 0U;
+    uint8_t source_index;
+    char note[160];
+    if (observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER ||
+        observation->access_kind != M68K_SIM_ACCESS_MEMORY_WRITE ||
+        observation->operand_index == UINT32_MAX) {
+      continue;
+    }
+    candidate = m68k_decode_ir_find_candidate_at_offset(section, observation->offset);
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    if (observation->operand_index >= instruction.operand_count) continue;
+    hardware_register = amiga_os_find_hardware_register_by_cpu_address(observation->address);
+    if (hardware_register == NULL) continue;
+    for (source_index = 0U; source_index < instruction.operand_count; ++source_index) {
+      if (source_index == observation->operand_index) continue;
+      if (m68k_ir_operand_immediate_value(&instruction.operands[source_index], &value)) break;
+    }
+    if (source_index >= instruction.operand_count) continue;
+    value = source_quality_immediate_domain_value_for_instruction_size(&instruction, value);
+    if (!format_source_quality_amiga_disk_dma_note(hardware_register, value, note, sizeof(note))) continue;
+    memset(&use, 0, sizeof(use));
+    use.kind = M68K_PLATFORM_SEMANTIC_USE_DISK_DMA;
+    use.offset = candidate->offset;
+    use.size = candidate->byte_count;
+    use.confidence = observation->confidence;
+    use.note_text = note;
+    if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_hardware_disk_dma_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, NULL);
+    if (section == NULL || section->section_index >= decode->section_count) continue;
+    if (append_hardware_disk_dma_platform_semantic_uses_for_section(section_analysis, section,
+        accepted_start[section->section_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_structured_data_table_descriptors(M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   if (source_analysis == NULL) return -1;
@@ -3748,6 +3838,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_unterminated_accepted_gap_diagnostics(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
+  if (append_hardware_disk_dma_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_structured_data_table_entries(source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
     return -1;

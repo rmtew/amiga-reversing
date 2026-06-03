@@ -6902,6 +6902,8 @@ static const char *platform_semantic_use_role_for_render(const M68kPlatformSeman
       return "sprite";
     case M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE:
       return "audio table";
+    case M68K_PLATFORM_SEMANTIC_USE_DISK_DMA:
+      return "disk DMA";
     default:
       return NULL;
   }
@@ -6921,6 +6923,24 @@ static const char *source_analysis_platform_semantic_use_role_for_instruction(
     if (role != NULL && role[0] != '\0') return role;
   }
   return NULL;
+}
+
+static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset, char *comment, size_t comment_size) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count ||
+      comment == NULL || comment_size == 0U) {
+    return 0;
+  }
+  section = &source_analysis->sections[section_index];
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    if (use->offset != offset || use->note_text == NULL || use->note_text[0] == '\0') continue;
+    (void)append_comment_part_local(comment, comment_size, use->note_text);
+    return 1;
+  }
+  return 0;
 }
 
 static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_register(const M68kFact *fact) {
@@ -10106,10 +10126,13 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       section, candidate, &instruction) < 0) {
     return 0;
   }
-  attach_amiga_hardware_display_comment_for_render(platform_state, &instruction, platform_comment,
-    sizeof(platform_comment));
-  attach_amiga_hardware_access_comment_for_render(platform_state, &instruction, platform_comment,
-    sizeof(platform_comment));
+  if (!attach_platform_semantic_note_comment_for_render(source_analysis, section->section_index, candidate->offset,
+      platform_comment, sizeof(platform_comment))) {
+    attach_amiga_hardware_display_comment_for_render(platform_state, &instruction, platform_comment,
+      sizeof(platform_comment));
+    attach_amiga_hardware_access_comment_for_render(platform_state, &instruction, platform_comment,
+      sizeof(platform_comment));
+  }
   (void)attach_amiga_hardware_register_symbols(platform_state, source_analysis, section, candidate, &instruction,
     &instruction);
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);

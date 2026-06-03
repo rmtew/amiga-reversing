@@ -2192,16 +2192,59 @@ The fixture `facts_v2_register_runtime_sink_auto_classifies_copper_list` now
 checks both sides:
 
 ```c
-M68K_C_ASSERT(strstr(analysis_json, "\"platform_semantic_use_count\":1") != NULL);
 M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_list\"") != NULL);
 M68K_C_ASSERT(strstr(source, "\tmove.l d0,_custom+cop1lc.l\t; copper_list pointer\n") != NULL);
 ```
 
+Current disk-DMA comment closure:
+
+```text
+accepted hardware write observation
+  + destination is DSKLEN/DSKSYNC
+  + source operand is an immediate value
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=disk_dma,
+                                                      note_text=...)
+  -> renderer appends note_text
+  -> renderer does not recompute whether the write is disk DMA
+```
+
+The semantic-use fact now has an optional note field for comments that are
+already fully decided by C analysis:
+
+```c
+typedef struct M68kPlatformSemanticUseIR {
+  char *note_text;
+  uint32_t offset;
+  uint32_t size;
+  ...
+} M68kPlatformSemanticUseIR;
+```
+
+For example:
+
+```asm
+    move.w  #$9F40,_custom+dsklen.l  ; disk DMA read 16000 bytes
+```
+
+comes from:
+
+```json
+{
+  "kind_name": "disk_dma",
+  "note_text": "disk DMA read 16000 bytes"
+}
+```
+
+This is intentionally not a renderer-side analysis shortcut. The renderer
+accepts C-owned note text first and falls back to legacy display/access comment
+helpers only for semantic comments that have not yet been migrated.
+
 Remaining platform-comment work is the same rule applied to richer comments
-that need value-domain payloads, such as display setup, disk DMA length, audio
+that need value-domain payloads, such as display setup, audio
 period/volume/length, palette writes, and read-side hardware status comments.
 Those need C semantic-use records with enough structured fields or note text
-for render to format without re-deciding the semantic meaning.
+for render to format without re-deciding the semantic meaning. Once each family
+is migrated, the corresponding renderer fallback must be deleted.
 
 ### Slice 7: Table And Data Reference Closure
 

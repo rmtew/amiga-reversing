@@ -645,6 +645,8 @@ const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
       return "sprite";
     case M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE:
       return "audio_table";
+    case M68K_PLATFORM_SEMANTIC_USE_DISK_DMA:
+      return "disk_dma";
     default:
       return "unknown";
   }
@@ -2849,7 +2851,8 @@ int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR 
         existing->source_pattern_id == use->source_pattern_id &&
         existing->has_target == use->has_target &&
         existing->target_section_index == use->target_section_index &&
-        existing->target_offset == use->target_offset) {
+        existing->target_offset == use->target_offset &&
+        text_equal_nullable(existing->note_text, use->note_text)) {
       return 0;
     }
   }
@@ -2859,6 +2862,11 @@ int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR 
     8U, sizeof(*section_analysis->platform_semantic_uses));
   if (section_analysis->platform_semantic_uses == NULL) return -1;
   copy = *use;
+  copy.note_text = NULL;
+  if (use->note_text != NULL) {
+    copy.note_text = arena_strdup(section_analysis->arena, use->note_text);
+    if (copy.note_text == NULL) return -1;
+  }
   section_analysis->platform_semantic_uses[section_analysis->platform_semantic_use_count++] = copy;
   return 0;
 }

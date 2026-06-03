@@ -1384,10 +1384,12 @@ typedef enum M68kPlatformSemanticUseKind {
   M68K_PLATFORM_SEMANTIC_USE_BLITTER_BUFFER = 6,
   M68K_PLATFORM_SEMANTIC_USE_PALETTE = 7,
   M68K_PLATFORM_SEMANTIC_USE_SPRITE = 8,
-  M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE = 9
+  M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE = 9,
+  M68K_PLATFORM_SEMANTIC_USE_DISK_DMA = 10
 } M68kPlatformSemanticUseKind;
 
 typedef struct M68kPlatformSemanticUseIR {
+  char *note_text;
   uint32_t offset;
   uint32_t size;
   uint32_t target_section_index;

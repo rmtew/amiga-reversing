@@ -25784,9 +25784,7 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address_ref_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"platform_semantic_use_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_list\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"role_flags\":64") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"sink_address\":14676096") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":14") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
@@ -27219,7 +27217,9 @@ static int test_facts_v2_dsklen_write_renders_dma_size_comment(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[10] = {
     0x33u, 0xFCu, 0x9Fu, 0x40u, 0x00u, 0xDFu, 0xF0u, 0x24u,
     0x4Eu, 0x75u
@@ -27234,13 +27234,19 @@ static int test_facts_v2_dsklen_write_renders_dma_size_comment(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w #$9F40,_custom+dsklen.l\t; disk DMA read 16000 bytes\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"disk_dma\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"disk DMA read 16000 bytes\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }

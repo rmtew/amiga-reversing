@@ -4477,6 +4477,12 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       } else if (json_builder_append(&builder, "null,\"target_offset\":null") != 0) {
         goto oom;
       }
+      if (use->note_text != NULL && use->note_text[0] != '\0') {
+        if (json_builder_append(&builder, ",\"note_text\":") != 0)
+          goto oom;
+        if (json_builder_append_json_string(&builder, use->note_text) != 0)
+          goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
