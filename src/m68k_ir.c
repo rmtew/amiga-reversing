@@ -332,10 +332,6 @@ const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind) {
 
 const char *m68k_source_quality_diagnostic_severity_name(uint8_t severity) {
   switch (severity) {
-    case M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_INFO:
-      return "info";
-    case M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_WARNING:
-      return "warning";
     case M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR:
       return "error";
     default:
@@ -1177,6 +1173,8 @@ static int copy_source_quality_diagnostic_local(Arena *arena, M68kSourceQualityD
     const M68kSourceQualityDiagnosticIR *src) {
   if (arena == NULL || dest == NULL || src == NULL) return -1;
   *dest = *src;
+  dest->severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
+  dest->blocker = 1U;
   if (src->summary != NULL) {
     dest->summary = arena_strdup(arena, src->summary);
     if (dest->summary == NULL) return -1;

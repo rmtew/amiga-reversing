@@ -769,7 +769,7 @@ disk, OS-call, or trap meaning must move to C analysis/platform facts first.
 After the migration, render may ask "what string do I print for this proven
 platform fact?", not "does this number have platform meaning?"
 
-### Remaining Gap: Address Identity Is C-Owned But Not Closed
+### Partially Closed Gap: Address Identity And Renderer Cleanup
 
 `m68k_source_quality.c` already builds `M68kAddressIdentityIR` and
 `M68kAbsoluteAddressRangeIR` from `M68kAddressObservationIR`:
@@ -784,8 +784,23 @@ address_observations
 
 Those facts are exported to JSON and indexed by the corpus manifest as
 `analysis:address_identity:*` and `analysis:absolute_address_range:*`. That is
-the correct ownership. The gap is that an identity is not yet a render
-obligation.
+the correct ownership.
+
+The basic in-image obligation path is now present:
+
+```text
+address_observation
+  -> section_storage_address_observation expected access
+  -> render emits the storage symbol
+  -> M68kRenderEvidenceIR records the emitted symbol
+  -> post-render gate compares expected vs rendered
+```
+
+Damocles Tetragon 02 verifies that direct storage operands for `$42C00`,
+`$42C6C`, and `$42C70` are no longer the old raw-number failure. The focused
+round-trip analysis export reports thousands of expected and rendered accesses
+and includes `abs_0_00042C00`, `abs_0_00042C6C`, and `abs_0_00042C70` as
+rendered symbols.
 
 Today render still has address-symbol attachment paths that decide whether a
 numeric operand becomes a symbol:
@@ -800,10 +815,10 @@ attach_absolute_memory_address_use_symbols(...)
 
 Some of these consult C source-analysis observations, but the final choice is
 still made while rendering. Others use render lookup, runtime-address mapping,
-hardware lookups, or materialized-label checks directly. This is why Damocles
-can still render a numeric `$00042C6C.l` even when the surrounding image has a
-materialized storage label. C has partial identity facts, but it does not yet
-say "this operand must render this symbol" and then verify that render did so.
+hardware lookups, or materialized-label checks directly. That is now the
+remaining problem: the common direct-storage obligation exists, but render still
+contains semantic helper decisions that should become C-owned obligations or
+explicit "no symbol" decisions.
 
 The closure should be:
 
@@ -1415,6 +1430,23 @@ table_candidate
 
 A capacity limit is an analysis failure to fix, not a fallback behavior to hide.
 
+Current implementation progress:
+
+```text
+table target-set capacity hit
+  -> incomplete_analysis(kind=capacity_exhausted, source=table_target_set)
+  -> source_quality_diagnostic(kind=table_target_set_limit)
+  -> severity=error blocker=true
+  -> source export failure kind=table_target_set_limit
+```
+
+The older fixed target-set lane is also no longer the normal path for large
+keyed-long dispatch tables. The focused fixture
+`facts_v2_swapped_keyed_long_table_has_no_fixed_target_set_cap` proves 65 table
+targets are recovered without tripping the fixed-capacity failure. Capacity
+diagnostics therefore remain as a loud invariant failure for genuinely
+unhandled bounded-analysis cases, not as an accepted truncation mode.
+
 ## Tutorial: Manual And Editor Input
 
 Manual input is evidence, not a bypass:
@@ -1457,15 +1489,15 @@ entry point. `M68kAnalysisEntryPoint` carries only section and offset, so C
 source-quality cannot say whether the origin was automatic policy, target
 metadata, manual review, or another projection.
 
-That matters because current accepted-run handling treats an executable origin
-as enough to avoid the hard blocker:
+That matters because accepted-run handling must not treat an executable origin
+as enough to downgrade a bad run:
 
 ```text
 accepted code without executable origin
   -> error, blocker
 
 accepted code with policy/manual origin but accepted-gap ending
-  -> warning, non-blocker
+  -> error/blocker unless a credible boundary is proven
 ```
 
 For the desired behavior, manual provenance must survive into C:
@@ -1483,6 +1515,21 @@ Then source-quality can emit `MANUAL_EVIDENCE_CONFLICT` when a manual code seed
 decodes poorly, overlaps structured data, lands inside an instruction, or
 creates an unterminated/invalid accepted run. Manual evidence should strengthen
 where analysis is consistent, not downgrade failures.
+
+Current implementation progress:
+
+```text
+M68kSourceQualityDiagnosticIR append
+  -> severity normalized to error
+  -> blocker normalized to true
+```
+
+This is enforced at the C IR append boundary for both source-level and
+section-level diagnostics. A caller cannot serialize a source-quality warning
+and leave the tooling to decide whether to ignore it. If the framework has
+enough evidence to emit a source-quality diagnostic, the analysis is failed; if
+it does not, the condition belongs in a separate review/candidate fact, not in
+the diagnostic stream.
 
 ## Implementation Slices
 
