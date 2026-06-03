@@ -1129,7 +1129,6 @@ format_copper_register_value_expr()
 copper_runtime_pointer_register()
 attach_amiga_hardware_register_symbols()
 resolve_amiga_hardware_register_operand()
-attach_amiga_next_call_input_immediate_symbol()
 attach_amiga_hardware_display_comment_for_render()
 attach_amiga_hardware_access_comment_for_render()
 attach_amiga_runtime_sink_comment_for_render()
@@ -1164,8 +1163,11 @@ The durable fact family now exists for range-like platform semantic uses:
 
 ```c
 typedef struct M68kPlatformSemanticUseIR {
+  char *note_text;
+  char *operand_expr;
   uint32_t offset;
   uint32_t size;
+  uint32_t operand_index;
   uint32_t target_section_index;
   uint32_t target_offset;
   uint32_t role_flags;
@@ -1173,6 +1175,7 @@ typedef struct M68kPlatformSemanticUseIR {
   uint8_t source_pattern_id;
   uint8_t confidence;
   uint8_t has_target;
+  uint8_t has_operand_expr;
 } M68kPlatformSemanticUseIR;
 ```
 
@@ -1182,8 +1185,7 @@ bitmap, copper, audio, disk, blitter, palette, sprite, and audio-table uses.
 
 That does not finish renderer-side platform closure. Render still performs
 some instruction-local semantic decisions for display/audio/disk/blitter/copper
-comments, stack-cleanup notes, runtime-address sink role comments, and
-next-call input value-domain operands. Those decisions need either:
+comments and some address/symbol attachment paths. Those decisions need either:
 
 ```text
 first-class semantic/use facts
