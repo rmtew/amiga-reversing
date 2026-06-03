@@ -2672,6 +2672,34 @@ because it also creates vector-input string spans; that remaining work is not
 the call-input comment derivation and should be split/renamed when the string
 span path moves to analysis.
 
+### Implemented Slice: Stack Cleanup Notes
+
+Atari GEMDOS stack-cleanup comments now use the same analysis-owned route.
+Earlier, source analysis recovered the cleanup call, but render still walked
+`recovered_platform_calls` and constructed the comment itself:
+
+```asm
+    addq.l #2,a7    ; KNOWN: stack cleanup for c_rawcin pop 2
+```
+
+That was not deciding whether the instruction was a cleanup, but it still kept
+the durable explanation out of source-quality JSON. The analysis pass now emits
+an explicit semantic use:
+
+```text
+trap #1 c_rawcin
+  -> recovered_platform_call(note_kind=stack_cleanup)
+  -> platform_semantic_use(kind=platform_stack_cleanup,
+       offset=cleanup instruction offset,
+       note_text="KNOWN: stack cleanup for c_rawcin pop 2")
+  -> renderer appends note_text only
+```
+
+The render-owned stack-cleanup formatter was deleted. The focused fixture
+asserts both the pre-render semantic-use record and the unchanged rendered
+comment, so a future failure shows whether analysis stopped publishing the fact
+or render stopped consuming it.
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no

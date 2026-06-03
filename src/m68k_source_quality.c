@@ -4851,6 +4851,56 @@ static int append_platform_call_input_semantic_uses(M68kSourceAnalysisIR *source
   return 0;
 }
 
+static int append_platform_stack_cleanup_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+  size_t call_index;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
+  for (call_index = 0U; call_index < section_analysis->recovered_platform_call_count; ++call_index) {
+    const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[call_index];
+    const M68kDecodeCandidate *candidate;
+    const char *note_symbol_name;
+    M68kPlatformSemanticUseIR use;
+    char note[160];
+    if (call->note_kind != M68K_PLATFORM_CALL_NOTE_STACK_CLEANUP ||
+        call->note_stack_cleanup_known == 0U) {
+      continue;
+    }
+    note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
+    if (note_symbol_name == NULL || note_symbol_name[0] == '\0') continue;
+    candidate = m68k_decode_ir_find_candidate_at_offset(section, call->offset);
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    snprintf(note, sizeof(note), "KNOWN: stack cleanup for %s pop %u", note_symbol_name,
+      (unsigned)call->note_stack_cleanup_bytes);
+    memset(&use, 0, sizeof(use));
+    use.kind = M68K_PLATFORM_SEMANTIC_USE_PLATFORM_STACK_CLEANUP;
+    use.offset = candidate->offset;
+    use.size = candidate->byte_count;
+    use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    use.note_text = note;
+    if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_platform_stack_cleanup_semantic_uses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_platform_stack_cleanup_semantic_uses_for_section(section_analysis, section,
+        accepted_start[decode_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_expected_platform_call_input_symbol_accesses_for_section(
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   size_t call_index;
@@ -5693,6 +5743,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_bitmap_memory_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_platform_call_input_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_platform_stack_cleanup_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_audio_source_platform_semantic_uses(source_analysis, decode, accepted_start, accepted_bytes) != 0)
     return -1;
   if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;

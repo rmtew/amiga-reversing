@@ -9749,45 +9749,6 @@ static int attach_amiga_next_call_input_immediate_symbol(M68kRenderIRPreview *pr
   return 0;
 }
 
-static const M68kRecoveredPlatformCallIR *source_analysis_recovered_stack_cleanup_call_for_offset(
-    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset) {
-  size_t source_section_index;
-  if (source_analysis == NULL) return NULL;
-  for (source_section_index = 0U; source_section_index < source_analysis->section_count; ++source_section_index) {
-    const M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[source_section_index];
-    size_t call_index;
-    if ((size_t)section_analysis->section_index != section_index) continue;
-    for (call_index = 0U; call_index < section_analysis->recovered_platform_call_count; ++call_index) {
-      const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[call_index];
-      if (call->offset == offset &&
-          call->note_kind == M68K_PLATFORM_CALL_NOTE_STACK_CLEANUP &&
-          call->note_stack_cleanup_known != 0U) {
-        return call;
-      }
-    }
-    break;
-  }
-  return NULL;
-}
-
-static void attach_platform_stack_cleanup_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, char *comment, size_t comment_size) {
-  const M68kRecoveredPlatformCallIR *call;
-  const char *note_symbol_name;
-  char note[160];
-  if (source_analysis == NULL || section == NULL || candidate == NULL || comment == NULL || comment_size == 0U) {
-    return;
-  }
-  call = source_analysis_recovered_stack_cleanup_call_for_offset(source_analysis, section->section_index,
-    candidate->offset);
-  if (call == NULL) return;
-  note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
-  if (note_symbol_name == NULL || note_symbol_name[0] == '\0') return;
-  snprintf(note, sizeof(note), "KNOWN: stack cleanup for %s pop %u", note_symbol_name,
-    (unsigned)call->note_stack_cleanup_bytes);
-  (void)append_comment_part_local(comment, comment_size, note);
-}
-
 static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatformState *state,
     const M68kRenderLookup *lookup, const M68kSourceAnalysisIR *source_analysis, size_t section_index,
     uint32_t offset, const M68kInstructionIR *instruction, char *comment, size_t comment_size) {
@@ -9926,8 +9887,6 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
   attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, source_analysis, section->section_index,
     candidate->offset, &instruction, platform_comment, sizeof(platform_comment));
-  attach_platform_stack_cleanup_comment_for_render(source_analysis, section, candidate, platform_comment,
-    sizeof(platform_comment));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment),
     lookup_instruction_comment(lookup, section->section_index, candidate->offset));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment), platform_comment);

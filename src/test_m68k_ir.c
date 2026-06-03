@@ -4590,6 +4590,7 @@ static int test_facts_v2_analysis_collects_atari_stack_cleanup_without_source_re
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   const M68kRecoveredPlatformCallIR *call;
+  const M68kPlatformSemanticUseIR *use;
   const char *note_symbol_name;
   uint8_t bytes[8] = {
     0x3fu, 0x3cu, 0x00u, 0x07u,
@@ -4620,6 +4621,12 @@ static int test_facts_v2_analysis_collects_atari_stack_cleanup_without_source_re
   M68K_C_ASSERT_U32(1U, call->note_stack_cleanup_known);
   M68K_C_ASSERT_U32(2U, call->note_stack_cleanup_bytes);
   M68K_C_ASSERT_STR("c_rawcin", note_symbol_name);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].platform_semantic_use_count);
+  use = &source_analysis.sections[0].platform_semantic_uses[0];
+  M68K_C_ASSERT_U32(M68K_PLATFORM_SEMANTIC_USE_PLATFORM_STACK_CLEANUP, use->kind);
+  M68K_C_ASSERT_U32(6U, use->offset);
+  M68K_C_ASSERT_U32(2U, use->size);
+  M68K_C_ASSERT_STR("KNOWN: stack cleanup for c_rawcin pop 2", use->note_text);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -4634,7 +4641,9 @@ static int test_facts_v2_render_asm_source_uses_recovered_stack_cleanup_note(voi
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   const M68kRecoveredPlatformCallIR *call;
+  const M68kPlatformSemanticUseIR *use;
   uint8_t bytes[8] = {
     0x3fu, 0x3cu, 0x00u, 0x07u,
     0x4eu, 0x41u,
@@ -4664,7 +4673,16 @@ static int test_facts_v2_render_asm_source_uses_recovered_stack_cleanup_note(voi
   M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_STACK_CLEANUP, call->note_kind);
   M68K_C_ASSERT_U32(1U, call->note_stack_cleanup_known);
   M68K_C_ASSERT_U32(2U, call->note_stack_cleanup_bytes);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].platform_semantic_use_count);
+  use = &source_analysis.sections[0].platform_semantic_uses[0];
+  M68K_C_ASSERT_U32(M68K_PLATFORM_SEMANTIC_USE_PLATFORM_STACK_CLEANUP, use->kind);
+  M68K_C_ASSERT_STR("KNOWN: stack cleanup for c_rawcin pop 2", use->note_text);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"platform_stack_cleanup\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"KNOWN: stack cleanup for c_rawcin pop 2\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
