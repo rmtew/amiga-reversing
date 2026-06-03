@@ -3069,6 +3069,142 @@ static int source_quality_operand_data_register_index(const M68kOperandIR *opera
   return 0;
 }
 
+typedef struct M68kSourceQualityAudioLengthSource {
+  uint8_t known;
+  uint8_t base_reg;
+  int16_t displacement;
+  uint8_t transformed;
+} M68kSourceQualityAudioLengthSource;
+
+static void source_quality_audio_length_sources_clear(M68kSourceQualityAudioLengthSource sources[8]) {
+  memset(sources, 0, 8U * sizeof(sources[0]));
+}
+
+static int source_quality_audio_length_write_source_reg(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint8_t *out_reg) {
+  const M68kSimFormMetadata *metadata;
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  size_t source_index = 0U, dest_index = 0U;
+  uint32_t dest_address = 0U;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (candidate == NULL || instruction == NULL || out_reg == NULL ||
+      instruction->size_suffix != 'w' ||
+      !source_quality_instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index,
+        &metadata) ||
+      metadata == NULL || metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
+      !source_quality_operand_data_register_index(&instruction->operands[source_index], out_reg) ||
+      !source_quality_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
+    return 0;
+  }
+  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
+  return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN;
+}
+
+static int format_source_quality_audio_length_source_note(const M68kSourceQualityAudioLengthSource *source,
+    char *buf, size_t buf_size) {
+  char disp[32];
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (source == NULL || !source->known) return 0;
+  if (source->displacement < 0) snprintf(disp, sizeof(disp), "-$%04X",
+    (unsigned)(uint16_t)(-source->displacement));
+  else if (source->displacement > 0) snprintf(disp, sizeof(disp), "$%04X",
+    (unsigned)(uint16_t)source->displacement);
+  else disp[0] = '\0';
+  snprintf(buf, buf_size, "audio sample length %s%s(a%u) header word",
+    source->transformed ? "derived from " : "from ", disp, (unsigned)source->base_reg);
+  return strlen(buf) + 1U < buf_size;
+}
+
+static void source_quality_audio_length_sources_update_after_instruction(
+    M68kSourceQualityAudioLengthSource sources[8], const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  size_t source_index = 0U, dest_index = 0U, operand_index;
+  uint8_t dest_reg = 0U;
+  uint8_t source_base_reg = 0U;
+  int16_t source_displacement = 0;
+  if (sources == NULL || instruction == NULL) return;
+  if (source_quality_instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index,
+        &metadata) &&
+      metadata != NULL && metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ &&
+      instruction->size_suffix == 'w' &&
+      source_quality_operand_data_register_index(&instruction->operands[dest_index], &dest_reg) &&
+      source_quality_operand_address_displacement(&instruction->operands[source_index], &source_base_reg,
+        &source_displacement)) {
+    sources[dest_reg].known = 1U;
+    sources[dest_reg].base_reg = source_base_reg;
+    sources[dest_reg].displacement = source_displacement;
+    sources[dest_reg].transformed = 0U;
+    return;
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) {
+    source_quality_audio_length_sources_clear(sources);
+    return;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_REGISTER_WRITE ||
+        !source_quality_operand_data_register_index(&instruction->operands[operand_index], &reg)) {
+      continue;
+    }
+    if (sources[reg].known && instruction->operand_count > 1U &&
+        metadata->operand_access_kinds[0] == M68K_SIM_ACCESS_IMMEDIATE) {
+      sources[reg].transformed = 1U;
+    } else {
+      memset(&sources[reg], 0, sizeof(sources[reg]));
+    }
+  }
+}
+
+static int append_audio_length_source_platform_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+  M68kSourceQualityAudioLengthSource sources[8];
+  size_t candidate_index;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
+  source_quality_audio_length_sources_clear(sources);
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    M68kInstructionIR instruction;
+    uint8_t source_reg = 0U;
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    if (source_quality_audio_length_write_source_reg(candidate, &instruction, &source_reg) &&
+        source_reg < 8U && sources[source_reg].known) {
+      M68kPlatformSemanticUseIR use;
+      char note[128];
+      if (!format_source_quality_audio_length_source_note(&sources[source_reg], note, sizeof(note))) return -1;
+      memset(&use, 0, sizeof(use));
+      use.kind = M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER;
+      use.offset = candidate->offset;
+      use.size = candidate->byte_count;
+      use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+      use.note_text = note;
+      if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
+    }
+    source_quality_audio_length_sources_update_after_instruction(sources, &instruction);
+  }
+  return 0;
+}
+
+static int append_audio_length_source_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_audio_length_source_platform_semantic_uses_for_section(section_analysis, section,
+        accepted_start[decode_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int source_quality_reglist_contains_register(const M68kOperandIR *operand, uint8_t reg_kind,
     uint8_t reg_index);
 
@@ -4801,6 +4937,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_copper_display_setup_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_bitmap_memory_platform_semantic_uses(source_analysis) != 0) return -1;
+  if (append_audio_length_source_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start, policy,
       hardware_base_seeds, hardware_base_seed_count) != 0)

@@ -2454,14 +2454,46 @@ This requires passing inferred hardware-base seeds into source-quality analysis
 as neutral seed records. It avoids a second renderer-only semantic path while
 keeping existing targets that rely on helper base propagation.
 
+Audio length-source comments now follow the same rule for the migrated case:
+
+```asm
+    move.w  -2(a0),d1
+    asl.w   #1,d1
+    move.w  d1,_custom+aud0+ac_len.l
+            ; audio sample length derived from -$0002(a0) header word
+```
+
+```text
+accepted register load from displacement(aN)
+  + register-preserving immediate transform
+  + later write of that register to ac_len
+  -> source-quality exports M68kPlatformSemanticUseIR(kind=audio_register,
+                                                     note_text=...)
+  -> renderer appends note_text
+  -> render lookup no longer owns the ac_len source comment
+```
+
+The focused fixture asserts both sides:
+
+```c
+M68K_C_ASSERT(strstr(source,
+  "\tmove.w d1,_custom+aud0+ac_len.l\t"
+  "; audio sample length derived from -$0002(a0) header word\n") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"note_text\":\"audio sample length derived from -$0002(a0) header word\"") != NULL);
+```
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no
 longer come from `m68k_analysis_render_lookup.c`; the remaining render-lookup
-copper/bitmap path there is runtime-ref inference, not these comments. The remaining comment
-families need C semantic-use records with enough structured fields or note text
-for render to format without re-deciding the semantic meaning. Once each family
-is migrated, the corresponding renderer fallback must be deleted.
+copper/bitmap path there is runtime-ref inference, not these comments. Audio
+period source provenance and dynamic audio pointer source provenance are still
+renderer-owned comments and need the same C semantic-use migration. The
+remaining comment families need C semantic-use records with enough structured
+fields or note text for render to format without re-deciding the semantic
+meaning. Once each family is migrated, the corresponding renderer fallback must
+be deleted.
 
 The copper runtime-pointer expression-symbol case now follows the same
 ownership rule. Source-quality recognizes bitmap pointer word pairs inside
