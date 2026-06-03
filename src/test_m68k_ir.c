@@ -26288,6 +26288,61 @@ static int test_facts_v2_render_asm_source_renders_call_input_domain_immediate(v
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_expects_hardware_value_domain_immediate(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[10] = {
+    0x33u, 0xFCu, 0x7Fu, 0xFFu, 0x00u, 0xDFu, 0xF0u, 0x9Au,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
+    &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "INTF_CLRALL\tEQU\t$7FFF\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #INTF_CLRALL,_custom+intena.l\n") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  {
+    const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
+    int found_expected = 0;
+    size_t expected_index;
+    for (expected_index = 0U; expected_index < analysis_section->expected_symbol_access_count; ++expected_index) {
+      const M68kExpectedSymbolAccessIR *expected = &analysis_section->expected_symbol_accesses[expected_index];
+      if (expected->offset == 0U &&
+          expected->operand_index == 0U &&
+          expected->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_EQUATE &&
+          expected->symbol_name != NULL &&
+          strcmp(expected->symbol_name, "INTF_CLRALL") == 0 &&
+          expected->producer != NULL &&
+          strcmp(expected->producer, "platform_hardware_register_value_domain_operand") == 0) {
+        found_expected = 1;
+      }
+    }
+    M68K_C_ASSERT(found_expected);
+  }
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_inline_return_string_call_skips_payload(void) {
   M68kObject object;
   M68kSection section;
@@ -27584,6 +27639,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_marks_structured_data_code_overlap},
     {"facts_v2_render_asm_source_renders_call_input_domain_immediate",
       test_facts_v2_render_asm_source_renders_call_input_domain_immediate},
+    {"facts_v2_render_asm_source_expects_hardware_value_domain_immediate",
+      test_facts_v2_render_asm_source_expects_hardware_value_domain_immediate},
     {"facts_v2_inline_return_string_call_skips_payload",
       test_facts_v2_inline_return_string_call_skips_payload},
     {"facts_v2_inline_word_return_rewrite_skips_payload",

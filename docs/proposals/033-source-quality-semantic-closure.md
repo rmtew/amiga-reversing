@@ -690,6 +690,17 @@ recovered platform call _LVOAlert
   -> expected_symbol_access:platform_call_input_value_domain_operand
 ```
 
+The second covered operand case is direct hardware-register value-domain
+symbols:
+
+```text
+move.w #$7fff,$00dff09a.l
+  -> address observation proves _custom+intena
+  -> generated hardware metadata proves exec interrupt flag value domain
+  -> value domain formats INTF_CLRALL
+  -> expected_symbol_access:platform_hardware_register_value_domain_operand
+```
+
 Render should ultimately consume these C-owned facts instead of rescanning
 forward to find the next platform call or reclassifying hardware/register
 numbers while formatting.
@@ -758,13 +769,14 @@ materialized runtime range-start storage-label obligations
 PC-relative data operands crossing materialized runtime ORG boundaries
 PC-relative control operands crossing materialized runtime ORG boundaries
 platform call input value-domain operands
+direct hardware register value-domain operands
 ```
 
 The remaining coverage gap is narrower:
 
 ```text
 platform semantic comments
-hardware/register value-domain operands
+hardware/register value-domain operands through register-derived hardware bases
 runtime-address sink role symbols/comments
 stack-cleanup comments
 ```
