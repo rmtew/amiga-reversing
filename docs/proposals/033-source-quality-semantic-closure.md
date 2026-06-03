@@ -1162,6 +1162,30 @@ addq.l #2,a7
   -> addq.l #2,a7 ; KNOWN: stack cleanup for c_rawcin pop 2
 ```
 
+Runtime-address sink comments are partially moved across the same boundary:
+
+```text
+move.l #$00067D00,_custom+dskpt.l
+  -> runtime_address_ref(has_sink_address, sink=$DFF020)
+  -> source analysis assigns data_class_flags = disk_buffer
+  -> render comment consumes the source-analysis runtime ref role first
+  -> fallback platform metadata only if the analysis ref has no role
+```
+
+The same applies to register-fed sink comments:
+
+```text
+move.l d0,_custom+cop1lc.l
+  -> source analysis records runtime_address_ref(data_class=copper_list)
+  -> render emits ; copper_list pointer from that C-owned role
+```
+
+This is not full platform-semantic closure. The fallback still exists because
+some render paths can run without a source-analysis payload, and several
+copper/display/audio/disk comments still do instruction-local platform lookups.
+It does, however, remove one more durable semantic choice from the comment
+formatter when source analysis is available.
+
 Render should ultimately consume these C-owned facts instead of rescanning
 forward to find the next platform call or reclassifying hardware/register
 numbers while formatting.

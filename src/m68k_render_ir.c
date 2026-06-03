@@ -6880,6 +6880,51 @@ static const M68kFact *lookup_external_runtime_address_ref_for_instruction(const
   return NULL;
 }
 
+static const char *runtime_address_ref_analysis_role(const M68kRuntimeAddressRefIR *ref) {
+  const char *role;
+  if (ref == NULL) return NULL;
+  role = m68k_analysis_structured_data_role_name_for_flags(ref->data_class_flags);
+  if (role != NULL && role[0] != '\0') return role;
+  return ref->data_class != NULL && ref->data_class[0] != '\0' ? ref->data_class : NULL;
+}
+
+static const M68kRuntimeAddressRefIR *source_analysis_runtime_address_ref_for_fact(
+    const M68kSourceAnalysisIR *source_analysis, const M68kFact *fact) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (source_analysis == NULL || fact == NULL || fact->section_index >= source_analysis->section_count)
+    return NULL;
+  section = &source_analysis->sections[fact->section_index];
+  for (index = 0U; index < section->runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[index];
+    if (ref->offset != fact->offset || ref->operand_index != fact->reason ||
+        ref->has_runtime_address != fact->has_runtime_address ||
+        ref->runtime_address != fact->runtime_address ||
+        ref->has_sink_address != fact->has_sink_address ||
+        ref->sink_address != fact->sink_address ||
+        ref->target_section_index != fact->target_section_index ||
+        ref->target_offset != fact->target_offset) {
+      continue;
+    }
+    return ref;
+  }
+  return NULL;
+}
+
+static const M68kRuntimeAddressRefIR *source_analysis_runtime_address_sink_ref_for_instruction(
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, uint32_t sink_address) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count || sink_address == 0U)
+    return NULL;
+  section = &source_analysis->sections[section_index];
+  for (index = 0U; index < section->runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[index];
+    if (ref->offset == offset && ref->has_sink_address && ref->sink_address == sink_address) return ref;
+  }
+  return NULL;
+}
+
 static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_register(const M68kFact *fact) {
   const AmigaOsHardwareRegisterInfo *hardware_register;
   const AmigaOsHardwareRegisterRangeInfo *hardware_range;
@@ -9947,11 +9992,13 @@ static void attach_amiga_hardware_access_comment_for_render(const M68kRenderPlat
 }
 
 static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatformState *state,
-    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, const M68kInstructionIR *instruction,
-    char *comment, size_t comment_size) {
+    const M68kRenderLookup *lookup, const M68kSourceAnalysisIR *source_analysis, size_t section_index,
+    uint32_t offset, const M68kInstructionIR *instruction, char *comment, size_t comment_size) {
   const M68kSimFormMetadata *metadata;
   const AmigaOsHardwareRegisterInfo *hardware_register;
   const M68kFact *external_ref;
+  const M68kRuntimeAddressRefIR *analysis_ref;
+  const char *role = NULL;
   uint8_t dest_index = 0xFFU;
   uint8_t operand_index;
   char note[160];
@@ -9972,11 +10019,18 @@ static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatfor
     return;
   }
   external_ref = lookup_external_runtime_address_ref_for_instruction(lookup, section_index, offset);
+  analysis_ref = source_analysis_runtime_address_ref_for_fact(source_analysis, external_ref);
+  role = runtime_address_ref_analysis_role(analysis_ref);
+  if (role == NULL || role[0] == '\0') {
+    analysis_ref = source_analysis_runtime_address_sink_ref_for_instruction(source_analysis, section_index, offset,
+      hardware_register->base_address + hardware_register->offset);
+    role = runtime_address_ref_analysis_role(analysis_ref);
+  }
+  if (role == NULL || role[0] == '\0') role = hardware_register->runtime_target_role;
   if (external_ref != NULL) {
-    snprintf(note, sizeof(note), "%s pointer $%08X", hardware_register->runtime_target_role,
-      (unsigned)external_ref->runtime_address);
+    snprintf(note, sizeof(note), "%s pointer $%08X", role, (unsigned)external_ref->runtime_address);
   } else {
-    snprintf(note, sizeof(note), "%s pointer", hardware_register->runtime_target_role);
+    snprintf(note, sizeof(note), "%s pointer", role);
   }
   (void)append_comment_part_local(comment, comment_size, note);
 }
@@ -10082,8 +10136,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   if (!attach_vector_address_use_symbols(preview, source_analysis, section, candidate, &instruction)) return 0;
   apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
-  attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, section->section_index, candidate->offset,
-    &instruction, platform_comment, sizeof(platform_comment));
+  attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, source_analysis, section->section_index,
+    candidate->offset, &instruction, platform_comment, sizeof(platform_comment));
   attach_platform_stack_cleanup_comment_for_render(source_analysis, section, candidate, platform_comment,
     sizeof(platform_comment));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment),
