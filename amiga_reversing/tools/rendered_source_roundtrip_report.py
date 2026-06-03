@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.c_backend import (
-    analyze_project_source_with_c_backend,
+    analyze_project_source_with_render_evidence_from_c_backend,
     source_quality_explain_project_source_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -277,7 +277,7 @@ def _export_target_analysis(row: dict[str, Any], source_path: Path, analysis_exp
         "roundtrip_row": _report_row(row),
     }
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        payload["analysis"] = analyze_project_source_with_c_backend(
+        payload["analysis"] = analyze_project_source_with_render_evidence_from_c_backend(
             paths.binary_source,
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,

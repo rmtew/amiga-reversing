@@ -236,14 +236,18 @@ uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report `
 ```
 
 By default this writes per-target analysis JSON only for failing rows. The
-export contains the round-trip row, normal C source analysis, and source-quality
+export contains the round-trip row, C source analysis from the facts-v2 listing
+artifact, render evidence from the same source render, and source-quality
 explanation:
 
 ```json
 {
   "target": "amiga_hunk_genam",
   "roundtrip_row": { "...": "..." },
-  "analysis": { "...": "C source analysis facts" },
+  "analysis": {
+    "expected_symbol_accesses": [ "..." ],
+    "rendered_symbol_accesses": [ "..." ]
+  },
   "source_quality_explanation": { "...": "diagnostics and proof context" }
 }
 ```
@@ -254,9 +258,24 @@ facts needed to find the producer:
 ```text
 round-trip failure
   -> exported analysis JSON
-  -> code_start_refs / accepted_runs / structured_data / diagnostics
+  -> expected accesses / rendered accesses / code runs / data ranges / diagnostics
   -> fix the analysis producer at cause
   -> rerun round-trip
+```
+
+The export must not use the pure `analyze_project_source_with_c_backend()` path.
+That path is intentionally analysis-only and has no render evidence. Round-trip
+export now uses the listing artifact analysis payload, which is backed by the
+same `M68kRenderEvidenceIR` recorded during source rendering:
+
+```text
+CListingArtifact.create(...)
+  -> source_plan
+  -> source_analysis
+  -> render_evidence
+  -> analysis_payload()
+       expected_symbol_accesses from source_analysis
+       rendered_symbol_accesses from render_evidence
 ```
 
 The GenAm failure exposed a separate false-code producer. Its real shape is a
@@ -427,10 +446,19 @@ The source round-trip remains exact. The exported JSON contains
 `low_memory_base` and true-vector install facts, keeps
 `m68k_vector_level_4_interrupt_autovector` for the write to `$70`, and does not
 emit `m68k_vector_level_5_interrupt_autovector` for the `$74` low-memory base.
+The same focused export now includes the post-render evidence needed to debug
+symbol obligations:
+
+```text
+expected_symbol_access_count: 9522
+rendered_symbol_access_count: 12667
+rendered symbols include abs_0_00042C00, abs_0_00042C6C, abs_0_00042C70
+missing_expected_symbol_access: absent
+```
 
 ### In-Image Address Identity
 
-Damocles currently has labels and numeric accesses that disagree:
+Damocles originally had labels and numeric accesses that disagreed:
 
 ```asm
 abs_0_00042C6C:
@@ -442,6 +470,15 @@ abs_0_00042C6C:
 The address `$42C6C` is inside the materialized image. If C analysis knows that
 storage address and accepts a label for it, the rendered operand should use the
 approved symbol or the source-quality gate should explain why it cannot.
+
+The current Damocles Tetragon 02 render now emits the in-image symbol form:
+
+```asm
+abs_0_00042C6C:
+    dc.b $00,$00,$00,$00
+
+    move.w abs_0_00042C6C.l,d0
+```
 
 The model is:
 

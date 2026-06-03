@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -214,6 +216,77 @@ def test_roundtrip_report_analysis_export_writes_failing_rows(monkeypatch, tmp_p
 
     assert row["analysis_export_path"].endswith("amiga_hunk_demo.analysis.json")
     assert calls and calls[0]["directory"] == export_dir
+
+
+def test_roundtrip_report_analysis_export_uses_render_evidence_analysis(monkeypatch, tmp_path: Path) -> None:
+    source_path = tmp_path / "demo.s"
+    binary_source = object()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    export_dir = tmp_path / "analysis"
+    calls: list[dict[str, object]] = []
+
+    class MetadataContext:
+        def __enter__(self) -> Path:
+            return tmp_path / "target_metadata.json"
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    def analyze(binary_source_arg: object, *, metadata_path: Path, project_root: Path) -> dict[str, object]:
+        calls.append(
+            {
+                "fn": "analyze",
+                "binary_source": binary_source_arg,
+                "metadata_path": metadata_path,
+                "project_root": project_root,
+            }
+        )
+        return {
+            "sections": [
+                {
+                    "rendered_symbol_access_count": 1,
+                    "rendered_symbol_accesses": [{"symbol_name": "entry"}],
+                }
+            ]
+        }
+
+    def explain(binary_source_arg: object, *, metadata_path: Path, project_root: Path) -> dict[str, object]:
+        calls.append(
+            {
+                "fn": "explain",
+                "binary_source": binary_source_arg,
+                "metadata_path": metadata_path,
+                "project_root": project_root,
+            }
+        )
+        return {"source_quality_explanations": []}
+
+    paths = SimpleNamespace(binary_source=binary_source, target_dir=target_dir)
+
+    monkeypatch.setattr(report_tool, "resolve_project_paths", lambda target, project_root: paths)
+    monkeypatch.setattr(report_tool, "effective_metadata_file", lambda path: MetadataContext())
+    monkeypatch.setattr(report_tool, "analyze_project_source_with_render_evidence_from_c_backend", analyze)
+    monkeypatch.setattr(report_tool, "source_quality_explain_project_source_with_c_backend", explain)
+
+    export_path = report_tool._export_target_analysis(
+        {
+            "target": "amiga_hunk_demo",
+            "status": "mismatch",
+            "rendered_source_full_file_exact": False,
+            "rendered_source_content_exact": False,
+            "failure_kinds": ["content_mismatch"],
+            "diff_range_count": 1,
+            "tool_error": None,
+            "message": None,
+        },
+        source_path,
+        export_dir,
+    )
+
+    payload = json.loads(export_path.read_text(encoding="utf-8"))
+    assert payload["analysis"]["sections"][0]["rendered_symbol_access_count"] == 1
+    assert [call["fn"] for call in calls] == ["analyze", "explain"]
 
 
 def test_roundtrip_report_analysis_export_skips_success_by_default(monkeypatch, tmp_path: Path) -> None:

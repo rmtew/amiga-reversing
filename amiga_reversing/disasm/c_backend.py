@@ -574,6 +574,27 @@ def analyze_project_source_with_c_backend(
     return cast(dict[str, object], json.loads(analysis_text))
 
 
+def analyze_project_source_with_render_evidence_from_c_backend(
+    binary_source: BinarySource,
+    *,
+    metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    metadata_text = _metadata_path_text(metadata_path)
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        artifact = CListingArtifact.create(
+            source_file,
+            metadata_text=metadata_text,
+            include_dir=str(_platform_include_dir_for_listing(source_file.platform_name, project_root)),
+            project_root=project_root,
+        )
+    try:
+        analysis, _profile = artifact.analysis_payload()
+        return analysis
+    finally:
+        artifact.close()
+
+
 def source_quality_explain_project_source_with_c_backend(
     binary_source: BinarySource,
     *,

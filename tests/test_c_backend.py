@@ -25,6 +25,7 @@ from amiga_reversing.disasm.c_backend import (
     amiga_os_metadata_catalog_with_c_backend,
     analyze_binary_source_with_c_backend,
     analyze_project_source_with_c_backend,
+    analyze_project_source_with_render_evidence_from_c_backend,
     api_calls_from_c_analysis,
     assemble_platform_source_path_with_c_backend,
     assemble_platform_source_text_with_c_backend,
@@ -7250,6 +7251,74 @@ def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
     assert profile["facts_v2"] == {"platform_call_count": 0}
     assert returned_artifact is artifact
     assert artifact.closed is False
+
+
+def test_project_source_render_evidence_analysis_uses_listing_artifact(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    binary_path = tmp_path / "boot.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY,
+        path=binary_path,
+        address_model=RawAddressModel.LOCAL_OFFSET,
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    calls: list[dict[str, object]] = []
+
+    class FakeArtifact:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return (
+                {
+                    "sections": [
+                        {
+                            "rendered_symbol_access_count": 1,
+                            "rendered_symbol_accesses": [{"symbol_name": "entry"}],
+                        }
+                    ]
+                },
+                {"generation": "facts_v2_listing_artifact_analysis"},
+            )
+
+        def close(self) -> None:
+            self.closed = True
+
+    artifact = FakeArtifact()
+
+    def fake_create(cls, source_file, *, metadata_text: str, include_dir: str, project_root: Path):
+        calls.append(
+            {
+                "platform_name": source_file.platform_name,
+                "entry_offset": source_file.entry_offset,
+                "metadata_text": metadata_text,
+                "include_dir": include_dir,
+                "project_root": project_root,
+            }
+        )
+        return artifact
+
+    monkeypatch.setattr(c_backend.CListingArtifact, "create", classmethod(fake_create))
+
+    analysis = analyze_project_source_with_render_evidence_from_c_backend(source, project_root=tmp_path)
+
+    assert analysis["sections"][0]["rendered_symbol_access_count"] == 1
+    assert artifact.closed is True
+    assert calls == [
+        {
+            "platform_name": "amiga-raw",
+            "entry_offset": 0,
+            "metadata_text": "",
+            "include_dir": str(tmp_path / "ext" / "amiga_includes"),
+            "project_root": tmp_path,
+        }
+    ]
 
 
 def test_project_listing_artifact_build_uses_summary_only_with_platform_calls(
