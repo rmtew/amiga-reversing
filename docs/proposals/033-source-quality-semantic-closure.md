@@ -1604,7 +1604,38 @@ source_quality_analyze_blocks_manual_partial_code_as_manual_conflict
   -> same invalid partial decode shape as the generic fixture
   -> diagnostic kind changes to manual_evidence_conflict
   -> diagnostic origin is manual_evidence
+
+source_quality_analyze_blocks_manual_seed_inside_instruction
+  -> manual code-start evidence at an interior accepted-code byte
+  -> source-quality fails with manual_evidence_conflict
+
+source_quality_analyze_blocks_manual_seed_structured_data_overlap
+  -> manual-origin accepted run overlaps structured data
+  -> structured data is recorded as code_overlap
+  -> source-quality fails with manual_evidence_conflict
+
+source_quality_analyze_blocks_manual_unterminated_gap_as_manual_conflict
+  -> manual-origin accepted run decodes but lacks terminal/proven continuation
+  -> generic unterminated diagnostic is upgraded to manual_evidence_conflict
 ```
+
+The source-quality implementation now has two manual-only checks in addition to
+the generic run checks:
+
+```text
+manual code-start ref
+  + certain_code_byte[offset]
+  + !certain_code_start[offset]
+  -> manual_evidence_conflict
+
+manual-origin accepted run
+  + overlaps accepted/conflicted non-code range ownership
+  -> manual_evidence_conflict
+```
+
+This keeps the policy strict without making every ordinary code/data range
+conflict into a manual failure. Manual evidence is only special when it tries to
+force code through facts the analysis already knows contradict it.
 
 ## Implementation Slices
 
@@ -1930,8 +1961,8 @@ Implementation order:
 2. Done: preserve manual_action_log and decision_journal provenance through
    metadata parsing into code-start evidence.
 3. Done: export provenance through code-start refs and M68kCodeOriginIR.
-4. In progress: add source-quality tests for manual seed at valid code, data overlap,
-   mid-instruction, and unterminated accepted-gap runs.
+4. Done: add source-quality tests for manual seed at valid code, data overlap,
+   mid-instruction, partial decode, and unterminated accepted-gap runs.
 5. Add partial-code-block fixtures:
    generic accepted run whose decode stops before a credible terminal;
    same byte shape under Mac OS where an A-line/F-line platform opword proves

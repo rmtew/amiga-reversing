@@ -559,6 +559,14 @@ static uint8_t source_quality_kind_for_manual_run_conflict(const M68kSectionAnal
   return fallback_kind;
 }
 
+static int code_start_ref_is_mid_instruction_manual_seed(const M68kSectionAnalysisIR *section,
+    const M68kCodeStartRefIR *ref) {
+  if (section == NULL || ref == NULL || !code_origin_evidence_is_manual_seed(ref->evidence_kind)) return 0;
+  if (section->certain_code_byte == NULL || section->certain_code_start == NULL) return 0;
+  if (ref->offset >= section->certain_code_size) return 0;
+  return section->certain_code_byte[ref->offset] != 0U && section->certain_code_start[ref->offset] == 0U;
+}
+
 static int range_ownership_is_accepted_noncode(const M68kRangeOwnershipIR *range) {
   return range != NULL &&
     range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED &&
@@ -569,6 +577,21 @@ static int range_ownership_is_accepted_noncode(const M68kRangeOwnershipIR *range
 
 static int range_ownership_overlaps(uint32_t start, uint32_t end, const M68kRangeOwnershipIR *range) {
   return range != NULL && range->start_offset < end && range->end_offset > start;
+}
+
+static int range_ownership_is_manual_code_seed_conflict(const M68kRangeOwnershipIR *range) {
+  if (range == NULL ||
+      range->kind == M68K_RANGE_OWNERSHIP_UNKNOWN ||
+      range->kind == M68K_RANGE_OWNERSHIP_CODE) {
+    return 0;
+  }
+  if (range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED ||
+      range->status == M68K_RANGE_OWNERSHIP_STATUS_CONFLICT ||
+      range->kind == M68K_RANGE_OWNERSHIP_CONFLICT) {
+    return 1;
+  }
+  return (range->negative_evidence_flags &
+    (M68K_RANGE_NEGATIVE_STRUCTURED_DATA_OVERLAP | M68K_RANGE_NEGATIVE_CODE_OVERLAP)) != 0U;
 }
 
 static int range_ownership_blocks_hard_control_proof(const M68kRangeOwnershipIR *range) {
@@ -851,6 +874,33 @@ static int append_run_diagnostic(M68kSectionAnalysisIR *section, const M68kAccep
   diagnostic.related_end = run->end_offset;
   diagnostic.summary = (char *)summary;
   diagnostic.evidence_source = "accepted_code_run";
+  return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
+}
+
+static int append_manual_code_start_diagnostic(M68kSectionAnalysisIR *section, const M68kCodeStartRefIR *ref,
+    const char *summary, const char *evidence_source) {
+  M68kSourceQualityDiagnosticIR diagnostic;
+  uint32_t end_offset;
+  if (section == NULL || ref == NULL) return -1;
+  if (ref->size != 0U && ref->offset <= UINT32_MAX - ref->size) {
+    end_offset = ref->offset + ref->size;
+  } else {
+    end_offset = ref->offset < UINT32_MAX ? ref->offset + 1U : ref->offset;
+  }
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
+  diagnostic.blocker = 1U;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_MANUAL_EVIDENCE;
+  diagnostic.has_section_index = 1U;
+  diagnostic.section_index = (uint32_t)section->section_index;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = ref->offset;
+  diagnostic.has_related_range = 1U;
+  diagnostic.related_start = ref->offset;
+  diagnostic.related_end = end_offset;
+  diagnostic.summary = (char *)summary;
+  diagnostic.evidence_source = (char *)evidence_source;
   return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
 }
 
@@ -1298,6 +1348,68 @@ static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_
     range.role = item->semantic_role[0] != '\0' ? (char *)item->semantic_role : NULL;
     range.source_pattern = item->source_pattern[0] != '\0' ? (char *)item->source_pattern : NULL;
     if (m68k_ir_section_analysis_append_range_ownership(section, &range) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_manual_mid_instruction_diagnostics_for_section(M68kSectionAnalysisIR *section) {
+  size_t index;
+  if (section == NULL) return -1;
+  for (index = 0U; index < section->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &section->code_start_refs[index];
+    if (!code_start_ref_is_mid_instruction_manual_seed(section, ref)) continue;
+    if (append_manual_code_start_diagnostic(section, ref,
+        "manual code seed lands inside an accepted instruction",
+        "manual_code_start_ref") != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_manual_mid_instruction_diagnostics(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    if (append_manual_mid_instruction_diagnostics_for_section(&source_analysis->sections[section_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_manual_noncode_overlap_diagnostics_for_section(M68kSectionAnalysisIR *section) {
+  size_t run_index;
+  if (section == NULL) return -1;
+  for (run_index = 0U; run_index < section->accepted_code_run_count; ++run_index) {
+    const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[run_index];
+    size_t range_index;
+    if (!accepted_run_has_manual_origin(section, run->start_offset, run->end_offset)) continue;
+    for (range_index = 0U; range_index < section->range_ownership_count; ++range_index) {
+      const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
+      if (!range_ownership_is_manual_code_seed_conflict(range) ||
+          !range_ownership_overlaps(run->start_offset, run->end_offset, range)) {
+        continue;
+      }
+      if (append_run_diagnostic(section, run,
+          M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT,
+          M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR, 1U,
+          "manual code seed overlaps non-code range") != 0) {
+        return -1;
+      }
+      break;
+    }
+  }
+  return 0;
+}
+
+static int append_manual_noncode_overlap_diagnostics(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    if (append_manual_noncode_overlap_diagnostics_for_section(&source_analysis->sections[section_index]) != 0) {
+      return -1;
+    }
   }
   return 0;
 }
@@ -3581,6 +3693,8 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
       accepted_start) != 0)
     return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
+  if (append_manual_mid_instruction_diagnostics(source_analysis) != 0) return -1;
+  if (append_manual_noncode_overlap_diagnostics(source_analysis) != 0) return -1;
   if (append_accepted_run_noncode_fallthrough_diagnostics(source_analysis) != 0) return -1;
   if (append_unterminated_accepted_gap_diagnostics(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
