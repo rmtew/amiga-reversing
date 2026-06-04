@@ -6365,6 +6365,28 @@ def test_platform_file_cli_disassemble_uses_artifact_options(tmp_path: Path) -> 
     assert "unexpected argument: --syntax" in rejected.stderr
 
 
+def test_platform_file_cli_source_quality_explain_accepts_hex_entry_offsets(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    cli = PROJECT_ROOT / "src" / "build" / "platform_file_cli.exe"
+    binary_path = tmp_path / "raw.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+
+    for entry_arg in ("$0", "0x0"):
+        result = subprocess.run(
+            [str(cli), "source-quality-explain", "amiga-raw", str(binary_path), entry_arg],
+            cwd=PROJECT_ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["source_quality"]["source_quality_explanation_count"] == 0
+        assert payload["profile"]["facts_v2"]["code_start_policy_entry_offsets"] == 1
+
+
 def test_real_dll_raw_listing_source_assembles_to_raw_payload(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "raw.bin"
