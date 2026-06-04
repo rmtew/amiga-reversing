@@ -850,16 +850,37 @@ outputs are semantic, not presentational:
 ```text
 render_lookup_infer_relocation_pointer_tables()
 render_lookup_infer_indexed_word_dispatch_tables()
-render_lookup_infer_pc_relative_lookup_scalars()
 render_lookup_add_auto_structured_data_item()
 source_analysis_append_auto_structured_data_policy()
 ```
 
 `render_lookup_infer_platform_runtime_structured_data()` and
 `render_lookup_infer_amiga_bitmap_memory_uses()` have been removed from this
-list by moving their behavior to source-quality. The remaining entries show the
-same wrong boundary for later slices: they classify source meaning while
-building a render cache.
+list by moving their behavior to source-quality. PC-relative indexed scalar
+lookup tables have also moved to source-quality:
+
+```text
+accepted PC-relative indexed read
+  -> data target proves table start
+  -> accepted code bytes, labels, existing structured data, and ownership stop the span
+  -> source-quality emits structured_data_item(role=lookup_table,
+                                               source_pattern=pc_relative_indexed_read)
+  -> optional loop-domain evidence upgrades the entry-count proof
+```
+
+This producer deliberately yields when the same word read feeds an indexed
+control transfer. That shape is dispatch-table evidence, not a scalar lookup
+table:
+
+```text
+move.w table(pc,d0.w),d0
+jmp    table(pc,d0.w)
+  -> dispatch-table classifier owns extent and target proof
+  -> generic PC-relative scalar classifier must not preclaim the range
+```
+
+The remaining entries show the same wrong boundary for later slices: they
+classify source meaning while building a render cache.
 
 Those passes build `M68kAnalysisStructuredDataItem` records, range ownership
 views, table metadata, consumer registers, index domains, and source patterns.
@@ -3607,6 +3628,33 @@ Generalize C table descriptors:
 
 Each table has consumer evidence, bounds evidence, entry shape, and either
 accepted entries or a structured non-classification reason.
+
+The first completed table-reference sub-slice moves PC-relative indexed scalar
+lookup tables out of render lookup. The source-quality producer now owns:
+
+```text
+consumer offset
+table start and span
+entry kind: byte/word/long
+source pattern
+index register when proven
+loop-limit entry-count proof when proven
+```
+
+It does not own PC-relative word dispatch tables yet. Those must move as a
+separate sub-slice because their correctness depends on relative code targets,
+structural extent, accepted/unaccepted target status, and dispatch conflict
+diagnostics.
+
+The migration also removes the old render-side habit of creating zero-size
+auto structured-data anchors. A label should survive only when analysis can
+explain a visible access, a structural boundary, or an object/platform origin:
+
+```asm
+    dc.l $0004CACA        ; numeric table value only
+; no abs_0_0004CACA label unless table-entry analysis proves that value is a
+; target worth naming and rendering symbolically.
+```
 
 ### Slice 8: Python/Web/Report Cleanup
 

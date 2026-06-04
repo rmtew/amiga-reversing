@@ -26432,15 +26432,10 @@ abs_0_0005CCCA:
 	dc.b ". . MAD  PSYCHO . .",$00
 abs_0_0005CCDE:
 	dc.b ". . SON  OF  SATAN . .",$00
-abs_0_0005CCF5:
 	dc.b ". . QUITE  USEFUL . .",$00
-abs_0_0005CD0B:
 	dc.b ". . EXTREMELY  USEFUL . .",$00
-abs_0_0005CD25:
 	dc.b ". . VERY  PROFITABLE . .",$00
-abs_0_0005CD3E:
 	dc.b ". . HIGHLY  VALUABLE . .",$00
-abs_0_0005CD57:
 	dc.b ". . PRICELESS . .",$00
 	dc.b $22,$47,$69,$76,$65,$20,$6D,$65,$20,$61,$20,$64,$72,$69,$6E,$6B
 	dc.b $2C,$61,$6E,$64,$20,$49,$22,$6C,$6C,$20,$70,$6C,$61,$79,$20,$79

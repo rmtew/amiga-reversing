@@ -38,7 +38,6 @@ runtime_code_00078C00	EQU	$78C00
 _custom	EQU	$DFF000
 
     SECTION code,code
-loc_0_00000000:
 	dc.b "DOS",$00	; NOTE: boot magic
 	dc.l $36C36F3C	; NOTE: boot checksum
 	dc.l $00000000	; NOTE: boot root block

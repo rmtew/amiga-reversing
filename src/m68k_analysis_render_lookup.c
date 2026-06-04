@@ -12929,8 +12929,6 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
     return -1;
   if (render_lookup_infer_indexed_postincrement_data_tables(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
-  if (render_lookup_infer_pc_relative_lookup_scalars(lookup, decode, accepted_start, accepted_bytes) != 0)
-    return -1;
   if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (render_lookup_add_pointer_table_target_strings(lookup, decode, accepted_bytes) != 0) return -1;
   end = clock();
