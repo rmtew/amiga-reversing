@@ -2773,7 +2773,6 @@ static int append_hardware_note_platform_semantic_uses(M68kSourceAnalysisIR *sou
   return 0;
 }
 
-static int source_quality_section_has_label_at(const M68kSectionAnalysisIR *section, uint32_t offset);
 static int source_quality_copper_list_item_renders_word_row_at(const M68kSourceAnalysisIR *source_analysis,
     const M68kSectionAnalysisIR *section_analysis, size_t section_index, uint32_t offset);
 

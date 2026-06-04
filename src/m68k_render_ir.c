@@ -4199,6 +4199,7 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         attached = 1;
         continue;
       }
+      if (source_analysis != NULL) continue;
       if (operand->symbol_ref.has_name != 0U) continue;
       hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(value);
       if (hardware_field != NULL &&
@@ -4239,8 +4240,8 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         section->section_index, candidate->offset, operand_index, value,
         M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS);
       if (hardware_base_use == NULL) continue;
-      attach_amiga_platform_symbol(operand, hardware_base_use->symbol_name != NULL &&
-        hardware_base_use->symbol_name[0] != '\0' ? hardware_base_use->symbol_name : base_symbol);
+      if (hardware_base_use->symbol_name == NULL || hardware_base_use->symbol_name[0] == '\0') continue;
+      attach_amiga_platform_symbol(operand, hardware_base_use->symbol_name);
       attached = 1;
     }
   }

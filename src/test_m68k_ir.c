@@ -31,11 +31,15 @@ static Arena *test_ir_result_arena(void) {
   return arena;
 }
 
-static int test_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *decode,
+typedef int (*TestSourceAnalysisMutator)(M68kSourceAnalysisIR *source_analysis, void *user_data);
+
+static int test_render_ir_preview_build_with_source_analysis_mutator(const M68kObject *object,
+    const M68kDecodeIR *decode,
     const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
     uint8_t **accepted_bytes, const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count,
     int render_text_preview, int render_asm_source,
-    int collect_asm_source_text, int emit_asm_source_text, M68kRenderIRPreview *out_preview) {
+    int collect_asm_source_text, int emit_asm_source_text, M68kRenderIRPreview *out_preview,
+    TestSourceAnalysisMutator source_analysis_mutator, void *source_analysis_mutator_data) {
   M68kRenderLookup lookup;
   M68kAnalysisPolicy default_policy;
   M68kSourceAnalysisIR source_analysis;
@@ -81,6 +85,10 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
     }
     if (m68k_source_quality_analyze(&source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
       goto cleanup;
+    if (source_analysis_mutator != NULL &&
+        source_analysis_mutator(&source_analysis, source_analysis_mutator_data) != 0) {
+      goto cleanup;
+    }
   }
   result = m68k_render_ir_preview_emit_prepared(object, decode, &lookup, effective_policy, accepted_start, accepted_bytes,
     render_text_preview, render_asm_source, collect_asm_source_text, emit_asm_source_text, out_preview,
@@ -90,6 +98,16 @@ cleanup:
   if (default_policy_live) m68k_analysis_policy_destroy(&default_policy);
   m68k_render_lookup_destroy(&lookup);
   return result;
+}
+
+static int test_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *decode,
+    const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count,
+    int render_text_preview, int render_asm_source,
+    int collect_asm_source_text, int emit_asm_source_text, M68kRenderIRPreview *out_preview) {
+  return test_render_ir_preview_build_with_source_analysis_mutator(object, decode, facts, policy, accepted_start,
+    accepted_bytes, analysis_labels, analysis_label_count, render_text_preview, render_asm_source,
+    collect_asm_source_text, emit_asm_source_text, out_preview, NULL, NULL);
 }
 
 static int test_render_policy_defaults(void) {
@@ -18500,6 +18518,88 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   return 0;
 }
 
+static int clear_intena_platform_address_use_symbol(M68kSourceAnalysisIR *source_analysis, void *user_data) {
+  uint32_t *cleared = (uint32_t *)user_data;
+  size_t section_index;
+  if (source_analysis == NULL || cleared == NULL) return -1;
+  *cleared = 0U;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t use_index;
+    for (use_index = 0U; use_index < section->platform_address_use_count; ++use_index) {
+      M68kPlatformAddressUseIR *use = &section->platform_address_uses[use_index];
+      if (use->offset == 6U &&
+          use->operand_index == 1U &&
+          use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS &&
+          use->symbol_name != NULL &&
+          strcmp(use->symbol_name, "intena") == 0) {
+        use->symbol_name = NULL;
+        *cleared = 1U;
+        return 0;
+      }
+    }
+  }
+  return -1;
+}
+
+static int test_facts_v2_render_asm_source_does_not_recreate_missing_platform_address_symbol(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kRenderIRPreview preview;
+  M68kAnalysisLabelPoint analysis_labels[1];
+  size_t analysis_label_count = 0U;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  uint8_t start_map[14];
+  uint8_t byte_map[14];
+  uint32_t cleared = 0U;
+  uint8_t bytes[14] = {
+    0x41u, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
+    0x31u, 0x7Cu, 0x7Fu, 0xFFu, 0x00u, 0x9Au,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  start_map[6] = 1U;
+  start_map[12] = 1U;
+  memset(byte_map, 1, sizeof(byte_map));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  m68k_render_ir_preview_init(&preview);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build_with_source_analysis_mutator(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview,
+    clear_intena_platform_address_use_symbol, &cleared));
+  M68K_C_ASSERT_U32(1U, cleared);
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tmove.w #INTF_CLRALL,$009A(a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "intena(a0)") == NULL);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_merges_hardware_base_by_id(void) {
   M68kObject object;
   M68kSection section;
@@ -29576,6 +29676,8 @@ int m68k_c_ir_tests(void) {
       test_amiga_os_raw_version_rank_uses_amiga_order},
     {"facts_v2_render_asm_source_symbols_amiga_hardware_registers",
       test_facts_v2_render_asm_source_symbols_amiga_hardware_registers},
+    {"facts_v2_render_asm_source_does_not_recreate_missing_platform_address_symbol",
+      test_facts_v2_render_asm_source_does_not_recreate_missing_platform_address_symbol},
     {"facts_v2_render_asm_source_merges_hardware_base_by_id",
       test_facts_v2_render_asm_source_merges_hardware_base_by_id},
     {"facts_v2_render_asm_source_inherits_hardware_base_into_local_helper",

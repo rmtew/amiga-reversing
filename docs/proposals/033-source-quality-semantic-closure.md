@@ -2867,6 +2867,27 @@ analysis. The normal rendered-source path must have C-owned facts; if those
 facts are missing, the fix is to improve analysis, not to reintroduce
 renderer-side platform reasoning.
 
+The next tightening removed the unsafe fallback for incomplete C facts. If
+`source_analysis` contains a `platform_address_use` for a hardware register or
+hardware base but that use has no `symbol_name`, render now leaves the operand
+numeric instead of calling Amiga hardware lookup to recreate a name:
+
+```text
+platform_address_use(kind=hardware_register_access, symbol_name=NULL)
+  -> render $009A(a0)
+  -> do not render intena(a0)
+  -> source-quality/analysis must be fixed to publish symbol_name
+```
+
+The regression mutates a valid `_custom` base-relative `intena(a0)` use by
+clearing the C-owned symbol before prepared rendering. The rendered source must
+show `$009A(a0)`, proving render did not hide the incomplete analysis fact.
+
+The same cleanup pass deleted stale render-lookup indexed-dispatch helpers that
+were no longer referenced after source-quality/table analysis took ownership of
+those cases. That was fix-at-cause work exposed by the dead-code gate, not a
+cache or test workaround.
+
 Custom symbolic expressions such as BPLCON0 plane-count composition and BLTSIZE
 height/width composition remain supported, but as shared platform formatting:
 
