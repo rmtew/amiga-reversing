@@ -5519,7 +5519,8 @@ abs_0_00004A54:
 abs_0_00004A5E:
 	dc.b $FC,$12,$04,$FE,$04,$4C,$45,$56,$45,$4C,$20,$20,$FE,$0E,$20,$FC
 	dc.b $12,$05,$20,$20,$FE,$04,$20,$20,$47,$4F,$4C,$44,$FC,$12,$09,$FE
-	dc.b $0C,$4F,$4B,$20,$3F,$FF
+	dc.b $0C
+	dc.b "OK ?",$FF
 abs_0_00004A84:
 	dc.b " MAY BUY A SPELL-PICK A CLASS",$FF
 abs_0_00004AA2:

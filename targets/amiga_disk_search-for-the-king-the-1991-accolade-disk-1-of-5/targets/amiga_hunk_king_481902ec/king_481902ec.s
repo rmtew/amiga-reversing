@@ -6485,17 +6485,19 @@ loc_3_00000068:
 loc_3_0000006E:
 	dc.b "game3.ivy",$00
 loc_3_00000078:
-	dc.b $53,$61,$76,$65,$5F,$00
+	dc.b "Save_",$00
 loc_3_0000007E:
-	dc.b $2E,$73,$61,$76,$00,$00
+	dc.b ".sav",$00
+	dc.b $00
 loc_3_00000084:
 	dc.b "This saved game is not compatible with this game version.",$00
 loc_3_000000BE:
 	dc.b "Game Load Error",$00
 loc_3_000000CE:
-	dc.b $53,$41,$56,$45,$5F,$00
+	dc.b "SAVE_",$00
 loc_3_000000D4:
-	dc.b $2E,$53,$41,$56,$00,$00
+	dc.b ".SAV",$00
+	dc.b $00
 loc_3_000000DA:
 	dc.b $72,$00,$4E,$55,$00,$00,$2F,$07,$3E,$2D,$00,$0A,$70,$02,$3F,$00
 	dc.b $48,$6D,$00,$08,$3F,$07,$4E,$BA,$0D,$32,$50,$4F,$55,$40,$66,$04
@@ -9940,7 +9942,8 @@ loc_7_00000182:
 loc_7_000001B0:
 	dc.b "Could you run that one by me again?",$00
 loc_7_000001D4:
-	dc.b $48,$75,$68,$3F,$00,$00
+	dc.b "Huh?",$00
+	dc.b $00
 loc_7_000001DA:
 	dc.b $76,$65,$72,$62,$00,$00
 loc_7_000001E0:
@@ -13129,7 +13132,8 @@ loc_8_000003A8:
 loc_8_000003D0:
 	dc.b "I don't think that ",$00
 loc_8_000003E4:
-	dc.b $74,$68,$65,$20,$00,$00
+	dc.b "the ",$00
+	dc.b $00
 loc_8_000003EA:
 	dc.b $20,$68,$61,$73,$20,$00
 loc_8_000003F0:
@@ -22157,7 +22161,8 @@ loc_17_000009FE:
 loc_17_00000A08:
 	dc.b "restore",$00
 loc_17_00000A10:
-	dc.b $73,$61,$76,$65,$00,$00
+	dc.b "save",$00
+	dc.b $00
 loc_17_00000A16:
 	dc.b "save game",$00
 loc_17_00000A20:
@@ -22170,7 +22175,8 @@ loc_17_00000A46:
 loc_17_00000A50:
 	dc.b "Load Game",$00
 loc_17_00000A5A:
-	dc.b $4C,$4F,$41,$44,$00,$00
+	dc.b "LOAD",$00
+	dc.b $00
 loc_17_00000A60:
 	dc.b "CANCEL",$00
 	dc.b $00
@@ -22217,13 +22223,15 @@ loc_17_00000AEC:
 loc_17_00000AF6:
 	dc.b "restart",$00
 loc_17_00000AFE:
-	dc.b $71,$75,$69,$74,$00,$00
+	dc.b "quit",$00
+	dc.b $00
 loc_17_00000B04:
 	dc.b "Sound Control",$00
 loc_17_00000B12:
 	dc.b "Speed Control",$00
 loc_17_00000B20:
-	dc.b $68,$65,$6C,$70,$00,$00
+	dc.b "help",$00
+	dc.b $00
 loc_17_00000B26:
 	lea.l -$14EE(a4),a0
 	lea.l loc_17_000009F8(pc),a1
@@ -35894,9 +35902,10 @@ loc_30_00000130:
 loc_30_00000134:
 	dc.b "Apartment",$00
 loc_30_0000013E:
-	dc.b $57,$61,$67,$6F,$6E,$00
+	dc.b "Wagon",$00
 loc_30_00000144:
-	dc.b $54,$65,$6E,$74,$00,$00
+	dc.b "Tent",$00
+	dc.b $00
 loc_30_0000014A:
 	dc.b "Desert",$00
 	dc.b $00
@@ -53552,7 +53561,8 @@ loc_44_000000A4:
 loc_44_000000BA:
 	dc.b "load_percussion can't open ",$00
 loc_44_000000D6:
-	dc.b $42,$4F,$44,$59,$00,$00
+	dc.b "BODY",$00
+	dc.b $00
 loc_44_000000DC:
 	dc.b "load_percussion can't find BODY in ",$00
 loc_44_00000100:

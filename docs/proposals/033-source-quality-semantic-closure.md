@@ -4627,6 +4627,76 @@ proven table/string structure, and when validation or render diffs expose a
 false conversion the follow-through is to fix the producer, not to whitelist the
 target.
 
+### Implemented Slice: Generic String-Table Sequence Ownership
+
+Generic adjacent string-table promotion had the same wrong boundary. Render
+lookup previously scanned unowned bytes and promoted any run of three short
+printable terminated spans:
+
+```text
+render sees "MISS",$ff,"HITS",$ff,"RUNS",$ff
+  -> render creates string_table_sequence items
+  -> source_analysis later inherits renderer-owned facts
+```
+
+That made source quality depend on renderer discovery. The implemented rule is
+now C-owned:
+
+```text
+source-quality sees a dense adjacent string sequence
+  + at least three compatible entries
+  + no accepted-code byte overlap
+  + no label/structured-data interior conflict
+  + existing weak string items are compatible
+  -> emit string_table_sequence structured-data items
+
+only one or two adjacent printable spans
+  -> review/data evidence
+  -> do not promote
+```
+
+Line-terminated rows are part of the same dense sequence proof. A table can mix
+plain NUL/FF terminated rows and LF/CR terminated rows:
+
+```asm
+    dc.b "Text: ",$00
+    dc.b "Data: ",$00
+    dc.b "BSS : ",$00
+    dc.b "Current Breakpoints:",$0A
+    dc.b $00
+```
+
+The source-quality scanner owns the full row extent, including line-break bytes,
+before render formats the item. Render can still decide the textual spelling of
+the already-owned item, but it no longer creates the durable
+`string_table_sequence` fact.
+
+The focused fixtures are:
+
+```text
+facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequence
+  -> three short FF-terminated strings become C-owned string_table_sequence
+
+facts_v2_two_adjacent_short_ascii_spans_do_not_classify_string_sequence
+  -> two printable spans stay raw data/review evidence
+
+facts_v2_rank_string_sequence_renders_starglider_examples
+  -> Starglider-style adjacent rank strings stay readable
+
+facts_v2_table_context_promotes_plain_entry_without_space
+  -> existing weak text items can be upgraded together by table context
+
+facts_v2_adjacent_line_terminated_ascii_sequence_promotes_lf_rows
+  -> LF-terminated rows in a dense table are owned by source quality
+
+facts_v2_line_terminated_sequence_does_not_split_format_placeholder
+  -> format-placeholder text is not split just because it is printable
+```
+
+The render lookup fallback that performed dense string-sequence discovery has
+been deleted. Remaining render-side generic text detection is now a visible
+cleanup lane, not the desired long-term ownership model.
+
 ### Slice 8: Python/Web/Report Cleanup
 
 Python should index and display C facts:

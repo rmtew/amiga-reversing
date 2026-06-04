@@ -8362,42 +8362,6 @@ static uint32_t auto_renderable_bounded_string_span(const M68kRenderLookup *look
   return span;
 }
 
-static int render_lookup_maybe_add_string_sequence(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_bytes, uint32_t offset, uint32_t *out_size) {
-  uint32_t offsets[32];
-  uint32_t spans[32];
-  uint32_t cursor;
-  uint32_t count = 0U;
-  uint32_t index;
-  if (out_size != NULL) *out_size = 0U;
-  if (lookup == NULL || section == NULL || out_size == NULL) return 0;
-  cursor = offset;
-  while (count < (uint32_t)(sizeof(spans) / sizeof(spans[0]))) {
-    uint32_t span;
-    M68kRenderRangeOwnershipView range;
-    if (cursor >= section->size ||
-        lookup_range_ownership_covering_offset(lookup, section->section_index, cursor, &range)) {
-      break;
-    }
-    span = auto_renderable_string_span_with_options(lookup, section, accepted_bytes, cursor, 4U, 0);
-    if (span == 0U) break;
-    offsets[count] = cursor;
-    spans[count] = span;
-    ++count;
-    cursor += span;
-  }
-  if (count < 3U) return 0;
-  for (index = 0U; index < count; ++index) {
-    if (render_lookup_add_auto_string_item(lookup, section->section_index, offsets[index], spans[index],
-        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
-        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE) != 0) {
-      return -1;
-    }
-  }
-  *out_size = cursor - offset;
-  return 0;
-}
-
 int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes) {
   return render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes);
@@ -8485,13 +8449,7 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
         }
         offset += span;
       } else {
-        uint32_t sequence_size = 0U;
-        if (render_lookup_maybe_add_string_sequence(lookup, section, accepted_bytes[section_index], offset,
-            &sequence_size) != 0) {
-          return -1;
-        }
-        if (sequence_size != 0U) offset += sequence_size;
-        else ++offset;
+        ++offset;
       }
     }
   }

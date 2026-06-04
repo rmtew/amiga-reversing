@@ -3036,8 +3036,8 @@ static int test_facts_v2_data_ascii_span_rejects_printable_length_sequence(void)
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "dc.b \"FOUR!THIS IS A THIRTY TWO BYTE MESSAGE\",$00") == NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
@@ -3082,8 +3082,8 @@ static int test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequenc
   M68K_C_ASSERT(strstr(source, "dc.b \"MISS\",$FF") != NULL);
   M68K_C_ASSERT(strstr(source, "dc.b \"HITS\",$FF") != NULL);
   M68K_C_ASSERT(strstr(source, "dc.b \"RUNS\",$FF") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       ++string_items;
@@ -3094,6 +3094,50 @@ static int test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequenc
   }
   M68K_C_ASSERT_U32(3U, string_items);
   M68K_C_ASSERT_U32(3U, sequence_items);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_two_adjacent_short_ascii_spans_do_not_classify_string_sequence(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint16_t index;
+  uint32_t string_items = 0U;
+  uint8_t bytes[] = {
+    'M', 'I', 'S', 'S', 0xffu,
+    'H', 'I', 'T', 'S', 0xffu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b \"MISS\",$FF") == NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b \"HITS\",$FF") == NULL);
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
+      ++string_items;
+    }
+  }
+  M68K_C_ASSERT_U32(0U, string_items);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -3133,8 +3177,8 @@ static int test_facts_v2_rank_string_sequence_renders_starglider_examples(void) 
   M68K_C_ASSERT(strstr(source, "\tdc.b \"ACE PILOT\",$00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"COMMANDER\",$00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $41,$43,$45,$20,$50,$49,$4C,$4F,$54,$00\n") == NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       ++string_items;
@@ -3183,8 +3227,8 @@ static int test_facts_v2_table_context_promotes_plain_entry_without_space(void) 
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "dc.b \"0123456789ABCDEF\",$00") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       ++string_items;
@@ -3194,7 +3238,7 @@ static int test_facts_v2_table_context_promotes_plain_entry_without_space(void) 
     }
   }
   M68K_C_ASSERT_U32(3U, string_items);
-  M68K_C_ASSERT_U32(1U, sequence_items);
+  M68K_C_ASSERT_U32(3U, sequence_items);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -3521,8 +3565,8 @@ static int test_facts_v2_word_offset_table_targets_promote_strings(void) {
   M68K_C_ASSERT(strstr(source, "loc_0_00000092:\n\tdc.b \"BM\",$00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000095:\n\tdc.b \"TEXT ROW!\"\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_0000009E:\n\tdc.b $5A,$5A") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (!item->has_section_index || item->section_index != 0U) continue;
     if (item->offset == 0xA0U && structured_data_item_has_role(item,
         M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
@@ -31452,6 +31496,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_data_ascii_span_rejects_printable_length_sequence},
     {"facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequence",
       test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequence},
+    {"facts_v2_two_adjacent_short_ascii_spans_do_not_classify_string_sequence",
+      test_facts_v2_two_adjacent_short_ascii_spans_do_not_classify_string_sequence},
     {"facts_v2_rank_string_sequence_renders_starglider_examples",
       test_facts_v2_rank_string_sequence_renders_starglider_examples},
     {"facts_v2_table_context_promotes_plain_entry_without_space",

@@ -6575,6 +6575,245 @@ static int append_pointer_table_target_strings(M68kSourceAnalysisIR *source_anal
   return 0;
 }
 
+static int source_quality_policy_structured_data_item_covers_offset(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset) {
+  uint16_t policy_index;
+  if (source_analysis == NULL) return 0;
+  for (policy_index = 0U; policy_index < source_analysis->policy.structured_data_item_count; ++policy_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->policy.structured_data_items[policy_index];
+    if (!item->has_section_index || item->section_index != section_index || item->offset > offset ||
+        item->size == 0U || item->offset > UINT32_MAX - item->size) {
+      continue;
+    }
+    if (offset < item->offset + item->size) return 1;
+  }
+  return 0;
+}
+
+static int source_quality_structured_data_item_covers_offset(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset) {
+  return source_quality_structured_data_item_covering_offset(source_analysis, section_index, offset) != NULL ||
+    source_quality_policy_structured_data_item_covers_offset(source_analysis, section_index, offset);
+}
+
+static int source_quality_string_table_sequence_compatible_pattern(uint8_t source_pattern_id) {
+  return source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_UNKNOWN ||
+    source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT ||
+    source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_BOUNDED_TEXT ||
+    source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE ||
+    source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM;
+}
+
+static const M68kAnalysisStructuredDataItem *source_quality_compatible_string_item_starting_at(
+    const M68kSourceAnalysisIR *source_analysis, uint32_t section_index, uint32_t offset) {
+  const M68kAnalysisStructuredDataItem *item;
+  uint16_t policy_index;
+  item = source_quality_structured_data_item_covering_offset(source_analysis, section_index, offset);
+  if (item != NULL && item->has_section_index && item->section_index == section_index && item->offset == offset &&
+      item->size != 0U && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+      (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U &&
+      source_quality_string_table_sequence_compatible_pattern(item->source_pattern_id)) {
+    return item;
+  }
+  if (source_analysis == NULL) return NULL;
+  for (policy_index = 0U; policy_index < source_analysis->policy.structured_data_item_count; ++policy_index) {
+    item = &source_analysis->policy.structured_data_items[policy_index];
+    if (item->has_section_index && item->section_index == section_index && item->offset == offset &&
+        item->size != 0U && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U &&
+        source_quality_string_table_sequence_compatible_pattern(item->source_pattern_id)) {
+      return item;
+    }
+  }
+  return NULL;
+}
+
+static int source_quality_auto_string_start_byte(uint8_t value) {
+  return (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') ||
+    (value >= '0' && value <= '9') || value == '$' || value == '.' || value == '#';
+}
+
+static int source_quality_auto_string_lowercase_byte(uint8_t value) {
+  return value >= 'a' && value <= 'z';
+}
+
+static int source_quality_auto_string_line_break_byte(uint8_t value) {
+  return value == 0x0dU || value == 0x0aU;
+}
+
+static int source_quality_auto_string_range_has_code_byte(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_bytes, uint32_t offset, uint32_t size) {
+  uint32_t cursor;
+  if (section == NULL || offset > section->size || size > section->size - offset) return 1;
+  if (accepted_bytes == NULL) return section->kind == M68K_SECTION_CODE;
+  for (cursor = 0U; cursor < size; ++cursor) {
+    if (accepted_bytes[offset + cursor] != 0U) return 1;
+  }
+  return 0;
+}
+
+static uint32_t source_quality_auto_string_table_sequence_span(const M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeSectionIR *section, const M68kSectionAnalysisIR *section_analysis,
+    const uint8_t *accepted_bytes, uint32_t offset) {
+  uint32_t cursor;
+  uint32_t text_size = 0U;
+  uint32_t break_count = 0U;
+  int has_lowercase = 0;
+  if (source_analysis == NULL || section == NULL || section_analysis == NULL || section->data == NULL ||
+      offset >= section->size || !m68k_ir_byte_is_quoted_string_safe(section->data[offset]) ||
+      !source_quality_auto_string_start_byte(section->data[offset])) {
+    return 0U;
+  }
+  if (offset > 0U && !source_quality_word_offset_string_terminator_byte(section->data[offset - 1U]) &&
+      m68k_ir_byte_is_quoted_string_safe(section->data[offset - 1U]) &&
+      !source_quality_section_has_label_at(section_analysis, offset)) {
+    return 0U;
+  }
+  cursor = offset;
+  while (cursor < section->size && !source_quality_word_offset_string_terminator_byte(section->data[cursor]) &&
+      m68k_ir_byte_is_quoted_string_safe(section->data[cursor])) {
+    if (cursor != offset &&
+        (source_quality_section_has_label_at(section_analysis, cursor) ||
+         source_quality_structured_data_item_covers_offset(source_analysis, (uint32_t)section->section_index,
+           cursor))) {
+      return 0U;
+    }
+    if (source_quality_auto_string_lowercase_byte(section->data[cursor])) has_lowercase = 1;
+    ++cursor;
+    ++text_size;
+  }
+  while (cursor < section->size && source_quality_auto_string_line_break_byte(section->data[cursor]) &&
+      break_count < 2U) {
+    if (source_quality_section_has_label_at(section_analysis, cursor) ||
+        source_quality_structured_data_item_covers_offset(source_analysis, (uint32_t)section->section_index,
+          cursor)) {
+      return 0U;
+    }
+    ++cursor;
+    ++break_count;
+  }
+  if (cursor >= section->size || !source_quality_word_offset_string_terminator_byte(section->data[cursor]) ||
+      text_size < 4U) {
+    return 0U;
+  }
+  if (section->data[cursor] == 0xffU && has_lowercase) return 0U;
+  if (source_quality_section_has_label_at(section_analysis, cursor) ||
+      source_quality_structured_data_item_covers_offset(source_analysis, (uint32_t)section->section_index,
+        cursor)) {
+    return 0U;
+  }
+  if (source_quality_auto_string_range_has_code_byte(section, accepted_bytes, offset,
+      text_size + break_count + 1U)) {
+    return 0U;
+  }
+  return text_size + break_count + 1U;
+}
+
+static int append_source_quality_string_table_sequence_item(M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t size) {
+  M68kAnalysisStructuredDataItem item;
+  const char *source_pattern;
+  if (source_analysis == NULL || size == 0U ||
+      source_quality_has_structured_data_item(source_analysis, section_index, offset, size,
+        M68K_ANALYSIS_STRUCTURED_DATA_STRING,
+        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE)) {
+    return 0;
+  }
+  source_pattern = m68k_analysis_structured_data_source_pattern_name(
+    M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE);
+  if (source_pattern == NULL) return 0;
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = section_index;
+  item.offset = offset;
+  item.size = size;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  snprintf(item.source_pattern, sizeof(item.source_pattern), "%s", source_pattern);
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE;
+  item.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  if (source_quality_update_same_offset_structured_data_item(source_analysis, &item)) return 0;
+  return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
+}
+
+static int append_string_table_sequence_items_for_section(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis,
+    const uint8_t *accepted_bytes) {
+  uint32_t offset = 0U;
+  if (source_analysis == NULL || section == NULL || section_analysis == NULL || section->data == NULL)
+    return 0;
+  while (offset < section->size) {
+    uint32_t offsets[32];
+    uint32_t spans[32];
+    uint32_t cursor = offset;
+    uint32_t count = 0U;
+    uint32_t index;
+    const M68kAnalysisStructuredDataItem *existing =
+      source_quality_compatible_string_item_starting_at(source_analysis, (uint32_t)section->section_index,
+        offset);
+    if (existing == NULL &&
+        source_quality_structured_data_item_covers_offset(source_analysis, (uint32_t)section->section_index,
+          offset)) {
+      ++offset;
+      continue;
+    }
+    while (count < (uint32_t)(sizeof(spans) / sizeof(spans[0]))) {
+      uint32_t span;
+      existing = source_quality_compatible_string_item_starting_at(source_analysis,
+        (uint32_t)section->section_index, cursor);
+      if (cursor >= section->size) {
+        break;
+      }
+      if (existing != NULL) {
+        span = existing->size;
+      } else {
+        if (source_quality_structured_data_item_covers_offset(source_analysis, (uint32_t)section->section_index,
+            cursor)) {
+          break;
+        }
+        span = source_quality_auto_string_table_sequence_span(source_analysis, section, section_analysis,
+          accepted_bytes, cursor);
+      }
+      if (span == 0U) break;
+      offsets[count] = cursor;
+      spans[count] = span;
+      ++count;
+      cursor += span;
+    }
+    if (count >= 3U) {
+      for (index = 0U; index < count; ++index) {
+        if (append_source_quality_string_table_sequence_item(source_analysis, (uint32_t)section->section_index,
+            offsets[index], spans[index]) != 0) {
+          return -1;
+        }
+      }
+      offset = cursor;
+      continue;
+    }
+    ++offset;
+  }
+  return 0;
+}
+
+static int append_string_table_sequence_items(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_bytes) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_string_table_sequence_items_for_section(source_analysis, section, section_analysis,
+        accepted_bytes != NULL ? accepted_bytes[decode_index] : NULL) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static uint32_t append_word_relative_table_string_targets(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, uint8_t *const *accepted_bytes, uint32_t table_section_index,
     uint32_t table_offset, uint32_t span, uint32_t target_section_index, uint32_t target_base_offset,
@@ -12312,6 +12551,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
     accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_platform_call_input_string_structured_data_items(source_analysis, decode, facts,
     accepted_start, accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_string_table_sequence_items(source_analysis, decode, accepted_bytes));
   m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
   SOURCE_QUALITY_CHECK_OK(append_structured_data_range_ownerships(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_pointer_table_target_strings(source_analysis, decode, accepted_bytes, policy));

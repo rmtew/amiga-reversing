@@ -4643,9 +4643,8 @@ loc_0_00004C66:
 	dc.b "MISSILE VIEW",$00
 	dc.b $00
 loc_0_00004C74:
-	dc.b $8F,$44,$4F,$43,$4B,$49,$4E,$47,$2C,$20,$50,$52,$45,$53,$53,$20
-	dc.b $49,$20,$46,$4F,$52,$20,$49,$4E,$54,$45,$52,$52,$4F,$47,$41,$54
-	dc.b $45,$00
+	dc.b $8F
+	dc.b "DOCKING, PRESS I FOR INTERROGATE",$00
 loc_0_00004C96:
 	dc.b "LAUNCHING FROM SILO",$00
 loc_0_00004CAA:
