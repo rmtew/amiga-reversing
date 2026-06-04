@@ -1559,6 +1559,7 @@ copper display-layout comments
 display-setup comments
 bitmap-memory comments
 palette upload comments
+audio-register comments
 ```
 
 Remaining work should name the exact unpinned family, add its source-quality
@@ -2768,6 +2769,15 @@ M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"audio_register\"") != NULL)
 M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"sound sample length 128 bytes\"") != NULL);
 M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio data word\"") != NULL);
+```
+
+The render boundary is also explicit:
+
+```text
+render_audio_register_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> aud0+ac_len/aud0+ac_per operands still render
+  -> "sound sample length ..." and "audio period ..." do not appear
 ```
 
 Current hardware-access comment closure:
