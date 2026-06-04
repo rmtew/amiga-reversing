@@ -1562,6 +1562,7 @@ palette upload comments
 audio-register comments
 hardware-access comments
 hardware-value comments
+platform stack-cleanup comments
 ```
 
 Remaining work should name the exact unpinned family, add its source-quality
@@ -3554,6 +3555,18 @@ The render-owned stack-cleanup formatter was deleted. The focused fixture
 asserts both the pre-render semantic-use record and the unchanged rendered
 comment, so a future failure shows whether analysis stopped publishing the fact
 or render stopped consuming it.
+
+The render boundary is now pinned:
+
+```text
+render_platform_stack_cleanup_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> the cleanup instruction still renders
+  -> "KNOWN: stack cleanup for c_rawcin pop 2" does not appear
+```
+
+This keeps recovered platform-call metadata as input to source-quality, not a
+second renderer-side source of inline comments.
 
 ### Implemented Slice: Runtime Sink Pointer Notes
 
