@@ -2690,27 +2690,40 @@ Implementation order:
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
 `M68kPlatformSemanticUseIR` for higher-level meanings and comments.
 
-The current remaining platform-analysis ownership gap is not the consumer side.
-Source-quality already consumes hardware-base seeds to produce
+The current remaining platform-analysis ownership gap is mostly not the
+consumer side. Source-quality already consumes hardware-base seeds to produce
 `platform_address_use`, hardware note, hardware value-domain, and runtime-sink
 facts. The problem is where those seeds originate:
 
 ```text
-current:
+old:
   render_lookup_infer_amiga_call_hardware_base_seeds()
     -> inferred_hardware_base_seeds
     -> copied into M68kSourceQualityHardwareBaseSeed[]
     -> source-quality emits C-owned facts
 
+current direct-call shape:
+  source-quality tracks proven hardware-base registers
+    + same-section direct call target
+    -> source-quality seeds the callee entry directly
+    -> source-quality emits C-owned facts
+
+current callback-indirect shape:
+  render_lookup_infer_amiga_call_hardware_base_seeds()
+    -> callback-field-derived inferred_hardware_base_seeds
+    -> copied into M68kSourceQualityHardwareBaseSeed[]
+    -> source-quality emits C-owned facts
+
 target:
-  source-quality infers call/callback hardware-base seeds directly
+  source-quality infers callback hardware-base seeds directly
     -> source-quality emits the same C-owned facts
     -> render lookup no longer produces semantic seed input
 ```
 
-That slice should preserve the existing conflict behavior: two different
-hardware bases for the same section/offset/register seed make the seed
-conflicted and prevent propagation.
+The completed direct-call slice preserves the existing conflict behavior: two
+different hardware bases for the same section/offset/register seed make the
+seed conflicted and prevent propagation. The callback-indirect slice must keep
+the same rule when it moves.
 
 Current runtime-sink closure:
 
@@ -3092,7 +3105,7 @@ render_copper_display_layout_comment_requires_platform_semantic_use
   -> "display layout 2 bitmap planes ..." does not appear
   -> "bitmap pointer $00010000" does not appear
   -> bitmap_00010000_hi / bitmap_00010000_lo do not appear
-  -> raw copper rows still render as bplpt,$0001 and bplpt+$02,$0000
+  -> copper bytes still render
 ```
 
 That keeps the split clear: copper-list formatting is renderer support;

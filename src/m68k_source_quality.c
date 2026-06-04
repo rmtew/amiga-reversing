@@ -7373,6 +7373,130 @@ static void source_quality_hardware_base_state_update_after_instruction(SourceQu
     source_quality_hardware_base_state_clear(state, dest_reg);
 }
 
+typedef struct SourceQualityHardwareBaseSeedList {
+  M68kSourceQualityHardwareBaseSeed *items;
+  size_t count;
+  size_t capacity;
+} SourceQualityHardwareBaseSeedList;
+
+static void source_quality_hardware_base_seed_list_destroy(SourceQualityHardwareBaseSeedList *list) {
+  if (list == NULL) return;
+  free(list->items);
+  memset(list, 0, sizeof(*list));
+}
+
+static int source_quality_hardware_base_seed_list_append(SourceQualityHardwareBaseSeedList *list,
+    const M68kSourceQualityHardwareBaseSeed *seed, uint8_t *out_changed) {
+  M68kSourceQualityHardwareBaseSeed *grown;
+  size_t next_capacity;
+  size_t index;
+  if (out_changed != NULL) *out_changed = 0U;
+  if (list == NULL || seed == NULL || seed->reg_index >= 8U ||
+      seed->hardware_base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+    return 0;
+  }
+  for (index = 0U; index < list->count; ++index) {
+    M68kSourceQualityHardwareBaseSeed *existing = &list->items[index];
+    if (existing->section_index != seed->section_index || existing->offset != seed->offset ||
+        existing->reg_index != seed->reg_index) {
+      continue;
+    }
+    if (existing->hardware_base_id != seed->hardware_base_id && existing->conflicted == 0U) {
+      existing->conflicted = 1U;
+      if (out_changed != NULL) *out_changed = 1U;
+    }
+    return 0;
+  }
+  if (list->count == list->capacity) {
+    next_capacity = list->capacity == 0U ? 16U : list->capacity * 2U;
+    grown = (M68kSourceQualityHardwareBaseSeed *)realloc(list->items, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    list->items = grown;
+    list->capacity = next_capacity;
+  }
+  list->items[list->count++] = *seed;
+  if (out_changed != NULL) *out_changed = 1U;
+  return 0;
+}
+
+static int source_quality_hardware_base_seed_list_append_existing(SourceQualityHardwareBaseSeedList *list,
+    const M68kSourceQualityHardwareBaseSeed *seeds, size_t seed_count) {
+  size_t index;
+  if (seeds == NULL) return 0;
+  for (index = 0U; index < seed_count; ++index) {
+    if (source_quality_hardware_base_seed_list_append(list, &seeds[index], NULL) != 0) return -1;
+  }
+  return 0;
+}
+
+static int source_quality_instruction_has_local_call_flow(const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  if (instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  return metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL;
+}
+
+static int source_quality_infer_direct_call_hardware_base_seed_pass(const M68kDecodeIR *decode,
+    uint8_t *const *accepted_start, const M68kAnalysisPolicy *policy,
+    SourceQualityHardwareBaseSeedList *seed_list, uint8_t *out_changed) {
+  size_t section_index;
+  if (out_changed != NULL) *out_changed = 0U;
+  if (decode == NULL || accepted_start == NULL || seed_list == NULL) return 0;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    SourceQualityHardwareBaseState state;
+    size_t candidate_index;
+    memset(&state, 0, sizeof(state));
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      uint32_t target_offset = 0U;
+      uint8_t reg_index;
+      if (!source_quality_candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+        candidate->offset);
+      source_quality_hardware_base_state_apply_inferred_register_seeds(&state, seed_list->items, seed_list->count,
+        section->section_index, candidate->offset);
+      if (source_quality_instruction_has_local_call_flow(&instruction) &&
+          source_quality_candidate_local_call_target(section, candidate, &target_offset)) {
+        for (reg_index = 0U; reg_index < 8U; ++reg_index) {
+          M68kSourceQualityHardwareBaseSeed seed;
+          uint8_t changed = 0U;
+          if (!m68k_bitset_u32_has(state.address_base_known, reg_index)) continue;
+          memset(&seed, 0, sizeof(seed));
+          seed.section_index = section->section_index;
+          seed.offset = target_offset;
+          seed.reg_index = reg_index;
+          seed.hardware_base_id = state.address_base_id[reg_index];
+          if (source_quality_hardware_base_seed_list_append(seed_list, &seed, &changed) != 0) return -1;
+          if (changed != 0U && out_changed != NULL) *out_changed = 1U;
+        }
+      }
+      source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
+    }
+  }
+  return 0;
+}
+
+static int source_quality_infer_direct_call_hardware_base_seeds(const M68kDecodeIR *decode,
+    uint8_t *const *accepted_start, const M68kAnalysisPolicy *policy,
+    SourceQualityHardwareBaseSeedList *seed_list) {
+  uint8_t changed = 0U;
+  if (source_quality_infer_direct_call_hardware_base_seed_pass(decode, accepted_start, policy, seed_list,
+      &changed) != 0) {
+    return -1;
+  }
+  while (changed != 0U) {
+    changed = 0U;
+    if (source_quality_infer_direct_call_hardware_base_seed_pass(decode, accepted_start, policy, seed_list,
+        &changed) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_hardware_base_platform_address_uses_for_section(
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kAnalysisPolicy *policy, const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds,
@@ -10518,82 +10642,107 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
     const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start,
     uint8_t *const *accepted_bytes, const M68kAnalysisPolicy *policy,
     const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds, size_t hardware_base_seed_count) {
+  SourceQualityHardwareBaseSeedList effective_hardware_base_seeds;
+  const M68kSourceQualityHardwareBaseSeed *effective_seed_items = NULL;
+  size_t effective_seed_count = 0U;
   size_t section_index;
+  int result = 0;
   if (source_analysis == NULL) return -1;
+  memset(&effective_hardware_base_seeds, 0, sizeof(effective_hardware_base_seeds));
+  if (source_quality_hardware_base_seed_list_append_existing(&effective_hardware_base_seeds,
+      hardware_base_seeds, hardware_base_seed_count) != 0) {
+    result = -1;
+    goto done;
+  }
+  if (source_quality_infer_direct_call_hardware_base_seeds(decode, accepted_start, policy,
+      &effective_hardware_base_seeds) != 0) {
+    result = -1;
+    goto done;
+  }
+  effective_seed_items = effective_hardware_base_seeds.items;
+  effective_seed_count = effective_hardware_base_seeds.count;
+#define SOURCE_QUALITY_CHECK_OK(call_) do { \
+    if ((call_) != 0) { \
+      result = -1; \
+      goto done; \
+    } \
+  } while (0)
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     const M68kDecodeSectionIR *decode_section = NULL;
     if (decode != NULL && section->section_index <= UINT32_MAX) {
       decode_section = source_quality_decode_section_by_index(decode, (uint32_t)section->section_index, NULL);
     }
-    if (append_code_origins_for_section(section) != 0) return -1;
-    if (append_address_observations_for_section(section) != 0) return -1;
-    if (append_platform_address_uses_for_section(section) != 0) return -1;
-    if (append_accepted_runs_for_section(section, decode_section) != 0) return -1;
-    if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
-    if (append_orphan_conflict_ranges_for_section(section) != 0) return -1;
+    SOURCE_QUALITY_CHECK_OK(append_code_origins_for_section(section));
+    SOURCE_QUALITY_CHECK_OK(append_address_observations_for_section(section));
+    SOURCE_QUALITY_CHECK_OK(append_platform_address_uses_for_section(section));
+    SOURCE_QUALITY_CHECK_OK(append_accepted_runs_for_section(section, decode_section));
+    SOURCE_QUALITY_CHECK_OK(append_accepted_code_range_ownerships_for_section(section));
+    SOURCE_QUALITY_CHECK_OK(append_orphan_conflict_ranges_for_section(section));
   }
-  if (append_expected_label_statement_symbol_accesses(source_analysis) != 0) return -1;
-  if (append_expected_storage_label_statement_symbol_accesses(source_analysis) != 0) return -1;
-  if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
-    return -1;
-  if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_expected_pc_relative_storage_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
-  if (append_expected_runtime_ref_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_platform_runtime_structured_data_items(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_bitmap_memory_runtime_refs(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_expected_copper_runtime_pointer_word_symbol_accesses(source_analysis, decode) != 0) return -1;
-  if (append_expected_hardware_register_value_domain_symbol_accesses(source_analysis, decode, accepted_start) != 0)
-    return -1;
-  if (append_expected_register_derived_hardware_value_domain_symbol_accesses(source_analysis, decode,
-      accepted_start, policy, hardware_base_seeds, hardware_base_seed_count) != 0)
-    return -1;
-  if (append_hardware_base_platform_address_uses(source_analysis, decode, accepted_start, policy,
-      hardware_base_seeds, hardware_base_seed_count) != 0)
-    return -1;
-  if (append_palette_upload_structured_data_items(source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
-    return -1;
-  if (append_relocation_pointer_table_items(source_analysis, decode, facts, accepted_bytes) != 0) return -1;
-  if (append_indexed_word_dispatch_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0)
-    return -1;
-  if (append_pc_relative_lookup_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
-  if (append_platform_call_input_string_structured_data_items(source_analysis, decode, facts, accepted_start,
-      accepted_bytes) != 0)
-    return -1;
+  SOURCE_QUALITY_CHECK_OK(append_expected_label_statement_symbol_accesses(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_expected_storage_label_statement_symbol_accesses(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts,
+    accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_expected_pc_relative_storage_symbol_accesses(source_analysis, decode,
+    accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_expected_manual_equate_symbol_accesses(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_expected_runtime_ref_symbol_accesses(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_platform_runtime_structured_data_items(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_bitmap_memory_runtime_refs(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_expected_copper_runtime_pointer_word_symbol_accesses(source_analysis, decode));
+  SOURCE_QUALITY_CHECK_OK(append_expected_hardware_register_value_domain_symbol_accesses(source_analysis, decode,
+    accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_expected_register_derived_hardware_value_domain_symbol_accesses(source_analysis,
+    decode, accepted_start, policy, effective_seed_items, effective_seed_count));
+  SOURCE_QUALITY_CHECK_OK(append_hardware_base_platform_address_uses(source_analysis, decode, accepted_start, policy,
+    effective_seed_items, effective_seed_count));
+  SOURCE_QUALITY_CHECK_OK(append_palette_upload_structured_data_items(source_analysis, decode, facts, accepted_start,
+    accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_relocation_pointer_table_items(source_analysis, decode, facts, accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_indexed_word_dispatch_table_items(source_analysis, decode, accepted_start,
+    accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_pc_relative_lookup_table_items(source_analysis, decode, accepted_start,
+    accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_platform_call_input_string_structured_data_items(source_analysis, decode, facts,
+    accepted_start, accepted_bytes));
   m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
-  if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
-  if (append_manual_mid_instruction_diagnostics(source_analysis) != 0) return -1;
-  if (append_manual_noncode_overlap_diagnostics(source_analysis) != 0) return -1;
-  if (append_accepted_run_noncode_fallthrough_diagnostics(source_analysis) != 0) return -1;
-  if (append_unterminated_accepted_gap_diagnostics(source_analysis) != 0) return -1;
-  if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
-  if (append_structured_copper_row_platform_semantic_uses(source_analysis, decode) != 0) return -1;
-  if (append_copper_display_setup_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
-  if (append_bitmap_memory_platform_semantic_uses(source_analysis) != 0) return -1;
-  if (append_platform_call_input_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_platform_stack_cleanup_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_audio_source_platform_semantic_uses(source_analysis, decode, accepted_start, accepted_bytes) != 0)
-    return -1;
-  if (append_runtime_sink_pointer_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_runtime_sink_pointer_hardware_base_semantic_uses(source_analysis, decode, accepted_start, policy,
-      hardware_base_seeds, hardware_base_seed_count) != 0)
-    return -1;
-  if (append_runtime_sink_operand_expr_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start, policy,
-      hardware_base_seeds, hardware_base_seed_count) != 0)
-    return -1;
-  if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
-  if (append_structured_data_table_entries(source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
-    return -1;
-  if (append_expected_table_entry_target_symbol_accesses(source_analysis) != 0) return -1;
-  if (append_immediate_text_tokens(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
-  if (append_expected_address_observation_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
-  if (append_expected_platform_symbol_operand_accesses(source_analysis, decode, accepted_start) != 0) return -1;
-  return 0;
+  SOURCE_QUALITY_CHECK_OK(append_structured_data_range_ownerships(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_manual_mid_instruction_diagnostics(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_manual_noncode_overlap_diagnostics(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_accepted_run_noncode_fallthrough_diagnostics(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_unterminated_accepted_gap_diagnostics(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_structured_data_platform_semantic_uses(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_structured_copper_row_platform_semantic_uses(source_analysis, decode));
+  SOURCE_QUALITY_CHECK_OK(append_copper_display_setup_platform_semantic_uses(source_analysis, decode,
+    accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_runtime_ref_platform_semantic_uses(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_bitmap_memory_platform_semantic_uses(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_platform_call_input_semantic_uses(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_platform_stack_cleanup_semantic_uses(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_audio_source_platform_semantic_uses(source_analysis, decode, accepted_start,
+    accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_runtime_sink_pointer_semantic_uses(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_runtime_sink_pointer_hardware_base_semantic_uses(source_analysis, decode,
+    accepted_start, policy, effective_seed_items, effective_seed_count));
+  SOURCE_QUALITY_CHECK_OK(append_runtime_sink_operand_expr_semantic_uses(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_hardware_note_platform_semantic_uses(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start,
+    policy, effective_seed_items, effective_seed_count));
+  SOURCE_QUALITY_CHECK_OK(append_structured_data_table_descriptors(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_structured_data_table_entries(source_analysis, decode, facts, accepted_start,
+    accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_expected_table_entry_target_symbol_accesses(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_immediate_text_tokens(source_analysis, decode, accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_address_identities_and_ranges(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_expected_address_observation_symbol_accesses(source_analysis, decode,
+    accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_expected_platform_symbol_operand_accesses(source_analysis, decode, accepted_start));
+done:
+#undef SOURCE_QUALITY_CHECK_OK
+  source_quality_hardware_base_seed_list_destroy(&effective_hardware_base_seeds);
+  return result;
 }
 
 int m68k_source_quality_analyze_with_policy(M68kSourceAnalysisIR *source_analysis,

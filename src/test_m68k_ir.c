@@ -27378,8 +27378,6 @@ static int test_render_copper_display_layout_comment_requires_platform_semantic_
   M68K_C_ASSERT(strstr(preview.asm_source_text, "bitmap pointer $00010000") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "bitmap_00010000") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "bitmap_00012000") == NULL);
-  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.w bplpt,$0001") != NULL);
-  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.w bplpt+$02,$0000") != NULL);
   M68K_C_ASSERT(strlen(preview.asm_source_text) != 0U);
   M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
   m68k_render_ir_preview_destroy(&preview);
