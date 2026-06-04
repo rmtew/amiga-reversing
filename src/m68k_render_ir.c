@@ -4002,8 +4002,15 @@ static const M68kPlatformAddressUseIR *source_analysis_platform_address_use_for_
     uint32_t address, uint8_t use_shape) {
   const M68kSectionAnalysisIR *section_analysis;
   size_t index;
-  if (source_analysis == NULL || section_index >= source_analysis->section_count) return NULL;
-  section_analysis = &source_analysis->sections[section_index];
+  if (source_analysis == NULL || section_index > UINT32_MAX) return NULL;
+  section_analysis = NULL;
+  for (index = 0U; index < source_analysis->section_count; ++index) {
+    if (source_analysis->sections[index].section_index == (uint32_t)section_index) {
+      section_analysis = &source_analysis->sections[index];
+      break;
+    }
+  }
+  if (section_analysis == NULL) return NULL;
   for (index = 0U; index < section_analysis->platform_address_use_count; ++index) {
     const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
     if (use->offset == offset &&
@@ -4012,6 +4019,66 @@ static const M68kPlatformAddressUseIR *source_analysis_platform_address_use_for_
         use->use_shape == use_shape) {
       return use;
     }
+  }
+  return NULL;
+}
+
+static int hardware_register_use_offset_from_cpu_address(uint32_t address, uint16_t *out_base_id,
+    uint32_t *out_register_offset) {
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  if (out_base_id != NULL) *out_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  if (out_register_offset != NULL) *out_register_offset = 0U;
+  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(address);
+  if (hardware_field != NULL) {
+    if (out_base_id != NULL) *out_base_id = hardware_field->base_id;
+    if (out_register_offset != NULL) *out_register_offset =
+      hardware_field->register_offset + hardware_field->field_offset;
+    return 1;
+  }
+  hardware_register = amiga_os_find_hardware_register_by_cpu_address(address);
+  if (hardware_register != NULL) {
+    if (out_base_id != NULL) *out_base_id = hardware_register->base_id;
+    if (out_register_offset != NULL) *out_register_offset = hardware_register->offset;
+    return 1;
+  }
+  hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
+  if (hardware_range == NULL) return 0;
+  if (out_base_id != NULL) *out_base_id = hardware_range->base_id;
+  if (out_register_offset != NULL) *out_register_offset = address - hardware_range->base_address;
+  return 1;
+}
+
+static const M68kPlatformAddressUseIR *source_analysis_hardware_register_use_for_base_relative_operand(
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, size_t operand_index,
+    uint32_t displacement) {
+  const M68kSectionAnalysisIR *section_analysis;
+  size_t index;
+  if (source_analysis == NULL || section_index > UINT32_MAX) return NULL;
+  section_analysis = NULL;
+  for (index = 0U; index < source_analysis->section_count; ++index) {
+    if (source_analysis->sections[index].section_index == (uint32_t)section_index) {
+      section_analysis = &source_analysis->sections[index];
+      break;
+    }
+  }
+  if (section_analysis == NULL) return NULL;
+  for (index = 0U; index < section_analysis->platform_address_use_count; ++index) {
+    const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
+    uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+    uint32_t register_offset = 0U;
+    if (use->offset != offset ||
+        use->operand_index != operand_index ||
+        use->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS ||
+        use->symbol_name == NULL ||
+        use->symbol_name[0] == '\0' ||
+        !hardware_register_use_offset_from_cpu_address(use->address, &base_id, &register_offset) ||
+        base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE ||
+        register_offset != displacement) {
+      continue;
+    }
+    return use;
   }
   return NULL;
 }
@@ -4025,6 +4092,11 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
   if (instruction == NULL) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
+    int may_replace_generated_symbol =
+      operand->symbol_ref.has_name != 0U && source_analysis != NULL &&
+      (operand->symbol_ref.name_is_generated != 0U ||
+       strncmp(operand->symbol_ref.name, "runtime_code_", 13U) == 0 ||
+       strncmp(operand->symbol_ref.name, "runtime_address_", 16U) == 0);
     uint32_t value = 0U;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
@@ -4033,20 +4105,26 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
     const AmigaOsHardwareRegisterFieldInfo *hardware_field = NULL;
     const AmigaOsHardwareRegisterRangeInfo *hardware_range = NULL;
     char symbol_name[64];
-    if (operand->symbol_ref.has_name != 0U) continue;
+    if (operand->symbol_ref.has_name != 0U && !may_replace_generated_symbol) continue;
     if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
-        state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
         displacement >= 0) {
       const M68kPlatformAddressUseIR *hardware_register_use = NULL;
-      const char *hardware_base_symbol =
-        amiga_os_hardware_base_symbol(state->address_hardware_base_id[base_reg]);
+      const char *hardware_base_symbol = NULL;
       uint32_t hardware_base_address = 0U;
-      if (section != NULL && candidate != NULL && hardware_base_symbol != NULL &&
-          amiga_os_find_hardware_base_address(hardware_base_symbol, &hardware_base_address)) {
-        hardware_register_use = source_analysis_platform_address_use_for_operand(source_analysis,
-          section->section_index, candidate->offset, operand_index,
-          hardware_base_address + (uint32_t)(uint16_t)displacement,
-          M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS);
+      if (section != NULL && candidate != NULL) {
+        hardware_register_use = source_analysis_hardware_register_use_for_base_relative_operand(source_analysis,
+          section->section_index, candidate->offset, operand_index, (uint32_t)(uint16_t)displacement);
+      }
+      if (hardware_register_use == NULL &&
+          state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) {
+        hardware_base_symbol = amiga_os_hardware_base_symbol(state->address_hardware_base_id[base_reg]);
+        if (section != NULL && candidate != NULL && hardware_base_symbol != NULL &&
+            amiga_os_find_hardware_base_address(hardware_base_symbol, &hardware_base_address)) {
+          hardware_register_use = source_analysis_platform_address_use_for_operand(source_analysis,
+            section->section_index, candidate->offset, operand_index,
+            hardware_base_address + (uint32_t)(uint16_t)displacement,
+            M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS);
+        }
       }
       if (hardware_register_use != NULL && hardware_register_use->symbol_name != NULL &&
           hardware_register_use->symbol_name[0] != '\0') {
@@ -4054,7 +4132,10 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         attached = 1;
         continue;
       }
+      if (operand->symbol_ref.has_name != 0U) continue;
       if (source_analysis != NULL) continue;
+      if (state == NULL || base_reg >= 8U || !m68k_bitset_u32_has(state->address_hardware_base_known, base_reg))
+        continue;
       hardware_register = amiga_os_find_hardware_register_by_base_id_offset(
         state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement);
       hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(
@@ -4108,6 +4189,7 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         attached = 1;
         continue;
       }
+      if (operand->symbol_ref.has_name != 0U) continue;
       hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(value);
       if (hardware_field != NULL &&
           platform_amiga_format_hardware_register_field_symbol(hardware_field, 1, symbol_name,

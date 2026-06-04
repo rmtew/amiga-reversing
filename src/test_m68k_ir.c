@@ -18237,6 +18237,9 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   const char *section_line;
   const char *custom_include_line;
   const char *intf_decl_line;
+  int saw_platform_intena_expected = 0;
+  int saw_platform_audio_len_expected = 0;
+  size_t expected_index;
   uint8_t bytes[] = {
     0x41u, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
     0x31u, 0x7Cu, 0x7Fu, 0xFFu, 0x00u, 0x9Au,
@@ -18346,6 +18349,25 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(source, "\tmove.w _custom+joy0dat.l,d0\t; joystick/mouse port 0 data\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w _custom+joy1dat.l,d0\t; joystick/mouse port 1 data\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w _custom+intreqr.l,d0\t; interrupt request state\n") != NULL);
+  for (expected_index = 0U; expected_index < source_analysis.sections[0].expected_symbol_access_count;
+       ++expected_index) {
+    const M68kExpectedSymbolAccessIR *expected =
+      &source_analysis.sections[0].expected_symbol_accesses[expected_index];
+    if (expected->producer == NULL || strcmp(expected->producer, "platform_address_use") != 0 ||
+        expected->access_kind != M68K_EXPECTED_SYMBOL_ACCESS_OPERAND) {
+      continue;
+    }
+    if (expected->symbol_name != NULL && strcmp(expected->symbol_name, "intena") == 0 &&
+        expected->offset == 6U && expected->operand_index == 1U) {
+      saw_platform_intena_expected = 1;
+    }
+    if (expected->symbol_name != NULL && strcmp(expected->symbol_name, "aud0+ac_len") == 0 &&
+        expected->offset == 36U && expected->operand_index == 1U) {
+      saw_platform_audio_len_expected = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_platform_intena_expected);
+  M68K_C_ASSERT(saw_platform_audio_len_expected);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"audio_register\"") != NULL);

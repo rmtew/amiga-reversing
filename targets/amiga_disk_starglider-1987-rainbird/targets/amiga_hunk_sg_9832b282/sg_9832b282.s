@@ -548,7 +548,7 @@ loc_0_000003C8:
 	move.w #$1,$015C(a6)
 	bra.w loc_0_000001E0
 loc_0_000003D8:
-	clr.w runtime_code_00DFF180.l	; palette color 0
+	clr.w _custom+color.l	; palette color 0
 	cmpi.w #3,$015C(a6)
 	bne.w loc_0_000003E8
 loc_0_000003E8:
@@ -2812,7 +2812,7 @@ loc_0_00002DC4:
 	jmp loc_0_00008446.l
 	dc.b $77,$09
 loc_0_00002DCC:
-	move.w #$555,runtime_code_00DFF180.l
+	move.w #$555,_custom+color.l
 	move.l #$78000,$0000(a6)
 	move.w #$1357,app_024A(a6)
 	move.l #$78000,$0000(a6)
@@ -2867,7 +2867,7 @@ loc_0_00002DCC:
 loc_0_00002F3E:
 	addq.w #1,app_0214(a6)
 	addq.w #1,app_01FA(a6)
-	move.w app_0274(a6),runtime_code_00DFF180.l	; palette color 0
+	move.w app_0274(a6),_custom+color.l	; palette color 0
 	clr.w app_0274(a6)
 	bsr.w loc_0_00004112
 	bsr.w loc_0_000040DE
@@ -5527,7 +5527,7 @@ loc_0_0000580E:
 	dc.b $80,$00,$C0,$00,$E0,$00,$F0,$00,$F8,$00,$FC,$00,$FE,$00,$FF,$00
 	dc.b $FF,$80,$FF,$C0,$FF,$E0,$FF,$F0,$FF,$F8,$FF,$FC,$FF,$FE,$FF,$FF
 loc_0_00005A8E:
-	lea.l runtime_code_00DFF180.l,a0
+	lea.l _custom+color.l,a0
 	lea.l loc_0_00005B04(pc),a2
 	clr.l (a2)
 	clr.l $0004(a2)
@@ -5580,7 +5580,7 @@ loc_0_00005B22:
 loc_0_00005B50:
 	moveq.l #15,d3
 loc_0_00005B52:
-	lea.l runtime_code_00DFF180.l,a0
+	lea.l _custom+color.l,a0
 	lea.l loc_0_00005B04(pc),a2
 	bsr.w loc_0_000040EA
 	moveq.l #15,d4
@@ -6783,7 +6783,7 @@ loc_0_00006F44:
 	dc.l loc_0_0000704C
 	dc.l loc_0_0000704C
 loc_0_0000704C:
-	move.w app_0214(a6),runtime_code_00DFF180.l	; palette color 0
+	move.w app_0214(a6),_custom+color.l	; palette color 0
 	bra.w loc_0_00006786
 loc_0_00007058:
 	dc.b $00,$00,$00,$01
@@ -9417,8 +9417,8 @@ loc_0_0000A002:
 	cmp.b (a1)+,d0
 	dbeq.w d1,loc_0_0000A002
 	bne.w loc_0_0000A020
-	move.w #$F00,runtime_code_00DFF180.l
-	move.w #$0,runtime_code_00DFF180.l
+	move.w #$F00,_custom+color.l
+	move.w #$0,_custom+color.l
 	bra.w loc_0_00009FE8
 loc_0_0000A020:
 	move.b d0,(a4)+

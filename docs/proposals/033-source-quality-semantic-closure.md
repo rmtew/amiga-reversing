@@ -1377,12 +1377,80 @@ Until those producers are complete, the post-render gate can catch the covered
 part of the label/source mismatch class and must not pretend the uncovered
 classes are validated.
 
-The next coverage should stay as separate functions, not one broad "label
-exists" rule:
+The next coverage is now implemented as a separate producer, not one broad
+"label exists" rule:
 
 ```text
 append_expected_platform_symbol_operand_accesses()
 ```
+
+It consumes concrete hardware-register platform-address-use facts:
+
+```text
+M68kPlatformAddressUseIR(symbol_name="intena",
+                         offset=6,
+                         operand_index=1,
+                         use_shape=hardware_register_access)
+  -> expected_symbol_access(symbol="intena",
+                            access=operand,
+                            producer=platform_address_use)
+```
+
+That closes the validation gap for platform-owned operand symbols such as
+`intena(a0)` and `aud0+ac_len(a0)`. If source-quality proves the platform
+symbol and render later emits `$009A(a0)` instead, the post-render gate must
+fail with `missing_expected_symbol_access`.
+
+This is intentionally not applied to every `platform_address_use` shape yet.
+Facts such as `execbase_literal`, `low_memory_base`, and vector/storage address
+uses remain address-domain facts until their renderer-visible symbol contract is
+owned by a dedicated producer.
+
+It also skips platform address uses backed only by conflicted/orphan address
+observations. Those facts are still exported for review, but they are not a
+rendered operand-symbol obligation while the bytes remain outside accepted
+code.
+
+The producer also checks that the `platform_address_use` belongs to the
+accepted instruction operand, not merely to the same offset. Alternate decodes
+can produce useful address-observation facts at an accepted PC, but they must
+not create a rendered-symbol obligation for an operand that the selected
+instruction does not actually contain.
+
+The contract mirrors what the renderer can actually emit:
+
+```text
+move.w d0,_custom+color.l       -> expected _custom+color operand access
+move.w d0,color(a5)             -> expected color operand access
+movea.l #$00DFF180,a1           -> no expected _custom+color operand access
+```
+
+Immediate values that merely look like hardware addresses remain numeric unless
+another semantic producer owns a renderer-visible symbol for that operand. This
+prevents validation from demanding a platform name for a literal address load
+that the renderer deliberately keeps as a number.
+
+The renderer side also consumes source-analysis platform address uses directly.
+If analysis proves that an operand is a hardware register access, rendering must
+not depend solely on local render-state rediscovery:
+
+```text
+analysis: offset=$4D9C4 operand=1 symbol=aud0+ac_ptr
+bytes:    move.l a2,$00A0(a6)
+render:   move.l a2,aud0+ac_ptr(a6)
+```
+
+Likewise, generated runtime aliases are lower priority than proven platform
+hardware symbols:
+
+```text
+before: lea.l runtime_code_00DFF180.l,a0
+after:  lea.l _custom+color.l,a0
+```
+
+Only generated runtime alias names such as `runtime_code_*` and
+`runtime_address_*` are replaceable this way. Existing non-generated/manual
+symbols keep their names.
 
 Implemented closure:
 
@@ -2609,6 +2677,8 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"use_shape_name\":\"hardware_register_access\"") != NULL);
 M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"intena\"") != NULL);
 M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"aud0+ac_len\"") != NULL);
+M68K_C_ASSERT(expected->producer != NULL &&
+  strcmp(expected->producer, "platform_address_use") == 0);
 ```
 
 The retained renderer fallback is only for callers that render without source

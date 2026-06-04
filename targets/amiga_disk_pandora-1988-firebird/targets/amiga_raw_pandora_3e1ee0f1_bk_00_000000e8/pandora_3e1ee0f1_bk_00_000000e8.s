@@ -26751,8 +26751,8 @@ abs_0_0005D968:
 	move.w d1,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9CC
-	move.l a2,$00A0(a6)	; sound_sample pointer
-	move.w d1,$00A4(a6)
+	move.l a2,aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w d1,aud0+ac_len(a6)
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
@@ -26760,8 +26760,8 @@ abs_0_0005D9CE:
 	move.w #$20,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9EC
-	move.l abs_0_0005DD0C(pc),$00A0(a6)	; sound_sample pointer
-	move.w #$20,$00A4(a6)	; sound sample length 64 bytes
+	move.l abs_0_0005DD0C(pc),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
 	subq.w #1,$001E(a0)
 	beq.b abs_0_0005DA16
@@ -26798,9 +26798,9 @@ abs_0_0005DA1A:
 	move.w d1,$0008(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DA6E
-	move.l $0000(a5),$00A0(a6)	; sound_sample pointer
-	move.w $0008(a5),$00A4(a6)
-	move.w d1,$00A8(a6)
+	move.l $0000(a5),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w $0008(a5),aud0+ac_len(a6)
+	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DA6E:
 	andi.w #255,d0
 	lea.l abs_0_0005DDD4(pc),a2
@@ -26813,7 +26813,7 @@ abs_0_0005DA6E:
 	move.w d0,$0006(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DA94
-	move.w d0,$00A6(a6)	; audio period
+	move.w d0,aud0+ac_per(a6)	; audio period
 abs_0_0005DA94:
 	sf.b $0016(a0)
 	move.l a1,$0004(a0)
@@ -26888,7 +26888,7 @@ abs_0_0005DB64:
 	move.w d0,$0006(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DB72
-	move.w d0,$00A6(a6)	; audio period
+	move.w d0,aud0+ac_per(a6)	; audio period
 abs_0_0005DB72:
 	subq.b #1,$002B(a0)
 	bcc.b abs_0_0005DBA4
@@ -26905,7 +26905,7 @@ abs_0_0005DB8A:
 	move.w d1,$0008(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DBA4
-	move.w d1,$00A8(a6)
+	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DBA4:
 	bra.w abs_0_0005DAAE
 abs_0_0005DBA8:

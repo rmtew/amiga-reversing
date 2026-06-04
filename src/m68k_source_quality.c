@@ -4701,6 +4701,120 @@ static int append_expected_address_observation_symbol_accesses(M68kSourceAnalysi
   return 0;
 }
 
+static const M68kAddressObservationIR *platform_address_use_matching_observation(
+    const M68kSectionAnalysisIR *section_analysis, const M68kPlatformAddressUseIR *use) {
+  size_t index;
+  if (section_analysis == NULL || use == NULL) return NULL;
+  for (index = 0U; index < section_analysis->address_observation_count; ++index) {
+    const M68kAddressObservationIR *observation = &section_analysis->address_observations[index];
+    if (observation->offset != use->offset ||
+        observation->operand_index != use->operand_index ||
+        !observation->has_address ||
+        observation->address != use->address) {
+      continue;
+    }
+    return observation;
+  }
+  return NULL;
+}
+
+static int platform_address_use_operand_matches_accepted_instruction(const M68kPlatformAddressUseIR *use,
+    const M68kInstructionIR *instruction) {
+  uint32_t value = 0U;
+  if (use == NULL || instruction == NULL || use->operand_index >= instruction->operand_count) return 0;
+  if (source_quality_operand_absolute_offset(&instruction->operands[use->operand_index], &value)) {
+    return value == use->address;
+  }
+  if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS) {
+    uint8_t base_reg = 0U;
+    int16_t displacement = 0;
+    const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+    const AmigaOsHardwareRegisterInfo *hardware_register;
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+    uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+    uint32_t register_offset = 0U;
+    char symbol_buf[96];
+    const char *symbol_name;
+    if (!source_quality_operand_address_displacement(&instruction->operands[use->operand_index], &base_reg,
+        &displacement) ||
+        displacement < 0) {
+      return 0;
+    }
+    hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(use->address);
+    if (hardware_field != NULL) {
+      base_id = hardware_field->base_id;
+      register_offset = hardware_field->register_offset + hardware_field->field_offset;
+    } else {
+      hardware_register = amiga_os_find_hardware_register_by_cpu_address(use->address);
+      if (hardware_register != NULL) {
+        base_id = hardware_register->base_id;
+        register_offset = hardware_register->offset;
+      } else {
+        hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(use->address);
+        if (hardware_range == NULL) return 0;
+        base_id = hardware_range->base_id;
+        register_offset = use->address - hardware_range->base_address;
+      }
+    }
+    if ((uint32_t)(uint16_t)displacement != register_offset) return 0;
+    symbol_name = platform_address_use_symbol_from_hardware_base_offset(base_id, register_offset, symbol_buf,
+      sizeof(symbol_buf));
+    return symbol_name != NULL && use->symbol_name != NULL && strcmp(symbol_name, use->symbol_name) == 0;
+  }
+  return 0;
+}
+
+static int append_expected_platform_symbol_operand_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    size_t use_index;
+    if (section == NULL) continue;
+    for (use_index = 0U; use_index < section_analysis->platform_address_use_count; ++use_index) {
+      const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[use_index];
+      const M68kDecodeCandidate *candidate;
+      const M68kAddressObservationIR *observation;
+      M68kInstructionIR instruction;
+      M68kExpectedSymbolAccessIR access;
+      if (use->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS ||
+          use->symbol_name == NULL || use->symbol_name[0] == '\0' || use->operand_index == UINT32_MAX) {
+        continue;
+      }
+      candidate = m68k_decode_ir_find_candidate_at_offset(section, use->offset);
+      if (candidate == NULL ||
+          !source_quality_candidate_is_accepted_start(section, accepted_start[decode_index], candidate) ||
+          use->operand_index >= candidate->operand_count) {
+        continue;
+      }
+      observation = platform_address_use_matching_observation(section_analysis, use);
+      if (observation != NULL &&
+          (observation->conflicted != 0U ||
+           observation->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN)) {
+        continue;
+      }
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+          !platform_address_use_operand_matches_accepted_instruction(use, &instruction)) {
+        continue;
+      }
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = use->symbol_name;
+      access.producer = "platform_address_use";
+      access.offset = use->offset;
+      access.operand_index = use->operand_index;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+      access.confidence = use->confidence;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 static int source_quality_pc_relative_operand_crosses_runtime_org(
     const M68kSectionAnalysisIR *section_analysis, uint32_t source_offset, uint32_t target_offset) {
   size_t view_index;
@@ -6611,6 +6725,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_immediate_text_tokens(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
   if (append_expected_address_observation_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_expected_platform_symbol_operand_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   return 0;
 }
 
