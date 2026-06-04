@@ -4697,6 +4697,102 @@ The render lookup fallback that performed dense string-sequence discovery has
 been deleted. Remaining render-side generic text detection is now a visible
 cleanup lane, not the desired long-term ownership model.
 
+### Implemented Slice: Multiline Text Ownership
+
+Multiline text promotion had the same renderer-owned shape:
+
+```text
+render sees printable bytes plus CR/LF layout
+  -> render creates multiline_text structured data
+  -> source_analysis later inherits the renderer decision
+```
+
+That is now C-owned source-quality work. The analysis pass scans for multiline
+text after platform/API string facts and before generic string-table sequence
+promotion:
+
+```c
+SOURCE_QUALITY_CHECK_OK(append_multiline_string_items(
+  source_analysis, decode, facts, accepted_bytes));
+SOURCE_QUALITY_CHECK_OK(append_string_table_sequence_items(
+  source_analysis, decode, accepted_bytes));
+```
+
+The scanner accepts only text-shaped spans with enough structure:
+
+```text
+start looks like text or CR/LF lead-in
+  + at least two text lines
+  + at least two line breaks
+  + enough alphabetic content
+  + no accepted-code byte overlap
+  + no relocation/interior hard boundary
+  -> multiline_text structured-data item
+```
+
+Weak renderer-origin text can be upgraded by stronger C evidence:
+
+```text
+bounded_text at same start
+terminated_text inside the candidate
+control_string_stream inside the candidate
+untyped bytes placeholder at same start
+  -> refinable evidence
+  -> replaced/contained by C multiline_text
+
+policy-owned structured item or explicit interior boundary
+  -> stop or reject the multiline span
+```
+
+An interior label is a hard boundary because it may be a table target or other
+visible access point. The scanner may stop a multiline span before such a label
+once the preceding span already has enough text shape, but it must not absorb the
+label into a larger text item.
+
+Render lookup no longer performs multiline text discovery. When C imports a
+stronger multiline item, render lookup suppresses contained weak auto text
+ownership so stale `terminated_text`/`bounded_text`/`control_string_stream`
+guesses cannot reappear after render:
+
+```text
+source_analysis multiline_text $0000..$0037
+render auto terminated_text $001F..$0037
+render policy control_string_stream $0000..$0020
+  -> disable contained weak auto range
+  -> disable contained weak policy range
+  -> render and auto-policy append see only multiline_text
+```
+
+The render layer still owns formatting. For C-owned multiline text it formats
+the accepted item as line-based `dc.b` rows and ignores speculative unnamed
+labels or generic string-span boundaries inside the same item:
+
+```asm
+credits_text:
+    dc.b "   CREATED BY: SHAHID AHMAD",$0D
+    dc.b "   DAVID EASTMAN",$0D
+    dc.b "PUBLISHED BY: FIREBIRD",$00
+```
+
+This keeps the ownership boundary clean:
+
+```text
+C source quality decides multiline_text exists
+render lookup imports that fact and removes weaker guesses
+render formats the fact without inventing a new semantic item
+post-render source_analysis keeps the C-owned item
+```
+
+Focused fixtures:
+
+```text
+facts_v2_multiline_string_auto_classifies_crlf_text
+facts_v2_labeled_printable_multiline_text_auto_classifies
+facts_v2_printable_multiline_text_stops_at_existing_string
+facts_v2_unlabeled_code_printable_multiline_text_is_not_multiline
+render_lookup_import_source_analysis_suppresses_contained_weak_text
+```
+
 ### Slice 8: Python/Web/Report Cleanup
 
 Python should index and display C facts:

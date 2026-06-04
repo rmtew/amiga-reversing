@@ -2099,8 +2099,8 @@ static int test_facts_v2_pc_index_data_target_auto_classifies_lookup_scalar(void
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000008(pc,d0.w),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000008:\n\tdc.w $DEAD\t; lookup_table\n") != NULL);
-  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 8U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
       auto_item = item;
@@ -3671,8 +3671,8 @@ static int test_facts_v2_multiline_string_auto_classifies_crlf_text(void) {
   M68K_C_ASSERT(strstr(source, "\tdc.b $0D,$0A,$0A\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Starglider was written by \",$0D,$0A\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Jez San and Paul Wookey\",$00\n") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       auto_item = item;
@@ -3732,8 +3732,8 @@ static int test_facts_v2_labeled_printable_multiline_text_auto_classifies(void) 
   M68K_C_ASSERT(strstr(source, "credits_text:\n\tdc.b \"   CREATED BY: SHAHID AHMAD\",$0D\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"   DAVID EASTMAN\",$0D\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"PUBLISHED BY: FIREBIRD\",$00\n") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 2U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       auto_item = item;
@@ -3814,8 +3814,8 @@ static int test_facts_v2_printable_multiline_text_stops_at_existing_string(void)
   M68K_C_ASSERT(strstr(source, "credits_text:\n\tdc.b \"   CREATED BY: SHAHID AHMAD\",$0D\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"   TERRY GREER\",$0D,$0D\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"PUBLISHED BY: FIREBIRD\",$00\n") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 2U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       auto_item = item;
@@ -3863,8 +3863,8 @@ static int test_facts_v2_unlabeled_code_printable_multiline_text_is_not_multilin
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 2U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) &&
         item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT) {
@@ -3921,8 +3921,8 @@ static int test_facts_v2_control_separated_ascii_sequence_keeps_printable_separa
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "dc.b \"COPYRIGHT 1991 CODEMASTERS SOFTWARE LTD.\",$FF") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
@@ -3985,8 +3985,8 @@ static int test_facts_v2_adjacent_line_terminated_ascii_sequence_promotes_lf_row
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Checking for libfile..\",$0A\n\tdc.b $00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Loading libfile..\",$0A\n\tdc.b $00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "$43,$75,$72,$72,$65,$6E,$74,$20") == NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       ++string_items;
@@ -3999,6 +3999,123 @@ static int test_facts_v2_adjacent_line_terminated_ascii_sequence_promotes_lf_row
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE,
     line_item->source_pattern_id);
   M68K_C_ASSERT_STR("string_table_sequence", line_item->source_pattern);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_two_line_lf_text_with_double_nul_keeps_readable_rows(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *text_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[] = {
+    'L', 'i', 'n', 'e', ' ', 'u', 'p', ' ', 't', 'h', 'e', 's', 'e', ' ', 't', 'h',
+    'r', 'e', 'e', ' ', 'e', 'l', 'e', 'm', 'e', 'n', 't', 's', ' ', 'o', 'n', ' ',
+    0x0au,
+    'y', 'o', 'u', 'r', ' ', 'S', 'e', 'a', 'r', 'c', 'h', ' ', 'f', 'o', 'r', ' ',
+    'T', 'h', 'e', ' ', 'K', 'i', 'n', 'g', ' ', 'c', 'o', 'd', 'e', 'w', 'h', 'e',
+    'e', 'l', 0x0au, 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"Line up these three elements on \",$0A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"your Search for The King codewheel\",$0A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00\n\tdc.b $00\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "$0A,$79,$6F,$75,$72") == NULL);
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
+      text_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(text_item != NULL);
+  M68K_C_ASSERT_U32((uint32_t)sizeof(bytes) - 1U, text_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT, text_item->source_pattern_id);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_multiline_text_replaces_stale_control_stream_policy(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *text_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[] = {
+    'L', 'i', 'n', 'e', ' ', 'u', 'p', ' ', 't', 'h', 'e', 's', 'e', ' ', 't', 'h',
+    'r', 'e', 'e', ' ', 'e', 'l', 'e', 'm', 'e', 'n', 't', 's', ' ', 'o', 'n', ' ',
+    0x0au,
+    'y', 'o', 'u', 'r', ' ', 'S', 'e', 'a', 'r', 'c', 'h', ' ', 'f', 'o', 'r', ' ',
+    'T', 'h', 'e', ' ', 'K', 'i', 'n', 'g', ' ', 'c', 'o', 'd', 'e', 'w', 'h', 'e',
+    'e', 'l', 0x0au, 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 0U;
+  policy.structured_data_items[0].size = 32U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  policy.structured_data_items[0].source_pattern_id =
+    M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM;
+  snprintf(policy.structured_data_items[0].source_pattern, sizeof(policy.structured_data_items[0].source_pattern),
+    "%s", "control_string_stream");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"Line up these three elements on \",$0A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"your Search for The King codewheel\",$0A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "$0A,$79,$6F,$75,$72") == NULL);
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
+      text_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(text_item != NULL);
+  M68K_C_ASSERT_U32((uint32_t)sizeof(bytes) - 1U, text_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT, text_item->source_pattern_id);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -11102,6 +11219,59 @@ static int test_render_lookup_import_source_analysis_widens_same_start_auto_item
   M68K_C_ASSERT_U32(1U, range.structured_item->has_consumer);
   M68K_C_ASSERT(lookup_range_ownership_covering_offset(&lookup, 0U, 16U, &range));
   M68K_C_ASSERT_U32(10U, range.structured_item->size);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  arena_destroy(lookup.arena);
+  return 0;
+}
+
+static int test_render_lookup_import_source_analysis_suppresses_contained_weak_text(void) {
+  M68kRenderLookup lookup;
+  M68kSourceAnalysisIR source_analysis;
+  M68kAnalysisStructuredDataItem weak_item;
+  M68kAnalysisStructuredDataItem source_item;
+  M68kRenderRangeOwnershipView range;
+  M68kAnalysisStructuredDataItem *grown;
+  memset(&lookup, 0, sizeof(lookup));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  memset(&weak_item, 0, sizeof(weak_item));
+  memset(&source_item, 0, sizeof(source_item));
+  lookup.section_count = 1U;
+  grown = (M68kAnalysisStructuredDataItem *)render_lookup_grow_array(&lookup, NULL, 0U, sizeof(*grown), 2U);
+  M68K_C_ASSERT(grown != NULL);
+  lookup.auto_structured_data_items = grown;
+  lookup.auto_structured_data_item_capacity = 2U;
+  lookup.auto_structured_data_item_count = 1U;
+  weak_item.has_section_index = 1U;
+  weak_item.section_index = 0U;
+  weak_item.offset = 31U;
+  weak_item.size = 24U;
+  weak_item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  weak_item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&weak_item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  lookup.auto_structured_data_items[0] = weak_item;
+  M68K_C_ASSERT_INT(0, render_lookup_add_range_ownership_for_structured_item(&lookup, 0U,
+    M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO, 0U, &lookup.auto_structured_data_items[0]));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  source_item = weak_item;
+  source_item.offset = 0U;
+  source_item.size = 55U;
+  source_item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT;
+  snprintf(source_item.source_pattern, sizeof(source_item.source_pattern), "%s", "multiline_text");
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &source_item));
+  M68K_C_ASSERT_INT(0, m68k_analysis_render_lookup_import_source_analysis_structured_data(&lookup,
+    &source_analysis));
+  M68K_C_ASSERT(lookup_range_ownership_at_offset(&lookup, 0U, 0U, &range));
+  M68K_C_ASSERT_U32(M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO, range.structured_item_source);
+  M68K_C_ASSERT_U32(55U, range.structured_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT,
+    range.structured_item->source_pattern_id);
+  M68K_C_ASSERT(!lookup_range_ownership_at_offset(&lookup, 0U, 31U, &range));
+  M68K_C_ASSERT(lookup_range_ownership_covering_offset(&lookup, 0U, 31U, &range));
+  M68K_C_ASSERT_U32(55U, range.structured_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT,
+    range.structured_item->source_pattern_id);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.structured_data_item_count);
   m68k_ir_source_analysis_destroy(&source_analysis);
   arena_destroy(lookup.arena);
   return 0;
@@ -30997,6 +31167,8 @@ int m68k_c_ir_tests(void) {
       test_render_lookup_range_ownership_uses_stable_auto_indices},
     {"render_lookup_import_source_analysis_widens_same_start_auto_item",
       test_render_lookup_import_source_analysis_widens_same_start_auto_item},
+    {"render_lookup_import_source_analysis_suppresses_contained_weak_text",
+      test_render_lookup_import_source_analysis_suppresses_contained_weak_text},
     {"source_analysis_code_ranges_stop_at_stored_section_bytes",
       test_source_analysis_code_ranges_stop_at_stored_section_bytes},
     {"source_analysis_table_descriptor_exports_conflict",
@@ -31526,6 +31698,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail},
     {"facts_v2_adjacent_line_terminated_ascii_sequence_promotes_lf_rows",
       test_facts_v2_adjacent_line_terminated_ascii_sequence_promotes_lf_rows},
+    {"facts_v2_two_line_lf_text_with_double_nul_keeps_readable_rows",
+      test_facts_v2_two_line_lf_text_with_double_nul_keeps_readable_rows},
+    {"facts_v2_multiline_text_replaces_stale_control_stream_policy",
+      test_facts_v2_multiline_text_replaces_stale_control_stream_policy},
     {"facts_v2_line_terminated_sequence_does_not_split_format_placeholder",
       test_facts_v2_line_terminated_sequence_does_not_split_format_placeholder},
     {"facts_v2_unlabeled_code_section_orphan_shape_does_not_auto_classify_string",

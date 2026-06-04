@@ -5866,6 +5866,97 @@ static int structured_data_item_is_untyped_bytes_placeholder_local(const M68kAna
     item->semantic_role_flags == 0U && item->source_pattern_id == 0U && item->size != 0U;
 }
 
+static int structured_data_item_is_weak_generic_text_local(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL || item->kind != M68K_ANALYSIS_STRUCTURED_DATA_STRING ||
+      (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) == 0U) {
+    return 0;
+  }
+  return item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT ||
+    item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_BOUNDED_TEXT ||
+    item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM;
+}
+
+static int structured_data_item_supersedes_weak_generic_text_local(const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+    (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U &&
+    !structured_data_item_is_weak_generic_text_local(item);
+}
+
+static int structured_data_item_contains_range_local(const M68kAnalysisStructuredDataItem *owner,
+    const M68kAnalysisStructuredDataItem *contained) {
+  uint32_t owner_end;
+  uint32_t contained_end;
+  if (owner == NULL || contained == NULL || !owner->has_section_index || !contained->has_section_index ||
+      owner->section_index != contained->section_index || owner->size == 0U || contained->size == 0U ||
+      owner->offset > UINT32_MAX - owner->size || contained->offset > UINT32_MAX - contained->size) {
+    return 0;
+  }
+  owner_end = owner->offset + owner->size;
+  contained_end = contained->offset + contained->size;
+  return contained->offset >= owner->offset && contained_end <= owner_end;
+}
+
+static int structured_data_item_ranges_overlap_local(const M68kAnalysisStructuredDataItem *left,
+    const M68kAnalysisStructuredDataItem *right) {
+  uint32_t left_end;
+  uint32_t right_end;
+  if (left == NULL || right == NULL || !left->has_section_index || !right->has_section_index ||
+      left->section_index != right->section_index || left->size == 0U || right->size == 0U ||
+      left->offset > UINT32_MAX - left->size || right->offset > UINT32_MAX - right->size) {
+    return 0;
+  }
+  left_end = left->offset + left->size;
+  right_end = right->offset + right->size;
+  return left->offset < right_end && right->offset < left_end;
+}
+
+static void render_lookup_clear_auto_structured_data_item_index(M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, size_t auto_item_index) {
+  size_t section_index;
+  if (lookup == NULL || item == NULL || !item->has_section_index) return;
+  section_index = item->section_index;
+  if (section_index < lookup->section_count && lookup->auto_structured_data_item_indices != NULL &&
+      lookup->auto_structured_data_item_index_extents != NULL &&
+      item->offset <= lookup->auto_structured_data_item_index_extents[section_index] &&
+      lookup->auto_structured_data_item_indices[section_index] != NULL &&
+      lookup->auto_structured_data_item_indices[section_index][item->offset] == auto_item_index + 1U) {
+    lookup->auto_structured_data_item_indices[section_index][item->offset] = 0U;
+  }
+}
+
+static void render_lookup_disable_contained_weak_text_items(M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *source_item) {
+  size_t index;
+  if (lookup == NULL || !structured_data_item_supersedes_weak_generic_text_local(source_item)) return;
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView *stored = &lookup->range_ownerships[index];
+    M68kRenderRangeOwnershipView existing_range;
+    M68kAnalysisStructuredDataItem *existing_item;
+    if (!lookup_range_ownership_at_index(lookup, index, &existing_range)) continue;
+    if (existing_range.structured_item_source != M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO &&
+        existing_range.structured_item_source != M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY) {
+      continue;
+    }
+    if (existing_range.structured_item_source == M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO &&
+        existing_range.structured_item_index >= lookup->auto_structured_data_item_count) {
+      continue;
+    }
+    if (!structured_data_item_is_weak_generic_text_local(existing_range.structured_item) ||
+        !structured_data_item_contains_range_local(source_item, existing_range.structured_item)) {
+      continue;
+    }
+    if (existing_range.structured_item_source == M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO) {
+      existing_item = &lookup->auto_structured_data_items[existing_range.structured_item_index];
+      render_lookup_clear_auto_structured_data_item_index(lookup, existing_item,
+        existing_range.structured_item_index);
+      existing_item->size = 0U;
+    }
+    stored->end_offset = stored->start_offset;
+    stored->structured_item_source = M68K_RENDER_RANGE_STRUCTURED_ITEM_NONE;
+    stored->structured_item = NULL;
+  }
+}
+
 static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint32_t size, uint32_t semantic_role_flags, uint8_t kind) {
   M68kAnalysisStructuredDataItem *grown;
@@ -5937,11 +6028,18 @@ static int render_lookup_import_source_analysis_structured_data_item(M68kRenderL
   for (index = 0U; index < lookup->range_ownership_count; ++index) {
     M68kRenderRangeOwnershipView *stored = &lookup->range_ownerships[index];
     M68kRenderRangeOwnershipView existing_range;
-    if (stored->section_index != section_index || stored->start_offset != source_item->offset) continue;
+    if (stored->section_index != section_index) continue;
     if (!lookup_range_ownership_at_index(lookup, index, &existing_range)) continue;
     if (structured_data_item_is_untyped_bytes_placeholder_local(existing_range.structured_item)) continue;
-    if (existing_range.structured_item_source == M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY) return 0;
+    if (existing_range.structured_item_source == M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY &&
+        structured_data_item_ranges_overlap_local(source_item, existing_range.structured_item) &&
+        !(structured_data_item_supersedes_weak_generic_text_local(source_item) &&
+          structured_data_item_is_weak_generic_text_local(existing_range.structured_item) &&
+          structured_data_item_contains_range_local(source_item, existing_range.structured_item))) {
+      return 0;
+    }
   }
+  render_lookup_disable_contained_weak_text_items(lookup, source_item);
   for (index = 0U; index < lookup->range_ownership_count; ++index) {
     M68kRenderRangeOwnershipView *stored = &lookup->range_ownerships[index];
     M68kRenderRangeOwnershipView existing_range;
@@ -8191,96 +8289,6 @@ static uint32_t auto_renderable_line_terminated_string_span(const M68kRenderLook
   return cursor - offset + 1U;
 }
 
-static int auto_multiline_text_byte(uint8_t value) {
-  return m68k_ir_byte_is_quoted_string_safe(value) || value == 0x0dU || value == 0x0aU || value == 0x09U;
-}
-
-static int auto_multiline_text_start(const M68kDecodeSectionIR *section, uint32_t offset) {
-  uint32_t cursor;
-  if (section == NULL || section->data == NULL || offset >= section->size) return 0;
-  if (section->data[offset] == 0x0dU) return 1;
-  if (!m68k_ir_byte_is_quoted_string_safe(section->data[offset])) return 0;
-  cursor = offset;
-  while (cursor < section->size && (section->data[cursor] == ' ' || section->data[cursor] == 0x09U)) {
-    ++cursor;
-  }
-  return cursor < section->size && auto_string_start_byte(section->data[cursor]);
-}
-
-static int lookup_range_ownership_starts_at(const M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset) {
-  M68kRenderRangeOwnershipView range;
-  if (lookup == NULL) return 0;
-  return lookup_range_ownership_at_offset(lookup, section_index, offset, &range) &&
-    range.start_offset == offset;
-}
-
-static int auto_multiline_text_boundary_at(const M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset) {
-  if (lookup == NULL) return 0;
-  return lookup_has_label(lookup, section_index, offset) ||
-    lookup_has_anchor_local(lookup, section_index, offset) ||
-    lookup_range_ownership_starts_at(lookup, section_index, offset);
-}
-
-static int auto_multiline_text_shape_ok(uint32_t text_size, uint32_t alpha_count,
-    uint32_t line_break_count, uint32_t text_line_count, int has_space) {
-  return text_size >= 24U && alpha_count >= 12U && line_break_count >= 2U &&
-    text_line_count >= 2U && has_space;
-}
-
-static uint32_t auto_renderable_multiline_string_span(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset) {
-  uint32_t cursor;
-  uint32_t text_size = 0U;
-  uint32_t alpha_count = 0U;
-  uint32_t line_break_count = 0U;
-  uint32_t text_line_count = 0U;
-  int has_space = 0;
-  int previous_was_break = 1;
-  if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
-      !auto_multiline_text_start(section, offset)) {
-    return 0U;
-  }
-  if (section->kind == M68K_SECTION_CODE &&
-      !lookup_has_label(lookup, section->section_index, offset) &&
-      !lookup_has_anchor_local(lookup, section->section_index, offset)) {
-    return 0U;
-  }
-  cursor = offset;
-  while (cursor < section->size && auto_multiline_text_byte(section->data[cursor])) {
-    uint8_t value = section->data[cursor];
-    if (cursor != offset &&
-        !auto_string_interior_clear_for_refined_span_start(lookup, section->section_index, offset, cursor)) {
-      if (auto_multiline_text_boundary_at(lookup, section->section_index, cursor) &&
-          auto_multiline_text_shape_ok(text_size, alpha_count, line_break_count, text_line_count, has_space) &&
-          !auto_string_range_has_code_byte(section, accepted_bytes, offset, cursor - offset)) {
-        return cursor - offset;
-      }
-      return 0U;
-    }
-    if (value == 0x0dU || value == 0x0aU) {
-      ++line_break_count;
-      previous_was_break = 1;
-    } else {
-      ++text_size;
-      if (previous_was_break && m68k_ir_byte_is_quoted_string_safe(value)) ++text_line_count;
-      previous_was_break = 0;
-      if (value == ' ') has_space = 1;
-      if (auto_string_alpha_byte(value)) ++alpha_count;
-    }
-    ++cursor;
-  }
-  if (cursor >= section->size || section->data[cursor] != 0U ||
-      !auto_multiline_text_shape_ok(text_size, alpha_count, line_break_count, text_line_count, has_space)) {
-    return 0U;
-  }
-  if (!auto_string_interior_clear_for_refined_span_start(lookup, section->section_index, offset, cursor))
-    return 0U;
-  if (auto_string_range_has_code_byte(section, accepted_bytes, offset, cursor - offset + 1U)) return 0U;
-  return cursor - offset + 1U;
-}
-
 static int render_lookup_add_auto_string_item(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint32_t span, uint32_t role_flags, uint8_t source_pattern_id) {
   if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span, role_flags,
@@ -8397,16 +8405,6 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
           return -1;
         }
       if (span != 0U) {
-        offset += span;
-        continue;
-      }
-      span = auto_renderable_multiline_string_span(lookup, section, accepted_bytes[section_index], offset);
-      if (span != 0U) {
-        if (render_lookup_add_auto_string_item(lookup, section_index, offset, span,
-            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
-            M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT) != 0) {
-          return -1;
-        }
         offset += span;
         continue;
       }

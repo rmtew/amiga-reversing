@@ -2156,6 +2156,11 @@ static int string_span_has_line_break(const uint8_t *data, uint32_t offset, uint
   return 0;
 }
 
+static int structured_data_item_is_multiline_text(const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+    item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT;
+}
+
 static void render_asm_dc_b_string(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
     uint32_t size, const char *comment) {
   uint32_t cursor = 0U;
@@ -3291,6 +3296,14 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       (structured_data_item_role_flags(item) &
         M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING) != 0U) {
     render_asm_dc_b_length_prefixed_string(preview, section->data, item->offset, available, comment_text);
+    return;
+  }
+  if (structured_data_item_is_multiline_text(item) && available == item->size) {
+    render_asm_dc_b_string(preview, section->data, item->offset, available, comment_text);
+    if (out_updated_logical_pc != NULL && io_logical_pc != NULL) {
+      *io_logical_pc += available;
+      *out_updated_logical_pc = 1;
+    }
     return;
   }
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING && available == item->size) {
@@ -6991,7 +7004,7 @@ static int lookup_structured_item_probe_has_blocking_boundary(const M68kRenderLo
     const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe) {
   uint16_t boundary_flags = render_lookup_boundary_flags(lookup, section_index, probe);
   if ((boundary_flags & (M68K_RENDER_BOUNDARY_RELOCATION | M68K_RENDER_BOUNDARY_ANCHOR |
-        M68K_RENDER_BOUNDARY_STRING_SPAN)) != 0U)
+        (structured_data_item_is_multiline_text(structured_item) ? 0U : M68K_RENDER_BOUNDARY_STRING_SPAN))) != 0U)
     return 1;
   if (lookup_has_structured_data_start_boundary(lookup, section_index, probe, boundary_flags))
     return 1;
