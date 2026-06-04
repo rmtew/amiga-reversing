@@ -1024,6 +1024,7 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
   uint32_t runtime_address = 0U;
   int has_runtime_address;
   int needs_storage_label;
+  if (!lookup_has_renderable_label(lookup, section_index, offset)) return;
   if (!render_asm_includes_for_structured_data_item(preview, item)) return;
   has_runtime_address = lookup_source_should_render_runtime_label(lookup, section_index, offset, &runtime_address);
   needs_storage_label = has_runtime_address && runtime_address != offset &&
@@ -2554,6 +2555,7 @@ static void render_lookup_materialize_long_table_targets(M68kRenderLookup *looku
   for (cursor = 0U; cursor + 4U <= item->size && item->offset + cursor + 4U <= section->size; cursor += 4U) {
     uint32_t value = m68k_read_u32be(section->data + item->offset + cursor);
     uint32_t target_offset = 0U;
+    if (value == 0U) continue;
     if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, value,
         allow_in_section_source_offset, &target_offset) ||
         target_offset > lookup->label_extents[section->section_index]) {
@@ -2774,10 +2776,7 @@ static int format_absolute_long_lookup_table_expr(M68kRenderLookup *lookup,
   if (out_target_offset != NULL) *out_target_offset = 0U;
   if (lookup == NULL || section == NULL || expr == NULL || expr_size == 0U) return 0;
   expr[0] = '\0';
-  if (raw_long == 0U) {
-    snprintf(expr, expr_size, "$00000000");
-    return strlen(expr) + 1U < expr_size;
-  }
+  if (raw_long == 0U) return 0;
   if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, raw_long, 1U,
       &target_offset)) {
     return 0;

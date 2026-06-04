@@ -849,7 +849,7 @@ outputs are semantic, not presentational:
 
 ```text
 render_lookup_infer_relocation_pointer_tables()
-render_lookup_infer_indexed_word_dispatch_tables()
+render_lookup_infer_indexed_word_dispatch_tables()  ; render mirror still required for source export ordering
 render_lookup_add_auto_structured_data_item()
 source_analysis_append_auto_structured_data_policy()
 ```
@@ -881,6 +881,48 @@ jmp    table(pc,d0.w)
 
 The remaining entries show the same wrong boundary for later slices: they
 classify source meaning while building a render cache.
+
+Indexed word and keyed-long dispatch tables now also have a source-quality
+producer. It records the same durable facts that render lookup previously kept
+private:
+
+```text
+accepted indexed word table read or keyed-long table load/swap
+  -> indexed indirect jump/call consumer
+  -> table span from relative code-target scan
+  -> consumer offset/registers
+  -> target base expression
+  -> mask/compare/loop index-domain proof when present
+  -> source-quality emits structured_data_item(source_pattern=indexed_word_dispatch
+                                               or keyed_long_relative_dispatch)
+```
+
+The render lookup pass is temporarily retained as a mirror because the current
+source-export path renders text before the later source-quality closure has
+upgraded the same table facts. Removing that mirror today preserves JSON
+analysis for some cases but regresses rendered source for biased dispatch
+tables:
+
+```asm
+    move.w table(pc,d0.w),d0
+    jmp    table+2(pc,d0.w)
+
+table:
+    dc.w target0-(table+2) ; leading biased entry must render symbolically
+```
+
+The correct final fix is a pipeline-order change, not duplicated inference:
+
+```text
+decode/facts
+  -> source-quality table closure
+  -> render lookup imports immutable structured_data_items
+  -> source export
+```
+
+Until that ordering exists, source-quality upserts same-range/same-role table
+items so the final analysis JSON has one dispatch descriptor rather than a
+render scalar descriptor plus a later dispatch descriptor.
 
 Those passes build `M68kAnalysisStructuredDataItem` records, range ownership
 views, table metadata, consumer registers, index domains, and source patterns.
@@ -3641,10 +3683,53 @@ index register when proven
 loop-limit entry-count proof when proven
 ```
 
-It does not own PC-relative word dispatch tables yet. Those must move as a
-separate sub-slice because their correctness depends on relative code targets,
-structural extent, accepted/unaccepted target status, and dispatch conflict
-diagnostics.
+The next table-reference sub-slice adds source-quality ownership for indexed
+word dispatch and keyed-long relative dispatch tables. The C producer now
+recognizes these consumer shapes:
+
+```asm
+    move.w table(pc,d0.w),d0
+    jmp    table(pc,d0.w)
+
+    adda.w (table,a0,d1.w),a1
+    jmp    (a1)
+
+    move.l (a0)+,d0
+    swap   d0
+    jmp    table(pc,d0.w)
+```
+
+It exports:
+
+```text
+source_pattern: indexed_word_dispatch | keyed_long_relative_dispatch
+consumer section/offset
+index register kind/index
+target register kind/index when applicable
+target base section/offset
+relative code-dispatch table descriptor
+entry targets and data references
+mask/compare/loop index-domain proof when proven
+```
+
+Because rendered source is still produced before that source-quality closure in
+the current end-to-end source-export path, the render lookup dispatch pass is
+still present as a mirror for formatting. This is an explicitly temporary
+compatibility bridge. Source-quality upserts same-range/same-role table items
+after render so the exported analysis does not contain both an
+`indexed_local_scalar_read` table and an `indexed_word_dispatch` table for the
+same bytes.
+
+The clean completion criterion for this sub-slice is therefore not "delete the
+render function" yet. It is:
+
+```text
+source-quality table closure runs before source rendering
+  -> render lookup imports the immutable dispatch structured_data_items
+  -> biased leading entries, zero-guarded entries, keyed-long entries, and
+     address-indexed entries render from imported facts
+  -> render_lookup_infer_indexed_word_dispatch_tables() can be deleted
+```
 
 The migration also removes the old render-side habit of creating zero-size
 auto structured-data anchors. A label should survive only when analysis can

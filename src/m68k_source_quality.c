@@ -4036,11 +4036,21 @@ static int append_relocation_pointer_table_items(M68kSourceAnalysisIR *source_an
 }
 
 typedef struct M68kSourceQualityTableIndexDomainEvidence {
+  uint8_t has_mask;
+  uint32_t mask_min;
+  uint32_t mask_max;
+  uint8_t has_compare;
+  uint32_t compare_min;
+  uint32_t compare_max;
+  uint8_t branch_mnemonic_id;
   uint8_t has_loop;
   uint32_t loop_min;
   uint32_t loop_max;
   uint8_t loop_mnemonic_id;
 } M68kSourceQualityTableIndexDomainEvidence;
+
+#define M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT 0x2000
+#define M68K_SOURCE_QUALITY_WORD_DISPATCH_FAR_BOUNDARY_MIN 0x1000
 
 static int source_quality_structured_data_kind_for_candidate_size(const M68kDecodeCandidate *candidate,
     uint32_t *out_size, uint8_t *out_kind) {
@@ -4266,13 +4276,49 @@ static uint32_t source_quality_structured_item_entry_count(const M68kAnalysisStr
   return item->size / entry_size;
 }
 
-static void source_quality_promote_entry_count_proof_from_loop_domain(M68kAnalysisStructuredDataItem *item) {
+static uint8_t source_quality_table_entry_count_proof_rank(uint8_t proof_id) {
+  switch (proof_id) {
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN:
+      return 0U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE:
+      return 1U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN:
+      return 2U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_MASK_DOMAIN:
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN:
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT:
+      return 3U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_RELOCATION_RECORD:
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD:
+      return 4U;
+    default:
+      return 0U;
+  }
+}
+
+static void source_quality_set_entry_count_proof_if_stronger(M68kAnalysisStructuredDataItem *item, uint8_t proof_id) {
+  if (item == NULL) return;
+  if (source_quality_table_entry_count_proof_rank(proof_id) >
+      source_quality_table_entry_count_proof_rank(item->entry_count_proof_id)) {
+    item->entry_count_proof_id = proof_id;
+    item->table_stop_reason_id = m68k_analysis_table_stop_reason_for_entry_count_proof(item->entry_count_proof_id);
+  }
+}
+
+static void source_quality_promote_entry_count_proof_from_index_domain(M68kAnalysisStructuredDataItem *item) {
   uint32_t entry_count = source_quality_structured_item_entry_count(item);
   if (item == NULL || entry_count == 0U) return;
-  if (item->has_index_loop_domain && item->index_loop_min == 0U &&
+  if (item->has_index_compare_domain && item->index_compare_min == 0U &&
+      item->index_compare_max < UINT32_MAX && entry_count == item->index_compare_max + 1U) {
+    source_quality_set_entry_count_proof_if_stronger(item,
+      M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN);
+  } else if (item->has_index_loop_domain && item->index_loop_min == 0U &&
       item->index_loop_max < UINT32_MAX && entry_count == item->index_loop_max + 1U) {
-    item->entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT;
-    item->table_stop_reason_id = m68k_analysis_table_stop_reason_for_entry_count_proof(item->entry_count_proof_id);
+    source_quality_set_entry_count_proof_if_stronger(item, M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT);
+  } else if (item->has_index_mask_domain && item->index_mask_min == 0U &&
+      item->index_mask_max < UINT32_MAX && entry_count == item->index_mask_max + 1U) {
+    source_quality_set_entry_count_proof_if_stronger(item,
+      M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_MASK_DOMAIN);
   }
 }
 
@@ -4390,10 +4436,68 @@ static int source_quality_candidate_dest_data_register(const M68kInstructionIR *
   return source_quality_operand_data_register_index(&instruction->operands[dest_index], out_reg);
 }
 
+static void source_quality_structured_item_apply_index_domain(M68kAnalysisStructuredDataItem *item,
+    const M68kSourceQualityTableIndexDomainEvidence *index_domain) {
+  if (item == NULL || index_domain == NULL) return;
+  if (index_domain->has_mask) {
+    item->has_index_mask_domain = 1U;
+    item->index_mask_min = index_domain->mask_min;
+    item->index_mask_max = index_domain->mask_max;
+  }
+  if (index_domain->has_compare) {
+    item->has_index_compare_domain = 1U;
+    item->index_compare_min = index_domain->compare_min;
+    item->index_compare_max = index_domain->compare_max;
+    item->index_domain_branch_mnemonic_id = index_domain->branch_mnemonic_id;
+  }
+  if (index_domain->has_loop) {
+    item->has_index_loop_domain = 1U;
+    item->index_loop_min = index_domain->loop_min;
+    item->index_loop_max = index_domain->loop_max;
+    item->index_loop_mnemonic_id = index_domain->loop_mnemonic_id;
+  }
+}
+
+static int source_quality_structured_data_item_same_range_role(const M68kAnalysisStructuredDataItem *left,
+    const M68kAnalysisStructuredDataItem *right) {
+  if (left == NULL || right == NULL) return 0;
+  return left->has_section_index == right->has_section_index &&
+    left->section_index == right->section_index &&
+    left->offset == right->offset &&
+    left->size == right->size &&
+    left->kind == right->kind &&
+    left->semantic_role_flags == right->semantic_role_flags;
+}
+
+static int source_quality_update_matching_structured_data_item(M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item) {
+  size_t index;
+  uint16_t policy_index;
+  int updated = 0;
+  if (source_analysis == NULL || item == NULL) return 0;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    if (source_quality_structured_data_item_same_range_role(&source_analysis->structured_data_items[index], item)) {
+      source_analysis->structured_data_items[index] = *item;
+      updated = 1;
+      break;
+    }
+  }
+  for (policy_index = 0U; policy_index < source_analysis->policy.structured_data_item_count; ++policy_index) {
+    if (source_quality_structured_data_item_same_range_role(
+        &source_analysis->policy.structured_data_items[policy_index], item)) {
+      source_analysis->policy.structured_data_items[policy_index] = *item;
+      updated = 1;
+      break;
+    }
+  }
+  return updated;
+}
+
 static int append_pc_relative_lookup_table_item(M68kSourceAnalysisIR *source_analysis,
     uint32_t table_section_index, uint32_t table_offset, uint32_t size, uint8_t kind,
     uint8_t source_pattern_id, uint32_t consumer_section, uint32_t consumer_offset,
-    uint8_t has_index_register, uint8_t index_register,
+    uint8_t has_index_register, uint8_t index_register_kind, uint8_t index_register,
+    uint8_t has_target_register, uint8_t target_register_kind, uint8_t target_register,
     const M68kSourceQualityTableIndexDomainEvidence *index_domain, uint8_t has_target,
     uint32_t target_section, uint32_t target_offset) {
   M68kAnalysisStructuredDataItem item;
@@ -4417,15 +4521,15 @@ static int append_pc_relative_lookup_table_item(M68kSourceAnalysisIR *source_ana
   item.table_stop_reason_id = m68k_analysis_table_stop_reason_for_entry_count_proof(item.entry_count_proof_id);
   if (has_index_register) {
     item.has_index_register = 1U;
-    item.index_register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    item.index_register_kind = index_register_kind;
     item.index_register = index_register;
   }
-  if (index_domain != NULL && index_domain->has_loop) {
-    item.has_index_loop_domain = 1U;
-    item.index_loop_min = index_domain->loop_min;
-    item.index_loop_max = index_domain->loop_max;
-    item.index_loop_mnemonic_id = index_domain->loop_mnemonic_id;
+  if (has_target_register) {
+    item.has_target_register = 1U;
+    item.target_register_kind = target_register_kind;
+    item.target_register = target_register;
   }
+  source_quality_structured_item_apply_index_domain(&item, index_domain);
   if (has_target) {
     item.has_target = 1U;
     item.target_section = target_section;
@@ -4438,8 +4542,9 @@ static int append_pc_relative_lookup_table_item(M68kSourceAnalysisIR *source_ana
   }
   m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
-  source_quality_promote_entry_count_proof_from_loop_domain(&item);
+  source_quality_promote_entry_count_proof_from_index_domain(&item);
   m68k_analysis_structured_data_item_refresh_table_metadata(&item);
+  if (source_quality_update_matching_structured_data_item(source_analysis, &item)) return 0;
   return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
 }
 
@@ -5315,8 +5420,9 @@ static int append_pc_relative_lookup_table_items(M68kSourceAnalysisIR *source_an
           }
           if (append_pc_relative_lookup_table_item(source_analysis, (uint32_t)target->section_index,
               target->offset, span, item_kind, source_pattern_id, (uint32_t)section->section_index,
-              candidate->offset, index_domain.has_loop, table_index_reg, &index_domain, has_target,
-              table_target_section, table_target_offset) != 0) {
+              candidate->offset, index_domain.has_loop, M68K_ANALYSIS_REGISTER_DATA, table_index_reg, 0U,
+              M68K_ANALYSIS_REGISTER_NONE, 0U, &index_domain, has_target, table_target_section,
+              table_target_offset) != 0) {
             return -1;
           }
         }
@@ -5337,6 +5443,891 @@ static int source_quality_operand_is_address_postincrement(const M68kOperandIR *
   if (operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 3U && operand->value.ea_reg < 8U) {
     if (out_reg != NULL) *out_reg = operand->value.ea_reg;
     return 1;
+  }
+  return 0;
+}
+
+static int source_quality_candidate_local_call_target(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint32_t *out_target_offset);
+static int source_quality_instruction_writes_address_register_mask(const M68kInstructionIR *instruction,
+    uint8_t mask);
+static int source_quality_local_callee_preserves_address_register_mask_with_depth(
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t target_offset,
+    uint8_t mask, uint8_t depth);
+
+static void source_quality_dispatch_pointer_state_update_after_instruction(M68kSourceQualityAudioPointerState *state,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata != NULL &&
+      (metadata->flow_kind == M68K_SIM_FLOW_CALL || metadata->flow_kind == M68K_SIM_FLOW_JUMP)) {
+    source_quality_audio_pointer_state_clear_all(state);
+    return;
+  }
+  source_quality_audio_pointer_state_update_after_instruction(state, section, candidate, instruction);
+}
+
+static int source_quality_data_pointer_value_with_signed_displacement(
+    const M68kSourceQualityAudioPointerSource *value, int32_t displacement,
+    uint32_t *out_section_index, uint32_t *out_offset) {
+  int64_t adjusted;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (value == NULL || !value->known || out_section_index == NULL || out_offset == NULL) return 0;
+  adjusted = (int64_t)(uint64_t)value->target_offset + (int64_t)displacement;
+  if (adjusted < 0 || adjusted > UINT32_MAX) return 0;
+  *out_section_index = value->target_section_index;
+  *out_offset = (uint32_t)adjusted;
+  return 1;
+}
+
+static int source_quality_ea_shape_is_indexed_or_pc_indexed(uint8_t shape) {
+  return shape == M68K_SIM_EA_SHAPE_INDEX || shape == M68K_SIM_EA_SHAPE_PC_INDEX;
+}
+
+static int source_quality_indexed_control_operand_target(const M68kDecodeCandidate *candidate,
+    uint32_t operand_index, const M68kOperandIR *operand, const M68kSourceQualityAudioPointerState *state,
+    uint32_t *out_section_index, uint32_t *out_offset) {
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (candidate == NULL || operand == NULL || out_section_index == NULL || out_offset == NULL) return 0;
+  if (source_quality_candidate_data_target_for_operand(candidate, operand_index, out_section_index, out_offset))
+    return 1;
+  if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U || state == NULL) return 0;
+  return source_quality_data_pointer_value_with_signed_displacement(&state->addr_regs[operand->value.ea_reg],
+    (int32_t)operand->value.value, out_section_index, out_offset);
+}
+
+static int source_quality_candidate_next_is_indexed_control_through_reg(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
+    const M68kSourceQualityAudioPointerState *state, uint8_t reg, uint8_t index_is_address,
+    uint32_t table_section_index, uint32_t table_offset, uint32_t *out_next_offset,
+    uint32_t *out_target_base_offset) {
+  const M68kDecodeCandidate *next_candidate;
+  M68kInstructionIR next_instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index = 0U;
+  uint32_t target_section_index = 0U;
+  uint32_t target_offset = 0U;
+  uint32_t next_offset;
+  const M68kOperandIR *operand;
+  if (out_next_offset != NULL) *out_next_offset = 0U;
+  if (out_target_base_offset != NULL) *out_target_base_offset = 0U;
+  if (section == NULL || accepted_start == NULL || candidate == NULL || reg >= 8U ||
+      candidate->offset > UINT32_MAX - candidate->byte_count) {
+    return 0;
+  }
+  next_offset = candidate->offset + candidate->byte_count;
+  if (next_offset >= section->size || !accepted_start[next_offset]) return 0;
+  next_candidate = m68k_decode_ir_find_candidate_at_offset(section, next_offset);
+  if (next_candidate == NULL || m68k_decode_candidate_to_instruction(next_candidate, &next_instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&next_instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_CALL)) {
+    return 0;
+  }
+  if (metadata->target_operand_index < next_instruction.operand_count)
+    operand_index = metadata->target_operand_index;
+  if (operand_index >= next_instruction.operand_count) return 0;
+  operand = &next_instruction.operands[operand_index];
+  if (operand->kind != M68K_ASM_OPERAND_EA ||
+      !source_quality_ea_shape_is_indexed_or_pc_indexed(m68k_instruction_operand_decoded_ea_shape(operand)) ||
+      operand->value.index_is_address != index_is_address || operand->value.index_reg != reg) {
+    return 0;
+  }
+  if (!source_quality_indexed_control_operand_target(next_candidate, (uint32_t)operand_index, operand, state,
+      &target_section_index, &target_offset)) {
+    return 0;
+  }
+  if (target_section_index != table_section_index || target_offset < table_offset ||
+      ((target_offset - table_offset) & 1U) != 0U) {
+    return 0;
+  }
+  if (out_next_offset != NULL) *out_next_offset = next_offset;
+  if (out_target_base_offset != NULL) *out_target_base_offset = target_offset;
+  return 1;
+}
+
+static int source_quality_candidate_preserves_address_reg_before_dispatch(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint32_t target_offset = 0U;
+  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL) return 0;
+  if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+    return source_quality_candidate_local_call_target(section, candidate, &target_offset) &&
+      source_quality_local_callee_preserves_address_register_mask_with_depth(section, accepted_start, target_offset,
+        (uint8_t)(1U << reg), 0U);
+  }
+  if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+      metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_TRAP ||
+      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
+    return 0;
+  }
+  return !source_quality_instruction_writes_address_register_mask(&instruction, (uint8_t)(1U << reg));
+}
+
+static int source_quality_candidate_later_is_indirect_dispatch_through_addr_reg(
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
+    uint8_t reg) {
+  const uint32_t max_gap_instructions = 4U;
+  uint32_t cursor;
+  uint32_t gap_count;
+  if (section == NULL || accepted_start == NULL || candidate == NULL || reg >= 8U ||
+      candidate->offset > UINT32_MAX - candidate->byte_count) {
+    return 0;
+  }
+  if (source_quality_candidate_next_is_indirect_control_through_addr_reg(section, accepted_start, candidate, reg))
+    return 1;
+  cursor = candidate->offset + candidate->byte_count;
+  for (gap_count = 0U; gap_count < max_gap_instructions && cursor < section->size; ++gap_count) {
+    const M68kDecodeCandidate *gap_candidate;
+    if (!accepted_start[cursor]) return 0;
+    gap_candidate = m68k_decode_ir_find_candidate_at_offset(section, cursor);
+    if (gap_candidate == NULL) return 0;
+    if (source_quality_candidate_next_is_indirect_control_through_addr_reg(section, accepted_start, gap_candidate,
+        reg)) {
+      return source_quality_candidate_preserves_address_reg_before_dispatch(section, accepted_start, gap_candidate,
+        reg);
+    }
+    if (!source_quality_candidate_preserves_address_reg_before_dispatch(section, accepted_start, gap_candidate, reg))
+      return 0;
+    if (gap_candidate->offset > UINT32_MAX - gap_candidate->byte_count) return 0;
+    cursor = gap_candidate->offset + gap_candidate->byte_count;
+  }
+  return 0;
+}
+
+static uint32_t source_quality_scan_indexed_word_dispatch_table_span(
+    M68kSourceAnalysisIR *source_analysis, const M68kDecodeIR *decode, uint8_t *const *accepted_start,
+    uint8_t *const *accepted_bytes, uint32_t table_section_index, uint32_t table_offset,
+    uint32_t base_section_index, uint32_t base_offset) {
+  const M68kDecodeSectionIR *table_section;
+  const M68kDecodeSectionIR *base_section;
+  const M68kSectionAnalysisIR *table_analysis;
+  uint32_t cursor;
+  uint32_t target_count = 0U;
+  uint32_t first_forward_target = UINT32_MAX;
+  uint8_t saw_unaccepted_target = 0U, stopped_at_boundary = 0U, saw_far_displacement = 0U;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      table_section_index >= decode->section_count || base_section_index >= decode->section_count) {
+    return 0U;
+  }
+  table_section = &decode->sections[table_section_index];
+  base_section = &decode->sections[base_section_index];
+  table_analysis = source_analysis_section_by_index(source_analysis, table_section_index);
+  if (table_section->data == NULL || table_offset >= table_section->size ||
+      base_offset >= base_section->size || accepted_start[base_section_index] == NULL ||
+      accepted_bytes[table_section_index] == NULL || table_analysis == NULL) {
+    return 0U;
+  }
+  for (cursor = table_offset; cursor + 2U <= table_section->size; cursor += 2U) {
+    int32_t displacement;
+    int64_t target64;
+    if (cursor != table_offset && source_quality_section_has_label_at(table_analysis, cursor)) {
+      stopped_at_boundary = 1U;
+      break;
+    }
+    if (source_quality_accepted_range_has_code_byte(accepted_bytes[table_section_index], table_section->size,
+        cursor, 2U)) {
+      break;
+    }
+    displacement = (int32_t)(int16_t)m68k_read_u16be(table_section->data + cursor);
+    target64 = (int64_t)(uint64_t)base_offset + (int64_t)displacement;
+    if (saw_far_displacement && target_count >= 2U && cursor != table_offset && displacement == 0 &&
+        cursor + 4U <= table_section->size && m68k_read_u16be(table_section->data + cursor + 2U) == 0U) {
+      stopped_at_boundary = 1U;
+      break;
+    }
+    if (displacement < -M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT ||
+        displacement > M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT) break;
+    if (displacement < -M68K_SOURCE_QUALITY_WORD_DISPATCH_FAR_BOUNDARY_MIN ||
+        displacement > M68K_SOURCE_QUALITY_WORD_DISPATCH_FAR_BOUNDARY_MIN) {
+      saw_far_displacement = 1U;
+    }
+    if (target64 < 0 || target64 >= (int64_t)(uint64_t)base_section->size ||
+        ((uint32_t)target64 & 1U) != 0U) {
+      break;
+    }
+    if (source_quality_accepted_range_has_code_byte(accepted_bytes[base_section_index], base_section->size,
+        (uint32_t)target64, 1U) && !accepted_start[base_section_index][(uint32_t)target64]) {
+      break;
+    }
+    if (!accepted_start[base_section_index][(uint32_t)target64]) saw_unaccepted_target = 1U;
+    ++target_count;
+    if (table_section_index == base_section_index && (uint32_t)target64 > table_offset &&
+        (uint32_t)target64 < first_forward_target) {
+      first_forward_target = (uint32_t)target64;
+    }
+    if (target_count >= 2U && first_forward_target != UINT32_MAX && cursor + 2U >= first_forward_target) {
+      stopped_at_boundary = 1U;
+      break;
+    }
+  }
+  if (target_count < 2U) return 0U;
+  if (!saw_unaccepted_target || stopped_at_boundary) return target_count * 2U;
+  return 0U;
+}
+
+static uint32_t source_quality_skip_leading_zero_word_dispatch_entries(const M68kDecodeIR *decode,
+    uint32_t section_index, uint32_t table_offset, uint32_t base_offset) {
+  const M68kDecodeSectionIR *section;
+  if (decode == NULL || section_index >= decode->section_count || table_offset >= base_offset) return table_offset;
+  section = &decode->sections[section_index];
+  if (section->data == NULL) return table_offset;
+  while (table_offset < base_offset && table_offset + 2U <= section->size &&
+      m68k_read_u16be(section->data + table_offset) == 0U) {
+    table_offset += 2U;
+  }
+  return table_offset;
+}
+
+static uint32_t source_quality_scan_keyed_long_relative_dispatch_table_span(
+    M68kSourceAnalysisIR *source_analysis, const M68kDecodeIR *decode, uint8_t *const *accepted_start,
+    uint8_t *const *accepted_bytes, uint32_t table_section_index, uint32_t table_offset,
+    uint32_t base_section_index, uint32_t base_offset) {
+  const M68kDecodeSectionIR *table_section;
+  const M68kDecodeSectionIR *base_section;
+  const M68kSectionAnalysisIR *table_analysis;
+  const M68kSectionAnalysisIR *base_analysis;
+  uint32_t cursor;
+  uint32_t target_count = 0U;
+  uint32_t first_forward_target = UINT32_MAX;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      table_section_index >= decode->section_count || base_section_index >= decode->section_count) {
+    return 0U;
+  }
+  table_section = &decode->sections[table_section_index];
+  base_section = &decode->sections[base_section_index];
+  table_analysis = source_analysis_section_by_index(source_analysis, table_section_index);
+  base_analysis = source_analysis_section_by_index(source_analysis, base_section_index);
+  if (table_section->data == NULL || table_offset >= table_section->size ||
+      base_offset >= base_section->size || accepted_start[base_section_index] == NULL ||
+      accepted_bytes[table_section_index] == NULL || table_analysis == NULL || base_analysis == NULL) {
+    return 0U;
+  }
+  for (cursor = table_offset; cursor + 4U <= table_section->size; cursor += 4U) {
+    uint32_t entry;
+    int32_t displacement;
+    int64_t target64;
+    if (cursor != table_offset && source_quality_section_has_label_at(table_analysis, cursor)) break;
+    if (source_quality_accepted_range_has_code_byte(accepted_bytes[table_section_index], table_section->size,
+        cursor, 4U)) {
+      break;
+    }
+    entry = m68k_read_u32be(table_section->data + cursor);
+    if (entry == 0U) break;
+    displacement = (int32_t)(int16_t)((entry >> 16U) & 0xFFFFU);
+    if (displacement < -M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT ||
+        displacement > M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT) {
+      break;
+    }
+    target64 = (int64_t)(uint64_t)base_offset + (int64_t)displacement;
+    if (target64 < 0 || target64 >= (int64_t)(uint64_t)base_section->size ||
+        ((uint32_t)target64 & 1U) != 0U) {
+      break;
+    }
+    if (source_quality_accepted_range_has_code_byte(accepted_bytes[base_section_index], base_section->size,
+        (uint32_t)target64, 1U) && !accepted_start[base_section_index][(uint32_t)target64]) {
+      break;
+    }
+    if (!accepted_start[base_section_index][(uint32_t)target64] ||
+        !source_quality_section_has_label_at(base_analysis, (uint32_t)target64)) {
+      break;
+    }
+    ++target_count;
+    if (table_section_index == base_section_index && (uint32_t)target64 > table_offset &&
+        (uint32_t)target64 < first_forward_target) {
+      first_forward_target = (uint32_t)target64;
+    }
+    if (target_count >= 2U && first_forward_target != UINT32_MAX && cursor + 4U >= first_forward_target) break;
+  }
+  return target_count >= 2U ? target_count * 4U : 0U;
+}
+
+static int source_quality_candidate_loads_postincrement_long_table_to_data_reg(
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const M68kSourceQualityAudioPointerState *state, uint32_t *out_table_section_index,
+    uint32_t *out_table_offset, uint8_t *out_dest_reg) {
+  const M68kSimFormMetadata *metadata = NULL;
+  size_t source_index = 0U;
+  size_t dest_index = 0U;
+  uint8_t source_reg = 0U;
+  uint8_t dest_reg = 0U;
+  if (out_table_section_index != NULL) *out_table_section_index = 0U;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_dest_reg != NULL) *out_dest_reg = 0U;
+  if (candidate == NULL || instruction == NULL || state == NULL || out_table_section_index == NULL ||
+      out_table_offset == NULL || out_dest_reg == NULL || instruction->size_suffix != 'l' ||
+      !source_quality_instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index,
+        &metadata) ||
+      metadata == NULL || source_index >= instruction->operand_count || dest_index >= instruction->operand_count ||
+      source_index >= 4U) {
+    return 0;
+  }
+  if (metadata->operand_access_kinds[source_index] != M68K_SIM_ACCESS_MEMORY_READ ||
+      !source_quality_operand_is_address_postincrement(&instruction->operands[source_index], &source_reg) ||
+      !source_quality_operand_data_register_index(&instruction->operands[dest_index], &dest_reg) ||
+      source_reg >= 8U || !state->addr_regs[source_reg].known) {
+    return 0;
+  }
+  *out_table_section_index = state->addr_regs[source_reg].target_section_index;
+  *out_table_offset = state->addr_regs[source_reg].target_offset;
+  *out_dest_reg = dest_reg;
+  return 1;
+}
+
+static int source_quality_candidate_is_swap_data_reg(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t operand_reg = 0U;
+  if (candidate == NULL || reg >= 8U || candidate->operand_count != 1U ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  return metadata != NULL && metadata->operation_type == M68K_SIM_OP_SWAP_WORDS &&
+    source_quality_operand_data_register_index(&instruction.operands[0], &operand_reg) && operand_reg == reg;
+}
+
+static int source_quality_candidate_is_indexed_control_through_data_reg_base(
+    const M68kDecodeCandidate *candidate, const M68kSourceQualityAudioPointerState *state, uint8_t reg,
+    uint32_t table_section_index, uint32_t table_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index = 0U;
+  uint32_t target_section_index = 0U;
+  uint32_t target_offset = 0U;
+  const M68kOperandIR *operand;
+  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_CALL)) {
+    return 0;
+  }
+  if (metadata->target_operand_index < instruction.operand_count)
+    operand_index = metadata->target_operand_index;
+  if (operand_index >= instruction.operand_count) return 0;
+  operand = &instruction.operands[operand_index];
+  if (operand->kind != M68K_ASM_OPERAND_EA ||
+      !source_quality_ea_shape_is_indexed_or_pc_indexed(m68k_instruction_operand_decoded_ea_shape(operand)) ||
+      operand->value.index_is_address || operand->value.index_reg != reg) {
+    return 0;
+  }
+  if (!source_quality_indexed_control_operand_target(candidate, (uint32_t)operand_index, operand, state,
+      &target_section_index, &target_offset)) {
+    return 0;
+  }
+  return target_section_index == table_section_index && target_offset == table_offset;
+}
+
+typedef struct M68kSourceQualityKeyedLongDispatchValue {
+  uint8_t known;
+  uint8_t swapped;
+  uint32_t table_section_index;
+  uint32_t table_offset;
+} M68kSourceQualityKeyedLongDispatchValue;
+
+typedef struct M68kSourceQualityKeyedLongDispatchState {
+  M68kSourceQualityKeyedLongDispatchValue data_regs[8];
+} M68kSourceQualityKeyedLongDispatchState;
+
+static void source_quality_keyed_long_dispatch_state_clear(M68kSourceQualityKeyedLongDispatchState *state) {
+  if (state == NULL) return;
+  memset(state, 0, sizeof(*state));
+}
+
+static void source_quality_keyed_long_dispatch_state_clear_reg(M68kSourceQualityKeyedLongDispatchState *state,
+    uint8_t reg) {
+  if (state == NULL || reg >= 8U) return;
+  memset(&state->data_regs[reg], 0, sizeof(state->data_regs[reg]));
+}
+
+static void source_quality_keyed_long_dispatch_state_set_loaded(M68kSourceQualityKeyedLongDispatchState *state,
+    uint8_t reg, uint32_t table_section_index, uint32_t table_offset) {
+  M68kSourceQualityKeyedLongDispatchValue *value;
+  if (state == NULL || reg >= 8U) return;
+  value = &state->data_regs[reg];
+  memset(value, 0, sizeof(*value));
+  value->known = 1U;
+  value->table_section_index = table_section_index;
+  value->table_offset = table_offset;
+}
+
+static void source_quality_keyed_long_dispatch_state_mark_swapped(M68kSourceQualityKeyedLongDispatchState *state,
+    uint8_t reg) {
+  if (state == NULL || reg >= 8U || !state->data_regs[reg].known) return;
+  state->data_regs[reg].swapped = 1U;
+}
+
+static void source_quality_keyed_long_dispatch_state_kill_data_writes(
+    M68kSourceQualityKeyedLongDispatchState *state, const M68kInstructionIR *instruction, uint8_t preserve_reg) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) {
+    source_quality_keyed_long_dispatch_state_clear(state);
+    return;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE &&
+        operand->kind == M68K_ASM_OPERAND_REGLIST) {
+      uint8_t bit;
+      for (bit = 0U; bit < 8U; ++bit) {
+        if ((operand->value.value & (1UL << bit)) != 0U && bit != preserve_reg)
+          source_quality_keyed_long_dispatch_state_clear_reg(state, bit);
+      }
+      continue;
+    }
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_REGISTER_WRITE) continue;
+    if (source_quality_operand_data_register_index(operand, &reg) && reg < 8U && reg != preserve_reg)
+      source_quality_keyed_long_dispatch_state_clear_reg(state, reg);
+  }
+}
+
+static void source_quality_keyed_long_dispatch_state_update_after_instruction(
+    M68kSourceQualityKeyedLongDispatchState *state, const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, const M68kSourceQualityAudioPointerState *pointer_state) {
+  const M68kSimFormMetadata *metadata;
+  uint32_t table_section_index = 0U;
+  uint32_t table_offset = 0U;
+  uint8_t reg = 0U;
+  uint8_t preserve_reg = UINT8_MAX;
+  int loaded = 0;
+  int swapped = 0;
+  if (state == NULL || candidate == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) {
+    source_quality_keyed_long_dispatch_state_clear(state);
+    return;
+  }
+  if (source_quality_candidate_loads_postincrement_long_table_to_data_reg(candidate, instruction, pointer_state,
+      &table_section_index, &table_offset, &reg)) {
+    preserve_reg = reg;
+    loaded = 1;
+  } else {
+    uint8_t scan_reg;
+    for (scan_reg = 0U; scan_reg < 8U; ++scan_reg) {
+      if (state->data_regs[scan_reg].known && source_quality_candidate_is_swap_data_reg(candidate, scan_reg)) {
+        preserve_reg = scan_reg;
+        reg = scan_reg;
+        swapped = 1;
+        break;
+      }
+    }
+  }
+  source_quality_keyed_long_dispatch_state_kill_data_writes(state, instruction, preserve_reg);
+  if (loaded) source_quality_keyed_long_dispatch_state_set_loaded(state, reg, table_section_index, table_offset);
+  else if (swapped) source_quality_keyed_long_dispatch_state_mark_swapped(state, reg);
+  if (metadata->flow_kind == M68K_SIM_FLOW_CALL || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+      metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_TRAP) {
+    source_quality_keyed_long_dispatch_state_clear(state);
+  }
+}
+
+static int source_quality_maybe_add_keyed_long_dispatch_table(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes,
+    const M68kSourceQualityKeyedLongDispatchState *state,
+    const M68kSourceQualityAudioPointerState *pointer_state, uint32_t section_index,
+    const M68kDecodeCandidate *candidate) {
+  uint8_t reg;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      state == NULL || candidate == NULL) {
+    return 0;
+  }
+  for (reg = 0U; reg < 8U; ++reg) {
+    const M68kSourceQualityKeyedLongDispatchValue *value = &state->data_regs[reg];
+    uint32_t span;
+    if (!value->known || !value->swapped) continue;
+    if (!source_quality_candidate_is_indexed_control_through_data_reg_base(candidate, pointer_state, reg,
+        value->table_section_index, value->table_offset)) {
+      continue;
+    }
+    span = source_quality_scan_keyed_long_relative_dispatch_table_span(source_analysis, decode, accepted_start,
+      accepted_bytes, value->table_section_index, value->table_offset, value->table_section_index,
+      value->table_offset);
+    if (span == 0U) continue;
+    if (append_pc_relative_lookup_table_item(source_analysis, value->table_section_index, value->table_offset,
+        span, M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
+        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH, section_index,
+        candidate->offset, 0U, M68K_ANALYSIS_REGISTER_NONE, 0U, 0U, M68K_ANALYSIS_REGISTER_NONE, 0U, NULL, 1U,
+        value->table_section_index, value->table_offset) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_candidate_adds_indexed_word_table_to_address_reg(
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const M68kSourceQualityAudioPointerState *state, uint32_t *out_table_section_index,
+    uint32_t *out_table_offset, uint32_t *out_base_section_index, uint32_t *out_base_offset,
+    uint8_t *out_dest_reg, uint8_t *out_index_register_kind, uint8_t *out_index_register) {
+  const M68kSimFormMetadata *metadata;
+  size_t source_index = (size_t)-1;
+  size_t dest_index = (size_t)-1;
+  size_t operand_index;
+  uint8_t dest_reg = 0U;
+  if (out_table_section_index != NULL) *out_table_section_index = 0U;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_base_section_index != NULL) *out_base_section_index = 0U;
+  if (out_base_offset != NULL) *out_base_offset = 0U;
+  if (out_dest_reg != NULL) *out_dest_reg = 0U;
+  if (out_index_register_kind != NULL) *out_index_register_kind = M68K_ANALYSIS_REGISTER_NONE;
+  if (out_index_register != NULL) *out_index_register = 0U;
+  if (candidate == NULL || instruction == NULL || state == NULL || out_table_section_index == NULL ||
+      out_table_offset == NULL || out_base_section_index == NULL || out_base_offset == NULL ||
+      out_dest_reg == NULL || candidate->size_suffix != 'w') {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_ADD) return 0;
+  if (metadata->source_operand_index < candidate->operand_count) source_index = metadata->source_operand_index;
+  if (metadata->dest_operand_index < candidate->operand_count) dest_index = metadata->dest_operand_index;
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U; ++operand_index) {
+    if (source_index == (size_t)-1 &&
+        ((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ &&
+          metadata->operand_ea_uses_index[operand_index]) ||
+         source_quality_ea_shape_is_indexed_or_pc_indexed(metadata->operand_ea_address_shapes[operand_index]) ||
+         (operand_index < instruction->operand_count &&
+          source_quality_ea_shape_is_indexed_or_pc_indexed(
+            m68k_instruction_operand_decoded_ea_shape(&instruction->operands[operand_index]))))) {
+      source_index = operand_index;
+    }
+    if (dest_index == (size_t)-1 &&
+        metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+        source_quality_operand_address_register_index(&instruction->operands[operand_index], &dest_reg)) {
+      dest_index = operand_index;
+    }
+  }
+  if (source_index >= candidate->operand_count || dest_index >= instruction->operand_count ||
+      source_index >= instruction->operand_count || source_index >= 4U) {
+    return 0;
+  }
+  if (!source_quality_operand_address_register_index(&instruction->operands[dest_index], &dest_reg) ||
+      dest_reg >= 8U || !state->addr_regs[dest_reg].known) {
+    return 0;
+  }
+  if (!source_quality_ea_shape_is_indexed_or_pc_indexed(
+        m68k_instruction_operand_decoded_ea_shape(&instruction->operands[source_index])) ||
+      instruction->operands[source_index].value.index_reg >= 8U) {
+    return 0;
+  }
+  if (!source_quality_indexed_control_operand_target(candidate, (uint32_t)source_index,
+      &instruction->operands[source_index], state, out_table_section_index, out_table_offset)) {
+    return 0;
+  }
+  *out_base_section_index = state->addr_regs[dest_reg].target_section_index;
+  *out_base_offset = state->addr_regs[dest_reg].target_offset;
+  *out_dest_reg = dest_reg;
+  if (out_index_register_kind != NULL) {
+    *out_index_register_kind = instruction->operands[source_index].value.index_is_address ?
+      M68K_ANALYSIS_REGISTER_ADDRESS : M68K_ANALYSIS_REGISTER_DATA;
+  }
+  if (out_index_register != NULL) *out_index_register = instruction->operands[source_index].value.index_reg;
+  return 1;
+}
+
+static int source_quality_candidate_loads_indexed_word_table_to_reg(
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const M68kSourceQualityAudioPointerState *state, uint8_t dest_is_address,
+    uint32_t *out_table_section_index, uint32_t *out_table_offset, uint8_t *out_dest_reg,
+    uint8_t *out_index_register_kind, uint8_t *out_index_register) {
+  const M68kSimFormMetadata *metadata = NULL;
+  size_t source_index = 0U;
+  size_t dest_index = 0U;
+  uint8_t dest_reg = 0U;
+  if (out_table_section_index != NULL) *out_table_section_index = 0U;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_dest_reg != NULL) *out_dest_reg = 0U;
+  if (out_index_register_kind != NULL) *out_index_register_kind = M68K_ANALYSIS_REGISTER_NONE;
+  if (out_index_register != NULL) *out_index_register = 0U;
+  if (candidate == NULL || instruction == NULL || out_table_section_index == NULL ||
+      out_table_offset == NULL || out_dest_reg == NULL || instruction->size_suffix != 'w' ||
+      !source_quality_instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index,
+        &metadata) ||
+      metadata == NULL || source_index >= instruction->operand_count || dest_index >= instruction->operand_count ||
+      source_index >= candidate->operand_count || source_index >= 4U) {
+    return 0;
+  }
+  if (!((metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ &&
+        metadata->operand_ea_uses_index[source_index]) ||
+       source_quality_ea_shape_is_indexed_or_pc_indexed(metadata->operand_ea_address_shapes[source_index]) ||
+       source_quality_ea_shape_is_indexed_or_pc_indexed(
+         m68k_instruction_operand_decoded_ea_shape(&instruction->operands[source_index])))) {
+    return 0;
+  }
+  if (dest_is_address) {
+    if (!source_quality_operand_address_register_index(&instruction->operands[dest_index], &dest_reg)) return 0;
+  } else if (!source_quality_operand_data_register_index(&instruction->operands[dest_index], &dest_reg)) {
+    return 0;
+  }
+  if (!source_quality_indexed_control_operand_target(candidate, (uint32_t)source_index,
+      &instruction->operands[source_index], state, out_table_section_index, out_table_offset)) {
+    return 0;
+  }
+  if (instruction->operands[source_index].value.index_reg >= 8U) return 0;
+  *out_dest_reg = dest_reg;
+  if (out_index_register_kind != NULL) {
+    *out_index_register_kind = instruction->operands[source_index].value.index_is_address ?
+      M68K_ANALYSIS_REGISTER_ADDRESS : M68K_ANALYSIS_REGISTER_DATA;
+  }
+  if (out_index_register != NULL) *out_index_register = instruction->operands[source_index].value.index_reg;
+  return 1;
+}
+
+static int source_quality_instruction_scales_word_index_register(const M68kInstructionIR *instruction,
+    uint8_t index_reg) {
+  uint8_t left_reg = 0U;
+  uint8_t right_reg = 0U;
+  return instruction != NULL && instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADD &&
+    instruction->size_suffix == 'w' && instruction->operand_count == 2U &&
+    source_quality_operand_data_register_index(&instruction->operands[0], &left_reg) &&
+    source_quality_operand_data_register_index(&instruction->operands[1], &right_reg) &&
+    left_reg == index_reg && right_reg == index_reg;
+}
+
+static int source_quality_instruction_masks_index_register(const M68kInstructionIR *instruction,
+    uint8_t index_reg, uint32_t *out_mask) {
+  uint8_t dest_reg = 0U;
+  uint32_t value = 0U;
+  if (out_mask != NULL) *out_mask = 0U;
+  if (instruction == NULL || instruction->size_suffix != 'w' || instruction->operand_count != 2U ||
+      (instruction->mnemonic_id != M68K_ASM_MNEMONIC_ANDI &&
+       instruction->mnemonic_id != M68K_ASM_MNEMONIC_AND) ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value) ||
+      !source_quality_operand_data_register_index(&instruction->operands[1], &dest_reg) ||
+      dest_reg != index_reg) {
+    return 0;
+  }
+  if (out_mask != NULL) *out_mask = value & 0xFFFFU;
+  return 1;
+}
+
+static int source_quality_instruction_compares_index_register_immediate(const M68kInstructionIR *instruction,
+    uint8_t index_reg, uint32_t *out_limit) {
+  uint8_t dest_reg = 0U;
+  uint32_t value = 0U;
+  if (out_limit != NULL) *out_limit = 0U;
+  if (instruction == NULL || instruction->size_suffix != 'w' || instruction->operand_count != 2U ||
+      (instruction->mnemonic_id != M68K_ASM_MNEMONIC_CMPI &&
+       instruction->mnemonic_id != M68K_ASM_MNEMONIC_CMP) ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value) ||
+      !source_quality_operand_data_register_index(&instruction->operands[1], &dest_reg) ||
+      dest_reg != index_reg) {
+    return 0;
+  }
+  if (out_limit != NULL) *out_limit = value & 0xFFFFU;
+  return 1;
+}
+
+static int source_quality_branch_mnemonic_exits_above_compare(uint8_t mnemonic_id) {
+  return mnemonic_id == M68K_ASM_MNEMONIC_BHI || mnemonic_id == M68K_ASM_MNEMONIC_BGT;
+}
+
+static void source_quality_derive_index_domain_before_table_access(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t table_access_offset, uint8_t index_register_kind,
+    uint8_t index_register, M68kSourceQualityTableIndexDomainEvidence *out_domain) {
+  const M68kDecodeCandidate *candidates[8];
+  M68kInstructionIR instructions[8];
+  size_t count = 0U;
+  size_t index;
+  size_t scale_index = SIZE_MAX;
+  uint32_t cursor;
+  if (out_domain == NULL) return;
+  memset(out_domain, 0, sizeof(*out_domain));
+  if (section == NULL || accepted_start == NULL || index_register_kind != M68K_ANALYSIS_REGISTER_DATA ||
+      index_register >= 8U) {
+    return;
+  }
+  cursor = table_access_offset;
+  while (count < sizeof(candidates) / sizeof(candidates[0])) {
+    const M68kDecodeCandidate *previous = source_quality_previous_accepted_candidate(section, accepted_start, cursor);
+    if (previous == NULL || previous->byte_count == 0U || previous->offset + previous->byte_count != cursor) break;
+    candidates[count++] = previous;
+    cursor = previous->offset;
+  }
+  for (index = 0U; index < count; ++index) {
+    const M68kDecodeCandidate *previous = candidates[count - 1U - index];
+    if (m68k_decode_candidate_to_instruction(previous, &instructions[index]) != 0) return;
+    if (source_quality_instruction_scales_word_index_register(&instructions[index], index_register))
+      scale_index = index;
+  }
+  if (scale_index == SIZE_MAX) return;
+  for (index = scale_index + 1U; index < count; ++index) {
+    if (instructions[index].mnemonic_id != M68K_ASM_MNEMONIC_LEA &&
+        instructions[index].mnemonic_id != M68K_ASM_MNEMONIC_MOVEA) {
+      return;
+    }
+  }
+  for (index = 0U; index < scale_index; ++index) {
+    uint32_t mask = 0U;
+    if (source_quality_instruction_masks_index_register(&instructions[index], index_register, &mask)) {
+      out_domain->has_mask = 1U;
+      out_domain->mask_min = 0U;
+      out_domain->mask_max = mask;
+    }
+  }
+  for (index = 0U; index + 1U < scale_index; ++index) {
+    uint32_t limit = 0U;
+    if (source_quality_instruction_compares_index_register_immediate(&instructions[index], index_register,
+        &limit) &&
+        source_quality_branch_mnemonic_exits_above_compare(instructions[index + 1U].mnemonic_id)) {
+      out_domain->has_compare = 1U;
+      out_domain->compare_min = 0U;
+      out_domain->compare_max = limit;
+      out_domain->branch_mnemonic_id = instructions[index + 1U].mnemonic_id;
+    }
+  }
+}
+
+static int source_quality_append_dispatch_table_item(M68kSourceAnalysisIR *source_analysis,
+    uint32_t table_section_index, uint32_t table_offset, uint32_t size, uint8_t kind,
+    uint32_t consumer_section, uint32_t consumer_offset, uint8_t index_register_kind, uint8_t index_register,
+    uint8_t target_register_kind, uint8_t target_register,
+    const M68kSourceQualityTableIndexDomainEvidence *index_domain, uint32_t target_section,
+    uint32_t target_offset) {
+  return append_pc_relative_lookup_table_item(source_analysis, table_section_index, table_offset, size, kind,
+    M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH, consumer_section, consumer_offset, 1U,
+    index_register_kind, index_register, 1U, target_register_kind, target_register, index_domain, 1U,
+    target_section, target_offset);
+}
+
+static int append_indexed_word_dispatch_table_items(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
+  size_t decode_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL) return 0;
+  for (decode_index = 0U; decode_index < decode->section_count; ++decode_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[decode_index];
+    M68kSourceQualityAudioPointerState state;
+    M68kSourceQualityKeyedLongDispatchState keyed_state;
+    size_t candidate_index;
+    uint32_t section_index;
+    if (section->section_index > UINT32_MAX || accepted_start[decode_index] == NULL ||
+        accepted_bytes[decode_index] == NULL) {
+      return -1;
+    }
+    section_index = (uint32_t)section->section_index;
+    source_quality_audio_pointer_state_clear_all(&state);
+    source_quality_keyed_long_dispatch_state_clear(&keyed_state);
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      if (!source_quality_candidate_is_accepted_start(section, accepted_start[decode_index], candidate)) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      if (source_quality_maybe_add_keyed_long_dispatch_table(source_analysis, decode, accepted_start,
+          accepted_bytes, &keyed_state, &state, section_index, candidate) != 0) {
+        return -1;
+      }
+      {
+        uint32_t load_table_section = 0U;
+        uint32_t load_table_offset = 0U;
+        uint32_t addr_load_table_section = 0U;
+        uint32_t addr_load_table_offset = 0U;
+        uint32_t add_sections[2] = {0U, 0U};
+        uint32_t add_offsets[2] = {0U, 0U};
+        uint32_t table_size = 0U;
+        uint32_t consumer_offset = 0U;
+        uint32_t target_base_offset = 0U;
+        uint8_t dest_reg = 0U;
+        uint8_t addr_dest_reg = 0U;
+        uint8_t load_index_register_kind = M68K_ANALYSIS_REGISTER_NONE;
+        uint8_t load_index_register = 0U;
+        uint8_t addr_load_index_register_kind = M68K_ANALYSIS_REGISTER_NONE;
+        uint8_t addr_load_index_register = 0U;
+        uint8_t add_index_register_kind = M68K_ANALYSIS_REGISTER_NONE;
+        uint8_t add_index_register = 0U;
+        int loads_dispatch;
+        int loads_address_dispatch;
+        int next_indexed_dispatch;
+        int next_address_indexed_dispatch;
+        int adds_dispatch;
+        int next_dispatch;
+        loads_dispatch = source_quality_candidate_loads_indexed_word_table_to_reg(candidate, &instruction, &state,
+          0U, &load_table_section, &load_table_offset, &dest_reg, &load_index_register_kind,
+          &load_index_register);
+        next_indexed_dispatch = loads_dispatch ?
+          source_quality_candidate_next_is_indexed_control_through_reg(section, accepted_start[decode_index],
+            candidate, &state, dest_reg, 0U, load_table_section, load_table_offset, &consumer_offset,
+            &target_base_offset) : 0;
+        loads_address_dispatch = source_quality_candidate_loads_indexed_word_table_to_reg(candidate, &instruction,
+          &state, 1U, &addr_load_table_section, &addr_load_table_offset, &addr_dest_reg,
+          &addr_load_index_register_kind, &addr_load_index_register);
+        next_address_indexed_dispatch = loads_address_dispatch ?
+          source_quality_candidate_next_is_indexed_control_through_reg(section, accepted_start[decode_index],
+            candidate, &state, addr_dest_reg, 1U, addr_load_table_section, addr_load_table_offset,
+            &consumer_offset, &target_base_offset) : 0;
+        adds_dispatch = source_quality_candidate_adds_indexed_word_table_to_address_reg(candidate, &instruction,
+          &state, &add_sections[0], &add_offsets[0], &add_sections[1], &add_offsets[1], &dest_reg,
+          &add_index_register_kind, &add_index_register);
+        next_dispatch = adds_dispatch ?
+          source_quality_candidate_later_is_indirect_dispatch_through_addr_reg(section, accepted_start[decode_index],
+            candidate, dest_reg) : 0;
+        if ((loads_dispatch && next_indexed_dispatch) ||
+            (loads_address_dispatch && next_address_indexed_dispatch)) {
+          uint32_t dispatch_table_section = loads_dispatch ? load_table_section : addr_load_table_section;
+          uint32_t dispatch_table_offset_raw = loads_dispatch ? load_table_offset : addr_load_table_offset;
+          uint8_t table_index_register_kind = loads_dispatch ? load_index_register_kind :
+            addr_load_index_register_kind;
+          uint8_t table_index_register = loads_dispatch ? load_index_register : addr_load_index_register;
+          uint8_t table_target_register_kind = loads_dispatch ? M68K_ANALYSIS_REGISTER_DATA :
+            M68K_ANALYSIS_REGISTER_ADDRESS;
+          uint8_t table_target_register = loads_dispatch ? dest_reg : addr_dest_reg;
+          M68kSourceQualityTableIndexDomainEvidence index_domain;
+          uint32_t dispatch_table_offset = source_quality_skip_leading_zero_word_dispatch_entries(decode,
+            dispatch_table_section, dispatch_table_offset_raw, target_base_offset);
+          source_quality_derive_index_domain_before_table_access(section, accepted_start[decode_index],
+            candidate->offset, table_index_register_kind, table_index_register, &index_domain);
+          if (dispatch_table_section < decode->section_count && dispatch_table_offset < target_base_offset &&
+              !source_quality_accepted_range_has_code_byte(accepted_bytes[dispatch_table_section],
+                decode->sections[dispatch_table_section].size, dispatch_table_offset,
+                target_base_offset - dispatch_table_offset)) {
+            uint32_t leading_size = target_base_offset - dispatch_table_offset;
+            if (source_quality_append_dispatch_table_item(source_analysis, dispatch_table_section,
+                dispatch_table_offset, leading_size, M68K_ANALYSIS_STRUCTURED_DATA_WORDS, section_index,
+                consumer_offset, table_index_register_kind, table_index_register, table_target_register_kind,
+                table_target_register, &index_domain, dispatch_table_section, target_base_offset) != 0) {
+              return -1;
+            }
+          }
+          table_size = source_quality_scan_indexed_word_dispatch_table_span(source_analysis, decode, accepted_start,
+            accepted_bytes, dispatch_table_section, target_base_offset, dispatch_table_section, target_base_offset);
+          if (table_size != 0U &&
+              source_quality_append_dispatch_table_item(source_analysis, dispatch_table_section, target_base_offset,
+                table_size, M68K_ANALYSIS_STRUCTURED_DATA_WORDS, section_index, consumer_offset,
+                table_index_register_kind, table_index_register, table_target_register_kind,
+                table_target_register, &index_domain, dispatch_table_section, target_base_offset) != 0) {
+            return -1;
+          }
+        }
+        if (adds_dispatch && next_dispatch) {
+          M68kSourceQualityTableIndexDomainEvidence index_domain;
+          source_quality_derive_index_domain_before_table_access(section, accepted_start[decode_index],
+            candidate->offset, add_index_register_kind, add_index_register, &index_domain);
+          table_size = source_quality_scan_indexed_word_dispatch_table_span(source_analysis, decode, accepted_start,
+            accepted_bytes, add_sections[0], add_offsets[0], add_sections[1], add_offsets[1]);
+          if (table_size != 0U &&
+              source_quality_append_dispatch_table_item(source_analysis, add_sections[0], add_offsets[0],
+                table_size, M68K_ANALYSIS_STRUCTURED_DATA_WORDS, section_index, candidate->offset,
+                add_index_register_kind, add_index_register, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg,
+                &index_domain, add_sections[1], add_offsets[1]) != 0) {
+            return -1;
+          }
+        }
+      }
+      source_quality_keyed_long_dispatch_state_update_after_instruction(&keyed_state, candidate, &instruction,
+        &state);
+      source_quality_dispatch_pointer_state_update_after_instruction(&state, section, candidate, &instruction);
+    }
   }
   return 0;
 }
@@ -8779,6 +9770,8 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_palette_upload_structured_data_items(source_analysis, decode, facts, accepted_start, accepted_bytes) != 0)
     return -1;
   if (append_relocation_pointer_table_items(source_analysis, decode, facts, accepted_bytes) != 0) return -1;
+  if (append_indexed_word_dispatch_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0)
+    return -1;
   if (append_pc_relative_lookup_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_manual_mid_instruction_diagnostics(source_analysis) != 0) return -1;

@@ -6490,7 +6490,6 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
       lookup->auto_structured_data_item_indices[section_index] != NULL) {
     lookup->auto_structured_data_item_indices[section_index][offset] = lookup->auto_structured_data_item_count;
   }
-  (void)render_lookup_mark_label(lookup, section_index, offset);
   return 0;
 }
 
@@ -6548,7 +6547,6 @@ static int render_lookup_import_source_analysis_structured_data_item(M68kRenderL
     lookup->auto_structured_data_item_indices[section_index][item->offset] =
       lookup->auto_structured_data_item_count;
   }
-  (void)render_lookup_mark_label(lookup, section_index, item->offset);
   return 0;
 }
 
@@ -8461,6 +8459,7 @@ static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLook
   for (cursor = 0U; cursor + 4U <= available; cursor += 4U) {
     uint32_t value = m68k_read_u32be(section->data + item->offset + cursor);
     uint32_t target_offset = 0U;
+    if (value == 0U) continue;
     if (!render_lookup_pointer_value_to_source_offset(lookup, section, value, &target_offset)) continue;
     if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section, accepted_start[section_index],
         accepted_bytes[section_index], target_offset)) {
@@ -9042,6 +9041,7 @@ static int render_lookup_add_pointer_table_target_strings_for_item(M68kRenderLoo
     uint32_t target_offset = 0U;
     uint32_t span;
     M68kRenderRangeOwnershipView range;
+    if (value == 0U) continue;
     if (!render_lookup_pointer_value_to_source_offset(lookup, section, value, &target_offset)) continue;
     if (lookup_range_ownership_covering_offset(lookup, section_index, target_offset, &range)) continue;
     span = auto_renderable_string_span_with_options(lookup, section, accepted_bytes[section_index],
@@ -11256,8 +11256,7 @@ static int source_analysis_append_auto_structured_data_policy(M68kSourceAnalysis
           existing->offset == range.structured_item->offset &&
           existing->size == range.structured_item->size &&
           existing->kind == range.structured_item->kind &&
-          existing->source_pattern_id == range.structured_item->source_pattern_id &&
-          existing->table_kind_id == range.structured_item->table_kind_id) {
+          existing->semantic_role_flags == range.structured_item->semantic_role_flags) {
         exists = 1;
         break;
       }
