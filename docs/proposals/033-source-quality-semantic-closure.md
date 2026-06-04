@@ -4326,6 +4326,20 @@ platform_semantic_uses
 Those labels are presentation only. The feature rows still come from C
 source-analysis JSON via `src/scripts/target_usage_manifest.py`.
 
+The web feature label helper now mirrors the Python corpus label helper for the
+same C-owned platform-semantic lanes:
+
+```js
+analysis:platform_semantic_use_kind:bitmap_plane
+  -> "Platform semantic use: bitmap plane"
+
+analysis:platform_semantic_use_source:postincrement_read_sequence
+  -> "Platform semantic use source: postincrement read sequence"
+```
+
+No web code derives platform semantics. It only names features that were already
+emitted from `source_analysis.platform_semantic_uses`.
+
 ## Verification Gates
 
 Required:

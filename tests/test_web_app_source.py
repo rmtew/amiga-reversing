@@ -403,6 +403,9 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "analysis:expected_symbol_access_kind:" in app_js
     assert "analysis:expected_symbol_access_producer:" in app_js
     assert "Expected symbol access" in app_js
+    assert "analysis:platform_semantic_use_kind:" in app_js
+    assert "analysis:platform_semantic_use_source:" in app_js
+    assert "Platform semantic use" in app_js
     assert "oracle-result" in styles_css
     assert "function currentReproIssue()" in app_js
     assert "function reproductionReportKey(report)" in app_js

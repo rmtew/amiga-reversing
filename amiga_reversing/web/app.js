@@ -3943,6 +3943,10 @@ function corpusFeatureLabel(feature) {
   if (text.startsWith("analysis:platform_address_use_access:")) return `Platform address use access: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text.startsWith("analysis:platform_address_use:")) return `Platform address use: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text === "analysis:platform_address_use") return "Platform address use";
+  if (text.startsWith("analysis:platform_semantic_use_kind:")) return `Platform semantic use: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:platform_semantic_use_source:")) return `Platform semantic use source: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:platform_semantic_use:")) return `Platform semantic use: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:platform_semantic_use") return "Platform semantic use";
   if (text.startsWith("source-quality:kind:")) return `Source quality: ${text.split(":").pop().replaceAll("_", " ")}`;
   if (text.startsWith("source-quality:")) return `Source quality: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
   if (text.startsWith("copper_register:")) return `Copper register: ${text.split(":", 2)[1]}`;
