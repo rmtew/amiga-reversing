@@ -1397,23 +1397,6 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
   }
 }
 
-void platform_state_apply_lookup_register_seeds(M68kRenderPlatformState *state,
-    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
-  size_t index;
-  if (state == NULL || lookup == NULL) return;
-  for (index = 0U; index < lookup->inferred_hardware_base_seed_count; ++index) {
-    const M68kRenderInferredHardwareBaseSeed *seed = &lookup->inferred_hardware_base_seeds[index];
-    const char *base_symbol;
-    if (seed->conflicted != 0U || seed->section_index != section_index || seed->offset != offset ||
-        seed->reg_index >= 8U || seed->hardware_base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) {
-      continue;
-    }
-    base_symbol = amiga_os_hardware_base_symbol(seed->hardware_base_id);
-    if (base_symbol != NULL && base_symbol[0] != '\0')
-      platform_state_set_register_hardware_base(state, seed->reg_index, base_symbol);
-  }
-}
-
 static void render_asm_policy_entry_comments(M68kRenderIRPreview *preview, const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset) {
   uint16_t index;
@@ -9888,7 +9871,6 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     while (offset < render_extent) {
       if (update_platform_render_state) {
         platform_state_apply_policy_register_seeds(&platform_state, policy, section->section_index, offset);
-        platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index, offset);
       }
       if (render_asm_source) {
         begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, (uint32_t)section_index);

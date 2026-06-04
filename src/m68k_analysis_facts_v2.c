@@ -10118,8 +10118,6 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kSourceAnalysisIR *source_analysis = out_source_analysis;
   M68kRenderIRPreview *render_preview = NULL;
   M68kRenderLookup render_lookup;
-  M68kSourceQualityHardwareBaseSeed *source_quality_hardware_base_seeds = NULL;
-  size_t source_quality_hardware_base_seed_count = 0U;
   M68kSourceAnalysisBuildStats source_analysis_stats;
   M68kPlatformAnalysisPassStats platform_analysis_stats;
   int render_text_preview;
@@ -10474,36 +10472,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         "facts_v2 platform media transfer append failed");
       goto fail;
     }
-    if (render_lookup.inferred_hardware_base_seed_count != 0U) {
-      size_t seed_index;
-      source_quality_hardware_base_seeds = (M68kSourceQualityHardwareBaseSeed *)calloc(
-        render_lookup.inferred_hardware_base_seed_count, sizeof(*source_quality_hardware_base_seeds));
-      if (source_quality_hardware_base_seeds == NULL) {
-        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
-        goto fail;
-      }
-      source_quality_hardware_base_seed_count = render_lookup.inferred_hardware_base_seed_count;
-      for (seed_index = 0U; seed_index < source_quality_hardware_base_seed_count; ++seed_index) {
-        const M68kRenderInferredHardwareBaseSeed *source_seed =
-          &render_lookup.inferred_hardware_base_seeds[seed_index];
-        M68kSourceQualityHardwareBaseSeed *dest_seed = &source_quality_hardware_base_seeds[seed_index];
-        dest_seed->section_index = source_seed->section_index;
-        dest_seed->offset = source_seed->offset;
-        dest_seed->reg_index = source_seed->reg_index;
-        dest_seed->conflicted = source_seed->conflicted;
-        dest_seed->hardware_base_id = source_seed->hardware_base_id;
-      }
-    }
-    if (m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(source_analysis, &decode, &facts,
-        accepted_start, accepted_bytes, policy, source_quality_hardware_base_seeds,
-        source_quality_hardware_base_seed_count) != 0) {
+    if (m68k_source_quality_analyze_with_policy(source_analysis, &decode, &facts,
+        accepted_start, accepted_bytes, policy) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 source quality analysis failed");
       goto fail;
     }
-    free(source_quality_hardware_base_seeds);
-    source_quality_hardware_base_seeds = NULL;
-    source_quality_hardware_base_seed_count = 0U;
     facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, source_analysis);
     if (out_profile->source_quality_blockers != 0U &&
         out_profile->asm_source_first_failure_kind == M68K_SOURCE_EXPORT_FAILURE_NONE) {
@@ -10691,7 +10665,6 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       workflow_stats.total_block_count > UINT32_MAX ? UINT32_MAX : (uint32_t)workflow_stats.total_block_count;
   }
   accepted_candidate_index_destroy(&accepted_index);
-  free(source_quality_hardware_base_seeds);
   if (render_lookup_live) m68k_render_lookup_destroy(&render_lookup);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);
@@ -10710,7 +10683,6 @@ fail:
   }
   if (source_analysis_live) m68k_ir_source_analysis_destroy(source_analysis);
   accepted_candidate_index_destroy(&accepted_index);
-  free(source_quality_hardware_base_seeds);
   if (render_lookup_live) m68k_render_lookup_destroy(&render_lookup);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);

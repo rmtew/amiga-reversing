@@ -2683,17 +2683,20 @@ Implementation order:
 8. Done for palette upload comments: source-quality emits
    `palette` semantic uses with `note_text`, and render does not rediscover the
    upload comment when those facts are removed.
-9. Move inferred hardware-base seed production out of render lookup.
+9. Done for inferred hardware-base seed production: source-quality owns direct
+   and callback-indirect propagation, and render lookup no longer stores or
+   exports inferred hardware-base seeds.
 10. Delete renderer scans once equivalent C facts drive the same source.
 ```
 
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
 `M68kPlatformSemanticUseIR` for higher-level meanings and comments.
 
-The current remaining platform-analysis ownership gap is mostly not the
-consumer side. Source-quality already consumes hardware-base seeds to produce
-`platform_address_use`, hardware note, hardware value-domain, and runtime-sink
-facts. The problem is where those seeds originate:
+The hardware-base seed ownership gap is now closed for the direct and
+callback-indirect shapes that feed Amiga `_custom` register naming.
+Source-quality owns the seed producer and consumer side: it infers the seed,
+then uses the same seed list to produce `platform_address_use`, hardware note,
+hardware value-domain, and runtime-sink facts.
 
 ```text
 old:
@@ -2709,21 +2712,26 @@ current direct-call shape:
     -> source-quality emits C-owned facts
 
 current callback-indirect shape:
-  render_lookup_infer_amiga_call_hardware_base_seeds()
-    -> callback-field-derived inferred_hardware_base_seeds
-    -> copied into M68kSourceQualityHardwareBaseSeed[]
-    -> source-quality emits C-owned facts
+  lea.l callback_1(pc),a0
+  move.l a0,$003E(a3)
+  lea.l callback_2(pc),a0
+  move.l a0,$003E(a3)
+  lea.l _custom,a5
+  movea.l $003E(a3),a0
+  jsr (a0)
 
-target:
-  source-quality infers callback hardware-base seeds directly
-    -> source-quality emits the same C-owned facts
-    -> render lookup no longer produces semantic seed input
+  source-quality sees two callback targets stored into the same base/field
+    + the indirect call loads that same field into the control register
+    + the call-site state proves a5 is _custom
+    -> source-quality seeds each callback entry with a5=_custom
+    -> source-quality emits C-owned facts
 ```
 
-The completed direct-call slice preserves the existing conflict behavior: two
-different hardware bases for the same section/offset/register seed make the
-seed conflicted and prevent propagation. The callback-indirect slice must keep
-the same rule when it moves.
+The direct and callback-indirect slices both preserve the existing conflict
+behavior: two different hardware bases for the same section/offset/register
+seed make the seed conflicted and prevent propagation. The old render lookup
+seed cache, its callback scanner, and the facts-v2 copy bridge have been
+deleted; render no longer produces semantic seed input for source-quality.
 
 Current runtime-sink closure:
 
@@ -3398,9 +3406,9 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"disk DMA read 16000 bytes\"") != NULL);
 ```
 
-This requires passing inferred hardware-base seeds into source-quality analysis
-as neutral seed records. It avoids a second renderer-only semantic path while
-keeping existing targets that rely on helper base propagation.
+This now relies on source-quality's own inferred hardware-base seed list. It
+avoids a second renderer-only semantic path while keeping existing targets that
+rely on helper and callback base propagation.
 
 Audio length-source comments now follow the same rule for the migrated case:
 

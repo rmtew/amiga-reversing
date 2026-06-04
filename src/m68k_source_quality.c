@@ -7379,6 +7379,19 @@ typedef struct SourceQualityHardwareBaseSeedList {
   size_t capacity;
 } SourceQualityHardwareBaseSeedList;
 
+typedef struct SourceQualityCallbackFieldTarget {
+  uint32_t section_index;
+  uint32_t target_offset;
+  uint8_t base_reg;
+  int32_t displacement;
+} SourceQualityCallbackFieldTarget;
+
+typedef struct SourceQualityCallbackFieldTargets {
+  SourceQualityCallbackFieldTarget *items;
+  size_t count;
+  size_t capacity;
+} SourceQualityCallbackFieldTargets;
+
 static void source_quality_hardware_base_seed_list_destroy(SourceQualityHardwareBaseSeedList *list) {
   if (list == NULL) return;
   free(list->items);
@@ -7429,6 +7442,206 @@ static int source_quality_hardware_base_seed_list_append_existing(SourceQualityH
   return 0;
 }
 
+static void source_quality_callback_field_targets_destroy(SourceQualityCallbackFieldTargets *targets) {
+  if (targets == NULL) return;
+  free(targets->items);
+  memset(targets, 0, sizeof(*targets));
+}
+
+static int source_quality_callback_field_targets_append(SourceQualityCallbackFieldTargets *targets,
+    const SourceQualityCallbackFieldTarget *target) {
+  SourceQualityCallbackFieldTarget *grown;
+  size_t next_capacity;
+  size_t index;
+  if (targets == NULL || target == NULL) return -1;
+  for (index = 0U; index < targets->count; ++index) {
+    const SourceQualityCallbackFieldTarget *existing = &targets->items[index];
+    if (existing->section_index == target->section_index && existing->target_offset == target->target_offset &&
+        existing->base_reg == target->base_reg && existing->displacement == target->displacement) {
+      return 0;
+    }
+  }
+  if (targets->count == targets->capacity) {
+    next_capacity = targets->capacity == 0U ? 16U : targets->capacity * 2U;
+    grown = (SourceQualityCallbackFieldTarget *)realloc(targets->items, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    targets->items = grown;
+    targets->capacity = next_capacity;
+  }
+  targets->items[targets->count++] = *target;
+  return 0;
+}
+
+static int source_quality_operand_base_field_slot(const M68kOperandIR *operand, uint8_t *out_base_reg,
+    int32_t *out_displacement) {
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  if (out_base_reg != NULL) *out_base_reg = 0U;
+  if (out_displacement != NULL) *out_displacement = 0;
+  if (operand == NULL || out_base_reg == NULL || out_displacement == NULL ||
+      !source_quality_operand_address_memory(operand, &base_reg, &displacement) || base_reg >= 7U) {
+    return 0;
+  }
+  *out_base_reg = base_reg;
+  *out_displacement = displacement;
+  return 1;
+}
+
+static int source_quality_candidate_loads_data_target_to_address_reg(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint32_t *out_section_index, uint32_t *out_offset,
+    uint8_t *out_reg) {
+  uint8_t dest_reg = 0U;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (candidate == NULL || instruction == NULL || out_section_index == NULL || out_offset == NULL ||
+      out_reg == NULL || instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA || instruction->operand_count != 2U ||
+      !source_quality_operand_address_register_index(&instruction->operands[1], &dest_reg)) {
+    return 0;
+  }
+  if (!source_quality_candidate_data_target_for_operand(candidate, 0U, out_section_index, out_offset)) return 0;
+  *out_reg = dest_reg;
+  return 1;
+}
+
+static int source_quality_candidate_indirect_control_base_register(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint8_t *out_reg) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (candidate == NULL || instruction == NULL || out_reg == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+       operand_index < instruction->operand_count; ++operand_index) {
+    uint8_t base_reg = 0U;
+    int32_t displacement = 0;
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+        metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
+      continue;
+    }
+    if (source_quality_operand_base_field_slot(&instruction->operands[operand_index], &base_reg, &displacement) &&
+        displacement == 0) {
+      *out_reg = base_reg;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_candidate_loads_callback_field_to_control_register(
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction, uint8_t control_reg,
+    uint8_t *out_base_reg, int32_t *out_displacement) {
+  uint8_t dest_reg = 0U;
+  if (candidate == NULL || instruction == NULL || instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA ||
+      instruction->size_suffix != 'l' || instruction->operand_count != 2U ||
+      !source_quality_operand_address_register_index(&instruction->operands[1], &dest_reg) ||
+      dest_reg != control_reg) {
+    return 0;
+  }
+  return source_quality_operand_base_field_slot(&instruction->operands[0], out_base_reg, out_displacement);
+}
+
+static int source_quality_collect_callback_field_targets(const M68kDecodeIR *decode,
+    uint8_t *const *accepted_start, SourceQualityCallbackFieldTargets *targets) {
+  size_t section_index;
+  if (decode == NULL || accepted_start == NULL || targets == NULL) return -1;
+  memset(targets, 0, sizeof(*targets));
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    if (section->section_index > UINT32_MAX) continue;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      const M68kDecodeCandidate *previous;
+      M68kInstructionIR instruction;
+      M68kInstructionIR previous_instruction;
+      SourceQualityCallbackFieldTarget target;
+      uint32_t target_section_index = 0U;
+      uint32_t target_offset = 0U;
+      uint8_t source_reg = 0U;
+      uint8_t load_reg = 0U;
+      if (!source_quality_candidate_is_accepted_start(section, accepted_start[section_index], candidate) ||
+          m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+          instruction.mnemonic_id != M68K_ASM_MNEMONIC_MOVE || instruction.size_suffix != 'l' ||
+          instruction.operand_count != 2U ||
+          !source_quality_operand_address_register_index(&instruction.operands[0], &source_reg) ||
+          !source_quality_operand_base_field_slot(&instruction.operands[1], &target.base_reg,
+            &target.displacement)) {
+        continue;
+      }
+      previous = source_quality_previous_accepted_candidate(section, accepted_start[section_index],
+        candidate->offset);
+      if (previous == NULL || previous->offset + previous->byte_count != candidate->offset ||
+          m68k_decode_candidate_to_instruction(previous, &previous_instruction) != 0 ||
+          !source_quality_candidate_loads_data_target_to_address_reg(previous, &previous_instruction,
+            &target_section_index, &target_offset, &load_reg) ||
+          target_section_index != (uint32_t)section->section_index || load_reg != source_reg) {
+        continue;
+      }
+      target.section_index = (uint32_t)section->section_index;
+      target.target_offset = target_offset;
+      if (source_quality_callback_field_targets_append(targets, &target) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_add_callback_indirect_hardware_base_seeds(
+    const SourceQualityCallbackFieldTargets *targets, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint8_t control_reg, const M68kDecodeCandidate *site_candidate,
+    const SourceQualityHardwareBaseState *state, SourceQualityHardwareBaseSeedList *seed_list,
+    uint8_t *out_changed) {
+  const M68kDecodeCandidate *load_candidate;
+  M68kInstructionIR load_instruction;
+  uint8_t base_reg = 0U;
+  int32_t displacement = 0;
+  size_t index;
+  size_t matched_count = 0U;
+  uint8_t reg_index;
+  if (targets == NULL || section == NULL || accepted_start == NULL || site_candidate == NULL ||
+      state == NULL || seed_list == NULL) {
+    return 0;
+  }
+  load_candidate = source_quality_previous_accepted_candidate(section, accepted_start, site_candidate->offset);
+  if (load_candidate == NULL || m68k_decode_candidate_to_instruction(load_candidate, &load_instruction) != 0 ||
+      !source_quality_candidate_loads_callback_field_to_control_register(load_candidate, &load_instruction,
+        control_reg, &base_reg, &displacement)) {
+    return 0;
+  }
+  for (index = 0U; index < targets->count; ++index) {
+    const SourceQualityCallbackFieldTarget *target = &targets->items[index];
+    if (target->section_index == section->section_index && target->base_reg == base_reg &&
+        target->displacement == displacement) {
+      ++matched_count;
+    }
+  }
+  if (matched_count < 2U) return 0;
+  for (index = 0U; index < targets->count; ++index) {
+    const SourceQualityCallbackFieldTarget *target = &targets->items[index];
+    if (target->section_index != section->section_index || target->base_reg != base_reg ||
+        target->displacement != displacement) {
+      continue;
+    }
+    for (reg_index = 0U; reg_index < 8U; ++reg_index) {
+      M68kSourceQualityHardwareBaseSeed seed;
+      uint8_t changed = 0U;
+      if (!m68k_bitset_u32_has(state->address_base_known, reg_index)) continue;
+      memset(&seed, 0, sizeof(seed));
+      seed.section_index = target->section_index;
+      seed.offset = target->target_offset;
+      seed.reg_index = reg_index;
+      seed.hardware_base_id = state->address_base_id[reg_index];
+      if (source_quality_hardware_base_seed_list_append(seed_list, &seed, &changed) != 0) return -1;
+      if (changed != 0U && out_changed != NULL) *out_changed = 1U;
+    }
+  }
+  return 0;
+}
+
 static int source_quality_instruction_has_local_call_flow(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   if (instruction == NULL) return 0;
@@ -7436,12 +7649,16 @@ static int source_quality_instruction_has_local_call_flow(const M68kInstructionI
   return metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL;
 }
 
-static int source_quality_infer_direct_call_hardware_base_seed_pass(const M68kDecodeIR *decode,
+static int source_quality_infer_call_hardware_base_seed_pass(const M68kDecodeIR *decode,
     uint8_t *const *accepted_start, const M68kAnalysisPolicy *policy,
     SourceQualityHardwareBaseSeedList *seed_list, uint8_t *out_changed) {
+  SourceQualityCallbackFieldTargets callback_targets;
   size_t section_index;
+  int result = 0;
   if (out_changed != NULL) *out_changed = 0U;
   if (decode == NULL || accepted_start == NULL || seed_list == NULL) return 0;
+  memset(&callback_targets, 0, sizeof(callback_targets));
+  if (source_quality_collect_callback_field_targets(decode, accepted_start, &callback_targets) != 0) return -1;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     SourceQualityHardwareBaseState state;
@@ -7469,27 +7686,40 @@ static int source_quality_infer_direct_call_hardware_base_seed_pass(const M68kDe
           seed.offset = target_offset;
           seed.reg_index = reg_index;
           seed.hardware_base_id = state.address_base_id[reg_index];
-          if (source_quality_hardware_base_seed_list_append(seed_list, &seed, &changed) != 0) return -1;
+          if (source_quality_hardware_base_seed_list_append(seed_list, &seed, &changed) != 0) {
+            result = -1;
+            goto done;
+          }
           if (changed != 0U && out_changed != NULL) *out_changed = 1U;
+        }
+      } else if (source_quality_instruction_has_local_call_flow(&instruction)) {
+        uint8_t control_reg = 0U;
+        if (source_quality_candidate_indirect_control_base_register(candidate, &instruction, &control_reg) &&
+            source_quality_add_callback_indirect_hardware_base_seeds(&callback_targets, section,
+              accepted_start[section_index], control_reg, candidate, &state, seed_list, out_changed) != 0) {
+          result = -1;
+          goto done;
         }
       }
       source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
     }
   }
-  return 0;
+done:
+  source_quality_callback_field_targets_destroy(&callback_targets);
+  return result;
 }
 
-static int source_quality_infer_direct_call_hardware_base_seeds(const M68kDecodeIR *decode,
+static int source_quality_infer_call_hardware_base_seeds(const M68kDecodeIR *decode,
     uint8_t *const *accepted_start, const M68kAnalysisPolicy *policy,
     SourceQualityHardwareBaseSeedList *seed_list) {
   uint8_t changed = 0U;
-  if (source_quality_infer_direct_call_hardware_base_seed_pass(decode, accepted_start, policy, seed_list,
+  if (source_quality_infer_call_hardware_base_seed_pass(decode, accepted_start, policy, seed_list,
       &changed) != 0) {
     return -1;
   }
   while (changed != 0U) {
     changed = 0U;
-    if (source_quality_infer_direct_call_hardware_base_seed_pass(decode, accepted_start, policy, seed_list,
+    if (source_quality_infer_call_hardware_base_seed_pass(decode, accepted_start, policy, seed_list,
         &changed) != 0) {
       return -1;
     }
@@ -10654,7 +10884,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
     result = -1;
     goto done;
   }
-  if (source_quality_infer_direct_call_hardware_base_seeds(decode, accepted_start, policy,
+  if (source_quality_infer_call_hardware_base_seeds(decode, accepted_start, policy,
       &effective_hardware_base_seeds) != 0) {
     result = -1;
     goto done;

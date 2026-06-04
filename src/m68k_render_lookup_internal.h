@@ -199,14 +199,6 @@ typedef struct M68kRenderRecoveredLocalCallSummary {
   const AmigaOsLibraryVectorInfo *vector;
 } M68kRenderRecoveredLocalCallSummary;
 
-typedef struct M68kRenderInferredHardwareBaseSeed {
-  size_t section_index;
-  uint32_t offset;
-  uint8_t reg_index;
-  uint8_t conflicted;
-  uint16_t hardware_base_id;
-} M68kRenderInferredHardwareBaseSeed;
-
 typedef struct M68kRenderTypedSlotEffect {
   size_t section_index;
   uint32_t offset;
@@ -632,9 +624,6 @@ struct M68kRenderLookup {
   M68kRenderRecoveredLocalCallSummary *recovered_local_call_summaries;
   size_t recovered_local_call_summary_count;
   size_t recovered_local_call_summary_capacity;
-  M68kRenderInferredHardwareBaseSeed *inferred_hardware_base_seeds;
-  size_t inferred_hardware_base_seed_count;
-  size_t inferred_hardware_base_seed_capacity;
   M68kRenderTypedSlotEffect *typed_slot_effects;
   size_t typed_slot_effect_count;
   size_t typed_slot_effect_capacity;
@@ -766,8 +755,6 @@ void platform_state_clear_data_lvo(M68kRenderPlatformState *state, uint8_t reg_i
 int platform_state_name_is_app_base(const char *name);
 void platform_state_set_register_library(M68kRenderPlatformState *state, uint8_t reg_index,
   const char *library_name);
-void platform_state_apply_lookup_register_seeds(M68kRenderPlatformState *state,
-  const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 int operand_is_address_displacement_local(const M68kOperandIR *operand, uint8_t *out_reg,
   int16_t *out_displacement);
 int operand_is_address_memory_local(const M68kOperandIR *operand, uint8_t *out_reg,
