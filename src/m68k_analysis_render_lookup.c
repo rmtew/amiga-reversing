@@ -6537,11 +6537,23 @@ static int render_lookup_import_source_analysis_structured_data_item(M68kRenderL
   return 0;
 }
 
+static int source_analysis_structured_data_item_is_render_deferred_api_string(
+    const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL &&
+    item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+    (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U &&
+    item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER;
+}
+
 int m68k_analysis_render_lookup_import_source_analysis_structured_data(M68kRenderLookup *lookup,
     const M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   if (lookup == NULL || source_analysis == NULL) return 0;
   for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    if (source_analysis_structured_data_item_is_render_deferred_api_string(
+        &source_analysis->structured_data_items[index])) {
+      continue;
+    }
     if (render_lookup_import_source_analysis_structured_data_item(lookup,
         &source_analysis->structured_data_items[index]) != 0) {
       return -1;

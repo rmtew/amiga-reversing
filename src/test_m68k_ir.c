@@ -8393,6 +8393,56 @@ static int test_facts_v2_analysis_collects_amiga_lvo_call_without_source_render(
   return 0;
 }
 
+static int test_facts_v2_analysis_collects_api_string_structured_data_without_source_render(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *string_item = NULL;
+  size_t item_index;
+  uint8_t bytes[] = {
+    0x2cu, 0x78u, 0x00u, 0x04u,
+    0x43u, 0xfau, 0x00u, 0x0au,
+    0x4eu, 0xaeu, 0xfeu, 0x68u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u,
+    'd', 'o', 's', '.', 'l', 'i', 'b', 'r', 'a', 'r', 'y', 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  for (item_index = 0U; item_index < source_analysis.structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[item_index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 16U &&
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U) {
+      string_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(string_item != NULL);
+  M68K_C_ASSERT_U32(12U, string_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_STRING, string_item->kind);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER,
+    string_item->source_pattern_id);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_open_library_d0_movea_promotes_a6_base(void) {
   M68kObject object;
   M68kSection section;
@@ -29464,6 +29514,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_resolved_platform_call_not_unresolved_indirect_site},
     {"facts_v2_analysis_collects_amiga_lvo_call_without_source_render",
       test_facts_v2_analysis_collects_amiga_lvo_call_without_source_render},
+    {"facts_v2_analysis_collects_api_string_structured_data_without_source_render",
+      test_facts_v2_analysis_collects_api_string_structured_data_without_source_render},
     {"facts_v2_open_library_d0_movea_promotes_a6_base",
       test_facts_v2_open_library_d0_movea_promotes_a6_base},
     {"facts_v2_open_library_name_shared_terminator_renders_bounded_text",

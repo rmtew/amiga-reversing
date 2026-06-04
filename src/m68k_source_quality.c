@@ -8845,6 +8845,252 @@ static const AmigaOsLibraryVectorInfo *source_quality_recovered_call_vector(
   return amiga_os_find_library_vector_by_symbol_name(symbol_name);
 }
 
+static int source_quality_find_c_string_span(const M68kDecodeSectionIR *section, uint32_t offset,
+    uint32_t *out_size) {
+  uint32_t cursor;
+  uint32_t text_size = 0U;
+  if (out_size != NULL) *out_size = 0U;
+  if (section == NULL || section->data == NULL || offset >= section->size || out_size == NULL) return 0;
+  cursor = offset;
+  while (cursor < section->size && section->data[cursor] != 0U) {
+    if (!m68k_ir_byte_is_quoted_string_safe(section->data[cursor])) return 0;
+    ++cursor;
+    ++text_size;
+  }
+  if (cursor >= section->size || section->data[cursor] != 0U || text_size < 2U) return 0;
+  *out_size = text_size + 1U;
+  return 1;
+}
+
+static int source_quality_api_string_segment_boundary_at(const M68kSourceAnalysisIR *source_analysis,
+    const M68kSectionAnalysisIR *section_analysis, uint8_t *const *data_target_boundaries,
+    uint32_t section_index, uint32_t offset) {
+  if (data_target_boundaries != NULL && data_target_boundaries[section_index] != NULL &&
+      data_target_boundaries[section_index][offset] != 0U) {
+    return 1;
+  }
+  return source_quality_section_has_label_at(section_analysis, offset) ||
+    source_quality_existing_structured_data_overlaps(source_analysis, section_index, offset, 1U) ||
+    source_quality_range_ownership_covers_noncode_or_conflict(section_analysis, offset);
+}
+
+static int append_api_string_structured_data_item(M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t size, uint8_t source_pattern_id) {
+  M68kAnalysisStructuredDataItem item;
+  const char *source_pattern;
+  if (source_analysis == NULL || size == 0U ||
+      source_quality_has_structured_data_item_with_role(source_analysis, section_index, offset, size,
+        M68K_ANALYSIS_STRUCTURED_DATA_STRING, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
+    return 0;
+  }
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = section_index;
+  item.offset = offset;
+  item.size = size;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = source_pattern_id;
+  item.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+  source_pattern = m68k_analysis_structured_data_source_pattern_name(source_pattern_id);
+  if (source_pattern != NULL) {
+    (void)m68k_analysis_structured_data_item_set_text(&item,
+      M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN, source_pattern, strlen(source_pattern));
+  }
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  if (source_quality_update_matching_structured_data_item(source_analysis, &item)) return 0;
+  return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
+}
+
+static int append_api_string_structured_data_segments(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint32_t target_section_index, uint32_t target_offset, uint32_t string_size,
+    uint8_t source_pattern_id, uint8_t *const *data_target_boundaries) {
+  const M68kDecodeSectionIR *target_section;
+  M68kSectionAnalysisIR *target_analysis;
+  uint32_t cursor;
+  uint32_t string_end;
+  if (source_analysis == NULL || decode == NULL || target_section_index >= decode->section_count ||
+      string_size == 0U) {
+    return 0;
+  }
+  target_section = &decode->sections[target_section_index];
+  target_analysis = source_analysis_section_by_index(source_analysis, target_section_index);
+  if (target_analysis == NULL || target_offset > target_section->size ||
+      string_size > target_section->size - target_offset) {
+    return 0;
+  }
+  if (string_size > 1U) {
+    uint32_t terminator_offset = target_offset + string_size - 1U;
+    if (terminator_offset < target_section->size &&
+        source_quality_api_string_segment_boundary_at(source_analysis, target_analysis, data_target_boundaries,
+          target_section_index, terminator_offset)) {
+      --string_size;
+    }
+  }
+  cursor = target_offset;
+  string_end = target_offset + string_size;
+  while (cursor < string_end) {
+    uint32_t segment_end = string_end;
+    uint32_t probe;
+    for (probe = cursor + 1U; probe < string_end; ++probe) {
+      if (source_quality_api_string_segment_boundary_at(source_analysis, target_analysis, data_target_boundaries,
+          target_section_index, probe)) {
+        segment_end = probe;
+        break;
+      }
+    }
+    if (segment_end <= cursor) break;
+    if (append_api_string_structured_data_item(source_analysis, target_section_index, cursor, segment_end - cursor,
+        source_pattern_id) != 0) {
+      return -1;
+    }
+    cursor = segment_end;
+  }
+  return 0;
+}
+
+static int append_platform_call_input_string_structured_data_items_for_call(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kSourceQualityAudioPointerState *state,
+    const M68kRecoveredPlatformCallIR *call, uint8_t *const *data_target_boundaries) {
+  const AmigaOsLibraryVectorInfo *vector;
+  const AmigaOsCallInputInfo *inputs;
+  size_t input_count = 0U;
+  size_t input_index;
+  if (source_analysis == NULL || decode == NULL || state == NULL || call == NULL) return 0;
+  vector = source_quality_recovered_call_vector(call);
+  if (vector == NULL) return 0;
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  if (inputs == NULL) return 0;
+  for (input_index = 0U; input_index < input_count; ++input_index) {
+    const AmigaOsCallInputInfo *input = &inputs[input_index];
+    const M68kSourceQualityAudioPointerSource *value = NULL;
+    const M68kDecodeSectionIR *target_section;
+    uint32_t string_size = 0U;
+    if (input->semantic_kind_id != AMIGA_OS_SEMANTIC_KIND_ID_STRING_PTR || input->reg_index >= 8U) continue;
+    if (input->reg_kind == 1U) value = state->data_regs[input->reg_index].known ?
+      &state->data_regs[input->reg_index] : NULL;
+    else if (input->reg_kind == 2U) value = state->addr_regs[input->reg_index].known ?
+      &state->addr_regs[input->reg_index] : NULL;
+    if (value == NULL || !value->exact || value->target_section_index >= decode->section_count) continue;
+    target_section = &decode->sections[value->target_section_index];
+    if (!source_quality_find_c_string_span(target_section, value->target_offset, &string_size)) continue;
+    if (append_api_string_structured_data_segments(source_analysis, decode, value->target_section_index,
+        value->target_offset, string_size, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER,
+        data_target_boundaries) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static const M68kRecoveredPlatformCallIR *source_quality_recovered_platform_call_at(
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset) {
+  size_t index;
+  if (section_analysis == NULL) return NULL;
+  for (index = 0U; index < section_analysis->recovered_platform_call_count; ++index) {
+    const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[index];
+    if (call->offset == offset) return call;
+  }
+  return NULL;
+}
+
+static int append_platform_call_input_string_structured_data_items_for_section(
+    M68kSourceAnalysisIR *source_analysis, const M68kDecodeIR *decode, M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint8_t *const *data_target_boundaries) {
+  M68kSourceQualityAudioPointerState state;
+  size_t candidate_index;
+  if (source_analysis == NULL || decode == NULL || section_analysis == NULL || section == NULL ||
+      accepted_start == NULL) {
+    return 0;
+  }
+  source_quality_audio_pointer_state_clear_all(&state);
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    const M68kRecoveredPlatformCallIR *call;
+    M68kInstructionIR instruction;
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    call = source_quality_recovered_platform_call_at(section_analysis, candidate->offset);
+    if (call != NULL &&
+        append_platform_call_input_string_structured_data_items_for_call(source_analysis, decode, &state, call,
+          data_target_boundaries) != 0) {
+      return -1;
+    }
+    source_quality_audio_pointer_state_update_after_instruction(&state, section_analysis, section, candidate,
+      &instruction);
+  }
+  return 0;
+}
+
+static void source_quality_free_boundary_maps(uint8_t **maps, size_t count) {
+  size_t index;
+  if (maps == NULL) return;
+  for (index = 0U; index < count; ++index) free(maps[index]);
+  free(maps);
+}
+
+static int source_quality_build_data_target_boundary_maps(const M68kDecodeIR *decode,
+    uint8_t *const *accepted_start, uint8_t ***out_maps) {
+  uint8_t **maps;
+  size_t section_index;
+  if (out_maps != NULL) *out_maps = NULL;
+  if (decode == NULL || accepted_start == NULL || out_maps == NULL) return 0;
+  maps = (uint8_t **)calloc(decode->section_count, sizeof(*maps));
+  if (maps == NULL) return -1;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    maps[section_index] = (uint8_t *)calloc((size_t)section->size + 1U, sizeof(*maps[section_index]));
+    if (maps[section_index] == NULL) {
+      source_quality_free_boundary_maps(maps, decode->section_count);
+      return -1;
+    }
+    if (accepted_start[section_index] == NULL) continue;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      size_t target_index;
+      if (!source_quality_candidate_is_accepted_start(section, accepted_start[section_index], candidate))
+        continue;
+      for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+        const M68kDecodeTarget *target = &candidate->targets[target_index];
+        if (target->kind != M68K_DECODE_TARGET_DATA || target->has_section == 0U ||
+            target->section_index >= decode->section_count ||
+            target->offset >= decode->sections[target->section_index].size) {
+          continue;
+        }
+        maps[target->section_index][target->offset] = 1U;
+      }
+    }
+  }
+  *out_maps = maps;
+  return 0;
+}
+
+static int append_platform_call_input_string_structured_data_items(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  uint8_t **data_target_boundaries = NULL;
+  int result = -1;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL) return 0;
+  if (source_quality_build_data_target_boundary_maps(decode, accepted_start, &data_target_boundaries) != 0)
+    return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_platform_call_input_string_structured_data_items_for_section(source_analysis, decode,
+        section_analysis, section, accepted_start[decode_index], data_target_boundaries) != 0) {
+      goto done;
+    }
+  }
+  result = 0;
+done:
+  source_quality_free_boundary_maps(data_target_boundaries, decode->section_count);
+  return result;
+}
+
 static int append_local_wrapper_call_input_semantic_uses(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call) {
   const char *call_symbol;
@@ -9890,6 +10136,8 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_indexed_word_dispatch_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0)
     return -1;
   if (append_pc_relative_lookup_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
+  if (append_platform_call_input_string_structured_data_items(source_analysis, decode, accepted_start) != 0)
+    return -1;
   m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_manual_mid_instruction_diagnostics(source_analysis) != 0) return -1;

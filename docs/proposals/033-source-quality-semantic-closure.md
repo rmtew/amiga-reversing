@@ -3031,6 +3031,51 @@ M68K_C_ASSERT(saw_call_input_use);
 M68K_C_ASSERT(!saw_bad_expected_access);
 ```
 
+String-pointer API inputs follow the same ownership rule. When analysis has
+already recovered a platform call and knows that one of its documented inputs is
+a string pointer, source-quality should mark the pointed bytes as string data
+without asking source export to discover that semantic fact:
+
+```asm
+    movea.l $4.w,a6
+    lea.l   dos_library_name(pc),a1
+    jsr     _LVOOldOpenLibrary(a6)
+    rts
+
+dos_library_name:
+    dc.b "dos.library",0
+```
+
+The analysis path is:
+
+```text
+recovered platform call OldOpenLibrary
+  -> documented input A1 is STRING_PTR
+  -> pointer tracker proves A1 targets image bytes
+  -> source-quality validates a bounded C string span
+  -> M68kAnalysisStructuredDataItem(kind=STRING,
+                                    source_pattern=api_string_pointer)
+```
+
+That fact must exist before source rendering. A focused no-render fixture
+asserts it through `m68k_facts_v2_collect_source_analysis_profile()`, so the
+test does not pass merely because the source exporter happened to print a
+string.
+
+Render lookup may temporarily defer importing this exact structured-data item
+while the existing API-string formatter still owns the spelling of visible
+source. That is formatting support only:
+
+```text
+source-quality owns "these bytes are the API string"
+render lookup owns "how this already-proven string is printed"
+render lookup must not re-infer the semantic fact
+```
+
+The migration is complete only when renderer-side API string classification is
+reduced to consuming this C-owned structured-data fact without changing
+existing source output.
+
 The focused fixture asserts the analysis fact:
 
 ```c
