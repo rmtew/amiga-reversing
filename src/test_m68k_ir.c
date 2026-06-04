@@ -28427,6 +28427,78 @@ static int test_facts_v2_audio_length_register_source_comment(void) {
   return 0;
 }
 
+static int test_render_audio_length_source_comment_requires_platform_semantic_use(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kAnalysisPolicy policy;
+  M68kRenderIRPreview preview;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  M68kAnalysisLabelPoint analysis_labels[1];
+  size_t analysis_label_count = 0U;
+  uint8_t start_map[14];
+  uint8_t byte_map[14];
+  uint8_t bytes[14] = {
+    0x32u, 0x28u, 0xFFu, 0xFEu,
+    0xE2u, 0x49u,
+    0x33u, 0xC1u, 0x00u, 0xDFu, 0xF0u, 0xA4u,
+    0x4Eu, 0x75u
+  };
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  memset(&decode, 0, sizeof(decode));
+  memset(&facts, 0, sizeof(facts));
+  memset(&policy, 0, sizeof(policy));
+  memset(&preview, 0, sizeof(preview));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  start_map[4] = 1U;
+  start_map[6] = 1U;
+  start_map[12] = 1U;
+  memset(byte_map, 1, sizeof(bytes));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build_with_source_analysis_mutator(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview,
+    test_clear_platform_semantic_uses, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tmove.w d1,") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text,
+    "audio sample length derived from -$0002(a0) header word") == NULL);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance(void) {
   M68kObject object;
   M68kSection section;
@@ -28492,6 +28564,95 @@ static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance
   free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_render_audio_pointer_period_source_comments_require_platform_semantic_use(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kAnalysisPolicy policy;
+  M68kRenderIRPreview preview;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  M68kAnalysisLabelPoint analysis_labels[1];
+  size_t analysis_label_count = 0U;
+  uint8_t start_map[112];
+  uint8_t byte_map[112];
+  uint8_t bytes[112];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x41u; bytes[1] = 0xF9u; bytes[2] = 0x00u; bytes[3] = 0x00u;
+  bytes[4] = 0x00u; bytes[5] = 0x30u;
+  bytes[6] = 0xD0u; bytes[7] = 0xFBu; bytes[8] = 0x00u; bytes[9] = 0x20u;
+  bytes[10] = 0x30u; bytes[11] = 0x3Bu; bytes[12] = 0x00u; bytes[13] = 0x1Eu;
+  bytes[14] = 0x41u; bytes[15] = 0xE8u; bytes[16] = 0x00u; bytes[17] = 0x30u;
+  bytes[18] = 0xE5u; bytes[19] = 0x80u;
+  bytes[20] = 0x23u; bytes[21] = 0xC8u; bytes[22] = 0x00u; bytes[23] = 0xDFu;
+  bytes[24] = 0xF0u; bytes[25] = 0xA0u;
+  bytes[26] = 0x33u; bytes[27] = 0xC0u; bytes[28] = 0x00u; bytes[29] = 0xDFu;
+  bytes[30] = 0xF0u; bytes[31] = 0xA6u;
+  bytes[32] = 0x4Eu; bytes[33] = 0x75u;
+  bytes[40] = 0x00u; bytes[41] = 0x04u;
+  bytes[42] = 0x01u; bytes[43] = 0x23u;
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  memset(&decode, 0, sizeof(decode));
+  memset(&facts, 0, sizeof(facts));
+  memset(&policy, 0, sizeof(policy));
+  memset(&preview, 0, sizeof(preview));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  start_map[6] = 1U;
+  start_map[10] = 1U;
+  start_map[14] = 1U;
+  start_map[18] = 1U;
+  start_map[20] = 1U;
+  start_map[26] = 1U;
+  start_map[32] = 1U;
+  memset(byte_map, 1, 34U);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build_with_source_analysis_mutator(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview,
+    test_clear_platform_semantic_uses, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tmove.l a0,") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tmove.w d0,") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "source loc_0_00000060") == NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "dynamic offset from loc_0_00000028") == NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "period from loc_0_0000002A") == NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "sound_sample pointer") == NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "audio period") == NULL);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -31247,8 +31408,12 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample},
     {"facts_v2_audio_length_register_source_comment",
       test_facts_v2_audio_length_register_source_comment},
+    {"render_audio_length_source_comment_requires_platform_semantic_use",
+      test_render_audio_length_source_comment_requires_platform_semantic_use},
     {"facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance",
       test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance},
+    {"render_audio_pointer_period_source_comments_require_platform_semantic_use",
+      test_render_audio_pointer_period_source_comments_require_platform_semantic_use},
     {"facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer",
       test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer},
     {"facts_v2_external_runtime_sink_address_renders_pointer_comment",

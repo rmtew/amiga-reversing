@@ -1565,6 +1565,8 @@ hardware-value comments
 platform stack-cleanup comments
 platform call-input operand expressions
 platform call-input comments
+audio length-source comments
+audio pointer/period source comments
 ```
 
 Remaining work should name the exact unpinned family, add its source-quality
@@ -3345,6 +3347,15 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"audio sample length derived from -$0002(a0) header word\"") != NULL);
 ```
 
+The render boundary is pinned:
+
+```text
+render_audio_length_source_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> the ac_len write still renders
+  -> "audio sample length derived from -$0002(a0) header word" does not appear
+```
+
 Audio period-source provenance is now C-owned too, but it uses a target-bearing
 semantic fact rather than baking a rendered label into source-quality text:
 
@@ -3422,6 +3433,24 @@ The key rule is the same as for period source comments:
 C analysis proves "sample pointer source target, optional dynamic table target"
 renderer chooses only spelling: local label, runtime label, or generated label
 ```
+
+The fixture now asserts that the dynamic pointer comment is backed by exported
+semantic uses, and the render boundary is pinned:
+
+```text
+render_audio_pointer_period_source_comments_require_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> the ac_ptr/ac_per writes still render
+  -> "source loc_0_00000060 ..." does not appear
+  -> "dynamic offset from loc_0_00000028" does not appear
+  -> "period from loc_0_0000002A transformed" does not appear
+  -> generic audio notes such as "sound_sample pointer" and "audio period"
+     do not appear
+```
+
+This confirms the renderer is only spelling source-quality facts. It is not
+rerunning the audio provenance analysis or regenerating generic audio notes
+from register names.
 
 The fixture now asserts that the dynamic pointer comment is backed by exported
 analysis:
