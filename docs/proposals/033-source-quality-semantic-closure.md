@@ -4536,6 +4536,97 @@ undefined label. The isolated regression is
 `facts_v2_word_lookup_table_keeps_unrenderable_backward_target_raw`. Pandora's
 focused update-render round-trip is exact after the fix.
 
+### Implemented Slice: Pointer-String Table Targets
+
+Pointer-table target string promotion had the same wrong ownership boundary.
+Render lookup previously walked pointer-table targets and converted any small
+printable NUL-terminated target into a string:
+
+```text
+render sees pointer table entry -> target bytes look like "XOa\0"
+  -> render creates pointer_string_table item
+  -> source displays a false string
+```
+
+That was unsafe because a pointer target can be data, code, a callback stub, or
+plain storage. Printable bytes are review evidence, not conversion proof.
+
+The implemented rule is now analysis-owned:
+
+```text
+explicit pointer_string_table policy/table fact
+  -> promote valid target strings
+
+ordinary pointer table + dense string-pool evidence
+  -> promote only dense target strings
+
+relocation-backed one-entry pointer + dense string-pool evidence
+  -> promote that target string
+
+isolated pointer target with printable bytes
+  -> keep bytes/labels numeric, do not invent a string
+```
+
+The dense-pool check is deliberately about neighboring string structure, not
+the spelling of a single target:
+
+```text
+pointer -> "JAN\0FEB\0MAR\0"
+  -> dense C-string pool
+  -> pointer_string_table structured-data items + table data references
+
+pointer -> "XOa\0\x01h..."
+  -> isolated printable prefix inside instruction-shaped bytes
+  -> no string item
+```
+
+Source-quality now creates the `pointer_string_table` target items and the
+table-entry data references. Render lookup still materializes pointer target
+labels, but it no longer classifies pointer targets as strings.
+
+The focused fixtures are:
+
+```text
+facts_v2_pointer_table_targets_promote_short_strings
+  -> explicit pointer_string_table policy still works
+
+facts_v2_pointer_table_targets_infer_dense_short_string_pool
+  -> dense short C-string pool promotes without explicit policy tagging
+
+facts_v2_pointer_table_targets_reject_isolated_printable_code_prefix
+  -> relocation-backed isolated "XOa\0" does not become a string
+
+facts_v2_relocation_pointer_target_promotes_single_dense_short_string
+  -> one-entry relocation pointer can promote when the target is in a dense pool
+```
+
+The corpus update confirms the intended split:
+
+```text
+Damocles Tetragon 02
+  "2<\0" false pointer-target string removed
+
+Midwinter II
+  false strings such as "XOa\0", "0-\0", "1|\0", and "Bh\0" removed
+  dense real short strings such as df0: and Ship preserved
+
+Search for the King
+  isolated "WW\0" false string removed
+```
+
+Rendered-source round-trip after the update remains clean:
+
+```json
+{"targets":54,"failures":0,"rendered_source_full_file_exact":38,
+ "rendered_source_content_exact_only":15,"unsupported":1}
+```
+
+This slice also reinforces the larger proposal rule: address-looking or
+printable-looking data is not enough to upgrade source. The framework needs
+proven table/string structure, and when validation or render diffs expose a
+false conversion the follow-through is to fix the producer, not to whitelist the
+target.
+
 ### Slice 8: Python/Web/Report Cleanup
 
 Python should index and display C facts:

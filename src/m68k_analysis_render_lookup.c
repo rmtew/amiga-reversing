@@ -8398,70 +8398,9 @@ static int render_lookup_maybe_add_string_sequence(M68kRenderLookup *lookup, con
   return 0;
 }
 
-static int render_lookup_add_pointer_table_target_strings_for_item(M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_bytes, const M68kAnalysisStructuredDataItem *item) {
-  const M68kDecodeSectionIR *section;
-  size_t section_index;
-  uint32_t cursor;
-  uint32_t available;
-  if (lookup == NULL || decode == NULL || accepted_bytes == NULL ||
-      !render_lookup_structured_item_is_long_label_table_local(item)) {
-    return 0;
-  }
-  section_index = item->has_section_index ? (size_t)item->section_index : 0U;
-  if (section_index >= decode->section_count) return 0;
-  section = &decode->sections[section_index];
-  if (section->data == NULL || item->offset >= section->size) return 0;
-  available = section->size - item->offset;
-  if (available > item->size) available = item->size;
-  for (cursor = 0U; cursor + 4U <= available; cursor += 4U) {
-    uint32_t value = m68k_read_u32be(section->data + item->offset + cursor);
-    uint32_t target_offset = 0U;
-    uint32_t span;
-    M68kRenderRangeOwnershipView range;
-    if (value == 0U) continue;
-    if (!render_lookup_pointer_value_to_source_offset(lookup, section, value, &target_offset)) continue;
-    if (lookup_range_ownership_covering_offset(lookup, section_index, target_offset, &range)) continue;
-    span = auto_renderable_string_span_with_options(lookup, section, accepted_bytes[section_index],
-      target_offset, 2U, 0);
-    if (span == 0U) continue;
-    if (accepted_range_has_code_byte(accepted_bytes[section_index], section->size, target_offset, span)) continue;
-    if (render_lookup_add_auto_string_item(lookup, section_index, target_offset, span,
-        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
-        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE) != 0) {
-      return -1;
-    }
-    render_lookup_set_auto_structured_data_item_consumer(lookup, section_index, target_offset,
-      section_index, item->offset);
-    render_lookup_mark_label(lookup, section_index, target_offset);
-    render_lookup_mark_label_target_ref(lookup, section_index, target_offset);
-    render_lookup_mark_label_statement_ref(lookup, section_index, target_offset);
-  }
-  return 0;
-}
-
-static int render_lookup_add_pointer_table_target_strings(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted_bytes) {
-  size_t index;
-  if (lookup == NULL || decode == NULL || accepted_bytes == NULL) return 0;
-  for (index = 0U; index < lookup->range_ownership_count; ++index) {
-    M68kRenderRangeOwnershipView range;
-    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
-    if (range.kind != M68K_RANGE_OWNERSHIP_TABLE || range.structured_item == NULL) continue;
-    if (render_lookup_add_pointer_table_target_strings_for_item(lookup, decode, accepted_bytes,
-        range.structured_item) != 0) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
 int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes) {
-  if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) {
-    return -1;
-  }
-  return render_lookup_add_pointer_table_target_strings(lookup, decode, accepted_bytes);
+  return render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes);
 }
 
 static int auto_structured_data_item_blocks_candidate_start(const M68kRenderLookup *lookup, size_t section_index,
@@ -10312,7 +10251,6 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   start = clock();
   if (render_lookup_infer_data_strings(lookup, decode, accepted_bytes) != 0) return -1;
   if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
-  if (render_lookup_add_pointer_table_target_strings(lookup, decode, accepted_bytes) != 0) return -1;
   end = clock();
   if (stats != NULL) {
     stats->generic_data_seconds = elapsed_seconds_local(start, end);
