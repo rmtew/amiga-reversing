@@ -27403,6 +27403,79 @@ static int test_facts_v2_palette_upload_auto_classifies_source_table(void) {
   return 0;
 }
 
+static int test_render_palette_upload_comment_requires_platform_semantic_use(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kAnalysisPolicy policy;
+  M68kRenderIRPreview preview;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  M68kAnalysisLabelPoint analysis_labels[1];
+  size_t analysis_label_count = 0U;
+  uint8_t start_map[80];
+  uint8_t byte_map[80];
+  uint8_t bytes[80] = {
+    0x43u, 0xF9u, 0x00u, 0xDFu, 0xF1u, 0x80u,
+    0x41u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x32u, 0xD8u,
+    0x4Eu, 0x75u,
+    0x00u, 0x00u, 0x01u, 0x11u, 0x02u, 0x22u, 0x03u, 0x33u,
+    0x04u, 0x44u, 0x05u, 0x55u, 0x06u, 0x66u, 0x07u, 0x77u,
+    0x08u, 0x88u, 0x09u, 0x99u, 0x0Au, 0xAAu, 0x0Bu, 0xBBu,
+    0x0Cu, 0xCCu, 0x0Du, 0xDDu, 0x0Eu, 0xEEu, 0x0Fu, 0xFFu,
+    0x00u, 0x10u, 0x01u, 0x20u, 0x02u, 0x30u, 0x03u, 0x40u,
+    0x04u, 0x50u, 0x05u, 0x60u, 0x06u, 0x70u, 0x07u, 0x80u,
+    0x08u, 0x90u, 0x09u, 0xA0u, 0x0Au, 0xB0u, 0x0Bu, 0xC0u,
+    0x0Cu, 0xD0u, 0x0Du, 0xE0u, 0x0Eu, 0xF0u, 0x0Fu, 0x00u
+  };
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  memset(&decode, 0, sizeof(decode));
+  memset(&facts, 0, sizeof(facts));
+  memset(&policy, 0, sizeof(policy));
+  memset(&preview, 0, sizeof(preview));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  start_map[6] = 1U;
+  start_map[12] = 1U;
+  start_map[14] = 1U;
+  memset(byte_map, 1, 16U);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build_with_source_analysis_mutator(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview,
+    test_clear_platform_semantic_uses, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "(a0)+,(a1)+") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "palette upload 32 colors") == NULL);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_palette_upload_allows_internal_word_label(void) {
   M68kObject object;
   M68kSection section;
@@ -30528,6 +30601,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_copper_bitmap_memory_uses_are_commented},
     {"facts_v2_palette_upload_auto_classifies_source_table",
       test_facts_v2_palette_upload_auto_classifies_source_table},
+    {"render_palette_upload_comment_requires_platform_semantic_use",
+      test_render_palette_upload_comment_requires_platform_semantic_use},
     {"facts_v2_palette_upload_allows_internal_word_label",
       test_facts_v2_palette_upload_allows_internal_word_label},
     {"facts_v2_palette_upload_survives_movem_saved_call",

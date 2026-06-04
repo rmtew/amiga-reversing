@@ -775,9 +775,25 @@ relocation-backed cross-section sources:
 
 ```text
 facts_v2_palette_upload_auto_classifies_source_table
+render_palette_upload_comment_requires_platform_semantic_use
 facts_v2_genam_palette_upload_uses_runtime_translated_source_table
 facts_v2_palette_upload_uses_source_section_accepted_bytes
 ```
+
+The negative boundary matters as much as the positive one:
+
+```text
+source-quality emits platform_semantic_use(kind=palette, note_text=...)
+  -> render prints "; palette upload 32 colors"
+
+test removes platform_semantic_uses before render
+  -> render still prints the move and table data
+  -> render does not rediscover "; palette upload 32 colors"
+```
+
+That keeps palette upload recognition in analysis. Render may format an
+analysis-owned note, but it must not recreate the semantic decision from raw
+register/data-pointer shape.
 
 ## Tutorial: Current-State Audit
 
@@ -1531,16 +1547,21 @@ register-derived hardware register value-domain operands
 stack-cleanup comments from recovered platform-call facts
 ```
 
-The remaining coverage gap is narrower:
+The remaining coverage gap is now per-family, not a broad absence of
+semantic-use or runtime-sink producers. The already-covered families have
+positive fact/export/source checks and, where render ownership was historically
+ambiguous, negative boundary tests that remove semantic uses before render:
 
 ```text
-platform semantic comments
-runtime-address sink role symbols/comments
+runtime-address sink pointer operands/comments
+disk DMA comments
+copper display-layout comments
+palette upload comments
 ```
 
-Until those producers are complete, the post-render gate can catch the covered
-part of the label/source mismatch class and must not pretend the uncovered
-classes are validated.
+Remaining work should name the exact unpinned family, add its source-quality
+producer if missing, and add the same boundary test shape. Do not reintroduce a
+generic renderer-side platform scan to close a fixture quickly.
 
 The next coverage is now implemented as a separate producer, not one broad
 "label exists" rule:
@@ -2633,7 +2654,10 @@ Implementation order:
    emits `platform_address_use` facts from its hardware-base tracker, and
    render consumes those facts for operands such as `intena(a0)` and
    `aud0+ac_len(a0)`.
-8. Delete renderer scans once equivalent C facts drive the same source.
+8. Done for palette upload comments: source-quality emits
+   `palette` semantic uses with `note_text`, and render does not rediscover the
+   upload comment when those facts are removed.
+9. Delete renderer scans once equivalent C facts drive the same source.
 ```
 
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
