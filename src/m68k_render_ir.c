@@ -33,6 +33,8 @@ static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t siz
 static void render_lookup_set_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 static int lookup_storage_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
+static const M68kSectionAnalysisIR *source_analysis_section_for_render(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index);
 static int attach_platform_semantic_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, char *comment, size_t comment_size);
 static int attach_platform_semantic_kind_note_comment_for_render(const M68kSourceAnalysisIR *source_analysis,
@@ -3032,26 +3034,6 @@ static int format_copper_register_value_expr(uint16_t copper_register_word, uint
   return amiga_value_domain_symbolic_expr(domain_name, value, buf, buf_size);
 }
 
-static const AmigaOsHardwareRegisterInfo *copper_runtime_pointer_register(uint16_t copper_register_word) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
-  uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
-  if ((copper_register_word & 1U) != 0U) return NULL;
-  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-  if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-    if (hardware_range != NULL)
-      hardware_register =
-        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
-  }
-  if (hardware_register == NULL ||
-      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
-    return NULL;
-  }
-  return hardware_register;
-}
-
 static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPreview *preview,
     const char *role, uint32_t address, char *high_symbol, size_t high_symbol_size,
     char *low_symbol, size_t low_symbol_size) {
@@ -3081,50 +3063,39 @@ static int render_asm_define_runtime_address_symbol_once(M68kRenderIRPreview *pr
   return render_asm_declare_symbol_hex_once(preview, symbol, address);
 }
 
-static int format_copper_runtime_pointer_value_expr(M68kRenderIRPreview *preview, const uint8_t *data,
-    uint32_t offset, uint32_t cursor, uint32_t size, uint16_t first, uint16_t second, char *buf,
+static int format_copper_semantic_operand_expr_for_render(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, char *buf,
     size_t buf_size) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  uint32_t register_offset = (uint32_t)(first & 0x01FEU);
-  uint16_t pair_first;
-  uint16_t pair_second;
-  uint32_t pointer_address;
+  const M68kSectionAnalysisIR *section;
+  size_t index;
   char high_symbol[80];
   char low_symbol[80];
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (data == NULL || preview == NULL || (first & 1U) != 0U) return 0;
-  hardware_register = copper_runtime_pointer_register(first);
-  if (hardware_register != NULL && cursor + 8U <= size) {
-    pair_first = m68k_read_u16be(data + offset + cursor + 4U);
-    pair_second = m68k_read_u16be(data + offset + cursor + 6U);
-    if ((pair_first & 1U) == 0U && (uint32_t)(pair_first & 0x01FEU) == register_offset + 2U &&
-        register_offset >= hardware_register->offset &&
-        ((register_offset - hardware_register->offset) & 3U) == 0U) {
-      pointer_address = ((uint32_t)second << 16) | pair_second;
-      if (render_asm_define_runtime_address_word_symbols_once(preview, hardware_register->runtime_target_role,
-          pointer_address, high_symbol, sizeof(high_symbol), low_symbol, sizeof(low_symbol))) {
-        snprintf(buf, buf_size, "%s", high_symbol);
-        return 1;
-      }
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (preview == NULL || section == NULL) return 0;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    const char *role;
+    if (use->offset != offset || use->kind != M68K_PLATFORM_SEMANTIC_USE_COPPER_ROW ||
+        !use->has_operand_expr || use->operand_expr == NULL || use->operand_expr[0] == '\0') {
+      continue;
     }
-  }
-  if (cursor >= 4U) {
-    uint16_t prev_first = m68k_read_u16be(data + offset + cursor - 4U);
-    uint16_t prev_second = m68k_read_u16be(data + offset + cursor - 2U);
-    uint32_t prev_register_offset = (uint32_t)(prev_first & 0x01FEU);
-    hardware_register = copper_runtime_pointer_register(prev_first);
-    if (hardware_register != NULL && (prev_first & 1U) == 0U &&
-        register_offset == prev_register_offset + 2U &&
-        prev_register_offset >= hardware_register->offset &&
-        ((prev_register_offset - hardware_register->offset) & 3U) == 0U) {
-      pointer_address = ((uint32_t)prev_second << 16) | second;
-      if (render_asm_define_runtime_address_word_symbols_once(preview, hardware_register->runtime_target_role,
-          pointer_address, high_symbol, sizeof(high_symbol), low_symbol, sizeof(low_symbol))) {
-        snprintf(buf, buf_size, "%s", low_symbol);
-        return 1;
+    if (use->has_runtime_address) {
+      role = m68k_analysis_structured_data_role_name_for_flags(use->role_flags);
+      if (role == NULL || role[0] == '\0') return 0;
+      if (!render_asm_define_runtime_address_word_symbols_once(preview, role, use->runtime_address,
+          high_symbol, sizeof(high_symbol), low_symbol, sizeof(low_symbol))) {
+        return 0;
       }
+      if (strcmp(use->operand_expr, high_symbol) != 0 && strcmp(use->operand_expr, low_symbol) != 0) return 0;
+    } else if (!render_asm_include_for_symbol_expr(preview, use->operand_expr)) {
+      ++preview->asm_source_instruction_render_failures;
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, (uint32_t)section_index, offset, 0U);
+      return 0;
     }
+    snprintf(buf, buf_size, "%s", use->operand_expr);
+    return strlen(buf) + 1U < buf_size;
   }
   return 0;
 }
@@ -3143,7 +3114,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     uint16_t first = m68k_read_u16be(data + offset + cursor);
     uint16_t second = m68k_read_u16be(data + offset + cursor + 2U);
     int copper_move = 0;
-    int right_is_runtime_pointer_symbol = 0;
+    int right_is_semantic_equate_symbol = 0;
     if (cursor != 0U &&
         lookup_should_emit_data_label_statement(lookup, section, accepted_start, offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
@@ -3181,9 +3152,9 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       copper_move = 1;
     }
     if (copper_move &&
-        format_copper_runtime_pointer_value_expr(preview, data, offset, cursor, size, first, second,
-          right, sizeof(right))) {
-      right_is_runtime_pointer_symbol = 1;
+        format_copper_semantic_operand_expr_for_render(preview, source_analysis, section->section_index,
+          offset + cursor, right, sizeof(right))) {
+      right_is_semantic_equate_symbol = 1;
     } else if (!copper_move || !format_copper_register_value_expr(first, second, right, sizeof(right))) {
       snprintf(right, sizeof(right), "$%04X", (unsigned)second);
     } else if (!render_asm_include_for_symbol_expr(preview, right)) {
@@ -3203,7 +3174,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     else
       snprintf(line, sizeof(line), "\tdc.w %s,%s\n", left, right);
     hash_asm_text(preview, line);
-    if (right_is_runtime_pointer_symbol &&
+    if (right_is_semantic_equate_symbol &&
         record_rendered_data_equate_symbol_access(preview, section->section_index, offset + cursor, right) != 0) {
       ++preview->asm_source_instruction_render_failures;
       record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, offset + cursor, 0U);

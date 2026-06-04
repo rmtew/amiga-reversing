@@ -3295,8 +3295,8 @@ be deleted.
 
 The copper runtime-pointer expression-symbol case now follows the same
 ownership rule. Source-quality recognizes bitmap pointer word pairs inside
-structured copper lists and publishes explicit expected symbol accesses for the
-two emitted words:
+structured copper lists and publishes both the operand expression fact and the
+matching expected symbol access for each emitted word:
 
 ```asm
     dc.w bplpt,bitmap_12345678_hi     ; bitmap pointer $12345678
@@ -3305,11 +3305,24 @@ two emitted words:
 
 ```text
 copper-list structured data item
-  + runtime-address ref role=bitmap at the high-word row
-  + adjacent low-word row proves the same pointer
+  + copper move targets a runtime-address sink such as bplpt
+  + adjacent high/low rows prove the same pointer
   + the containing copper list can render as structured word rows
+  -> platform_semantic_use(kind=copper_row,
+       offset=high row,
+       operand_index=none/data-row,
+       operand_expr="bitmap_12345678_hi",
+       runtime_address=$12345678,
+       role_flags=bitmap)
+  -> platform_semantic_use(kind=copper_row,
+       offset=low row,
+       operand_index=none/data-row,
+       operand_expr="bitmap_12345678_lo",
+       runtime_address=$12345678,
+       role_flags=bitmap)
   -> expected symbol access bitmap_12345678_hi at high row
   -> expected symbol access bitmap_12345678_lo at low row
+  -> render consumes operand_expr; it does not parse the pair again
   -> renderer records rendered data-equate accesses for those rows
   -> post-render source-quality gate fails if either symbol disappears
 ```
@@ -3336,11 +3349,16 @@ bitmap_12345678_hi     EQU     bitmap_12345678/$10000
 bitmap_12345678_lo     EQU     bitmap_12345678-(bitmap_12345678_hi*$10000)
 ```
 
-It no longer owns the semantic obligation. The focused fixture
-`facts_v2_copper_bitmap_pointers_render_display_layout_comment` now checks the
-four C-owned expected accesses with producer
-`copper_runtime_pointer_word_symbol`, while render evidence proves the source
-actually used them.
+It no longer owns the semantic obligation or the pair recognizer. The focused
+fixture `facts_v2_copper_bitmap_pointers_render_display_layout_comment` now
+checks the four C-owned semantic uses, their `operand_expr` values in exported
+analysis JSON, and the expected accesses with producer
+`copper_runtime_pointer_word_symbol`; render evidence proves the source
+actually used those expressions. The fixture also covers the Pandora shape
+where a same-offset untyped bytes placeholder exists beside the row-emitting
+copper-list item. Source-quality must choose the copper-list item for the
+renderability proof, not let the placeholder suppress valid bitmap/sprite word
+symbols.
 
 ### Slice 7: Table And Data Reference Closure
 

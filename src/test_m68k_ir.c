@@ -25983,6 +25983,12 @@ static int test_facts_v2_runtime_copper_pointer_auto_classifies_copper_list(void
   policy.runtime_ranges[0].offset = 0U;
   policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
   policy.runtime_ranges[0].runtime_address = 0U;
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 0x0CU;
+  policy.structured_data_items[0].size = (uint32_t)(sizeof(bytes) - 0x0CU);
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -26547,6 +26553,10 @@ static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(vo
   int found_expected_first_lo = 0;
   int found_expected_second_hi = 0;
   int found_expected_second_lo = 0;
+  int found_semantic_first_hi = 0;
+  int found_semantic_first_lo = 0;
+  int found_semantic_second_hi = 0;
+  int found_semantic_second_lo = 0;
   size_t index;
   uint8_t bytes[32] = {
     0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x0Cu, 0x00u, 0xDFu, 0xF0u, 0x80u,
@@ -26620,11 +26630,38 @@ static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(vo
   M68K_C_ASSERT(found_expected_first_lo);
   M68K_C_ASSERT(found_expected_second_hi);
   M68K_C_ASSERT(found_expected_second_lo);
+  for (index = 0U; index < source_analysis.sections[0].platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[index];
+    if (use->kind != M68K_PLATFORM_SEMANTIC_USE_COPPER_ROW || !use->has_operand_expr ||
+        use->operand_expr == NULL ||
+        (use->role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) == 0U ||
+        !use->has_runtime_address) {
+      continue;
+    }
+    if (use->offset == 0x0CU && use->runtime_address == 0x10000U &&
+        strcmp(use->operand_expr, "bitmap_00010000_hi") == 0)
+      found_semantic_first_hi = 1;
+    if (use->offset == 0x10U && use->runtime_address == 0x10000U &&
+        strcmp(use->operand_expr, "bitmap_00010000_lo") == 0)
+      found_semantic_first_lo = 1;
+    if (use->offset == 0x14U && use->runtime_address == 0x12000U &&
+        strcmp(use->operand_expr, "bitmap_00012000_hi") == 0)
+      found_semantic_second_hi = 1;
+    if (use->offset == 0x18U && use->runtime_address == 0x12000U &&
+        strcmp(use->operand_expr, "bitmap_00012000_lo") == 0)
+      found_semantic_second_lo = 1;
+  }
+  M68K_C_ASSERT(found_semantic_first_hi);
+  M68K_C_ASSERT(found_semantic_first_lo);
+  M68K_C_ASSERT(found_semantic_second_hi);
+  M68K_C_ASSERT(found_semantic_second_lo);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"copper_display_layout\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"note_text\":\"display layout 2 bitmap planes $00010000..$00012000 step $2000\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_expr\":\"bitmap_00010000_hi\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_expr\":\"bitmap_00012000_lo\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);

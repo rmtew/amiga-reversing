@@ -2101,6 +2101,62 @@ static int source_quality_copper_bitmap_pointer_at(const uint8_t *data, uint32_t
   return *out_pointer != 0U;
 }
 
+static uint32_t source_quality_runtime_target_kind_role_flags(uint16_t kind) {
+  switch (kind) {
+    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_COPPER_LIST:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
+    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_DISK_BUFFER:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER;
+    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_SOURCE:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE;
+    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_DESTINATION:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION;
+    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
+    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SPRITE:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
+    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+    default:
+      return 0U;
+  }
+}
+
+static int source_quality_copper_runtime_pointer_details_at(const uint8_t *data, uint32_t offset, uint32_t cursor,
+    uint32_t size, uint32_t *out_pointer, uint32_t *out_role_flags, const char **out_role) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint16_t first;
+  uint16_t second;
+  uint16_t next_first;
+  uint16_t next_second;
+  uint32_t register_offset;
+  if (out_pointer != NULL) *out_pointer = 0U;
+  if (out_role_flags != NULL) *out_role_flags = 0U;
+  if (out_role != NULL) *out_role = NULL;
+  if (data == NULL || cursor + 8U > size) return 0;
+  first = m68k_read_u16be(data + offset + cursor);
+  second = m68k_read_u16be(data + offset + cursor + 2U);
+  next_first = m68k_read_u16be(data + offset + cursor + 4U);
+  next_second = m68k_read_u16be(data + offset + cursor + 6U);
+  if ((first & 1U) != 0U || (next_first & 1U) != 0U) return 0;
+  register_offset = (uint32_t)(first & 0x01FEU);
+  hardware_register = source_quality_copper_runtime_pointer_register(first);
+  if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
+      hardware_register->runtime_target_role[0] == '\0') {
+    return 0;
+  }
+  if (register_offset < hardware_register->offset ||
+      ((register_offset - hardware_register->offset) & 3U) != 0U ||
+      (uint32_t)(next_first & 0x01FEU) != register_offset + 2U) {
+    return 0;
+  }
+  if (out_pointer != NULL) *out_pointer = ((uint32_t)second << 16) | next_second;
+  if (out_role_flags != NULL)
+    *out_role_flags = source_quality_runtime_target_kind_role_flags(hardware_register->runtime_target_kind);
+  if (out_role != NULL) *out_role = hardware_register->runtime_target_role;
+  return out_pointer == NULL || *out_pointer != 0U;
+}
+
 static uint8_t source_quality_collect_copper_bitmap_pointers(const uint8_t *data, uint32_t offset, uint32_t size,
     uint32_t *pointers, uint8_t pointer_limit) {
   uint32_t cursor;
@@ -2517,6 +2573,38 @@ static int append_hardware_note_platform_semantic_uses(M68kSourceAnalysisIR *sou
 }
 
 static int source_quality_section_has_label_at(const M68kSectionAnalysisIR *section, uint32_t offset);
+static int source_quality_copper_list_item_renders_word_row_at(const M68kSourceAnalysisIR *source_analysis,
+    const M68kSectionAnalysisIR *section_analysis, size_t section_index, uint32_t offset);
+
+static int append_copper_runtime_pointer_word_symbol_access_and_use(M68kSectionAnalysisIR *section,
+    uint32_t offset, const char *symbol_name, uint32_t runtime_address, uint32_t role_flags, uint8_t confidence) {
+  M68kExpectedSymbolAccessIR access;
+  M68kPlatformSemanticUseIR use;
+  if (section == NULL || symbol_name == NULL || symbol_name[0] == '\0' || runtime_address == 0U ||
+      role_flags == 0U) {
+    return 0;
+  }
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = (char *)symbol_name;
+  access.producer = "copper_runtime_pointer_word_symbol";
+  access.offset = offset;
+  access.operand_index = UINT32_MAX;
+  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
+  access.confidence = confidence;
+  if (m68k_ir_section_analysis_append_expected_symbol_access(section, &access) != 0) return -1;
+  memset(&use, 0, sizeof(use));
+  use.kind = M68K_PLATFORM_SEMANTIC_USE_COPPER_ROW;
+  use.offset = offset;
+  use.size = 4U;
+  use.role_flags = role_flags;
+  use.confidence = confidence;
+  use.has_operand_expr = 1U;
+  use.operand_expr = (char *)symbol_name;
+  use.operand_index = UINT32_MAX;
+  use.has_runtime_address = 1U;
+  use.runtime_address = runtime_address;
+  return m68k_ir_section_analysis_append_platform_semantic_use(section, &use);
+}
 
 static int append_structured_copper_row_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode) {
@@ -2585,6 +2673,32 @@ static int append_structured_copper_row_platform_semantic_uses(M68kSourceAnalysi
         use.note_text = note;
         if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
       }
+      {
+        uint32_t pointer_address = 0U;
+        uint32_t role_flags = 0U;
+        const char *role = NULL;
+        char high_symbol[80];
+        char low_symbol[80];
+        if (source_quality_copper_runtime_pointer_details_at(section->data, item->offset, cursor, item->size,
+            &pointer_address, &role_flags, &role) &&
+            source_quality_copper_list_item_renders_word_row_at(source_analysis, section_analysis,
+              item->section_index, row_offset) &&
+            source_quality_copper_list_item_renders_word_row_at(source_analysis, section_analysis,
+              item->section_index, row_offset + 4U)) {
+          platform_format_runtime_address_symbol_name(role, pointer_address, "_hi", high_symbol,
+            sizeof(high_symbol));
+          platform_format_runtime_address_symbol_name(role, pointer_address, "_lo", low_symbol,
+            sizeof(low_symbol));
+          if (append_copper_runtime_pointer_word_symbol_access_and_use(section_analysis, row_offset, high_symbol,
+              pointer_address, role_flags, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+            return -1;
+          }
+          if (append_copper_runtime_pointer_word_symbol_access_and_use(section_analysis, row_offset + 4U,
+              low_symbol, pointer_address, role_flags, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+            return -1;
+          }
+        }
+      }
       cursor += 4U;
     }
   }
@@ -2613,6 +2727,8 @@ static int source_quality_copper_list_item_renders_word_row_at(const M68kSourceA
   for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
     if (!item->has_section_index || item->section_index != section_index || item->size == 0U ||
+        item->kind != M68K_ANALYSIS_STRUCTURED_DATA_WORDS ||
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) == 0U ||
         item->offset > UINT32_MAX - item->size ||
         offset < item->offset || offset >= item->offset + item->size) {
       continue;
@@ -2621,10 +2737,7 @@ static int source_quality_copper_list_item_renders_word_row_at(const M68kSourceA
       selected_item = item;
     }
   }
-  if (selected_item == NULL || selected_item->kind != M68K_ANALYSIS_STRUCTURED_DATA_WORDS ||
-      (selected_item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) == 0U) {
-    return 0;
-  }
+  if (selected_item == NULL) return 0;
   for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
     if (item == selected_item || !item->has_section_index || item->section_index != section_index) continue;
@@ -5267,7 +5380,6 @@ static int append_expected_copper_runtime_pointer_word_symbol_accesses(M68kSourc
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
       const AmigaOsHardwareRegisterInfo *hardware_register;
-      M68kExpectedSymbolAccessIR access;
       uint32_t pointer_address = 0U;
       uint16_t first;
       char high_symbol[80];
@@ -5295,17 +5407,14 @@ static int append_expected_copper_runtime_pointer_word_symbol_accesses(M68kSourc
       platform_format_runtime_address_symbol_name(hardware_register->runtime_target_role, ref->runtime_address,
         "_lo", low_symbol, sizeof(low_symbol));
       if (high_symbol[0] == '\0' || low_symbol[0] == '\0') continue;
-      memset(&access, 0, sizeof(access));
-      access.symbol_name = high_symbol;
-      access.producer = "copper_runtime_pointer_word_symbol";
-      access.offset = ref->offset;
-      access.operand_index = UINT32_MAX;
-      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
-      access.confidence = ref->confidence;
-      if (m68k_ir_section_analysis_append_expected_symbol_access(section, &access) != 0) return -1;
-      access.symbol_name = low_symbol;
-      access.offset = ref->offset + 4U;
-      if (m68k_ir_section_analysis_append_expected_symbol_access(section, &access) != 0) return -1;
+      if (append_copper_runtime_pointer_word_symbol_access_and_use(section, ref->offset, high_symbol,
+          ref->runtime_address, ref->data_class_flags, ref->confidence) != 0) {
+        return -1;
+      }
+      if (append_copper_runtime_pointer_word_symbol_access_and_use(section, ref->offset + 4U, low_symbol,
+          ref->runtime_address, ref->data_class_flags, ref->confidence) != 0) {
+        return -1;
+      }
     }
   }
   return 0;
