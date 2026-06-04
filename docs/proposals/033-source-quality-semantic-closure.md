@@ -3869,25 +3869,27 @@ src/scripts/target_usage_manifest.py
   -> indexes source-analysis JSON into corpus/search features
 
 amiga_reversing/disasm/macos_project_payload.py
-  -> still computes macos_source_quality_gate_v1 in Python
+  -> indexes C-owned source-analysis summaries for decoded Mac CODE resources
 
 amiga_reversing/disasm/macos_target_artifact.py
-  -> renders that Python-computed gate into source comments
+  -> no longer renders Python-computed source-quality comments
 ```
 
-The first three are acceptable wrapping behavior when they only display or
-index C-exported facts. The Mac OS gate is different: it computes checklist
-values, semantic closeout status, residual status, label/xref status, and
-claims/does-not-claim text in Python. That model may be useful, but the clean
-target is still C-owned source-quality facts.
+The wrappers are acceptable only while they display or index C-exported facts.
+The removed Mac OS gate was different: it computed checklist values, semantic
+closeout status, residual status, label/xref status, and claims/does-not-claim
+text in Python. That model may have been useful for discussion, but it violated
+the ownership rule. Source-quality meaning now belongs to C facts.
 
-Migration path:
+Completed migration:
 
 ```text
-1. Move Mac OS source-quality gate state into C source-analysis facts.
-2. Export the same checklist/status rows through source_analysis_json.
-3. Change Python artifact generation to render exported rows only.
-4. Delete Python semantic closeout calculations and fixture-only status text.
+1. C source-quality explain exports source_analysis JSON.
+2. Mac project payload removes macos_source_quality_gate_v1.
+3. Mac project payload exposes c_source_analysis_summary_v1 rows only.
+4. Mac target artifact source comments no longer render Python gate text.
+5. Any missing Mac source-quality fact must be added in C, not re-derived in
+   Python.
 ```
 
 The first enabling step is now in place: the C source-quality explain API
@@ -3916,13 +3918,37 @@ packet:
 }
 ```
 
-That does not finish the Mac OS gate migration. It removes the tooling excuse:
 Python can now read the C-owned code runs, symbol origins, diagnostics,
 expected accesses, and platform facts from the same explain packet used by
-source-export failure reporting. The next Slice 8 work is to replace
-`macos_source_quality_gate_v1` calculations with presentation over those
-exported C rows, adding any missing C facts instead of re-deriving them in
-Python.
+source-export failure reporting. The Mac project payload consumes the same
+listing-artifact analysis payload while the artifact is open:
+
+```py
+window, _window_profile = artifact.window_payload(start=0, count=total_rows)
+source_analysis, _analysis_profile = artifact.analysis_payload()
+```
+
+It then publishes a compact index:
+
+```json
+{
+  "source_analysis_summaries": [
+    {
+      "kind": "c_source_analysis_summary_v1",
+      "authority": "c_source_analysis",
+      "resource_id": 1,
+      "section_count": 1,
+      "source_quality_diagnostic_count": 0,
+      "accepted_code_run_count": 1
+    }
+  ]
+}
+```
+
+That index is not a verdict. It is a pointer to C-owned facts suitable for web
+navigation and debugging. If we need semantic closeout status, label/xref
+resolution status, residual status, or source-quality failures for Mac CODE,
+those facts must be produced by the shared C analysis and validation layer.
 
 The old Mac OS target-artifact source-comment renderer for that Python gate has
 also been deleted. Generated Mac OS source already omits `; Source quality gate`

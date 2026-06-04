@@ -231,7 +231,6 @@ def _binary_container_view(
         },
         native_source=native_source,
     )
-    source_quality_gate = _source_quality_gate(source_body_sections, code_resource_details)
     return {
         "kind": c_summary.get("container_kind"),
         "native_source": dict(native_source),
@@ -258,7 +257,7 @@ def _binary_container_view(
         "code_segment_map": code_segment_map,
         "code_resource_details": code_resource_details,
         "source_body_sections": source_body_sections,
-        "source_quality_gate": source_quality_gate,
+        "source_analysis_summaries": _source_analysis_summaries(source_body_sections),
         "navigation": _code_resource_navigation(code_resource_details),
         "selected_code_segment": {
             "native_source": dict(native_source),
@@ -540,342 +539,56 @@ def _byte_preserving_envelope_reason(
     )
 
 
-def _source_quality_gate(
-    sections: list[dict[str, object]],
-    details: list[dict[str, object]],
-) -> dict[str, object]:
-    section_by_id = {section.get("id"): section for section in sections}
-    rows = [
-        _source_quality_resource_row(detail, section_by_id.get(detail.get("id")))
-        for detail in details
-    ]
-    checklist = {
-        "source_first_artifact": True,
-        "all_code_sections_visible": all(row["section_visible"] is True for row in rows),
-        "range_ownership_complete": all(row["ownership_complete"] is True for row in rows),
-        "no_vague_orphan_bucket": all(row["orphan_bucket_present"] is False for row in rows),
-        "renderer_uses_durable_rows": all(row["renders_durable_source_rows"] is True for row in rows),
-        "stable_labels_present": all(row["stable_labels_present"] is True for row in rows),
-        "residuals_explicit": all(row["residuals_explicit"] is True for row in rows),
-        "reachable_code_evidence_recorded": all(row["reachable_code_evidence_recorded"] is True for row in rows),
-        "xref_target_labels_resolved": all(row["xref_target_labels_resolved"] is True for row in rows),
-    }
-    semantic_rows = [row for row in rows if _int_value(row.get("executable_body_span_count"))]
-    checklist["recursive_control_target_xrefs_present"] = any(
-        (_int_value(row.get("recursive_control_target_xrefs")) or 0) > 0 for row in semantic_rows
-    )
-    byte_real_only_bodies = [row for row in semantic_rows if _int_value(row.get("semantic_instruction_row_count")) == 0]
-    semantic_decode_gap_bodies = [
-        row
-        for row in semantic_rows
-        if any(_mapping(item).get("kind") == "semantic_decode_gap" for item in _sequence(row.get("residuals")))
-    ]
-    semantic_components = {
-        "byte_preservation_status": "byte_real_complete" if all(checklist.values()) else "blocked",
-        "source_ordering_status": "source_first" if checklist["source_first_artifact"] else "blocked",
-        "semantic_disassembly_status": (
-            "byte_real_only"
-            if byte_real_only_bodies
-            else "semantic_instruction_rows_present"
-        ),
-        "label_xref_status": (
-            "generated_labels_without_xrefs"
-            if all(row["generated_label_count"] for row in rows)
-            and not any(row["generated_xref_count"] for row in rows)
-            else "generated_labels_and_xrefs_present"
-        ),
-        "residual_status": "explicit" if checklist["residuals_explicit"] else "blocked",
-    }
-    semantic_closeout_status = (
-        "blocked_byte_real_only"
-        if byte_real_only_bodies
-        else "semantic_source_complete_for_known_bounds"
-        if all(checklist.values())
-        else "blocked"
-    )
-    return {
-        "kind": "macos_source_quality_gate_v1",
-        "status": "byte_real_baseline" if all(checklist.values()) else "blocked",
-        "semantic_closeout_status": semantic_closeout_status,
-        "scope": "current MPW Tools Asm fixture",
-        "baseline_status": "passed_with_deferred_semantics",
-        "baseline_status_meaning": (
-            "byte preservation, source ordering, labels, and residual accounting are present; "
-            "this is not semantic source closeout"
-        ),
-        "semantic_components": semantic_components,
-        "semantic_decode_gap_resource_count": len(semantic_decode_gap_bodies),
-        "does_not_claim": [
-            "accepted byte-entry proof",
-            "decoded Segment Loader relocation/fixup semantics",
-            "A5 lifetime proof",
-            "resource-fork round trip",
-        ],
-        "non_blocking_for_semantic_disassembly": [
-            "missing human semantic names",
-            "missing original source symbols",
-            "deferred A5 lifetime proof",
-            "deferred Segment Loader fixup decoding for current zero-offset fixture spans",
-        ],
-        "checklist": checklist,
-        "resources": rows,
-    }
-
-
-def _source_quality_resource_row(
-    detail: Mapping[str, object],
-    section: Mapping[str, object] | None,
-) -> dict[str, object]:
-    section = section or {}
-    resource_id = detail.get("id")
-    ranges = [_mapping(item) for item in _sequence(section.get("source_body_ranges"))]
-    payload_size = _int_value(detail.get("payload_size")) or 0
-    labels = _source_quality_labels(detail, section)
-    reachable = _source_quality_reachable_evidence(detail, section)
-    semantic_source = _mapping(section.get("semantic_source"))
-    semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
-    semantic_instruction_count = sum(1 for item in semantic_rows if item.get("kind") == "instruction")
-    semantic_data_count = sum(1 for item in semantic_rows if _semantic_row_is_durable_data(item))
-    semantic_xref_count = sum(len(_sequence(item.get("xrefs"))) for item in semantic_rows)
-    semantic_xref_reason_counts = _semantic_xref_reason_counts(semantic_rows)
-    semantic_label_names = _semantic_label_names(semantic_rows)
-    semantic_xref_target_labels = _semantic_xref_target_labels(semantic_rows)
-    unresolved_xref_target_labels = sorted(semantic_xref_target_labels - semantic_label_names)
-    residuals = _source_quality_residuals(
-        detail,
-        ranges,
-        payload_size=payload_size,
-        semantic_rows=semantic_rows,
-        candidate_residuals=[_mapping(item) for item in _sequence(semantic_source.get("candidate_residuals"))],
-        semantic_gap_residuals=[_mapping(item) for item in _sequence(semantic_source.get("semantic_gap_residuals"))],
-    )
-    executable_body_spans = [
-        item
-        for item in ranges
-        if item.get("kind") in {"confirmed_code", "candidate_code", "code"}
-        and _int_value(item.get("end")) is not None
-        and (_int_value(item.get("end")) or 0) > (_int_value(item.get("start")) or 0)
-    ]
-    return {
-        "resource_id": resource_id,
-        "resource_name": detail.get("name"),
-        "section_id": section.get("source_section_id"),
-        "section_label": section.get("label"),
-        "section_visible": section.get("source_visible") is True,
-        "ownership_kinds": sorted({_text(item.get("kind")) for item in ranges}),
-        "ownership_complete": _ranges_cover_payload(ranges, payload_size=payload_size),
-        "orphan_bucket_present": any("orphan" in str(item.get("kind") or "").lower() for item in ranges),
-        "legacy_orphan_ranges_reclassified": len(_sequence(detail.get("orphan_ranges"))),
-        "renders_durable_source_rows": True,
-        "executable_body_span_count": len(executable_body_spans),
-        "semantic_instruction_row_count": semantic_instruction_count,
-        "semantic_data_row_count": semantic_data_count,
-        "byte_real_only_executable_body": bool(executable_body_spans) and semantic_instruction_count == 0,
-        "stable_labels_present": bool(labels),
-        "labels": labels,
-        "generated_label_count": len(labels),
-        "generated_xref_count": semantic_xref_count,
-        "generated_xref_reason_counts": semantic_xref_reason_counts,
-        "recursive_control_target_xrefs": semantic_xref_reason_counts.get("control_target", 0),
-        "xref_target_label_count": len(semantic_xref_target_labels),
-        "unresolved_xref_target_label_count": len(unresolved_xref_target_labels),
-        "xref_target_labels_resolved": not unresolved_xref_target_labels,
-        "unresolved_xref_target_labels": unresolved_xref_target_labels[:20],
-        "human_semantic_names_required": False,
-        "residuals_explicit": all(item.get("status") in {"candidate", "deferred"} for item in residuals),
-        "residuals": residuals,
-        "reachable_code_evidence_recorded": bool(reachable),
-        "reachable_code_evidence": reachable,
-        "next_required_implementation": _source_quality_next_step(
-            detail,
-            residuals,
-            semantic_instruction_count=semantic_instruction_count,
-        ),
-    }
-
-
-def _semantic_xref_reason_counts(rows: list[Mapping[str, object]]) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for row in rows:
-        for xref in (_mapping(value) for value in _sequence(row.get("xrefs"))):
-            reason = _text(xref.get("reason"))
-            if not reason:
-                continue
-            counts[reason] = counts.get(reason, 0) + 1
-    return dict(sorted(counts.items()))
-
-
-def _semantic_label_names(rows: list[Mapping[str, object]]) -> set[str]:
-    labels: set[str] = set()
-    for row in rows:
-        if row.get("kind") != "label":
+def _source_analysis_summaries(sections: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
+    summaries: list[dict[str, object]] = []
+    for section in sections:
+        semantic_source = _mapping(section.get("semantic_source"))
+        summary = _mapping(semantic_source.get("source_analysis_summary"))
+        if not summary:
             continue
-        resource_id = row.get("resource_id")
-        payload_offset = _int_value(row.get("payload_offset"))
-        if resource_id is None or payload_offset is None:
-            continue
-        labels.add(f"CODE_{_text(resource_id)}_loc_{payload_offset:08x}")
-    return labels
-
-
-def _semantic_xref_target_labels(rows: list[Mapping[str, object]]) -> set[str]:
-    labels: set[str] = set()
-    for row in rows:
-        for xref in (_mapping(value) for value in _sequence(row.get("xrefs"))):
-            if _text(xref.get("reason")) == "linkage_api_entry":
-                continue
-            target_label = xref.get("target_label")
-            if isinstance(target_label, str) and target_label:
-                labels.add(target_label)
-    return labels
-
-
-def _source_quality_labels(detail: Mapping[str, object], section: Mapping[str, object]) -> list[str]:
-    labels = [_text(section.get("label"))] if section.get("label") is not None else []
-    resource_id = detail.get("id")
-    if resource_id == 0:
-        labels.extend(["CODE_0_application_metadata", "CODE_0_jump_table"])
-        labels.extend(
-            f"CODE_0_jump_table_entry_{_text(_mapping(row).get('entry_index'))}"
-            for row in _sequence(_mapping(section.get("code0_structured_context")).get("jump_table_rows"))
-        )
-    if resource_id == 1:
-        context = _mapping(section.get("code1_layout_context"))
-        labels.extend(
-            _text(_mapping(context.get(key)).get("label"))
-            for key in ("far_model_header", "candidate_entry_stub", "candidate_body_after_stub")
-        )
-    labels.extend(_text(_mapping(item).get("target_label")) for item in _sequence(section.get("incoming_code0_xrefs")))
-    for item in _sequence(section.get("source_body_ranges")):
-        range_info = _mapping(item)
-        start = _int_value(range_info.get("start")) or 0
-        labels.append(f"{_text(section.get('label'))}_{_text(range_info.get('kind'))}_{start:08x}")
-    return [label for label in labels if label and label != "unknown"]
-
-
-def _source_quality_residuals(
-    detail: Mapping[str, object],
-    ranges: list[Mapping[str, object]],
-    *,
-    payload_size: int,
-    semantic_rows: list[Mapping[str, object]],
-    candidate_residuals: list[Mapping[str, object]],
-    semantic_gap_residuals: list[Mapping[str, object]],
-) -> list[dict[str, object]]:
-    residuals: list[dict[str, object]] = []
-    for item in ranges:
-        kind = str(item.get("kind") or "")
-        status = str(item.get("fact_status") or item.get("status") or "")
-        if kind in {"candidate_code", "candidate_unresolved_prefix", "confirmed_code", "code"}:
-            decoded_residuals = _residuals_in_range(
-                semantic_gap_residuals or _semantic_gap_residuals(detail, item, semantic_rows),
-                item,
-            )
-            if semantic_rows:
-                residuals.extend(dict(item) for item in decoded_residuals)
-                continue
-        if kind in {
-            "candidate_code",
-            "candidate_unresolved_prefix",
-            "deferred",
-            "unknown",
-            "placeholder",
-        } or status in {"candidate", "deferred"}:
-            residuals.append(
-                {
-                    "kind": kind or "unknown",
-                    "parser_range_kind": item.get("parser_range_kind"),
-                    "start": item.get("start"),
-                    "end": item.get("end"),
-                    "size": item.get("size"),
-                    "status": status or "deferred",
-                    "fact_status": status or "deferred",
-                    "parser_use": item.get("parser_use"),
-                    "fact_id": item.get("fact_id"),
-                    "kb_record_id": item.get("kb_record_id") or detail.get("kb_record_id"),
-                    "reason": item.get("reason") or item.get("evidence") or "semantic ownership remains unresolved",
-                    "next_required_implementation": _source_quality_next_step(detail, []),
-                }
-            )
-    if not residuals and not ranges and payload_size:
-        residuals.append(
+        summaries.append(
             {
-                "kind": "unknown",
-                "start": 0,
-                "end": payload_size,
-                "size": payload_size,
-                "status": "deferred",
-                "reason": "no source-body range is available",
-                "next_required_implementation": "extend C-owned CODE layout classification",
+                "resource_id": section.get("id"),
+                "section_id": section.get("source_section_id"),
+                "section_label": section.get("label"),
+                **summary,
             }
         )
-    existing_spans = {
-        (
-            _int_value(item.get("start")),
-            _int_value(item.get("end")),
-            str(item.get("kind") or ""),
-        )
-        for item in residuals
-    }
-    for item in candidate_residuals:
-        start = _int_value(item.get("start"))
-        end = _int_value(item.get("end"))
-        kind = str(item.get("kind") or "")
-        if start is None or end is None or end <= start:
-            continue
-        key = (start, end, kind)
-        if key in existing_spans:
-            continue
-        residuals.append(
+    return summaries
+
+
+def _source_analysis_summary(source_analysis: Mapping[str, object]) -> dict[str, object]:
+    section_summaries = []
+    accepted_code_run_count = 0
+    symbol_origin_count = 0
+    for section in (_mapping(item) for item in _sequence(source_analysis.get("sections"))):
+        accepted_code_run_count += _int_value(section.get("accepted_code_run_count")) or 0
+        symbol_origin_count += _int_value(section.get("symbol_origin_count")) or 0
+        section_summaries.append(
             {
-                "kind": kind or "candidate_unvisited_entry_pattern",
-                "start": start,
-                "end": end,
-                "size": end - start,
-                "island_start": item.get("island_start"),
-                "island_end": item.get("island_end"),
-                "island_size": item.get("island_size"),
-                "status": item.get("status") or "candidate",
-                "fact_status": item.get("fact_status") or "candidate",
-                "parser_use": item.get("parser_use") or "candidate_only",
-                "fact_id": item.get("fact_id"),
-                "kb_record_id": item.get("kb_record_id") or detail.get("kb_record_id"),
-                "reason": item.get("reason") or "unvisited executable-looking bytes remain candidate residuals",
-                "next_required_implementation": item.get("next_required_implementation")
-                or "prove reachability from loader/CODE0/control-flow evidence before seeding",
+                "section_index": section.get("section_index"),
+                "accepted_code_run_count": section.get("accepted_code_run_count"),
+                "symbol_origin_count": section.get("symbol_origin_count"),
+                "source_quality_diagnostic_count": section.get("source_quality_diagnostic_count"),
+                "source_quality_explanation_count": section.get("source_quality_explanation_count"),
+                "orphan_code_signal_count": section.get("orphan_code_signal_count"),
+                "address_identity_count": section.get("address_identity_count"),
+                "table_record_count": section.get("table_record_count"),
             }
         )
-        existing_spans.add(key)
-    return residuals
-
-
-def _residuals_in_range(
-    residuals: Sequence[Mapping[str, object]],
-    range_info: Mapping[str, object],
-) -> list[Mapping[str, object]]:
-    range_start = _int_value(range_info.get("start"))
-    range_end = _int_value(range_info.get("end"))
-    if range_start is None or range_end is None:
-        return list(residuals)
-    filtered: list[Mapping[str, object]] = []
-    for residual in residuals:
-        start = _int_value(residual.get("start"))
-        end = _int_value(residual.get("end"))
-        if start is None or end is None:
-            continue
-        overlap_start = max(start, range_start)
-        overlap_end = min(end, range_end)
-        if overlap_end <= overlap_start:
-            continue
-        if overlap_start == start and overlap_end == end:
-            filtered.append(residual)
-            continue
-        clipped = dict(residual)
-        clipped["start"] = overlap_start
-        clipped["end"] = overlap_end
-        clipped["size"] = overlap_end - overlap_start
-        filtered.append(clipped)
-    return filtered
+    return {
+        "kind": "c_source_analysis_summary_v1",
+        "authority": "c_source_analysis",
+        "section_count": source_analysis.get("section_count"),
+        "source_quality_diagnostic_count": source_analysis.get("source_quality_diagnostic_count"),
+        "source_quality_explanation_count": source_analysis.get("source_quality_explanation_count"),
+        "orphan_code_signal_count": source_analysis.get("orphan_code_signal_count"),
+        "address_identity_count": source_analysis.get("address_identity_count"),
+        "table_record_count": source_analysis.get("table_record_count"),
+        "accepted_code_run_count": accepted_code_run_count,
+        "symbol_origin_count": symbol_origin_count,
+        "sections": section_summaries,
+    }
 
 
 def _semantic_gap_residuals(
@@ -946,77 +659,6 @@ def _semantic_gap_residual(
         "reason": "decoder did not emit an instruction/data row for this exact executable subrange",
         "next_required_implementation": "extend flow/data classification for this exact CODE subrange",
     }
-
-
-def _source_quality_reachable_evidence(
-    detail: Mapping[str, object],
-    section: Mapping[str, object],
-) -> list[dict[str, object]]:
-    resource_id = detail.get("id")
-    evidence: list[dict[str, object]] = []
-    if resource_id == 0 and _mapping(section.get("code0_structured_context")).get("jump_table_rows"):
-        evidence.append(
-            {
-                "kind": "code0_jump_table",
-                "status": "validated_layout_candidate_targets",
-                "kb_record_id": detail.get("kb_record_id"),
-                "reason": "CODE 0 jump-table layout is accepted; target interpretation remains candidate",
-            }
-        )
-    if resource_id == 1 and section.get("code1_layout_context"):
-        evidence.append(
-            {
-                "kind": "known_entry_stub_pattern",
-                "status": "candidate",
-                "fact_status": "candidate",
-                "parser_use": "candidate_only",
-                "kb_record_id": detail.get("kb_record_id"),
-                "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
-                "reason": "movea.l (a7)+,a0 boundary is candidate-only; accepted byte-entry proof remains deferred",
-            }
-        )
-    for anchor in _sequence(detail.get("navigation_anchors")):
-        anchor_map = _mapping(anchor)
-        evidence.append(
-            {
-                "kind": anchor_map.get("kind"),
-                "status": anchor_map.get("fact_status"),
-                "fact_status": anchor_map.get("fact_status"),
-                "parser_use": anchor_map.get("parser_use"),
-                "fact_id": anchor_map.get("fact_id"),
-                "kb_record_id": anchor_map.get("kb_record_id") or detail.get("kb_record_id"),
-                "reason": anchor_map.get("label"),
-            }
-        )
-    return evidence
-
-
-def _source_quality_next_step(
-    detail: Mapping[str, object],
-    residuals: Sequence[Mapping[str, object]],
-    *,
-    semantic_instruction_count: int = 0,
-) -> str:
-    if detail.get("id") == 0:
-        return "decode CODE 0 dispatch target semantics only where accepted target evidence exists"
-    if semantic_instruction_count:
-        return "extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans"
-    if any(_mapping(item).get("kind") == "candidate_code" for item in residuals):
-        return "implement accepted Mac CODE entry/reachability proof before rendering semantic instructions"
-    return "extend C-owned CODE layout and reference analysis before promoting semantic source rows"
-
-
-def _ranges_cover_payload(ranges: list[Mapping[str, object]], *, payload_size: int) -> bool:
-    if not ranges:
-        return payload_size == 0
-    cursor = 0
-    for item in sorted(ranges, key=_range_start_sort_key):
-        start = _int_value(item.get("start"))
-        end = _int_value(item.get("end"))
-        if start is None or end is None or start != cursor or end < start:
-            return False
-        cursor = end
-    return cursor == payload_size
 
 
 def _code1_layout_context(
@@ -1297,6 +939,7 @@ def _semantic_source_rows(
         )
     try:
         window, _window_profile = artifact.window_payload(start=0, count=total_rows)
+        source_analysis, _analysis_profile = artifact.analysis_payload()
     finally:
         artifact.close()
     asm_source_includes = _macos_asm_source_includes(_sequence(window.get("rows")))
@@ -1359,6 +1002,7 @@ def _semantic_source_rows(
         "generated_xref_count": sum(len(_sequence(row.get("xrefs"))) for row in rows),
         "analysis_seed_count": len(analysis_seeds),
         "analysis_seeds": analysis_seeds,
+        "source_analysis_summary": _source_analysis_summary(source_analysis),
         "asm_source_includes": asm_source_includes,
         "candidate_residual_count": len(candidate_residuals),
         "candidate_residuals": candidate_residuals,
@@ -2709,11 +2353,6 @@ def _first_executable_code_range(ranges: list[object]) -> Mapping[str, object]:
 def _resource_id_sort_key(value: object) -> tuple[int, object]:
     resource_id = _mapping(value).get("id")
     return (0, resource_id) if isinstance(resource_id, int) else (1, str(resource_id))
-
-
-def _range_start_sort_key(value: object) -> int:
-    start = _int_value(_mapping(value).get("start"))
-    return start if start is not None else 0
 
 
 def _code_resource_by_id(resources: list[object], resource_id: int) -> Mapping[str, object]:
