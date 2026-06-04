@@ -1560,6 +1560,7 @@ display-setup comments
 bitmap-memory comments
 palette upload comments
 audio-register comments
+hardware-access comments
 ```
 
 Remaining work should name the exact unpinned family, add its source-quality
@@ -2815,6 +2816,15 @@ accepted instruction + source-quality hardware-base tracker
 The rendered output is unchanged, but the source of truth moved. Tests assert
 both `kind_name:"hardware_access"` and the expected `note_text` values for
 palette, joystick/mouse, and interrupt-state comments.
+
+The render boundary is explicit for this family too:
+
+```text
+render_hardware_access_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> color/joy0dat operand symbols still render from platform-address facts
+  -> "palette color ..." and "joystick/mouse ..." do not appear
+```
 
 Current immediate hardware-value comment closure:
 
