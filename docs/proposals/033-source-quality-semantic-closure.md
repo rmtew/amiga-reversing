@@ -312,6 +312,20 @@ Only failure to resolve the target, open metadata, or write the export file
 should prevent an export path from being reported. Individual analysis
 components should record `*_error` fields and let the remaining components run.
 
+Diagnostic CLI entry offsets should accept the same numeric spellings as source
+and notes, so workers can copy addresses directly from source:
+
+```powershell
+src\build\platform_file_cli.exe source-quality-explain amiga-raw payload.bin '$400'
+src\build\platform_file_cli.exe source-quality-explain amiga-raw payload.bin 0x400
+src\build\platform_file_cli.exe source-quality-explain amiga-raw payload.bin 1024
+```
+
+The current shared parser already accepts `$nnnn`, `0xnnnn`, decimal, binary
+`%nnnn`, character literals, and signed values. CLI paths should keep using
+that parser for positional raw entry offsets and `--entry-offset` policy
+arguments.
+
 The GenAm failure exposed a separate false-code producer. Its real shape is a
 zero-guarded PC-indexed word dispatch table:
 
