@@ -3027,6 +3027,23 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"kind_name\":\"copper_display_layout\"") != NULL);
 ```
 
+The negative boundary is equally important. If a test removes
+`platform_semantic_uses` before rendering, the structured copper list may still
+render ordinary register/value expressions, but no source-quality-owned row
+semantics may survive:
+
+```text
+render_copper_display_layout_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> "display layout 2 bitmap planes ..." does not appear
+  -> "bitmap pointer $00010000" does not appear
+  -> bitmap_00010000_hi / bitmap_00010000_lo do not appear
+  -> raw copper rows still render as bplpt,$0001 and bplpt+$02,$0000
+```
+
+That keeps the split clear: copper-list formatting is renderer support;
+bitmap-pointer interpretation is source-quality evidence.
+
 Bitmap-memory comments now follow the same rule:
 
 ```text
