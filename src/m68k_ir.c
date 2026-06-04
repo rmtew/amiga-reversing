@@ -361,6 +361,8 @@ const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind) {
       return "partial_code_block_decode";
     case M68K_SOURCE_QUALITY_DIAGNOSTIC_EXPECTED_SYMBOL_ACCESS_WITHOUT_PRODUCER:
       return "expected_symbol_access_without_producer";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_PLATFORM_OPERAND_EXPR_WITHOUT_EXPECTED_ACCESS:
+      return "platform_operand_expr_without_expected_access";
     default:
       return "unknown";
   }

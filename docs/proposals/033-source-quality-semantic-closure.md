@@ -1480,6 +1480,58 @@ the producer that created the obligation, even when the renderer happened to
 emit the matching symbol. The focused regression is
 `source_quality_analyze_blocks_expected_symbol_access_without_producer`.
 
+Platform operand expressions now have the same closure rule. Once source
+analysis chooses to export a symbolic operand expression, every symbol token in
+that expression must have a matching `expected_symbol_access` at the same
+instruction offset and operand index:
+
+```text
+platform_semantic_use(offset=4,
+                      operand=0,
+                      operand_expr=bitmap_00060000)
+  -> expected_symbol_access(offset=4,
+                            operand=0,
+                            symbol=bitmap_00060000,
+                            producer=runtime_sink_pointer_operand)
+```
+
+If the semantic expression exists without the obligation, source-quality emits:
+
+```text
+kind=platform_operand_expr_without_expected_access
+origin=auto_analysis
+blocker=true
+summary="platform operand expression has no expected symbol access"
+evidence="platform_semantic_use:kind=runtime_sink_pointer operand_expr=bitmap_00060000 missing_symbol=bitmap_00060000 operand=0"
+```
+
+This is intentionally a source-analysis failure, not a renderer warning. The
+renderer may format the expression, but it must not be the only place that knows
+the symbol should be visible. Focused regressions:
+`source_quality_analyze_blocks_platform_operand_expr_without_expected_access`
+and `source_quality_analyze_accepts_platform_operand_expr_expected_access`.
+
+The Damocles `TRIO` target exposed the companion rule for runtime sinks:
+do not create a runtime-role operand expression when the operand already has a
+stronger loaded-source identity.
+
+```text
+move.l #loc_1_00002290,_custom+bltdpt.l
+  -> platform_semantic_use(kind=runtime_sink_pointer,
+                           target_section=1,
+                           target_offset=$2290,
+                           note="blitter_destination pointer $00002290")
+  -> no operand_expr=blitter_destination_00002290
+  -> no expected_symbol_access(runtime_sink_pointer_operand,
+                              blitter_destination_00002290)
+```
+
+The source-quality fix is cause-level: the runtime sink producer now prefers a
+decoded operand target or a unique existing storage symbol origin before it
+falls back to a runtime-role equate. This keeps `loc_*`/object storage labels
+as address-located data symbols, and reserves runtime sink equates for external
+or otherwise unmaterialized addresses.
+
 Current table-entry progress:
 
 ```text

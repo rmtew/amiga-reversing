@@ -1138,10 +1138,95 @@ static int append_expected_symbol_access_without_producer_diagnostic(M68kSection
   return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
 }
 
+static int section_has_expected_symbol_access_for_platform_operand_expr_token(
+    const M68kSectionAnalysisIR *section, const M68kPlatformSemanticUseIR *use, const char *token) {
+  size_t index;
+  if (section == NULL || use == NULL || token == NULL || token[0] == '\0') return 0;
+  for (index = 0U; index < section->expected_symbol_access_count; ++index) {
+    const M68kExpectedSymbolAccessIR *access = &section->expected_symbol_accesses[index];
+    if (access->offset != use->offset) continue;
+    if (access->operand_index != use->operand_index) continue;
+    if (access->symbol_name == NULL || strcmp(access->symbol_name, token) != 0) continue;
+    return 1;
+  }
+  return 0;
+}
+
+static int append_platform_operand_expr_without_expected_access_diagnostic(M68kSectionAnalysisIR *section,
+    const M68kPlatformSemanticUseIR *use, const char *token) {
+  M68kSourceQualityDiagnosticIR diagnostic;
+  char evidence_source[256];
+  if (section == NULL || use == NULL || token == NULL || token[0] == '\0') return -1;
+  snprintf(evidence_source, sizeof(evidence_source),
+    "platform_semantic_use:kind=%s operand_expr=%s missing_symbol=%s operand=%u",
+    m68k_platform_semantic_use_kind_name(use->kind),
+    use->operand_expr != NULL && use->operand_expr[0] != '\0' ? use->operand_expr : "unknown",
+    token, (unsigned)use->operand_index);
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_PLATFORM_OPERAND_EXPR_WITHOUT_EXPECTED_ACCESS;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
+  diagnostic.blocker = 1U;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
+  diagnostic.has_section_index = 1U;
+  diagnostic.section_index = (uint32_t)section->section_index;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = use->offset;
+  diagnostic.summary = "platform operand expression has no expected symbol access";
+  diagnostic.evidence_source = evidence_source;
+  return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
+}
+
+static int append_platform_operand_expr_without_expected_access_diagnostics_for_use(
+    M68kSectionAnalysisIR *section, const M68kPlatformSemanticUseIR *use) {
+  size_t index = 0U;
+  if (section == NULL || use == NULL || !use->has_operand_expr ||
+      use->operand_expr == NULL || use->operand_expr[0] == '\0' ||
+      use->operand_index == UINT32_MAX) {
+    return 0;
+  }
+  while (use->operand_expr[index] != '\0') {
+    char token[M68K_IR_SYMBOL_NAME_SIZE];
+    size_t token_start;
+    size_t token_len = 0U;
+    while (use->operand_expr[index] != '\0' && !source_quality_symbol_token_char(use->operand_expr[index], 1))
+      ++index;
+    token_start = index;
+    while (use->operand_expr[index] != '\0' &&
+        source_quality_symbol_token_char(use->operand_expr[index], token_len == 0U)) {
+      if (token_len + 1U < sizeof(token)) token[token_len++] = use->operand_expr[index];
+      ++index;
+    }
+    if (token_len == 0U || token_len >= sizeof(token)) continue;
+    if (token_start > 0U && use->operand_expr[token_start - 1U] >= '0' &&
+        use->operand_expr[token_start - 1U] <= '9') {
+      continue;
+    }
+    token[token_len] = '\0';
+    if (!section_has_expected_symbol_access_for_platform_operand_expr_token(section, use, token)) {
+      if (append_platform_operand_expr_without_expected_access_diagnostic(section, use, token) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_platform_operand_expr_without_expected_access_diagnostics_for_section(
+    M68kSectionAnalysisIR *section) {
+  size_t index;
+  if (section == NULL) return -1;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    if (append_platform_operand_expr_without_expected_access_diagnostics_for_use(
+        section, &section->platform_semantic_uses[index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSectionAnalysisIR *section,
     const M68kRenderEvidenceSectionIR *render_evidence_section) {
   size_t index;
   if (section == NULL) return -1;
+  if (append_platform_operand_expr_without_expected_access_diagnostics_for_section(section) != 0) return -1;
   for (index = 0U; index < section->expected_symbol_access_count; ++index) {
     const M68kExpectedSymbolAccessIR *access = &section->expected_symbol_accesses[index];
     if (!expected_symbol_access_has_precise_producer(access)) {
@@ -2756,6 +2841,41 @@ static int source_quality_runtime_sink_has_dynamic_source_use(const M68kSectionA
   return 0;
 }
 
+static int append_expected_runtime_sink_operand_symbol_access_at(M68kSectionAnalysisIR *section,
+    uint32_t offset, uint32_t operand_index, uint8_t confidence, const char *symbol);
+
+static int source_quality_runtime_address_maps_to_materialized_source(const M68kSectionAnalysisIR *section,
+    uint32_t runtime_address);
+
+static int source_quality_runtime_address_maps_to_any_materialized_source(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t runtime_address);
+
+static int source_quality_candidate_data_target_for_operand(const M68kDecodeCandidate *candidate,
+    uint32_t operand_index, uint32_t *out_section_index, uint32_t *out_offset);
+
+static int source_quality_unique_symbol_origin_at_storage_offset(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t storage_offset, uint32_t *out_section_index, uint32_t *out_offset) {
+  size_t section_index;
+  uint32_t match_section_index = 0U;
+  uint32_t match_offset = 0U;
+  uint32_t match_count = 0U;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (source_analysis == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    if (storage_offset >= section->section_size) continue;
+    if (source_quality_symbol_origin_at(section, storage_offset) == NULL) continue;
+    match_section_index = (uint32_t)section->section_index;
+    match_offset = storage_offset;
+    ++match_count;
+  }
+  if (match_count != 1U) return 0;
+  if (out_section_index != NULL) *out_section_index = match_section_index;
+  if (out_offset != NULL) *out_offset = match_offset;
+  return 1;
+}
+
 static void source_quality_runtime_sink_note_text(const M68kSectionAnalysisIR *section_analysis,
     const AmigaOsHardwareRegisterInfo *hardware_register, const M68kRuntimeAddressRefIR *runtime_ref,
     uint32_t offset, char *note, size_t note_size) {
@@ -2770,8 +2890,12 @@ static void source_quality_runtime_sink_note_text(const M68kSectionAnalysisIR *s
 }
 
 static void source_quality_runtime_sink_set_operand_fact(M68kPlatformSemanticUseIR *use,
+    const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis,
     const AmigaOsHardwareRegisterInfo *hardware_register, const M68kRuntimeAddressRefIR *runtime_ref,
-    const M68kInstructionIR *instruction, char *operand_expr, size_t operand_expr_size) {
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    char *operand_expr, size_t operand_expr_size) {
+  uint32_t target_section_index = 0U;
+  uint32_t target_offset = 0U;
   uint32_t value = 0U;
   if (use == NULL || runtime_ref == NULL || instruction == NULL ||
       runtime_ref->operand_index >= instruction->operand_count ||
@@ -2780,10 +2904,28 @@ static void source_quality_runtime_sink_set_operand_fact(M68kPlatformSemanticUse
     return;
   }
   use->operand_index = runtime_ref->operand_index;
+  if (source_quality_candidate_data_target_for_operand(candidate, runtime_ref->operand_index,
+      &target_section_index, &target_offset)) {
+    use->has_target = 1U;
+    use->target_section_index = target_section_index;
+    use->target_offset = target_offset;
+    return;
+  }
   if (runtime_ref->has_target && runtime_ref->target_section_index <= UINT32_MAX) {
     use->has_target = 1U;
     use->target_section_index = (uint32_t)runtime_ref->target_section_index;
     use->target_offset = runtime_ref->target_offset;
+    return;
+  }
+  if (source_quality_unique_symbol_origin_at_storage_offset(source_analysis, runtime_ref->runtime_address,
+      &target_section_index, &target_offset)) {
+    use->has_target = 1U;
+    use->target_section_index = target_section_index;
+    use->target_offset = target_offset;
+    return;
+  }
+  if (source_quality_runtime_address_maps_to_any_materialized_source(source_analysis, runtime_ref->runtime_address) ||
+      source_quality_runtime_address_maps_to_materialized_source(section_analysis, runtime_ref->runtime_address)) {
     return;
   }
   if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
@@ -2800,7 +2942,8 @@ static void source_quality_runtime_sink_set_operand_fact(M68kPlatformSemanticUse
 }
 
 static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start) {
   size_t observation_index;
   if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
   for (observation_index = 0U; observation_index < section_analysis->address_observation_count; ++observation_index) {
@@ -2835,9 +2978,14 @@ static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnal
       observation->address);
     use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     use.note_text = note;
-    source_quality_runtime_sink_set_operand_fact(&use, hardware_register, runtime_ref, &instruction, operand_expr,
-      sizeof(operand_expr));
+    source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, hardware_register, runtime_ref,
+      candidate, &instruction, operand_expr, sizeof(operand_expr));
     if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
+    if (use.has_operand_expr &&
+        append_expected_runtime_sink_operand_symbol_access_at(section_analysis, candidate->offset,
+          use.operand_index, use.confidence, use.operand_expr) != 0) {
+      return -1;
+    }
   }
   return 0;
 }
@@ -2853,7 +3001,7 @@ static int append_runtime_sink_pointer_semantic_uses(M68kSourceAnalysisIR *sourc
     const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
       (uint32_t)section_analysis->section_index, &decode_index);
     if (section == NULL) continue;
-    if (append_runtime_sink_pointer_semantic_uses_for_section(section_analysis, section,
+    if (append_runtime_sink_pointer_semantic_uses_for_section(section_analysis, source_analysis, section,
         accepted_start[decode_index]) != 0) {
       return -1;
     }
@@ -4002,9 +4150,9 @@ static int append_hardware_base_note_platform_semantic_uses(M68kSourceAnalysisIR
 }
 
 static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
-    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    const M68kAnalysisPolicy *policy, const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds,
-    size_t hardware_base_seed_count) {
+    M68kSectionAnalysisIR *section_analysis, const M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kAnalysisPolicy *policy,
+    const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds, size_t hardware_base_seed_count) {
   SourceQualityHardwareBaseState state;
   size_t candidate_index;
   if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
@@ -4058,9 +4206,14 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
         sink_address);
       use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
       use.note_text = note;
-      source_quality_runtime_sink_set_operand_fact(&use, hardware_register, runtime_ref, &instruction, operand_expr,
-        sizeof(operand_expr));
+      source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, hardware_register,
+        runtime_ref, candidate, &instruction, operand_expr, sizeof(operand_expr));
       if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
+      if (use.has_operand_expr &&
+          append_expected_runtime_sink_operand_symbol_access_at(section_analysis, candidate->offset,
+            use.operand_index, use.confidence, use.operand_expr) != 0) {
+        return -1;
+      }
     }
     source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
   }
@@ -4077,7 +4230,7 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses(M68kSourceAna
     const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
       (uint32_t)section_analysis->section_index, NULL);
     if (section == NULL || section->section_index >= decode->section_count) continue;
-    if (append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(section_analysis, section,
+    if (append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(section_analysis, source_analysis, section,
         accepted_start[section->section_index], policy, hardware_base_seeds, hardware_base_seed_count) != 0) {
       return -1;
     }
@@ -4697,6 +4850,19 @@ static int source_quality_runtime_address_maps_to_materialized_source(const M68k
   return 0;
 }
 
+static int source_quality_runtime_address_maps_to_any_materialized_source(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t runtime_address) {
+  size_t section_index;
+  if (source_analysis == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    if (source_quality_runtime_address_maps_to_materialized_source(&source_analysis->sections[section_index],
+        runtime_address)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int source_quality_operand_has_materialized_storage_observation(const M68kSectionAnalysisIR *section,
     uint32_t offset, uint32_t operand_index, uint32_t runtime_address) {
   size_t index;
@@ -4762,13 +4928,15 @@ static uint32_t source_quality_runtime_sink_role_flags_for_value(const M68kSecti
 }
 
 static int append_runtime_sink_operand_expr_semantic_use_at(M68kSectionAnalysisIR *section,
-    const M68kDecodeCandidate *candidate, uint32_t operand_index, uint32_t runtime_address, uint32_t role_flags,
-    uint8_t confidence) {
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeCandidate *candidate, uint32_t operand_index,
+    uint32_t runtime_address, uint32_t role_flags, uint8_t confidence) {
   const char *role;
   M68kPlatformSemanticUseIR use;
   char symbol[M68K_IR_SYMBOL_NAME_SIZE];
   if (section == NULL || candidate == NULL || role_flags == 0U || operand_index == UINT32_MAX ||
       runtime_address == 0U ||
+      source_quality_unique_symbol_origin_at_storage_offset(source_analysis, runtime_address, NULL, NULL) ||
+      source_quality_runtime_address_maps_to_any_materialized_source(source_analysis, runtime_address) ||
       source_quality_runtime_address_maps_to_materialized_source(section, runtime_address) ||
       source_quality_operand_has_materialized_storage_observation(section, candidate->offset, operand_index,
         runtime_address) ||
@@ -4823,7 +4991,7 @@ static int append_runtime_sink_operand_expr_semantic_uses(M68kSourceAnalysisIR *
       candidate = m68k_decode_ir_find_candidate_at_offset(decode_section, ref->offset);
       if (!source_quality_candidate_is_accepted_start(decode_section, accepted_start[decode_index], candidate))
         continue;
-      if (append_runtime_sink_operand_expr_semantic_use_at(section, candidate, ref->operand_index,
+      if (append_runtime_sink_operand_expr_semantic_use_at(section, source_analysis, candidate, ref->operand_index,
           ref->runtime_address, ref->data_class_flags, ref->confidence) != 0)
         return -1;
     }
@@ -4846,8 +5014,8 @@ static int append_runtime_sink_operand_expr_semantic_uses(M68kSourceAnalysisIR *
         role_flags = source_quality_runtime_sink_role_flags_for_value(section, decode_section,
           accepted_start[decode_index], runtime_address, &confidence);
         if (role_flags == 0U) continue;
-        if (append_runtime_sink_operand_expr_semantic_use_at(section, candidate, (uint32_t)operand_index,
-            runtime_address, role_flags, confidence) != 0)
+        if (append_runtime_sink_operand_expr_semantic_use_at(section, source_analysis, candidate,
+            (uint32_t)operand_index, runtime_address, role_flags, confidence) != 0)
           return -1;
       }
     }

@@ -11389,6 +11389,91 @@ static int test_source_quality_analyze_blocks_expected_symbol_access_without_pro
   return 0;
 }
 
+static int test_source_quality_analyze_blocks_platform_operand_expr_without_expected_access(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kPlatformSemanticUseIR use;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  memset(&use, 0, sizeof(use));
+  use.kind = M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER;
+  use.offset = 4U;
+  use.size = 2U;
+  use.operand_index = 0U;
+  use.operand_expr = "bitmap_00060000";
+  use.has_operand_expr = 1U;
+  use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_platform_semantic_use(&section_analysis, &use));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, test_source_quality_analyze_with_render_evidence_json(&source_analysis, 0U, NULL,
+    &analysis_json));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"kind\":\"platform_operand_expr_without_expected_access\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"error\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"origin\":\"auto_analysis\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"summary\":\"platform operand expression has no expected symbol access\"")
+    != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"evidence_source\":\"platform_semantic_use:kind=runtime_sink_pointer "
+    "operand_expr=bitmap_00060000 missing_symbol=bitmap_00060000 operand=0\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_accepts_platform_operand_expr_expected_access(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kPlatformSemanticUseIR use;
+  M68kExpectedSymbolAccessIR access;
+  M68kRenderedSymbolAccessIR rendered_access;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  memset(&use, 0, sizeof(use));
+  use.kind = M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER;
+  use.offset = 4U;
+  use.size = 2U;
+  use.operand_index = 0U;
+  use.operand_expr = "bitmap_00060000";
+  use.has_operand_expr = 1U;
+  use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_platform_semantic_use(&section_analysis, &use));
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = "bitmap_00060000";
+  access.producer = "runtime_sink_pointer_operand";
+  access.offset = 4U;
+  access.operand_index = 0U;
+  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
+  access.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_expected_symbol_access(&section_analysis, &access));
+  memset(&rendered_access, 0, sizeof(rendered_access));
+  rendered_access.symbol_name = "bitmap_00060000";
+  rendered_access.offset = 4U;
+  rendered_access.operand_index = 0U;
+  rendered_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, test_source_quality_analyze_with_render_evidence_json(&source_analysis, 0U,
+    &rendered_access, &analysis_json));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"platform_semantic_use_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"platform_operand_expr_without_expected_access\"") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_expected_symbol_access\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_accepts_rendered_expected_storage_label_access(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -27504,6 +27589,7 @@ static int test_facts_v2_external_runtime_sink_address_renders_pointer_comment(v
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"disk_buffer pointer $00067D00\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"operand_expr\":\"disk_buffer_00067D00\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":425216") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"runtime_sink_pointer_operand\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);
@@ -29063,6 +29149,10 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_accepts_rendered_expected_symbol_access},
     {"source_quality_analyze_blocks_expected_symbol_access_without_producer",
       test_source_quality_analyze_blocks_expected_symbol_access_without_producer},
+    {"source_quality_analyze_blocks_platform_operand_expr_without_expected_access",
+      test_source_quality_analyze_blocks_platform_operand_expr_without_expected_access},
+    {"source_quality_analyze_accepts_platform_operand_expr_expected_access",
+      test_source_quality_analyze_accepts_platform_operand_expr_expected_access},
     {"source_quality_analyze_accepts_rendered_expected_storage_label_access",
       test_source_quality_analyze_accepts_rendered_expected_storage_label_access},
     {"source_quality_analyze_expects_materialized_runtime_storage_label",
