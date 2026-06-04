@@ -1556,6 +1556,7 @@ ambiguous, negative boundary tests that remove semantic uses before render:
 runtime-address sink pointer operands/comments
 disk DMA comments
 copper display-layout comments
+bitmap-memory comments
 palette upload comments
 ```
 
@@ -3002,6 +3003,18 @@ The render fallback that attaches generic `runtime_address_*` symbols must
 yield when source-quality already emitted a stronger bitmap-memory semantic
 use. A bitmap comment proves "this value is part of a bitmap range"; it does
 not prove that the literal itself is a durable named address.
+
+The boundary fixture is:
+
+```text
+facts_v2_copper_bitmap_memory_uses_are_commented
+  -> proves source-quality emits bitmap_memory notes
+
+render_bitmap_memory_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> code still renders
+  -> "bitmap memory plane ..." does not appear
+```
 
 That rule is now applied to the generic fallback itself: rendering no longer
 promotes a plain address-looking literal to `runtime_address_*` just because the
