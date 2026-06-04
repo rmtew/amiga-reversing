@@ -865,7 +865,7 @@ outputs are semantic, not presentational:
 
 ```text
 render_lookup_infer_relocation_pointer_tables()
-render_lookup_infer_indexed_word_dispatch_tables()  ; render mirror still required for source export ordering
+render_lookup_infer_indexed_local_scalar_tables()
 render_lookup_add_auto_structured_data_item()
 source_analysis_append_auto_structured_data_policy()
 ```
@@ -895,9 +895,6 @@ jmp    table(pc,d0.w)
   -> generic PC-relative scalar classifier must not preclaim the range
 ```
 
-The remaining entries show the same wrong boundary for later slices: they
-classify source meaning while building a render cache.
-
 Indexed word and keyed-long dispatch tables now also have a source-quality
 producer. It records the same durable facts that render lookup previously kept
 private:
@@ -913,11 +910,45 @@ accepted indexed word table read or keyed-long table load/swap
                                                or keyed_long_relative_dispatch)
 ```
 
-The render lookup pass is temporarily retained as a mirror because the current
-source-export path renders text before the later source-quality closure has
-upgraded the same table facts. Removing that mirror today preserves JSON
-analysis for some cases but regresses rendered source for biased dispatch
-tables:
+Indexed local pointer tables and indexed postincrement data-read tables have
+also moved to source-quality. These shapes are generic analysis, not render
+policy:
+
+```text
+local base pointer state
+  + indexed long read from accepted data
+  + entries resolve to accepted source offsets
+  -> structured_data_item(role=pointer_table,
+                          source_pattern=indexed_local_pointer_read)
+
+local base pointer state
+  + repeated postincrement word/long reads
+  + accepted data span covers the read count
+  -> structured_data_item(role=lookup_table,
+                          source_pattern=postincrement_read_sequence)
+```
+
+The render lookup code now imports those C-owned structured-data items before
+source render. It may still materialize labels or strings required to format
+pointer-table targets, but that is render support over imported facts:
+
+```text
+source-quality classifies pointer/read-sequence tables
+  -> render lookup imports structured_data_items
+  -> render materializes target labels/strings when needed
+  -> render formats the already-proven table
+```
+
+The deleted render-owned classifiers for this closure are:
+
+```text
+render_lookup_infer_indexed_word_dispatch_tables()
+render_lookup_infer_indexed_local_pointer_tables()
+render_lookup_infer_indexed_postincrement_data_tables()
+```
+
+The old biased-dispatch risk was a pipeline-order problem. The fixed ordering is
+now the source path:
 
 ```asm
     move.w table(pc,d0.w),d0
@@ -927,8 +958,6 @@ table:
     dc.w target0-(table+2) ; leading biased entry must render symbolically
 ```
 
-The correct final fix is a pipeline-order change, not duplicated inference:
-
 ```text
 decode/facts
   -> source-quality table closure
@@ -936,9 +965,15 @@ decode/facts
   -> source export
 ```
 
-Until that ordering exists, source-quality upserts same-range/same-role table
-items so the final analysis JSON has one dispatch descriptor rather than a
-render scalar descriptor plus a later dispatch descriptor.
+Source-quality still upserts same-range/same-role table items so weaker early
+observations cannot downgrade later dispatch proof.
+
+The remaining entries show the same wrong boundary for later slices: they
+classify source meaning while building a render cache. The most obvious current
+example is `render_lookup_infer_indexed_local_scalar_tables()`. Generic string
+and data-span inference also needs the same audit: byte-shape analysis belongs
+in C analysis/source-quality, while render lookup should keep only visibility,
+label, and formatting caches.
 
 Those passes build `M68kAnalysisStructuredDataItem` records, range ownership
 views, table metadata, consumer registers, index domains, and source patterns.
@@ -4232,6 +4267,59 @@ keyed-long helper state were deleted. The renderer still owns formatting and
 label materialization, but it no longer decides that these bytes are dispatch
 tables.
 
+The next completed table-reference sub-slice moves indexed local pointer tables
+and indexed postincrement data-read tables into source-quality. These were
+previously hidden in render lookup even though they describe source facts:
+
+```asm
+    lea.l pointer_table(pc),a0
+    move.l $0(a0,d0.w),d1
+
+pointer_table:
+    dc.l target_0
+    dc.l target_1
+```
+
+```asm
+    lea.l word_table(pc),a0
+    move.w (a0)+,d0
+    move.w (a0)+,d1
+
+word_table:
+    dc.w $1122,$3344,$5566,$7788
+```
+
+The C producer now exports:
+
+```text
+source_pattern: indexed_local_pointer_read | postincrement_read_sequence
+consumer section/offset
+index register kind/index when indexed
+target register kind/index when the load target is proven
+table start and span
+entry kind: word/long/pointer
+```
+
+Pointer-table target labels and short target strings are still materialized by
+render lookup, but only after importing source-quality facts:
+
+```text
+source-quality owns table classification
+  -> render lookup imports structured_data_items
+  -> m68k_analysis_render_lookup_materialize_pointer_table_targets()
+       adds renderable target labels/strings
+  -> no render-side pointer/postincrement classifier remains
+```
+
+The focused regressions assert that these facts now live in
+`source_analysis.structured_data_items` with their source pattern ids, not in
+render auto-policy state:
+
+```c
+M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ
+M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE
+```
+
 The completion invariant for this sub-slice is now:
 
 ```text
@@ -4239,8 +4327,9 @@ source-quality owns table classification
   -> render lookup imports structured_data_items before source render
   -> biased leading entries, zero-guarded entries, keyed-long entries, and
      address-indexed entries render from imported facts
+  -> pointer tables and postincrement read sequences render from imported facts
   -> weaker scalar observations cannot overwrite stronger dispatch facts
-  -> no render-side dispatch classifier is needed
+  -> no render-side dispatch, pointer-table, or postincrement classifier is needed
 ```
 
 This matters for biased dispatch tables. A leading entry can first be observed
@@ -4698,6 +4787,17 @@ or policy-divergence categories. Those should not block source-quality slices
 when the rendered source is content-exact, but final acceptance should keep the
 distinction visible in the report instead of treating them as source render
 regressions.
+
+The table-closure render update exposed expected target churn and one remaining
+cleanup lane. Pointer tables now render from C-owned
+`indexed_local_pointer_read` facts, so comments shift from `lookup_table` to
+`pointer_table` and target labels/strings are materialized from imported
+source-quality facts. Some targets also show noisy byte-line resplitting and
+small string spelling changes where generic data/string inference is still
+interacting with render formatting. That is not a reason to keep table
+classification in render lookup; it is evidence for the next Slice 7 cleanup:
+move the remaining indexed-local scalar and generic data/string producers into
+C analysis, then leave render lookup as formatting support only.
 
 ## Non-Goals
 

@@ -1443,15 +1443,39 @@ abs_0_00011412:
 	beq.b abs_0_00011412
 	rts
 abs_0_00011432:
-	dc.l abs_0_00011150,abs_0_0001115C,abs_0_00011168,abs_0_00011174	; lookup_table
-	dc.l abs_0_00011190,abs_0_000111A4,abs_0_000111BC,abs_0_000111D6	; lookup_table
-	dc.l abs_0_000111FC,abs_0_00011206,abs_0_00011216,abs_0_0001122E	; lookup_table
-	dc.l abs_0_0001123C,abs_0_0001124A,abs_0_00011258,abs_0_00011266	; lookup_table
-	dc.l abs_0_00011124,abs_0_00011138,abs_0_0001112E,abs_0_00011144	; lookup_table
-	dc.l abs_0_00011274,abs_0_000111AE,abs_0_000111E8,abs_0_00011114	; lookup_table
-	dc.l abs_0_0001127A,abs_0_00011280,abs_0_000112A6,abs_0_000112D6	; lookup_table
-	dc.l abs_0_00011306,abs_0_00011334,abs_0_0001136C,abs_0_000113A4	; lookup_table
-	dc.l abs_0_000113CC	; lookup_table
+	dc.l abs_0_00011150	; pointer_table
+	dc.l abs_0_0001115C
+	dc.l abs_0_00011168
+	dc.l abs_0_00011174
+	dc.l abs_0_00011190
+	dc.l abs_0_000111A4
+	dc.l abs_0_000111BC
+	dc.l abs_0_000111D6
+	dc.l abs_0_000111FC
+	dc.l abs_0_00011206
+	dc.l abs_0_00011216
+	dc.l abs_0_0001122E
+	dc.l abs_0_0001123C
+	dc.l abs_0_0001124A
+	dc.l abs_0_00011258
+	dc.l abs_0_00011266
+	dc.l abs_0_00011124
+	dc.l abs_0_00011138
+	dc.l abs_0_0001112E
+	dc.l abs_0_00011144
+	dc.l abs_0_00011274
+	dc.l abs_0_000111AE
+	dc.l abs_0_000111E8
+	dc.l abs_0_00011114
+	dc.l abs_0_0001127A
+	dc.l abs_0_00011280
+	dc.l abs_0_000112A6
+	dc.l abs_0_000112D6
+	dc.l abs_0_00011306
+	dc.l abs_0_00011334
+	dc.l abs_0_0001136C
+	dc.l abs_0_000113A4
+	dc.l abs_0_000113CC
 abs_0_000114B6:
 	dc.b $4A,$FB,$00,$17,$03,$04,$02,$14,$00,$1B,$00,$05,$9B,$00,$00,$05
 	dc.b $00,$01,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06
@@ -26382,10 +26406,15 @@ abs_0_0005CCCA:
 	dc.b ". . MAD  PSYCHO . .",$00
 abs_0_0005CCDE:
 	dc.b ". . SON  OF  SATAN . .",$00
+abs_0_0005CCF5:
 	dc.b ". . QUITE  USEFUL . .",$00
+abs_0_0005CD0B:
 	dc.b ". . EXTREMELY  USEFUL . .",$00
+abs_0_0005CD25:
 	dc.b ". . VERY  PROFITABLE . .",$00
+abs_0_0005CD3E:
 	dc.b ". . HIGHLY  VALUABLE . .",$00
+abs_0_0005CD57:
 	dc.b ". . PRICELESS . .",$00
 	dc.b $22,$47,$69,$76,$65,$20,$6D,$65,$20,$61,$20,$64,$72,$69,$6E,$6B
 	dc.b $2C,$61,$6E,$64,$20,$49,$22,$6C,$6C,$20,$70,$6C,$61,$79,$20,$79

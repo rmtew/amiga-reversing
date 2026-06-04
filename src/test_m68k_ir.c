@@ -2262,8 +2262,8 @@ static int test_facts_v2_indexed_postincrement_reads_auto_classify_word_table(vo
   M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_0000000A(pc,d0.w),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "loc_0_0000000A:\n\tdc.w $1122,$3344,$5566,$7788\t; lookup_table\n") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 10U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
       auto_item = item;
@@ -2273,6 +2273,8 @@ static int test_facts_v2_indexed_postincrement_reads_auto_classify_word_table(vo
   M68K_C_ASSERT(auto_item != NULL);
   M68K_C_ASSERT_U32(8U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE,
+    auto_item->source_pattern_id);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -2542,8 +2544,8 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   M68K_C_ASSERT(strstr(source, "\tmove.l $0(a0,d0.w),d1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000010\t; pointer_table\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000012\n") != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE)) {
       auto_item = item;
@@ -2559,6 +2561,8 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   M68K_C_ASSERT_U32(1U, auto_item->target_register);
   M68K_C_ASSERT_U32(8U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_LONGS, auto_item->kind);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ,
+    auto_item->source_pattern_id);
   for (index = 0U; index < source_analysis.sections[0].data_reference_count; ++index) {
     const M68kDataReferenceIR *ref = &source_analysis.sections[0].data_references[index];
     if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY &&

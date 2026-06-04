@@ -7719,13 +7719,6 @@ static int local_callee_preserves_address_register_mask_with_depth(const M68kDec
   return visited_any != 0U;
 }
 
-static int local_callee_preserves_address_register(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, uint32_t target_offset, uint8_t reg) {
-  if (reg >= 8U) return 0;
-  return local_callee_preserves_address_register_mask_with_depth(section, accepted_start, target_offset,
-    (uint8_t)(1U << reg), 0U);
-}
-
 static int accepted_range_has_code_byte(const uint8_t *accepted_bytes, uint32_t section_size,
     uint32_t offset, uint32_t size) {
   uint32_t cursor;
@@ -8463,6 +8456,14 @@ static int render_lookup_add_pointer_table_target_strings(M68kRenderLookup *look
   return 0;
 }
 
+int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes) {
+  if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) {
+    return -1;
+  }
+  return render_lookup_add_pointer_table_target_strings(lookup, decode, accepted_bytes);
+}
+
 static int auto_structured_data_item_blocks_candidate_start(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
   M68kRenderRangeOwnershipView range;
@@ -8679,61 +8680,6 @@ static int candidate_indexed_read_from_known_local_base(const M68kDecodeSectionI
       if (out_index_register != NULL) *out_index_register = operand->value.index_reg;
       return 1;
     }
-  }
-  return 0;
-}
-
-static int candidate_indexed_read_dest_address_reg(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t *out_dest_reg) {
-  const M68kSimFormMetadata *metadata;
-  size_t dest_index = (size_t)-1;
-  size_t operand_index;
-  uint8_t dest_reg = 0U;
-  if (out_dest_reg != NULL) *out_dest_reg = 0U;
-  if (candidate == NULL || instruction == NULL || out_dest_reg == NULL) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return 0;
-  if (metadata->dest_operand_index < candidate->operand_count)
-    dest_index = metadata->dest_operand_index;
-  if (dest_index < instruction->operand_count &&
-      operand_address_register_index_local(&instruction->operands[dest_index], &dest_reg)) {
-    *out_dest_reg = dest_reg;
-    return 1;
-  }
-  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
-       operand_index < instruction->operand_count; ++operand_index) {
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
-        operand_address_register_index_local(&instruction->operands[operand_index], &dest_reg)) {
-      *out_dest_reg = dest_reg;
-      return 1;
-    }
-  }
-  return 0;
-}
-
-static int candidate_dest_direct_register_kind_local(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t *out_register_kind, uint8_t *out_register) {
-  const M68kSimFormMetadata *metadata;
-  size_t dest_index = (size_t)-1;
-  uint8_t reg = 0U;
-  if (out_register_kind != NULL) *out_register_kind = M68K_ANALYSIS_REGISTER_NONE;
-  if (out_register != NULL) *out_register = 0U;
-  if (candidate == NULL || instruction == NULL || out_register_kind == NULL || out_register == NULL) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL || metadata->dest_operand_index >= candidate->operand_count ||
-      metadata->dest_operand_index >= instruction->operand_count) {
-    return 0;
-  }
-  dest_index = metadata->dest_operand_index;
-  if (operand_is_data_register_local(&instruction->operands[dest_index], &reg) && reg < 8U) {
-    *out_register_kind = M68K_ANALYSIS_REGISTER_DATA;
-    *out_register = reg;
-    return 1;
-  }
-  if (operand_address_register_index_local(&instruction->operands[dest_index], &reg) && reg < 8U) {
-    *out_register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-    *out_register = reg;
-    return 1;
   }
   return 0;
 }
@@ -8966,68 +8912,6 @@ static uint32_t add_word_relative_table_string_targets(M68kRenderLookup *lookup,
   return string_count;
 }
 
-static int runtime_pointer_value_to_accepted_source_offset(const M68kRenderLookup *lookup,
-    const uint8_t *accepted_start, size_t section_index, uint32_t section_size, uint32_t value,
-    uint32_t *out_source_offset) {
-  size_t range_index;
-  if (out_source_offset != NULL) *out_source_offset = 0U;
-  if (lookup == NULL || accepted_start == NULL || value == 0U) return 0;
-  if (value < section_size && accepted_start[value]) {
-    if (out_source_offset != NULL) *out_source_offset = value;
-    return 1;
-  }
-  for (range_index = 0U; range_index < lookup->runtime_address_range_count; ++range_index) {
-    const M68kFact *range = lookup->runtime_address_ranges[range_index].fact;
-    uint32_t delta;
-    uint32_t source_offset;
-    uint32_t logical_address = 0U;
-    if (range == NULL || range->section_index != section_index || !range->has_runtime_address ||
-        value < range->runtime_address) {
-      continue;
-    }
-    delta = value - range->runtime_address;
-    if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
-    source_offset = range->offset + delta;
-    if (source_offset >= section_size || !accepted_start[source_offset]) continue;
-    if (!lookup_source_logical_address(lookup, section_index, source_offset, &logical_address) ||
-        logical_address != value) {
-      continue;
-    }
-    if (out_source_offset != NULL) *out_source_offset = source_offset;
-    return 1;
-  }
-  return 0;
-}
-
-static uint32_t scan_indexed_local_pointer_table_span(const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
-    size_t table_section_index, uint32_t table_offset) {
-  const M68kDecodeSectionIR *section;
-  uint32_t cursor;
-  uint32_t count = 0U;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
-      table_section_index >= decode->section_count || accepted_start[table_section_index] == NULL ||
-      accepted_bytes[table_section_index] == NULL) {
-    return 0U;
-  }
-  section = &decode->sections[table_section_index];
-  if (section->data == NULL || table_offset >= section->size) return 0U;
-  for (cursor = table_offset; cursor + 4U <= section->size; cursor += 4U) {
-    uint32_t target;
-    if (cursor != table_offset && lookup_has_label(lookup, table_section_index, cursor)) break;
-    if (lookup_range_has_interior_label(lookup, table_section_index, cursor, 4U)) break;
-    if (accepted_range_has_code_byte(accepted_bytes[table_section_index], section->size, cursor, 4U)) break;
-    target = m68k_read_u32be(section->data + cursor);
-    if ((target & 1U) != 0U ||
-        !runtime_pointer_value_to_accepted_source_offset(lookup, accepted_start[table_section_index],
-          table_section_index, section->size, target, NULL)) {
-      break;
-    }
-    ++count;
-  }
-  return count >= 2U ? count * 4U : 0U;
-}
-
 static void dispatch_pointer_state_update_after_instruction(M68kRenderDataPointerState *state,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction) {
@@ -9040,180 +8924,6 @@ static void dispatch_pointer_state_update_after_instruction(M68kRenderDataPointe
     return;
   }
   data_pointer_state_update_after_instruction_ex(state, lookup, section, candidate, instruction, 0U);
-}
-
-static int candidate_next_is_indirect_control_through_addr_reg(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate, uint8_t reg) {
-  const M68kDecodeCandidate *next_candidate;
-  M68kInstructionIR next_instruction;
-  const M68kSimFormMetadata *metadata;
-  size_t operand_index = 0U;
-  uint8_t base_reg = 0U;
-  int16_t displacement = 0;
-  uint32_t next_offset;
-  if (section == NULL || accepted_start == NULL || candidate == NULL || reg >= 8U ||
-      candidate->byte_count > section->size || candidate->offset > section->size - candidate->byte_count) {
-    return 0;
-  }
-  next_offset = candidate->offset + candidate->byte_count;
-  if (next_offset >= section->size || !accepted_start[next_offset]) return 0;
-  next_candidate = find_candidate_at_offset_local(section, next_offset);
-  if (next_candidate == NULL || m68k_decode_candidate_to_instruction(next_candidate, &next_instruction) != 0)
-    return 0;
-  metadata = m68k_sim_metadata_for_instruction(&next_instruction);
-  if (metadata == NULL ||
-      (metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_CALL)) {
-    return 0;
-  }
-  if (metadata->target_operand_index < next_instruction.operand_count)
-    operand_index = metadata->target_operand_index;
-  if (operand_index >= next_instruction.operand_count) return 0;
-  return operand_is_address_memory_local(&next_instruction.operands[operand_index], &base_reg,
-    &displacement) && base_reg == reg && displacement == 0;
-}
-
-static int candidate_preserves_address_reg_before_dispatch(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate, uint8_t reg) {
-  M68kInstructionIR instruction;
-  const M68kSimFormMetadata *metadata;
-  size_t operand_index;
-  uint32_t target_offset = 0U;
-  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
-    return 0;
-  metadata = m68k_sim_metadata_for_instruction(&instruction);
-  if (metadata == NULL) return 0;
-  if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
-    return candidate_local_call_target(section, candidate, &target_offset) &&
-      local_callee_preserves_address_register(section, accepted_start, target_offset, reg);
-  }
-  if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
-      metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_TRAP ||
-      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
-    return 0;
-  }
-  for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
-    uint8_t operand_reg = 0U;
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
-        operand_address_register_index_local(&instruction.operands[operand_index], &operand_reg) &&
-        operand_reg == reg) {
-      return 0;
-    }
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE &&
-        reglist_contains_address_register_local(&instruction.operands[operand_index], reg)) {
-      return 0;
-    }
-    if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
-        operand_is_address_memory_local(&instruction.operands[operand_index], &operand_reg, NULL) &&
-        operand_reg == reg) {
-      return 0;
-    }
-  }
-  return 1;
-}
-
-static int candidate_later_is_indirect_control_through_addr_reg(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate, uint8_t reg) {
-  const uint32_t max_gap_instructions = 4U;
-  uint32_t cursor;
-  uint32_t gap_count;
-  if (section == NULL || accepted_start == NULL || candidate == NULL || reg >= 8U ||
-      candidate->offset > UINT32_MAX - candidate->byte_count) {
-    return 0;
-  }
-  if (candidate_next_is_indirect_control_through_addr_reg(section, accepted_start, candidate, reg)) return 1;
-  cursor = candidate->offset + candidate->byte_count;
-  for (gap_count = 0U; gap_count < max_gap_instructions && cursor < section->size; ++gap_count) {
-    const M68kDecodeCandidate *gap_candidate;
-    if (!accepted_start[cursor]) return 0;
-    gap_candidate = m68k_decode_ir_find_candidate_at_offset(section, cursor);
-    if (gap_candidate == NULL) return 0;
-    if (candidate_next_is_indirect_control_through_addr_reg(section, accepted_start, gap_candidate, reg)) {
-      return candidate_preserves_address_reg_before_dispatch(section, accepted_start, gap_candidate, reg);
-    }
-    if (!candidate_preserves_address_reg_before_dispatch(section, accepted_start, gap_candidate, reg)) return 0;
-    if (gap_candidate->offset > UINT32_MAX - gap_candidate->byte_count) return 0;
-    cursor = gap_candidate->offset + gap_candidate->byte_count;
-  }
-  return 0;
-}
-
-static int render_lookup_infer_indexed_local_pointer_tables(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted_start, uint8_t **accepted_bytes) {
-  size_t section_index;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL) return 0;
-  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-    const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    M68kRenderDataPointerState state;
-    size_t candidate_index;
-    data_pointer_state_clear_all(&state);
-    if (accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) return -1;
-    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
-      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-      M68kInstructionIR instruction;
-      size_t target_section_index = 0U;
-      uint32_t target_offset = 0U;
-      uint32_t item_size = 0U;
-      uint8_t item_kind = 0U;
-      uint8_t index_register_kind = M68K_ANALYSIS_REGISTER_NONE;
-      uint8_t index_register = 0U;
-      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
-      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      if (structured_data_kind_for_candidate_size(candidate, &item_size, &item_kind) &&
-          item_size == 4U &&
-          item_kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
-          candidate_indexed_read_from_known_local_base(section, candidate, &instruction, &state,
-            &target_section_index, &target_offset, &index_register_kind, &index_register) &&
-          target_section_index < decode->section_count &&
-          accepted_bytes[target_section_index] != NULL &&
-          target_offset <= decode->sections[target_section_index].size &&
-          item_size <= decode->sections[target_section_index].size - target_offset) {
-        uint32_t table_offset = target_offset;
-        uint32_t span = 0U;
-        uint8_t table_offset_is_code = (uint8_t)accepted_range_has_code_byte(accepted_bytes[target_section_index],
-          decode->sections[target_section_index].size, table_offset, item_size);
-        uint8_t dest_reg = 0U;
-        uint8_t target_register_kind = M68K_ANALYSIS_REGISTER_NONE;
-        uint8_t target_register = 0U;
-        uint8_t target_register_known = (uint8_t)candidate_dest_direct_register_kind_local(candidate, &instruction,
-          &target_register_kind, &target_register);
-        if (!table_offset_is_code &&
-            !lookup_range_has_interior_label(lookup, target_section_index, table_offset, item_size)) {
-          span = scan_indexed_local_pointer_table_span(lookup, decode, accepted_start, accepted_bytes,
-            target_section_index, table_offset);
-        }
-        if (span == 0U && table_offset_is_code &&
-            candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg) &&
-            candidate_later_is_indirect_control_through_addr_reg(section, accepted_start[section_index], candidate,
-              dest_reg) &&
-            table_offset <= UINT32_MAX - item_size &&
-            table_offset + item_size <= decode->sections[target_section_index].size &&
-            item_size <= decode->sections[target_section_index].size - (table_offset + item_size) &&
-            !accepted_range_has_code_byte(accepted_bytes[target_section_index],
-              decode->sections[target_section_index].size, table_offset + item_size, item_size) &&
-            !lookup_range_has_interior_label(lookup, target_section_index, table_offset + item_size, item_size)) {
-          table_offset += item_size;
-          span = scan_indexed_local_pointer_table_span(lookup, decode, accepted_start, accepted_bytes,
-            target_section_index, table_offset);
-        }
-        if (span != 0U &&
-            render_lookup_add_auto_structured_data_item(lookup, target_section_index, table_offset, span,
-              M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_LONGS) != 0) {
-          return -1;
-        }
-        if (span != 0U) {
-          render_lookup_set_auto_structured_data_item_consumer(lookup, target_section_index, table_offset,
-            section_index, candidate->offset);
-          render_lookup_set_auto_structured_data_item_consumer_registers(lookup, target_section_index, table_offset,
-            1U, index_register_kind, index_register,
-            target_register_known, target_register_kind, target_register);
-          render_lookup_set_auto_structured_data_item_source_pattern(lookup, target_section_index, table_offset,
-            M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ);
-        }
-      }
-      dispatch_pointer_state_update_after_instruction(&state, lookup, section, candidate, &instruction);
-    }
-  }
-  return 0;
 }
 
 typedef struct M68kRenderWordOffsetValue {
@@ -9462,116 +9172,6 @@ static int render_lookup_infer_indexed_local_scalar_tables(M68kRenderLookup *loo
         word_state.data_regs[dest_data_reg].table_offset = target_offset;
       } else {
         word_offset_state_clear_written_data_reg(&word_state, &instruction);
-      }
-      dispatch_pointer_state_update_after_instruction(&state, lookup, section, candidate, &instruction);
-    }
-  }
-  return 0;
-}
-
-static int candidate_reads_postincrement_from_reg(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t reg, uint32_t item_size, uint8_t item_kind) {
-  const M68kSimFormMetadata *metadata;
-  uint32_t candidate_item_size = 0U;
-  uint8_t candidate_item_kind = 0U;
-  size_t operand_index;
-  if (candidate == NULL || instruction == NULL ||
-      !structured_data_kind_for_candidate_size(candidate, &candidate_item_size, &candidate_item_kind) ||
-      candidate_item_size != item_size || candidate_item_kind != item_kind) {
-    return 0;
-  }
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return 0;
-  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < instruction->operand_count &&
-       operand_index < 4U; ++operand_index) {
-    uint8_t source_reg = 0U;
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ &&
-        operand_is_address_postincrement_local(&instruction->operands[operand_index], &source_reg) &&
-        source_reg == reg) {
-      return 1;
-    }
-  }
-  return 0;
-}
-
-static uint32_t count_consecutive_postincrement_reads(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, size_t first_candidate_index, uint8_t reg, uint32_t item_size,
-    uint8_t item_kind) {
-  size_t candidate_index;
-  uint32_t count = 0U;
-  if (section == NULL || accepted_start == NULL) return 0U;
-  for (candidate_index = first_candidate_index; candidate_index < section->candidate_count; ++candidate_index) {
-    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-    M68kInstructionIR instruction;
-    if (!candidate_is_accepted_start(section, accepted_start, candidate) ||
-        m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
-        !candidate_reads_postincrement_from_reg(candidate, &instruction, reg, item_size, item_kind)) {
-      break;
-    }
-    ++count;
-  }
-  return count;
-}
-
-static int render_lookup_infer_indexed_postincrement_data_tables(M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes) {
-  size_t section_index;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL) return 0;
-  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-    const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    M68kRenderDataPointerState state;
-    size_t candidate_index;
-    data_pointer_state_clear_all(&state);
-    if (accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) return -1;
-    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
-      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-      M68kInstructionIR instruction;
-      uint32_t item_size = 0U;
-      uint8_t item_kind = 0U;
-      uint8_t source_reg = 0U;
-      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
-      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      if (structured_data_kind_for_candidate_size(candidate, &item_size, &item_kind) && item_size > 1U) {
-        for (source_reg = 0U; source_reg < 8U; ++source_reg) {
-          size_t target_section_index;
-          uint32_t target_offset;
-          if (!candidate_reads_postincrement_from_reg(candidate, &instruction, source_reg, item_size, item_kind) ||
-              !state.addr_regs[source_reg].known) {
-            continue;
-          }
-          target_section_index = state.addr_regs[source_reg].section_index;
-          target_offset = state.addr_regs[source_reg].offset;
-          {
-            M68kRenderRangeOwnershipView target_range;
-            if (target_section_index >= decode->section_count || accepted_bytes[target_section_index] == NULL ||
-                target_offset > decode->sections[target_section_index].size ||
-                item_size > decode->sections[target_section_index].size - target_offset ||
-                accepted_range_has_code_byte(accepted_bytes[target_section_index],
-                  decode->sections[target_section_index].size, target_offset, item_size) ||
-                lookup_range_has_interior_label(lookup, target_section_index, target_offset, item_size) ||
-                lookup_range_ownership_covering_offset(lookup, target_section_index, target_offset,
-                  &target_range)) {
-              continue;
-            }
-          }
-          {
-            uint32_t read_count = count_consecutive_postincrement_reads(section, accepted_start[section_index],
-              candidate_index, source_reg, item_size, item_kind);
-            uint32_t span;
-            if (read_count < 2U) continue;
-            span = pc_relative_lookup_table_span(lookup, &decode->sections[target_section_index],
-              accepted_bytes[target_section_index], target_offset, item_size);
-            if (span < read_count * item_size) continue;
-            if (render_lookup_add_auto_structured_data_item(lookup, target_section_index, target_offset,
-                span, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, item_kind) != 0) {
-              return -1;
-            }
-            render_lookup_set_auto_structured_data_item_consumer(lookup, target_section_index, target_offset,
-              section_index, candidate->offset);
-            render_lookup_set_auto_structured_data_item_source_pattern(lookup, target_section_index, target_offset,
-              M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE);
-          }
-        }
       }
       dispatch_pointer_state_update_after_instruction(&state, lookup, section, candidate, &instruction);
     }
@@ -11206,11 +10806,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (stats != NULL) stats->hardware_data_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_data_strings(lookup, decode, accepted_bytes) != 0) return -1;
-  if (render_lookup_infer_indexed_local_pointer_tables(lookup, decode, accepted_start, accepted_bytes) != 0)
-    return -1;
   if (render_lookup_infer_indexed_local_scalar_tables(lookup, decode, accepted_start, accepted_bytes) != 0)
-    return -1;
-  if (render_lookup_infer_indexed_postincrement_data_tables(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
   if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (render_lookup_add_pointer_table_target_strings(lookup, decode, accepted_bytes) != 0) return -1;

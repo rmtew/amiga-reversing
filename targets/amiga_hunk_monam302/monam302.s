@@ -5864,10 +5864,11 @@ loc_0_00006BA4:
 	dc.b $FE,$24,$FC,$25,$FA,$40,$F8,$27,$F8,$22,$F6,$5C,$00
 loc_0_00006BD1:
 	dc.b $00,$00,$00,$00,$00,$00,$04,$04,$16,$16,$01,$01,$01
+loc_0_00006BDE:
 	dc.w $0101	; lookup_table
-	dc.w $0112
-	dc.w $1212
-	dc.w $0202
+	dc.w loc_0_00006CFC-loc_0_00006BEA
+	dc.w loc_0_00007DFC-loc_0_00006BEA
+	dc.w loc_0_00006DEC-loc_0_00006BEA
 	dc.w $1D1E
 	dc.w $1F1F
 loc_0_00006BEA:
@@ -5976,6 +5977,7 @@ loc_0_00006CF2:
 	bsr.w loc_0_00006C10
 	cmp.b #$5,d7
 	bne.b loc_0_00006CE6
+loc_0_00006CFC:
 	cmp.b #$2E,d1
 	bne.b loc_0_00006D48
 	move.b (a4)+,d0
@@ -6072,6 +6074,7 @@ loc_0_00006DD0:
 	subq.w #2,(a1)
 	move.w (a1)+,d1
 	move.w $0(a1,d1.w),d1
+loc_0_00006DEC:
 	cmp.b #$15,d1
 	bcc.b loc_0_00006DFE
 	subq.w #4,-(a0)
@@ -7783,6 +7786,7 @@ loc_0_00007DF6:
 loc_0_00007DF8:
 	move.l (a1),d1
 	beq.b loc_0_00007E0E
+loc_0_00007DFC:
 	asl.l #2,d1
 	movea.l d1,a1
 	lea.l $0004(a1),a0
