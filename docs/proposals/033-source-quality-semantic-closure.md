@@ -3924,6 +3924,11 @@ source-export failure reporting. The next Slice 8 work is to replace
 exported C rows, adding any missing C facts instead of re-deriving them in
 Python.
 
+The old Mac OS target-artifact source-comment renderer for that Python gate has
+also been deleted. Generated Mac OS source already omits `; Source quality gate`
+comments; keeping a dead renderer for Python-computed semantic closeout would
+invite the wrong ownership boundary back into source export.
+
 No platform gets an exception: Amiga, Atari, Mac OS, and raw targets all use the
 same rule that source-quality meaning is produced by C.
 
