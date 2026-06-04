@@ -2696,6 +2696,15 @@ comes from:
 }
 ```
 
+The boundary is now covered negatively as well. If a test mutator removes
+`platform_semantic_uses` after source-quality analysis, render must not
+recreate the higher-level disk-DMA comment:
+
+```c
+M68K_C_ASSERT(strstr(source, "\tmove.w #$9F40,") != NULL);
+M68K_C_ASSERT(strstr(source, "disk DMA read 16000 bytes") == NULL);
+```
+
 This is intentionally not a renderer-side analysis shortcut. The renderer
 accepts C-owned note text first and falls back to legacy helpers only for
 semantic comments that have not yet been migrated.
