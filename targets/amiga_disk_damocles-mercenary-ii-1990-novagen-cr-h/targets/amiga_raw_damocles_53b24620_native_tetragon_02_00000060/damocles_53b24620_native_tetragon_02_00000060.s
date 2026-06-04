@@ -31,56 +31,6 @@
 ;     absolute[$000517FC] refs=1 access=a
 ;     absolute[$00051840] refs=1 access=a
 ;     absolute[$00051848] refs=1 access=a
-;     absolute[$00069914] refs=1 access=a
-;     absolute[$00069F40-$0006BE80] refs=1 access=a
-;     absolute[$0006BA22] refs=1 access=a
-;     absolute[$0006BA4A] refs=1 access=a
-;     absolute[$0006BA72] refs=1 access=a
-;     absolute[$0006BA9A] refs=1 access=a
-;     absolute[$0006BAC2] refs=1 access=a
-;     absolute[$0006BAEA] refs=1 access=a
-;     absolute[$0006BB12] refs=1 access=a
-;     absolute[$0006BB3A] refs=1 access=a
-;     absolute[$0006BB62] refs=1 access=a
-;     absolute[$0006BB8A] refs=1 access=a
-;     absolute[$0006BBB2] refs=1 access=a
-;     absolute[$0006BBDA] refs=1 access=a
-;     absolute[$0006BC02] refs=1 access=a
-;     absolute[$0006BC2A] refs=1 access=a
-;     absolute[$0006BC52] refs=1 access=a
-;     absolute[$0006BC7A] refs=1 access=a
-;     absolute[$0006BCA2] refs=1 access=a
-;     absolute[$0006BCCA] refs=1 access=a
-;     absolute[$0006BCF2] refs=1 access=a
-;     absolute[$0006BE80-$0006DDC0] refs=1 access=a
-;     absolute[$0006D9EC] refs=1 access=a
-;     absolute[$0006DDC0-$0006FD00] refs=1 access=a
-;     absolute[$0006FA3C] refs=1 access=a
-;     absolute[$0006FA3E] refs=1 access=a
-;     absolute[$0006FA62] refs=1 access=a
-;     absolute[$0006FA64] refs=1 access=a
-;     absolute[$0006FA66] refs=1 access=a
-;     absolute[$0006FA8A] refs=1 access=a
-;     absolute[$0006FA8C] refs=1 access=a
-;     absolute[$0006FA8E] refs=1 access=a
-;     absolute[$0006FAB2] refs=1 access=a
-;     absolute[$0006FAB4] refs=1 access=a
-;     absolute[$0006FAB6] refs=1 access=a
-;     absolute[$0006FADA] refs=1 access=a
-;     absolute[$0006FADC] refs=1 access=a
-;     absolute[$0006FADE] refs=1 access=a
-;     absolute[$0006FB02] refs=1 access=a
-;     absolute[$0006FB04] refs=1 access=a
-;     absolute[$0006FB06] refs=1 access=a
-;     absolute[$0006FB2A] refs=1 access=a
-;     absolute[$0006FB2C] refs=1 access=a
-;     absolute[$0006FB2E] refs=1 access=a
-;     absolute[$0006FB52] refs=1 access=a
-;     absolute[$0006FB54] refs=1 access=a
-;     absolute[$0006FB56] refs=1 access=a
-;     absolute[$0006FB7A] refs=1 access=a
-;     absolute[$0006FB7C] refs=1 access=a
-;     absolute[$0006FB7E] refs=1 access=a
 ;     absolute[$00076800] refs=2 access=a
 ;     absolute[$00079540] refs=1 access=r
 ;     absolute[$00079910] refs=1 access=a
@@ -89,12 +39,10 @@
 ;     absolute[$00079AE8] refs=1 access=a
 ;     absolute[$00079D2A] refs=1 access=a
 ;     absolute[$00079D35] refs=1 access=a
-;     absolute[$00079F40] refs=1 access=a
 ;     absolute[$0007B882] refs=1 access=a
 ;     absolute[$0007B9FA] refs=1 access=a
 ;     absolute[$0007BA3A] refs=1 access=a
 ;     absolute[$0007BC6C] refs=1 access=a
-;     absolute[$0007BE80] refs=1 access=a
 ;     absolute[$0007D480] refs=1 access=a
 ;     absolute[$0007D500] refs=1 access=a
 ;     absolute[$0007D920] refs=3 access=a
@@ -103,7 +51,6 @@
 ;     absolute[$0007D9EA] refs=1 access=a
 ;     absolute[$0007DA38] refs=1 access=a
 ;     absolute[$0007DB2C] refs=1 access=a
-;     absolute[$0007DDC0] refs=1 access=a
 ;     absolute[$0007F6EA] refs=1 access=a
 ;     absolute[$0007F6F0] refs=1 access=a
 ;     absolute[$0007F8A4] refs=1 access=a
@@ -174,6 +121,7 @@ m68k_vector_division_by_zero	EQU	$14
 absolute_slot_0007D480	EQU	$7D480
 absolute_slot_0007D500	EQU	$7D500
 runtime_address_00079540	EQU	$79540
+runtime_address_00078000	EQU	$78000
 absolute_slot_0007BC6C	EQU	$7BC6C
 absolute_slot_0007FAE8	EQU	$7FAE8
 absolute_slot_00079D2A	EQU	$79D2A
@@ -30579,7 +30527,7 @@ abs_0_00050312:
 	cmpa.l #$7FD00,a0
 	bne.b abs_0_00050312
 	bsr.w abs_0_0005035A
-	movea.l #abs_0_00069540,a0
+	movea.l #abs_0_00069540,a0	; bitmap memory plane 0 +$1540 ($00069540)
 	movea.l #runtime_address_00079540,a1
 	move.w #$27F,d0
 abs_0_0005033C:
@@ -30593,8 +30541,8 @@ abs_0_0005033C:
 abs_0_0005035A:
 	moveq.l #0,d0
 	moveq.l #-1,d1
-	movea.l #$78000,a1
-	movea.l #$68000,a2
+	movea.l #runtime_address_00078000,a1
+	movea.l #$68000,a2	; bitmap memory plane 0 base $00068000
 	move.l #$54F,d2
 abs_0_00050370:
 	move.l d0,(a1)+
@@ -30602,7 +30550,7 @@ abs_0_00050370:
 	move.l d0,$3E7C(a1)
 	move.l d1,$5DBC(a1)
 	move.l d0,(a2)+
-	move.l d0,$1F3C(a2)
+	move.l d0,$1F3C(a2)	; bitmap memory plane 0 +$1F3C ($00069F3C)
 	move.l d0,$3E7C(a2)
 	move.l d1,$5DBC(a2)
 	dbf.w d2,abs_0_00050370

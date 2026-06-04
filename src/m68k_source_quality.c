@@ -2107,6 +2107,8 @@ static int source_quality_reglist_contains_register(const M68kOperandIR *operand
     uint8_t reg_index);
 static int source_quality_operand_is_predec_a7(const M68kOperandIR *operand);
 static int source_quality_operand_is_postinc_a7(const M68kOperandIR *operand);
+static int source_quality_operand_absolute_offset(const M68kOperandIR *operand, uint32_t *out_offset);
+static int source_quality_operand_address_register_index(const M68kOperandIR *operand, uint8_t *out_reg);
 static uint32_t source_quality_immediate_domain_value_for_instruction_size(const M68kInstructionIR *instruction,
     uint32_t value);
 
@@ -3413,6 +3415,472 @@ static int source_quality_has_structured_data_item(const M68kSourceAnalysisIR *s
     if (item->has_section_index && item->section_index == section_index && item->offset == offset &&
         item->size == size && item->kind == kind && item->source_pattern_id == source_pattern_id) {
       return 1;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_has_structured_data_item_with_role(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t size, uint8_t kind, uint32_t role_flags) {
+  size_t index;
+  if (source_analysis == NULL || role_flags == 0U) return 0;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
+    if (item->has_section_index && item->section_index == section_index && item->offset == offset &&
+        item->size == size && item->kind == kind && item->semantic_role_flags == role_flags) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int source_quality_has_structured_data_role_at_offset(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t role_flags) {
+  size_t index;
+  if (source_analysis == NULL || role_flags == 0U) return 0;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
+    if (!item->has_section_index || item->section_index != section_index || item->offset != offset) continue;
+    if ((item->semantic_role_flags & role_flags) != 0U) return 1;
+  }
+  return 0;
+}
+
+static uint32_t source_quality_copper_list_size_at(const M68kDecodeSectionIR *section, uint32_t offset) {
+  uint32_t cursor;
+  if (section == NULL || section->data == NULL || offset >= section->size || section->size - offset < 4U)
+    return 0U;
+  for (cursor = offset; cursor + 4U <= section->size; cursor += 4U) {
+    uint16_t first = m68k_read_u16be(section->data + cursor);
+    uint16_t second = m68k_read_u16be(section->data + cursor + 2U);
+    if (first == 0xFFFFU && second == 0xFFFEU) return cursor + 4U - offset;
+  }
+  return 0U;
+}
+
+static uint8_t source_quality_collect_copper_bitmap_pointer_rows(const uint8_t *data, uint32_t offset,
+    uint32_t size, uint32_t *row_offsets, uint32_t *pointers, uint8_t pointer_limit) {
+  uint32_t cursor;
+  uint8_t pointer_count = 0U;
+  if (data == NULL || pointers == NULL || pointer_limit == 0U || size == 0U) return 0U;
+  for (cursor = 0U; cursor + 8U <= size && pointer_count < pointer_limit; cursor += 4U) {
+    uint32_t pointer = 0U;
+    if (!source_quality_copper_bitmap_pointer_at(data, offset, cursor, size, &pointer)) continue;
+    if (row_offsets != NULL) row_offsets[pointer_count] = offset + cursor;
+    pointers[pointer_count++] = pointer;
+  }
+  return pointer_count;
+}
+
+static int append_source_quality_runtime_address_ref(M68kSectionAnalysisIR *section_analysis,
+    const M68kRuntimeAddressRefIR *ref) {
+  if (section_analysis == NULL || ref == NULL) return -1;
+  return m68k_ir_section_analysis_append_runtime_address_ref(section_analysis, ref);
+}
+
+static int append_source_quality_inferred_bitmap_runtime_refs_for_copper_list(
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size) {
+  uint32_t row_offsets[8];
+  uint32_t pointers[8];
+  uint32_t step;
+  uint8_t index;
+  uint8_t pointer_count;
+  const char *role_name;
+  if (section_analysis == NULL || section == NULL || section->data == NULL) return 0;
+  pointer_count = source_quality_collect_copper_bitmap_pointer_rows(section->data, offset, size, row_offsets,
+    pointers, (uint8_t)(sizeof(pointers) / sizeof(pointers[0])));
+  if (pointer_count == 0U) return 0;
+  step = source_quality_copper_bitmap_pointer_even_step(pointers, pointer_count);
+  role_name = m68k_analysis_structured_data_role_name_for_flags(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
+  if (role_name == NULL) return 0;
+  for (index = 0U; index < pointer_count; ++index) {
+    M68kRuntimeAddressRefIR ref;
+    memset(&ref, 0, sizeof(ref));
+    ref.offset = row_offsets[index];
+    ref.source_size = 4U;
+    ref.operand_index = UINT32_MAX;
+    ref.size = step;
+    ref.has_runtime_address = 1U;
+    ref.runtime_address = pointers[index];
+    ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    ref.data_class_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
+    ref.data_class = (char *)role_name;
+    if (append_source_quality_runtime_address_ref(section_analysis, &ref) != 0) return -1;
+  }
+  return 0;
+}
+
+static int source_quality_runtime_ref_sink_address(const M68kDecodeSectionIR *section,
+    const M68kRuntimeAddressRefIR *ref, uint32_t *out_sink_address) {
+  const M68kDecodeCandidate *candidate;
+  M68kInstructionIR instruction;
+  if (out_sink_address != NULL) *out_sink_address = 0U;
+  if (section == NULL || ref == NULL || out_sink_address == NULL) return 0;
+  if (ref->has_sink_address) {
+    *out_sink_address = ref->sink_address;
+    return 1;
+  }
+  candidate = m68k_decode_ir_find_candidate_at_offset(section, ref->offset);
+  if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      !((ref->operand_index == 0U || ref->operand_index == UINT32_MAX) &&
+        instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction.size_suffix == 'l' &&
+        instruction.operand_count == 2U)) {
+    return 0;
+  }
+  return source_quality_candidate_operand_absolute_value(candidate, 1U, out_sink_address);
+}
+
+static int source_quality_candidate_immediate_audio_length_bytes(const M68kDecodeCandidate *candidate,
+    uint32_t audio_register_offset, uint32_t *out_size) {
+  M68kInstructionIR instruction;
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  uint32_t immediate = 0U;
+  uint32_t dest_address = 0U;
+  if (out_size != NULL) *out_size = 0U;
+  if (candidate == NULL || out_size == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
+      candidate->size_suffix != 'w' || candidate->operand_count != 2U) {
+    return 0;
+  }
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      !m68k_ir_operand_immediate_value(&instruction.operands[0], &immediate) ||
+      !source_quality_candidate_operand_absolute_value(candidate, 1U, &dest_address)) {
+    return 0;
+  }
+  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
+  if (hardware_field == NULL ||
+      hardware_field->register_offset != audio_register_offset ||
+      hardware_field->field_symbol_id != AMIGA_OS_SYMBOL_ID_AC_LEN) {
+    return 0;
+  }
+  *out_size = (immediate & 0xFFFFU) * 2U;
+  return *out_size != 0U;
+}
+
+static uint32_t source_quality_sound_sample_size_from_nearby_audio_length_write(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kRuntimeAddressRefIR *ref, uint32_t sink_address) {
+  const M68kDecodeCandidate *pointer_candidate;
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint32_t cursor;
+  uint8_t step;
+  if (section == NULL || accepted_start == NULL || ref == NULL) return 0U;
+  hardware_register = amiga_os_find_hardware_register_by_cpu_address(sink_address);
+  if (hardware_register == NULL ||
+      hardware_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE) {
+    return 0U;
+  }
+  pointer_candidate = m68k_decode_ir_find_candidate_at_offset(section, ref->offset);
+  if (pointer_candidate == NULL || pointer_candidate->byte_count == 0U) return 0U;
+  cursor = pointer_candidate->offset + pointer_candidate->byte_count;
+  for (step = 0U; step < 4U && cursor < section->size && accepted_start[cursor] != 0U; ++step) {
+    const M68kDecodeCandidate *candidate = m68k_decode_ir_find_candidate_at_offset(section, cursor);
+    uint32_t size = 0U;
+    if (candidate == NULL || candidate->byte_count == 0U) return 0U;
+    if (source_quality_candidate_immediate_audio_length_bytes(candidate, hardware_register->offset, &size))
+      return size;
+    cursor += candidate->byte_count;
+  }
+  return 0U;
+}
+
+static int append_platform_runtime_structured_data_item(M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t size, uint8_t kind, uint32_t role_flags) {
+  M68kAnalysisStructuredDataItem item;
+  if (source_analysis == NULL || size == 0U || role_flags == 0U ||
+      m68k_analysis_structured_data_role_name_for_flags(role_flags) == NULL ||
+      source_quality_has_structured_data_role_at_offset(source_analysis, section_index, offset, role_flags) ||
+      source_quality_has_structured_data_item_with_role(source_analysis, section_index, offset, size, kind,
+        role_flags)) {
+    return 0;
+  }
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = section_index;
+  item.offset = offset;
+  item.size = size;
+  item.kind = kind;
+  item.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item, role_flags);
+  return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
+}
+
+static int append_platform_runtime_structured_data_items(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    size_t ref_index;
+    if (section == NULL) continue;
+    for (ref_index = 0U; ref_index < section_analysis->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[ref_index];
+      uint32_t size = 0U;
+      uint8_t kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+      uint32_t role_flags = 0U;
+      if (!ref->has_target || ref->target_section_index > UINT32_MAX ||
+          ref->target_section_index >= decode->section_count) {
+        continue;
+      }
+      if ((ref->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) != 0U) {
+        const M68kDecodeSectionIR *target_section = source_quality_decode_section_by_index(decode,
+          (uint32_t)ref->target_section_index, NULL);
+        M68kSectionAnalysisIR *target_analysis;
+        size = source_quality_copper_list_size_at(target_section, ref->target_offset);
+        role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
+        kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+        if (size == 0U) continue;
+        if (append_platform_runtime_structured_data_item(source_analysis, (uint32_t)ref->target_section_index,
+            ref->target_offset, size, kind, role_flags) != 0) {
+          return -1;
+        }
+        target_analysis = source_analysis_section_by_index(source_analysis, (uint32_t)ref->target_section_index);
+        if (target_analysis != NULL &&
+            append_source_quality_inferred_bitmap_runtime_refs_for_copper_list(target_analysis, target_section,
+              ref->target_offset, size) != 0) {
+          return -1;
+        }
+        continue;
+      } else if ((ref->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE) != 0U &&
+          accepted_start != NULL) {
+        uint32_t sink_address = 0U;
+        if (!source_quality_runtime_ref_sink_address(section, ref, &sink_address)) continue;
+        size = source_quality_sound_sample_size_from_nearby_audio_length_write(section, accepted_start[decode_index],
+          ref, sink_address);
+        role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+        kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+        if (size != 0U) {
+          if (append_platform_runtime_structured_data_item(source_analysis, (uint32_t)ref->target_section_index,
+              ref->target_offset, size, kind, role_flags) != 0) {
+            return -1;
+          }
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+typedef struct M68kSourceQualityBitmapRuntimeAddress {
+  uint8_t matched;
+  uint8_t plane_index;
+  uint32_t base;
+  uint32_t size;
+  uint32_t delta;
+} M68kSourceQualityBitmapRuntimeAddress;
+
+typedef struct M68kSourceQualityBitmapBaseState {
+  M68kSourceQualityBitmapRuntimeAddress address_regs[8];
+} M68kSourceQualityBitmapBaseState;
+
+static int source_quality_operand_address_memory(const M68kOperandIR *operand, uint8_t *out_reg,
+    int16_t *out_displacement) {
+  if (out_reg != NULL) *out_reg = 0U;
+  if (out_displacement != NULL) *out_displacement = 0;
+  if (operand == NULL ||
+      (operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA) ||
+      operand->value.ea_reg >= 8U) {
+    return 0;
+  }
+  if (operand->value.ea_mode == 2U) {
+    if (out_reg != NULL) *out_reg = operand->value.ea_reg;
+    return 1;
+  }
+  if (operand->value.ea_mode == 5U) {
+    if (out_reg != NULL) *out_reg = operand->value.ea_reg;
+    if (out_displacement != NULL) *out_displacement = (int16_t)(operand->value.value & 0xFFFFU);
+    return 1;
+  }
+  return 0;
+}
+
+static int source_quality_bitmap_runtime_address_for_value(const M68kSectionAnalysisIR *section,
+    uint32_t value, M68kSourceQualityBitmapRuntimeAddress *out_address) {
+  size_t index;
+  uint8_t plane_index = 0U;
+  if (out_address != NULL) memset(out_address, 0, sizeof(*out_address));
+  if (section == NULL || out_address == NULL) return 0;
+  for (index = 0U; index < section->runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[index];
+    uint32_t base;
+    uint32_t size;
+    if ((ref->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) == 0U ||
+        !ref->has_runtime_address || ref->size == 0U) {
+      continue;
+    }
+    base = ref->runtime_address;
+    size = ref->size;
+    if (value >= base && value - base < size) {
+      out_address->matched = 1U;
+      out_address->plane_index = plane_index;
+      out_address->base = base;
+      out_address->size = size;
+      out_address->delta = value - base;
+      return 1;
+    }
+    if (plane_index != UINT8_MAX) ++plane_index;
+  }
+  return 0;
+}
+
+static int append_source_quality_bitmap_memory_runtime_ref(M68kSectionAnalysisIR *section,
+    uint32_t offset, const M68kSourceQualityBitmapRuntimeAddress *address) {
+  M68kRuntimeAddressRefIR ref;
+  const char *role_name;
+  if (section == NULL || address == NULL || !address->matched) return 0;
+  role_name = m68k_analysis_structured_data_role_name_for_flags(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
+  if (role_name == NULL) return 0;
+  memset(&ref, 0, sizeof(ref));
+  ref.offset = offset;
+  ref.operand_index = UINT32_MAX;
+  ref.has_runtime_address = 1U;
+  ref.runtime_address = address->base + address->delta;
+  ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  ref.data_class_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
+  ref.data_class = (char *)role_name;
+  return append_source_quality_runtime_address_ref(section, &ref);
+}
+
+static int source_quality_operand_runtime_address_from_bitmap_base(
+    const M68kSourceQualityBitmapBaseState *state, const M68kOperandIR *operand,
+    M68kSourceQualityBitmapRuntimeAddress *out_address) {
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  int64_t value;
+  const M68kSourceQualityBitmapRuntimeAddress *base;
+  if (out_address != NULL) memset(out_address, 0, sizeof(*out_address));
+  if (state == NULL || operand == NULL || out_address == NULL ||
+      !source_quality_operand_address_memory(operand, &base_reg, &displacement) || base_reg >= 8U ||
+      !state->address_regs[base_reg].matched) {
+    return 0;
+  }
+  base = &state->address_regs[base_reg];
+  value = (int64_t)base->base + (int64_t)base->delta + (int64_t)displacement;
+  if (value < 0 || value > UINT32_MAX) return 0;
+  *out_address = *base;
+  if ((uint32_t)value < out_address->base) return 0;
+  out_address->delta = (uint32_t)value - out_address->base;
+  if (out_address->size != 0U && out_address->delta >= out_address->size) return 0;
+  return 1;
+}
+
+static int source_quality_instruction_immediate_address_register_load(const M68kInstructionIR *instruction,
+    uint32_t *out_value) {
+  if (out_value != NULL) *out_value = 0U;
+  if (instruction == NULL || out_value == NULL ||
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA ||
+      instruction->operand_count != 2U ||
+      !source_quality_operand_address_register_index(&instruction->operands[1], NULL)) {
+    return 0;
+  }
+  return m68k_ir_operand_immediate_value(&instruction->operands[0], out_value);
+}
+
+static int append_bitmap_memory_runtime_refs_for_instruction(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const M68kSourceQualityBitmapBaseState *state) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  uint32_t immediate_address = 0U;
+  if (section_analysis == NULL || candidate == NULL || instruction == NULL) return 0;
+  if (source_quality_instruction_immediate_address_register_load(instruction, &immediate_address)) {
+    M68kSourceQualityBitmapRuntimeAddress address;
+    if (source_quality_bitmap_runtime_address_for_value(section_analysis, immediate_address, &address) &&
+        append_source_quality_bitmap_memory_runtime_ref(section_analysis, candidate->offset, &address) != 0) {
+      return -1;
+    }
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    M68kSourceQualityBitmapRuntimeAddress address;
+    uint32_t absolute = 0U;
+    uint8_t access = metadata != NULL && operand_index < 4U ?
+      metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE;
+    if (source_quality_operand_absolute_offset(operand, &absolute) &&
+        source_quality_bitmap_runtime_address_for_value(section_analysis, absolute, &address)) {
+      if (append_source_quality_bitmap_memory_runtime_ref(section_analysis, candidate->offset, &address) != 0)
+        return -1;
+      continue;
+    }
+    if ((access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+        source_quality_operand_runtime_address_from_bitmap_base(state, operand, &address)) {
+      if (append_source_quality_bitmap_memory_runtime_ref(section_analysis, candidate->offset, &address) != 0)
+        return -1;
+    }
+  }
+  return 0;
+}
+
+static void source_quality_bitmap_base_state_update_after_instruction(
+    M68kSourceQualityBitmapBaseState *state, const M68kSectionAnalysisIR *section_analysis,
+    const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  M68kSourceQualityBitmapRuntimeAddress absolute_address;
+  uint8_t has_absolute_address = 0U;
+  uint32_t immediate_address = 0U;
+  size_t operand_index;
+  if (state == NULL || section_analysis == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return;
+  memset(&absolute_address, 0, sizeof(absolute_address));
+  if (source_quality_instruction_immediate_address_register_load(instruction, &immediate_address) &&
+      source_quality_bitmap_runtime_address_for_value(section_analysis, immediate_address, &absolute_address)) {
+    has_absolute_address = 1U;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    uint32_t absolute = 0U;
+    if (has_absolute_address) break;
+    if (source_quality_operand_absolute_offset(&instruction->operands[operand_index], &absolute) &&
+        source_quality_bitmap_runtime_address_for_value(section_analysis, absolute, &absolute_address)) {
+      has_absolute_address = 1U;
+      break;
+    }
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+        source_quality_operand_address_register_index(&instruction->operands[operand_index], &reg) && reg < 8U) {
+      if (has_absolute_address) state->address_regs[reg] = absolute_address;
+      else memset(&state->address_regs[reg], 0, sizeof(state->address_regs[reg]));
+    } else if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
+      uint8_t bit;
+      for (bit = 0U; bit < 8U; ++bit) {
+        if (source_quality_reglist_contains_register(&instruction->operands[operand_index], 2U, bit))
+          memset(&state->address_regs[bit], 0, sizeof(state->address_regs[bit]));
+      }
+    }
+    if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
+        source_quality_operand_address_memory(&instruction->operands[operand_index], &reg, NULL) && reg < 8U) {
+      memset(&state->address_regs[reg], 0, sizeof(state->address_regs[reg]));
+    }
+  }
+}
+
+static int append_bitmap_memory_runtime_refs(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    M68kSourceQualityBitmapBaseState state;
+    size_t candidate_index;
+    if (section == NULL) continue;
+    memset(&state, 0, sizeof(state));
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      if (!source_quality_candidate_is_accepted_start(section, accepted_start[decode_index], candidate)) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      if (append_bitmap_memory_runtime_refs_for_instruction(section_analysis, candidate, &instruction,
+          &state) != 0) {
+        return -1;
+      }
+      source_quality_bitmap_base_state_update_after_instruction(&state, section_analysis, &instruction);
     }
   }
   return 0;
@@ -7775,6 +8243,8 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_expected_pc_relative_storage_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
   if (append_expected_runtime_ref_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_platform_runtime_structured_data_items(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_bitmap_memory_runtime_refs(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_expected_copper_runtime_pointer_word_symbol_accesses(source_analysis, decode) != 0) return -1;
   if (append_expected_hardware_register_value_domain_symbol_accesses(source_analysis, decode, accepted_start) != 0)
     return -1;

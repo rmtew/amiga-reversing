@@ -6525,6 +6525,19 @@ static const M68kSectionAnalysisIR *source_analysis_section_for_render(const M68
   return NULL;
 }
 
+static int source_analysis_has_platform_semantic_use_kind_at(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset, uint8_t kind) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (section == NULL) return 0;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    if (use->offset == offset && use->kind == kind) return 1;
+  }
+  return 0;
+}
+
 static void format_platform_semantic_target_label_for_render(const M68kRenderLookup *lookup, char *buf,
     size_t buf_size, size_t section_index, uint32_t offset) {
   uint32_t runtime_address = 0U;
@@ -9053,9 +9066,14 @@ static int attach_existing_materialized_runtime_immediate_symbols(M68kRenderIRPr
 }
 
 static int attach_unmapped_absolute_runtime_address_symbols(M68kRenderIRPreview *preview,
-    const M68kRenderLookup *lookup, M68kInstructionIR *instruction) {
+    const M68kRenderLookup *lookup, const M68kSourceAnalysisIR *source_analysis, size_t section_index,
+    uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
   if (preview == NULL || lookup == NULL || instruction == NULL) return 0;
+  if (source_analysis_has_platform_semantic_use_kind_at(source_analysis, section_index, offset,
+      M68K_PLATFORM_SEMANTIC_USE_BITMAP_MEMORY)) {
+    return 1;
+  }
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
     uint32_t value = 0U;
@@ -9533,7 +9551,9 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       lookup_instruction_comment(lookup, section->section_index, candidate->offset))) {
     return 0;
   }
-  if (!attach_unmapped_absolute_runtime_address_symbols(preview, lookup, &instruction)) return 0;
+  if (!attach_unmapped_absolute_runtime_address_symbols(preview, lookup, source_analysis, section->section_index,
+      candidate->offset, &instruction))
+    return 0;
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, section->section_index, candidate->offset,
     &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);

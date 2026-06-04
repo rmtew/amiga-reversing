@@ -848,14 +848,18 @@ renderer needs to answer quickly while formatting already-proven facts.
 outputs are semantic, not presentational:
 
 ```text
-render_lookup_infer_platform_runtime_structured_data()
-render_lookup_infer_amiga_bitmap_memory_uses()
 render_lookup_infer_relocation_pointer_tables()
 render_lookup_infer_indexed_word_dispatch_tables()
 render_lookup_infer_pc_relative_lookup_scalars()
 render_lookup_add_auto_structured_data_item()
 source_analysis_append_auto_structured_data_policy()
 ```
+
+`render_lookup_infer_platform_runtime_structured_data()` and
+`render_lookup_infer_amiga_bitmap_memory_uses()` have been removed from this
+list by moving their behavior to source-quality. The remaining entries show the
+same wrong boundary for later slices: they classify source meaning while
+building a render cache.
 
 Those passes build `M68kAnalysisStructuredDataItem` records, range ownership
 views, table metadata, consumer registers, index domains, and source patterns.
@@ -2850,13 +2854,37 @@ M68K_C_ASSERT(strstr(analysis_json,
 Bitmap-memory comments now follow the same rule:
 
 ```text
-bitmap runtime refs from copper bitmap planes
+runtime ref to copper list sink
+  -> source-quality creates copper-list structured data item
+  -> source-quality reads copper bitmap pointer rows
+  -> source-quality creates bitmap runtime refs
   + later absolute/base-relative bitmap memory use
-  -> render lookup records the runtime address ref only
   -> source-quality exports M68kPlatformSemanticUseIR(kind=bitmap_memory,
                                                      note_text=...)
   -> renderer appends note_text on the instruction
 ```
+
+Those bitmap runtime refs are semantic evidence, not automatic symbol
+promotion:
+
+```text
+lea.l $00010010.l,a0
+  + $00010010 lies inside a proven bitmap plane
+  -> render numeric operand
+  -> add "; bitmap memory plane 0 +$10 ($00010010)"
+  -> do not coin runtime_address_00010010
+
+movea.l #$00068000,a2
+  + destination is an address register
+  + $00068000 is a proven bitmap plane base
+  -> address setup for bitmap memory
+  -> render numeric operand/comment, not runtime_address_00068000
+```
+
+The render fallback that attaches generic `runtime_address_*` symbols must
+yield when source-quality already emitted a stronger bitmap-memory semantic
+use. A bitmap comment proves "this value is part of a bitmap range"; it does
+not prove that the literal itself is a durable named address.
 
 The focused fixture asserts the analysis fact:
 
@@ -3361,15 +3389,38 @@ semantic uses, target offsets, operand expressions, and expected symbol
 accesses. Corpus round-trip stayed content-exact after removal, proving the
 durable C facts now carry the behavior rather than the render cache.
 
-Remaining platform-comment work is the same rule applied to richer structured
-comments in other renderer helpers that still describe platform meaning while
-formatting data. Display-layout, display-setup, and bitmap-memory comments no
-longer come from `m68k_analysis_render_lookup.c`; the remaining render-lookup
-copper/bitmap path there is runtime-ref inference, not these comments. The
-remaining comment families need C semantic-use records with enough structured
-fields or note text for render to format without re-deciding the semantic
-meaning. Once each family is migrated, the corresponding renderer fallback must
-be deleted.
+Runtime structured data now follows the same rule. The old render lookup path
+used runtime sink refs to create copper-list and sound-sample structured data,
+then scanned copper rows to invent bitmap runtime refs:
+
+```text
+render_lookup_infer_platform_runtime_structured_data()
+  runtime ref -> COP1LC/COP2LC -> copper list item
+  copper bitmap pointer rows -> bitmap runtime refs
+  runtime ref -> AUDxLC + nearby AUDxLEN -> sound sample item
+```
+
+That analysis now belongs to source-quality:
+
+```text
+source-analysis runtime refs
+  -> copper-list / sound-sample structured data items
+  -> copper bitmap pointer rows -> bitmap base runtime refs
+  -> accepted code scan -> bitmap-memory semantic-use notes
+  -> renderer consumes structured data and notes
+```
+
+The renderability condition still matters. Policy/raw/nested copper spans that
+render as bytes may still prove bitmap base ranges and list-level semantic
+notes, but they must not create word-row symbol obligations that the source
+renderer cannot satisfy.
+
+Remaining platform-comment work is now limited to any other renderer helpers
+that still describe platform meaning while formatting data. Display-layout,
+display-setup, bitmap-memory, palette upload, runtime sink pointer, copper
+runtime-pointer expressions, and runtime structured data are C-owned. Once a
+comment family is migrated, the corresponding renderer fallback must be
+deleted, not left as a second source of truth.
 
 The copper runtime-pointer expression-symbol case now follows the same
 ownership rule. Source-quality recognizes bitmap pointer word pairs inside
@@ -3438,10 +3489,9 @@ copper-list item. Source-quality must choose the copper-list item for the
 renderability proof, not let the placeholder suppress valid bitmap/sprite word
 symbols.
 
-Palette upload comments have been moved onto the same C-owned semantic path.
-The existing render-lookup classifier still detects the source palette table for
-now, but it records the upload instruction as the table consumer instead of
-emitting an instruction comment directly:
+Palette upload comments and palette table classification have been moved onto
+the same C-owned semantic path. Source-quality detects the source palette table
+and records the upload instruction as the table consumer:
 
 ```text
 palette table item
@@ -3462,8 +3512,8 @@ platform_semantic_use(kind=palette,
 ```
 
 Render consumes that note like other `platform_semantic_use` comments. The
-remaining work is to move the palette table detection itself out of
-`m68k_analysis_render_lookup.c`; the comment is no longer render-owned.
+renderer no longer decides that an instruction is a palette upload while
+formatting source.
 
 Relocation-backed pointer table classification has also moved to
 source-quality. The old render-lookup pass scanned relocation records and

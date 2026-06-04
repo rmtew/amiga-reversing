@@ -26803,12 +26803,15 @@ static int test_facts_v2_copper_bitmap_memory_uses_are_commented(void) {
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   char *analysis_json = NULL;
+  uint32_t bitmap_base_use_refs = 0U;
   uint32_t bitmap_use_refs = 0U;
   size_t index;
-  uint8_t bytes[40] = {
-    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x14u, 0x00u, 0xDFu, 0xF0u, 0x80u,
+  uint8_t bytes[48] = {
+    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x1Cu, 0x00u, 0xDFu, 0xF0u, 0x80u,
     0x41u, 0xF9u, 0x00u, 0x01u, 0x00u, 0x10u,
     0x30u, 0x10u,
+    0x22u, 0x7Cu, 0x00u, 0x01u, 0x00u, 0x00u,
+    0x32u, 0x11u,
     0x4Eu, 0x75u,
     0x00u, 0xE0u, 0x00u, 0x01u,
     0x00u, 0xE2u, 0x00u, 0x00u,
@@ -26839,6 +26842,11 @@ static int test_facts_v2_copper_bitmap_memory_uses_are_commented(void) {
     "\tlea.l $00010010.l,a0\t; bitmap memory plane 0 +$10 ($00010010)\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.w (a0),d0\t; bitmap memory plane 0 +$10 ($00010010)\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmovea.l #$10000,a1\t; bitmap memory plane 0 base $00010000\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w (a1),d1\t; bitmap memory plane 0 base $00010000\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "runtime_address_00010000") == NULL);
   for (index = 0U; index < source_analysis.sections[0].runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[index];
     if (runtime_address_ref_has_data_class(ref, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) &&
@@ -26846,13 +26854,20 @@ static int test_facts_v2_copper_bitmap_memory_uses_are_commented(void) {
       ++bitmap_use_refs;
       M68K_C_ASSERT_U32(0U, ref->size);
     }
+    if (runtime_address_ref_has_data_class(ref, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) &&
+        ref->has_runtime_address && ref->runtime_address == 0x10000U && ref->size == 0U) {
+      ++bitmap_base_use_refs;
+    }
   }
+  M68K_C_ASSERT_U32(2U, bitmap_base_use_refs);
   M68K_C_ASSERT_U32(2U, bitmap_use_refs);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"bitmap_memory\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"note_text\":\"bitmap memory plane 0 +$10 ($00010010)\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"note_text\":\"bitmap memory plane 0 base $00010000\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);

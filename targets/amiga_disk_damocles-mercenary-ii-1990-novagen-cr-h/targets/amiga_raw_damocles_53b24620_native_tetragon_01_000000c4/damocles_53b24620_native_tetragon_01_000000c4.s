@@ -6,8 +6,8 @@
 ;     absolute[$00031000] refs=4 access=r
 ;     absolute[$00031004-$00031008] refs=1 access=w
 ;     absolute[$00031064] refs=1 access=r
-;     absolute[$00032000-$00038000] refs=9 access=ra
-;     absolute[$00038000-$0003B000] refs=1 access=a
+;     absolute[$00032000] refs=4 access=r
+;     absolute[$00035000] refs=3 access=r
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3
@@ -70,7 +70,7 @@ abs_0_00040050:
 abs_0_00040060:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER,_custom+dmacon.l
 	move.w #INTF_INTEN,_custom+intena.l
-	movea.l #$32000,a0
+	movea.l #$32000,a0	; bitmap memory plane 0 base $00032000
 	move.w #$2800,d0
 abs_0_0004007A:
 	clr.l (a0)+
@@ -184,20 +184,20 @@ abs_0_00040194:
 	bgt.b abs_0_0004020A
 	bra.b abs_0_00040216
 abs_0_000401FE:
-	movea.l #$32000,a1
+	movea.l #$32000,a1	; bitmap memory plane 0 base $00032000
 	adda.l d1,a1
 	bset.b d2,(a1)
 	bra.b abs_0_0004022A
 abs_0_0004020A:
-	movea.l #$35000,a1
+	movea.l #$35000,a1	; bitmap memory plane 1 base $00035000
 	adda.l d1,a1
 	bset.b d2,(a1)
 	bra.b abs_0_0004022A
 abs_0_00040216:
-	movea.l #$32000,a1
+	movea.l #$32000,a1	; bitmap memory plane 0 base $00032000
 	adda.l d1,a1
 	bset.b d2,(a1)
-	movea.l #$35000,a1
+	movea.l #$35000,a1	; bitmap memory plane 1 base $00035000
 	adda.l d1,a1
 	bset.b d2,(a1)
 abs_0_0004022A:
@@ -243,10 +243,10 @@ abs_0_000402AC:
 	asl.w #3,d2
 	sub.w d0,d2
 	subq.b #1,d2
-	movea.l #$32000,a1
+	movea.l #$32000,a1	; bitmap memory plane 0 base $00032000
 	adda.l d1,a1
 	bclr.b d2,(a1)
-	movea.l #$35000,a1
+	movea.l #$35000,a1	; bitmap memory plane 1 base $00035000
 	adda.l d1,a1
 	bclr.b d2,(a1)
 	rts

@@ -17,8 +17,6 @@
 ;     absolute[$000109EA] refs=1 access=a
 ;     absolute[$00010ED8] refs=1 access=a
 ;     absolute[$0001A862] refs=2 access=a
-;     absolute[$00070028-$000700A0] refs=3 access=a
-;     absolute[$00075000-$000750A0] refs=4 access=a
 ;     absolute[$0007D000] refs=1 access=a
 ;     absolute[$0007D380] refs=1 access=a
 ;     absolute[$0007D680] refs=1 access=a
@@ -2388,7 +2386,7 @@ abs_0_00012C74:
 	add.l app_01E8(a6),d0
 	movea.l d0,a2
 	addq.l #1,a2
-	movea.l #$70000,a1
+	movea.l #$70000,a1	; bitmap memory plane 4 base $00070000
 	move.b (a2)+,$78C7(a1)
 	move.b (a2)+,$7967(a1)
 	move.b (a2)+,$7A07(a1)
@@ -4068,7 +4066,7 @@ abs_0_000166C2:
 	bset.b #7,$0006(a5)
 	rts
 abs_0_000166D6:
-	movea.l #blitter_source_00070000,a0
+	movea.l #blitter_source_00070000,a0	; bitmap memory plane 4 base $00070000
 	move.l a0,app_front_bitplane_base(a6)
 	lea.l _custom.l,a5
 abs_0_000166E6:

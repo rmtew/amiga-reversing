@@ -14,7 +14,6 @@
 ;     absolute[$0005FFFC] refs=1 access=a
 ;     absolute[$00060000] refs=1 access=a
 ;     absolute[$00067D00] refs=5 access=a
-;     absolute[$00070000-$00078000] refs=4 access=a
 ;     absolute[$FFFFC190] refs=1 access=a
 
 ; AmigaOS compatibility
