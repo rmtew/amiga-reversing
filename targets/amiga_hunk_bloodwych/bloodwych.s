@@ -9651,8 +9651,14 @@ abs_0_00007D3E:
 abs_0_00007D44:
 	dc.l abs_0_00007CA0	; pointer_table
 	dc.l abs_0_00007CA6
-	dc.b $00,$00,$00,$00,$00,$00,$7C,$D6,$00,$00,$7D,$20,$00,$00,$7D,$26
-	dc.b $00,$00,$7D,$2C,$00,$00,$7D,$32,$00,$00,$7D,$38,$00,$00,$7D,$3E
+	dc.l $00000000
+	dc.l abs_0_00007CD6
+	dc.l abs_0_00007D20
+	dc.l abs_0_00007D26
+	dc.l abs_0_00007D2C
+	dc.l abs_0_00007D32
+	dc.l abs_0_00007D38
+	dc.l abs_0_00007D3E
 abs_0_00007D6C:
 	ori.b #1,$0054(a5)
 	move.w $0044(a5),d0
@@ -16757,141 +16763,23 @@ abs_0_0000E7DE:
 	dc.b $00,$09,$0C,$0E,$00,$0A,$0B,$0D,$00,$0A,$0B,$0E,$00,$0B,$0D,$0E
 	dc.b $0A,$09,$0A,$0B,$04,$03,$04,$0E,$0C,$03,$04,$0E
 abs_0_0000E88A:
-	dc.w $0000	; lookup_table
-	dc.w $0048
-	dc.w $0080
-	dc.w $00B0
-	dc.w $00D0
-	dc.w $00E8
-	dc.w $0110
-	dc.w $0130
-	dc.w $0148
-	dc.w $0160
-	dc.w $0178
-	dc.w $0198
-	dc.w $01B0
-	dc.w $01C8
-	dc.w $01E0
-	dc.w $01F8
-	dc.w $0230
-	dc.w $0260
-	dc.w $0288
-	dc.w $02A8
-	dc.w $02C0
-	dc.w $02E8
-	dc.w $0308
-	dc.w $0320
-	dc.w $0338
-	dc.w $0350
-	dc.w $0378
-	dc.w $0398
-	dc.w $03B0
-	dc.w $03C8
-	dc.w $03E0
-	dc.w $0428
-	dc.w $0470
-	dc.w $04A8
-	dc.w $04D8
-	dc.w $0500
-	dc.w $0528
-	dc.w $0540
-	dc.w $0558
-	dc.w $0570
-	dc.w $0588
-	dc.w $05A0
-	dc.w $05B8
-	dc.w $05D0
-	dc.w $05E8
-	dc.w $0600
-	dc.w $0648
-	dc.w $0680
-	dc.w $06B0
-	dc.w $06D0
-	dc.w $06E8
-	dc.w $0720
-	dc.w $0750
-	dc.w $0778
-	dc.w $0798
-	dc.w $07B0
-	dc.w $07F8
-	dc.w $0830
-	dc.w $0860
-	dc.w $0880
-	dc.w $0898
-	dc.w $08C8
-	dc.w $08E8
-	dc.w $0900
-	dc.w $0918
-	dc.w $0920
-	dc.w $0950
-	dc.w $0978
-	dc.w $0998
-	dc.w $09B0
-	dc.w $09C8
-	dc.w $0A08
-	dc.w $0A38
-	dc.w $0A60
-	dc.w $0A78
-	dc.w $0A90
-	dc.w $0AC0
-	dc.w $0AE8
-	dc.w $0B08
-	dc.w $0B20
-	dc.w $0B38
-	dc.w $0B78
-	dc.w $0BA8
-	dc.w $0BD0
-	dc.w $0BE8
-	dc.w $0C00
-	dc.w $0C38
-	dc.w $0C60
-	dc.w $0C88
-	dc.w $0CA0
-	dc.w $0000
-	dc.w $0060
-	dc.w $00C0
-	dc.w $0110
-	dc.w $0138
-	dc.w $0150
-	dc.w $01B0
-	dc.w $0210
-	dc.w $0260
-	dc.w $0288
-	dc.w $02A0
-	dc.w $0320
-	dc.w $0390
-	dc.w $03F0
-	dc.w $0418
-	dc.w $0438
-	dc.w $0488
-	dc.w $04D8
-	dc.w $0528
-	dc.w $0548
-	dc.w $0568
-	dc.w $0598
-	dc.w $05C8
-	dc.w $05F8
-	dc.w $0610
-	dc.w $0628
-	dc.w $0658
-	dc.w $0688
-	dc.w $06B8
-	dc.w $06D0
-	dc.w $06E8
-	dc.w $0738
-	dc.w $0788
-	dc.w $07D8
-	dc.w $07F0
-	dc.w $0808
-	dc.w $0898
-	dc.w $0948
-	dc.w $09B8
-	dc.w $09E8
-	dc.w $0A08
-	dc.w $0A78
-	dc.w $0AD8
-	dc.w $0B28
-	dc.w $0B48
+	dc.w $0000,$0048,$0080,$00B0,$00D0,$00E8,$0110,$0130	; lookup_table
+	dc.w $0148,$0160,$0178,$0198,$01B0,$01C8,$01E0,$01F8	; lookup_table
+	dc.w $0230,$0260,$0288,$02A8,$02C0,$02E8,$0308,$0320	; lookup_table
+	dc.w $0338,$0350,$0378,$0398,$03B0,$03C8,$03E0,$0428	; lookup_table
+	dc.w $0470,$04A8,$04D8,$0500,$0528,$0540,$0558,$0570	; lookup_table
+	dc.w $0588,$05A0,$05B8,$05D0,$05E8,$0600,$0648,$0680	; lookup_table
+	dc.w $06B0,$06D0,$06E8,$0720,$0750,$0778,$0798,$07B0	; lookup_table
+	dc.w $07F8,$0830,$0860,$0880,$0898,$08C8,$08E8,$0900	; lookup_table
+	dc.w $0918,$0920,$0950,$0978,$0998,$09B0,$09C8,$0A08	; lookup_table
+	dc.w $0A38,$0A60,$0A78,$0A90,$0AC0,$0AE8,$0B08,$0B20	; lookup_table
+	dc.w $0B38,$0B78,$0BA8,$0BD0,$0BE8,$0C00,$0C38,$0C60	; lookup_table
+	dc.w $0C88,$0CA0,$0000,$0060,$00C0,$0110,$0138,$0150	; lookup_table
+	dc.w $01B0,$0210,$0260,$0288,$02A0,$0320,$0390,$03F0	; lookup_table
+	dc.w $0418,$0438,$0488,$04D8,$0528,$0548,$0568,$0598	; lookup_table
+	dc.w $05C8,$05F8,$0610,$0628,$0658,$0688,$06B8,$06D0	; lookup_table
+	dc.w $06E8,$0738,$0788,$07D8,$07F0,$0808,$0898,$0948	; lookup_table
+	dc.w $09B8,$09E8,$0A08,$0A78,$0AD8,$0B28,$0B48	; lookup_table
 abs_0_0000E998:
 	dc.b $FC,$12,$0B,$FE,$04,$02,$20,$20,$20,$20,$20,$20,$20,$03,$FF,$00
 abs_0_0000E9A8:

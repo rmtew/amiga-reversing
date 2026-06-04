@@ -106,7 +106,7 @@ loc_0_000000C2:
 loc_0_00000102:
 	dc.b $43,$4F,$44,$45,$00,$00
 loc_0_00000108:
-	dc.l $00000000	; lookup_table
+	dc.l $00000000	; pointer_table
 loc_0_0000010C:
 	bsr.b loc_0_00000164
 	lea.l absolute_slot_00076CC0.l,a0

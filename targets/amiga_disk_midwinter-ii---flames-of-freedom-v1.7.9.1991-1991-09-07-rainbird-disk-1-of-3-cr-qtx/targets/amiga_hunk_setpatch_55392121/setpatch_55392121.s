@@ -864,9 +864,9 @@ loc_13_000000A8:
 loc_13_000000B0:
 	dc.l $FFFFFFFF	; lookup_table
 loc_13_000000B4:
-	dc.l $00000000	; lookup_table
+	dc.l $00000000	; pointer_table
 loc_13_000000B8:
-	dc.l $00000000	; lookup_table
+	dc.l $00000000	; pointer_table
 loc_13_000000BC:
 	dc.b "disk.resource",$00
 	dc.w $0000

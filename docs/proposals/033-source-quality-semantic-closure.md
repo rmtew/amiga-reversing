@@ -865,7 +865,6 @@ outputs are semantic, not presentational:
 
 ```text
 render_lookup_infer_relocation_pointer_tables()
-render_lookup_infer_indexed_local_scalar_tables()
 render_lookup_add_auto_structured_data_item()
 source_analysis_append_auto_structured_data_policy()
 ```
@@ -944,6 +943,7 @@ The deleted render-owned classifiers for this closure are:
 ```text
 render_lookup_infer_indexed_word_dispatch_tables()
 render_lookup_infer_indexed_local_pointer_tables()
+render_lookup_infer_indexed_local_scalar_tables()
 render_lookup_infer_indexed_postincrement_data_tables()
 ```
 
@@ -969,10 +969,9 @@ Source-quality still upserts same-range/same-role table items so weaker early
 observations cannot downgrade later dispatch proof.
 
 The remaining entries show the same wrong boundary for later slices: they
-classify source meaning while building a render cache. The most obvious current
-example is `render_lookup_infer_indexed_local_scalar_tables()`. Generic string
-and data-span inference also needs the same audit: byte-shape analysis belongs
-in C analysis/source-quality, while render lookup should keep only visibility,
+classify source meaning while building a render cache. Generic string and
+data-span inference still needs the same audit: byte-shape analysis belongs in
+C analysis/source-quality, while render lookup should keep only visibility,
 label, and formatting caches.
 
 Those passes build `M68kAnalysisStructuredDataItem` records, range ownership
@@ -4320,6 +4319,107 @@ M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ
 M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE
 ```
 
+The next completed table-reference sub-slice moves indexed local scalar tables
+and word-offset target promotion into source-quality. These are the local-base
+forms that read table data through an address register already proven to point
+at accepted target bytes:
+
+```asm
+    lea.l table(pc),a0
+    adda.w $0(a0,d1.w),a1
+
+table:
+    dc.w target_0-base
+    dc.w target_1-base
+```
+
+```asm
+    lea.l table(pc),a0
+    move.w $0(a0,d1.w),d0
+    adda.w d0,a1
+```
+
+The C producer now exports:
+
+```text
+source_pattern: indexed_local_scalar_read
+consumer section/offset
+table start and span
+entry kind: word
+index register kind/index when proven
+target base section/offset only when durable evidence proves target meaning
+```
+
+Target-base promotion is deliberately wary. A direct indexed relative address
+materialization may render symbolically when the destination address register
+does not feed a later indirect jump/call:
+
+```text
+adda.w table(base,index),a1
+  + a1 later used as data/storage pointer
+  -> table entries may be relative data/string targets
+
+adda.w table(base,index),a1
+  + jmp (a1) or jsr (a1)
+  -> dispatch classifier owns target proof
+  -> scalar classifier must not preclaim code targets
+```
+
+Word-offset string/data targets are also source-quality facts now. The table
+target base is attached only when there is enough target evidence, such as two
+bounded text-shaped entries or existing durable labels/ranges:
+
+```text
+relative word table
+  + at least two bounded text targets
+  -> table source_pattern=word_offset_string_table
+  -> target strings/raw bounded data become structured_data_items
+
+relative word table
+  + one address-looking value only
+  -> keep numeric/review evidence
+  -> no invented symbol obligation
+```
+
+The evidence count is distinct-target based. A thousand copies of the same
+zero displacement do not prove a thousand targets:
+
+```text
+base + 0, base + 0, base + 0, ...
+  -> one distinct target
+  -> not enough proof to force symbolic relative entries
+
+base + 0, base + 8, base + 24, ...
+  -> multiple distinct targets
+  -> target-bearing table evidence can be durable
+```
+
+Direct PC-indexed long dispatch tables are also C-owned facts. The analysis
+keeps their dispatch kind separate from the display role:
+
+```asm
+    movea.l table(pc,d0.w),a0
+    jmp     (a0)
+
+table:
+    dc.l target_0
+    dc.l target_1
+```
+
+```text
+source_pattern: pc_relative_indexed_indirect_dispatch
+semantic role: pointer_table
+table kind: absolute_code_dispatch
+```
+
+That means the renderer may show the data as a pointer table while validation
+and table-entry records still know it is control-flow evidence.
+
+This enforces the broader address rule: weak address-shaped numerics are review
+signals, not conversion proof. Symbolic entries require consumer evidence,
+bounded target evidence, or existing analysis facts that make the target useful
+to a reverser.
+
 The completion invariant for this sub-slice is now:
 
 ```text
@@ -4328,8 +4428,12 @@ source-quality owns table classification
   -> biased leading entries, zero-guarded entries, keyed-long entries, and
      address-indexed entries render from imported facts
   -> pointer tables and postincrement read sequences render from imported facts
+  -> indexed local scalar and word-offset string/data tables render from imported facts
+  -> direct PC-indexed long dispatch tables keep pointer-table display semantics
+     without losing code-dispatch table metadata
   -> weaker scalar observations cannot overwrite stronger dispatch facts
-  -> no render-side dispatch, pointer-table, or postincrement classifier is needed
+  -> no render-side dispatch, pointer-table, scalar-table, or postincrement
+     classifier is needed
 ```
 
 This matters for biased dispatch tables. A leading entry can first be observed
@@ -4788,16 +4892,15 @@ when the rendered source is content-exact, but final acceptance should keep the
 distinction visible in the report instead of treating them as source render
 regressions.
 
-The table-closure render update exposed expected target churn and one remaining
-cleanup lane. Pointer tables now render from C-owned
-`indexed_local_pointer_read` facts, so comments shift from `lookup_table` to
-`pointer_table` and target labels/strings are materialized from imported
-source-quality facts. Some targets also show noisy byte-line resplitting and
-small string spelling changes where generic data/string inference is still
+The table-closure render updates exposed expected target churn and one remaining
+cleanup lane. Pointer and indexed-local scalar tables now render from C-owned
+facts, so comments and labels can shift as source-quality facts replace
+renderer guesses. Some targets also show noisy byte-line resplitting and small
+string spelling changes where generic data/string inference is still
 interacting with render formatting. That is not a reason to keep table
-classification in render lookup; it is evidence for the next Slice 7 cleanup:
-move the remaining indexed-local scalar and generic data/string producers into
-C analysis, then leave render lookup as formatting support only.
+classification in render lookup; it is evidence for the next cleanup: move the
+remaining generic data/string producers into C analysis, then leave render
+lookup as formatting support only.
 
 ## Non-Goals
 

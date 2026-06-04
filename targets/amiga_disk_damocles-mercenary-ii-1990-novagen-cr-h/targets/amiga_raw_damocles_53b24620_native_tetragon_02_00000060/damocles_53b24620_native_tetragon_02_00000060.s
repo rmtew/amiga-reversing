@@ -7221,518 +7221,70 @@ abs_0_0000D128:
 	dc.b $00,$00,$80,$A0,$FF,$FF,$2E,$3B,$41,$42,$42,$42,$43
 	dcb.b $105,$00
 abs_0_0001E000:
-	dc.w $0000	; lookup_table
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
 abs_0_0001E400:
 	dcb.b $200,$00
 abs_0_0001E600:
@@ -47670,7078 +47222,890 @@ abs_0_0005CA3C:
 	dc.b $F8,$3F,$FF,$BF,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$EF,$EE,$EE,$FE,$EE
 	dcb.b $40,$00
 abs_0_0005D8C0:
-	dc.w $0800	; lookup_table
-	dc.w $0804
-	dc.w $0808
-	dc.w $0810
-	dc.w $081C
-	dc.w $0820
-	dc.w $0828
-	dc.w $082C
-	dc.w $0830
-	dc.w $0830
-	dc.w $083C
-	dc.w $084C
-	dc.w $0850
-	dc.w $0850
-	dc.w $0854
-	dc.w $0858
-	dc.w $0860
-	dc.w $0864
-	dc.w $0868
-	dc.w $0870
-	dc.w $0870
-	dc.w $0870
-	dc.w $0870
-	dc.w $0878
-	dc.w $088C
-	dc.w $088C
-	dc.w $08A4
-	dc.w $08A8
-	dc.w $08B0
-	dc.w $08B8
-	dc.w $08C0
-	dc.w $08C8
-	dc.w $08CC
-	dc.w $08D4
-	dc.w $08D8
-	dc.w $08E0
-	dc.w $08E4
-	dc.w $08E8
-	dc.w $08FC
-	dc.w $0908
-	dc.w $090C
-	dc.w $0914
-	dc.w $0914
-	dc.w $0918
-	dc.w $0920
-	dc.w $0920
-	dc.w $0928
-	dc.w $092C
-	dc.w $0934
-	dc.w $0934
-	dc.w $093C
-	dc.w $0940
-	dc.w $0944
-	dc.w $0948
-	dc.w $0948
-	dc.w $094C
-	dc.w $094C
-	dc.w $0950
-	dc.w $095C
-	dc.w $0964
-	dc.w $0968
-	dc.w $0970
-	dc.w $0970
-	dc.w $0970
-	dc.w $097C
-	dc.w $0980
-	dc.w $0994
-	dc.w $0994
-	dc.w $099C
-	dc.w $09A4
-	dc.w $09A4
-	dc.w $09A4
-	dc.w $09B0
-	dc.w $09B0
-	dc.w $09B4
-	dc.w $09B4
-	dc.w $09B4
-	dc.w $09C4
-	dc.w $09CC
-	dc.w $09DC
-	dc.w $09EC
-	dc.w $09F0
-	dc.w $09F4
-	dc.w $09F8
-	dc.w $0A00
-	dc.w $0A10
-	dc.w $0A18
-	dc.w $0A18
-	dc.w $0A1C
-	dc.w $0A1C
-	dc.w $0A28
-	dc.w $0A28
-	dc.w $0A30
-	dc.w $0A38
-	dc.w $0A48
-	dc.w $0A48
-	dc.w $0A4C
-	dc.w $0A58
-	dc.w $0A58
-	dc.w $0A5C
-	dc.w $0A5C
-	dc.w $0A64
-	dc.w $0A68
-	dc.w $0A70
-	dc.w $0A70
-	dc.w $0A74
-	dc.w $0A78
-	dc.w $0A80
-	dc.w $0A84
-	dc.w $0A88
-	dc.w $0A94
-	dc.w $0A98
-	dc.w $0A98
-	dc.w $0AA0
-	dc.w $0AA0
-	dc.w $0AAC
-	dc.w $0AAC
-	dc.w $0AB0
-	dc.w $0AC4
-	dc.w $0AC8
-	dc.w $0AD0
-	dc.w $0AD8
-	dc.w $0AE0
-	dc.w $0AE8
-	dc.w $0AEC
-	dc.w $0AF0
-	dc.w $0AF0
-	dc.w $0AF4
-	dc.w $0B00
-	dc.w $0B04
-	dc.w $0B14
-	dc.w $0B14
-	dc.w $0B20
-	dc.w $0B20
-	dc.w $0B20
-	dc.w $0B24
-	dc.w $0B28
-	dc.w $0B28
-	dc.w $0B30
-	dc.w $0B38
-	dc.w $0B3C
-	dc.w $0B3C
-	dc.w $0B48
-	dc.w $0B4C
-	dc.w $0B54
-	dc.w $0B58
-	dc.w $0B60
-	dc.w $0B60
-	dc.w $0B6C
-	dc.w $0B6C
-	dc.w $0B74
-	dc.w $0B78
-	dc.w $0B80
-	dc.w $0B80
-	dc.w $0B88
-	dc.w $0B94
-	dc.w $0B94
-	dc.w $0B98
-	dc.w $0B9C
-	dc.w $0BA4
-	dc.w $0BAC
-	dc.w $0BB8
-	dc.w $0BB8
-	dc.w $0BD4
-	dc.w $0BDC
-	dc.w $0BE4
-	dc.w $0BE4
-	dc.w $0BE4
-	dc.w $0BF0
-	dc.w $0BF0
-	dc.w $0BF8
-	dc.w $0BF8
-	dc.w $0C08
-	dc.w $0C0C
-	dc.w $0C14
-	dc.w $0C1C
-	dc.w $0C24
-	dc.w $0C28
-	dc.w $0C28
-	dc.w $0C28
-	dc.w $0C28
-	dc.w $0C30
-	dc.w $0C30
-	dc.w $0C30
-	dc.w $0C34
-	dc.w $0C34
-	dc.w $0C3C
-	dc.w $0C40
-	dc.w $0C40
-	dc.w $0C40
-	dc.w $0C44
-	dc.w $0C48
-	dc.w $0C58
-	dc.w $0C68
-	dc.w $0C70
-	dc.w $0C78
-	dc.w $0C80
-	dc.w $0C88
-	dc.w $0C98
-	dc.w $0C98
-	dc.w $0CA8
-	dc.w $0CB0
-	dc.w $0CB0
-	dc.w $0CB4
-	dc.w $0CB4
-	dc.w $0CB8
-	dc.w $0CC0
-	dc.w $0CC8
-	dc.w $0CD0
-	dc.w $0CD4
-	dc.w $0CD4
-	dc.w $0CD8
-	dc.w $0CDC
-	dc.w $0CE4
-	dc.w $0CF4
-	dc.w $0CF4
-	dc.w $0CF4
-	dc.w $0D00
-	dc.w $0D08
-	dc.w $0D10
-	dc.w $0D18
-	dc.w $0D18
-	dc.w $0D24
-	dc.w $0D28
-	dc.w $0D28
-	dc.w $0D2C
-	dc.w $0D30
-	dc.w $0D3C
-	dc.w $0D3C
-	dc.w $0D44
-	dc.w $0D4C
-	dc.w $0D54
-	dc.w $0D60
-	dc.w $0D64
-	dc.w $0D68
-	dc.w $0D74
-	dc.w $0D74
-	dc.w $0D74
-	dc.w $0D78
-	dc.w $0D7C
-	dc.w $0D7C
-	dc.w $0D84
-	dc.w $0D98
-	dc.w $0D9C
-	dc.w $0D9C
-	dc.w $0DA0
-	dc.w $0DB4
-	dc.w $0DBC
-	dc.w $0DC4
-	dc.w $0DCC
-	dc.w $0DD8
-	dc.w $0DE4
-	dc.w $0DFC
-	dc.w $0E08
-	dc.w $0E14
-	dc.w $0E1C
-	dc.w $0E2C
-	dc.w $0E30
-	dc.w $0E38
-	dc.w $0E38
-	dc.w $0E40
-	dc.w $0E48
-	dc.w $0E4C
-	dc.w $0E50
-	dc.w $0E54
-	dc.w $0E54
-	dc.w $0E68
-	dc.w $0E6C
-	dc.w $0E6C
-	dc.w $0E6C
-	dc.w $0E74
-	dc.w $0E84
-	dc.w $0E90
-	dc.w $0E94
-	dc.w $0EA0
-	dc.w $0EA8
-	dc.w $0EAC
-	dc.w $0EB8
-	dc.w $0EB8
-	dc.w $0EBC
-	dc.w $0EC0
-	dc.w $0EC4
-	dc.w $0ECC
-	dc.w $0ED0
-	dc.w $0EE4
-	dc.w $0EEC
-	dc.w $0EEC
-	dc.w $0EF0
-	dc.w $0EF4
-	dc.w $0EFC
-	dc.w $0EFC
-	dc.w $0F08
-	dc.w $0F14
-	dc.w $0F20
-	dc.w $0F24
-	dc.w $0F24
-	dc.w $0F30
-	dc.w $0F38
-	dc.w $0F38
-	dc.w $0F3C
-	dc.w $0F48
-	dc.w $0F4C
-	dc.w $0F54
-	dc.w $0F5C
-	dc.w $0F60
-	dc.w $0F60
-	dc.w $0F74
-	dc.w $0F74
-	dc.w $0F78
-	dc.w $0F78
-	dc.w $0F7C
-	dc.w $0F80
-	dc.w $0F84
-	dc.w $0F88
-	dc.w $0F90
-	dc.w $0F94
-	dc.w $0F98
-	dc.w $0F9C
-	dc.w $0FA0
-	dc.w $0FA0
-	dc.w $0FB0
-	dc.w $0FBC
-	dc.w $0FBC
-	dc.w $0FC0
-	dc.w $0FC4
-	dc.w $0FC4
-	dc.w $0FCC
-	dc.w $0FCC
-	dc.w $0FD0
-	dc.w $0FD4
-	dc.w $0FE4
-	dc.w $0FE8
-	dc.w $0FF4
-	dc.w $0FFC
-	dc.w $1008
-	dc.w $100C
-	dc.w $1010
-	dc.w $1010
-	dc.w $1018
-	dc.w $101C
-	dc.w $1020
-	dc.w $1024
-	dc.w $1028
-	dc.w $102C
-	dc.w $1030
-	dc.w $1038
-	dc.w $1038
-	dc.w $103C
-	dc.w $103C
-	dc.w $103C
-	dc.w $103C
-	dc.w $1040
-	dc.w $1048
-	dc.w $1050
-	dc.w $1054
-	dc.w $105C
-	dc.w $105C
-	dc.w $105C
-	dc.w $1064
-	dc.w $1074
-	dc.w $107C
-	dc.w $1080
-	dc.w $1088
-	dc.w $109C
-	dc.w $10A4
-	dc.w $10AC
-	dc.w $10B4
-	dc.w $10C0
-	dc.w $10C4
-	dc.w $10C4
-	dc.w $10D0
-	dc.w $10D8
-	dc.w $10E8
-	dc.w $10F0
-	dc.w $10F8
-	dc.w $1104
-	dc.w $1104
-	dc.w $1108
-	dc.w $1110
-	dc.w $1118
-	dc.w $111C
-	dc.w $1120
-	dc.w $1128
-	dc.w $1128
-	dc.w $113C
-	dc.w $1140
-	dc.w $1144
-	dc.w $1148
-	dc.w $1150
-	dc.w $1154
-	dc.w $115C
-	dc.w $116C
-	dc.w $1174
-	dc.w $1174
-	dc.w $1180
-	dc.w $1188
-	dc.w $1190
-	dc.w $119C
-	dc.w $11A0
-	dc.w $11A0
-	dc.w $11A4
-	dc.w $11AC
-	dc.w $11B0
-	dc.w $11B8
-	dc.w $11B8
-	dc.w $11BC
-	dc.w $11C0
-	dc.w $11C0
-	dc.w $11C8
-	dc.w $11D4
-	dc.w $11D8
-	dc.w $11DC
-	dc.w $11E4
-	dc.w $11E4
-	dc.w $11EC
-	dc.w $11F4
-	dc.w $11F4
-	dc.w $11F8
-	dc.w $11FC
-	dc.w $1204
-	dc.w $1204
-	dc.w $1210
-	dc.w $1218
-	dc.w $1228
-	dc.w $123C
-	dc.w $1258
-	dc.w $125C
-	dc.w $125C
-	dc.w $1264
-	dc.w $1270
-	dc.w $1284
-	dc.w $1284
-	dc.w $1284
-	dc.w $1288
-	dc.w $1290
-	dc.w $1290
-	dc.w $1298
-	dc.w $12A0
-	dc.w $12A4
-	dc.w $12A4
-	dc.w $12AC
-	dc.w $12B8
-	dc.w $12C0
-	dc.w $12C0
-	dc.w $12C4
-	dc.w $12C8
-	dc.w $12CC
-	dc.w $12D0
-	dc.w $12D8
-	dc.w $12E0
-	dc.w $12F0
-	dc.w $12F4
-	dc.w $12F8
-	dc.w $1300
-	dc.w $1310
-	dc.w $1310
-	dc.w $1310
-	dc.w $1314
-	dc.w $131C
-	dc.w $1324
-	dc.w $1328
-	dc.w $132C
-	dc.w $1338
-	dc.w $1340
-	dc.w $1340
-	dc.w $1344
-	dc.w $1350
-	dc.w $1354
-	dc.w $135C
-	dc.w $1364
-	dc.w $1368
-	dc.w $1370
-	dc.w $1378
-	dc.w $1380
-	dc.w $138C
-	dc.w $1394
-	dc.w $139C
-	dc.w $139C
-	dc.w $13A0
-	dc.w $13A0
-	dc.w $13A4
-	dc.w $13AC
-	dc.w $13B0
-	dc.w $13C4
-	dc.w $13C4
-	dc.w $13C8
-	dc.w $13C8
-	dc.w $13D0
-	dc.w $13D4
-	dc.w $13D4
-	dc.w $13E4
-	dc.w $13E8
-	dc.w $13F8
-	dc.w $1400
-	dc.w $1410
-	dc.w $1414
-	dc.w $141C
-	dc.w $1420
-	dc.w $1424
-	dc.w $1428
-	dc.w $142C
-	dc.w $1440
-	dc.w $144C
-	dc.w $1458
-	dc.w $1464
-	dc.w $1464
-	dc.w $146C
-	dc.w $1470
-	dc.w $147C
-	dc.w $1484
-	dc.w $1490
-	dc.w $14A0
-	dc.w $14A0
-	dc.w $14A0
-	dc.w $14B0
-	dc.w $14B8
-	dc.w $14CC
-	dc.w $14D8
-	dc.w $14D8
-	dc.w $14E4
-	dc.w $14F0
-	dc.w $14F4
-	dc.w $14FC
-	dc.w $1500
-	dc.w $1504
-	dc.w $1504
-	dc.w $150C
-	dc.w $150C
-	dc.w $1518
-	dc.w $1524
-	dc.w $1524
-	dc.w $152C
-	dc.w $152C
-	dc.w $152C
-	dc.w $1530
-	dc.w $1538
-	dc.w $1538
-	dc.w $1544
-	dc.w $1544
-	dc.w $154C
-	dc.w $1554
-	dc.w $1564
-	dc.w $156C
-	dc.w $1580
-	dc.w $158C
-	dc.w $1594
-	dc.w $15A0
-	dc.w $15AC
-	dc.w $15B0
-	dc.w $15B4
-	dc.w $15BC
-	dc.w $15C0
-	dc.w $15C4
-	dc.w $15D4
-	dc.w $15D8
-	dc.w $15E0
-	dc.w $15E4
-	dc.w $15F4
-	dc.w $15F8
-	dc.w $15FC
-	dc.w $1600
-	dc.w $1604
-	dc.w $160C
-	dc.w $1610
-	dc.w $1614
-	dc.w $1624
-	dc.w $1628
-	dc.w $162C
-	dc.w $1634
-	dc.w $163C
-	dc.w $1644
-	dc.w $1648
-	dc.w $1650
-	dc.w $1658
-	dc.w $1658
-	dc.w $1658
-	dc.w $1664
-	dc.w $1678
-	dc.w $167C
-	dc.w $1680
-	dc.w $1688
-	dc.w $168C
-	dc.w $168C
-	dc.w $169C
-	dc.w $16A4
-	dc.w $16B4
-	dc.w $16C0
-	dc.w $16C4
-	dc.w $16C4
-	dc.w $16C8
-	dc.w $16D0
-	dc.w $16D8
-	dc.w $16D8
-	dc.w $16E8
-	dc.w $16E8
-	dc.w $16EC
-	dc.w $16F8
-	dc.w $16FC
-	dc.w $1704
-	dc.w $170C
-	dc.w $170C
-	dc.w $1714
-	dc.w $1714
-	dc.w $1720
-	dc.w $1724
-	dc.w $1730
-	dc.w $1738
-	dc.w $1744
-	dc.w $1750
-	dc.w $1750
-	dc.w $1754
-	dc.w $175C
-	dc.w $1764
-	dc.w $176C
-	dc.w $1770
-	dc.w $1778
-	dc.w $177C
-	dc.w $177C
-	dc.w $1788
-	dc.w $1794
-	dc.w $1798
-	dc.w $1798
-	dc.w $1798
-	dc.w $179C
-	dc.w $17A4
-	dc.w $17A8
-	dc.w $17AC
-	dc.w $17B0
-	dc.w $17B8
-	dc.w $17BC
-	dc.w $17C4
-	dc.w $17D4
-	dc.w $17D8
-	dc.w $17D8
-	dc.w $17E0
-	dc.w $17E0
-	dc.w $17F0
-	dc.w $17F4
-	dc.w $17F8
-	dc.w $17FC
-	dc.w $17FC
-	dc.w $17FC
-	dc.w $1808
-	dc.w $180C
-	dc.w $1810
-	dc.w $1818
-	dc.w $1818
-	dc.w $181C
-	dc.w $182C
-	dc.w $182C
-	dc.w $182C
-	dc.w $1834
-	dc.w $1838
-	dc.w $1840
-	dc.w $1844
-	dc.w $1844
-	dc.w $1850
-	dc.w $1850
-	dc.w $185C
-	dc.w $1860
-	dc.w $1864
-	dc.w $186C
-	dc.w $1874
-	dc.w $1874
-	dc.w $187C
-	dc.w $1880
-	dc.w $1880
-	dc.w $1888
-	dc.w $1888
-	dc.w $188C
-	dc.w $1894
-	dc.w $1894
-	dc.w $189C
-	dc.w $189C
-	dc.w $18A4
-	dc.w $18A8
-	dc.w $18AC
-	dc.w $18B8
-	dc.w $18C0
-	dc.w $18C4
-	dc.w $18C8
-	dc.w $18D0
-	dc.w $18D8
-	dc.w $18DC
-	dc.w $18E4
-	dc.w $18F0
-	dc.w $18F8
-	dc.w $1904
-	dc.w $190C
-	dc.w $1914
-	dc.w $1920
-	dc.w $1928
-	dc.w $1928
-	dc.w $192C
-	dc.w $1934
-	dc.w $1938
-	dc.w $193C
-	dc.w $1948
-	dc.w $1954
-	dc.w $195C
-	dc.w $1964
-	dc.w $1964
-	dc.w $196C
-	dc.w $1970
-	dc.w $1970
-	dc.w $1974
-	dc.w $1984
-	dc.w $198C
-	dc.w $1990
-	dc.w $1994
-	dc.w $19A0
-	dc.w $19A0
-	dc.w $19A4
-	dc.w $19AC
-	dc.w $19B4
-	dc.w $19BC
-	dc.w $19C0
-	dc.w $19C0
-	dc.w $19C4
-	dc.w $19D0
-	dc.w $19D8
-	dc.w $19E0
-	dc.w $19E0
-	dc.w $19E4
-	dc.w $19E8
-	dc.w $19F0
-	dc.w $19F8
-	dc.w $1A00
-	dc.w $1A04
-	dc.w $1A0C
-	dc.w $1A1C
-	dc.w $1A20
-	dc.w $1A20
-	dc.w $1A20
-	dc.w $1A24
-	dc.w $1A28
-	dc.w $1A3C
-	dc.w $1A48
-	dc.w $1A50
-	dc.w $1A68
-	dc.w $1A6C
-	dc.w $1A70
-	dc.w $1A74
-	dc.w $1A78
-	dc.w $1A80
-	dc.w $1A80
-	dc.w $1A84
-	dc.w $1A88
-	dc.w $1A88
-	dc.w $1A88
-	dc.w $1AA0
-	dc.w $1AB4
-	dc.w $1AB4
-	dc.w $1AB4
-	dc.w $1AB8
-	dc.w $1AB8
-	dc.w $1AB8
-	dc.w $1AB8
-	dc.w $1ABC
-	dc.w $1AC4
-	dc.w $1ACC
-	dc.w $1AD0
-	dc.w $1AD0
-	dc.w $1AD4
-	dc.w $1AE4
-	dc.w $1AE4
-	dc.w $1AF0
-	dc.w $1AFC
-	dc.w $1B08
-	dc.w $1B10
-	dc.w $1B14
-	dc.w $1B1C
-	dc.w $1B2C
-	dc.w $1B34
-	dc.w $1B34
-	dc.w $1B34
-	dc.w $1B38
-	dc.w $1B40
-	dc.w $1B48
-	dc.w $1B54
-	dc.w $1B64
-	dc.w $1B70
-	dc.w $1B74
-	dc.w $1B74
-	dc.w $1B84
-	dc.w $1B84
-	dc.w $1B84
-	dc.w $1B8C
-	dc.w $1B94
-	dc.w $1B9C
-	dc.w $1B9C
-	dc.w $1B9C
-	dc.w $1B9C
-	dc.w $1BA4
-	dc.w $1BA4
-	dc.w $1BA8
-	dc.w $1BA8
-	dc.w $1BB0
-	dc.w $1BB4
-	dc.w $1BB8
-	dc.w $1BC4
-	dc.w $1BC4
-	dc.w $1BCC
-	dc.w $1BCC
-	dc.w $1BD4
-	dc.w $1BDC
-	dc.w $1BE8
-	dc.w $1BE8
-	dc.w $1BF0
-	dc.w $1BF4
-	dc.w $1BF8
-	dc.w $1BF8
-	dc.w $1C04
-	dc.w $1C04
-	dc.w $1C08
-	dc.w $1C08
-	dc.w $1C08
-	dc.w $1C18
-	dc.w $1C18
-	dc.w $1C24
-	dc.w $1C28
-	dc.w $1C2C
-	dc.w $1C30
-	dc.w $1C40
-	dc.w $1C44
-	dc.w $1C4C
-	dc.w $1C54
-	dc.w $1C5C
-	dc.w $1C64
-	dc.w $1C6C
-	dc.w $1C74
-	dc.w $1C7C
-	dc.w $1C80
-	dc.w $1C90
-	dc.w $1C98
-	dc.w $1CA0
-	dc.w $1CA0
-	dc.w $1CA0
-	dc.w $1CA8
-	dc.w $1CAC
-	dc.w $1CB0
-	dc.w $1CB4
-	dc.w $1CB4
-	dc.w $1CC8
-	dc.w $1CCC
-	dc.w $1CE0
-	dc.w $1CE4
-	dc.w $1CE4
-	dc.w $1CE4
-	dc.w $1CE8
-	dc.w $1CEC
-	dc.w $1CF8
-	dc.w $1CFC
-	dc.w $1D00
-	dc.w $1D08
-	dc.w $1D0C
-	dc.w $1D1C
-	dc.w $1D20
-	dc.w $1D24
-	dc.w $1D28
-	dc.w $1D2C
-	dc.w $1D30
-	dc.w $1D34
-	dc.w $1D34
-	dc.w $1D38
-	dc.w $1D38
-	dc.w $1D40
-	dc.w $1D44
-	dc.w $1D58
-	dc.w $1D58
-	dc.w $1D58
-	dc.w $1D5C
-	dc.w $1D6C
-	dc.w $1D70
-	dc.w $1D78
-	dc.w $1D88
-	dc.w $1D94
-	dc.w $1D98
-	dc.w $1DA0
-	dc.w $1DA8
-	dc.w $1DB4
-	dc.w $1DBC
-	dc.w $1DC4
-	dc.w $1DCC
-	dc.w $1DD0
-	dc.w $1DE0
-	dc.w $1DEC
-	dc.w $1DFC
-	dc.w $1DFC
-	dc.w $1E04
-	dc.w $1E0C
-	dc.w $1E10
-	dc.w $1E24
-	dc.w $1E24
-	dc.w $1E24
-	dc.w $1E2C
-	dc.w $1E34
-	dc.w $1E34
-	dc.w $1E38
-	dc.w $1E38
-	dc.w $1E3C
-	dc.w $1E40
-	dc.w $1E44
-	dc.w $1E58
-	dc.w $1E60
-	dc.w $1E64
-	dc.w $1E64
-	dc.w $1E70
-	dc.w $1E78
-	dc.w $1E7C
-	dc.w $1E7C
-	dc.w $1E80
-	dc.w $1E8C
-	dc.w $1E90
-	dc.w $1E9C
-	dc.w $1EA8
-	dc.w $1EB8
-	dc.w $1ECC
-	dc.w $1ED0
-	dc.w $1ED0
-	dc.w $1ED8
-	dc.w $1ED8
-	dc.w $1EDC
-	dc.w $1EE4
-	dc.w $1EE4
-	dc.w $1EE4
-	dc.w $1EF4
-	dc.w $1EF8
-	dc.w $1F00
-	dc.w $1F04
-	dc.w $1F0C
-	dc.w $1F10
-	dc.w $1F18
-	dc.w $1F1C
-	dc.w $1F20
-	dc.w $1F24
-	dc.w $1F34
-	dc.w $1F38
-	dc.w $1F40
-	dc.w $1F44
-	dc.w $1F58
-	dc.w $1F60
-	dc.w $1F64
-	dc.w $1F64
-	dc.w $1F64
-	dc.w $1F64
-	dc.w $1F68
-	dc.w $1F68
-	dc.w $1F6C
-	dc.w $1F80
-	dc.w $1F84
-	dc.w $1F88
-	dc.w $1F8C
-	dc.w $1F90
-	dc.w $1F90
-	dc.w $1F98
-	dc.w $1F98
-	dc.w $1FA4
-	dc.w $1FA8
-	dc.w $1FB0
-	dc.w $1FB0
-	dc.w $1FB4
-	dc.w $1FC4
-	dc.w $1FCC
-	dc.w $1FD4
-	dc.w $1FD8
-	dc.w $1FDC
-	dc.w $1FE0
-	dc.w $1FE4
-	dc.w $1FE8
-	dc.w $1FEC
-	dc.w $1FF4
-	dc.w $1FF8
-	dc.w $1FF8
-	dc.w $2000
-	dc.w $2004
-	dc.w $200C
-	dc.w $2010
-	dc.w $2018
-	dc.w $2020
-	dc.w $2028
-	dc.w $2028
-	dc.w $202C
-	dc.w $202C
-	dc.w $2030
-	dc.w $2034
-	dc.w $203C
-	dc.w $203C
-	dc.w $2040
-	dc.w $2044
-	dc.w $2048
-	dc.w $2058
-	dc.w $205C
-	dc.w $205C
-	dc.w $205C
-	dc.w $2060
-	dc.w $2068
-	dc.w $206C
-	dc.w $207C
-	dc.w $2084
-	dc.w $208C
-	dc.w $2098
-	dc.w $2098
-	dc.w $20A4
-	dc.w $20AC
-	dc.w $20B4
-	dc.w $20B8
-	dc.w $20B8
-	dc.w $20C0
-	dc.w $20C8
-	dc.w $20C8
-	dc.w $20C8
-	dc.w $20CC
-	dc.w $20D8
-	dc.w $20D8
-	dc.w $20DC
-	dc.w $20E0
-	dc.w $20E0
-	dc.w $20E0
-	dc.w $20E8
-	dc.w $20F0
-	dc.w $20F8
-	dc.w $20FC
-	dc.w $2100
-	dc.w $0000
-	dc.w $3834
-	dc.w $0001
-	dc.w $24B2
-	dc.w $0004
-	dc.w $2849
-	dc.w $0004
-	dc.w $2C53
-	dc.w $0005
-	dc.w $0D17
-	dc.w $0005
-	dc.w $2464
-	dc.w $0005
-	dc.w $3001
-	dc.w $0007
-	dc.w $3422
-	dc.w $0008
-	dc.w $2454
-	dc.w $0009
-	dc.w $00D9
-	dc.w $000B
-	dc.w $0086
-	dc.w $000C
-	dc.w $143D
-	dc.w $0010
-	dc.w $256E
-	dc.w $0010
-	dc.w $016C
-	dc.w $0010
-	dc.w $2D2D
-	dc.w $0011
-	dc.w $20FD
-	dc.w $0011
-	dc.w $098B
-	dc.w $0011
-	dc.w $059A
-	dc.w $0012
-	dc.w $0C41
-	dc.w $0013
-	dc.w $0D2F
-	dc.w $0017
-	dc.w $00DA
-	dc.w $0018
-	dc.w $1D78
-	dc.w $001A
-	dc.w $3106
-	dc.w $001A
-	dc.w $18D9
-	dc.w $001C
-	dc.w $397D
-	dc.w $001D
-	dc.w $3087
-	dc.w $001F
-	dc.w $0915
-	dc.w $0020
-	dc.w $3CF2
-	dc.w $0026
-	dc.w $118C
-	dc.w $0026
-	dc.w $0439
-	dc.w $0028
-	dc.w $2D96
-	dc.w $0028
-	dc.w $304D
-	dc.w $0029
-	dc.w $111A
-	dc.w $0029
-	dc.w $00B1
-	dc.w $0029
-	dc.w $2022
-	dc.w $002B
-	dc.w $3517
-	dc.w $002B
-	dc.w $1812
-	dc.w $002B
-	dc.w $1051
-	dc.w $002C
-	dc.w $3CD7
-	dc.w $002C
-	dc.w $28B5
-	dc.w $002C
-	dc.w $34C9
-	dc.w $002D
-	dc.w $2CB5
-	dc.w $0030
-	dc.w $0998
-	dc.w $0030
-	dc.w $0496
-	dc.w $0031
-	dc.w $093A
-	dc.w $0031
-	dc.w $204F
-	dc.w $0032
-	dc.w $38BC
-	dc.w $0033
-	dc.w $0474
-	dc.w $0034
-	dc.w $0825
-	dc.w $0035
-	dc.w $351B
-	dc.w $0036
-	dc.w $0C03
-	dc.w $0038
-	dc.w $38D3
-	dc.w $0039
-	dc.w $3941
-	dc.w $003A
-	dc.w $102E
-	dc.w $003B
-	dc.w $058B
-	dc.w $003C
-	dc.w $3156
-	dc.w $003D
-	dc.w $05A1
-	dc.w $0040
-	dc.w $0D2F
-	dc.w $0041
-	dc.w $1D4B
-	dc.w $0041
-	dc.w $050D
-	dc.w $0041
-	dc.w $2804
-	dc.w $0041
-	dc.w $005D
-	dc.w $0041
-	dc.w $1178
-	dc.w $0042
-	dc.w $3C77
-	dc.w $0042
-	dc.w $2C37
-	dc.w $0043
-	dc.w $1D3D
-	dc.w $0044
-	dc.w $184F
-	dc.w $0047
-	dc.w $245B
-	dc.w $0047
-	dc.w $38B5
-	dc.w $004A
-	dc.w $24B3
-	dc.w $004B
-	dc.w $1D91
-	dc.w $004C
-	dc.w $1D96
-	dc.w $004F
-	dc.w $057A
-	dc.w $004F
-	dc.w $1088
-	dc.w $0050
-	dc.w $08BE
-	dc.w $0052
-	dc.w $3939
-	dc.w $0053
-	dc.w $0188
-	dc.w $0056
-	dc.w $0504
-	dc.w $0056
-	dc.w $0D22
-	dc.w $0058
-	dc.w $0957
-	dc.w $005A
-	dc.w $212E
-	dc.w $005C
-	dc.w $3CB1
-	dc.w $005E
-	dc.w $246F
-	dc.w $0063
-	dc.w $2815
-	dc.w $0064
-	dc.w $0471
-	dc.w $0064
-	dc.w $144C
-	dc.w $0064
-	dc.w $1C46
-	dc.w $0065
-	dc.w $24C1
-	dc.w $0066
-	dc.w $20A1
-	dc.w $0068
-	dc.w $159F
-	dc.w $0069
-	dc.w $1161
-	dc.w $006A
-	dc.w $38D2
-	dc.w $006E
-	dc.w $2153
-	dc.w $006F
-	dc.w $215F
-	dc.w $006F
-	dc.w $183C
-	dc.w $0070
-	dc.w $18D9
-	dc.w $0072
-	dc.w $2168
-	dc.w $0072
-	dc.w $1D0E
-	dc.w $0072
-	dc.w $146C
-	dc.w $0072
-	dc.w $20E4
-	dc.w $0073
-	dc.w $1105
-	dc.w $0075
-	dc.w $2CF6
-	dc.w $0075
-	dc.w $1133
-	dc.w $0077
-	dc.w $18B2
-	dc.w $0078
-	dc.w $3D66
-	dc.w $007C
-	dc.w $390A
-	dc.w $007C
-	dc.w $34BD
-	dc.w $007C
-	dc.w $0434
-	dc.w $0081
-	dc.w $0C79
-	dc.w $0086
-	dc.w $052A
-	dc.w $0086
-	dc.w $0492
-	dc.w $0086
-	dc.w $3577
-	dc.w $0086
-	dc.w $0467
-	dc.w $0088
-	dc.w $0D37
-	dc.w $0088
-	dc.w $0069
-	dc.w $0089
-	dc.w $0153
-	dc.w $0089
-	dc.w $1D6C
-	dc.w $0089
-	dc.w $09AD
-	dc.w $0089
-	dc.w $10CD
-	dc.w $008B
-	dc.w $0D4C
-	dc.w $008B
-	dc.w $296C
-	dc.w $008B
-	dc.w $047D
-	dc.w $008B
-	dc.w $2C6D
-	dc.w $008C
-	dc.w $3491
-	dc.w $008E
-	dc.w $3D47
-	dc.w $0090
-	dc.w $1C95
-	dc.w $0091
-	dc.w $0564
-	dc.w $0092
-	dc.w $119F
-	dc.w $0093
-	dc.w $116B
-	dc.w $0093
-	dc.w $1C9E
-	dc.w $0093
-	dc.w $2D7A
-	dc.w $0093
-	dc.w $2CEC
-	dc.w $0096
-	dc.w $14FA
-	dc.w $0096
-	dc.w $0987
-	dc.w $0099
-	dc.w $00F8
-	dc.w $009D
-	dc.w $194A
-	dc.w $009D
-	dc.w $389F
-	dc.w $009D
-	dc.w $1C3A
-	dc.w $009F
-	dc.w $1112
-	dc.w $00A0
-	dc.w $154A
-	dc.w $00A2
-	dc.w $1484
-	dc.w $00A2
-	dc.w $2C93
-	dc.w $00A4
-	dc.w $2995
-	dc.w $00A4
-	dc.w $0188
-	dc.w $00A4
-	dc.w $2C63
-	dc.w $00A4
-	dc.w $081F
-	dc.w $00A7
-	dc.w $2C27
-	dc.w $00A8
-	dc.w $24D6
-	dc.w $00A8
-	dc.w $19A9
-	dc.w $00A9
-	dc.w $1551
-	dc.w $00AD
-	dc.w $28B9
-	dc.w $00AF
-	dc.w $3944
-	dc.w $00AF
-	dc.w $00E0
-	dc.w $00B1
-	dc.w $2D1B
-	dc.w $00B3
-	dc.w $1995
-	dc.w $00B4
-	dc.w $2CDB
-	dc.w $00B7
-	dc.w $3C08
-	dc.w $00B9
-	dc.w $0581
-	dc.w $00BB
-	dc.w $3D92
-	dc.w $00BB
-	dc.w $0035
-	dc.w $00BC
-	dc.w $04A0
-	dc.w $00BE
-	dc.w $14D9
-	dc.w $00C0
-	dc.w $2806
-	dc.w $00C0
-	dc.w $1041
-	dc.w $00C0
-	dc.w $3CA2
-	dc.w $00C2
-	dc.w $1902
-	dc.w $00C4
-	dc.w $2559
-	dc.w $00C5
-	dc.w $34C2
-	dc.w $00C8
-	dc.w $0859
-	dc.w $00C8
-	dc.w $218A
-	dc.w $00C9
-	dc.w $149B
-	dc.w $00CB
-	dc.w $3586
-	dc.w $00CD
-	dc.w $0883
-	dc.w $00CD
-	dc.w $0054
-	dc.w $00CE
-	dc.w $3CD2
-	dc.w $00CE
-	dc.w $2095
-	dc.w $00CE
-	dc.w $1054
-	dc.w $00CF
-	dc.w $0CB9
-	dc.w $00D1
-	dc.w $0D02
-	dc.w $00D1
-	dc.w $1011
-	dc.w $00D2
-	dc.w $0C82
-	dc.w $00D3
-	dc.w $0411
-	dc.w $00D4
-	dc.w $2476
-	dc.w $00D5
-	dc.w $054F
-	dc.w $00D6
-	dc.w $259B
-	dc.w $00D7
-	dc.w $3D40
-	dc.w $00D9
-	dc.w $059A
-	dc.w $00DA
-	dc.w $102E
-	dc.w $00DD
-	dc.w $2173
-	dc.w $00E0
-	dc.w $3545
-	dc.w $00E0
-	dc.w $1000
-	dc.w $00E0
-	dc.w $20C2
-	dc.w $00E1
-	dc.w $3528
-	dc.w $00E2
-	dc.w $00DD
-	dc.w $00E3
-	dc.w $0C17
-	dc.w $00E3
-	dc.w $287B
-	dc.w $00E3
-	dc.w $0475
-	dc.w $00E6
-	dc.w $1C68
-	dc.w $00E6
-	dc.w $1498
-	dc.w $00E7
-	dc.w $102A
-	dc.w $00EC
-	dc.w $2CFC
-	dc.w $00EE
-	dc.w $3426
-	dc.w $00F0
-	dc.w $24BE
-	dc.w $00F1
-	dc.w $054C
-	dc.w $00F2
-	dc.w $3D46
-	dc.w $00F3
-	dc.w $1168
-	dc.w $00F4
-	dc.w $28D2
-	dc.w $00F7
-	dc.w $1C5C
-	dc.w $00F7
-	dc.w $1180
-	dc.w $00F8
-	dc.w $08BC
-	dc.w $00FA
-	dc.w $3C07
-	dc.w $00FB
-	dc.w $24C4
-	dc.w $00FC
-	dc.w $3877
-	dc.w $00FD
-	dc.w $0D36
-	dc.w $00FE
-	dc.w $1C2D
-	dc.w $00FF
-	dc.w $2C27
-	dc.w $0102
-	dc.w $14B1
-	dc.w $0102
-	dc.w $0C00
-	dc.w $0103
-	dc.w $2482
-	dc.w $0106
-	dc.w $1D39
-	dc.w $0106
-	dc.w $2451
-	dc.w $0107
-	dc.w $1841
-	dc.w $0109
-	dc.w $2956
-	dc.w $010A
-	dc.w $1C52
-	dc.w $010D
-	dc.w $0434
-	dc.w $010D
-	dc.w $2469
-	dc.w $010E
-	dc.w $113E
-	dc.w $010F
-	dc.w $2D3C
-	dc.w $010F
-	dc.w $1C1F
-	dc.w $0113
-	dc.w $0896
-	dc.w $0114
-	dc.w $054C
-	dc.w $0115
-	dc.w $2CCE
-	dc.w $0116
-	dc.w $357D
-	dc.w $0117
-	dc.w $1142
-	dc.w $0118
-	dc.w $0838
-	dc.w $0119
-	dc.w $1505
-	dc.w $011A
-	dc.w $218A
-	dc.w $011A
-	dc.w $1CCE
-	dc.w $011C
-	dc.w $0D56
-	dc.w $011C
-	dc.w $2C88
-	dc.w $011C
-	dc.w $1993
-	dc.w $011D
-	dc.w $1807
-	dc.w $011D
-	dc.w $18D1
-	dc.w $011D
-	dc.w $15AE
-	dc.w $011D
-	dc.w $09AF
-	dc.w $011E
-	dc.w $3112
-	dc.w $011E
-	dc.w $34C0
-	dc.w $0120
-	dc.w $08FC
-	dc.w $0120
-	dc.w $0881
-	dc.w $0126
-	dc.w $2444
-	dc.w $0126
-	dc.w $0438
-	dc.w $0126
-	dc.w $199D
-	dc.w $0129
-	dc.w $2576
-	dc.w $0129
-	dc.w $21A0
-	dc.w $012C
-	dc.w $316A
-	dc.w $012C
-	dc.w $299A
-	dc.w $012C
-	dc.w $0D95
-	dc.w $012D
-	dc.w $383D
-	dc.w $012E
-	dc.w $3852
-	dc.w $0130
-	dc.w $2D66
-	dc.w $0130
-	dc.w $0572
-	dc.w $0131
-	dc.w $250B
-	dc.w $0132
-	dc.w $2C48
-	dc.w $0133
-	dc.w $3545
-	dc.w $0133
-	dc.w $3136
-	dc.w $0135
-	dc.w $0CB4
-	dc.w $013C
-	dc.w $2CD4
-	dc.w $013C
-	dc.w $2C2E
-	dc.w $0142
-	dc.w $2D16
-	dc.w $0145
-	dc.w $20A1
-	dc.w $0146
-	dc.w $34E4
-	dc.w $0147
-	dc.w $188D
-	dc.w $014D
-	dc.w $313B
-	dc.w $014E
-	dc.w $3D2B
-	dc.w $014F
-	dc.w $3179
-	dc.w $014F
-	dc.w $3028
-	dc.w $014F
-	dc.w $3174
-	dc.w $0150
-	dc.w $145F
-	dc.w $0151
-	dc.w $052A
-	dc.w $0151
-	dc.w $0984
-	dc.w $0152
-	dc.w $2124
-	dc.w $0152
-	dc.w $14A5
-	dc.w $0153
-	dc.w $0D98
-	dc.w $0153
-	dc.w $30D2
-	dc.w $0155
-	dc.w $10B2
-	dc.w $0155
-	dc.w $0451
-	dc.w $0156
-	dc.w $3C44
-	dc.w $0157
-	dc.w $3974
-	dc.w $0159
-	dc.w $18E3
-	dc.w $0159
-	dc.w $3574
-	dc.w $015A
-	dc.w $140D
-	dc.w $015B
-	dc.w $143A
-	dc.w $015B
-	dc.w $1DAF
-	dc.w $015B
-	dc.w $3453
-	dc.w $015D
-	dc.w $21A1
-	dc.w $015D
-	dc.w $1197
-	dc.w $015E
-	dc.w $14C1
-	dc.w $015E
-	dc.w $2594
-	dc.w $015F
-	dc.w $016D
-	dc.w $015F
-	dc.w $3548
-	dc.w $0163
-	dc.w $0193
-	dc.w $0167
-	dc.w $3173
-	dc.w $0168
-	dc.w $3467
-	dc.w $0169
-	dc.w $3823
-	dc.w $016A
-	dc.w $103E
-	dc.w $016A
-	dc.w $1C52
-	dc.w $016B
-	dc.w $2101
-	dc.w $016C
-	dc.w $34EC
-	dc.w $016D
-	dc.w $3CF0
-	dc.w $0171
-	dc.w $2586
-	dc.w $0173
-	dc.w $210E
-	dc.w $0175
-	dc.w $1475
-	dc.w $0175
-	dc.w $1921
-	dc.w $0176
-	dc.w $288D
-	dc.w $0177
-	dc.w $0906
-	dc.w $0177
-	dc.w $143C
-	dc.w $0177
-	dc.w $3840
-	dc.w $017B
-	dc.w $3193
-	dc.w $017B
-	dc.w $0CBC
-	dc.w $017C
-	dc.w $3525
-	dc.w $017D
-	dc.w $0CD9
-	dc.w $017D
-	dc.w $3D28
-	dc.w $017F
-	dc.w $3D99
-	dc.w $0180
-	dc.w $38EB
-	dc.w $0181
-	dc.w $3477
-	dc.w $0181
-	dc.w $1478
-	dc.w $0184
-	dc.w $34DE
-	dc.w $0185
-	dc.w $0058
-	dc.w $0185
-	dc.w $0589
-	dc.w $0187
-	dc.w $0558
-	dc.w $0189
-	dc.w $2069
-	dc.w $018B
-	dc.w $2590
-	dc.w $018D
-	dc.w $1555
-	dc.w $018E
-	dc.w $2496
-	dc.w $018E
-	dc.w $2961
-	dc.w $0190
-	dc.w $1511
-	dc.w $0190
-	dc.w $0138
-	dc.w $0192
-	dc.w $20C1
-	dc.w $0192
-	dc.w $041D
-	dc.w $0194
-	dc.w $0134
-	dc.w $0195
-	dc.w $2C92
-	dc.w $0196
-	dc.w $0007
-	dc.w $0196
-	dc.w $2956
-	dc.w $0196
-	dc.w $2CE4
-	dc.w $0197
-	dc.w $0C5B
-	dc.w $0199
-	dc.w $0044
-	dc.w $019B
-	dc.w $010B
-	dc.w $019B
-	dc.w $1C9A
-	dc.w $019C
-	dc.w $0867
-	dc.w $01A0
-	dc.w $0081
-	dc.w $01A3
-	dc.w $058D
-	dc.w $01A5
-	dc.w $38EC
-	dc.w $01A5
-	dc.w $3807
-	dc.w $01A7
-	dc.w $203A
-	dc.w $01A7
-	dc.w $0816
-	dc.w $01A7
-	dc.w $1D89
-	dc.w $01A8
-	dc.w $294A
-	dc.w $01A8
-	dc.w $1C13
-	dc.w $01AA
-	dc.w $1002
-	dc.w $01AD
-	dc.w $354F
-	dc.w $01AE
-	dc.w $0198
-	dc.w $01AE
-	dc.w $201B
-	dc.w $01AF
-	dc.w $3565
-	dc.w $01AF
-	dc.w $1595
-	dc.w $01AF
-	dc.w $00F6
-	dc.w $01B0
-	dc.w $2915
-	dc.w $01B1
-	dc.w $2CED
-	dc.w $01B2
-	dc.w $082B
-	dc.w $01B3
-	dc.w $1061
-	dc.w $01B4
-	dc.w $1C0B
-	dc.w $01B4
-	dc.w $2054
-	dc.w $01B5
-	dc.w $34B0
-	dc.w $01B5
-	dc.w $20F8
-	dc.w $01B5
-	dc.w $3197
-	dc.w $01B7
-	dc.w $1438
-	dc.w $01B7
-	dc.w $3D4D
-	dc.w $01B8
-	dc.w $1C1B
-	dc.w $01B9
-	dc.w $0C25
-	dc.w $01B9
-	dc.w $10FD
-	dc.w $01B9
-	dc.w $1182
-	dc.w $01BA
-	dc.w $3C65
-	dc.w $01BA
-	dc.w $1C24
-	dc.w $01BA
-	dc.w $354E
-	dc.w $01BB
-	dc.w $1D25
-	dc.w $01BB
-	dc.w $30B5
-	dc.w $01BB
-	dc.w $24BD
-	dc.w $01BC
-	dc.w $2095
-	dc.w $01BD
-	dc.w $28FF
-	dc.w $01BD
-	dc.w $2C73
-	dc.w $01BE
-	dc.w $0863
-	dc.w $01BF
-	dc.w $3D6B
-	dc.w $01C0
-	dc.w $211B
-	dc.w $01C0
-	dc.w $0C84
-	dc.w $01C1
-	dc.w $3898
-	dc.w $01C1
-	dc.w $044E
-	dc.w $01C2
-	dc.w $3434
-	dc.w $01C3
-	dc.w $3D26
-	dc.w $01C4
-	dc.w $34DE
-	dc.w $01C7
-	dc.w $0D46
-	dc.w $01C7
-	dc.w $097E
-	dc.w $01C9
-	dc.w $1165
-	dc.w $01C9
-	dc.w $242F
-	dc.w $01CB
-	dc.w $3D7F
-	dc.w $01CD
-	dc.w $3D69
-	dc.w $01CF
-	dc.w $1CA7
-	dc.w $01D1
-	dc.w $2425
-	dc.w $01D1
-	dc.w $2822
-	dc.w $01D1
-	dc.w $24CF
-	dc.w $01D1
-	dc.w $118A
-	dc.w $01D2
-	dc.w $0989
-	dc.w $01D3
-	dc.w $318F
-	dc.w $01D8
-	dc.w $014A
-	dc.w $01D8
-	dc.w $2544
-	dc.w $01DA
-	dc.w $1804
-	dc.w $01DA
-	dc.w $0897
-	dc.w $01DB
-	dc.w $18F9
-	dc.w $01DB
-	dc.w $3061
-	dc.w $01DC
-	dc.w $08A3
-	dc.w $01DC
-	dc.w $3D25
-	dc.w $01DC
-	dc.w $3D8F
-	dc.w $01DE
-	dc.w $090A
-	dc.w $01DF
-	dc.w $2898
-	dc.w $01DF
-	dc.w $1812
-	dc.w $01E0
-	dc.w $1D75
-	dc.w $01E1
-	dc.w $18AA
-	dc.w $01E2
-	dc.w $24CB
-	dc.w $01E3
-	dc.w $047C
-	dc.w $01E5
-	dc.w $0011
-	dc.w $01E5
-	dc.w $1C56
-	dc.w $01E6
-	dc.w $08BD
-	dc.w $01E8
-	dc.w $088D
-	dc.w $01EA
-	dc.w $11A0
-	dc.w $01ED
-	dc.w $3088
-	dc.w $01EE
-	dc.w $350B
-	dc.w $01EE
-	dc.w $215B
-	dc.w $01EF
-	dc.w $247F
-	dc.w $01F1
-	dc.w $2D04
-	dc.w $01F2
-	dc.w $24D5
-	dc.w $01F2
-	dc.w $1978
-	dc.w $01F2
-	dc.w $3CE7
-	dc.w $01F2
-	dc.w $0476
-	dc.w $01F3
-	dc.w $280D
-	dc.w $01F4
-	dc.w $3C68
-	dc.w $01F6
-	dc.w $0484
-	dc.w $01F9
-	dc.w $3493
-	dc.w $01FA
-	dc.w $3990
-	dc.w $01FB
-	dc.w $34FE
-	dc.w $01FE
-	dc.w $34C5
-	dc.w $01FE
-	dc.w $1157
-	dc.w $01FE
-	dc.w $24F0
-	dc.w $01FF
-	dc.w $30A3
-	dc.w $01FF
-	dc.w $2978
-	dc.w $0200
-	dc.w $110D
-	dc.w $0201
-	dc.w $1C6A
-	dc.w $0202
-	dc.w $05A8
-	dc.w $0202
-	dc.w $3941
-	dc.w $0203
-	dc.w $0C47
-	dc.w $0206
-	dc.w $21AA
-	dc.w $0206
-	dc.w $3D77
-	dc.w $0207
-	dc.w $20CF
-	dc.w $0208
-	dc.w $106F
-	dc.w $0209
-	dc.w $2D74
-	dc.w $020B
-	dc.w $0808
-	dc.w $020D
-	dc.w $0C79
-	dc.w $020E
-	dc.w $14E4
-	dc.w $020E
-	dc.w $3D8D
-	dc.w $0210
-	dc.w $306F
-	dc.w $0211
-	dc.w $056F
-	dc.w $0211
-	dc.w $0177
-	dc.w $0212
-	dc.w $2D22
-	dc.w $0213
-	dc.w $208F
-	dc.w $0215
-	dc.w $18E2
-	dc.w $0218
-	dc.w $3875
-	dc.w $0218
-	dc.w $2587
-	dc.w $0218
-	dc.w $3C88
-	dc.w $0219
-	dc.w $1135
-	dc.w $0219
-	dc.w $3CF8
-	dc.w $021C
-	dc.w $04F7
-	dc.w $021F
-	dc.w $0C7F
-	dc.w $0221
-	dc.w $3893
-	dc.w $0222
-	dc.w $3195
-	dc.w $0225
-	dc.w $0864
-	dc.w $0226
-	dc.w $0D1F
-	dc.w $0226
-	dc.w $0575
-	dc.w $0228
-	dc.w $2484
-	dc.w $0229
-	dc.w $1137
-	dc.w $022B
-	dc.w $1848
-	dc.w $022E
-	dc.w $3D5A
-	dc.w $0230
-	dc.w $3467
-	dc.w $0230
-	dc.w $3C83
-	dc.w $0231
-	dc.w $254B
-	dc.w $0231
-	dc.w $1C95
-	dc.w $0232
-	dc.w $0C88
-	dc.w $0232
-	dc.w $35A8
-	dc.w $0232
-	dc.w $312A
-	dc.w $0236
-	dc.w $30E5
-	dc.w $0238
-	dc.w $1412
-	dc.w $023B
-	dc.w $30E3
-	dc.w $023C
-	dc.w $252C
-	dc.w $023E
-	dc.w $0116
-	dc.w $0241
-	dc.w $3CB8
-	dc.w $0242
-	dc.w $04DA
-	dc.w $0242
-	dc.w $34DF
-	dc.w $0243
-	dc.w $2D95
-	dc.w $0243
-	dc.w $058B
-	dc.w $0244
-	dc.w $18AD
-	dc.w $0245
-	dc.w $195D
-	dc.w $0245
-	dc.w $357E
-	dc.w $0246
-	dc.w $1024
-	dc.w $0248
-	dc.w $1CDC
-	dc.w $0248
-	dc.w $2564
-	dc.w $0249
-	dc.w $14D6
-	dc.w $024A
-	dc.w $3451
-	dc.w $024A
-	dc.w $385C
-	dc.w $024C
-	dc.w $0CC5
-	dc.w $024D
-	dc.w $2921
-	dc.w $0250
-	dc.w $319B
-	dc.w $0251
-	dc.w $3C93
-	dc.w $0252
-	dc.w $0837
-	dc.w $0254
-	dc.w $0012
-	dc.w $0255
-	dc.w $386B
-	dc.w $0257
-	dc.w $2598
-	dc.w $025A
-	dc.w $0579
-	dc.w $025B
-	dc.w $2111
-	dc.w $025C
-	dc.w $1C73
-	dc.w $025D
-	dc.w $1C96
-	dc.w $0260
-	dc.w $0867
-	dc.w $0268
-	dc.w $3076
-	dc.w $0269
-	dc.w $1591
-	dc.w $0269
-	dc.w $3172
-	dc.w $026A
-	dc.w $2D6E
-	dc.w $026B
-	dc.w $3574
-	dc.w $026C
-	dc.w $0D26
-	dc.w $026E
-	dc.w $18E5
-	dc.w $026E
-	dc.w $1859
-	dc.w $0273
-	dc.w $3421
-	dc.w $0274
-	dc.w $2D20
-	dc.w $0275
-	dc.w $08D4
-	dc.w $0275
-	dc.w $2C7F
-	dc.w $0276
-	dc.w $0121
-	dc.w $0276
-	dc.w $357C
-	dc.w $0277
-	dc.w $1995
-	dc.w $0277
-	dc.w $245B
-	dc.w $0278
-	dc.w $192C
-	dc.w $027B
-	dc.w $101A
-	dc.w $027B
-	dc.w $34D2
-	dc.w $027C
-	dc.w $311B
-	dc.w $027C
-	dc.w $28C9
-	dc.w $027D
-	dc.w $187D
-	dc.w $027D
-	dc.w $357C
-	dc.w $027D
-	dc.w $0C86
-	dc.w $027E
-	dc.w $3167
-	dc.w $027E
-	dc.w $1C8B
-	dc.w $027F
-	dc.w $3048
-	dc.w $027F
-	dc.w $3C7F
-	dc.w $0281
-	dc.w $3850
-	dc.w $0282
-	dc.w $0D9C
-	dc.w $0283
-	dc.w $1567
-	dc.w $0283
-	dc.w $24CE
-	dc.w $0283
-	dc.w $2549
-	dc.w $0285
-	dc.w $218B
-	dc.w $0288
-	dc.w $09AC
-	dc.w $0288
-	dc.w $048D
-	dc.w $0289
-	dc.w $0989
-	dc.w $028A
-	dc.w $20BE
-	dc.w $028B
-	dc.w $2826
-	dc.w $028C
-	dc.w $146F
-	dc.w $028C
-	dc.w $101E
-	dc.w $028D
-	dc.w $086B
-	dc.w $028D
-	dc.w $1553
-	dc.w $028E
-	dc.w $006A
-	dc.w $028E
-	dc.w $34EE
-	dc.w $028F
-	dc.w $05AC
-	dc.w $028F
-	dc.w $18AF
-	dc.w $0291
-	dc.w $0900
-	dc.w $0291
-	dc.w $1D21
-	dc.w $0292
-	dc.w $2095
-	dc.w $0295
-	dc.w $38BE
-	dc.w $0297
-	dc.w $14AC
-	dc.w $0297
-	dc.w $390F
-	dc.w $0298
-	dc.w $0499
-	dc.w $0299
-	dc.w $0D51
-	dc.w $029B
-	dc.w $2CFD
-	dc.w $029C
-	dc.w $10EB
-	dc.w $029D
-	dc.w $0D0D
-	dc.w $029E
-	dc.w $186B
-	dc.w $02A1
-	dc.w $3902
-	dc.w $02A1
-	dc.w $1820
-	dc.w $02A1
-	dc.w $315A
-	dc.w $02A2
-	dc.w $0C59
-	dc.w $02A2
-	dc.w $3516
-	dc.w $02A3
-	dc.w $387E
-	dc.w $02A5
-	dc.w $14FC
-	dc.w $02A7
-	dc.w $0CB3
-	dc.w $02A8
-	dc.w $0437
-	dc.w $02A9
-	dc.w $254A
-	dc.w $02AA
-	dc.w $0838
-	dc.w $02AB
-	dc.w $1CF6
-	dc.w $02AC
-	dc.w $0DAC
-	dc.w $02AD
-	dc.w $11AF
-	dc.w $02AD
-	dc.w $1461
-	dc.w $02AE
-	dc.w $34AC
-	dc.w $02AE
-	dc.w $0D1F
-	dc.w $02AF
-	dc.w $0119
-	dc.w $02B0
-	dc.w $18CF
-	dc.w $02B2
-	dc.w $246A
-	dc.w $02B2
-	dc.w $2146
-	dc.w $02B2
-	dc.w $2451
-	dc.w $02B4
-	dc.w $206A
-	dc.w $02B5
-	dc.w $187B
-	dc.w $02B7
-	dc.w $3883
-	dc.w $02B7
-	dc.w $248A
-	dc.w $02B8
-	dc.w $0527
-	dc.w $02B8
-	dc.w $0118
-	dc.w $02B9
-	dc.w $2815
-	dc.w $02BA
-	dc.w $290B
-	dc.w $02BD
-	dc.w $21A1
-	dc.w $02BF
-	dc.w $016D
-	dc.w $02C0
-	dc.w $3CEE
-	dc.w $02C1
-	dc.w $1DA3
-	dc.w $02C3
-	dc.w $38F9
-	dc.w $02C3
-	dc.w $006D
-	dc.w $02C7
-	dc.w $0156
-	dc.w $02C8
-	dc.w $183A
-	dc.w $02CB
-	dc.w $00CF
-	dc.w $02CC
-	dc.w $3C5C
-	dc.w $02CE
-	dc.w $1460
-	dc.w $02CE
-	dc.w $0104
-	dc.w $02CE
-	dc.w $2D59
-	dc.w $02CF
-	dc.w $118A
-	dc.w $02D0
-	dc.w $18CD
-	dc.w $02D2
-	dc.w $3850
-	dc.w $02D2
-	dc.w $2896
-	dc.w $02D6
-	dc.w $09A3
-	dc.w $02D6
-	dc.w $2150
-	dc.w $02D8
-	dc.w $0534
-	dc.w $02D8
-	dc.w $09AD
-	dc.w $02DC
-	dc.w $0974
-	dc.w $02DD
-	dc.w $00C3
-	dc.w $02DE
-	dc.w $0C37
-	dc.w $02DF
-	dc.w $2D8C
-	dc.w $02E2
-	dc.w $299A
-	dc.w $02E2
-	dc.w $1171
-	dc.w $02E3
-	dc.w $242E
-	dc.w $02E4
-	dc.w $1917
-	dc.w $02E4
-	dc.w $28E0
-	dc.w $02E5
-	dc.w $0D53
-	dc.w $02E5
-	dc.w $2C4F
-	dc.w $02E6
-	dc.w $191C
-	dc.w $02E6
-	dc.w $3006
-	dc.w $02E8
-	dc.w $2D0A
-	dc.w $02E8
-	dc.w $1931
-	dc.w $02E8
-	dc.w $255C
-	dc.w $02E8
-	dc.w $20BA
-	dc.w $02E8
-	dc.w $381C
-	dc.w $02E9
-	dc.w $30C1
-	dc.w $02E9
-	dc.w $003D
-	dc.w $02E9
-	dc.w $3D86
-	dc.w $02EA
-	dc.w $2809
-	dc.w $02EA
-	dc.w $340A
-	dc.w $02EA
-	dc.w $042F
-	dc.w $02EA
-	dc.w $08FD
-	dc.w $02EC
-	dc.w $1CC7
-	dc.w $02EE
-	dc.w $2937
-	dc.w $02EF
-	dc.w $1535
-	dc.w $02F0
-	dc.w $3032
-	dc.w $02F0
-	dc.w $3435
-	dc.w $02F1
-	dc.w $25A4
-	dc.w $02F2
-	dc.w $24BB
-	dc.w $02F2
-	dc.w $1C4D
-	dc.w $02F2
-	dc.w $2596
-	dc.w $02F3
-	dc.w $302A
-	dc.w $02F3
-	dc.w $2D15
-	dc.w $02F8
-	dc.w $356E
-	dc.w $02F9
-	dc.w $3458
-	dc.w $02F9
-	dc.w $1598
-	dc.w $02FD
-	dc.w $316D
-	dc.w $02FD
-	dc.w $1D65
-	dc.w $02FE
-	dc.w $10D3
-	dc.w $02FE
-	dc.w $2CBF
-	dc.w $0301
-	dc.w $1929
-	dc.w $0304
-	dc.w $245D
-	dc.w $0304
-	dc.w $0174
-	dc.w $0306
-	dc.w $319C
-	dc.w $0306
-	dc.w $0CF2
-	dc.w $0306
-	dc.w $2448
-	dc.w $0308
-	dc.w $34BE
-	dc.w $0308
-	dc.w $0897
-	dc.w $030B
-	dc.w $20B3
-	dc.w $030C
-	dc.w $3D8A
-	dc.w $030E
-	dc.w $1829
-	dc.w $0310
-	dc.w $0C58
-	dc.w $0311
-	dc.w $195E
-	dc.w $0311
-	dc.w $285B
-	dc.w $0314
-	dc.w $1C10
-	dc.w $0314
-	dc.w $2DAD
-	dc.w $0315
-	dc.w $39AF
-	dc.w $0315
-	dc.w $3C66
-	dc.w $0315
-	dc.w $1CEE
-	dc.w $0316
-	dc.w $3CE8
-	dc.w $0317
-	dc.w $050B
-	dc.w $0319
-	dc.w $2891
-	dc.w $031A
-	dc.w $2C68
-	dc.w $031B
-	dc.w $041D
-	dc.w $031D
-	dc.w $2138
-	dc.w $031D
-	dc.w $3C18
-	dc.w $031D
-	dc.w $3116
-	dc.w $031D
-	dc.w $3D88
-	dc.w $0322
-	dc.w $2065
-	dc.w $0323
-	dc.w $047A
-	dc.w $0324
-	dc.w $2DAD
-	dc.w $0325
-	dc.w $249F
-	dc.w $0325
-	dc.w $0806
-	dc.w $0327
-	dc.w $3599
-	dc.w $0328
-	dc.w $387F
-	dc.w $032A
-	dc.w $3157
-	dc.w $032A
-	dc.w $0916
-	dc.w $032B
-	dc.w $2D77
-	dc.w $032C
-	dc.w $1CBC
-	dc.w $032D
-	dc.w $0198
-	dc.w $032F
-	dc.w $11A1
-	dc.w $0331
-	dc.w $1483
-	dc.w $0331
-	dc.w $0D90
-	dc.w $0332
-	dc.w $04DF
-	dc.w $0334
-	dc.w $199D
-	dc.w $0335
-	dc.w $29A9
-	dc.w $0335
-	dc.w $295C
-	dc.w $0336
-	dc.w $319C
-	dc.w $0337
-	dc.w $3CDB
-	dc.w $0339
-	dc.w $191E
-	dc.w $033B
-	dc.w $2596
-	dc.w $033B
-	dc.w $0CEA
-	dc.w $033C
-	dc.w $299F
-	dc.w $033C
-	dc.w $1D67
-	dc.w $033D
-	dc.w $2D58
-	dc.w $033E
-	dc.w $182F
-	dc.w $033F
-	dc.w $1093
-	dc.w $0340
-	dc.w $144E
-	dc.w $0340
-	dc.w $100E
-	dc.w $0341
-	dc.w $254F
-	dc.w $0342
-	dc.w $34EA
-	dc.w $0343
-	dc.w $28F8
-	dc.w $0343
-	dc.w $2094
-	dc.w $0347
-	dc.w $28AE
-	dc.w $034A
-	dc.w $3C78
-	dc.w $034B
-	dc.w $10D0
-	dc.w $034B
-	dc.w $2D73
-	dc.w $034D
-	dc.w $017E
-	dc.w $034F
-	dc.w $0910
-	dc.w $034F
-	dc.w $28E4
-	dc.w $034F
-	dc.w $0C0C
-	dc.w $0350
-	dc.w $2161
-	dc.w $0350
-	dc.w $1CBE
-	dc.w $0352
-	dc.w $3C64
-	dc.w $0356
-	dc.w $2143
-	dc.w $0356
-	dc.w $3C24
-	dc.w $0359
-	dc.w $2C53
-	dc.w $035B
-	dc.w $0C03
-	dc.w $035C
-	dc.w $1CC5
-	dc.w $035C
-	dc.w $147A
-	dc.w $035C
-	dc.w $34F7
-	dc.w $035D
-	dc.w $007C
-	dc.w $035F
-	dc.w $3D5E
-	dc.w $035F
-	dc.w $212C
-	dc.w $035F
-	dc.w $39A2
-	dc.w $0360
-	dc.w $2C40
-	dc.w $0361
-	dc.w $2889
-	dc.w $0361
-	dc.w $2CE1
-	dc.w $0362
-	dc.w $192F
-	dc.w $0362
-	dc.w $2550
-	dc.w $0363
-	dc.w $0841
-	dc.w $0363
-	dc.w $2D5F
-	dc.w $0364
-	dc.w $14A9
-	dc.w $0366
-	dc.w $0D39
-	dc.w $0366
-	dc.w $1144
-	dc.w $0368
-	dc.w $30E3
-	dc.w $0369
-	dc.w $18BA
-	dc.w $036B
-	dc.w $3449
-	dc.w $036E
-	dc.w $348A
-	dc.w $036F
-	dc.w $2995
-	dc.w $036F
-	dc.w $0516
-	dc.w $036F
-	dc.w $1C66
-	dc.w $036F
-	dc.w $242F
-	dc.w $036F
-	dc.w $3496
-	dc.w $0370
-	dc.w $00DF
-	dc.w $0370
-	dc.w $3861
-	dc.w $0371
-	dc.w $1CA4
-	dc.w $0372
-	dc.w $1CBC
-	dc.w $0372
-	dc.w $1803
-	dc.w $0372
-	dc.w $3901
-	dc.w $0374
-	dc.w $318D
-	dc.w $0375
-	dc.w $3984
-	dc.w $0375
-	dc.w $253C
-	dc.w $0378
-	dc.w $3448
-	dc.w $0378
-	dc.w $24F4
-	dc.w $0379
-	dc.w $10EA
-	dc.w $037B
-	dc.w $25A2
-	dc.w $037B
-	dc.w $21AF
-	dc.w $037C
-	dc.w $1CA3
-	dc.w $037D
-	dc.w $2991
-	dc.w $037D
-	dc.w $0D46
-	dc.w $037E
-	dc.w $2426
-	dc.w $037E
-	dc.w $101B
-	dc.w $037F
-	dc.w $2938
-	dc.w $0380
-	dc.w $3D63
-	dc.w $0380
-	dc.w $1D80
-	dc.w $0380
-	dc.w $3405
-	dc.w $0381
-	dc.w $1C36
-	dc.w $0385
-	dc.w $2466
-	dc.w $0385
-	dc.w $0956
-	dc.w $0386
-	dc.w $1CA2
-	dc.w $0386
-	dc.w $2857
-	dc.w $0387
-	dc.w $2136
-	dc.w $0388
-	dc.w $10DB
-	dc.w $0389
-	dc.w $100F
-	dc.w $0389
-	dc.w $14A4
-	dc.w $038A
-	dc.w $3110
-	dc.w $038A
-	dc.w $04E5
-	dc.w $038A
-	dc.w $1812
-	dc.w $038B
-	dc.w $3CAF
-	dc.w $038C
-	dc.w $310F
-	dc.w $038C
-	dc.w $38AC
-	dc.w $038F
-	dc.w $002E
-	dc.w $038F
-	dc.w $2D3A
-	dc.w $038F
-	dc.w $394D
-	dc.w $0391
-	dc.w $1062
-	dc.w $0391
-	dc.w $29AC
-	dc.w $0391
-	dc.w $0809
-	dc.w $0393
-	dc.w $0C9F
-	dc.w $0394
-	dc.w $2C33
-	dc.w $0394
-	dc.w $0180
-	dc.w $0395
-	dc.w $394F
-	dc.w $0397
-	dc.w $2D37
-	dc.w $039B
-	dc.w $1518
-	dc.w $039B
-	dc.w $209F
-	dc.w $039F
-	dc.w $3839
-	dc.w $039F
-	dc.w $14F8
-	dc.w $039F
-	dc.w $342B
-	dc.w $03A0
-	dc.w $050F
-	dc.w $03A0
-	dc.w $28FA
-	dc.w $03A1
-	dc.w $18FB
-	dc.w $03A3
-	dc.w $2497
-	dc.w $03A3
-	dc.w $010C
-	dc.w $03A9
-	dc.w $2580
-	dc.w $03AA
-	dc.w $08B8
-	dc.w $03AA
-	dc.w $0026
-	dc.w $03AE
-	dc.w $0575
-	dc.w $03AF
-	dc.w $3D4A
-	dc.w $03AF
-	dc.w $2C2B
-	dc.w $03B2
-	dc.w $2885
-	dc.w $03B2
-	dc.w $0C5D
-	dc.w $03B4
-	dc.w $08CF
-	dc.w $03B4
-	dc.w $118C
-	dc.w $03B5
-	dc.w $10AB
-	dc.w $03B5
-	dc.w $0000
-	dc.w $03B6
-	dc.w $1C14
-	dc.w $03B6
-	dc.w $1897
-	dc.w $03B7
-	dc.w $34A7
-	dc.w $03B7
-	dc.w $30FC
-	dc.w $03B8
-	dc.w $28A2
-	dc.w $03B8
-	dc.w $3166
-	dc.w $03B9
-	dc.w $1D1B
-	dc.w $03B9
-	dc.w $2578
-	dc.w $03B9
-	dc.w $1406
-	dc.w $03BA
-	dc.w $3CBB
-	dc.w $03BA
-	dc.w $1562
-	dc.w $03BA
-	dc.w $04F2
-	dc.w $03BC
-	dc.w $289B
-	dc.w $03BC
-	dc.w $3CBF
-	dc.w $03BE
-	dc.w $1D9C
-	dc.w $03BE
-	dc.w $1936
-	dc.w $03BE
-	dc.w $1091
-	dc.w $03BF
-	dc.w $2093
-	dc.w $03BF
-	dc.w $3D1D
-	dc.w $03C0
-	dc.w $10FE
-	dc.w $03C1
-	dc.w $2825
-	dc.w $03C3
-	dc.w $28D7
-	dc.w $03C5
-	dc.w $114F
-	dc.w $03C6
-	dc.w $0D46
-	dc.w $03C7
-	dc.w $28D3
-	dc.w $03C8
-	dc.w $150F
-	dc.w $03CA
-	dc.w $08B3
-	dc.w $03CB
-	dc.w $1508
-	dc.w $03CB
-	dc.w $1D9A
-	dc.w $03CB
-	dc.w $2524
-	dc.w $03CD
-	dc.w $046B
-	dc.w $03CE
-	dc.w $2102
-	dc.w $03CE
-	dc.w $0C5B
-	dc.w $03CF
-	dc.w $0D81
-	dc.w $03D1
-	dc.w $30BA
-	dc.w $03D2
-	dc.w $1D42
-	dc.w $03D2
-	dc.w $1830
-	dc.w $03D2
-	dc.w $3975
-	dc.w $03D4
-	dc.w $2560
-	dc.w $03D5
-	dc.w $34C6
-	dc.w $03D6
-	dc.w $189F
-	dc.w $03D8
-	dc.w $20D7
-	dc.w $03DA
-	dc.w $0819
-	dc.w $03DB
-	dc.w $3854
-	dc.w $03DC
-	dc.w $3001
-	dc.w $03DD
-	dc.w $2CA8
-	dc.w $03DF
-	dc.w $3880
-	dc.w $03DF
-	dc.w $3CCF
-	dc.w $03E0
-	dc.w $1CFD
-	dc.w $03E0
-	dc.w $2874
-	dc.w $03E1
-	dc.w $3D20
-	dc.w $03E3
-	dc.w $29A4
-	dc.w $03E5
-	dc.w $298A
-	dc.w $03E5
-	dc.w $2937
-	dc.w $03E6
-	dc.w $3CDD
-	dc.w $03E7
-	dc.w $094D
-	dc.w $03E9
-	dc.w $1901
-	dc.w $03E9
-	dc.w $301B
-	dc.w $03EA
-	dc.w $283B
-	dc.w $03EB
-	dc.w $21AF
-	dc.w $03EC
-	dc.w $1996
-	dc.w $03EE
-	dc.w $1D1D
-	dc.w $03EE
-	dc.w $08D2
-	dc.w $03F2
-	dc.w $2D61
-	dc.w $03F2
-	dc.w $2964
-	dc.w $03F3
-	dc.w $0D22
-	dc.w $03F4
-	dc.w $3120
-	dc.w $03F4
-	dc.w $3D46
-	dc.w $03F4
-	dc.w $0047
-	dc.w $03F4
-	dc.w $0593
-	dc.w $03F4
-	dc.w $3D29
-	dc.w $03F6
-	dc.w $30C3
-	dc.w $03F8
-	dc.w $2895
-	dc.w $03FA
-	dc.w $315B
-	dc.w $03FA
-	dc.w $055B
-	dc.w $03FB
-	dc.w $0592
-	dc.w $03FF
-	dc.w $1081
-	dc.w $0400
-	dc.w $3049
-	dc.w $0400
-	dc.w $28B9
-	dc.w $0400
-	dc.w $0CAE
-	dc.w $0401
-	dc.w $391E
-	dc.w $0401
-	dc.w $2073
-	dc.w $0403
-	dc.w $2889
-	dc.w $0403
-	dc.w $102F
-	dc.w $0403
-	dc.w $2D6B
-	dc.w $0403
-	dc.w $34AE
-	dc.w $0404
-	dc.w $38AB
-	dc.w $0404
-	dc.w $0D42
-	dc.w $0405
-	dc.w $04B8
-	dc.w $0406
-	dc.w $141E
-	dc.w $040A
-	dc.w $2CD9
-	dc.w $040B
-	dc.w $3019
-	dc.w $040C
-	dc.w $3D9A
-	dc.w $040E
-	dc.w $194A
-	dc.w $040E
-	dc.w $1828
-	dc.w $0410
-	dc.w $30E8
-	dc.w $0410
-	dc.w $14F1
-	dc.w $0410
-	dc.w $0469
-	dc.w $0410
-	dc.w $3D1B
-	dc.w $0415
-	dc.w $3D09
-	dc.w $0416
-	dc.w $056A
-	dc.w $0416
-	dc.w $0467
-	dc.w $0416
-	dc.w $2549
-	dc.w $0418
-	dc.w $0C18
-	dc.w $0419
-	dc.w $243B
-	dc.w $041A
-	dc.w $2D4A
-	dc.w $041B
-	dc.w $2CF0
-	dc.w $041C
-	dc.w $2904
-	dc.w $041E
-	dc.w $2150
-	dc.w $041F
-	dc.w $3124
-	dc.w $0422
-	dc.w $1012
-	dc.w $0422
-	dc.w $2514
-	dc.w $0423
-	dc.w $243E
-	dc.w $0424
-	dc.w $088E
-	dc.w $0426
-	dc.w $197E
-	dc.w $0426
-	dc.w $1562
-	dc.w $0426
-	dc.w $24F9
-	dc.w $0428
-	dc.w $2520
-	dc.w $0428
-	dc.w $3D67
-	dc.w $0429
-	dc.w $185A
-	dc.w $0429
-	dc.w $1C9A
-	dc.w $042A
-	dc.w $1853
-	dc.w $042B
-	dc.w $3409
-	dc.w $042B
-	dc.w $24C0
-	dc.w $042C
-	dc.w $3D09
-	dc.w $042E
-	dc.w $282E
-	dc.w $0431
-	dc.w $253A
-	dc.w $0431
-	dc.w $2900
-	dc.w $0432
-	dc.w $38A6
-	dc.w $0432
-	dc.w $1923
-	dc.w $0434
-	dc.w $106A
-	dc.w $0434
-	dc.w $34C5
-	dc.w $0436
-	dc.w $1DAF
-	dc.w $0437
-	dc.w $0195
-	dc.w $0438
-	dc.w $35AA
-	dc.w $0439
-	dc.w $2451
-	dc.w $043C
-	dc.w $3CD7
-	dc.w $043C
-	dc.w $317B
-	dc.w $043D
-	dc.w $30B5
-	dc.w $043E
-	dc.w $38A9
-	dc.w $043E
-	dc.w $309D
-	dc.w $043E
-	dc.w $357C
-	dc.w $0441
-	dc.w $3936
-	dc.w $0446
-	dc.w $0CEE
-	dc.w $0447
-	dc.w $19A0
-	dc.w $0448
-	dc.w $3096
-	dc.w $0449
-	dc.w $3DAD
-	dc.w $044A
-	dc.w $2800
-	dc.w $044D
-	dc.w $38E0
-	dc.w $044F
-	dc.w $396C
-	dc.w $044F
-	dc.w $0D2D
-	dc.w $0450
-	dc.w $108B
-	dc.w $0451
-	dc.w $3595
-	dc.w $0452
-	dc.w $1935
-	dc.w $0453
-	dc.w $10C2
-	dc.w $0453
-	dc.w $252A
-	dc.w $0454
-	dc.w $3834
-	dc.w $0454
-	dc.w $0CEE
-	dc.w $0455
-	dc.w $28C3
-	dc.w $0458
-	dc.w $2492
-	dc.w $0458
-	dc.w $3422
-	dc.w $045C
-	dc.w $2571
-	dc.w $045C
-	dc.w $0C02
-	dc.w $045D
-	dc.w $1C84
-	dc.w $045D
-	dc.w $0CF0
-	dc.w $045E
-	dc.w $1D10
-	dc.w $045F
-	dc.w $3447
-	dc.w $0461
-	dc.w $1CA5
-	dc.w $0467
-	dc.w $24B1
-	dc.w $0467
-	dc.w $1C46
-	dc.w $0467
-	dc.w $28F0
-	dc.w $0468
-	dc.w $301F
-	dc.w $046B
-	dc.w $114B
-	dc.w $046C
-	dc.w $1D4C
-	dc.w $046D
-	dc.w $040F
-	dc.w $0470
-	dc.w $08D0
-	dc.w $0471
-	dc.w $10CB
-	dc.w $0472
-	dc.w $29AF
-	dc.w $0472
-	dc.w $38B3
-	dc.w $0472
-	dc.w $004D
-	dc.w $0477
-	dc.w $3452
-	dc.w $0477
-	dc.w $3550
-	dc.w $0479
-	dc.w $1445
-	dc.w $047A
-	dc.w $0CFD
-	dc.w $047B
-	dc.w $11AA
-	dc.w $047C
-	dc.w $0846
-	dc.w $0480
-	dc.w $1C53
-	dc.w $0480
-	dc.w $3D17
-	dc.w $0480
-	dc.w $08D6
-	dc.w $0483
-	dc.w $3019
-	dc.w $0483
-	dc.w $3998
-	dc.w $0483
-	dc.w $3986
-	dc.w $0484
-	dc.w $1C49
-	dc.w $0487
-	dc.w $315E
-	dc.w $0489
-	dc.w $2584
-	dc.w $0489
-	dc.w $092A
-	dc.w $048A
-	dc.w $09A9
-	dc.w $048A
-	dc.w $140F
-	dc.w $048E
-	dc.w $0176
-	dc.w $048E
-	dc.w $1010
-	dc.w $048F
-	dc.w $0C20
-	dc.w $0492
-	dc.w $0D0C
-	dc.w $0493
-	dc.w $003C
-	dc.w $0496
-	dc.w $0D04
-	dc.w $0498
-	dc.w $3D38
-	dc.w $0499
-	dc.w $28A0
-	dc.w $049B
-	dc.w $140A
-	dc.w $049C
-	dc.w $00DB
-	dc.w $049F
-	dc.w $1959
-	dc.w $04A0
-	dc.w $10F5
-	dc.w $04A1
-	dc.w $359B
-	dc.w $04A3
-	dc.w $24F4
-	dc.w $04A5
-	dc.w $34A0
-	dc.w $04A5
-	dc.w $2D6F
-	dc.w $04A5
-	dc.w $14E7
-	dc.w $04A6
-	dc.w $3983
-	dc.w $04A7
-	dc.w $1820
-	dc.w $04A8
-	dc.w $3572
-	dc.w $04A9
-	dc.w $30E7
-	dc.w $04AB
-	dc.w $250D
-	dc.w $04AC
-	dc.w $0C0F
-	dc.w $04AE
-	dc.w $14D4
-	dc.w $04AE
-	dc.w $1C31
-	dc.w $04AF
-	dc.w $102D
-	dc.w $04B0
-	dc.w $1423
-	dc.w $04B0
-	dc.w $3D04
-	dc.w $04B3
-	dc.w $307B
-	dc.w $04B3
-	dc.w $3127
-	dc.w $04B3
-	dc.w $0087
-	dc.w $04B4
-	dc.w $1052
-	dc.w $04B4
-	dc.w $1589
-	dc.w $04B6
-	dc.w $1569
-	dc.w $04B6
-	dc.w $154C
-	dc.w $04B6
-	dc.w $2CC4
-	dc.w $04B7
-	dc.w $04B0
-	dc.w $04B8
-	dc.w $10F4
-	dc.w $04BA
-	dc.w $3157
-	dc.w $04BA
-	dc.w $219E
-	dc.w $04BB
-	dc.w $24A9
-	dc.w $04BC
-	dc.w $3986
-	dc.w $04BC
-	dc.w $2CC8
-	dc.w $04BD
-	dc.w $1887
-	dc.w $04BD
-	dc.w $3CC4
-	dc.w $04C0
-	dc.w $002C
-	dc.w $04C2
-	dc.w $3463
-	dc.w $04C2
-	dc.w $0586
-	dc.w $04C4
-	dc.w $18E7
-	dc.w $04C5
-	dc.w $3551
-	dc.w $04C7
-	dc.w $3135
-	dc.w $04C7
-	dc.w $0509
-	dc.w $04C7
-	dc.w $1C3C
-	dc.w $04C9
-	dc.w $2C89
-	dc.w $04CA
-	dc.w $3D65
-	dc.w $04CA
-	dc.w $3485
-	dc.w $04CB
-	dc.w $0087
-	dc.w $04CC
-	dc.w $1D9C
-	dc.w $04CD
-	dc.w $0850
-	dc.w $04CD
-	dc.w $1CE7
-	dc.w $04D0
-	dc.w $3896
-	dc.w $04D1
-	dc.w $38B4
-	dc.w $04D3
-	dc.w $395D
-	dc.w $04D5
-	dc.w $2838
-	dc.w $04D7
-	dc.w $2837
-	dc.w $04D8
-	dc.w $2856
-	dc.w $04D8
-	dc.w $218C
-	dc.w $04D8
-	dc.w $3D7F
-	dc.w $04D9
-	dc.w $0867
-	dc.w $04DA
-	dc.w $2461
-	dc.w $04DB
-	dc.w $1813
-	dc.w $04DC
-	dc.w $392D
-	dc.w $04DE
-	dc.w $089C
-	dc.w $04DF
-	dc.w $0128
-	dc.w $04DF
-	dc.w $208B
-	dc.w $04E2
-	dc.w $28A0
-	dc.w $04E3
-	dc.w $3C9B
-	dc.w $04E4
-	dc.w $3CD6
-	dc.w $04E6
-	dc.w $1943
-	dc.w $04E6
-	dc.w $2967
-	dc.w $04E7
-	dc.w $2574
-	dc.w $04E8
-	dc.w $10A2
-	dc.w $04E9
-	dc.w $357E
-	dc.w $04ED
-	dc.w $2C73
-	dc.w $04EE
-	dc.w $2005
-	dc.w $04EE
-	dc.w $1034
-	dc.w $04EF
-	dc.w $1C75
-	dc.w $04F0
-	dc.w $2504
-	dc.w $04F0
-	dc.w $30AE
-	dc.w $04F1
-	dc.w $050F
-	dc.w $04F1
-	dc.w $2C70
-	dc.w $04F6
-	dc.w $291F
-	dc.w $04F7
-	dc.w $1C24
-	dc.w $04F8
-	dc.w $3DAF
-	dc.w $04F9
-	dc.w $3D6C
-	dc.w $04FA
-	dc.w $158A
-	dc.w $04FB
-	dc.w $119D
-	dc.w $04FD
-	dc.w $3424
-	dc.w $04FD
-	dc.w $302E
-	dc.w $04FE
-	dc.w $3144
-	dc.w $04FF
-	dc.w $0CE7
-	dc.w $04FF
-	dc.w $30AF
-	dc.w $0501
-	dc.w $24A5
-	dc.w $0501
-	dc.w $2C5D
-	dc.w $0501
-	dc.w $1C73
-	dc.w $0502
-	dc.w $150A
-	dc.w $0504
-	dc.w $30BD
-	dc.w $0508
-	dc.w $0844
-	dc.w $050A
-	dc.w $1156
-	dc.w $050C
-	dc.w $1817
-	dc.w $050C
-	dc.w $217A
-	dc.w $050C
-	dc.w $2C83
-	dc.w $050C
-	dc.w $1D8E
-	dc.w $050D
-	dc.w $017E
-	dc.w $050E
-	dc.w $3033
-	dc.w $050E
-	dc.w $3D4C
-	dc.w $050E
-	dc.w $24BE
-	dc.w $0510
-	dc.w $0480
-	dc.w $0510
-	dc.w $3883
-	dc.w $0511
-	dc.w $3D84
-	dc.w $0511
-	dc.w $315F
-	dc.w $0512
-	dc.w $34AF
-	dc.w $0512
-	dc.w $2025
-	dc.w $0512
-	dc.w $0CEF
-	dc.w $0512
-	dc.w $1199
-	dc.w $0513
-	dc.w $0C02
-	dc.w $0515
-	dc.w $2496
-	dc.w $0516
-	dc.w $1815
-	dc.w $0519
-	dc.w $098C
-	dc.w $051A
-	dc.w $2853
-	dc.w $051B
-	dc.w $1C89
-	dc.w $051E
-	dc.w $250A
-	dc.w $051F
-	dc.w $35AF
-	dc.w $0524
-	dc.w $2CDB
-	dc.w $0524
-	dc.w $0505
-	dc.w $0524
-	dc.w $2C5B
-	dc.w $0525
-	dc.w $3C26
-	dc.w $0525
-	dc.w $14C9
-	dc.w $0525
-	dc.w $15A6
-	dc.w $0526
-	dc.w $20F4
-	dc.w $0526
-	dc.w $04CE
-	dc.w $0527
-	dc.w $113A
-	dc.w $0527
-	dc.w $217D
-	dc.w $0527
-	dc.w $3937
-	dc.w $052C
-	dc.w $1191
-	dc.w $0532
-	dc.w $082F
-	dc.w $0534
-	dc.w $1882
-	dc.w $0534
-	dc.w $0C37
-	dc.w $0536
-	dc.w $004B
-	dc.w $0537
-	dc.w $04F1
-	dc.w $0538
-	dc.w $1492
-	dc.w $053C
-	dc.w $0C5B
-	dc.w $053D
-	dc.w $2869
-	dc.w $053D
-	dc.w $3C9A
-	dc.w $053E
-	dc.w $10F6
-	dc.w $053E
-	dc.w $1976
-	dc.w $0541
-	dc.w $3974
-	dc.w $0541
-	dc.w $250D
-	dc.w $0541
-	dc.w $1D67
-	dc.w $0542
-	dc.w $2152
-	dc.w $0543
-	dc.w $0C49
-	dc.w $0543
-	dc.w $047E
-	dc.w $0544
-	dc.w $1D54
-	dc.w $0545
-	dc.w $2938
-	dc.w $0545
-	dc.w $3CDB
-	dc.w $0546
-	dc.w $39AD
-	dc.w $0547
-	dc.w $2CB2
-	dc.w $0548
-	dc.w $3CB1
-	dc.w $0549
-	dc.w $34C6
-	dc.w $054A
-	dc.w $209A
-	dc.w $054B
-	dc.w $28D9
-	dc.w $054B
-	dc.w $0030
-	dc.w $054C
-	dc.w $0D0C
-	dc.w $054C
-	dc.w $258D
-	dc.w $054D
-	dc.w $3161
-	dc.w $054D
-	dc.w $0142
-	dc.w $0552
-	dc.w $1D0C
-	dc.w $0555
-	dc.w $0C41
-	dc.w $0555
-	dc.w $312C
-	dc.w $0556
-	dc.w $1C4D
-	dc.w $0556
-	dc.w $30BB
-	dc.w $0557
-	dc.w $0D0C
-	dc.w $0558
-	dc.w $20AD
-	dc.w $0558
-	dc.w $048B
-	dc.w $0559
-	dc.w $3D90
-	dc.w $0559
-	dc.w $318C
-	dc.w $0559
-	dc.w $30B9
-	dc.w $055A
-	dc.w $390B
-	dc.w $055C
-	dc.w $295C
-	dc.w $055C
-	dc.w $30F0
-	dc.w $055C
-	dc.w $31A7
-	dc.w $055D
-	dc.w $1494
-	dc.w $0560
-	dc.w $2D45
-	dc.w $0560
-	dc.w $190C
-	dc.w $0560
-	dc.w $1CE0
-	dc.w $0561
-	dc.w $3910
-	dc.w $0565
-	dc.w $304C
-	dc.w $0566
-	dc.w $19A7
-	dc.w $0567
-	dc.w $188C
-	dc.w $0567
-	dc.w $150A
-	dc.w $056A
-	dc.w $051A
-	dc.w $056A
-	dc.w $2D4D
-	dc.w $0570
-	dc.w $3105
-	dc.w $0571
-	dc.w $2146
-	dc.w $0574
-	dc.w $3489
-	dc.w $0578
-	dc.w $18AE
-	dc.w $0578
-	dc.w $2C3F
-	dc.w $0579
-	dc.w $04F5
-	dc.w $057B
-	dc.w $0145
-	dc.w $057C
-	dc.w $04BE
-	dc.w $057C
-	dc.w $197A
-	dc.w $057D
-	dc.w $0875
-	dc.w $0580
-	dc.w $254E
-	dc.w $0580
-	dc.w $3D66
-	dc.w $0583
-	dc.w $354C
-	dc.w $0584
-	dc.w $2C7D
-	dc.w $0585
-	dc.w $1D65
-	dc.w $0586
-	dc.w $2166
-	dc.w $0587
-	dc.w $0880
-	dc.w $0588
-	dc.w $04A9
-	dc.w $0588
-	dc.w $1998
-	dc.w $058A
-	dc.w $1105
-	dc.w $058B
-	dc.w $0D58
-	dc.w $058C
-	dc.w $0576
-	dc.w $058E
-	dc.w $0CBD
-	dc.w $0591
-	dc.w $019D
-	dc.w $0591
-	dc.w $0C2E
-	dc.w $0592
-	dc.w $088E
-	dc.w $0596
-	dc.w $091E
-	dc.w $059A
-	dc.w $0C55
-	dc.w $059A
-	dc.w $1420
-	dc.w $059B
-	dc.w $1559
-	dc.w $059B
-	dc.w $159B
-	dc.w $059E
-	dc.w $3DAB
-	dc.w $059E
-	dc.w $34B8
-	dc.w $059E
-	dc.w $1D75
-	dc.w $05A0
-	dc.w $24DA
-	dc.w $05A1
-	dc.w $2572
-	dc.w $05A3
-	dc.w $3C85
-	dc.w $05A5
-	dc.w $2D63
-	dc.w $05A6
-	dc.w $3C8E
-	dc.w $05A6
-	dc.w $2C11
-	dc.w $05A6
-	dc.w $09AC
-	dc.w $05A7
-	dc.w $397F
-	dc.w $05A8
-	dc.w $0077
-	dc.w $05A9
-	dc.w $3192
-	dc.w $05AA
-	dc.w $3D52
-	dc.w $05AB
-	dc.w $0070
-	dc.w $05AD
-	dc.w $2D23
-	dc.w $05AD
-	dc.w $198A
-	dc.w $05AE
-	dc.w $2093
-	dc.w $05AE
-	dc.w $084D
-	dc.w $05B0
-	dc.w $080D
-	dc.w $05B0
-	dc.w $30BF
-	dc.w $05B1
-	dc.w $34E3
-	dc.w $05B2
-	dc.w $2986
-	dc.w $05B3
-	dc.w $1583
-	dc.w $05B4
-	dc.w $0C59
-	dc.w $05B5
-	dc.w $009D
-	dc.w $05B6
-	dc.w $2401
-	dc.w $05B6
-	dc.w $2C5F
-	dc.w $05B6
-	dc.w $1D32
-	dc.w $05B6
-	dc.w $307A
-	dc.w $05B8
-	dc.w $142D
-	dc.w $05B9
-	dc.w $2C4B
-	dc.w $05BB
-	dc.w $0888
-	dc.w $05BB
-	dc.w $1144
-	dc.w $05C0
-	dc.w $2096
-	dc.w $05C0
-	dc.w $18B2
-	dc.w $05C1
-	dc.w $1060
-	dc.w $05C3
-	dc.w $2956
-	dc.w $05C5
-	dc.w $1C8D
-	dc.w $05C8
-	dc.w $24CD
-	dc.w $05C9
-	dc.w $2043
-	dc.w $05C9
-	dc.w $3D35
-	dc.w $05C9
-	dc.w $343C
-	dc.w $05C9
-	dc.w $25A0
-	dc.w $05CA
-	dc.w $3420
-	dc.w $05CB
-	dc.w $019D
-	dc.w $05CB
-	dc.w $3570
-	dc.w $05CB
-	dc.w $1402
-	dc.w $05CC
-	dc.w $1C0E
-	dc.w $05CC
-	dc.w $2173
-	dc.w $05CE
-	dc.w $3031
-	dc.w $05D2
-	dc.w $20BE
-	dc.w $05D5
-	dc.w $2C24
-	dc.w $05D6
-	dc.w $1D56
-	dc.w $05D7
-	dc.w $053D
-	dc.w $05D7
-	dc.w $10B8
-	dc.w $05D8
-	dc.w $093F
-	dc.w $05DA
-	dc.w $3889
-	dc.w $05DB
-	dc.w $0894
-	dc.w $05DB
-	dc.w $29A1
-	dc.w $05DE
-	dc.w $009D
-	dc.w $05E0
-	dc.w $082B
-	dc.w $05E0
-	dc.w $395E
-	dc.w $05E0
-	dc.w $1059
-	dc.w $05E0
-	dc.w $0020
-	dc.w $05E1
-	dc.w $0888
-	dc.w $05E3
-	dc.w $0804
-	dc.w $05E4
-	dc.w $1C54
-	dc.w $05E6
-	dc.w $0068
-	dc.w $05E8
-	dc.w $1D5C
-	dc.w $05E9
-	dc.w $1526
-	dc.w $05EE
-	dc.w $3DAF
-	dc.w $05F0
-	dc.w $2CA3
-	dc.w $05F1
-	dc.w $207D
-	dc.w $05F3
-	dc.w $20FD
-	dc.w $05F4
-	dc.w $348A
-	dc.w $05F4
-	dc.w $28AF
-	dc.w $05F4
-	dc.w $18C6
-	dc.w $05F5
-	dc.w $108C
-	dc.w $05F5
-	dc.w $1D27
-	dc.w $05F9
-	dc.w $3D59
-	dc.w $05FB
-	dc.w $1540
-	dc.w $05FB
-	dc.w $0172
-	dc.w $05FC
-	dc.w $25AF
-	dc.w $05FC
-	dc.w $04D7
-	dc.w $05FD
-	dc.w $0C72
-	dc.w $05FE
-	dc.w $1C7B
-	dc.w $05FF
-	dc.w $3807
-	dc.w $0600
-	dc.w $0123
-	dc.w $0600
-	dc.w $187C
-	dc.w $0600
-	dc.w $3957
-	dc.w $0601
-	dc.w $3169
-	dc.w $0602
-	dc.w $253A
-	dc.w $0602
-	dc.w $10F1
-	dc.w $0602
-	dc.w $1C44
-	dc.w $0604
-	dc.w $304C
-	dc.w $0605
-	dc.w $3483
-	dc.w $0606
-	dc.w $1C75
-	dc.w $0607
-	dc.w $380F
-	dc.w $0608
-	dc.w $1C40
-	dc.w $0609
-	dc.w $24DF
-	dc.w $060A
-	dc.w $111A
-	dc.w $060A
-	dc.w $1D4E
-	dc.w $060B
-	dc.w $098A
-	dc.w $060B
-	dc.w $210E
-	dc.w $060D
-	dc.w $0861
-	dc.w $060D
-	dc.w $358A
-	dc.w $060F
-	dc.w $086D
-	dc.w $060F
-	dc.w $39A0
-	dc.w $0610
-	dc.w $010A
-	dc.w $0613
-	dc.w $156F
-	dc.w $0613
-	dc.w $3D5D
-	dc.w $0613
-	dc.w $1920
-	dc.w $0613
-	dc.w $354E
-	dc.w $0614
-	dc.w $001B
-	dc.w $0614
-	dc.w $292B
-	dc.w $0614
-	dc.w $2967
-	dc.w $0615
-	dc.w $2419
-	dc.w $0615
-	dc.w $00E4
-	dc.w $0616
-	dc.w $18F5
-	dc.w $0616
-	dc.w $3C2B
-	dc.w $0619
-	dc.w $054D
-	dc.w $061A
-	dc.w $3CA9
-	dc.w $061B
-	dc.w $3016
-	dc.w $061B
-	dc.w $190A
-	dc.w $061D
-	dc.w $25AA
-	dc.w $061E
-	dc.w $3032
-	dc.w $061E
-	dc.w $282C
-	dc.w $061E
-	dc.w $34F4
-	dc.w $061F
-	dc.w $2889
-	dc.w $061F
-	dc.w $3D8B
-	dc.w $0623
-	dc.w $20B1
-	dc.w $0623
-	dc.w $24D6
-	dc.w $0625
-	dc.w $2546
-	dc.w $0626
-	dc.w $1D45
-	dc.w $0629
-	dc.w $0825
-	dc.w $062D
-	dc.w $051B
-	dc.w $062E
-	dc.w $1936
-	dc.w $0630
-	dc.w $00B7
-	dc.w $0631
-	dc.w $10AB
-	dc.w $0631
-	dc.w $197A
-	dc.w $0631
-	dc.w $24B5
-	dc.w $0632
-	dc.w $2C43
-	dc.w $0632
-	dc.w $0986
-	dc.w $0633
-	dc.w $254C
-	dc.w $0633
-	dc.w $15A9
-	dc.w $0635
-	dc.w $2CFD
-	dc.w $0638
-	dc.w $2C6F
-	dc.w $0639
-	dc.w $2C68
-	dc.w $0639
-	dc.w $283A
-	dc.w $063A
-	dc.w $058F
-	dc.w $063A
-	dc.w $1887
-	dc.w $063D
-	dc.w $3984
-	dc.w $063F
-	dc.w $2D72
-	dc.w $0641
-	dc.w $3D72
-	dc.w $0641
-	dc.w $1C9E
-	dc.w $0642
-	dc.w $190A
-	dc.w $0643
-	dc.w $0529
-	dc.w $0645
-	dc.w $149B
-	dc.w $0646
-	dc.w $188B
-	dc.w $0646
-	dc.w $2867
-	dc.w $0647
-	dc.w $2D79
-	dc.w $0647
-	dc.w $059B
-	dc.w $0647
-	dc.w $1561
-	dc.w $0648
-	dc.w $2C46
-	dc.w $0649
-	dc.w $103C
-	dc.w $0649
-	dc.w $218F
-	dc.w $0649
-	dc.w $2D5A
-	dc.w $064A
-	dc.w $2D99
-	dc.w $064A
-	dc.w $2908
-	dc.w $064A
-	dc.w $3C62
-	dc.w $064A
-	dc.w $18E7
-	dc.w $064B
-	dc.w $181B
-	dc.w $064D
-	dc.w $28EF
-	dc.w $0650
-	dc.w $2C85
-	dc.w $0650
-	dc.w $3808
-	dc.w $0653
-	dc.w $3137
-	dc.w $0655
-	dc.w $30AF
-	dc.w $0655
-	dc.w $18D1
-	dc.w $065A
-	dc.w $3CCB
-	dc.w $065A
-	dc.w $391A
-	dc.w $065A
-	dc.w $1473
-	dc.w $065A
-	dc.w $3945
-	dc.w $065C
-	dc.w $0148
-	dc.w $065D
-	dc.w $0D5D
-	dc.w $065E
-	dc.w $3142
-	dc.w $0660
-	dc.w $24EA
-	dc.w $0661
-	dc.w $34BF
-	dc.w $0662
-	dc.w $195B
-	dc.w $0663
-	dc.w $1563
-	dc.w $0664
-	dc.w $0075
-	dc.w $0665
-	dc.w $00D1
-	dc.w $0667
-	dc.w $3C2F
-	dc.w $0668
-	dc.w $3814
-	dc.w $066A
-	dc.w $1804
-	dc.w $066B
-	dc.w $04BE
-	dc.w $066B
-	dc.w $0C96
-	dc.w $066B
-	dc.w $3C65
-	dc.w $066C
-	dc.w $2461
-	dc.w $066D
-	dc.w $156F
-	dc.w $0670
-	dc.w $34A4
-	dc.w $0670
-	dc.w $1D24
-	dc.w $0671
-	dc.w $191D
-	dc.w $0672
-	dc.w $1D48
-	dc.w $0672
-	dc.w $0857
-	dc.w $0673
-	dc.w $0858
-	dc.w $0673
-	dc.w $0D51
-	dc.w $0673
-	dc.w $1490
-	dc.w $0675
-	dc.w $2D6E
-	dc.w $0675
-	dc.w $3493
-	dc.w $0676
-	dc.w $11A5
-	dc.w $067E
-	dc.w $38F5
-	dc.w $0681
-	dc.w $34C6
-	dc.w $0682
-	dc.w $256B
-	dc.w $0682
-	dc.w $3588
-	dc.w $0683
-	dc.w $1407
-	dc.w $0683
-	dc.w $2023
-	dc.w $0683
-	dc.w $2CE8
-	dc.w $0685
-	dc.w $0C8D
-	dc.w $0686
-	dc.w $2515
-	dc.w $0688
-	dc.w $244A
-	dc.w $0689
-	dc.w $04A2
-	dc.w $068D
-	dc.w $0C0D
-	dc.w $068D
-	dc.w $186C
-	dc.w $0690
-	dc.w $0139
-	dc.w $0690
-	dc.w $1565
-	dc.w $0690
-	dc.w $3415
-	dc.w $0693
-	dc.w $154B
-	dc.w $0694
-	dc.w $08DD
-	dc.w $0695
-	dc.w $25AF
-	dc.w $0698
-	dc.w $042C
-	dc.w $0699
-	dc.w $3919
-	dc.w $0699
-	dc.w $34E5
-	dc.w $069A
-	dc.w $108C
-	dc.w $069A
-	dc.w $3869
-	dc.w $069B
-	dc.w $18EA
-	dc.w $069C
-	dc.w $3569
-	dc.w $069D
-	dc.w $1109
-	dc.w $069D
-	dc.w $0839
-	dc.w $069E
-	dc.w $00DC
-	dc.w $06A1
-	dc.w $156C
-	dc.w $06A2
-	dc.w $095B
-	dc.w $06A4
-	dc.w $1554
-	dc.w $06A5
-	dc.w $3079
-	dc.w $06A7
-	dc.w $351F
-	dc.w $06AA
-	dc.w $1968
-	dc.w $06AA
-	dc.w $1178
-	dc.w $06AC
-	dc.w $1C2B
-	dc.w $06AF
-	dc.w $2C04
-	dc.w $06AF
-	dc.w $1957
-	dc.w $06B1
-	dc.w $358E
-	dc.w $06B3
-	dc.w $0D12
-	dc.w $06B3
-	dc.w $1C30
-	dc.w $06B4
-	dc.w $0C78
-	dc.w $06B5
-	dc.w $3528
-	dc.w $06B6
-	dc.w $3C11
-	dc.w $06B7
-	dc.w $0CEC
-	dc.w $06B8
-	dc.w $3951
-	dc.w $06B9
-	dc.w $3938
-	dc.w $06B9
-	dc.w $2035
-	dc.w $06BD
-	dc.w $0495
-	dc.w $06C0
-	dc.w $3C10
-	dc.w $06C2
-	dc.w $1865
-	dc.w $06C3
-	dc.w $1944
-	dc.w $06C4
-	dc.w $1041
-	dc.w $06C7
-	dc.w $1D9C
-	dc.w $06C9
-	dc.w $34E7
-	dc.w $06CA
-	dc.w $0C07
-	dc.w $06CC
-	dc.w $3879
-	dc.w $06CC
-	dc.w $3482
-	dc.w $06CC
-	dc.w $3D38
-	dc.w $06CD
-	dc.w $3092
-	dc.w $06CE
-	dc.w $2C41
-	dc.w $06D4
-	dc.w $2D91
-	dc.w $06D5
-	dc.w $3C40
-	dc.w $06D6
-	dc.w $0843
-	dc.w $06D7
-	dc.w $344B
-	dc.w $06D8
-	dc.w $1043
-	dc.w $06D8
-	dc.w $11A9
-	dc.w $06D9
-	dc.w $054D
-	dc.w $06D9
-	dc.w $115D
-	dc.w $06DA
-	dc.w $197A
-	dc.w $06DA
-	dc.w $387C
-	dc.w $06DD
-	dc.w $3532
-	dc.w $06DD
-	dc.w $089F
-	dc.w $06DE
-	dc.w $187F
-	dc.w $06DE
-	dc.w $10D8
-	dc.w $06DE
-	dc.w $2114
-	dc.w $06E1
-	dc.w $10FD
-	dc.w $06E1
-	dc.w $14C0
-	dc.w $06E2
-	dc.w $191B
-	dc.w $06E3
-	dc.w $3989
-	dc.w $06E4
-	dc.w $3196
-	dc.w $06E6
-	dc.w $195E
-	dc.w $06E6
-	dc.w $00AC
-	dc.w $06E7
-	dc.w $2D7F
-	dc.w $06EB
-	dc.w $2C0C
-	dc.w $06EB
-	dc.w $016D
-	dc.w $06ED
-	dc.w $25A9
-	dc.w $06ED
-	dc.w $3539
-	dc.w $06F2
-	dc.w $3D59
-	dc.w $06F3
-	dc.w $3119
-	dc.w $06F4
-	dc.w $385C
-	dc.w $06F4
-	dc.w $117D
-	dc.w $06F6
-	dc.w $1061
-	dc.w $06F9
-	dc.w $2126
-	dc.w $06FE
-	dc.w $3112
-	dc.w $06FE
-	dc.w $38E3
-	dc.w $06FF
-	dc.w $0503
-	dc.w $0700
-	dc.w $0969
-	dc.w $0701
-	dc.w $01A8
-	dc.w $0702
-	dc.w $055A
-	dc.w $0703
-	dc.w $3483
-	dc.w $0704
-	dc.w $0515
-	dc.w $0708
-	dc.w $3834
-	dc.w $0709
-	dc.w $24B2
-	dc.w $070C
-	dc.w $2849
-	dc.w $070C
-	dc.w $2C53
-	dc.w $070D
-	dc.w $0D17
-	dc.w $070D
-	dc.w $2464
-	dc.w $070D
-	dc.w $3001
-	dc.w $070F
-	dc.w $3422
-	dc.w $0710
-	dc.w $2454
-	dc.w $0711
-	dc.w $00D9
-	dc.w $0713
-	dc.w $0086
-	dc.w $0714
-	dc.w $143D
-	dc.w $0718
-	dc.w $256E
-	dc.w $0718
-	dc.w $016C
-	dc.w $0718
-	dc.w $2D2D
-	dc.w $0719
-	dc.w $20FD
-	dc.w $0719
-	dc.w $098B
-	dc.w $0719
-	dc.w $059A
-	dc.w $071A
-	dc.w $0C41
-	dc.w $071B
-	dc.w $0D2F
-	dc.w $071F
-	dc.w $00DA
-	dc.w $0720
-	dc.w $1D78
-	dc.w $0722
-	dc.w $3106
-	dc.w $0722
-	dc.w $18D9
-	dc.w $0724
-	dc.w $397D
-	dc.w $0725
-	dc.w $3087
-	dc.w $0727
-	dc.w $0915
-	dc.w $0728
-	dc.w $3CF2
-	dc.w $072E
-	dc.w $118C
-	dc.w $072E
-	dc.w $0439
-	dc.w $0730
-	dc.w $2D96
-	dc.w $0730
-	dc.w $304D
-	dc.w $0731
-	dc.w $111A
-	dc.w $0731
-	dc.w $00B1
-	dc.w $0731
-	dc.w $2022
-	dc.w $0733
-	dc.w $3517
-	dc.w $0733
-	dc.w $1812
-	dc.w $0733
-	dc.w $1051
-	dc.w $0734
-	dc.w $3CD7
-	dc.w $0734
-	dc.w $28B5
-	dc.w $0734
-	dc.w $34C9
-	dc.w $0735
-	dc.w $2CB5
-	dc.w $0738
-	dc.w $0998
-	dc.w $0738
-	dc.w $0496
-	dc.w $0739
-	dc.w $093A
-	dc.w $0739
-	dc.w $204F
-	dc.w $073A
-	dc.w $38BC
-	dc.w $073B
-	dc.w $0474
-	dc.w $073C
-	dc.w $0825
-	dc.w $073D
-	dc.w $351B
-	dc.w $073E
-	dc.w $0C03
-	dc.w $0740
-	dc.w $38D3
-	dc.w $0741
-	dc.w $3941
-	dc.w $0742
-	dc.w $102E
-	dc.w $0743
-	dc.w $058B
-	dc.w $0744
-	dc.w $3156
-	dc.w $0745
-	dc.w $05A1
-	dc.w $0748
-	dc.w $0D2F
-	dc.w $0749
-	dc.w $1D4B
-	dc.w $0749
-	dc.w $050D
-	dc.w $0749
-	dc.w $2804
-	dc.w $0749
-	dc.w $005D
-	dc.w $0749
-	dc.w $1178
-	dc.w $074A
-	dc.w $3C77
-	dc.w $074A
-	dc.w $2C37
-	dc.w $074B
-	dc.w $1D3D
-	dc.w $074C
-	dc.w $184F
-	dc.w $074F
-	dc.w $245B
-	dc.w $074F
-	dc.w $38B5
-	dc.w $0752
-	dc.w $24B3
-	dc.w $0753
-	dc.w $1D91
-	dc.w $0754
-	dc.w $1D96
-	dc.w $0757
-	dc.w $057A
-	dc.w $0757
-	dc.w $1088
-	dc.w $0758
-	dc.w $08BE
-	dc.w $075A
-	dc.w $3939
-	dc.w $075B
-	dc.w $0188
-	dc.w $075E
-	dc.w $0504
-	dc.w $075E
-	dc.w $0D22
-	dc.w $0760
-	dc.w $0957
-	dc.w $0762
-	dc.w $212E
-	dc.w $0764
-	dc.w $3CB1
-	dc.w $0766
-	dc.w $246F
-	dc.w $076B
-	dc.w $2815
-	dc.w $076C
-	dc.w $0471
-	dc.w $076C
-	dc.w $144C
-	dc.w $076C
-	dc.w $1C46
-	dc.w $076D
-	dc.w $24C1
-	dc.w $076E
-	dc.w $20A1
-	dc.w $0770
-	dc.w $159F
-	dc.w $0771
-	dc.w $1161
-	dc.w $0772
-	dc.w $38D2
-	dc.w $0776
-	dc.w $2153
-	dc.w $0777
-	dc.w $215F
-	dc.w $0777
-	dc.w $183C
-	dc.w $0778
-	dc.w $18D9
-	dc.w $077A
-	dc.w $2168
-	dc.w $077A
-	dc.w $1D0E
-	dc.w $077A
-	dc.w $146C
-	dc.w $077A
-	dc.w $20E4
-	dc.w $077B
-	dc.w $1105
-	dc.w $077D
-	dc.w $2CF6
-	dc.w $077D
-	dc.w $1133
-	dc.w $077F
-	dc.w $18B2
-	dc.w $0780
-	dc.w $3D66
-	dc.w $0784
-	dc.w $390A
-	dc.w $0784
-	dc.w $34BD
-	dc.w $0784
-	dc.w $0434
-	dc.w $0789
-	dc.w $0C79
-	dc.w $078E
-	dc.w $052A
-	dc.w $078E
-	dc.w $0492
-	dc.w $078E
-	dc.w $3577
-	dc.w $078E
-	dc.w $0467
-	dc.w $0790
-	dc.w $0D37
-	dc.w $0790
-	dc.w $0069
-	dc.w $0791
-	dc.w $0153
-	dc.w $0791
-	dc.w $1D6C
-	dc.w $0791
-	dc.w $09AD
-	dc.w $0791
-	dc.w $10CD
-	dc.w $0793
-	dc.w $0D4C
-	dc.w $0793
-	dc.w $296C
-	dc.w $0793
-	dc.w $047D
-	dc.w $0793
-	dc.w $2C6D
-	dc.w $0794
-	dc.w $3491
-	dc.w $0796
-	dc.w $3D47
-	dc.w $0798
-	dc.w $1C95
-	dc.w $0799
-	dc.w $0564
-	dc.w $079A
-	dc.w $119F
-	dc.w $079B
-	dc.w $116B
-	dc.w $079B
-	dc.w $1C9E
-	dc.w $079B
-	dc.w $2D7A
-	dc.w $079B
-	dc.w $2CEC
-	dc.w $079E
-	dc.w $14FA
-	dc.w $079E
-	dc.w $0987
-	dc.w $07A1
-	dc.w $00F8
-	dc.w $07A5
-	dc.w $194A
-	dc.w $07A5
-	dc.w $389F
-	dc.w $07A5
-	dc.w $1C3A
-	dc.w $07A7
-	dc.w $1112
-	dc.w $07A8
-	dc.w $154A
-	dc.w $07AA
-	dc.w $1484
-	dc.w $07AA
-	dc.w $2C93
-	dc.w $07AC
-	dc.w $2995
-	dc.w $07AC
-	dc.w $0188
-	dc.w $07AC
-	dc.w $2C63
-	dc.w $07AC
-	dc.w $081F
-	dc.w $07AF
-	dc.w $2C27
-	dc.w $07B0
-	dc.w $24D6
-	dc.w $07B0
-	dc.w $19A9
-	dc.w $07B1
-	dc.w $1551
-	dc.w $07B5
-	dc.w $28B9
-	dc.w $07B7
-	dc.w $3944
-	dc.w $07B7
-	dc.w $00E0
-	dc.w $07B9
-	dc.w $2D1B
-	dc.w $07BB
-	dc.w $1995
-	dc.w $07BC
-	dc.w $2CDB
-	dc.w $07BF
-	dc.w $3C08
-	dc.w $07C1
-	dc.w $0581
-	dc.w $07C3
-	dc.w $3D92
-	dc.w $07C3
-	dc.w $0035
-	dc.w $07C4
-	dc.w $04A0
-	dc.w $07C6
-	dc.w $14D9
-	dc.w $07C8
-	dc.w $2806
-	dc.w $07C8
-	dc.w $1041
-	dc.w $07C8
-	dc.w $3CA2
-	dc.w $07CA
-	dc.w $1902
-	dc.w $07CC
-	dc.w $2559
-	dc.w $07CD
-	dc.w $34C2
-	dc.w $07D0
-	dc.w $0859
-	dc.w $07D0
-	dc.w $218A
-	dc.w $07D1
-	dc.w $149B
-	dc.w $07D3
-	dc.w $3586
-	dc.w $07D5
-	dc.w $0883
-	dc.w $07D5
-	dc.w $0054
-	dc.w $07D6
-	dc.w $3CD2
-	dc.w $07D6
-	dc.w $2095
-	dc.w $07D6
-	dc.w $1054
-	dc.w $07D7
-	dc.w $0CB9
-	dc.w $07D9
-	dc.w $0D02
-	dc.w $07D9
-	dc.w $1011
-	dc.w $07DA
-	dc.w $0C82
-	dc.w $07DB
-	dc.w $0411
-	dc.w $07DC
-	dc.w $2476
-	dc.w $07DD
-	dc.w $054F
-	dc.w $07DE
-	dc.w $259B
-	dc.w $07DF
-	dc.w $3D40
-	dc.w $07E1
-	dc.w $059A
-	dc.w $07E2
-	dc.w $102E
-	dc.w $07E5
-	dc.w $2173
-	dc.w $07E8
-	dc.w $3545
-	dc.w $07E8
-	dc.w $1000
-	dc.w $07E8
-	dc.w $20C2
-	dc.w $07E9
-	dc.w $3528
-	dc.w $07EA
-	dc.w $00DD
-	dc.w $07EB
-	dc.w $0C17
-	dc.w $07EB
-	dc.w $287B
-	dc.w $07EB
-	dc.w $0475
-	dc.w $07EE
-	dc.w $1C68
-	dc.w $07EE
-	dc.w $1498
-	dc.w $07EF
-	dc.w $102A
-	dc.w $07F4
-	dc.w $2CFC
-	dc.w $07F6
-	dc.w $3426
-	dc.w $07F8
-	dc.w $24BE
-	dc.w $07F9
-	dc.w $054C
-	dc.w $07FA
-	dc.w $3D46
-	dc.w $07FB
-	dc.w $1168
-	dc.w $07FC
-	dc.w $28D2
-	dc.w $07FF
-	dc.w $1C5C
-	dc.w $07FF
-	dc.w $1180
-	dc.w $0800
-	dc.w $08BC
-	dc.w $0802
-	dc.w $3C07
-	dc.w $0803
-	dc.w $24C4
-	dc.w $0804
-	dc.w $3877
-	dc.w $0805
-	dc.w $0D36
-	dc.w $0806
-	dc.w $1C2D
-	dc.w $0807
-	dc.w $2C27
-	dc.w $080A
-	dc.w $14B1
-	dc.w $080A
-	dc.w $0C00
-	dc.w $080B
-	dc.w $2482
-	dc.w $080E
-	dc.w $1D39
-	dc.w $080E
-	dc.w $2451
-	dc.w $080F
-	dc.w $1841
-	dc.w $0811
-	dc.w $2956
-	dc.w $0812
-	dc.w $1C52
-	dc.w $0815
-	dc.w $0434
-	dc.w $0815
-	dc.w $2469
-	dc.w $0816
-	dc.w $113E
-	dc.w $0817
-	dc.w $2D3C
-	dc.w $0817
-	dc.w $1C1F
-	dc.w $081B
-	dc.w $0896
-	dc.w $081C
-	dc.w $054C
-	dc.w $081D
-	dc.w $2CCE
-	dc.w $081E
-	dc.w $357D
-	dc.w $081F
-	dc.w $1142
-	dc.w $0820
-	dc.w $0838
-	dc.w $0821
-	dc.w $1505
-	dc.w $0822
-	dc.w $218A
-	dc.w $0822
-	dc.w $1CCE
-	dc.w $0824
-	dc.w $0D56
-	dc.w $0824
-	dc.w $2C88
-	dc.w $0824
-	dc.w $1993
-	dc.w $0825
-	dc.w $1807
-	dc.w $0825
-	dc.w $18D1
-	dc.w $0825
-	dc.w $15AE
-	dc.w $0825
-	dc.w $09AF
-	dc.w $0826
-	dc.w $3112
-	dc.w $0826
-	dc.w $34C0
-	dc.w $0828
-	dc.w $08FC
-	dc.w $0828
-	dc.w $0881
-	dc.w $082E
-	dc.w $2444
-	dc.w $082E
-	dc.w $0438
-	dc.w $082E
-	dc.w $199D
-	dc.w $0831
-	dc.w $2576
-	dc.w $0831
-	dc.w $21A0
-	dc.w $0834
-	dc.w $316A
-	dc.w $0834
-	dc.w $299A
-	dc.w $0834
-	dc.w $0D95
-	dc.w $0835
-	dc.w $383D
-	dc.w $0836
-	dc.w $3852
-	dc.w $0838
-	dc.w $2D66
-	dc.w $0838
-	dc.w $0572
-	dc.w $0839
-	dc.w $250B
-	dc.w $083A
-	dc.w $2C48
-	dc.w $083B
-	dc.w $3545
-	dc.w $083B
-	dc.w $3136
-	dc.w $083D
-	dc.w $0CB4
-	dc.w $0844
-	dc.w $2CD4
-	dc.w $0844
-	dc.w $2C2E
-	dc.w $084A
-	dc.w $2D16
-	dc.w $084D
-	dc.w $20A1
-	dc.w $084E
-	dc.w $34E4
-	dc.w $084F
-	dc.w $188D
-	dc.w $0855
-	dc.w $313B
-	dc.w $0856
-	dc.w $3D2B
-	dc.w $0857
-	dc.w $3179
-	dc.w $0857
-	dc.w $3028
-	dc.w $0857
-	dc.w $3174
-	dc.w $0858
-	dc.w $145F
-	dc.w $0859
-	dc.w $052A
-	dc.w $0859
-	dc.w $0984
-	dc.w $085A
-	dc.w $2124
-	dc.w $085A
-	dc.w $14A5
-	dc.w $085B
-	dc.w $0D98
-	dc.w $085B
-	dc.w $30D2
-	dc.w $085D
-	dc.w $10B2
-	dc.w $085D
-	dc.w $0451
-	dc.w $085E
-	dc.w $3C44
-	dc.w $085F
-	dc.w $3974
-	dc.w $0861
-	dc.w $18E3
-	dc.w $0861
-	dc.w $3574
-	dc.w $0862
-	dc.w $140D
-	dc.w $0863
-	dc.w $143A
-	dc.w $0863
-	dc.w $1DAF
-	dc.w $0863
-	dc.w $3453
-	dc.w $0865
-	dc.w $21A1
-	dc.w $0865
-	dc.w $1197
-	dc.w $0866
-	dc.w $14C1
-	dc.w $0866
-	dc.w $2594
-	dc.w $0867
-	dc.w $016D
-	dc.w $0867
-	dc.w $3548
-	dc.w $086B
-	dc.w $0193
-	dc.w $086F
-	dc.w $3173
-	dc.w $0870
-	dc.w $3467
-	dc.w $0871
-	dc.w $3823
-	dc.w $0872
-	dc.w $103E
-	dc.w $0872
-	dc.w $1C52
-	dc.w $0873
-	dc.w $2101
-	dc.w $0874
-	dc.w $34EC
-	dc.w $0875
-	dc.w $3CF0
-	dc.w $0879
-	dc.w $2586
-	dc.w $087B
-	dc.w $210E
-	dc.w $087D
-	dc.w $1475
-	dc.w $087D
-	dc.w $1921
-	dc.w $087E
-	dc.w $288D
-	dc.w $087F
-	dc.w $0906
-	dc.w $087F
-	dc.w $143C
-	dc.w $087F
-	dc.w $3840
-	dc.w $0883
-	dc.w $3193
-	dc.w $0883
-	dc.w $0CBC
-	dc.w $0884
-	dc.w $3525
-	dc.w $0885
-	dc.w $0CD9
-	dc.w $0885
-	dc.w $3D28
-	dc.w $0887
-	dc.w $3D99
-	dc.w $0888
-	dc.w $38EB
-	dc.w $0889
-	dc.w $3477
-	dc.w $0889
-	dc.w $1478
-	dc.w $088C
-	dc.w $34DE
-	dc.w $088D
-	dc.w $0058
-	dc.w $088D
-	dc.w $0589
-	dc.w $088F
-	dc.w $0558
-	dc.w $0891
-	dc.w $2069
-	dc.w $0893
-	dc.w $2590
-	dc.w $0895
-	dc.w $1555
-	dc.w $0896
-	dc.w $2496
-	dc.w $0896
-	dc.w $2961
-	dc.w $0898
-	dc.w $1511
-	dc.w $0898
-	dc.w $0138
-	dc.w $089A
-	dc.w $20C1
-	dc.w $089A
-	dc.w $041D
-	dc.w $089C
-	dc.w $0134
-	dc.w $089D
-	dc.w $2C92
-	dc.w $089E
-	dc.w $0007
-	dc.w $089E
-	dc.w $2956
-	dc.w $089E
-	dc.w $2CE4
-	dc.w $089F
-	dc.w $0C5B
-	dc.w $08A1
-	dc.w $0044
-	dc.w $08A3
-	dc.w $010B
-	dc.w $08A3
-	dc.w $1C9A
-	dc.w $08A4
-	dc.w $0867
-	dc.w $08A8
-	dc.w $0081
-	dc.w $08AB
-	dc.w $058D
-	dc.w $08AD
-	dc.w $38EC
-	dc.w $08AD
-	dc.w $3807
-	dc.w $08AF
-	dc.w $203A
-	dc.w $08AF
-	dc.w $0816
-	dc.w $08AF
-	dc.w $1D89
-	dc.w $08B0
-	dc.w $294A
-	dc.w $08B0
-	dc.w $1C13
-	dc.w $08B2
-	dc.w $1002
-	dc.w $08B5
-	dc.w $354F
-	dc.w $08B6
-	dc.w $0198
-	dc.w $08B6
-	dc.w $201B
-	dc.w $08B7
-	dc.w $3565
-	dc.w $08B7
-	dc.w $1595
-	dc.w $08B7
-	dc.w $00F6
-	dc.w $08B8
-	dc.w $2915
-	dc.w $08B9
-	dc.w $2CED
-	dc.w $08BA
-	dc.w $082B
-	dc.w $08BB
-	dc.w $1061
-	dc.w $08BC
-	dc.w $1C0B
-	dc.w $08BC
-	dc.w $2054
-	dc.w $08BD
-	dc.w $34B0
-	dc.w $08BD
-	dc.w $20F8
-	dc.w $08BD
-	dc.w $3197
-	dc.w $08BF
-	dc.w $1438
-	dc.w $08BF
-	dc.w $3D4D
-	dc.w $08C0
-	dc.w $1C1B
-	dc.w $08C1
-	dc.w $0C25
-	dc.w $08C1
-	dc.w $10FD
-	dc.w $08C1
-	dc.w $1182
-	dc.w $08C2
-	dc.w $3C65
-	dc.w $08C2
-	dc.w $1C24
-	dc.w $08C2
-	dc.w $354E
-	dc.w $08C3
-	dc.w $1D25
-	dc.w $08C3
-	dc.w $30B5
-	dc.w $08C3
-	dc.w $24BD
-	dc.w $08C4
-	dc.w $2095
-	dc.w $08C5
-	dc.w $28FF
-	dc.w $08C5
-	dc.w $2C73
-	dc.w $08C6
-	dc.w $0863
-	dc.w $08C7
-	dc.w $3D6B
-	dc.w $08C8
-	dc.w $211B
-	dc.w $08C8
-	dc.w $0C84
-	dc.w $08C9
-	dc.w $3898
-	dc.w $08C9
-	dc.w $044E
-	dc.w $08CA
-	dc.w $3434
-	dc.w $08CB
-	dc.w $3D26
-	dc.w $08CC
-	dc.w $34DE
-	dc.w $08CF
-	dc.w $0D46
-	dc.w $08CF
-	dc.w $097E
-	dc.w $1000
-	dc.w $1002
-	dc.w $1002
-	dc.w $1004
-	dc.w $1006
-	dc.w $1006
-	dc.w $1008
-	dc.w $100A
-	dc.w $100C
-	dc.w $100C
-	dc.w $100E
-	dc.w $1010
-	dc.w $1010
-	dc.w $1012
-	dc.w $1014
-	dc.w $1014
-	dc.w $1016
-	dc.w $1018
-	dc.w $101A
-	dc.w $101A
-	dc.w $101C
-	dc.w $101E
-	dc.w $101E
-	dc.w $1020
-	dc.w $1022
-	dc.w $1022
-	dc.w $1024
-	dc.w $1026
-	dc.w $1028
-	dc.w $1028
-	dc.w $102A
-	dc.w $102C
-	dc.w $102C
-	dc.w $102E
-	dc.w $1030
-	dc.w $1030
-	dc.w $1032
-	dc.w $1034
-	dc.w $1036
-	dc.w $1036
-	dc.w $1038
-	dc.w $103A
-	dc.w $103A
-	dc.w $103C
-	dc.w $103E
-	dc.w $103E
-	dc.w $1040
-	dc.w $1042
-	dc.w $1044
-	dc.w $1044
-	dc.w $1046
-	dc.w $1048
-	dc.w $1048
-	dc.w $104A
-	dc.w $104C
-	dc.w $104C
-	dc.w $104E
-	dc.w $1050
-	dc.w $1052
-	dc.w $1052
-	dc.w $1054
-	dc.w $1056
-	dc.w $1056
-	dc.w $1058
-	dc.w $105A
-	dc.w $105C
-	dc.w $105C
-	dc.w $105E
-	dc.w $1060
-	dc.w $1060
-	dc.w $1062
-	dc.w $1064
-	dc.w $1066
-	dc.w $1066
-	dc.w $1068
-	dc.w $106A
-	dc.w $106A
-	dc.w $106C
-	dc.w $106E
-	dc.w $106E
-	dc.w $1070
-	dc.w $1072
-	dc.w $1074
-	dc.w $1074
-	dc.w $1076
-	dc.w $1078
-	dc.w $1078
-	dc.w $107A
-	dc.w $107C
-	dc.w $107E
-	dc.w $107E
-	dc.w $1080
-	dc.w $1082
-	dc.w $1082
-	dc.w $1084
-	dc.w $1086
-	dc.w $1088
-	dc.w $1088
-	dc.w $108A
-	dc.w $108C
-	dc.w $108E
-	dc.w $108E
-	dc.w $1090
-	dc.w $1092
-	dc.w $1092
-	dc.w $1094
-	dc.w $1096
-	dc.w $1098
-	dc.w $1098
-	dc.w $109A
-	dc.w $109C
-	dc.w $109C
-	dc.w $109E
-	dc.w $10A0
-	dc.w $10A2
-	dc.w $10A2
-	dc.w $10A4
-	dc.w $10A6
-	dc.w $10A6
-	dc.w $10A8
-	dc.w $10AA
-	dc.w $10AC
-	dc.w $10AC
-	dc.w $10AE
-	dc.w $10B0
-	dc.w $10B2
-	dc.w $10B2
-	dc.w $10B4
-	dc.w $10B6
-	dc.w $10B6
-	dc.w $10B8
-	dc.w $10BA
-	dc.w $10BC
-	dc.w $10BC
-	dc.w $10BE
-	dc.w $10C0
-	dc.w $10C0
-	dc.w $10C2
-	dc.w $10C4
-	dc.w $10C6
-	dc.w $10C6
-	dc.w $10C8
-	dc.w $10CA
-	dc.w $10CC
-	dc.w $10CC
-	dc.w $10CE
-	dc.w $10D0
-	dc.w $10D0
-	dc.w $10D2
-	dc.w $10D4
-	dc.w $10D6
-	dc.w $10D6
-	dc.w $10D8
-	dc.w $10DA
-	dc.w $10DC
-	dc.w $10DC
-	dc.w $10DE
-	dc.w $10E0
-	dc.w $10E0
-	dc.w $10E2
-	dc.w $10E4
-	dc.w $10E6
-	dc.w $10E6
-	dc.w $10E8
-	dc.w $10EA
-	dc.w $10EC
-	dc.w $10EC
-	dc.w $10EE
-	dc.w $10F0
-	dc.w $10F2
-	dc.w $10F2
-	dc.w $10F4
-	dc.w $10F6
-	dc.w $10F6
-	dc.w $10F8
-	dc.w $10FA
-	dc.w $10FC
-	dc.w $10FC
-	dc.w $10FE
-	dc.w $1100
-	dc.w $1102
-	dc.w $1102
-	dc.w $1104
-	dc.w $1106
-	dc.w $1108
-	dc.w $1108
-	dc.w $110A
-	dc.w $110C
-	dc.w $110E
-	dc.w $110E
-	dc.w $1110
-	dc.w $1112
-	dc.w $1114
-	dc.w $1114
-	dc.w $1116
-	dc.w $1118
-	dc.w $1118
-	dc.w $111A
-	dc.w $111C
-	dc.w $111E
-	dc.w $111E
-	dc.w $1120
-	dc.w $1122
-	dc.w $1124
-	dc.w $1124
-	dc.w $1126
-	dc.w $1128
-	dc.w $112A
-	dc.w $112A
-	dc.w $112C
-	dc.w $112E
-	dc.w $1130
-	dc.w $1130
-	dc.w $1132
-	dc.w $1134
-	dc.w $1136
-	dc.w $1136
-	dc.w $1138
-	dc.w $113A
-	dc.w $113C
-	dc.w $113C
-	dc.w $113E
-	dc.w $1140
-	dc.w $1142
-	dc.w $1142
-	dc.w $1144
-	dc.w $1146
-	dc.w $1148
-	dc.w $1148
-	dc.w $114A
-	dc.w $114C
-	dc.w $114E
-	dc.w $114E
-	dc.w $1150
-	dc.w $1152
-	dc.w $1154
-	dc.w $1154
-	dc.w $1156
-	dc.w $1158
-	dc.w $115A
-	dc.w $115A
-	dc.w $115C
-	dc.w $115E
-	dc.w $1160
-	dc.w $1160
-	dc.w $1162
-	dc.w $1164
-	dc.w $1166
-	dc.w $1166
-	dc.w $1168
-	dc.w $116A
-	dc.w $116C
-	dc.w $116C
-	dc.w $116E
-	dc.w $1170
-	dc.w $1172
-	dc.w $1172
-	dc.w $1174
-	dc.w $1176
-	dc.w $1178
-	dc.w $1178
-	dc.w $117A
-	dc.w $117C
-	dc.w $117E
-	dc.w $117E
-	dc.w $1180
-	dc.w $1182
-	dc.w $1184
-	dc.w $1184
-	dc.w $1186
-	dc.w $1188
-	dc.w $118A
-	dc.w $118A
-	dc.w $118C
-	dc.w $118E
-	dc.w $1190
-	dc.w $1192
-	dc.w $1192
-	dc.w $1194
-	dc.w $1196
-	dc.w $1198
-	dc.w $1198
-	dc.w $119A
-	dc.w $119C
-	dc.w $119E
-	dc.w $119E
-	dc.w $11A0
-	dc.w $11A2
-	dc.w $11A4
-	dc.w $11A4
-	dc.w $11A6
-	dc.w $11A8
-	dc.w $11AA
-	dc.w $11AC
-	dc.w $11AC
-	dc.w $11AE
-	dc.w $11B0
-	dc.w $11B2
-	dc.w $11B2
-	dc.w $11B4
-	dc.w $11B6
-	dc.w $11B8
-	dc.w $11B8
-	dc.w $11BA
-	dc.w $11BC
-	dc.w $11BE
-	dc.w $11BE
-	dc.w $11C0
-	dc.w $11C2
-	dc.w $11C4
-	dc.w $11C6
-	dc.w $11C6
-	dc.w $11C8
-	dc.w $11CA
-	dc.w $11CC
-	dc.w $11CC
-	dc.w $11CE
-	dc.w $11D0
-	dc.w $11D2
-	dc.w $11D2
-	dc.w $11D4
-	dc.w $11D6
-	dc.w $11D8
-	dc.w $11DA
-	dc.w $11DA
-	dc.w $11DC
-	dc.w $11DE
-	dc.w $11E0
-	dc.w $11E0
-	dc.w $11E2
-	dc.w $11E4
-	dc.w $11E6
-	dc.w $11E8
-	dc.w $11E8
-	dc.w $11EA
-	dc.w $11EC
-	dc.w $11EE
-	dc.w $11EE
-	dc.w $11F0
-	dc.w $11F2
-	dc.w $11F4
-	dc.w $11F6
-	dc.w $11F6
-	dc.w $11F8
-	dc.w $11FA
-	dc.w $11FC
-	dc.w $11FC
-	dc.w $11FE
-	dc.w $1200
-	dc.w $1202
-	dc.w $1204
-	dc.w $1204
-	dc.w $1206
-	dc.w $1208
-	dc.w $120A
-	dc.w $120A
-	dc.w $120C
-	dc.w $120E
-	dc.w $1210
-	dc.w $1212
-	dc.w $1212
-	dc.w $1214
-	dc.w $1216
-	dc.w $1218
-	dc.w $121A
-	dc.w $121A
-	dc.w $121C
-	dc.w $121E
-	dc.w $1220
-	dc.w $1220
-	dc.w $1222
-	dc.w $1224
-	dc.w $1226
-	dc.w $1228
-	dc.w $1228
-	dc.w $122A
-	dc.w $122C
-	dc.w $122E
-	dc.w $1230
-	dc.w $1230
-	dc.w $1232
-	dc.w $1234
-	dc.w $1236
-	dc.w $1236
-	dc.w $1238
-	dc.w $123A
-	dc.w $123C
-	dc.w $123E
-	dc.w $123E
-	dc.w $1240
-	dc.w $1242
-	dc.w $1244
-	dc.w $1246
-	dc.w $1246
-	dc.w $1248
-	dc.w $124A
-	dc.w $124C
-	dc.w $124E
-	dc.w $124E
-	dc.w $1250
-	dc.w $1252
-	dc.w $1254
-	dc.w $1254
-	dc.w $1256
-	dc.w $1258
-	dc.w $125A
-	dc.w $125C
-	dc.w $125C
-	dc.w $125E
-	dc.w $1260
-	dc.w $1262
-	dc.w $1264
-	dc.w $1264
-	dc.w $1266
-	dc.w $1268
-	dc.w $126A
-	dc.w $126C
-	dc.w $126C
-	dc.w $126E
-	dc.w $1270
-	dc.w $1272
-	dc.w $1274
-	dc.w $1274
-	dc.w $1276
-	dc.w $1278
-	dc.w $127A
-	dc.w $127C
-	dc.w $127C
-	dc.w $127E
-	dc.w $1280
-	dc.w $1282
-	dc.w $1284
-	dc.w $1284
-	dc.w $1286
-	dc.w $1288
-	dc.w $128A
-	dc.w $128C
-	dc.w $128C
-	dc.w $128E
-	dc.w $1290
-	dc.w $1292
-	dc.w $1294
-	dc.w $1294
-	dc.w $1296
-	dc.w $1298
-	dc.w $129A
-	dc.w $129C
-	dc.w $129E
-	dc.w $129E
-	dc.w $12A0
-	dc.w $12A2
-	dc.w $12A4
-	dc.w $12A6
-	dc.w $12A6
-	dc.w $12A8
-	dc.w $12AA
-	dc.w $12AC
-	dc.w $12AE
-	dc.w $12AE
-	dc.w $12B0
-	dc.w $12B2
-	dc.w $12B4
-	dc.w $12B6
-	dc.w $12B6
-	dc.w $12B8
-	dc.w $12BA
-	dc.w $12BC
-	dc.w $12BE
-	dc.w $12BE
-	dc.w $12C0
-	dc.w $12C2
-	dc.w $12C4
-	dc.w $12C6
-	dc.w $12C8
-	dc.w $12C8
-	dc.w $12CA
-	dc.w $12CC
-	dc.w $12CE
-	dc.w $12D0
-	dc.w $12D0
-	dc.w $12D2
-	dc.w $12D4
-	dc.w $12D6
-	dc.w $12D8
-	dc.w $12DA
-	dc.w $12DA
-	dc.w $12DC
-	dc.w $12DE
-	dc.w $12E0
-	dc.w $12E2
-	dc.w $12E2
-	dc.w $12E4
-	dc.w $12E6
-	dc.w $12E8
-	dc.w $12EA
-	dc.w $12EC
-	dc.w $12EC
-	dc.w $12EE
-	dc.w $12F0
-	dc.w $12F2
-	dc.w $12F4
-	dc.w $12F4
-	dc.w $12F6
-	dc.w $12F8
-	dc.w $12FA
-	dc.w $12FC
-	dc.w $12FE
-	dc.w $12FE
-	dc.w $1300
-	dc.w $1302
-	dc.w $1304
-	dc.w $1306
-	dc.w $1306
-	dc.w $1308
-	dc.w $130A
-	dc.w $130C
-	dc.w $130E
-	dc.w $1310
-	dc.w $1310
-	dc.w $1312
-	dc.w $1314
-	dc.w $1316
-	dc.w $1318
-	dc.w $131A
-	dc.w $131A
-	dc.w $131C
-	dc.w $131E
-	dc.w $1320
-	dc.w $1322
-	dc.w $1324
-	dc.w $1324
-	dc.w $1326
-	dc.w $1328
-	dc.w $132A
-	dc.w $132C
-	dc.w $132E
-	dc.w $132E
-	dc.w $1330
-	dc.w $1332
-	dc.w $1334
-	dc.w $1336
-	dc.w $1338
-	dc.w $1338
-	dc.w $133A
-	dc.w $133C
-	dc.w $133E
-	dc.w $1340
-	dc.w $1342
-	dc.w $1342
-	dc.w $1344
-	dc.w $1346
-	dc.w $1348
-	dc.w $134A
-	dc.w $134C
-	dc.w $134C
-	dc.w $134E
-	dc.w $1350
-	dc.w $1352
-	dc.w $1354
-	dc.w $1356
-	dc.w $1356
-	dc.w $1358
-	dc.w $135A
-	dc.w $135C
-	dc.w $135E
-	dc.w $1360
-	dc.w $1360
-	dc.w $1362
-	dc.w $1364
-	dc.w $1366
-	dc.w $1368
-	dc.w $136A
-	dc.w $136A
-	dc.w $136C
-	dc.w $136E
-	dc.w $1370
-	dc.w $1372
-	dc.w $1374
-	dc.w $1376
-	dc.w $1376
-	dc.w $1378
-	dc.w $137A
-	dc.w $137C
-	dc.w $137E
-	dc.w $1380
-	dc.w $1380
-	dc.w $1382
-	dc.w $1384
-	dc.w $1386
-	dc.w $1388
-	dc.w $138A
-	dc.w $138A
-	dc.w $138C
-	dc.w $138E
-	dc.w $1390
-	dc.w $1392
-	dc.w $1394
-	dc.w $1396
-	dc.w $1396
-	dc.w $1398
-	dc.w $139A
-	dc.w $139C
-	dc.w $139E
-	dc.w $13A0
-	dc.w $13A2
-	dc.w $13A2
-	dc.w $13A4
-	dc.w $13A6
-	dc.w $13A8
-	dc.w $13AA
-	dc.w $13AC
-	dc.w $13AC
-	dc.w $13AE
-	dc.w $13B0
-	dc.w $13B2
-	dc.w $13B4
-	dc.w $13B6
-	dc.w $13B8
-	dc.w $13B8
-	dc.w $13BA
-	dc.w $13BC
-	dc.w $13BE
-	dc.w $13C0
-	dc.w $13C2
-	dc.w $13C4
-	dc.w $13C4
-	dc.w $13C6
-	dc.w $13C8
-	dc.w $13CA
-	dc.w $13CC
-	dc.w $13CE
-	dc.w $13D0
-	dc.w $13D0
-	dc.w $13D2
-	dc.w $13D4
-	dc.w $13D6
-	dc.w $13D8
-	dc.w $13DA
-	dc.w $13DC
-	dc.w $13DC
-	dc.w $13DE
-	dc.w $13E0
-	dc.w $13E2
-	dc.w $13E4
-	dc.w $13E6
-	dc.w $13E8
-	dc.w $13E8
-	dc.w $13EA
-	dc.w $13EC
-	dc.w $13EE
-	dc.w $13F0
-	dc.w $13F2
-	dc.w $13F4
-	dc.w $13F6
-	dc.w $13F6
-	dc.w $13F8
-	dc.w $13FA
-	dc.w $13FC
-	dc.w $13FE
-	dc.w $1400
-	dc.w $1402
-	dc.w $1402
-	dc.w $1404
-	dc.w $1406
-	dc.w $1408
-	dc.w $140A
-	dc.w $140C
-	dc.w $140E
-	dc.w $1410
-	dc.w $1410
-	dc.w $1412
-	dc.w $1414
-	dc.w $1416
-	dc.w $1418
-	dc.w $141A
-	dc.w $141C
-	dc.w $141E
-	dc.w $141E
-	dc.w $1420
-	dc.w $1422
-	dc.w $1424
-	dc.w $1426
-	dc.w $1428
-	dc.w $142A
-	dc.w $142A
-	dc.w $142C
-	dc.w $142E
-	dc.w $1430
-	dc.w $1432
-	dc.w $1434
-	dc.w $1436
-	dc.w $1438
-	dc.w $1438
-	dc.w $143A
-	dc.w $143C
-	dc.w $143E
-	dc.w $1440
-	dc.w $1442
-	dc.w $1444
-	dc.w $1446
-	dc.w $1448
-	dc.w $1448
-	dc.w $144A
-	dc.w $144C
-	dc.w $144E
-	dc.w $1450
-	dc.w $1452
-	dc.w $1454
-	dc.w $1456
-	dc.w $1456
-	dc.w $1458
-	dc.w $145A
-	dc.w $145C
-	dc.w $145E
-	dc.w $1460
-	dc.w $1462
-	dc.w $1464
-	dc.w $1464
-	dc.w $1466
-	dc.w $1468
-	dc.w $146A
-	dc.w $146C
-	dc.w $146E
-	dc.w $1470
-	dc.w $1472
-	dc.w $1474
-	dc.w $1474
-	dc.w $1476
-	dc.w $1478
-	dc.w $147A
-	dc.w $147C
-	dc.w $147E
-	dc.w $1480
-	dc.w $1482
-	dc.w $1484
-	dc.w $1484
-	dc.w $1486
-	dc.w $1488
-	dc.w $148A
-	dc.w $148C
-	dc.w $148E
-	dc.w $1490
-	dc.w $1492
-	dc.w $1494
-	dc.w $1494
-	dc.w $1496
-	dc.w $1498
-	dc.w $149A
-	dc.w $149C
-	dc.w $149E
-	dc.w $14A0
-	dc.w $14A2
-	dc.w $14A4
-	dc.w $14A4
-	dc.w $14A6
-	dc.w $14A8
-	dc.w $14AA
-	dc.w $14AC
-	dc.w $14AE
-	dc.w $14B0
-	dc.w $14B2
-	dc.w $14B4
-	dc.w $14B6
-	dc.w $14B6
-	dc.w $14B8
-	dc.w $14BA
-	dc.w $14BC
-	dc.w $14BE
-	dc.w $14C0
-	dc.w $14C2
-	dc.w $14C4
-	dc.w $14C6
-	dc.w $14C8
-	dc.w $14C8
-	dc.w $14CA
-	dc.w $14CC
-	dc.w $14CE
-	dc.w $14D0
-	dc.w $14D2
-	dc.w $14D4
-	dc.w $14D6
-	dc.w $14D8
-	dc.w $14DA
-	dc.w $14DA
-	dc.w $14DC
-	dc.w $14DE
-	dc.w $14E0
-	dc.w $14E2
-	dc.w $14E4
-	dc.w $14E6
-	dc.w $14E8
-	dc.w $14EA
-	dc.w $14EC
-	dc.w $14EC
-	dc.w $14EE
-	dc.w $14F0
-	dc.w $14F2
-	dc.w $14F4
-	dc.w $14F6
-	dc.w $14F8
-	dc.w $14FA
-	dc.w $14FC
-	dc.w $14FE
-	dc.w $1500
-	dc.w $1500
-	dc.w $1502
-	dc.w $1504
-	dc.w $1506
-	dc.w $1508
-	dc.w $150A
-	dc.w $150C
-	dc.w $150E
-	dc.w $1510
-	dc.w $1512
-	dc.w $1514
-	dc.w $1516
-	dc.w $1516
-	dc.w $1518
-	dc.w $151A
-	dc.w $151C
-	dc.w $151E
-	dc.w $1520
-	dc.w $1522
-	dc.w $1524
-	dc.w $1526
-	dc.w $1528
-	dc.w $152A
-	dc.w $152A
-	dc.w $152C
-	dc.w $152E
-	dc.w $1530
-	dc.w $1532
-	dc.w $1534
-	dc.w $1536
-	dc.w $1538
-	dc.w $153A
-	dc.w $153C
-	dc.w $153E
-	dc.w $1540
-	dc.w $1542
-	dc.w $1542
-	dc.w $1544
-	dc.w $1546
-	dc.w $1548
-	dc.w $154A
-	dc.w $154C
-	dc.w $154E
-	dc.w $1550
-	dc.w $1552
-	dc.w $1554
-	dc.w $1556
-	dc.w $1558
-	dc.w $155A
-	dc.w $155A
-	dc.w $155C
-	dc.w $155E
-	dc.w $1560
-	dc.w $1562
-	dc.w $1564
-	dc.w $1566
-	dc.w $1568
-	dc.w $156A
-	dc.w $156C
-	dc.w $156E
-	dc.w $1570
-	dc.w $1572
-	dc.w $1572
-	dc.w $1574
-	dc.w $1576
-	dc.w $1578
-	dc.w $157A
-	dc.w $157C
-	dc.w $157E
-	dc.w $1580
-	dc.w $1582
-	dc.w $1584
-	dc.w $1586
-	dc.w $1588
-	dc.w $158A
-	dc.w $158C
-	dc.w $158E
-	dc.w $158E
-	dc.w $1590
-	dc.w $1592
-	dc.w $1594
-	dc.w $1596
-	dc.w $1598
-	dc.w $159A
-	dc.w $159C
-	dc.w $159E
-	dc.w $15A0
-	dc.w $15A2
-	dc.w $15A4
-	dc.w $15A6
-	dc.w $15A8
-	dc.w $15AA
-	dc.w $15AC
-	dc.w $15AC
-	dc.w $15AE
-	dc.w $15B0
-	dc.w $15B2
-	dc.w $15B4
-	dc.w $15B6
-	dc.w $15B8
-	dc.w $15BA
-	dc.w $15BC
-	dc.w $15BE
-	dc.w $15C0
-	dc.w $15C2
-	dc.w $15C4
-	dc.w $15C6
-	dc.w $15C8
-	dc.w $15CA
-	dc.w $15CC
-	dc.w $15CC
-	dc.w $15CE
-	dc.w $15D0
-	dc.w $15D2
-	dc.w $15D4
-	dc.w $15D6
-	dc.w $15D8
-	dc.w $15DA
-	dc.w $15DC
-	dc.w $15DE
-	dc.w $15E0
-	dc.w $15E2
-	dc.w $15E4
-	dc.w $15E6
-	dc.w $15E8
-	dc.w $15EA
-	dc.w $15EC
-	dc.w $15EE
-	dc.w $15F0
-	dc.w $15F0
-	dc.w $15F2
-	dc.w $15F4
-	dc.w $15F6
-	dc.w $15F8
-	dc.w $15FA
-	dc.w $15FC
-	dc.w $15FE
-	dc.w $1600
-	dc.w $1602
-	dc.w $1604
-	dc.w $1606
-	dc.w $1608
-	dc.w $160A
-	dc.w $160C
-	dc.w $160E
-	dc.w $1610
-	dc.w $1612
-	dc.w $1614
-	dc.w $1616
-	dc.w $1618
-	dc.w $1618
-	dc.w $161A
-	dc.w $161C
-	dc.w $161E
-	dc.w $1620
-	dc.w $1622
-	dc.w $1624
-	dc.w $1626
-	dc.w $1628
-	dc.w $162A
-	dc.w $162C
-	dc.w $162E
-	dc.w $1630
-	dc.w $1632
-	dc.w $1634
-	dc.w $1636
-	dc.w $1638
-	dc.w $163A
-	dc.w $163C
-	dc.w $163E
-	dc.w $1640
-	dc.w $1642
-	dc.w $1644
-	dc.w $1646
-	dc.w $1648
-	dc.w $164A
-	dc.w $164A
-	dc.w $164C
-	dc.w $164E
-	dc.w $1650
-	dc.w $1652
-	dc.w $1654
-	dc.w $1656
-	dc.w $1658
-	dc.w $165A
-	dc.w $165C
-	dc.w $165E
-	dc.w $1660
-	dc.w $1662
-	dc.w $1664
-	dc.w $1666
-	dc.w $1668
-	dc.w $166A
-	dc.w $166C
-	dc.w $166E
-	dc.w $1670
-	dc.w $1672
-	dc.w $1674
-	dc.w $1676
-	dc.w $1678
-	dc.w $167A
-	dc.w $167C
-	dc.w $167E
-	dc.w $1680
-	dc.w $1682
-	dc.w $1684
-	dc.w $1686
-	dc.w $1688
-	dc.w $168A
-	dc.w $168C
-	dc.w $168E
-	dc.w $1690
-	dc.w $1690
-	dc.w $1692
-	dc.w $1694
-	dc.w $1696
-	dc.w $1698
-	dc.w $169A
-	dc.w $169C
-	dc.w $169E
-	dc.w $16A0
-	dc.w $16A2
-	dc.w $16A4
-	dc.w $16A6
-	dc.w $16A8
-	dc.w $16AA
-	dc.w $16AC
-	dc.w $16AE
-	dc.w $16B0
-	dc.w $16B2
-	dc.w $16B4
-	dc.w $16B6
-	dc.w $16B8
-	dc.w $16BA
-	dc.w $16BC
-	dc.w $16BE
-	dc.w $16C0
-	dc.w $16C2
-	dc.w $16C4
-	dc.w $16C6
-	dc.w $16C8
-	dc.w $16CA
-	dc.w $16CC
-	dc.w $16CE
-	dc.w $16D0
-	dc.w $16D2
-	dc.w $16D4
-	dc.w $16D6
-	dc.w $16D8
-	dc.w $16DA
-	dc.w $16DC
-	dc.w $16DE
-	dc.w $16E0
-	dc.w $16E2
-	dc.w $16E4
-	dc.w $16E6
-	dc.w $16E8
-	dc.w $16EA
-	dc.w $16EC
-	dc.w $16EE
-	dc.w $16F0
-	dc.w $16F2
-	dc.w $16F4
-	dc.w $16F6
-	dc.w $16F8
-	dc.w $16FA
-	dc.w $16FC
-	dc.w $16FE
-	dc.w $1700
-	dc.w $1702
-	dc.w $1704
-	dc.w $1706
-	dc.w $1708
-	dc.w $170A
-	dc.w $170C
-	dc.w $170E
-	dc.w $1710
-	dc.w $1712
-	dc.w $1714
-	dc.w $1716
-	dc.w $1718
-	dc.w $171A
-	dc.w $171C
-	dc.w $171E
-	dc.w $1720
-	dc.w $1722
-	dc.w $1724
-	dc.w $1726
-	dc.w $1728
-	dc.w $172A
-	dc.w $172C
-	dc.w $172E
-	dc.w $1730
-	dc.w $1732
-	dc.w $1734
-	dc.w $1736
-	dc.w $1738
-	dc.w $173A
-	dc.w $173C
-	dc.w $173E
-	dc.w $1740
-	dc.w $1742
-	dc.w $1744
-	dc.w $1746
-	dc.w $1748
-	dc.w $174A
-	dc.w $174C
-	dc.w $174E
-	dc.w $1750
-	dc.w $1752
-	dc.w $1754
-	dc.w $1756
-	dc.w $1758
-	dc.w $175A
-	dc.w $175C
-	dc.w $175E
-	dc.w $1760
-	dc.w $1762
-	dc.w $1764
-	dc.w $1766
-	dc.w $1768
-	dc.w $176A
-	dc.w $176C
-	dc.w $176E
-	dc.w $1770
-	dc.w $1772
-	dc.w $1774
-	dc.w $1776
-	dc.w $1778
-	dc.w $177A
-	dc.w $177C
-	dc.w $177E
-	dc.w $1780
-	dc.w $1782
-	dc.w $1784
-	dc.w $1786
-	dc.w $1788
-	dc.w $178A
-	dc.w $178C
-	dc.w $178E
-	dc.w $1790
-	dc.w $1792
-	dc.w $1794
-	dc.w $1796
-	dc.w $1798
-	dc.w $179A
-	dc.w $179C
-	dc.w $17A0
-	dc.w $17A2
-	dc.w $17A4
-	dc.w $17A6
-	dc.w $17A8
-	dc.w $17AA
-	dc.w $17AC
-	dc.w $17AE
-	dc.w $17B0
-	dc.w $17B2
-	dc.w $17B4
-	dc.w $17B6
-	dc.w $17B8
-	dc.w $17BA
-	dc.w $17BC
-	dc.w $17BE
-	dc.w $17C0
-	dc.w $17C2
-	dc.w $17C4
-	dc.w $17C6
-	dc.w $17C8
-	dc.w $17CA
-	dc.w $17CC
-	dc.w $17CE
-	dc.w $17D0
-	dc.w $17D2
-	dc.w $17D4
-	dc.w $17D6
-	dc.w $17D8
-	dc.w $17DA
-	dc.w $17DC
-	dc.w $17DE
-	dc.w $17E0
-	dc.w $17E2
-	dc.w $17E6
-	dc.w $17E8
-	dc.w $17EA
-	dc.w $17EC
-	dc.w $17EE
-	dc.w $17F0
-	dc.w $17F2
-	dc.w $17F4
-	dc.w $17F6
-	dc.w $17F8
-	dc.w $17FA
-	dc.w $17FC
-	dc.w $17FE
-	dc.w $1800
-	dc.w $1802
-	dc.w $1804
-	dc.w $1806
-	dc.w $1808
-	dc.w $180A
-	dc.w $180C
-	dc.w $180E
-	dc.w $1810
-	dc.w $1812
-	dc.w $1814
-	dc.w $1816
-	dc.w $1818
-	dc.w $181C
-	dc.w $181E
-	dc.w $1820
-	dc.w $1822
-	dc.w $1824
-	dc.w $1826
-	dc.w $1828
-	dc.w $182A
-	dc.w $182C
-	dc.w $182E
-	dc.w $1830
-	dc.w $1832
-	dc.w $1834
-	dc.w $1836
-	dc.w $1838
-	dc.w $183A
-	dc.w $183C
-	dc.w $183E
-	dc.w $1840
-	dc.w $1842
-	dc.w $1846
-	dc.w $1848
-	dc.w $184A
-	dc.w $184C
-	dc.w $184E
-	dc.w $1850
-	dc.w $1852
-	dc.w $1854
-	dc.w $1856
-	dc.w $1858
-	dc.w $185A
-	dc.w $185C
-	dc.w $185E
-	dc.w $1860
-	dc.w $1862
-	dc.w $1864
-	dc.w $1866
-	dc.w $1868
-	dc.w $186A
-	dc.w $186E
-	dc.w $1870
-	dc.w $1872
-	dc.w $1874
-	dc.w $1876
-	dc.w $1878
-	dc.w $187A
-	dc.w $187C
-	dc.w $187E
-	dc.w $1880
-	dc.w $1882
-	dc.w $1884
-	dc.w $1886
-	dc.w $1888
-	dc.w $188A
-	dc.w $188C
-	dc.w $1890
-	dc.w $1892
-	dc.w $1894
-	dc.w $1896
-	dc.w $1898
-	dc.w $189A
-	dc.w $189C
-	dc.w $189E
-	dc.w $18A0
-	dc.w $18A2
-	dc.w $18A4
-	dc.w $18A6
-	dc.w $18A8
-	dc.w $18AA
-	dc.w $18AC
-	dc.w $18B0
-	dc.w $18B2
-	dc.w $18B4
-	dc.w $18B6
-	dc.w $18B8
-	dc.w $18BA
-	dc.w $18BC
-	dc.w $18BE
-	dc.w $18C0
-	dc.w $18C2
-	dc.w $18C4
-	dc.w $18C6
-	dc.w $18C8
-	dc.w $18CA
-	dc.w $18CE
-	dc.w $18D0
-	dc.w $18D2
-	dc.w $18D4
-	dc.w $18D6
-	dc.w $18D8
-	dc.w $18DA
-	dc.w $18DC
-	dc.w $18DE
-	dc.w $18E0
-	dc.w $18E2
-	dc.w $18E4
-	dc.w $18E6
-	dc.w $18EA
-	dc.w $18EC
-	dc.w $18EE
-	dc.w $18F0
-	dc.w $18F2
-	dc.w $18F4
-	dc.w $18F6
-	dc.w $18F8
-	dc.w $18FA
-	dc.w $18FC
-	dc.w $18FE
-	dc.w $1900
-	dc.w $1902
-	dc.w $1906
-	dc.w $1908
-	dc.w $190A
-	dc.w $190C
-	dc.w $190E
-	dc.w $1910
-	dc.w $1912
-	dc.w $1914
-	dc.w $1916
-	dc.w $1918
-	dc.w $191A
-	dc.w $191E
-	dc.w $1920
-	dc.w $1922
-	dc.w $1924
-	dc.w $1926
-	dc.w $1928
-	dc.w $192A
-	dc.w $192C
-	dc.w $192E
-	dc.w $1930
-	dc.w $1932
-	dc.w $1936
-	dc.w $1938
-	dc.w $193A
-	dc.w $193C
-	dc.w $193E
-	dc.w $1940
-	dc.w $1942
-	dc.w $1944
-	dc.w $1946
-	dc.w $1948
-	dc.w $194A
-	dc.w $194E
-	dc.w $1950
-	dc.w $1952
-	dc.w $1954
-	dc.w $1956
-	dc.w $1958
-	dc.w $195A
-	dc.w $195C
-	dc.w $195E
-	dc.w $1960
-	dc.w $1964
-	dc.w $1966
-	dc.w $1968
-	dc.w $196A
-	dc.w $196C
-	dc.w $196E
-	dc.w $1970
-	dc.w $1972
-	dc.w $1974
-	dc.w $1976
-	dc.w $197A
-	dc.w $197C
-	dc.w $197E
-	dc.w $1980
-	dc.w $1982
-	dc.w $1984
-	dc.w $1986
-	dc.w $1988
-	dc.w $198A
-	dc.w $198C
-	dc.w $1990
-	dc.w $1992
-	dc.w $1994
-	dc.w $1996
-	dc.w $1998
-	dc.w $199A
-	dc.w $199C
-	dc.w $199E
-	dc.w $19A0
-	dc.w $19A4
-	dc.w $19A6
-	dc.w $19A8
-	dc.w $19AA
-	dc.w $19AC
-	dc.w $19AE
-	dc.w $19B0
-	dc.w $19B2
-	dc.w $19B4
-	dc.w $19B8
-	dc.w $19BA
-	dc.w $19BC
-	dc.w $19BE
-	dc.w $19C0
-	dc.w $19C2
-	dc.w $19C4
-	dc.w $19C6
-	dc.w $19CA
-	dc.w $19CC
-	dc.w $19CE
-	dc.w $19D0
-	dc.w $19D2
-	dc.w $19D4
-	dc.w $19D6
-	dc.w $19D8
-	dc.w $19DA
-	dc.w $19DE
-	dc.w $19E0
-	dc.w $19E2
-	dc.w $19E4
-	dc.w $19E6
-	dc.w $19E8
-	dc.w $19EA
-	dc.w $19EC
-	dc.w $19F0
-	dc.w $19F2
-	dc.w $19F4
-	dc.w $19F6
-	dc.w $19F8
-	dc.w $19FA
-	dc.w $19FC
-	dc.w $19FE
-	dc.w $1A02
-	dc.w $1A04
-	dc.w $1A06
-	dc.w $1A08
-	dc.w $1A0A
-	dc.w $1A0C
-	dc.w $1A0E
-	dc.w $1A10
-	dc.w $1A14
-	dc.w $1A16
-	dc.w $1A18
-	dc.w $1A1A
-	dc.w $1A1C
-	dc.w $1A1E
-	dc.w $1A20
-	dc.w $1A24
-	dc.w $1A26
-	dc.w $1A28
-	dc.w $1A2A
-	dc.w $1A2C
-	dc.w $1A2E
-	dc.w $1A30
-	dc.w $1A32
-	dc.w $1A36
-	dc.w $1A38
-	dc.w $1A3A
-	dc.w $1A3C
-	dc.w $1A3E
-	dc.w $1A40
-	dc.w $1A42
-	dc.w $1A46
-	dc.w $1A48
-	dc.w $1A4A
-	dc.w $1A4C
-	dc.w $1A4E
-	dc.w $1A50
-	dc.w $1A52
-	dc.w $1A56
-	dc.w $1A58
-	dc.w $1A5A
-	dc.w $1A5C
-	dc.w $1A5E
-	dc.w $1A60
-	dc.w $1A62
-	dc.w $1A66
-	dc.w $1A68
-	dc.w $1A6A
-	dc.w $1A6C
-	dc.w $1A6E
-	dc.w $1A70
-	dc.w $1A72
-	dc.w $1A76
-	dc.w $1A78
-	dc.w $1A7A
-	dc.w $1A7C
-	dc.w $1A7E
-	dc.w $1A80
-	dc.w $1A82
-	dc.w $1A86
-	dc.w $1A88
-	dc.w $1A8A
-	dc.w $1A8C
-	dc.w $1A8E
-	dc.w $1A90
-	dc.w $1A92
-	dc.w $1A96
-	dc.w $1A98
-	dc.w $1A9A
-	dc.w $1A9C
-	dc.w $1A9E
-	dc.w $1AA0
-	dc.w $1AA4
-	dc.w $1AA6
-	dc.w $1AA8
-	dc.w $1AAA
-	dc.w $1AAC
-	dc.w $1AAE
-	dc.w $1AB0
-	dc.w $1AB4
-	dc.w $1AB6
-	dc.w $1AB8
-	dc.w $1ABA
-	dc.w $1ABC
-	dc.w $1ABE
-	dc.w $1AC2
-	dc.w $1AC4
-	dc.w $1AC6
-	dc.w $1AC8
-	dc.w $1ACA
-	dc.w $1ACC
-	dc.w $1AD0
-	dc.w $1AD2
-	dc.w $1AD4
-	dc.w $1AD6
-	dc.w $1AD8
-	dc.w $1ADA
-	dc.w $1ADC
-	dc.w $1AE0
-	dc.w $1AE2
-	dc.w $1AE4
-	dc.w $1AE6
-	dc.w $1AE8
-	dc.w $1AEA
-	dc.w $1AEE
-	dc.w $1AF0
-	dc.w $1AF2
-	dc.w $1AF4
-	dc.w $1AF6
-	dc.w $1AF8
-	dc.w $1AFC
-	dc.w $1AFE
-	dc.w $1B00
-	dc.w $1B02
-	dc.w $1B04
-	dc.w $1B06
-	dc.w $1B0A
-	dc.w $1B0C
-	dc.w $1B0E
-	dc.w $1B10
-	dc.w $1B12
-	dc.w $1B16
-	dc.w $1B18
-	dc.w $1B1A
-	dc.w $1B1C
-	dc.w $1B1E
-	dc.w $1B20
-	dc.w $1B24
-	dc.w $1B26
-	dc.w $1B28
-	dc.w $1B2A
-	dc.w $1B2C
-	dc.w $1B2E
-	dc.w $1B32
-	dc.w $1B34
-	dc.w $1B36
-	dc.w $1B38
-	dc.w $1B3A
-	dc.w $1B3E
-	dc.w $1B40
-	dc.w $1B42
-	dc.w $1B44
-	dc.w $1B46
-	dc.w $1B48
-	dc.w $1B4C
-	dc.w $1B4E
-	dc.w $1B50
-	dc.w $1B52
-	dc.w $1B54
-	dc.w $1B58
-	dc.w $1B5A
-	dc.w $1B5C
-	dc.w $1B5E
-	dc.w $1B60
-	dc.w $1B62
-	dc.w $1B66
-	dc.w $1B68
-	dc.w $1B6A
-	dc.w $1B6C
-	dc.w $1B6E
-	dc.w $1B72
-	dc.w $1B74
-	dc.w $1B76
-	dc.w $1B78
-	dc.w $1B7A
-	dc.w $1B7E
-	dc.w $1B80
-	dc.w $1B82
-	dc.w $1B84
-	dc.w $1B86
-	dc.w $1B8A
-	dc.w $1B8C
-	dc.w $1B8E
-	dc.w $1B90
-	dc.w $1B92
-	dc.w $1B94
-	dc.w $1B98
-	dc.w $1B9A
-	dc.w $1B9C
-	dc.w $1B9E
-	dc.w $1BA0
-	dc.w $1BA4
-	dc.w $1BA6
-	dc.w $1BA8
-	dc.w $1BAA
-	dc.w $1BAC
-	dc.w $1BB0
-	dc.w $1BB2
-	dc.w $1BB4
-	dc.w $1BB6
-	dc.w $1BB8
-	dc.w $1BBC
-	dc.w $1BBE
-	dc.w $1BC0
-	dc.w $1BC2
-	dc.w $1BC4
-	dc.w $1BC8
-	dc.w $1BCA
-	dc.w $1BCC
-	dc.w $1BCE
-	dc.w $1BD0
-	dc.w $1BD4
-	dc.w $1BD6
-	dc.w $1BD8
-	dc.w $1BDA
-	dc.w $1BDC
-	dc.w $1BE0
-	dc.w $1BE2
-	dc.w $1BE4
-	dc.w $1BE6
-	dc.w $1BEA
-	dc.w $1BEC
-	dc.w $1BEE
-	dc.w $1BF0
-	dc.w $1BF2
-	dc.w $1BF6
-	dc.w $1BF8
-	dc.w $1BFA
-	dc.w $1BFC
-	dc.w $1BFE
-	dc.w $1C02
-	dc.w $1C04
-	dc.w $1C06
-	dc.w $1C08
-	dc.w $1C0C
-	dc.w $1C0E
-	dc.w $1C10
-	dc.w $1C12
-	dc.w $1C14
-	dc.w $1C18
-	dc.w $1C1A
-	dc.w $1C1C
-	dc.w $1C1E
-	dc.w $1C20
-	dc.w $1C24
-	dc.w $1C26
-	dc.w $1C28
-	dc.w $1C2A
-	dc.w $1C2E
-	dc.w $1C30
-	dc.w $1C32
-	dc.w $1C34
-	dc.w $1C36
-	dc.w $1C3A
-	dc.w $1C3C
-	dc.w $1C3E
-	dc.w $1C40
-	dc.w $1C44
-	dc.w $1C46
-	dc.w $1C48
-	dc.w $1C4A
-	dc.w $1C4C
-	dc.w $1C50
-	dc.w $1C52
-	dc.w $1C54
-	dc.w $1C56
-	dc.w $1C5A
-	dc.w $1C5C
-	dc.w $1C5E
-	dc.w $1C60
-	dc.w $1C64
-	dc.w $1C66
-	dc.w $1C68
-	dc.w $1C6A
-	dc.w $1C6C
-	dc.w $1C70
-	dc.w $1C72
-	dc.w $1C74
-	dc.w $1C76
-	dc.w $1C7A
-	dc.w $1C7C
-	dc.w $1C7E
-	dc.w $1C80
-	dc.w $1C84
-	dc.w $1C86
-	dc.w $1C88
-	dc.w $1C8A
-	dc.w $1C8C
-	dc.w $1C90
-	dc.w $1C92
-	dc.w $1C94
-	dc.w $1C96
-	dc.w $1C9A
-	dc.w $1C9C
-	dc.w $1C9E
-	dc.w $1CA0
-	dc.w $1CA4
-	dc.w $1CA6
-	dc.w $1CA8
-	dc.w $1CAA
-	dc.w $1CAE
-	dc.w $1CB0
-	dc.w $1CB2
-	dc.w $1CB4
-	dc.w $1CB8
-	dc.w $1CBA
-	dc.w $1CBC
-	dc.w $1CBE
-	dc.w $1CC2
-	dc.w $1CC4
-	dc.w $1CC6
-	dc.w $1CC8
-	dc.w $1CCC
-	dc.w $1CCE
-	dc.w $1CD0
-	dc.w $1CD2
-	dc.w $1CD6
-	dc.w $1CD8
-	dc.w $1CDA
-	dc.w $1CDC
-	dc.w $1CE0
-	dc.w $1CE2
-	dc.w $1CE4
-	dc.w $1CE6
-	dc.w $1CEA
-	dc.w $1CEC
-	dc.w $1CEE
-	dc.w $1CF0
-	dc.w $1CF4
-	dc.w $1CF6
-	dc.w $1CF8
-	dc.w $1CFA
-	dc.w $1CFE
-	dc.w $1D00
-	dc.w $1D02
-	dc.w $1D04
-	dc.w $1D08
-	dc.w $1D0A
-	dc.w $1D0C
-	dc.w $1D0E
-	dc.w $1D12
-	dc.w $1D14
-	dc.w $1D16
-	dc.w $1D18
-	dc.w $1D1C
-	dc.w $1D1E
-	dc.w $1D20
-	dc.w $1D22
-	dc.w $1D26
-	dc.w $1D28
-	dc.w $1D2A
-	dc.w $1D2E
-	dc.w $1D30
-	dc.w $1D32
-	dc.w $1D34
-	dc.w $1D38
-	dc.w $1D3A
-	dc.w $1D3C
-	dc.w $1D3E
-	dc.w $1D42
-	dc.w $1D44
-	dc.w $1D46
-	dc.w $1D48
-	dc.w $1D4C
-	dc.w $1D4E
-	dc.w $1D50
-	dc.w $1D54
-	dc.w $1D56
-	dc.w $1D58
-	dc.w $1D5A
-	dc.w $1D5E
-	dc.w $1D60
-	dc.w $1D62
-	dc.w $1D64
-	dc.w $1D68
-	dc.w $1D6A
-	dc.w $1D6C
-	dc.w $1D70
-	dc.w $1D72
-	dc.w $1D74
-	dc.w $1D76
-	dc.w $1D7A
-	dc.w $1D7C
-	dc.w $1D7E
-	dc.w $1D80
-	dc.w $1D84
-	dc.w $1D86
-	dc.w $1D88
-	dc.w $1D8C
-	dc.w $1D8E
-	dc.w $1D90
-	dc.w $1D92
-	dc.w $1D96
-	dc.w $1D98
-	dc.w $1D9A
-	dc.w $1D9E
-	dc.w $1DA0
-	dc.w $1DA2
-	dc.w $1DA4
-	dc.w $1DA8
-	dc.w $1DAA
-	dc.w $1DAC
-	dc.w $1DB0
-	dc.w $1DB2
-	dc.w $1DB4
-	dc.w $1DB6
-	dc.w $1DBA
-	dc.w $1DBC
-	dc.w $1DBE
-	dc.w $1DC2
-	dc.w $1DC4
-	dc.w $1DC6
-	dc.w $1DC8
-	dc.w $1DCC
-	dc.w $1DCE
-	dc.w $1DD0
-	dc.w $1DD4
-	dc.w $1DD6
-	dc.w $1DD8
-	dc.w $1DDA
-	dc.w $1DDE
-	dc.w $1DE0
-	dc.w $1DE2
-	dc.w $1DE6
-	dc.w $1DE8
-	dc.w $1DEA
-	dc.w $1DEE
-	dc.w $1DF0
-	dc.w $1DF2
-	dc.w $1DF4
-	dc.w $1DF8
-	dc.w $1DFA
-	dc.w $1DFC
-	dc.w $1E00
-	dc.w $1E02
-	dc.w $1E04
-	dc.w $1E06
-	dc.w $1E0A
-	dc.w $1E0C
-	dc.w $1E0E
-	dc.w $1E12
-	dc.w $1E14
-	dc.w $1E16
-	dc.w $1E1A
-	dc.w $1E1C
-	dc.w $1E1E
-	dc.w $1E22
-	dc.w $1E24
-	dc.w $1E26
-	dc.w $1E28
-	dc.w $1E2C
-	dc.w $1E2E
-	dc.w $1E30
-	dc.w $1E34
-	dc.w $1E36
-	dc.w $1E38
-	dc.w $1E3C
-	dc.w $1E3E
-	dc.w $1E40
-	dc.w $1E44
-	dc.w $1E46
-	dc.w $1E48
-	dc.w $1E4A
-	dc.w $1E4E
-	dc.w $1E50
-	dc.w $1E52
-	dc.w $1E56
-	dc.w $1E58
-	dc.w $1E5A
-	dc.w $1E5E
-	dc.w $1E60
-	dc.w $1E62
-	dc.w $1E66
-	dc.w $1E68
-	dc.w $1E6A
-	dc.w $1E6E
-	dc.w $1E70
-	dc.w $1E72
-	dc.w $1E76
-	dc.w $1E78
-	dc.w $1E7A
-	dc.w $1E7C
-	dc.w $1E80
-	dc.w $1E82
-	dc.w $1E84
-	dc.w $1E88
-	dc.w $1E8A
-	dc.w $1E8C
-	dc.w $1E90
-	dc.w $1E92
-	dc.w $1E94
-	dc.w $1E98
-	dc.w $1E9A
-	dc.w $1E9C
-	dc.w $1EA0
-	dc.w $1EA2
-	dc.w $1EA4
-	dc.w $1EA8
-	dc.w $1EAA
-	dc.w $1EAC
-	dc.w $1EB0
-	dc.w $1EB2
-	dc.w $1EB4
-	dc.w $1EB8
-	dc.w $1EBA
-	dc.w $1EBC
-	dc.w $1EC0
-	dc.w $1EC2
-	dc.w $1EC4
-	dc.w $1EC8
-	dc.w $1ECA
-	dc.w $1ECC
-	dc.w $1ED0
-	dc.w $1ED2
-	dc.w $1ED4
-	dc.w $1ED8
-	dc.w $1EDA
-	dc.w $1EDC
-	dc.w $1EE0
-	dc.w $1EE2
-	dc.w $1EE4
-	dc.w $1EE8
-	dc.w $1EEA
-	dc.w $1EEC
-	dc.w $1EF0
-	dc.w $1EF2
-	dc.w $1EF4
-	dc.w $1EF8
-	dc.w $1EFA
-	dc.w $1EFC
-	dc.w $1F00
-	dc.w $1F02
-	dc.w $1F04
-	dc.w $1F08
-	dc.w $1F0A
-	dc.w $1F0C
-	dc.w $1F10
-	dc.w $1F12
-	dc.w $1F14
-	dc.w $1F18
-	dc.w $1F1A
-	dc.w $1F1E
-	dc.w $1F20
-	dc.w $1F22
-	dc.w $1F26
-	dc.w $1F28
-	dc.w $1F2A
-	dc.w $1F2E
-	dc.w $1F30
-	dc.w $1F32
-	dc.w $1F36
-	dc.w $1F38
-	dc.w $1F3A
-	dc.w $1F3E
-	dc.w $1F40
-	dc.w $1F42
-	dc.w $1F46
-	dc.w $1F48
-	dc.w $1F4C
-	dc.w $1F4E
-	dc.w $1F50
-	dc.w $1F54
-	dc.w $1F56
-	dc.w $1F58
-	dc.w $1F5C
-	dc.w $1F5E
-	dc.w $1F60
-	dc.w $1F64
-	dc.w $1F66
-	dc.w $1F68
-	dc.w $1F6C
-	dc.w $1F6E
-	dc.w $1F72
-	dc.w $1F74
-	dc.w $1F76
-	dc.w $1F7A
-	dc.w $1F7C
-	dc.w $1F7E
-	dc.w $1F82
-	dc.w $1F84
-	dc.w $1F86
-	dc.w $1F8A
-	dc.w $1F8C
-	dc.w $1F90
-	dc.w $1F92
-	dc.w $1F94
-	dc.w $1F98
-	dc.w $1F9A
-	dc.w $1F9C
-	dc.w $1FA0
-	dc.w $1FA2
-	dc.w $1FA6
-	dc.w $1FA8
-	dc.w $1FAA
-	dc.w $1FAE
-	dc.w $1FB0
-	dc.w $1FB2
-	dc.w $1FB6
-	dc.w $1FB8
-	dc.w $1FBA
-	dc.w $1FBE
-	dc.w $1FC0
-	dc.w $1FC4
-	dc.w $1FC6
-	dc.w $1FC8
-	dc.w $1FCC
-	dc.w $1FCE
-	dc.w $1FD2
-	dc.w $1FD4
-	dc.w $1FD6
-	dc.w $1FDA
-	dc.w $1FDC
-	dc.w $1FDE
-	dc.w $1FE2
-	dc.w $1FE4
-	dc.w $1FE8
-	dc.w $1FEA
-	dc.w $1FEC
-	dc.w $1FF0
-	dc.w $1FF2
-	dc.w $1FF4
-	dc.w $1FF8
-	dc.w $1FFA
-	dc.w $1FFE
+	dc.w $0800,$0804,$0808,$0810,$081C,$0820,$0828,$082C	; lookup_table
+	dc.w $0830,$0830,$083C,$084C,$0850,$0850,$0854,$0858	; lookup_table
+	dc.w $0860,$0864,$0868,$0870,$0870,$0870,$0870,$0878	; lookup_table
+	dc.w $088C,$088C,$08A4,$08A8,$08B0,$08B8,$08C0,$08C8	; lookup_table
+	dc.w $08CC,$08D4,$08D8,$08E0,$08E4,$08E8,$08FC,$0908	; lookup_table
+	dc.w $090C,$0914,$0914,$0918,$0920,$0920,$0928,$092C	; lookup_table
+	dc.w $0934,$0934,$093C,$0940,$0944,$0948,$0948,$094C	; lookup_table
+	dc.w $094C,$0950,$095C,$0964,$0968,$0970,$0970,$0970	; lookup_table
+	dc.w $097C,$0980,$0994,$0994,$099C,$09A4,$09A4,$09A4	; lookup_table
+	dc.w $09B0,$09B0,$09B4,$09B4,$09B4,$09C4,$09CC,$09DC	; lookup_table
+	dc.w $09EC,$09F0,$09F4,$09F8,$0A00,$0A10,$0A18,$0A18	; lookup_table
+	dc.w $0A1C,$0A1C,$0A28,$0A28,$0A30,$0A38,$0A48,$0A48	; lookup_table
+	dc.w $0A4C,$0A58,$0A58,$0A5C,$0A5C,$0A64,$0A68,$0A70	; lookup_table
+	dc.w $0A70,$0A74,$0A78,$0A80,$0A84,$0A88,$0A94,$0A98	; lookup_table
+	dc.w $0A98,$0AA0,$0AA0,$0AAC,$0AAC,$0AB0,$0AC4,$0AC8	; lookup_table
+	dc.w $0AD0,$0AD8,$0AE0,$0AE8,$0AEC,$0AF0,$0AF0,$0AF4	; lookup_table
+	dc.w $0B00,$0B04,$0B14,$0B14,$0B20,$0B20,$0B20,$0B24	; lookup_table
+	dc.w $0B28,$0B28,$0B30,$0B38,$0B3C,$0B3C,$0B48,$0B4C	; lookup_table
+	dc.w $0B54,$0B58,$0B60,$0B60,$0B6C,$0B6C,$0B74,$0B78	; lookup_table
+	dc.w $0B80,$0B80,$0B88,$0B94,$0B94,$0B98,$0B9C,$0BA4	; lookup_table
+	dc.w $0BAC,$0BB8,$0BB8,$0BD4,$0BDC,$0BE4,$0BE4,$0BE4	; lookup_table
+	dc.w $0BF0,$0BF0,$0BF8,$0BF8,$0C08,$0C0C,$0C14,$0C1C	; lookup_table
+	dc.w $0C24,$0C28,$0C28,$0C28,$0C28,$0C30,$0C30,$0C30	; lookup_table
+	dc.w $0C34,$0C34,$0C3C,$0C40,$0C40,$0C40,$0C44,$0C48	; lookup_table
+	dc.w $0C58,$0C68,$0C70,$0C78,$0C80,$0C88,$0C98,$0C98	; lookup_table
+	dc.w $0CA8,$0CB0,$0CB0,$0CB4,$0CB4,$0CB8,$0CC0,$0CC8	; lookup_table
+	dc.w $0CD0,$0CD4,$0CD4,$0CD8,$0CDC,$0CE4,$0CF4,$0CF4	; lookup_table
+	dc.w $0CF4,$0D00,$0D08,$0D10,$0D18,$0D18,$0D24,$0D28	; lookup_table
+	dc.w $0D28,$0D2C,$0D30,$0D3C,$0D3C,$0D44,$0D4C,$0D54	; lookup_table
+	dc.w $0D60,$0D64,$0D68,$0D74,$0D74,$0D74,$0D78,$0D7C	; lookup_table
+	dc.w $0D7C,$0D84,$0D98,$0D9C,$0D9C,$0DA0,$0DB4,$0DBC	; lookup_table
+	dc.w $0DC4,$0DCC,$0DD8,$0DE4,$0DFC,$0E08,$0E14,$0E1C	; lookup_table
+	dc.w $0E2C,$0E30,$0E38,$0E38,$0E40,$0E48,$0E4C,$0E50	; lookup_table
+	dc.w $0E54,$0E54,$0E68,$0E6C,$0E6C,$0E6C,$0E74,$0E84	; lookup_table
+	dc.w $0E90,$0E94,$0EA0,$0EA8,$0EAC,$0EB8,$0EB8,$0EBC	; lookup_table
+	dc.w $0EC0,$0EC4,$0ECC,$0ED0,$0EE4,$0EEC,$0EEC,$0EF0	; lookup_table
+	dc.w $0EF4,$0EFC,$0EFC,$0F08,$0F14,$0F20,$0F24,$0F24	; lookup_table
+	dc.w $0F30,$0F38,$0F38,$0F3C,$0F48,$0F4C,$0F54,$0F5C	; lookup_table
+	dc.w $0F60,$0F60,$0F74,$0F74,$0F78,$0F78,$0F7C,$0F80	; lookup_table
+	dc.w $0F84,$0F88,$0F90,$0F94,$0F98,$0F9C,$0FA0,$0FA0	; lookup_table
+	dc.w $0FB0,$0FBC,$0FBC,$0FC0,$0FC4,$0FC4,$0FCC,$0FCC	; lookup_table
+	dc.w $0FD0,$0FD4,$0FE4,$0FE8,$0FF4,$0FFC,$1008,$100C	; lookup_table
+	dc.w $1010,$1010,$1018,$101C,$1020,$1024,$1028,$102C	; lookup_table
+	dc.w $1030,$1038,$1038,$103C,$103C,$103C,$103C,$1040	; lookup_table
+	dc.w $1048,$1050,$1054,$105C,$105C,$105C,$1064,$1074	; lookup_table
+	dc.w $107C,$1080,$1088,$109C,$10A4,$10AC,$10B4,$10C0	; lookup_table
+	dc.w $10C4,$10C4,$10D0,$10D8,$10E8,$10F0,$10F8,$1104	; lookup_table
+	dc.w $1104,$1108,$1110,$1118,$111C,$1120,$1128,$1128	; lookup_table
+	dc.w $113C,$1140,$1144,$1148,$1150,$1154,$115C,$116C	; lookup_table
+	dc.w $1174,$1174,$1180,$1188,$1190,$119C,$11A0,$11A0	; lookup_table
+	dc.w $11A4,$11AC,$11B0,$11B8,$11B8,$11BC,$11C0,$11C0	; lookup_table
+	dc.w $11C8,$11D4,$11D8,$11DC,$11E4,$11E4,$11EC,$11F4	; lookup_table
+	dc.w $11F4,$11F8,$11FC,$1204,$1204,$1210,$1218,$1228	; lookup_table
+	dc.w $123C,$1258,$125C,$125C,$1264,$1270,$1284,$1284	; lookup_table
+	dc.w $1284,$1288,$1290,$1290,$1298,$12A0,$12A4,$12A4	; lookup_table
+	dc.w $12AC,$12B8,$12C0,$12C0,$12C4,$12C8,$12CC,$12D0	; lookup_table
+	dc.w $12D8,$12E0,$12F0,$12F4,$12F8,$1300,$1310,$1310	; lookup_table
+	dc.w $1310,$1314,$131C,$1324,$1328,$132C,$1338,$1340	; lookup_table
+	dc.w $1340,$1344,$1350,$1354,$135C,$1364,$1368,$1370	; lookup_table
+	dc.w $1378,$1380,$138C,$1394,$139C,$139C,$13A0,$13A0	; lookup_table
+	dc.w $13A4,$13AC,$13B0,$13C4,$13C4,$13C8,$13C8,$13D0	; lookup_table
+	dc.w $13D4,$13D4,$13E4,$13E8,$13F8,$1400,$1410,$1414	; lookup_table
+	dc.w $141C,$1420,$1424,$1428,$142C,$1440,$144C,$1458	; lookup_table
+	dc.w $1464,$1464,$146C,$1470,$147C,$1484,$1490,$14A0	; lookup_table
+	dc.w $14A0,$14A0,$14B0,$14B8,$14CC,$14D8,$14D8,$14E4	; lookup_table
+	dc.w $14F0,$14F4,$14FC,$1500,$1504,$1504,$150C,$150C	; lookup_table
+	dc.w $1518,$1524,$1524,$152C,$152C,$152C,$1530,$1538	; lookup_table
+	dc.w $1538,$1544,$1544,$154C,$1554,$1564,$156C,$1580	; lookup_table
+	dc.w $158C,$1594,$15A0,$15AC,$15B0,$15B4,$15BC,$15C0	; lookup_table
+	dc.w $15C4,$15D4,$15D8,$15E0,$15E4,$15F4,$15F8,$15FC	; lookup_table
+	dc.w $1600,$1604,$160C,$1610,$1614,$1624,$1628,$162C	; lookup_table
+	dc.w $1634,$163C,$1644,$1648,$1650,$1658,$1658,$1658	; lookup_table
+	dc.w $1664,$1678,$167C,$1680,$1688,$168C,$168C,$169C	; lookup_table
+	dc.w $16A4,$16B4,$16C0,$16C4,$16C4,$16C8,$16D0,$16D8	; lookup_table
+	dc.w $16D8,$16E8,$16E8,$16EC,$16F8,$16FC,$1704,$170C	; lookup_table
+	dc.w $170C,$1714,$1714,$1720,$1724,$1730,$1738,$1744	; lookup_table
+	dc.w $1750,$1750,$1754,$175C,$1764,$176C,$1770,$1778	; lookup_table
+	dc.w $177C,$177C,$1788,$1794,$1798,$1798,$1798,$179C	; lookup_table
+	dc.w $17A4,$17A8,$17AC,$17B0,$17B8,$17BC,$17C4,$17D4	; lookup_table
+	dc.w $17D8,$17D8,$17E0,$17E0,$17F0,$17F4,$17F8,$17FC	; lookup_table
+	dc.w $17FC,$17FC,$1808,$180C,$1810,$1818,$1818,$181C	; lookup_table
+	dc.w $182C,$182C,$182C,$1834,$1838,$1840,$1844,$1844	; lookup_table
+	dc.w $1850,$1850,$185C,$1860,$1864,$186C,$1874,$1874	; lookup_table
+	dc.w $187C,$1880,$1880,$1888,$1888,$188C,$1894,$1894	; lookup_table
+	dc.w $189C,$189C,$18A4,$18A8,$18AC,$18B8,$18C0,$18C4	; lookup_table
+	dc.w $18C8,$18D0,$18D8,$18DC,$18E4,$18F0,$18F8,$1904	; lookup_table
+	dc.w $190C,$1914,$1920,$1928,$1928,$192C,$1934,$1938	; lookup_table
+	dc.w $193C,$1948,$1954,$195C,$1964,$1964,$196C,$1970	; lookup_table
+	dc.w $1970,$1974,$1984,$198C,$1990,$1994,$19A0,$19A0	; lookup_table
+	dc.w $19A4,$19AC,$19B4,$19BC,$19C0,$19C0,$19C4,$19D0	; lookup_table
+	dc.w $19D8,$19E0,$19E0,$19E4,$19E8,$19F0,$19F8,$1A00	; lookup_table
+	dc.w $1A04,$1A0C,$1A1C,$1A20,$1A20,$1A20,$1A24,$1A28	; lookup_table
+	dc.w $1A3C,$1A48,$1A50,$1A68,$1A6C,$1A70,$1A74,$1A78	; lookup_table
+	dc.w $1A80,$1A80,$1A84,$1A88,$1A88,$1A88,$1AA0,$1AB4	; lookup_table
+	dc.w $1AB4,$1AB4,$1AB8,$1AB8,$1AB8,$1AB8,$1ABC,$1AC4	; lookup_table
+	dc.w $1ACC,$1AD0,$1AD0,$1AD4,$1AE4,$1AE4,$1AF0,$1AFC	; lookup_table
+	dc.w $1B08,$1B10,$1B14,$1B1C,$1B2C,$1B34,$1B34,$1B34	; lookup_table
+	dc.w $1B38,$1B40,$1B48,$1B54,$1B64,$1B70,$1B74,$1B74	; lookup_table
+	dc.w $1B84,$1B84,$1B84,$1B8C,$1B94,$1B9C,$1B9C,$1B9C	; lookup_table
+	dc.w $1B9C,$1BA4,$1BA4,$1BA8,$1BA8,$1BB0,$1BB4,$1BB8	; lookup_table
+	dc.w $1BC4,$1BC4,$1BCC,$1BCC,$1BD4,$1BDC,$1BE8,$1BE8	; lookup_table
+	dc.w $1BF0,$1BF4,$1BF8,$1BF8,$1C04,$1C04,$1C08,$1C08	; lookup_table
+	dc.w $1C08,$1C18,$1C18,$1C24,$1C28,$1C2C,$1C30,$1C40	; lookup_table
+	dc.w $1C44,$1C4C,$1C54,$1C5C,$1C64,$1C6C,$1C74,$1C7C	; lookup_table
+	dc.w $1C80,$1C90,$1C98,$1CA0,$1CA0,$1CA0,$1CA8,$1CAC	; lookup_table
+	dc.w $1CB0,$1CB4,$1CB4,$1CC8,$1CCC,$1CE0,$1CE4,$1CE4	; lookup_table
+	dc.w $1CE4,$1CE8,$1CEC,$1CF8,$1CFC,$1D00,$1D08,$1D0C	; lookup_table
+	dc.w $1D1C,$1D20,$1D24,$1D28,$1D2C,$1D30,$1D34,$1D34	; lookup_table
+	dc.w $1D38,$1D38,$1D40,$1D44,$1D58,$1D58,$1D58,$1D5C	; lookup_table
+	dc.w $1D6C,$1D70,$1D78,$1D88,$1D94,$1D98,$1DA0,$1DA8	; lookup_table
+	dc.w $1DB4,$1DBC,$1DC4,$1DCC,$1DD0,$1DE0,$1DEC,$1DFC	; lookup_table
+	dc.w $1DFC,$1E04,$1E0C,$1E10,$1E24,$1E24,$1E24,$1E2C	; lookup_table
+	dc.w $1E34,$1E34,$1E38,$1E38,$1E3C,$1E40,$1E44,$1E58	; lookup_table
+	dc.w $1E60,$1E64,$1E64,$1E70,$1E78,$1E7C,$1E7C,$1E80	; lookup_table
+	dc.w $1E8C,$1E90,$1E9C,$1EA8,$1EB8,$1ECC,$1ED0,$1ED0	; lookup_table
+	dc.w $1ED8,$1ED8,$1EDC,$1EE4,$1EE4,$1EE4,$1EF4,$1EF8	; lookup_table
+	dc.w $1F00,$1F04,$1F0C,$1F10,$1F18,$1F1C,$1F20,$1F24	; lookup_table
+	dc.w $1F34,$1F38,$1F40,$1F44,$1F58,$1F60,$1F64,$1F64	; lookup_table
+	dc.w $1F64,$1F64,$1F68,$1F68,$1F6C,$1F80,$1F84,$1F88	; lookup_table
+	dc.w $1F8C,$1F90,$1F90,$1F98,$1F98,$1FA4,$1FA8,$1FB0	; lookup_table
+	dc.w $1FB0,$1FB4,$1FC4,$1FCC,$1FD4,$1FD8,$1FDC,$1FE0	; lookup_table
+	dc.w $1FE4,$1FE8,$1FEC,$1FF4,$1FF8,$1FF8,$2000,$2004	; lookup_table
+	dc.w $200C,$2010,$2018,$2020,$2028,$2028,$202C,$202C	; lookup_table
+	dc.w $2030,$2034,$203C,$203C,$2040,$2044,$2048,$2058	; lookup_table
+	dc.w $205C,$205C,$205C,$2060,$2068,$206C,$207C,$2084	; lookup_table
+	dc.w $208C,$2098,$2098,$20A4,$20AC,$20B4,$20B8,$20B8	; lookup_table
+	dc.w $20C0,$20C8,$20C8,$20C8,$20CC,$20D8,$20D8,$20DC	; lookup_table
+	dc.w $20E0,$20E0,$20E0,$20E8,$20F0,$20F8,$20FC,$2100	; lookup_table
+	dc.w $0000,$3834,$0001,$24B2,$0004,$2849,$0004,$2C53	; lookup_table
+	dc.w $0005,$0D17,$0005,$2464,$0005,$3001,$0007,$3422	; lookup_table
+	dc.w $0008,$2454,$0009,$00D9,$000B,$0086,$000C,$143D	; lookup_table
+	dc.w $0010,$256E,$0010,$016C,$0010,$2D2D,$0011,$20FD	; lookup_table
+	dc.w $0011,$098B,$0011,$059A,$0012,$0C41,$0013,$0D2F	; lookup_table
+	dc.w $0017,$00DA,$0018,$1D78,$001A,$3106,$001A,$18D9	; lookup_table
+	dc.w $001C,$397D,$001D,$3087,$001F,$0915,$0020,$3CF2	; lookup_table
+	dc.w $0026,$118C,$0026,$0439,$0028,$2D96,$0028,$304D	; lookup_table
+	dc.w $0029,$111A,$0029,$00B1,$0029,$2022,$002B,$3517	; lookup_table
+	dc.w $002B,$1812,$002B,$1051,$002C,$3CD7,$002C,$28B5	; lookup_table
+	dc.w $002C,$34C9,$002D,$2CB5,$0030,$0998,$0030,$0496	; lookup_table
+	dc.w $0031,$093A,$0031,$204F,$0032,$38BC,$0033,$0474	; lookup_table
+	dc.w $0034,$0825,$0035,$351B,$0036,$0C03,$0038,$38D3	; lookup_table
+	dc.w $0039,$3941,$003A,$102E,$003B,$058B,$003C,$3156	; lookup_table
+	dc.w $003D,$05A1,$0040,$0D2F,$0041,$1D4B,$0041,$050D	; lookup_table
+	dc.w $0041,$2804,$0041,$005D,$0041,$1178,$0042,$3C77	; lookup_table
+	dc.w $0042,$2C37,$0043,$1D3D,$0044,$184F,$0047,$245B	; lookup_table
+	dc.w $0047,$38B5,$004A,$24B3,$004B,$1D91,$004C,$1D96	; lookup_table
+	dc.w $004F,$057A,$004F,$1088,$0050,$08BE,$0052,$3939	; lookup_table
+	dc.w $0053,$0188,$0056,$0504,$0056,$0D22,$0058,$0957	; lookup_table
+	dc.w $005A,$212E,$005C,$3CB1,$005E,$246F,$0063,$2815	; lookup_table
+	dc.w $0064,$0471,$0064,$144C,$0064,$1C46,$0065,$24C1	; lookup_table
+	dc.w $0066,$20A1,$0068,$159F,$0069,$1161,$006A,$38D2	; lookup_table
+	dc.w $006E,$2153,$006F,$215F,$006F,$183C,$0070,$18D9	; lookup_table
+	dc.w $0072,$2168,$0072,$1D0E,$0072,$146C,$0072,$20E4	; lookup_table
+	dc.w $0073,$1105,$0075,$2CF6,$0075,$1133,$0077,$18B2	; lookup_table
+	dc.w $0078,$3D66,$007C,$390A,$007C,$34BD,$007C,$0434	; lookup_table
+	dc.w $0081,$0C79,$0086,$052A,$0086,$0492,$0086,$3577	; lookup_table
+	dc.w $0086,$0467,$0088,$0D37,$0088,$0069,$0089,$0153	; lookup_table
+	dc.w $0089,$1D6C,$0089,$09AD,$0089,$10CD,$008B,$0D4C	; lookup_table
+	dc.w $008B,$296C,$008B,$047D,$008B,$2C6D,$008C,$3491	; lookup_table
+	dc.w $008E,$3D47,$0090,$1C95,$0091,$0564,$0092,$119F	; lookup_table
+	dc.w $0093,$116B,$0093,$1C9E,$0093,$2D7A,$0093,$2CEC	; lookup_table
+	dc.w $0096,$14FA,$0096,$0987,$0099,$00F8,$009D,$194A	; lookup_table
+	dc.w $009D,$389F,$009D,$1C3A,$009F,$1112,$00A0,$154A	; lookup_table
+	dc.w $00A2,$1484,$00A2,$2C93,$00A4,$2995,$00A4,$0188	; lookup_table
+	dc.w $00A4,$2C63,$00A4,$081F,$00A7,$2C27,$00A8,$24D6	; lookup_table
+	dc.w $00A8,$19A9,$00A9,$1551,$00AD,$28B9,$00AF,$3944	; lookup_table
+	dc.w $00AF,$00E0,$00B1,$2D1B,$00B3,$1995,$00B4,$2CDB	; lookup_table
+	dc.w $00B7,$3C08,$00B9,$0581,$00BB,$3D92,$00BB,$0035	; lookup_table
+	dc.w $00BC,$04A0,$00BE,$14D9,$00C0,$2806,$00C0,$1041	; lookup_table
+	dc.w $00C0,$3CA2,$00C2,$1902,$00C4,$2559,$00C5,$34C2	; lookup_table
+	dc.w $00C8,$0859,$00C8,$218A,$00C9,$149B,$00CB,$3586	; lookup_table
+	dc.w $00CD,$0883,$00CD,$0054,$00CE,$3CD2,$00CE,$2095	; lookup_table
+	dc.w $00CE,$1054,$00CF,$0CB9,$00D1,$0D02,$00D1,$1011	; lookup_table
+	dc.w $00D2,$0C82,$00D3,$0411,$00D4,$2476,$00D5,$054F	; lookup_table
+	dc.w $00D6,$259B,$00D7,$3D40,$00D9,$059A,$00DA,$102E	; lookup_table
+	dc.w $00DD,$2173,$00E0,$3545,$00E0,$1000,$00E0,$20C2	; lookup_table
+	dc.w $00E1,$3528,$00E2,$00DD,$00E3,$0C17,$00E3,$287B	; lookup_table
+	dc.w $00E3,$0475,$00E6,$1C68,$00E6,$1498,$00E7,$102A	; lookup_table
+	dc.w $00EC,$2CFC,$00EE,$3426,$00F0,$24BE,$00F1,$054C	; lookup_table
+	dc.w $00F2,$3D46,$00F3,$1168,$00F4,$28D2,$00F7,$1C5C	; lookup_table
+	dc.w $00F7,$1180,$00F8,$08BC,$00FA,$3C07,$00FB,$24C4	; lookup_table
+	dc.w $00FC,$3877,$00FD,$0D36,$00FE,$1C2D,$00FF,$2C27	; lookup_table
+	dc.w $0102,$14B1,$0102,$0C00,$0103,$2482,$0106,$1D39	; lookup_table
+	dc.w $0106,$2451,$0107,$1841,$0109,$2956,$010A,$1C52	; lookup_table
+	dc.w $010D,$0434,$010D,$2469,$010E,$113E,$010F,$2D3C	; lookup_table
+	dc.w $010F,$1C1F,$0113,$0896,$0114,$054C,$0115,$2CCE	; lookup_table
+	dc.w $0116,$357D,$0117,$1142,$0118,$0838,$0119,$1505	; lookup_table
+	dc.w $011A,$218A,$011A,$1CCE,$011C,$0D56,$011C,$2C88	; lookup_table
+	dc.w $011C,$1993,$011D,$1807,$011D,$18D1,$011D,$15AE	; lookup_table
+	dc.w $011D,$09AF,$011E,$3112,$011E,$34C0,$0120,$08FC	; lookup_table
+	dc.w $0120,$0881,$0126,$2444,$0126,$0438,$0126,$199D	; lookup_table
+	dc.w $0129,$2576,$0129,$21A0,$012C,$316A,$012C,$299A	; lookup_table
+	dc.w $012C,$0D95,$012D,$383D,$012E,$3852,$0130,$2D66	; lookup_table
+	dc.w $0130,$0572,$0131,$250B,$0132,$2C48,$0133,$3545	; lookup_table
+	dc.w $0133,$3136,$0135,$0CB4,$013C,$2CD4,$013C,$2C2E	; lookup_table
+	dc.w $0142,$2D16,$0145,$20A1,$0146,$34E4,$0147,$188D	; lookup_table
+	dc.w $014D,$313B,$014E,$3D2B,$014F,$3179,$014F,$3028	; lookup_table
+	dc.w $014F,$3174,$0150,$145F,$0151,$052A,$0151,$0984	; lookup_table
+	dc.w $0152,$2124,$0152,$14A5,$0153,$0D98,$0153,$30D2	; lookup_table
+	dc.w $0155,$10B2,$0155,$0451,$0156,$3C44,$0157,$3974	; lookup_table
+	dc.w $0159,$18E3,$0159,$3574,$015A,$140D,$015B,$143A	; lookup_table
+	dc.w $015B,$1DAF,$015B,$3453,$015D,$21A1,$015D,$1197	; lookup_table
+	dc.w $015E,$14C1,$015E,$2594,$015F,$016D,$015F,$3548	; lookup_table
+	dc.w $0163,$0193,$0167,$3173,$0168,$3467,$0169,$3823	; lookup_table
+	dc.w $016A,$103E,$016A,$1C52,$016B,$2101,$016C,$34EC	; lookup_table
+	dc.w $016D,$3CF0,$0171,$2586,$0173,$210E,$0175,$1475	; lookup_table
+	dc.w $0175,$1921,$0176,$288D,$0177,$0906,$0177,$143C	; lookup_table
+	dc.w $0177,$3840,$017B,$3193,$017B,$0CBC,$017C,$3525	; lookup_table
+	dc.w $017D,$0CD9,$017D,$3D28,$017F,$3D99,$0180,$38EB	; lookup_table
+	dc.w $0181,$3477,$0181,$1478,$0184,$34DE,$0185,$0058	; lookup_table
+	dc.w $0185,$0589,$0187,$0558,$0189,$2069,$018B,$2590	; lookup_table
+	dc.w $018D,$1555,$018E,$2496,$018E,$2961,$0190,$1511	; lookup_table
+	dc.w $0190,$0138,$0192,$20C1,$0192,$041D,$0194,$0134	; lookup_table
+	dc.w $0195,$2C92,$0196,$0007,$0196,$2956,$0196,$2CE4	; lookup_table
+	dc.w $0197,$0C5B,$0199,$0044,$019B,$010B,$019B,$1C9A	; lookup_table
+	dc.w $019C,$0867,$01A0,$0081,$01A3,$058D,$01A5,$38EC	; lookup_table
+	dc.w $01A5,$3807,$01A7,$203A,$01A7,$0816,$01A7,$1D89	; lookup_table
+	dc.w $01A8,$294A,$01A8,$1C13,$01AA,$1002,$01AD,$354F	; lookup_table
+	dc.w $01AE,$0198,$01AE,$201B,$01AF,$3565,$01AF,$1595	; lookup_table
+	dc.w $01AF,$00F6,$01B0,$2915,$01B1,$2CED,$01B2,$082B	; lookup_table
+	dc.w $01B3,$1061,$01B4,$1C0B,$01B4,$2054,$01B5,$34B0	; lookup_table
+	dc.w $01B5,$20F8,$01B5,$3197,$01B7,$1438,$01B7,$3D4D	; lookup_table
+	dc.w $01B8,$1C1B,$01B9,$0C25,$01B9,$10FD,$01B9,$1182	; lookup_table
+	dc.w $01BA,$3C65,$01BA,$1C24,$01BA,$354E,$01BB,$1D25	; lookup_table
+	dc.w $01BB,$30B5,$01BB,$24BD,$01BC,$2095,$01BD,$28FF	; lookup_table
+	dc.w $01BD,$2C73,$01BE,$0863,$01BF,$3D6B,$01C0,$211B	; lookup_table
+	dc.w $01C0,$0C84,$01C1,$3898,$01C1,$044E,$01C2,$3434	; lookup_table
+	dc.w $01C3,$3D26,$01C4,$34DE,$01C7,$0D46,$01C7,$097E	; lookup_table
+	dc.w $01C9,$1165,$01C9,$242F,$01CB,$3D7F,$01CD,$3D69	; lookup_table
+	dc.w $01CF,$1CA7,$01D1,$2425,$01D1,$2822,$01D1,$24CF	; lookup_table
+	dc.w $01D1,$118A,$01D2,$0989,$01D3,$318F,$01D8,$014A	; lookup_table
+	dc.w $01D8,$2544,$01DA,$1804,$01DA,$0897,$01DB,$18F9	; lookup_table
+	dc.w $01DB,$3061,$01DC,$08A3,$01DC,$3D25,$01DC,$3D8F	; lookup_table
+	dc.w $01DE,$090A,$01DF,$2898,$01DF,$1812,$01E0,$1D75	; lookup_table
+	dc.w $01E1,$18AA,$01E2,$24CB,$01E3,$047C,$01E5,$0011	; lookup_table
+	dc.w $01E5,$1C56,$01E6,$08BD,$01E8,$088D,$01EA,$11A0	; lookup_table
+	dc.w $01ED,$3088,$01EE,$350B,$01EE,$215B,$01EF,$247F	; lookup_table
+	dc.w $01F1,$2D04,$01F2,$24D5,$01F2,$1978,$01F2,$3CE7	; lookup_table
+	dc.w $01F2,$0476,$01F3,$280D,$01F4,$3C68,$01F6,$0484	; lookup_table
+	dc.w $01F9,$3493,$01FA,$3990,$01FB,$34FE,$01FE,$34C5	; lookup_table
+	dc.w $01FE,$1157,$01FE,$24F0,$01FF,$30A3,$01FF,$2978	; lookup_table
+	dc.w $0200,$110D,$0201,$1C6A,$0202,$05A8,$0202,$3941	; lookup_table
+	dc.w $0203,$0C47,$0206,$21AA,$0206,$3D77,$0207,$20CF	; lookup_table
+	dc.w $0208,$106F,$0209,$2D74,$020B,$0808,$020D,$0C79	; lookup_table
+	dc.w $020E,$14E4,$020E,$3D8D,$0210,$306F,$0211,$056F	; lookup_table
+	dc.w $0211,$0177,$0212,$2D22,$0213,$208F,$0215,$18E2	; lookup_table
+	dc.w $0218,$3875,$0218,$2587,$0218,$3C88,$0219,$1135	; lookup_table
+	dc.w $0219,$3CF8,$021C,$04F7,$021F,$0C7F,$0221,$3893	; lookup_table
+	dc.w $0222,$3195,$0225,$0864,$0226,$0D1F,$0226,$0575	; lookup_table
+	dc.w $0228,$2484,$0229,$1137,$022B,$1848,$022E,$3D5A	; lookup_table
+	dc.w $0230,$3467,$0230,$3C83,$0231,$254B,$0231,$1C95	; lookup_table
+	dc.w $0232,$0C88,$0232,$35A8,$0232,$312A,$0236,$30E5	; lookup_table
+	dc.w $0238,$1412,$023B,$30E3,$023C,$252C,$023E,$0116	; lookup_table
+	dc.w $0241,$3CB8,$0242,$04DA,$0242,$34DF,$0243,$2D95	; lookup_table
+	dc.w $0243,$058B,$0244,$18AD,$0245,$195D,$0245,$357E	; lookup_table
+	dc.w $0246,$1024,$0248,$1CDC,$0248,$2564,$0249,$14D6	; lookup_table
+	dc.w $024A,$3451,$024A,$385C,$024C,$0CC5,$024D,$2921	; lookup_table
+	dc.w $0250,$319B,$0251,$3C93,$0252,$0837,$0254,$0012	; lookup_table
+	dc.w $0255,$386B,$0257,$2598,$025A,$0579,$025B,$2111	; lookup_table
+	dc.w $025C,$1C73,$025D,$1C96,$0260,$0867,$0268,$3076	; lookup_table
+	dc.w $0269,$1591,$0269,$3172,$026A,$2D6E,$026B,$3574	; lookup_table
+	dc.w $026C,$0D26,$026E,$18E5,$026E,$1859,$0273,$3421	; lookup_table
+	dc.w $0274,$2D20,$0275,$08D4,$0275,$2C7F,$0276,$0121	; lookup_table
+	dc.w $0276,$357C,$0277,$1995,$0277,$245B,$0278,$192C	; lookup_table
+	dc.w $027B,$101A,$027B,$34D2,$027C,$311B,$027C,$28C9	; lookup_table
+	dc.w $027D,$187D,$027D,$357C,$027D,$0C86,$027E,$3167	; lookup_table
+	dc.w $027E,$1C8B,$027F,$3048,$027F,$3C7F,$0281,$3850	; lookup_table
+	dc.w $0282,$0D9C,$0283,$1567,$0283,$24CE,$0283,$2549	; lookup_table
+	dc.w $0285,$218B,$0288,$09AC,$0288,$048D,$0289,$0989	; lookup_table
+	dc.w $028A,$20BE,$028B,$2826,$028C,$146F,$028C,$101E	; lookup_table
+	dc.w $028D,$086B,$028D,$1553,$028E,$006A,$028E,$34EE	; lookup_table
+	dc.w $028F,$05AC,$028F,$18AF,$0291,$0900,$0291,$1D21	; lookup_table
+	dc.w $0292,$2095,$0295,$38BE,$0297,$14AC,$0297,$390F	; lookup_table
+	dc.w $0298,$0499,$0299,$0D51,$029B,$2CFD,$029C,$10EB	; lookup_table
+	dc.w $029D,$0D0D,$029E,$186B,$02A1,$3902,$02A1,$1820	; lookup_table
+	dc.w $02A1,$315A,$02A2,$0C59,$02A2,$3516,$02A3,$387E	; lookup_table
+	dc.w $02A5,$14FC,$02A7,$0CB3,$02A8,$0437,$02A9,$254A	; lookup_table
+	dc.w $02AA,$0838,$02AB,$1CF6,$02AC,$0DAC,$02AD,$11AF	; lookup_table
+	dc.w $02AD,$1461,$02AE,$34AC,$02AE,$0D1F,$02AF,$0119	; lookup_table
+	dc.w $02B0,$18CF,$02B2,$246A,$02B2,$2146,$02B2,$2451	; lookup_table
+	dc.w $02B4,$206A,$02B5,$187B,$02B7,$3883,$02B7,$248A	; lookup_table
+	dc.w $02B8,$0527,$02B8,$0118,$02B9,$2815,$02BA,$290B	; lookup_table
+	dc.w $02BD,$21A1,$02BF,$016D,$02C0,$3CEE,$02C1,$1DA3	; lookup_table
+	dc.w $02C3,$38F9,$02C3,$006D,$02C7,$0156,$02C8,$183A	; lookup_table
+	dc.w $02CB,$00CF,$02CC,$3C5C,$02CE,$1460,$02CE,$0104	; lookup_table
+	dc.w $02CE,$2D59,$02CF,$118A,$02D0,$18CD,$02D2,$3850	; lookup_table
+	dc.w $02D2,$2896,$02D6,$09A3,$02D6,$2150,$02D8,$0534	; lookup_table
+	dc.w $02D8,$09AD,$02DC,$0974,$02DD,$00C3,$02DE,$0C37	; lookup_table
+	dc.w $02DF,$2D8C,$02E2,$299A,$02E2,$1171,$02E3,$242E	; lookup_table
+	dc.w $02E4,$1917,$02E4,$28E0,$02E5,$0D53,$02E5,$2C4F	; lookup_table
+	dc.w $02E6,$191C,$02E6,$3006,$02E8,$2D0A,$02E8,$1931	; lookup_table
+	dc.w $02E8,$255C,$02E8,$20BA,$02E8,$381C,$02E9,$30C1	; lookup_table
+	dc.w $02E9,$003D,$02E9,$3D86,$02EA,$2809,$02EA,$340A	; lookup_table
+	dc.w $02EA,$042F,$02EA,$08FD,$02EC,$1CC7,$02EE,$2937	; lookup_table
+	dc.w $02EF,$1535,$02F0,$3032,$02F0,$3435,$02F1,$25A4	; lookup_table
+	dc.w $02F2,$24BB,$02F2,$1C4D,$02F2,$2596,$02F3,$302A	; lookup_table
+	dc.w $02F3,$2D15,$02F8,$356E,$02F9,$3458,$02F9,$1598	; lookup_table
+	dc.w $02FD,$316D,$02FD,$1D65,$02FE,$10D3,$02FE,$2CBF	; lookup_table
+	dc.w $0301,$1929,$0304,$245D,$0304,$0174,$0306,$319C	; lookup_table
+	dc.w $0306,$0CF2,$0306,$2448,$0308,$34BE,$0308,$0897	; lookup_table
+	dc.w $030B,$20B3,$030C,$3D8A,$030E,$1829,$0310,$0C58	; lookup_table
+	dc.w $0311,$195E,$0311,$285B,$0314,$1C10,$0314,$2DAD	; lookup_table
+	dc.w $0315,$39AF,$0315,$3C66,$0315,$1CEE,$0316,$3CE8	; lookup_table
+	dc.w $0317,$050B,$0319,$2891,$031A,$2C68,$031B,$041D	; lookup_table
+	dc.w $031D,$2138,$031D,$3C18,$031D,$3116,$031D,$3D88	; lookup_table
+	dc.w $0322,$2065,$0323,$047A,$0324,$2DAD,$0325,$249F	; lookup_table
+	dc.w $0325,$0806,$0327,$3599,$0328,$387F,$032A,$3157	; lookup_table
+	dc.w $032A,$0916,$032B,$2D77,$032C,$1CBC,$032D,$0198	; lookup_table
+	dc.w $032F,$11A1,$0331,$1483,$0331,$0D90,$0332,$04DF	; lookup_table
+	dc.w $0334,$199D,$0335,$29A9,$0335,$295C,$0336,$319C	; lookup_table
+	dc.w $0337,$3CDB,$0339,$191E,$033B,$2596,$033B,$0CEA	; lookup_table
+	dc.w $033C,$299F,$033C,$1D67,$033D,$2D58,$033E,$182F	; lookup_table
+	dc.w $033F,$1093,$0340,$144E,$0340,$100E,$0341,$254F	; lookup_table
+	dc.w $0342,$34EA,$0343,$28F8,$0343,$2094,$0347,$28AE	; lookup_table
+	dc.w $034A,$3C78,$034B,$10D0,$034B,$2D73,$034D,$017E	; lookup_table
+	dc.w $034F,$0910,$034F,$28E4,$034F,$0C0C,$0350,$2161	; lookup_table
+	dc.w $0350,$1CBE,$0352,$3C64,$0356,$2143,$0356,$3C24	; lookup_table
+	dc.w $0359,$2C53,$035B,$0C03,$035C,$1CC5,$035C,$147A	; lookup_table
+	dc.w $035C,$34F7,$035D,$007C,$035F,$3D5E,$035F,$212C	; lookup_table
+	dc.w $035F,$39A2,$0360,$2C40,$0361,$2889,$0361,$2CE1	; lookup_table
+	dc.w $0362,$192F,$0362,$2550,$0363,$0841,$0363,$2D5F	; lookup_table
+	dc.w $0364,$14A9,$0366,$0D39,$0366,$1144,$0368,$30E3	; lookup_table
+	dc.w $0369,$18BA,$036B,$3449,$036E,$348A,$036F,$2995	; lookup_table
+	dc.w $036F,$0516,$036F,$1C66,$036F,$242F,$036F,$3496	; lookup_table
+	dc.w $0370,$00DF,$0370,$3861,$0371,$1CA4,$0372,$1CBC	; lookup_table
+	dc.w $0372,$1803,$0372,$3901,$0374,$318D,$0375,$3984	; lookup_table
+	dc.w $0375,$253C,$0378,$3448,$0378,$24F4,$0379,$10EA	; lookup_table
+	dc.w $037B,$25A2,$037B,$21AF,$037C,$1CA3,$037D,$2991	; lookup_table
+	dc.w $037D,$0D46,$037E,$2426,$037E,$101B,$037F,$2938	; lookup_table
+	dc.w $0380,$3D63,$0380,$1D80,$0380,$3405,$0381,$1C36	; lookup_table
+	dc.w $0385,$2466,$0385,$0956,$0386,$1CA2,$0386,$2857	; lookup_table
+	dc.w $0387,$2136,$0388,$10DB,$0389,$100F,$0389,$14A4	; lookup_table
+	dc.w $038A,$3110,$038A,$04E5,$038A,$1812,$038B,$3CAF	; lookup_table
+	dc.w $038C,$310F,$038C,$38AC,$038F,$002E,$038F,$2D3A	; lookup_table
+	dc.w $038F,$394D,$0391,$1062,$0391,$29AC,$0391,$0809	; lookup_table
+	dc.w $0393,$0C9F,$0394,$2C33,$0394,$0180,$0395,$394F	; lookup_table
+	dc.w $0397,$2D37,$039B,$1518,$039B,$209F,$039F,$3839	; lookup_table
+	dc.w $039F,$14F8,$039F,$342B,$03A0,$050F,$03A0,$28FA	; lookup_table
+	dc.w $03A1,$18FB,$03A3,$2497,$03A3,$010C,$03A9,$2580	; lookup_table
+	dc.w $03AA,$08B8,$03AA,$0026,$03AE,$0575,$03AF,$3D4A	; lookup_table
+	dc.w $03AF,$2C2B,$03B2,$2885,$03B2,$0C5D,$03B4,$08CF	; lookup_table
+	dc.w $03B4,$118C,$03B5,$10AB,$03B5,$0000,$03B6,$1C14	; lookup_table
+	dc.w $03B6,$1897,$03B7,$34A7,$03B7,$30FC,$03B8,$28A2	; lookup_table
+	dc.w $03B8,$3166,$03B9,$1D1B,$03B9,$2578,$03B9,$1406	; lookup_table
+	dc.w $03BA,$3CBB,$03BA,$1562,$03BA,$04F2,$03BC,$289B	; lookup_table
+	dc.w $03BC,$3CBF,$03BE,$1D9C,$03BE,$1936,$03BE,$1091	; lookup_table
+	dc.w $03BF,$2093,$03BF,$3D1D,$03C0,$10FE,$03C1,$2825	; lookup_table
+	dc.w $03C3,$28D7,$03C5,$114F,$03C6,$0D46,$03C7,$28D3	; lookup_table
+	dc.w $03C8,$150F,$03CA,$08B3,$03CB,$1508,$03CB,$1D9A	; lookup_table
+	dc.w $03CB,$2524,$03CD,$046B,$03CE,$2102,$03CE,$0C5B	; lookup_table
+	dc.w $03CF,$0D81,$03D1,$30BA,$03D2,$1D42,$03D2,$1830	; lookup_table
+	dc.w $03D2,$3975,$03D4,$2560,$03D5,$34C6,$03D6,$189F	; lookup_table
+	dc.w $03D8,$20D7,$03DA,$0819,$03DB,$3854,$03DC,$3001	; lookup_table
+	dc.w $03DD,$2CA8,$03DF,$3880,$03DF,$3CCF,$03E0,$1CFD	; lookup_table
+	dc.w $03E0,$2874,$03E1,$3D20,$03E3,$29A4,$03E5,$298A	; lookup_table
+	dc.w $03E5,$2937,$03E6,$3CDD,$03E7,$094D,$03E9,$1901	; lookup_table
+	dc.w $03E9,$301B,$03EA,$283B,$03EB,$21AF,$03EC,$1996	; lookup_table
+	dc.w $03EE,$1D1D,$03EE,$08D2,$03F2,$2D61,$03F2,$2964	; lookup_table
+	dc.w $03F3,$0D22,$03F4,$3120,$03F4,$3D46,$03F4,$0047	; lookup_table
+	dc.w $03F4,$0593,$03F4,$3D29,$03F6,$30C3,$03F8,$2895	; lookup_table
+	dc.w $03FA,$315B,$03FA,$055B,$03FB,$0592,$03FF,$1081	; lookup_table
+	dc.w $0400,$3049,$0400,$28B9,$0400,$0CAE,$0401,$391E	; lookup_table
+	dc.w $0401,$2073,$0403,$2889,$0403,$102F,$0403,$2D6B	; lookup_table
+	dc.w $0403,$34AE,$0404,$38AB,$0404,$0D42,$0405,$04B8	; lookup_table
+	dc.w $0406,$141E,$040A,$2CD9,$040B,$3019,$040C,$3D9A	; lookup_table
+	dc.w $040E,$194A,$040E,$1828,$0410,$30E8,$0410,$14F1	; lookup_table
+	dc.w $0410,$0469,$0410,$3D1B,$0415,$3D09,$0416,$056A	; lookup_table
+	dc.w $0416,$0467,$0416,$2549,$0418,$0C18,$0419,$243B	; lookup_table
+	dc.w $041A,$2D4A,$041B,$2CF0,$041C,$2904,$041E,$2150	; lookup_table
+	dc.w $041F,$3124,$0422,$1012,$0422,$2514,$0423,$243E	; lookup_table
+	dc.w $0424,$088E,$0426,$197E,$0426,$1562,$0426,$24F9	; lookup_table
+	dc.w $0428,$2520,$0428,$3D67,$0429,$185A,$0429,$1C9A	; lookup_table
+	dc.w $042A,$1853,$042B,$3409,$042B,$24C0,$042C,$3D09	; lookup_table
+	dc.w $042E,$282E,$0431,$253A,$0431,$2900,$0432,$38A6	; lookup_table
+	dc.w $0432,$1923,$0434,$106A,$0434,$34C5,$0436,$1DAF	; lookup_table
+	dc.w $0437,$0195,$0438,$35AA,$0439,$2451,$043C,$3CD7	; lookup_table
+	dc.w $043C,$317B,$043D,$30B5,$043E,$38A9,$043E,$309D	; lookup_table
+	dc.w $043E,$357C,$0441,$3936,$0446,$0CEE,$0447,$19A0	; lookup_table
+	dc.w $0448,$3096,$0449,$3DAD,$044A,$2800,$044D,$38E0	; lookup_table
+	dc.w $044F,$396C,$044F,$0D2D,$0450,$108B,$0451,$3595	; lookup_table
+	dc.w $0452,$1935,$0453,$10C2,$0453,$252A,$0454,$3834	; lookup_table
+	dc.w $0454,$0CEE,$0455,$28C3,$0458,$2492,$0458,$3422	; lookup_table
+	dc.w $045C,$2571,$045C,$0C02,$045D,$1C84,$045D,$0CF0	; lookup_table
+	dc.w $045E,$1D10,$045F,$3447,$0461,$1CA5,$0467,$24B1	; lookup_table
+	dc.w $0467,$1C46,$0467,$28F0,$0468,$301F,$046B,$114B	; lookup_table
+	dc.w $046C,$1D4C,$046D,$040F,$0470,$08D0,$0471,$10CB	; lookup_table
+	dc.w $0472,$29AF,$0472,$38B3,$0472,$004D,$0477,$3452	; lookup_table
+	dc.w $0477,$3550,$0479,$1445,$047A,$0CFD,$047B,$11AA	; lookup_table
+	dc.w $047C,$0846,$0480,$1C53,$0480,$3D17,$0480,$08D6	; lookup_table
+	dc.w $0483,$3019,$0483,$3998,$0483,$3986,$0484,$1C49	; lookup_table
+	dc.w $0487,$315E,$0489,$2584,$0489,$092A,$048A,$09A9	; lookup_table
+	dc.w $048A,$140F,$048E,$0176,$048E,$1010,$048F,$0C20	; lookup_table
+	dc.w $0492,$0D0C,$0493,$003C,$0496,$0D04,$0498,$3D38	; lookup_table
+	dc.w $0499,$28A0,$049B,$140A,$049C,$00DB,$049F,$1959	; lookup_table
+	dc.w $04A0,$10F5,$04A1,$359B,$04A3,$24F4,$04A5,$34A0	; lookup_table
+	dc.w $04A5,$2D6F,$04A5,$14E7,$04A6,$3983,$04A7,$1820	; lookup_table
+	dc.w $04A8,$3572,$04A9,$30E7,$04AB,$250D,$04AC,$0C0F	; lookup_table
+	dc.w $04AE,$14D4,$04AE,$1C31,$04AF,$102D,$04B0,$1423	; lookup_table
+	dc.w $04B0,$3D04,$04B3,$307B,$04B3,$3127,$04B3,$0087	; lookup_table
+	dc.w $04B4,$1052,$04B4,$1589,$04B6,$1569,$04B6,$154C	; lookup_table
+	dc.w $04B6,$2CC4,$04B7,$04B0,$04B8,$10F4,$04BA,$3157	; lookup_table
+	dc.w $04BA,$219E,$04BB,$24A9,$04BC,$3986,$04BC,$2CC8	; lookup_table
+	dc.w $04BD,$1887,$04BD,$3CC4,$04C0,$002C,$04C2,$3463	; lookup_table
+	dc.w $04C2,$0586,$04C4,$18E7,$04C5,$3551,$04C7,$3135	; lookup_table
+	dc.w $04C7,$0509,$04C7,$1C3C,$04C9,$2C89,$04CA,$3D65	; lookup_table
+	dc.w $04CA,$3485,$04CB,$0087,$04CC,$1D9C,$04CD,$0850	; lookup_table
+	dc.w $04CD,$1CE7,$04D0,$3896,$04D1,$38B4,$04D3,$395D	; lookup_table
+	dc.w $04D5,$2838,$04D7,$2837,$04D8,$2856,$04D8,$218C	; lookup_table
+	dc.w $04D8,$3D7F,$04D9,$0867,$04DA,$2461,$04DB,$1813	; lookup_table
+	dc.w $04DC,$392D,$04DE,$089C,$04DF,$0128,$04DF,$208B	; lookup_table
+	dc.w $04E2,$28A0,$04E3,$3C9B,$04E4,$3CD6,$04E6,$1943	; lookup_table
+	dc.w $04E6,$2967,$04E7,$2574,$04E8,$10A2,$04E9,$357E	; lookup_table
+	dc.w $04ED,$2C73,$04EE,$2005,$04EE,$1034,$04EF,$1C75	; lookup_table
+	dc.w $04F0,$2504,$04F0,$30AE,$04F1,$050F,$04F1,$2C70	; lookup_table
+	dc.w $04F6,$291F,$04F7,$1C24,$04F8,$3DAF,$04F9,$3D6C	; lookup_table
+	dc.w $04FA,$158A,$04FB,$119D,$04FD,$3424,$04FD,$302E	; lookup_table
+	dc.w $04FE,$3144,$04FF,$0CE7,$04FF,$30AF,$0501,$24A5	; lookup_table
+	dc.w $0501,$2C5D,$0501,$1C73,$0502,$150A,$0504,$30BD	; lookup_table
+	dc.w $0508,$0844,$050A,$1156,$050C,$1817,$050C,$217A	; lookup_table
+	dc.w $050C,$2C83,$050C,$1D8E,$050D,$017E,$050E,$3033	; lookup_table
+	dc.w $050E,$3D4C,$050E,$24BE,$0510,$0480,$0510,$3883	; lookup_table
+	dc.w $0511,$3D84,$0511,$315F,$0512,$34AF,$0512,$2025	; lookup_table
+	dc.w $0512,$0CEF,$0512,$1199,$0513,$0C02,$0515,$2496	; lookup_table
+	dc.w $0516,$1815,$0519,$098C,$051A,$2853,$051B,$1C89	; lookup_table
+	dc.w $051E,$250A,$051F,$35AF,$0524,$2CDB,$0524,$0505	; lookup_table
+	dc.w $0524,$2C5B,$0525,$3C26,$0525,$14C9,$0525,$15A6	; lookup_table
+	dc.w $0526,$20F4,$0526,$04CE,$0527,$113A,$0527,$217D	; lookup_table
+	dc.w $0527,$3937,$052C,$1191,$0532,$082F,$0534,$1882	; lookup_table
+	dc.w $0534,$0C37,$0536,$004B,$0537,$04F1,$0538,$1492	; lookup_table
+	dc.w $053C,$0C5B,$053D,$2869,$053D,$3C9A,$053E,$10F6	; lookup_table
+	dc.w $053E,$1976,$0541,$3974,$0541,$250D,$0541,$1D67	; lookup_table
+	dc.w $0542,$2152,$0543,$0C49,$0543,$047E,$0544,$1D54	; lookup_table
+	dc.w $0545,$2938,$0545,$3CDB,$0546,$39AD,$0547,$2CB2	; lookup_table
+	dc.w $0548,$3CB1,$0549,$34C6,$054A,$209A,$054B,$28D9	; lookup_table
+	dc.w $054B,$0030,$054C,$0D0C,$054C,$258D,$054D,$3161	; lookup_table
+	dc.w $054D,$0142,$0552,$1D0C,$0555,$0C41,$0555,$312C	; lookup_table
+	dc.w $0556,$1C4D,$0556,$30BB,$0557,$0D0C,$0558,$20AD	; lookup_table
+	dc.w $0558,$048B,$0559,$3D90,$0559,$318C,$0559,$30B9	; lookup_table
+	dc.w $055A,$390B,$055C,$295C,$055C,$30F0,$055C,$31A7	; lookup_table
+	dc.w $055D,$1494,$0560,$2D45,$0560,$190C,$0560,$1CE0	; lookup_table
+	dc.w $0561,$3910,$0565,$304C,$0566,$19A7,$0567,$188C	; lookup_table
+	dc.w $0567,$150A,$056A,$051A,$056A,$2D4D,$0570,$3105	; lookup_table
+	dc.w $0571,$2146,$0574,$3489,$0578,$18AE,$0578,$2C3F	; lookup_table
+	dc.w $0579,$04F5,$057B,$0145,$057C,$04BE,$057C,$197A	; lookup_table
+	dc.w $057D,$0875,$0580,$254E,$0580,$3D66,$0583,$354C	; lookup_table
+	dc.w $0584,$2C7D,$0585,$1D65,$0586,$2166,$0587,$0880	; lookup_table
+	dc.w $0588,$04A9,$0588,$1998,$058A,$1105,$058B,$0D58	; lookup_table
+	dc.w $058C,$0576,$058E,$0CBD,$0591,$019D,$0591,$0C2E	; lookup_table
+	dc.w $0592,$088E,$0596,$091E,$059A,$0C55,$059A,$1420	; lookup_table
+	dc.w $059B,$1559,$059B,$159B,$059E,$3DAB,$059E,$34B8	; lookup_table
+	dc.w $059E,$1D75,$05A0,$24DA,$05A1,$2572,$05A3,$3C85	; lookup_table
+	dc.w $05A5,$2D63,$05A6,$3C8E,$05A6,$2C11,$05A6,$09AC	; lookup_table
+	dc.w $05A7,$397F,$05A8,$0077,$05A9,$3192,$05AA,$3D52	; lookup_table
+	dc.w $05AB,$0070,$05AD,$2D23,$05AD,$198A,$05AE,$2093	; lookup_table
+	dc.w $05AE,$084D,$05B0,$080D,$05B0,$30BF,$05B1,$34E3	; lookup_table
+	dc.w $05B2,$2986,$05B3,$1583,$05B4,$0C59,$05B5,$009D	; lookup_table
+	dc.w $05B6,$2401,$05B6,$2C5F,$05B6,$1D32,$05B6,$307A	; lookup_table
+	dc.w $05B8,$142D,$05B9,$2C4B,$05BB,$0888,$05BB,$1144	; lookup_table
+	dc.w $05C0,$2096,$05C0,$18B2,$05C1,$1060,$05C3,$2956	; lookup_table
+	dc.w $05C5,$1C8D,$05C8,$24CD,$05C9,$2043,$05C9,$3D35	; lookup_table
+	dc.w $05C9,$343C,$05C9,$25A0,$05CA,$3420,$05CB,$019D	; lookup_table
+	dc.w $05CB,$3570,$05CB,$1402,$05CC,$1C0E,$05CC,$2173	; lookup_table
+	dc.w $05CE,$3031,$05D2,$20BE,$05D5,$2C24,$05D6,$1D56	; lookup_table
+	dc.w $05D7,$053D,$05D7,$10B8,$05D8,$093F,$05DA,$3889	; lookup_table
+	dc.w $05DB,$0894,$05DB,$29A1,$05DE,$009D,$05E0,$082B	; lookup_table
+	dc.w $05E0,$395E,$05E0,$1059,$05E0,$0020,$05E1,$0888	; lookup_table
+	dc.w $05E3,$0804,$05E4,$1C54,$05E6,$0068,$05E8,$1D5C	; lookup_table
+	dc.w $05E9,$1526,$05EE,$3DAF,$05F0,$2CA3,$05F1,$207D	; lookup_table
+	dc.w $05F3,$20FD,$05F4,$348A,$05F4,$28AF,$05F4,$18C6	; lookup_table
+	dc.w $05F5,$108C,$05F5,$1D27,$05F9,$3D59,$05FB,$1540	; lookup_table
+	dc.w $05FB,$0172,$05FC,$25AF,$05FC,$04D7,$05FD,$0C72	; lookup_table
+	dc.w $05FE,$1C7B,$05FF,$3807,$0600,$0123,$0600,$187C	; lookup_table
+	dc.w $0600,$3957,$0601,$3169,$0602,$253A,$0602,$10F1	; lookup_table
+	dc.w $0602,$1C44,$0604,$304C,$0605,$3483,$0606,$1C75	; lookup_table
+	dc.w $0607,$380F,$0608,$1C40,$0609,$24DF,$060A,$111A	; lookup_table
+	dc.w $060A,$1D4E,$060B,$098A,$060B,$210E,$060D,$0861	; lookup_table
+	dc.w $060D,$358A,$060F,$086D,$060F,$39A0,$0610,$010A	; lookup_table
+	dc.w $0613,$156F,$0613,$3D5D,$0613,$1920,$0613,$354E	; lookup_table
+	dc.w $0614,$001B,$0614,$292B,$0614,$2967,$0615,$2419	; lookup_table
+	dc.w $0615,$00E4,$0616,$18F5,$0616,$3C2B,$0619,$054D	; lookup_table
+	dc.w $061A,$3CA9,$061B,$3016,$061B,$190A,$061D,$25AA	; lookup_table
+	dc.w $061E,$3032,$061E,$282C,$061E,$34F4,$061F,$2889	; lookup_table
+	dc.w $061F,$3D8B,$0623,$20B1,$0623,$24D6,$0625,$2546	; lookup_table
+	dc.w $0626,$1D45,$0629,$0825,$062D,$051B,$062E,$1936	; lookup_table
+	dc.w $0630,$00B7,$0631,$10AB,$0631,$197A,$0631,$24B5	; lookup_table
+	dc.w $0632,$2C43,$0632,$0986,$0633,$254C,$0633,$15A9	; lookup_table
+	dc.w $0635,$2CFD,$0638,$2C6F,$0639,$2C68,$0639,$283A	; lookup_table
+	dc.w $063A,$058F,$063A,$1887,$063D,$3984,$063F,$2D72	; lookup_table
+	dc.w $0641,$3D72,$0641,$1C9E,$0642,$190A,$0643,$0529	; lookup_table
+	dc.w $0645,$149B,$0646,$188B,$0646,$2867,$0647,$2D79	; lookup_table
+	dc.w $0647,$059B,$0647,$1561,$0648,$2C46,$0649,$103C	; lookup_table
+	dc.w $0649,$218F,$0649,$2D5A,$064A,$2D99,$064A,$2908	; lookup_table
+	dc.w $064A,$3C62,$064A,$18E7,$064B,$181B,$064D,$28EF	; lookup_table
+	dc.w $0650,$2C85,$0650,$3808,$0653,$3137,$0655,$30AF	; lookup_table
+	dc.w $0655,$18D1,$065A,$3CCB,$065A,$391A,$065A,$1473	; lookup_table
+	dc.w $065A,$3945,$065C,$0148,$065D,$0D5D,$065E,$3142	; lookup_table
+	dc.w $0660,$24EA,$0661,$34BF,$0662,$195B,$0663,$1563	; lookup_table
+	dc.w $0664,$0075,$0665,$00D1,$0667,$3C2F,$0668,$3814	; lookup_table
+	dc.w $066A,$1804,$066B,$04BE,$066B,$0C96,$066B,$3C65	; lookup_table
+	dc.w $066C,$2461,$066D,$156F,$0670,$34A4,$0670,$1D24	; lookup_table
+	dc.w $0671,$191D,$0672,$1D48,$0672,$0857,$0673,$0858	; lookup_table
+	dc.w $0673,$0D51,$0673,$1490,$0675,$2D6E,$0675,$3493	; lookup_table
+	dc.w $0676,$11A5,$067E,$38F5,$0681,$34C6,$0682,$256B	; lookup_table
+	dc.w $0682,$3588,$0683,$1407,$0683,$2023,$0683,$2CE8	; lookup_table
+	dc.w $0685,$0C8D,$0686,$2515,$0688,$244A,$0689,$04A2	; lookup_table
+	dc.w $068D,$0C0D,$068D,$186C,$0690,$0139,$0690,$1565	; lookup_table
+	dc.w $0690,$3415,$0693,$154B,$0694,$08DD,$0695,$25AF	; lookup_table
+	dc.w $0698,$042C,$0699,$3919,$0699,$34E5,$069A,$108C	; lookup_table
+	dc.w $069A,$3869,$069B,$18EA,$069C,$3569,$069D,$1109	; lookup_table
+	dc.w $069D,$0839,$069E,$00DC,$06A1,$156C,$06A2,$095B	; lookup_table
+	dc.w $06A4,$1554,$06A5,$3079,$06A7,$351F,$06AA,$1968	; lookup_table
+	dc.w $06AA,$1178,$06AC,$1C2B,$06AF,$2C04,$06AF,$1957	; lookup_table
+	dc.w $06B1,$358E,$06B3,$0D12,$06B3,$1C30,$06B4,$0C78	; lookup_table
+	dc.w $06B5,$3528,$06B6,$3C11,$06B7,$0CEC,$06B8,$3951	; lookup_table
+	dc.w $06B9,$3938,$06B9,$2035,$06BD,$0495,$06C0,$3C10	; lookup_table
+	dc.w $06C2,$1865,$06C3,$1944,$06C4,$1041,$06C7,$1D9C	; lookup_table
+	dc.w $06C9,$34E7,$06CA,$0C07,$06CC,$3879,$06CC,$3482	; lookup_table
+	dc.w $06CC,$3D38,$06CD,$3092,$06CE,$2C41,$06D4,$2D91	; lookup_table
+	dc.w $06D5,$3C40,$06D6,$0843,$06D7,$344B,$06D8,$1043	; lookup_table
+	dc.w $06D8,$11A9,$06D9,$054D,$06D9,$115D,$06DA,$197A	; lookup_table
+	dc.w $06DA,$387C,$06DD,$3532,$06DD,$089F,$06DE,$187F	; lookup_table
+	dc.w $06DE,$10D8,$06DE,$2114,$06E1,$10FD,$06E1,$14C0	; lookup_table
+	dc.w $06E2,$191B,$06E3,$3989,$06E4,$3196,$06E6,$195E	; lookup_table
+	dc.w $06E6,$00AC,$06E7,$2D7F,$06EB,$2C0C,$06EB,$016D	; lookup_table
+	dc.w $06ED,$25A9,$06ED,$3539,$06F2,$3D59,$06F3,$3119	; lookup_table
+	dc.w $06F4,$385C,$06F4,$117D,$06F6,$1061,$06F9,$2126	; lookup_table
+	dc.w $06FE,$3112,$06FE,$38E3,$06FF,$0503,$0700,$0969	; lookup_table
+	dc.w $0701,$01A8,$0702,$055A,$0703,$3483,$0704,$0515	; lookup_table
+	dc.w $0708,$3834,$0709,$24B2,$070C,$2849,$070C,$2C53	; lookup_table
+	dc.w $070D,$0D17,$070D,$2464,$070D,$3001,$070F,$3422	; lookup_table
+	dc.w $0710,$2454,$0711,$00D9,$0713,$0086,$0714,$143D	; lookup_table
+	dc.w $0718,$256E,$0718,$016C,$0718,$2D2D,$0719,$20FD	; lookup_table
+	dc.w $0719,$098B,$0719,$059A,$071A,$0C41,$071B,$0D2F	; lookup_table
+	dc.w $071F,$00DA,$0720,$1D78,$0722,$3106,$0722,$18D9	; lookup_table
+	dc.w $0724,$397D,$0725,$3087,$0727,$0915,$0728,$3CF2	; lookup_table
+	dc.w $072E,$118C,$072E,$0439,$0730,$2D96,$0730,$304D	; lookup_table
+	dc.w $0731,$111A,$0731,$00B1,$0731,$2022,$0733,$3517	; lookup_table
+	dc.w $0733,$1812,$0733,$1051,$0734,$3CD7,$0734,$28B5	; lookup_table
+	dc.w $0734,$34C9,$0735,$2CB5,$0738,$0998,$0738,$0496	; lookup_table
+	dc.w $0739,$093A,$0739,$204F,$073A,$38BC,$073B,$0474	; lookup_table
+	dc.w $073C,$0825,$073D,$351B,$073E,$0C03,$0740,$38D3	; lookup_table
+	dc.w $0741,$3941,$0742,$102E,$0743,$058B,$0744,$3156	; lookup_table
+	dc.w $0745,$05A1,$0748,$0D2F,$0749,$1D4B,$0749,$050D	; lookup_table
+	dc.w $0749,$2804,$0749,$005D,$0749,$1178,$074A,$3C77	; lookup_table
+	dc.w $074A,$2C37,$074B,$1D3D,$074C,$184F,$074F,$245B	; lookup_table
+	dc.w $074F,$38B5,$0752,$24B3,$0753,$1D91,$0754,$1D96	; lookup_table
+	dc.w $0757,$057A,$0757,$1088,$0758,$08BE,$075A,$3939	; lookup_table
+	dc.w $075B,$0188,$075E,$0504,$075E,$0D22,$0760,$0957	; lookup_table
+	dc.w $0762,$212E,$0764,$3CB1,$0766,$246F,$076B,$2815	; lookup_table
+	dc.w $076C,$0471,$076C,$144C,$076C,$1C46,$076D,$24C1	; lookup_table
+	dc.w $076E,$20A1,$0770,$159F,$0771,$1161,$0772,$38D2	; lookup_table
+	dc.w $0776,$2153,$0777,$215F,$0777,$183C,$0778,$18D9	; lookup_table
+	dc.w $077A,$2168,$077A,$1D0E,$077A,$146C,$077A,$20E4	; lookup_table
+	dc.w $077B,$1105,$077D,$2CF6,$077D,$1133,$077F,$18B2	; lookup_table
+	dc.w $0780,$3D66,$0784,$390A,$0784,$34BD,$0784,$0434	; lookup_table
+	dc.w $0789,$0C79,$078E,$052A,$078E,$0492,$078E,$3577	; lookup_table
+	dc.w $078E,$0467,$0790,$0D37,$0790,$0069,$0791,$0153	; lookup_table
+	dc.w $0791,$1D6C,$0791,$09AD,$0791,$10CD,$0793,$0D4C	; lookup_table
+	dc.w $0793,$296C,$0793,$047D,$0793,$2C6D,$0794,$3491	; lookup_table
+	dc.w $0796,$3D47,$0798,$1C95,$0799,$0564,$079A,$119F	; lookup_table
+	dc.w $079B,$116B,$079B,$1C9E,$079B,$2D7A,$079B,$2CEC	; lookup_table
+	dc.w $079E,$14FA,$079E,$0987,$07A1,$00F8,$07A5,$194A	; lookup_table
+	dc.w $07A5,$389F,$07A5,$1C3A,$07A7,$1112,$07A8,$154A	; lookup_table
+	dc.w $07AA,$1484,$07AA,$2C93,$07AC,$2995,$07AC,$0188	; lookup_table
+	dc.w $07AC,$2C63,$07AC,$081F,$07AF,$2C27,$07B0,$24D6	; lookup_table
+	dc.w $07B0,$19A9,$07B1,$1551,$07B5,$28B9,$07B7,$3944	; lookup_table
+	dc.w $07B7,$00E0,$07B9,$2D1B,$07BB,$1995,$07BC,$2CDB	; lookup_table
+	dc.w $07BF,$3C08,$07C1,$0581,$07C3,$3D92,$07C3,$0035	; lookup_table
+	dc.w $07C4,$04A0,$07C6,$14D9,$07C8,$2806,$07C8,$1041	; lookup_table
+	dc.w $07C8,$3CA2,$07CA,$1902,$07CC,$2559,$07CD,$34C2	; lookup_table
+	dc.w $07D0,$0859,$07D0,$218A,$07D1,$149B,$07D3,$3586	; lookup_table
+	dc.w $07D5,$0883,$07D5,$0054,$07D6,$3CD2,$07D6,$2095	; lookup_table
+	dc.w $07D6,$1054,$07D7,$0CB9,$07D9,$0D02,$07D9,$1011	; lookup_table
+	dc.w $07DA,$0C82,$07DB,$0411,$07DC,$2476,$07DD,$054F	; lookup_table
+	dc.w $07DE,$259B,$07DF,$3D40,$07E1,$059A,$07E2,$102E	; lookup_table
+	dc.w $07E5,$2173,$07E8,$3545,$07E8,$1000,$07E8,$20C2	; lookup_table
+	dc.w $07E9,$3528,$07EA,$00DD,$07EB,$0C17,$07EB,$287B	; lookup_table
+	dc.w $07EB,$0475,$07EE,$1C68,$07EE,$1498,$07EF,$102A	; lookup_table
+	dc.w $07F4,$2CFC,$07F6,$3426,$07F8,$24BE,$07F9,$054C	; lookup_table
+	dc.w $07FA,$3D46,$07FB,$1168,$07FC,$28D2,$07FF,$1C5C	; lookup_table
+	dc.w $07FF,$1180,$0800,$08BC,$0802,$3C07,$0803,$24C4	; lookup_table
+	dc.w $0804,$3877,$0805,$0D36,$0806,$1C2D,$0807,$2C27	; lookup_table
+	dc.w $080A,$14B1,$080A,$0C00,$080B,$2482,$080E,$1D39	; lookup_table
+	dc.w $080E,$2451,$080F,$1841,$0811,$2956,$0812,$1C52	; lookup_table
+	dc.w $0815,$0434,$0815,$2469,$0816,$113E,$0817,$2D3C	; lookup_table
+	dc.w $0817,$1C1F,$081B,$0896,$081C,$054C,$081D,$2CCE	; lookup_table
+	dc.w $081E,$357D,$081F,$1142,$0820,$0838,$0821,$1505	; lookup_table
+	dc.w $0822,$218A,$0822,$1CCE,$0824,$0D56,$0824,$2C88	; lookup_table
+	dc.w $0824,$1993,$0825,$1807,$0825,$18D1,$0825,$15AE	; lookup_table
+	dc.w $0825,$09AF,$0826,$3112,$0826,$34C0,$0828,$08FC	; lookup_table
+	dc.w $0828,$0881,$082E,$2444,$082E,$0438,$082E,$199D	; lookup_table
+	dc.w $0831,$2576,$0831,$21A0,$0834,$316A,$0834,$299A	; lookup_table
+	dc.w $0834,$0D95,$0835,$383D,$0836,$3852,$0838,$2D66	; lookup_table
+	dc.w $0838,$0572,$0839,$250B,$083A,$2C48,$083B,$3545	; lookup_table
+	dc.w $083B,$3136,$083D,$0CB4,$0844,$2CD4,$0844,$2C2E	; lookup_table
+	dc.w $084A,$2D16,$084D,$20A1,$084E,$34E4,$084F,$188D	; lookup_table
+	dc.w $0855,$313B,$0856,$3D2B,$0857,$3179,$0857,$3028	; lookup_table
+	dc.w $0857,$3174,$0858,$145F,$0859,$052A,$0859,$0984	; lookup_table
+	dc.w $085A,$2124,$085A,$14A5,$085B,$0D98,$085B,$30D2	; lookup_table
+	dc.w $085D,$10B2,$085D,$0451,$085E,$3C44,$085F,$3974	; lookup_table
+	dc.w $0861,$18E3,$0861,$3574,$0862,$140D,$0863,$143A	; lookup_table
+	dc.w $0863,$1DAF,$0863,$3453,$0865,$21A1,$0865,$1197	; lookup_table
+	dc.w $0866,$14C1,$0866,$2594,$0867,$016D,$0867,$3548	; lookup_table
+	dc.w $086B,$0193,$086F,$3173,$0870,$3467,$0871,$3823	; lookup_table
+	dc.w $0872,$103E,$0872,$1C52,$0873,$2101,$0874,$34EC	; lookup_table
+	dc.w $0875,$3CF0,$0879,$2586,$087B,$210E,$087D,$1475	; lookup_table
+	dc.w $087D,$1921,$087E,$288D,$087F,$0906,$087F,$143C	; lookup_table
+	dc.w $087F,$3840,$0883,$3193,$0883,$0CBC,$0884,$3525	; lookup_table
+	dc.w $0885,$0CD9,$0885,$3D28,$0887,$3D99,$0888,$38EB	; lookup_table
+	dc.w $0889,$3477,$0889,$1478,$088C,$34DE,$088D,$0058	; lookup_table
+	dc.w $088D,$0589,$088F,$0558,$0891,$2069,$0893,$2590	; lookup_table
+	dc.w $0895,$1555,$0896,$2496,$0896,$2961,$0898,$1511	; lookup_table
+	dc.w $0898,$0138,$089A,$20C1,$089A,$041D,$089C,$0134	; lookup_table
+	dc.w $089D,$2C92,$089E,$0007,$089E,$2956,$089E,$2CE4	; lookup_table
+	dc.w $089F,$0C5B,$08A1,$0044,$08A3,$010B,$08A3,$1C9A	; lookup_table
+	dc.w $08A4,$0867,$08A8,$0081,$08AB,$058D,$08AD,$38EC	; lookup_table
+	dc.w $08AD,$3807,$08AF,$203A,$08AF,$0816,$08AF,$1D89	; lookup_table
+	dc.w $08B0,$294A,$08B0,$1C13,$08B2,$1002,$08B5,$354F	; lookup_table
+	dc.w $08B6,$0198,$08B6,$201B,$08B7,$3565,$08B7,$1595	; lookup_table
+	dc.w $08B7,$00F6,$08B8,$2915,$08B9,$2CED,$08BA,$082B	; lookup_table
+	dc.w $08BB,$1061,$08BC,$1C0B,$08BC,$2054,$08BD,$34B0	; lookup_table
+	dc.w $08BD,$20F8,$08BD,$3197,$08BF,$1438,$08BF,$3D4D	; lookup_table
+	dc.w $08C0,$1C1B,$08C1,$0C25,$08C1,$10FD,$08C1,$1182	; lookup_table
+	dc.w $08C2,$3C65,$08C2,$1C24,$08C2,$354E,$08C3,$1D25	; lookup_table
+	dc.w $08C3,$30B5,$08C3,$24BD,$08C4,$2095,$08C5,$28FF	; lookup_table
+	dc.w $08C5,$2C73,$08C6,$0863,$08C7,$3D6B,$08C8,$211B	; lookup_table
+	dc.w $08C8,$0C84,$08C9,$3898,$08C9,$044E,$08CA,$3434	; lookup_table
+	dc.w $08CB,$3D26,$08CC,$34DE,$08CF,$0D46,$08CF,$097E	; lookup_table
+	dc.w $1000,$1002,$1002,$1004,$1006,$1006,$1008,$100A	; lookup_table
+	dc.w $100C,$100C,$100E,$1010,$1010,$1012,$1014,$1014	; lookup_table
+	dc.w $1016,$1018,$101A,$101A,$101C,$101E,$101E,$1020	; lookup_table
+	dc.w $1022,$1022,$1024,$1026,$1028,$1028,$102A,$102C	; lookup_table
+	dc.w $102C,$102E,$1030,$1030,$1032,$1034,$1036,$1036	; lookup_table
+	dc.w $1038,$103A,$103A,$103C,$103E,$103E,$1040,$1042	; lookup_table
+	dc.w $1044,$1044,$1046,$1048,$1048,$104A,$104C,$104C	; lookup_table
+	dc.w $104E,$1050,$1052,$1052,$1054,$1056,$1056,$1058	; lookup_table
+	dc.w $105A,$105C,$105C,$105E,$1060,$1060,$1062,$1064	; lookup_table
+	dc.w $1066,$1066,$1068,$106A,$106A,$106C,$106E,$106E	; lookup_table
+	dc.w $1070,$1072,$1074,$1074,$1076,$1078,$1078,$107A	; lookup_table
+	dc.w $107C,$107E,$107E,$1080,$1082,$1082,$1084,$1086	; lookup_table
+	dc.w $1088,$1088,$108A,$108C,$108E,$108E,$1090,$1092	; lookup_table
+	dc.w $1092,$1094,$1096,$1098,$1098,$109A,$109C,$109C	; lookup_table
+	dc.w $109E,$10A0,$10A2,$10A2,$10A4,$10A6,$10A6,$10A8	; lookup_table
+	dc.w $10AA,$10AC,$10AC,$10AE,$10B0,$10B2,$10B2,$10B4	; lookup_table
+	dc.w $10B6,$10B6,$10B8,$10BA,$10BC,$10BC,$10BE,$10C0	; lookup_table
+	dc.w $10C0,$10C2,$10C4,$10C6,$10C6,$10C8,$10CA,$10CC	; lookup_table
+	dc.w $10CC,$10CE,$10D0,$10D0,$10D2,$10D4,$10D6,$10D6	; lookup_table
+	dc.w $10D8,$10DA,$10DC,$10DC,$10DE,$10E0,$10E0,$10E2	; lookup_table
+	dc.w $10E4,$10E6,$10E6,$10E8,$10EA,$10EC,$10EC,$10EE	; lookup_table
+	dc.w $10F0,$10F2,$10F2,$10F4,$10F6,$10F6,$10F8,$10FA	; lookup_table
+	dc.w $10FC,$10FC,$10FE,$1100,$1102,$1102,$1104,$1106	; lookup_table
+	dc.w $1108,$1108,$110A,$110C,$110E,$110E,$1110,$1112	; lookup_table
+	dc.w $1114,$1114,$1116,$1118,$1118,$111A,$111C,$111E	; lookup_table
+	dc.w $111E,$1120,$1122,$1124,$1124,$1126,$1128,$112A	; lookup_table
+	dc.w $112A,$112C,$112E,$1130,$1130,$1132,$1134,$1136	; lookup_table
+	dc.w $1136,$1138,$113A,$113C,$113C,$113E,$1140,$1142	; lookup_table
+	dc.w $1142,$1144,$1146,$1148,$1148,$114A,$114C,$114E	; lookup_table
+	dc.w $114E,$1150,$1152,$1154,$1154,$1156,$1158,$115A	; lookup_table
+	dc.w $115A,$115C,$115E,$1160,$1160,$1162,$1164,$1166	; lookup_table
+	dc.w $1166,$1168,$116A,$116C,$116C,$116E,$1170,$1172	; lookup_table
+	dc.w $1172,$1174,$1176,$1178,$1178,$117A,$117C,$117E	; lookup_table
+	dc.w $117E,$1180,$1182,$1184,$1184,$1186,$1188,$118A	; lookup_table
+	dc.w $118A,$118C,$118E,$1190,$1192,$1192,$1194,$1196	; lookup_table
+	dc.w $1198,$1198,$119A,$119C,$119E,$119E,$11A0,$11A2	; lookup_table
+	dc.w $11A4,$11A4,$11A6,$11A8,$11AA,$11AC,$11AC,$11AE	; lookup_table
+	dc.w $11B0,$11B2,$11B2,$11B4,$11B6,$11B8,$11B8,$11BA	; lookup_table
+	dc.w $11BC,$11BE,$11BE,$11C0,$11C2,$11C4,$11C6,$11C6	; lookup_table
+	dc.w $11C8,$11CA,$11CC,$11CC,$11CE,$11D0,$11D2,$11D2	; lookup_table
+	dc.w $11D4,$11D6,$11D8,$11DA,$11DA,$11DC,$11DE,$11E0	; lookup_table
+	dc.w $11E0,$11E2,$11E4,$11E6,$11E8,$11E8,$11EA,$11EC	; lookup_table
+	dc.w $11EE,$11EE,$11F0,$11F2,$11F4,$11F6,$11F6,$11F8	; lookup_table
+	dc.w $11FA,$11FC,$11FC,$11FE,$1200,$1202,$1204,$1204	; lookup_table
+	dc.w $1206,$1208,$120A,$120A,$120C,$120E,$1210,$1212	; lookup_table
+	dc.w $1212,$1214,$1216,$1218,$121A,$121A,$121C,$121E	; lookup_table
+	dc.w $1220,$1220,$1222,$1224,$1226,$1228,$1228,$122A	; lookup_table
+	dc.w $122C,$122E,$1230,$1230,$1232,$1234,$1236,$1236	; lookup_table
+	dc.w $1238,$123A,$123C,$123E,$123E,$1240,$1242,$1244	; lookup_table
+	dc.w $1246,$1246,$1248,$124A,$124C,$124E,$124E,$1250	; lookup_table
+	dc.w $1252,$1254,$1254,$1256,$1258,$125A,$125C,$125C	; lookup_table
+	dc.w $125E,$1260,$1262,$1264,$1264,$1266,$1268,$126A	; lookup_table
+	dc.w $126C,$126C,$126E,$1270,$1272,$1274,$1274,$1276	; lookup_table
+	dc.w $1278,$127A,$127C,$127C,$127E,$1280,$1282,$1284	; lookup_table
+	dc.w $1284,$1286,$1288,$128A,$128C,$128C,$128E,$1290	; lookup_table
+	dc.w $1292,$1294,$1294,$1296,$1298,$129A,$129C,$129E	; lookup_table
+	dc.w $129E,$12A0,$12A2,$12A4,$12A6,$12A6,$12A8,$12AA	; lookup_table
+	dc.w $12AC,$12AE,$12AE,$12B0,$12B2,$12B4,$12B6,$12B6	; lookup_table
+	dc.w $12B8,$12BA,$12BC,$12BE,$12BE,$12C0,$12C2,$12C4	; lookup_table
+	dc.w $12C6,$12C8,$12C8,$12CA,$12CC,$12CE,$12D0,$12D0	; lookup_table
+	dc.w $12D2,$12D4,$12D6,$12D8,$12DA,$12DA,$12DC,$12DE	; lookup_table
+	dc.w $12E0,$12E2,$12E2,$12E4,$12E6,$12E8,$12EA,$12EC	; lookup_table
+	dc.w $12EC,$12EE,$12F0,$12F2,$12F4,$12F4,$12F6,$12F8	; lookup_table
+	dc.w $12FA,$12FC,$12FE,$12FE,$1300,$1302,$1304,$1306	; lookup_table
+	dc.w $1306,$1308,$130A,$130C,$130E,$1310,$1310,$1312	; lookup_table
+	dc.w $1314,$1316,$1318,$131A,$131A,$131C,$131E,$1320	; lookup_table
+	dc.w $1322,$1324,$1324,$1326,$1328,$132A,$132C,$132E	; lookup_table
+	dc.w $132E,$1330,$1332,$1334,$1336,$1338,$1338,$133A	; lookup_table
+	dc.w $133C,$133E,$1340,$1342,$1342,$1344,$1346,$1348	; lookup_table
+	dc.w $134A,$134C,$134C,$134E,$1350,$1352,$1354,$1356	; lookup_table
+	dc.w $1356,$1358,$135A,$135C,$135E,$1360,$1360,$1362	; lookup_table
+	dc.w $1364,$1366,$1368,$136A,$136A,$136C,$136E,$1370	; lookup_table
+	dc.w $1372,$1374,$1376,$1376,$1378,$137A,$137C,$137E	; lookup_table
+	dc.w $1380,$1380,$1382,$1384,$1386,$1388,$138A,$138A	; lookup_table
+	dc.w $138C,$138E,$1390,$1392,$1394,$1396,$1396,$1398	; lookup_table
+	dc.w $139A,$139C,$139E,$13A0,$13A2,$13A2,$13A4,$13A6	; lookup_table
+	dc.w $13A8,$13AA,$13AC,$13AC,$13AE,$13B0,$13B2,$13B4	; lookup_table
+	dc.w $13B6,$13B8,$13B8,$13BA,$13BC,$13BE,$13C0,$13C2	; lookup_table
+	dc.w $13C4,$13C4,$13C6,$13C8,$13CA,$13CC,$13CE,$13D0	; lookup_table
+	dc.w $13D0,$13D2,$13D4,$13D6,$13D8,$13DA,$13DC,$13DC	; lookup_table
+	dc.w $13DE,$13E0,$13E2,$13E4,$13E6,$13E8,$13E8,$13EA	; lookup_table
+	dc.w $13EC,$13EE,$13F0,$13F2,$13F4,$13F6,$13F6,$13F8	; lookup_table
+	dc.w $13FA,$13FC,$13FE,$1400,$1402,$1402,$1404,$1406	; lookup_table
+	dc.w $1408,$140A,$140C,$140E,$1410,$1410,$1412,$1414	; lookup_table
+	dc.w $1416,$1418,$141A,$141C,$141E,$141E,$1420,$1422	; lookup_table
+	dc.w $1424,$1426,$1428,$142A,$142A,$142C,$142E,$1430	; lookup_table
+	dc.w $1432,$1434,$1436,$1438,$1438,$143A,$143C,$143E	; lookup_table
+	dc.w $1440,$1442,$1444,$1446,$1448,$1448,$144A,$144C	; lookup_table
+	dc.w $144E,$1450,$1452,$1454,$1456,$1456,$1458,$145A	; lookup_table
+	dc.w $145C,$145E,$1460,$1462,$1464,$1464,$1466,$1468	; lookup_table
+	dc.w $146A,$146C,$146E,$1470,$1472,$1474,$1474,$1476	; lookup_table
+	dc.w $1478,$147A,$147C,$147E,$1480,$1482,$1484,$1484	; lookup_table
+	dc.w $1486,$1488,$148A,$148C,$148E,$1490,$1492,$1494	; lookup_table
+	dc.w $1494,$1496,$1498,$149A,$149C,$149E,$14A0,$14A2	; lookup_table
+	dc.w $14A4,$14A4,$14A6,$14A8,$14AA,$14AC,$14AE,$14B0	; lookup_table
+	dc.w $14B2,$14B4,$14B6,$14B6,$14B8,$14BA,$14BC,$14BE	; lookup_table
+	dc.w $14C0,$14C2,$14C4,$14C6,$14C8,$14C8,$14CA,$14CC	; lookup_table
+	dc.w $14CE,$14D0,$14D2,$14D4,$14D6,$14D8,$14DA,$14DA	; lookup_table
+	dc.w $14DC,$14DE,$14E0,$14E2,$14E4,$14E6,$14E8,$14EA	; lookup_table
+	dc.w $14EC,$14EC,$14EE,$14F0,$14F2,$14F4,$14F6,$14F8	; lookup_table
+	dc.w $14FA,$14FC,$14FE,$1500,$1500,$1502,$1504,$1506	; lookup_table
+	dc.w $1508,$150A,$150C,$150E,$1510,$1512,$1514,$1516	; lookup_table
+	dc.w $1516,$1518,$151A,$151C,$151E,$1520,$1522,$1524	; lookup_table
+	dc.w $1526,$1528,$152A,$152A,$152C,$152E,$1530,$1532	; lookup_table
+	dc.w $1534,$1536,$1538,$153A,$153C,$153E,$1540,$1542	; lookup_table
+	dc.w $1542,$1544,$1546,$1548,$154A,$154C,$154E,$1550	; lookup_table
+	dc.w $1552,$1554,$1556,$1558,$155A,$155A,$155C,$155E	; lookup_table
+	dc.w $1560,$1562,$1564,$1566,$1568,$156A,$156C,$156E	; lookup_table
+	dc.w $1570,$1572,$1572,$1574,$1576,$1578,$157A,$157C	; lookup_table
+	dc.w $157E,$1580,$1582,$1584,$1586,$1588,$158A,$158C	; lookup_table
+	dc.w $158E,$158E,$1590,$1592,$1594,$1596,$1598,$159A	; lookup_table
+	dc.w $159C,$159E,$15A0,$15A2,$15A4,$15A6,$15A8,$15AA	; lookup_table
+	dc.w $15AC,$15AC,$15AE,$15B0,$15B2,$15B4,$15B6,$15B8	; lookup_table
+	dc.w $15BA,$15BC,$15BE,$15C0,$15C2,$15C4,$15C6,$15C8	; lookup_table
+	dc.w $15CA,$15CC,$15CC,$15CE,$15D0,$15D2,$15D4,$15D6	; lookup_table
+	dc.w $15D8,$15DA,$15DC,$15DE,$15E0,$15E2,$15E4,$15E6	; lookup_table
+	dc.w $15E8,$15EA,$15EC,$15EE,$15F0,$15F0,$15F2,$15F4	; lookup_table
+	dc.w $15F6,$15F8,$15FA,$15FC,$15FE,$1600,$1602,$1604	; lookup_table
+	dc.w $1606,$1608,$160A,$160C,$160E,$1610,$1612,$1614	; lookup_table
+	dc.w $1616,$1618,$1618,$161A,$161C,$161E,$1620,$1622	; lookup_table
+	dc.w $1624,$1626,$1628,$162A,$162C,$162E,$1630,$1632	; lookup_table
+	dc.w $1634,$1636,$1638,$163A,$163C,$163E,$1640,$1642	; lookup_table
+	dc.w $1644,$1646,$1648,$164A,$164A,$164C,$164E,$1650	; lookup_table
+	dc.w $1652,$1654,$1656,$1658,$165A,$165C,$165E,$1660	; lookup_table
+	dc.w $1662,$1664,$1666,$1668,$166A,$166C,$166E,$1670	; lookup_table
+	dc.w $1672,$1674,$1676,$1678,$167A,$167C,$167E,$1680	; lookup_table
+	dc.w $1682,$1684,$1686,$1688,$168A,$168C,$168E,$1690	; lookup_table
+	dc.w $1690,$1692,$1694,$1696,$1698,$169A,$169C,$169E	; lookup_table
+	dc.w $16A0,$16A2,$16A4,$16A6,$16A8,$16AA,$16AC,$16AE	; lookup_table
+	dc.w $16B0,$16B2,$16B4,$16B6,$16B8,$16BA,$16BC,$16BE	; lookup_table
+	dc.w $16C0,$16C2,$16C4,$16C6,$16C8,$16CA,$16CC,$16CE	; lookup_table
+	dc.w $16D0,$16D2,$16D4,$16D6,$16D8,$16DA,$16DC,$16DE	; lookup_table
+	dc.w $16E0,$16E2,$16E4,$16E6,$16E8,$16EA,$16EC,$16EE	; lookup_table
+	dc.w $16F0,$16F2,$16F4,$16F6,$16F8,$16FA,$16FC,$16FE	; lookup_table
+	dc.w $1700,$1702,$1704,$1706,$1708,$170A,$170C,$170E	; lookup_table
+	dc.w $1710,$1712,$1714,$1716,$1718,$171A,$171C,$171E	; lookup_table
+	dc.w $1720,$1722,$1724,$1726,$1728,$172A,$172C,$172E	; lookup_table
+	dc.w $1730,$1732,$1734,$1736,$1738,$173A,$173C,$173E	; lookup_table
+	dc.w $1740,$1742,$1744,$1746,$1748,$174A,$174C,$174E	; lookup_table
+	dc.w $1750,$1752,$1754,$1756,$1758,$175A,$175C,$175E	; lookup_table
+	dc.w $1760,$1762,$1764,$1766,$1768,$176A,$176C,$176E	; lookup_table
+	dc.w $1770,$1772,$1774,$1776,$1778,$177A,$177C,$177E	; lookup_table
+	dc.w $1780,$1782,$1784,$1786,$1788,$178A,$178C,$178E	; lookup_table
+	dc.w $1790,$1792,$1794,$1796,$1798,$179A,$179C,$17A0	; lookup_table
+	dc.w $17A2,$17A4,$17A6,$17A8,$17AA,$17AC,$17AE,$17B0	; lookup_table
+	dc.w $17B2,$17B4,$17B6,$17B8,$17BA,$17BC,$17BE,$17C0	; lookup_table
+	dc.w $17C2,$17C4,$17C6,$17C8,$17CA,$17CC,$17CE,$17D0	; lookup_table
+	dc.w $17D2,$17D4,$17D6,$17D8,$17DA,$17DC,$17DE,$17E0	; lookup_table
+	dc.w $17E2,$17E6,$17E8,$17EA,$17EC,$17EE,$17F0,$17F2	; lookup_table
+	dc.w $17F4,$17F6,$17F8,$17FA,$17FC,$17FE,$1800,$1802	; lookup_table
+	dc.w $1804,$1806,$1808,$180A,$180C,$180E,$1810,$1812	; lookup_table
+	dc.w $1814,$1816,$1818,$181C,$181E,$1820,$1822,$1824	; lookup_table
+	dc.w $1826,$1828,$182A,$182C,$182E,$1830,$1832,$1834	; lookup_table
+	dc.w $1836,$1838,$183A,$183C,$183E,$1840,$1842,$1846	; lookup_table
+	dc.w $1848,$184A,$184C,$184E,$1850,$1852,$1854,$1856	; lookup_table
+	dc.w $1858,$185A,$185C,$185E,$1860,$1862,$1864,$1866	; lookup_table
+	dc.w $1868,$186A,$186E,$1870,$1872,$1874,$1876,$1878	; lookup_table
+	dc.w $187A,$187C,$187E,$1880,$1882,$1884,$1886,$1888	; lookup_table
+	dc.w $188A,$188C,$1890,$1892,$1894,$1896,$1898,$189A	; lookup_table
+	dc.w $189C,$189E,$18A0,$18A2,$18A4,$18A6,$18A8,$18AA	; lookup_table
+	dc.w $18AC,$18B0,$18B2,$18B4,$18B6,$18B8,$18BA,$18BC	; lookup_table
+	dc.w $18BE,$18C0,$18C2,$18C4,$18C6,$18C8,$18CA,$18CE	; lookup_table
+	dc.w $18D0,$18D2,$18D4,$18D6,$18D8,$18DA,$18DC,$18DE	; lookup_table
+	dc.w $18E0,$18E2,$18E4,$18E6,$18EA,$18EC,$18EE,$18F0	; lookup_table
+	dc.w $18F2,$18F4,$18F6,$18F8,$18FA,$18FC,$18FE,$1900	; lookup_table
+	dc.w $1902,$1906,$1908,$190A,$190C,$190E,$1910,$1912	; lookup_table
+	dc.w $1914,$1916,$1918,$191A,$191E,$1920,$1922,$1924	; lookup_table
+	dc.w $1926,$1928,$192A,$192C,$192E,$1930,$1932,$1936	; lookup_table
+	dc.w $1938,$193A,$193C,$193E,$1940,$1942,$1944,$1946	; lookup_table
+	dc.w $1948,$194A,$194E,$1950,$1952,$1954,$1956,$1958	; lookup_table
+	dc.w $195A,$195C,$195E,$1960,$1964,$1966,$1968,$196A	; lookup_table
+	dc.w $196C,$196E,$1970,$1972,$1974,$1976,$197A,$197C	; lookup_table
+	dc.w $197E,$1980,$1982,$1984,$1986,$1988,$198A,$198C	; lookup_table
+	dc.w $1990,$1992,$1994,$1996,$1998,$199A,$199C,$199E	; lookup_table
+	dc.w $19A0,$19A4,$19A6,$19A8,$19AA,$19AC,$19AE,$19B0	; lookup_table
+	dc.w $19B2,$19B4,$19B8,$19BA,$19BC,$19BE,$19C0,$19C2	; lookup_table
+	dc.w $19C4,$19C6,$19CA,$19CC,$19CE,$19D0,$19D2,$19D4	; lookup_table
+	dc.w $19D6,$19D8,$19DA,$19DE,$19E0,$19E2,$19E4,$19E6	; lookup_table
+	dc.w $19E8,$19EA,$19EC,$19F0,$19F2,$19F4,$19F6,$19F8	; lookup_table
+	dc.w $19FA,$19FC,$19FE,$1A02,$1A04,$1A06,$1A08,$1A0A	; lookup_table
+	dc.w $1A0C,$1A0E,$1A10,$1A14,$1A16,$1A18,$1A1A,$1A1C	; lookup_table
+	dc.w $1A1E,$1A20,$1A24,$1A26,$1A28,$1A2A,$1A2C,$1A2E	; lookup_table
+	dc.w $1A30,$1A32,$1A36,$1A38,$1A3A,$1A3C,$1A3E,$1A40	; lookup_table
+	dc.w $1A42,$1A46,$1A48,$1A4A,$1A4C,$1A4E,$1A50,$1A52	; lookup_table
+	dc.w $1A56,$1A58,$1A5A,$1A5C,$1A5E,$1A60,$1A62,$1A66	; lookup_table
+	dc.w $1A68,$1A6A,$1A6C,$1A6E,$1A70,$1A72,$1A76,$1A78	; lookup_table
+	dc.w $1A7A,$1A7C,$1A7E,$1A80,$1A82,$1A86,$1A88,$1A8A	; lookup_table
+	dc.w $1A8C,$1A8E,$1A90,$1A92,$1A96,$1A98,$1A9A,$1A9C	; lookup_table
+	dc.w $1A9E,$1AA0,$1AA4,$1AA6,$1AA8,$1AAA,$1AAC,$1AAE	; lookup_table
+	dc.w $1AB0,$1AB4,$1AB6,$1AB8,$1ABA,$1ABC,$1ABE,$1AC2	; lookup_table
+	dc.w $1AC4,$1AC6,$1AC8,$1ACA,$1ACC,$1AD0,$1AD2,$1AD4	; lookup_table
+	dc.w $1AD6,$1AD8,$1ADA,$1ADC,$1AE0,$1AE2,$1AE4,$1AE6	; lookup_table
+	dc.w $1AE8,$1AEA,$1AEE,$1AF0,$1AF2,$1AF4,$1AF6,$1AF8	; lookup_table
+	dc.w $1AFC,$1AFE,$1B00,$1B02,$1B04,$1B06,$1B0A,$1B0C	; lookup_table
+	dc.w $1B0E,$1B10,$1B12,$1B16,$1B18,$1B1A,$1B1C,$1B1E	; lookup_table
+	dc.w $1B20,$1B24,$1B26,$1B28,$1B2A,$1B2C,$1B2E,$1B32	; lookup_table
+	dc.w $1B34,$1B36,$1B38,$1B3A,$1B3E,$1B40,$1B42,$1B44	; lookup_table
+	dc.w $1B46,$1B48,$1B4C,$1B4E,$1B50,$1B52,$1B54,$1B58	; lookup_table
+	dc.w $1B5A,$1B5C,$1B5E,$1B60,$1B62,$1B66,$1B68,$1B6A	; lookup_table
+	dc.w $1B6C,$1B6E,$1B72,$1B74,$1B76,$1B78,$1B7A,$1B7E	; lookup_table
+	dc.w $1B80,$1B82,$1B84,$1B86,$1B8A,$1B8C,$1B8E,$1B90	; lookup_table
+	dc.w $1B92,$1B94,$1B98,$1B9A,$1B9C,$1B9E,$1BA0,$1BA4	; lookup_table
+	dc.w $1BA6,$1BA8,$1BAA,$1BAC,$1BB0,$1BB2,$1BB4,$1BB6	; lookup_table
+	dc.w $1BB8,$1BBC,$1BBE,$1BC0,$1BC2,$1BC4,$1BC8,$1BCA	; lookup_table
+	dc.w $1BCC,$1BCE,$1BD0,$1BD4,$1BD6,$1BD8,$1BDA,$1BDC	; lookup_table
+	dc.w $1BE0,$1BE2,$1BE4,$1BE6,$1BEA,$1BEC,$1BEE,$1BF0	; lookup_table
+	dc.w $1BF2,$1BF6,$1BF8,$1BFA,$1BFC,$1BFE,$1C02,$1C04	; lookup_table
+	dc.w $1C06,$1C08,$1C0C,$1C0E,$1C10,$1C12,$1C14,$1C18	; lookup_table
+	dc.w $1C1A,$1C1C,$1C1E,$1C20,$1C24,$1C26,$1C28,$1C2A	; lookup_table
+	dc.w $1C2E,$1C30,$1C32,$1C34,$1C36,$1C3A,$1C3C,$1C3E	; lookup_table
+	dc.w $1C40,$1C44,$1C46,$1C48,$1C4A,$1C4C,$1C50,$1C52	; lookup_table
+	dc.w $1C54,$1C56,$1C5A,$1C5C,$1C5E,$1C60,$1C64,$1C66	; lookup_table
+	dc.w $1C68,$1C6A,$1C6C,$1C70,$1C72,$1C74,$1C76,$1C7A	; lookup_table
+	dc.w $1C7C,$1C7E,$1C80,$1C84,$1C86,$1C88,$1C8A,$1C8C	; lookup_table
+	dc.w $1C90,$1C92,$1C94,$1C96,$1C9A,$1C9C,$1C9E,$1CA0	; lookup_table
+	dc.w $1CA4,$1CA6,$1CA8,$1CAA,$1CAE,$1CB0,$1CB2,$1CB4	; lookup_table
+	dc.w $1CB8,$1CBA,$1CBC,$1CBE,$1CC2,$1CC4,$1CC6,$1CC8	; lookup_table
+	dc.w $1CCC,$1CCE,$1CD0,$1CD2,$1CD6,$1CD8,$1CDA,$1CDC	; lookup_table
+	dc.w $1CE0,$1CE2,$1CE4,$1CE6,$1CEA,$1CEC,$1CEE,$1CF0	; lookup_table
+	dc.w $1CF4,$1CF6,$1CF8,$1CFA,$1CFE,$1D00,$1D02,$1D04	; lookup_table
+	dc.w $1D08,$1D0A,$1D0C,$1D0E,$1D12,$1D14,$1D16,$1D18	; lookup_table
+	dc.w $1D1C,$1D1E,$1D20,$1D22,$1D26,$1D28,$1D2A,$1D2E	; lookup_table
+	dc.w $1D30,$1D32,$1D34,$1D38,$1D3A,$1D3C,$1D3E,$1D42	; lookup_table
+	dc.w $1D44,$1D46,$1D48,$1D4C,$1D4E,$1D50,$1D54,$1D56	; lookup_table
+	dc.w $1D58,$1D5A,$1D5E,$1D60,$1D62,$1D64,$1D68,$1D6A	; lookup_table
+	dc.w $1D6C,$1D70,$1D72,$1D74,$1D76,$1D7A,$1D7C,$1D7E	; lookup_table
+	dc.w $1D80,$1D84,$1D86,$1D88,$1D8C,$1D8E,$1D90,$1D92	; lookup_table
+	dc.w $1D96,$1D98,$1D9A,$1D9E,$1DA0,$1DA2,$1DA4,$1DA8	; lookup_table
+	dc.w $1DAA,$1DAC,$1DB0,$1DB2,$1DB4,$1DB6,$1DBA,$1DBC	; lookup_table
+	dc.w $1DBE,$1DC2,$1DC4,$1DC6,$1DC8,$1DCC,$1DCE,$1DD0	; lookup_table
+	dc.w $1DD4,$1DD6,$1DD8,$1DDA,$1DDE,$1DE0,$1DE2,$1DE6	; lookup_table
+	dc.w $1DE8,$1DEA,$1DEE,$1DF0,$1DF2,$1DF4,$1DF8,$1DFA	; lookup_table
+	dc.w $1DFC,$1E00,$1E02,$1E04,$1E06,$1E0A,$1E0C,$1E0E	; lookup_table
+	dc.w $1E12,$1E14,$1E16,$1E1A,$1E1C,$1E1E,$1E22,$1E24	; lookup_table
+	dc.w $1E26,$1E28,$1E2C,$1E2E,$1E30,$1E34,$1E36,$1E38	; lookup_table
+	dc.w $1E3C,$1E3E,$1E40,$1E44,$1E46,$1E48,$1E4A,$1E4E	; lookup_table
+	dc.w $1E50,$1E52,$1E56,$1E58,$1E5A,$1E5E,$1E60,$1E62	; lookup_table
+	dc.w $1E66,$1E68,$1E6A,$1E6E,$1E70,$1E72,$1E76,$1E78	; lookup_table
+	dc.w $1E7A,$1E7C,$1E80,$1E82,$1E84,$1E88,$1E8A,$1E8C	; lookup_table
+	dc.w $1E90,$1E92,$1E94,$1E98,$1E9A,$1E9C,$1EA0,$1EA2	; lookup_table
+	dc.w $1EA4,$1EA8,$1EAA,$1EAC,$1EB0,$1EB2,$1EB4,$1EB8	; lookup_table
+	dc.w $1EBA,$1EBC,$1EC0,$1EC2,$1EC4,$1EC8,$1ECA,$1ECC	; lookup_table
+	dc.w $1ED0,$1ED2,$1ED4,$1ED8,$1EDA,$1EDC,$1EE0,$1EE2	; lookup_table
+	dc.w $1EE4,$1EE8,$1EEA,$1EEC,$1EF0,$1EF2,$1EF4,$1EF8	; lookup_table
+	dc.w $1EFA,$1EFC,$1F00,$1F02,$1F04,$1F08,$1F0A,$1F0C	; lookup_table
+	dc.w $1F10,$1F12,$1F14,$1F18,$1F1A,$1F1E,$1F20,$1F22	; lookup_table
+	dc.w $1F26,$1F28,$1F2A,$1F2E,$1F30,$1F32,$1F36,$1F38	; lookup_table
+	dc.w $1F3A,$1F3E,$1F40,$1F42,$1F46,$1F48,$1F4C,$1F4E	; lookup_table
+	dc.w $1F50,$1F54,$1F56,$1F58,$1F5C,$1F5E,$1F60,$1F64	; lookup_table
+	dc.w $1F66,$1F68,$1F6C,$1F6E,$1F72,$1F74,$1F76,$1F7A	; lookup_table
+	dc.w $1F7C,$1F7E,$1F82,$1F84,$1F86,$1F8A,$1F8C,$1F90	; lookup_table
+	dc.w $1F92,$1F94,$1F98,$1F9A,$1F9C,$1FA0,$1FA2,$1FA6	; lookup_table
+	dc.w $1FA8,$1FAA,$1FAE,$1FB0,$1FB2,$1FB6,$1FB8,$1FBA	; lookup_table
+	dc.w $1FBE,$1FC0,$1FC4,$1FC6,$1FC8,$1FCC,$1FCE,$1FD2	; lookup_table
+	dc.w $1FD4,$1FD6,$1FDA,$1FDC,$1FDE,$1FE2,$1FE4,$1FE8	; lookup_table
+	dc.w $1FEA,$1FEC,$1FF0,$1FF2,$1FF4,$1FF8,$1FFA,$1FFE	; lookup_table
 	dc.b $F0,$00,$EF,$FE,$EF,$FE,$EF,$FC,$EF,$FA,$EF,$FA,$EF,$F8,$EF,$F6
 	dc.b $EF,$F4,$EF,$F4,$EF,$F2,$EF,$F0,$EF,$F0,$EF,$EE,$EF,$EC,$EF,$EC
 	dc.b $EF,$EA,$EF,$E8,$EF,$E6,$EF,$E6,$EF,$E4,$EF,$E2,$EF,$E2,$EF,$E0
@@ -55958,178 +49322,28 @@ abs_0_00064000:
 	dc.b $FF,$F0
 	dcb.b $FE,$00
 abs_0_00066100:
-	dc.w $000E	; lookup_table
-	dc.w $040E
-	dc.w $040E
-	dc.w $0B06
-	dc.w $0F06
-	dc.w $1306
-	dc.w $1706
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $7F80
-	dc.w $7F80
-	dc.w $7F80
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $4000
-	dc.w $7FC0
-	dc.w $7FC0
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $3F00
-	dc.w $0000
-	dc.w $7FE0
-	dc.w $40E0
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $0000
-	dc.w $08A0
-	dc.w $1407
-	dc.w $18E3
-	dc.w $0446
-	dc.w $0000
+	dc.w $000E,$040E,$040E,$0B06,$0F06,$1306,$1706,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $7F80,$7F80,$7F80,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $4000,$7FC0,$7FC0,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$3F00	; lookup_table
+	dc.w $0000,$7FE0,$40E0,$0000,$0000,$0000,$0000,$0000	; lookup_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$08A0	; lookup_table
+	dc.w $1407,$18E3,$0446,$0000	; lookup_table
 	dc.b $9C,$77,$1C,$77,$9C,$67,$00,$20,$8F,$40,$8F,$60,$8F,$40,$00,$00
 	dc.b $78,$78,$78,$78,$78,$78,$08,$20,$14,$4C,$18,$67,$04,$4F,$00,$00
 	dc.b $D2,$88,$9E,$FF,$5C,$F7,$00,$20,$50,$C0,$DF,$E0,$8F,$40,$00,$00
