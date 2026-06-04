@@ -218,8 +218,13 @@ def test_code1_main_source_quality_explain_uses_macos_code_resource_shape(tmp_pa
     explanation = source_quality_explain_project_source_with_c_backend(source)
     profile = cast(dict[str, object], explanation["profile"])
     source_quality = cast(dict[str, object], explanation["source_quality"])
+    source_analysis = cast(dict[str, object], explanation["source_analysis"])
 
     assert profile["backend"] == "macos-code"
     assert profile["generation"] == "facts_v2_source_quality_explain"
     assert "source_quality_explanation_count" in source_quality
     assert "sections" in source_quality
+    assert source_analysis["section_count"] == 1
+    sections = cast(list[dict[str, object]], source_analysis["sections"])
+    assert sections[0]["accepted_code_run_count"] == 1
+    assert sections[0]["symbol_origin_count"] == 1

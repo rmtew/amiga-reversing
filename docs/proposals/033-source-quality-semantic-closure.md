@@ -3890,6 +3890,40 @@ Migration path:
 4. Delete Python semantic closeout calculations and fixture-only status text.
 ```
 
+The first enabling step is now in place: the C source-quality explain API
+exports full `source_analysis` JSON alongside the existing blocker explanation
+packet:
+
+```json
+{
+  "source_quality": {
+    "source_quality_explanation_count": 0,
+    "sections": []
+  },
+  "source_analysis": {
+    "section_count": 1,
+    "sections": [
+      {
+        "accepted_code_run_count": 1,
+        "symbol_origin_count": 1
+      }
+    ]
+  },
+  "profile": {
+    "generation": "facts_v2_source_quality_explain",
+    "backend": "macos-code"
+  }
+}
+```
+
+That does not finish the Mac OS gate migration. It removes the tooling excuse:
+Python can now read the C-owned code runs, symbol origins, diagnostics,
+expected accesses, and platform facts from the same explain packet used by
+source-export failure reporting. The next Slice 8 work is to replace
+`macos_source_quality_gate_v1` calculations with presentation over those
+exported C rows, adding any missing C facts instead of re-deriving them in
+Python.
+
 No platform gets an exception: Amiga, Atari, Mac OS, and raw targets all use the
 same rule that source-quality meaning is produced by C.
 

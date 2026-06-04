@@ -10560,6 +10560,7 @@ static PlatformFileTextResult facts_v2_source_quality_explain_object_json(const 
   PlatformFileWorkflow workflow;
   char *source_text = NULL;
   char *explanation_json = NULL;
+  char *analysis_json = NULL;
   int json_result;
   memset(&result, 0, sizeof(result));
   memset(&workflow, 0, sizeof(workflow));
@@ -10580,10 +10581,14 @@ static PlatformFileTextResult facts_v2_source_quality_explain_object_json(const 
   }
   json_result = source_analysis_source_quality_explanations_to_json(workflow.analysis, &explanation_json,
     m68k_diag_sink(&result.diagnostics));
+  if (json_result == 0)
+    json_result = source_analysis_to_json(workflow.analysis, &analysis_json, m68k_diag_sink(&result.diagnostics));
   if (json_result == 0) {
     if (json_builder_create(&builder) != 0 ||
         json_builder_append(&builder, "{\"source_quality\":") != 0 ||
         json_builder_append(&builder, explanation_json) != 0 ||
+        json_builder_append(&builder, ",\"source_analysis\":") != 0 ||
+        json_builder_append(&builder, analysis_json) != 0 ||
         json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_source_quality_explain\","
           "\"backend\":") != 0 ||
         json_builder_append_json_string(&builder, backend_name) != 0 ||
@@ -10604,6 +10609,7 @@ cleanup:
   json_builder_destroy(&builder);
   m68k_facts_v2_free_text(source_text);
   platform_file_free_text(explanation_json);
+  platform_file_free_text(analysis_json);
   platform_file_workflow_destroy(&workflow);
   return result;
 }
