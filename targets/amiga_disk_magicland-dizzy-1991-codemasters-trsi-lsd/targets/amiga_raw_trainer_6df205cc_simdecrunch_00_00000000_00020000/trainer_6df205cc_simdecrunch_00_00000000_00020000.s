@@ -40,8 +40,6 @@ _ciab	EQU	$BFD000
 _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF
 DMAF_CLRALL	EQU	$7FFF
-sprite_00030DCE	EQU	$30DCE
-sprite_0002142E	EQU	$2142E
 absolute_slot_000000C0	EQU	$C0
 
     SECTION code,code
@@ -225,12 +223,12 @@ abs_0_000201DA:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
 abs_0_000202FC:
-	move.l #sprite_00030DCE,d0
+	move.l #$30DCE,d0
 	lea.l abs_0_0002153A.l,a0
 	move.w d0,$0006(a0)
 	swap.w d0
 	move.w d0,$0002(a0)
-	move.l #sprite_0002142E,d0
+	move.l #$2142E,d0
 	lea.l abs_0_0002153A.l,a0
 	addq.l #8,a0
 	moveq.l #6,d1
@@ -243,12 +241,12 @@ abs_0_00020322:
 	dbf.w d1,abs_0_00020322
 	rts
 abs_0_00020336:
-	move.l #sprite_00030DCE,d0
+	move.l #$30DCE,d0
 	lea.l abs_0_0002168A.l,a0
 	move.w d0,$0006(a0)
 	swap.w d0
 	move.w d0,$0002(a0)
-	move.l #sprite_0002142E,d0
+	move.l #$2142E,d0
 	lea.l abs_0_0002168A.l,a0
 	addq.l #8,a0
 	moveq.l #6,d1

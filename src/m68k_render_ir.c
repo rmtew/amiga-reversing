@@ -8853,11 +8853,13 @@ static int operand_is_memory_reference_for_overlap_guard(const M68kOperandIR *op
 }
 
 static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes,
     const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
   size_t operand_index;
   const M68kSimFormMetadata *metadata;
+  uint8_t has_source_analysis_section = 0U;
   if (lookup == NULL || section == NULL || candidate == NULL || instruction == NULL) return 0;
+  has_source_analysis_section = source_analysis_section_for_render(source_analysis, section->section_index) != NULL;
   metadata = m68k_sim_metadata_for_instruction(instruction);
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     const M68kFact *fact;
@@ -8867,7 +8869,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
     if (operand->symbol_ref.has_name != 0U) continue;
     fact = lookup_runtime_address_ref_for_operand(lookup, section->section_index, candidate->offset, operand_index);
     if (fact == NULL) continue;
-    if (fact->has_sink_address && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
+    if (!has_source_analysis_section && fact->has_sink_address && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
       const char *role;
       uint32_t value = 0U;
       char symbol[80];
@@ -8881,7 +8883,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
         }
       }
     }
-    if (fact->target_section_index >= lookup->section_count) {
+    if (!has_source_analysis_section && fact->target_section_index >= lookup->section_count) {
       const char *role;
       uint32_t value = 0U;
       char symbol[80];
@@ -9499,7 +9501,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       &instruction)) {
     return 0;
   }
-  if (!attach_runtime_address_ref_symbols(preview, lookup, section, accepted_bytes, candidate, &instruction))
+  if (!attach_runtime_address_ref_symbols(preview, lookup, source_analysis, section, accepted_bytes, candidate,
+      &instruction))
     return 0;
   if (!attach_existing_materialized_runtime_immediate_symbols(preview, lookup, section->section_index,
       &instruction)) {

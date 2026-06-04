@@ -25,7 +25,6 @@
     INCLUDE "hardware/intbits.i"
 
 _custom	EQU	$DFF000
-copper_list_00042000	EQU	$42000
 _ciaa	EQU	$BFE001
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF1P2	EQU	$4
@@ -122,7 +121,7 @@ abs_0_00040144:
 	cmpa.l a2,a1
 	bne.w abs_0_00040144
 	move.w #DMAF_SPRITE,_custom+dmacon.l
-	movea.l #copper_list_00042000,a0
+	movea.l #abs_0_000402D2+7470,a0
 	move.l a0,_custom+cop1lc.l	; copper_list pointer
 	move.w #$45,d3
 	movea.l #$44000,a0

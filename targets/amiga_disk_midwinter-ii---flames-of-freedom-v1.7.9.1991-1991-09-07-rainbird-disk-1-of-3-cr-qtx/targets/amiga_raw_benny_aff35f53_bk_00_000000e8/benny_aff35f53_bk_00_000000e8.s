@@ -15,7 +15,6 @@
 
 _custom	EQU	$DFF000
 _ciaa	EQU	$BFE001
-blitter_source_00040AF6	EQU	$40AF6
 absolute_slot_00049AF6	EQU	$49AF6
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 
@@ -78,7 +77,7 @@ abs_0_000400B8:
 	bne.b abs_0_00040106
 	move.w #$2,$0110(a4)
 abs_0_000400D2:
-	movea.l #blitter_source_00040AF6,a0
+	movea.l #abs_0_00040AF6,a0
 	move.l #$2,d0
 	move.l #$2060,d1
 	move.w $0(a0,d0.l),abs_0_0004010C.l

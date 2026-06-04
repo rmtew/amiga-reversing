@@ -3205,6 +3205,18 @@ static int source_quality_relocation_data_target_for_operand(const M68kSourceAna
 static int source_quality_instruction_loads_immediate_to_register(const M68kInstructionIR *instruction,
     uint8_t *out_reg_kind, uint8_t *out_reg_index, uint32_t *out_value);
 
+static int source_quality_instruction_single_register_read(const M68kInstructionIR *instruction,
+    uint8_t *out_reg_kind, uint8_t *out_reg_index);
+
+static int source_quality_find_last_immediate_register_load(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t offset, uint8_t reg_kind, uint8_t reg_index,
+    const M68kDecodeCandidate **out_candidate, uint32_t *out_value);
+
+static uint32_t source_quality_runtime_sink_role_flags_for_immediate_register_load(
+    const M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *load_candidate,
+    const M68kInstructionIR *load_instruction, uint32_t runtime_address, uint8_t *out_confidence);
+
 static const M68kFact *source_quality_unique_relocation_ref_for_operand(const M68kFactIR *facts,
     size_t section_index, const M68kDecodeCandidate *candidate, size_t operand_index);
 
@@ -3247,15 +3259,25 @@ static void source_quality_runtime_sink_note_text(const M68kSectionAnalysisIR *s
 static void source_quality_runtime_sink_set_operand_fact(M68kPlatformSemanticUseIR *use,
     const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis,
     const AmigaOsHardwareRegisterInfo *hardware_register, const M68kRuntimeAddressRefIR *runtime_ref,
-    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction,
     char *operand_expr, size_t operand_expr_size) {
   uint32_t target_section_index = 0U;
   uint32_t target_offset = 0U;
   uint32_t value = 0U;
-  if (use == NULL || runtime_ref == NULL || instruction == NULL ||
+  if (use == NULL || instruction == NULL) return;
+  if (runtime_ref == NULL ||
       runtime_ref->operand_index >= instruction->operand_count ||
       !m68k_ir_operand_immediate_value(&instruction->operands[runtime_ref->operand_index], &value) ||
       !runtime_ref->has_runtime_address || value != runtime_ref->runtime_address) {
+    uint8_t reg_kind = 0U;
+    uint8_t reg_index = 0U;
+    if (source_quality_instruction_single_register_read(instruction, &reg_kind, &reg_index) &&
+        source_quality_find_last_immediate_register_load(section, accepted_start, candidate != NULL ?
+          candidate->offset : 0U, reg_kind, reg_index, NULL, &value)) {
+      use->runtime_address = value;
+      use->has_runtime_address = 1U;
+    }
     return;
   }
   use->operand_index = runtime_ref->operand_index;
@@ -3334,7 +3356,7 @@ static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnal
     use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     use.note_text = note;
     source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, hardware_register, runtime_ref,
-      candidate, &instruction, operand_expr, sizeof(operand_expr));
+      section, accepted_start, candidate, &instruction, operand_expr, sizeof(operand_expr));
     if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
     if (use.has_operand_expr &&
         append_expected_runtime_sink_operand_symbol_access_at(section_analysis, candidate->offset,
@@ -7611,7 +7633,7 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
       use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
       use.note_text = note;
       source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, hardware_register,
-        runtime_ref, candidate, &instruction, operand_expr, sizeof(operand_expr));
+        runtime_ref, section, accepted_start, candidate, &instruction, operand_expr, sizeof(operand_expr));
       if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
       if (use.has_operand_expr &&
           append_expected_runtime_sink_operand_symbol_access_at(section_analysis, candidate->offset,
@@ -8562,11 +8584,18 @@ static int append_runtime_sink_operand_expr_semantic_uses(M68kSourceAnalysisIR *
     for (candidate_index = 0U; candidate_index < decode_section->candidate_count; ++candidate_index) {
       const M68kDecodeCandidate *candidate = &decode_section->candidates[candidate_index];
       M68kInstructionIR instruction;
+      uint32_t loaded_runtime_address = 0U;
+      uint8_t has_local_runtime_storage_ref;
+      uint8_t loads_runtime_address_register;
       size_t operand_index;
       if (!source_quality_candidate_is_accepted_start(decode_section, accepted_start[decode_index], candidate))
         continue;
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      if (!source_quality_candidate_has_local_runtime_storage_ref(section, candidate, &instruction)) continue;
+      has_local_runtime_storage_ref = (uint8_t)source_quality_candidate_has_local_runtime_storage_ref(section,
+        candidate, &instruction);
+      loads_runtime_address_register = (uint8_t)source_quality_instruction_loads_immediate_to_register(&instruction,
+        NULL, NULL, &loaded_runtime_address);
+      if (!has_local_runtime_storage_ref && !loads_runtime_address_register) continue;
       for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
         const M68kRuntimeAddressRefIR *operand_ref = source_quality_runtime_ref_for_candidate_operand(section,
           candidate, operand_index);
@@ -8575,8 +8604,15 @@ static int append_runtime_sink_operand_expr_semantic_uses(M68kSourceAnalysisIR *
         uint32_t role_flags;
         if (operand_ref != NULL && operand_ref->has_target) continue;
         if (!m68k_ir_operand_immediate_value(&instruction.operands[operand_index], &runtime_address)) continue;
-        role_flags = source_quality_runtime_sink_role_flags_for_value(section, decode_section,
-          accepted_start[decode_index], runtime_address, &confidence);
+        if (!has_local_runtime_storage_ref &&
+            (!loads_runtime_address_register || runtime_address != loaded_runtime_address)) {
+          continue;
+        }
+        role_flags = has_local_runtime_storage_ref ?
+          source_quality_runtime_sink_role_flags_for_value(section, decode_section, accepted_start[decode_index],
+            runtime_address, &confidence) :
+          source_quality_runtime_sink_role_flags_for_immediate_register_load(section, decode_section,
+            accepted_start[decode_index], candidate, &instruction, runtime_address, &confidence);
         if (role_flags == 0U) continue;
         if (append_runtime_sink_operand_expr_semantic_use_at(section, source_analysis, candidate,
             (uint32_t)operand_index, runtime_address, role_flags, confidence) != 0)
@@ -8661,6 +8697,127 @@ static const M68kDecodeCandidate *source_quality_previous_accepted_candidate(
     if (best == NULL || candidate->offset > best->offset) best = candidate;
   }
   return best;
+}
+
+static int source_quality_instruction_single_register_read(const M68kInstructionIR *instruction,
+    uint8_t *out_reg_kind, uint8_t *out_reg_index) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  uint8_t found = 0U;
+  uint8_t found_kind = 0U;
+  uint8_t found_index = 0U;
+  if (out_reg_kind != NULL) *out_reg_kind = 0U;
+  if (out_reg_index != NULL) *out_reg_index = 0U;
+  if (instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+    uint8_t reg = 0U;
+    uint8_t reg_kind = 0U;
+    if (access_kind != M68K_SIM_ACCESS_REGISTER_READ) continue;
+    if (source_quality_operand_data_register_index(operand, &reg)) reg_kind = 1U;
+    else if (source_quality_operand_address_register_index(operand, &reg)) reg_kind = 2U;
+    else continue;
+    if (found) return 0;
+    found = 1U;
+    found_kind = reg_kind;
+    found_index = reg;
+  }
+  if (!found) return 0;
+  if (out_reg_kind != NULL) *out_reg_kind = found_kind;
+  if (out_reg_index != NULL) *out_reg_index = found_index;
+  return 1;
+}
+
+static int source_quality_find_last_immediate_register_load(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t offset, uint8_t reg_kind, uint8_t reg_index,
+    const M68kDecodeCandidate **out_candidate, uint32_t *out_value) {
+  uint32_t cursor;
+  size_t scan_count = 0U;
+  if (out_candidate != NULL) *out_candidate = NULL;
+  if (out_value != NULL) *out_value = 0U;
+  if (section == NULL || accepted_start == NULL || reg_kind == 0U || reg_index >= 8U || offset > section->size)
+    return 0;
+  cursor = offset;
+  while (scan_count < 12U) {
+    const M68kDecodeCandidate *candidate =
+      source_quality_previous_accepted_candidate(section, accepted_start, cursor);
+    M68kInstructionIR instruction;
+    uint8_t loaded_reg_kind = 0U;
+    uint8_t loaded_reg_index = 0U;
+    uint32_t value = 0U;
+    if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
+    if (source_quality_instruction_loads_immediate_to_register(&instruction, &loaded_reg_kind, &loaded_reg_index,
+        &value) &&
+        loaded_reg_kind == reg_kind && loaded_reg_index == reg_index) {
+      if (out_candidate != NULL) *out_candidate = candidate;
+      if (out_value != NULL) *out_value = value;
+      return 1;
+    }
+    if (source_quality_instruction_writes_register(&instruction, reg_kind, reg_index)) break;
+    if (source_quality_instruction_has_call_flow(&instruction)) break;
+    cursor = candidate->offset;
+    ++scan_count;
+  }
+  return 0;
+}
+
+static uint32_t source_quality_runtime_sink_role_flags_for_use_at(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint32_t runtime_address, uint8_t *out_confidence) {
+  size_t use_index;
+  if (out_confidence != NULL) *out_confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  if (section_analysis == NULL || runtime_address == 0U) return 0U;
+  for (use_index = 0U; use_index < section_analysis->platform_semantic_use_count; ++use_index) {
+    const M68kPlatformSemanticUseIR *use = &section_analysis->platform_semantic_uses[use_index];
+    if (use->kind != M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER ||
+        use->offset != offset ||
+        !use->has_runtime_address ||
+        use->runtime_address != runtime_address ||
+        use->role_flags == 0U) {
+      continue;
+    }
+    if (out_confidence != NULL) *out_confidence = use->confidence;
+    return use->role_flags;
+  }
+  return 0U;
+}
+
+static uint32_t source_quality_runtime_sink_role_flags_for_immediate_register_load(
+    const M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *load_candidate,
+    const M68kInstructionIR *load_instruction, uint32_t runtime_address, uint8_t *out_confidence) {
+  size_t scan_count = 0U;
+  const M68kDecodeCandidate *cursor_candidate;
+  uint8_t reg_kind = 0U;
+  uint8_t reg_index = 0U;
+  if (out_confidence != NULL) *out_confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL || load_candidate == NULL ||
+      load_instruction == NULL || runtime_address == 0U ||
+      !source_quality_instruction_loads_immediate_to_register(load_instruction, &reg_kind, &reg_index, NULL)) {
+    return 0U;
+  }
+  cursor_candidate = load_candidate;
+  while (scan_count < 12U) {
+    const M68kDecodeCandidate *candidate =
+      source_quality_next_accepted_candidate(section, accepted_start, cursor_candidate);
+    M68kInstructionIR instruction;
+    uint8_t confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    uint32_t role_flags;
+    if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
+    role_flags = source_quality_runtime_sink_role_flags_for_use_at(section_analysis, candidate->offset,
+      runtime_address, &confidence);
+    if (role_flags != 0U) {
+      if (out_confidence != NULL) *out_confidence = confidence;
+      return role_flags;
+    }
+    if (source_quality_instruction_writes_register(&instruction, reg_kind, reg_index)) break;
+    if (source_quality_instruction_has_call_flow(&instruction)) break;
+    cursor_candidate = candidate;
+    ++scan_count;
+  }
+  return 0U;
 }
 
 static int source_quality_find_platform_call_input_immediate(const M68kDecodeSectionIR *section,

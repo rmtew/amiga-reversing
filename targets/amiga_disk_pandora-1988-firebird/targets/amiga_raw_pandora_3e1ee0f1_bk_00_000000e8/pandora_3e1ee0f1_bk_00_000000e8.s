@@ -198,7 +198,6 @@ absolute_slot_000039FC	EQU	$39FC
 m68k_vector_trap_0_instruction_vector	EQU	$80
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 absolute_slot_0000397C	EQU	$397C
-blitter_source_00077D00	EQU	$77D00
 _ciaa	EQU	$BFE001
 sprite_0005D5DE	EQU	$5D5DE
 sprite_0005D5DE_hi	EQU	sprite_0005D5DE/$10000
@@ -230,7 +229,6 @@ bitmap_00070078_lo	EQU	bitmap_00070078-(bitmap_00070078_hi*$10000)
 absolute_slot_000039BC	EQU	$39BC
 absolute_slot_000039CC	EQU	$39CC
 absolute_slot_000007E8	EQU	$7E8
-blitter_source_00070000	EQU	$70000
 absolute_slot_0007D380	EQU	$7D380
 absolute_slot_0007D000	EQU	$7D000
 absolute_slot_0007D680	EQU	$7D680
@@ -521,7 +519,7 @@ abs_0_000107C6:
 	bsr.w abs_0_000166A0
 	rts
 abs_0_000107CC:
-	movea.l #blitter_source_00077D00,a0
+	movea.l #$77D00,a0
 	move.l a0,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	clr.w bltamod(a5)
@@ -4018,7 +4016,7 @@ abs_0_000166C2:
 	bset.b #7,$0006(a5)
 	rts
 abs_0_000166D6:
-	movea.l #blitter_source_00070000,a0	; bitmap memory plane 4 base $00070000
+	movea.l #$70000,a0	; bitmap memory plane 4 base $00070000
 	move.l a0,app_front_bitplane_base(a6)
 	lea.l _custom.l,a5
 abs_0_000166E6:

@@ -3625,6 +3625,56 @@ local runtime storage and coined external runtime-address symbols was deleted.
 Render consumes `platform_semantic_use.operand_expr`; it no longer decides that
 an immediate is a bitmap/disk-buffer pointer by scanning runtime refs itself.
 
+The remaining generic runtime-address operand formatter is now guarded by the
+same boundary. When source-analysis is present, runtime sink operands may only
+get role-named symbols such as `disk_buffer_00067D00` from
+`platform_semantic_use(kind=runtime_sink_pointer)`:
+
+```text
+source_analysis section exists
+  + runtime-address ref has sink role
+  + no runtime_sink_pointer operand_expr/target fact survived
+  -> renderer leaves the raw numeric operand
+  -> post-render validation/debugging exposes the missing C fact
+
+no source_analysis section exists
+  -> legacy preview fallback may still format runtime sink role symbols
+     for non-source diagnostic views
+```
+
+The focused regression mutates a valid source-analysis result by clearing the
+semantic uses before render. The output deliberately falls back to raw numeric
+source:
+
+```asm
+    move.l #$67D00,$00DFF020.l
+```
+
+and does not recreate `disk_buffer_00067D00`. That proves source-backed render
+is no longer silently covering a missing runtime-sink semantic fact.
+
+The analysis-side replacement is deliberately local. It may propagate a
+role-named operand from an immediate register load only when the loaded register
+feeds a nearby `runtime_sink_pointer` semantic use:
+
+```text
+movea.l #$77D00,a0
+move.l  a0,bltapt(a5)       ; runtime_sink_pointer blitter_source
+
+producer load -> register value -> sink use
+```
+
+It may not scan the whole section for "some other sink used the same value" and
+then rename every matching immediate. Same-value coincidence is weak evidence:
+
+```asm
+    move.l #disk_buffer_00067D00,_custom+dskpt.l
+    move.l #$67D00,d0
+```
+
+The first operand is sink-proven. The second is only numerically equal, so it
+stays numeric unless analysis can prove a real consumer.
+
 The later label-only variant of the same mistake was also deleted:
 
 ```c
