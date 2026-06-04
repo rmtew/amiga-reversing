@@ -11695,7 +11695,7 @@ const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_call_vector(const M68
     candidate, 0U);
 }
 
-int render_lookup_infer_amiga_call_input_comments(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+int render_lookup_add_amiga_call_input_string_spans(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, uint8_t **accepted_bytes) {
   M68kRenderPlatformState platform_state;
   M68kRenderDataPointerState data_pointer_state;
@@ -11776,7 +11776,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   end = clock();
   if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
   start = clock();
-  if (render_lookup_infer_amiga_call_input_comments(lookup, decode, accepted_start, accepted_bytes) != 0)
+  if (render_lookup_add_amiga_call_input_string_spans(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
   if (render_lookup_infer_bootblock_runtime_copies(lookup, decode, accepted_start) != 0) return -1;
   end = clock();

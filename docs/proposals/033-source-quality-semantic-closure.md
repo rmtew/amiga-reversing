@@ -3314,10 +3314,11 @@ M68K_C_ASSERT(strstr(analysis_json,
 ```
 
 The old render-owned `render_lookup_add_call_setup_comments_for_vector` path was
-deleted. `render_lookup_infer_amiga_call_input_comments` still exists for now
-because it also creates vector-input string spans; that remaining work is not
-the call-input comment derivation and should be split/renamed when the string
-span path moves to analysis.
+deleted. The lingering `render_lookup_infer_amiga_call_input_comments` name was
+also retired after inspection showed the path no longer emitted comments; it now
+exists as `render_lookup_add_amiga_call_input_string_spans`, which describes the
+remaining string-span formatting support. Moving that string-span discovery into
+source-quality is separate from call-input note ownership.
 
 ### Implemented Slice: Stack Cleanup Notes
 
