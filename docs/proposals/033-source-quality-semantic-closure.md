@@ -3340,6 +3340,16 @@ deleted. If this comment disappears in future work, source-quality JSON will
 show whether the producer stopped finding the primary/secondary target or render
 stopped consuming the fact.
 
+The same negative-boundary test now exists for copper display-layout comments.
+After source-quality has found the copper bitmap layout, a test mutator removes
+`platform_semantic_uses` before rendering. Render may still format the copper
+words, but it must not rediscover the high-level display layout from bytes:
+
+```c
+M68K_C_ASSERT(strstr(source, "display layout 2 bitmap planes") == NULL);
+M68K_C_ASSERT(strlen(source) != 0U);
+```
+
 ### Implemented Slice: OS Call Input Notes
 
 The same ownership rule now covers Amiga OS call input comments. Previously the

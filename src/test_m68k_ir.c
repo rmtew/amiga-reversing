@@ -27051,6 +27051,77 @@ static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(vo
   return 0;
 }
 
+static int test_render_copper_display_layout_comment_requires_platform_semantic_use(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kAnalysisPolicy policy;
+  M68kRenderIRPreview preview;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  M68kAnalysisLabelPoint analysis_labels[1];
+  size_t analysis_label_count = 0U;
+  uint8_t start_map[32];
+  uint8_t byte_map[32];
+  uint8_t bytes[32] = {
+    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x0Cu, 0x00u, 0xDFu, 0xF0u, 0x80u,
+    0x4Eu, 0x75u,
+    0x00u, 0xE0u, 0x00u, 0x01u,
+    0x00u, 0xE2u, 0x00u, 0x00u,
+    0x00u, 0xE4u, 0x00u, 0x01u,
+    0x00u, 0xE6u, 0x20u, 0x00u,
+    0xFFu, 0xFFu, 0xFFu, 0xFEu
+  };
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  memset(&decode, 0, sizeof(decode));
+  memset(&facts, 0, sizeof(facts));
+  memset(&policy, 0, sizeof(policy));
+  memset(&preview, 0, sizeof(preview));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  memset(byte_map, 1, sizeof(bytes));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build_with_source_analysis_mutator(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview,
+    test_clear_platform_semantic_uses, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "display layout 2 bitmap planes") == NULL);
+  M68K_C_ASSERT(strlen(preview.asm_source_text) != 0U);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int assert_no_copper_runtime_pointer_word_symbol_obligation(const M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   M68K_C_ASSERT(source_analysis != NULL);
@@ -30447,6 +30518,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_register_runtime_sink_auto_classifies_copper_list},
     {"facts_v2_copper_bitmap_pointers_render_display_layout_comment",
       test_facts_v2_copper_bitmap_pointers_render_display_layout_comment},
+    {"render_copper_display_layout_comment_requires_platform_semantic_use",
+      test_render_copper_display_layout_comment_requires_platform_semantic_use},
     {"facts_v2_raw_copper_bitmap_span_has_no_word_symbol_obligation",
       test_facts_v2_raw_copper_bitmap_span_has_no_word_symbol_obligation},
     {"facts_v2_nested_copper_bitmap_span_has_no_word_symbol_obligation",
