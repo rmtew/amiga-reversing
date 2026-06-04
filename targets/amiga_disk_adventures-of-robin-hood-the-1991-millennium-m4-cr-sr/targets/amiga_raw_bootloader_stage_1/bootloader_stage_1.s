@@ -7,13 +7,11 @@
 ;   required OS floor: unknown
 ;   evidence: no recovered OS calls
 
-runtime_address_02408F24	EQU	$2408F24
-
     SECTION code,code
 loc_0_00000000:
     ORG $40000
 abs_0_00040000:
-	movea.w runtime_address_02408F24.l,a1
+	movea.w $02408F24.l,a1
 	andi.b #$110,(a1)
 	or.l d3,(a0)
 	lsr -(a3)

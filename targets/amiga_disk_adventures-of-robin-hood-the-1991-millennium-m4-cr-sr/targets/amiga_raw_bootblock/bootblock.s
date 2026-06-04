@@ -11,7 +11,6 @@
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/io.i"
 
-runtime_address_0004FE00	EQU	$4FE00
 
     SECTION code,code
 	dc.b "DOS",$00	; NOTE: boot magic
@@ -28,7 +27,7 @@ loc_0_00000012:
 	move.l #$5A00,IO_LENGTH(a1)
 	move.l #$D6600,IO_OFFSET(a1)
 	jsr _LVODoIO(a6)
-	jmp runtime_address_0004FE00.l
+	jmp $0004FE00.l
 	dcb.b $C2,$00
 	dc.b $50,$50,$32,$30,$09,$0A,$0B,$0B,$E0,$04,$60,$CB,$D9,$00,$45,$8F
 	dc.b $D0,$1C,$81,$C8,$8E,$70,$EF,$E8,$19,$FA,$BC,$EF,$4F,$F0,$2C,$40

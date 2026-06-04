@@ -36,13 +36,7 @@ app_003E RS.L 1
 app_0052 RS.W 1
 app_SIZEOF EQU __RS
 
-runtime_address_FFFFFF94	EQU	$FFFFFF94
-runtime_address_FFFFFFA6	EQU	$FFFFFFA6
-runtime_address_FFFFFF64	EQU	$FFFFFF64
-runtime_address_FFFFFF22	EQU	$FFFFFF22
 _custom	EQU	$DFF000
-runtime_address_FFFFFFEE	EQU	$FFFFFFEE
-runtime_address_FFFFFFE8	EQU	$FFFFFFE8
 _LVOexecPrivate3	EQU	-48
 _LVOexecPrivate5	EQU	-60
 
@@ -385,7 +379,7 @@ loc_3_0000016A:
 	pea.l loc_4_000000B6.l
 	jsr (a4)
 	move.l #loc_5_00000000,-(a7)	; KNOWN: arg +12 funcEntry unsigned long (*)() code_ptr
-	pea.l runtime_address_FFFFFF94.l	; KNOWN: arg +8 funcOffset long
+	pea.l $FFFFFF94.l	; KNOWN: arg +8 funcOffset long
 	move.l d4,-(a7)	; KNOWN: arg +4 library LIB
 	jsr loc_21_00000088.l
 	move.l d0,loc_5_0000004E.l
@@ -396,7 +390,7 @@ loc_3_0000016A:
 	ble.b loc_3_000001CA
 loc_3_000001A8:
 	move.l loc_5_0000004E.l,-(a7)	; KNOWN: arg +12 funcEntry unsigned long (*)() code_ptr
-	pea.l runtime_address_FFFFFF94.l	; KNOWN: arg +8 funcOffset long
+	pea.l $FFFFFF94.l	; KNOWN: arg +8 funcOffset long
 	move.l d4,-(a7)	; KNOWN: arg +4 library LIB
 	jsr loc_21_00000088.l
 	pea.l loc_4_000000C2.l
@@ -422,7 +416,7 @@ loc_3_000001F4:
 	cmpi.w #35,LIB_VERSION(a2)
 	bhi.b loc_3_00000224
 	move.l #loc_12_00000000,-(a7)	; KNOWN: arg +12 funcEntry unsigned long (*)() code_ptr
-	pea.l runtime_address_FFFFFFA6.l	; KNOWN: arg +8 funcOffset long
+	pea.l $FFFFFFA6.l	; KNOWN: arg +8 funcOffset long
 	move.l a2,-(a7)	; KNOWN: arg +4 library LIB
 	jsr loc_21_00000088.l
 	move.l d0,-(a7)
@@ -445,7 +439,7 @@ loc_3_0000022C:
 	pea.l loc_4_0000014C.l
 	jsr (a4)
 	move.l #loc_6_00000000,-(a7)	; KNOWN: arg +12 funcEntry unsigned long (*)() code_ptr
-	pea.l runtime_address_FFFFFF64.l	; KNOWN: arg +8 funcOffset long
+	pea.l $FFFFFF64.l	; KNOWN: arg +8 funcOffset long
 	move.l d4,-(a7)	; KNOWN: arg +4 library LIB
 	jsr loc_21_00000088.l
 	pea.l loc_4_00000160.l
@@ -483,12 +477,12 @@ loc_3_000002B8:
 	jsr (a4)
 	addq.l #8,(a3)
 	move.l loc_1_00000004.l,d0
-	movea.l #runtime_address_FFFFFF22,a0
+	movea.l #$FFFFFF22,a0
 	cmpi.l #1894080512,$0(a0,d0.l)
 	addq.l #4,a7
 	bne.b loc_3_00000304
 	move.l #loc_15_00000004,-(a7)	; KNOWN: arg +12 funcEntry unsigned long (*)() code_ptr
-	pea.l runtime_address_FFFFFF22.l	; KNOWN: arg +8 funcOffset long
+	pea.l $FFFFFF22.l	; KNOWN: arg +8 funcOffset long
 	move.l loc_1_00000004.l,-(a7)	; KNOWN: arg +4 library LIB
 	jsr loc_21_00000088.l
 	pea.l loc_4_00000186.l
@@ -827,13 +821,13 @@ loc_13_00000000:
 	movea.l a5,a1
 	lea.l loc_13_0000007C(pc),a0
 	move.l a0,d0
-	movea.l #runtime_address_FFFFFFEE,a0
+	movea.l #$FFFFFFEE,a0
 	jsr _LVOSetFunction(a6)
 	move.l d0,loc_13_000000B4.l
 	movea.l a5,a1
 	lea.l loc_13_00000094(pc),a0
 	move.l a0,d0
-	movea.l #runtime_address_FFFFFFE8,a0
+	movea.l #$FFFFFFE8,a0
 	jsr _LVOSetFunction(a6)
 	move.l d0,loc_13_000000B8.l
 	movea.l $0004.w,a0

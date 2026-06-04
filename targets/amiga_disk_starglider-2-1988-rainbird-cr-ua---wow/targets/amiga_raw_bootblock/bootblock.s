@@ -15,11 +15,8 @@
     INCLUDE "hardware/dmabits.i"
 
 runtime_code_00000200	EQU	$200
-runtime_address_00024000	EQU	$24000
 _custom	EQU	$DFF000
 m68k_vector_trap_0_instruction_vector	EQU	$80
-runtime_address_0001A000	EQU	$1A000
-runtime_address_00FC0000	EQU	$FC0000
 
     SECTION code,code
 	dc.b "DOS",$00	; NOTE: boot magic
@@ -59,7 +56,7 @@ loc_0_0000004C:
 	move.w #$9,$001C(a1)
 	clr.l $0024(a1)
 	jsr -$01C8(a6)
-	jsr runtime_address_00024000.l
+	jsr $00024000.l
 	move.w #DMAF_RASTER|DMAF_COPPER|DMAF_SPRITE,_custom+dmacon.l
 	move.w #$80,_custom+color.l
 	movea.l loc_0_00000118(pc),a1
@@ -80,7 +77,7 @@ loc_0_0000004C:
 	move.l a0,m68k_vector_trap_0_instruction_vector.w
 	trap #0
 loc_0_000000F0:
-	movea.l #runtime_address_0001A000,a0
+	movea.l #$1A000,a0
 	movea.l #$1000,a1
 	move.l #$19310,d0
 loc_0_00000102:
@@ -90,7 +87,7 @@ loc_0_00000102:
 	move.w #$F00,$0180(a6)
 	jmp $1000.w
 loc_0_00000112:
-	jmp runtime_address_00FC0000.l
+	jmp $00FC0000.l
 loc_0_00000118:
 	dc.l $00000000	; lookup_table
 loc_0_0000011C:

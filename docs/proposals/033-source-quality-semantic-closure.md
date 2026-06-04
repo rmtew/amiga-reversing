@@ -2970,6 +2970,67 @@ yield when source-quality already emitted a stronger bitmap-memory semantic
 use. A bitmap comment proves "this value is part of a bitmap range"; it does
 not prove that the literal itself is a durable named address.
 
+That rule is now applied to the generic fallback itself: rendering no longer
+promotes a plain address-looking literal to `runtime_address_*` just because the
+operand feeds an address-like instruction form. The renderer may use a runtime
+symbol when analysis has emitted a runtime-address ref/range fact, a sink role,
+or a materialized runtime source mapping. Without that C-owned fact, the operand
+stays numeric:
+
+```asm
+    movea.l #$4418C,a0
+```
+
+not:
+
+```asm
+runtime_address_0004418C EQU $4418C
+    movea.l #runtime_address_0004418C,a0
+```
+
+The focused fixture is:
+
+```c
+M68K_C_ASSERT(strstr(source, "\tmovea.l #$4418C,a0\n") != NULL);
+M68K_C_ASSERT(strstr(source, "runtime_address_0004418C") == NULL);
+```
+
+The same boundary applies to Amiga API call inputs. `SetFunction` takes a
+negative function offset, but that value is an argument-domain scalar, not a
+memory address. Source-quality now records the direct stack argument as a
+platform call input and suppresses the otherwise tempting absolute-slot
+obligation:
+
+```asm
+    pea.l $FFFFFF94.l    ; KNOWN: arg +8 funcOffset long
+```
+
+not:
+
+```asm
+runtime_address_FFFFFF94 EQU $FFFFFF94
+    pea.l runtime_address_FFFFFF94.l
+```
+
+and not:
+
+```asm
+absolute_slot_FFFFFF94 EQU $FFFFFF94
+    pea.l absolute_slot_FFFFFF94.l
+```
+
+The focused fixture asserts both the visible source and the source-analysis
+contract:
+
+```c
+M68K_C_ASSERT(strstr(source,
+  "\tpea.l $FFFFFF94.l\t; KNOWN: arg +8 funcOffset long\n") != NULL);
+M68K_C_ASSERT(strstr(source, "runtime_address_FFFFFF94") == NULL);
+M68K_C_ASSERT(strstr(source, "absolute_slot_FFFFFF94") == NULL);
+M68K_C_ASSERT(saw_call_input_use);
+M68K_C_ASSERT(!saw_bad_expected_access);
+```
+
 The focused fixture asserts the analysis fact:
 
 ```c
@@ -4002,7 +4063,8 @@ Current imported target evidence:
 Damocles Tetragon payload 2
   abs_0_00042C00 emits a long `ori` run that should be demoted or refused
   $00042C6C operands are numeric even though abs_0_00042C6C exists in-image
-  runtime_address_00042C00 is used where current-image identity may be needed
+  address-looking literals are no longer promoted to `runtime_address_*`
+  without a runtime-address fact proving runtime-domain identity
   current source also shows numeric writes to $000459BA and $000459C6
 
 Starglider
@@ -4136,8 +4198,9 @@ checked-in `.s` diffs.
   in-image address identity and expected symbol access checks.
 - Numeric operands that target C-owned in-image storage either render through
   the approved symbol or emit a source-quality diagnostic.
-- `runtime_address_*` is used only when the address is truly runtime-domain or
-  otherwise not representable as current image storage.
+- `runtime_address_*` is used only when C analysis emits a runtime-address
+  ref/range/sink fact proving runtime-domain identity. Plain address-looking
+  literals stay numeric.
 - Low-memory base usage does not render as CPU-vector symbols unless the C
   platform-use fact proves vector semantics.
 - Hardware, vector, bitmap, copper, audio, disk, blitter, OS-call, and trap

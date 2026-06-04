@@ -6466,6 +6466,38 @@ static int test_facts_v2_materialized_runtime_immediate_keeps_scalar_constant_nu
   return 0;
 }
 
+static int test_facts_v2_unmapped_address_like_immediate_stays_numeric(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[8] = {
+    0x20u, 0x7cu, 0x00u, 0x04u, 0x41u, 0x8cu,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l #$4418C,a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "runtime_address_0004418C") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_materialized_runtime_pointer_store_uses_existing_label(void) {
   M68kObject object;
   M68kSection section;
@@ -28439,6 +28471,98 @@ static int test_facts_v2_render_asm_source_renders_call_input_domain_immediate(v
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_keeps_function_offset_call_input_numeric(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  const AmigaOsLibraryVectorInfo *set_function_vector =
+    amiga_os_find_library_vector_by_symbol_name("_LVOSetFunction");
+  int saw_call_input_use = 0;
+  int saw_bad_expected_access = 0;
+  size_t index;
+  int16_t set_function_lvo;
+  uint8_t bytes[30];
+  M68K_C_ASSERT(set_function_vector != NULL);
+  set_function_lvo = set_function_vector->lvo;
+  bytes[0] = 0x2Cu;
+  bytes[1] = 0x78u;
+  bytes[2] = 0x00u;
+  bytes[3] = 0x04u;
+  bytes[4] = 0x2Fu;
+  bytes[5] = 0x3Cu;
+  bytes[6] = 0x00u;
+  bytes[7] = 0x00u;
+  bytes[8] = 0x00u;
+  bytes[9] = 0x1Cu;
+  bytes[10] = 0x48u;
+  bytes[11] = 0x79u;
+  bytes[12] = 0xFFu;
+  bytes[13] = 0xFFu;
+  bytes[14] = 0xFFu;
+  bytes[15] = 0x94u;
+  bytes[16] = 0x2Fu;
+  bytes[17] = 0x3Cu;
+  bytes[18] = 0x00u;
+  bytes[19] = 0x00u;
+  bytes[20] = 0x00u;
+  bytes[21] = 0x00u;
+  bytes[22] = 0x4Eu;
+  bytes[23] = 0xAEu;
+  bytes[24] = (uint8_t)((uint16_t)set_function_lvo >> 8);
+  bytes[25] = (uint8_t)set_function_lvo;
+  bytes[26] = 0x4Eu;
+  bytes[27] = 0x75u;
+  bytes[28] = 0x4Eu;
+  bytes[29] = 0x75u;
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tpea.l $FFFFFF94.l\t; KNOWN: arg +8 funcOffset long\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "runtime_address_FFFFFF94") == NULL);
+  M68K_C_ASSERT(strstr(source, "absolute_slot_FFFFFF94") == NULL);
+  for (index = 0U; index < source_analysis.sections[0].platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[index];
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT &&
+        use->offset == 10U &&
+        use->operand_index == 0U &&
+        use->note_text != NULL &&
+        strstr(use->note_text, "funcOffset long") != NULL) {
+      saw_call_input_use = 1;
+    }
+  }
+  for (index = 0U; index < source_analysis.sections[0].expected_symbol_access_count; ++index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[index];
+    if (access->offset == 10U &&
+        access->symbol_name != NULL &&
+        strcmp(access->symbol_name, "absolute_slot_FFFFFF94") == 0) {
+      saw_bad_expected_access = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_call_input_use);
+  M68K_C_ASSERT(!saw_bad_expected_access);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_renders_local_helper_call_input_domain_immediate(void) {
   M68kObject object;
   M68kSection caller_section;
@@ -29292,6 +29416,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_runtime_ref_labels_backward_materialized_data_target},
     {"facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric",
       test_facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric},
+    {"facts_v2_unmapped_address_like_immediate_stays_numeric",
+      test_facts_v2_unmapped_address_like_immediate_stays_numeric},
     {"facts_v2_materialized_runtime_absolute_storage_ref_uses_existing_data_label",
       test_facts_v2_materialized_runtime_absolute_storage_ref_uses_existing_data_label},
     {"facts_v2_materialized_runtime_absolute_storage_ref_rejects_code_overlap",
@@ -30057,6 +30183,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_marks_structured_data_code_overlap},
     {"facts_v2_render_asm_source_renders_call_input_domain_immediate",
       test_facts_v2_render_asm_source_renders_call_input_domain_immediate},
+    {"facts_v2_render_asm_source_keeps_function_offset_call_input_numeric",
+      test_facts_v2_render_asm_source_keeps_function_offset_call_input_numeric},
     {"facts_v2_render_asm_source_renders_local_helper_call_input_domain_immediate",
       test_facts_v2_render_asm_source_renders_local_helper_call_input_domain_immediate},
     {"facts_v2_render_asm_source_expects_hardware_value_domain_immediate",

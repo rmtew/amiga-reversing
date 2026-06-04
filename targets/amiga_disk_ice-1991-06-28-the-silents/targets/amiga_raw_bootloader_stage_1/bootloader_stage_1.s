@@ -44,12 +44,9 @@ m68k_vector_level_1_interrupt_autovector	EQU	$64
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 absolute_slot_0001F000	EQU	$1F000
 absolute_slot_00020000	EQU	$20000
-runtime_address_00020000	EQU	$20000
 absolute_slot_00010000	EQU	$10000
 absolute_slot_00013000	EQU	$13000
-runtime_address_00033100	EQU	$33100
 absolute_slot_0001E000	EQU	$1E000
-runtime_address_0001E000	EQU	$1E000
 _ciab	EQU	$BFD000
 _ciaa	EQU	$BFE001
 disk_buffer_00002000	EQU	$2000
@@ -129,7 +126,7 @@ abs_0_00040054:
 abs_0_000400FC:
 	tst.w $0002(a6)
 	bne.b abs_0_000400FC
-	jsr runtime_address_00020000.l
+	jsr $00020000.l
 	lea.l _custom.l,a5
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER|DMAF_BLITTER|DMAF_DISK|DMAF_AUDIO,dmacon(a5)
 	move.w #INTF_CLRALL,intena(a5)
@@ -160,7 +157,7 @@ abs_0_0004016E:
 	move.w #INTF_CLRALL,intena(a5)
 	move.w #INTF_CLRALL,intreq(a5)
 	move.w #DMAF_CLRALL,dmacon(a5)
-	jsr runtime_address_00033100.l
+	jsr $00033100.l
 	lea.l _custom.l,a5
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER|DMAF_BLITTER|DMAF_DISK|DMAF_AUDIO,dmacon(a5)
 	move.w #INTF_CLRALL,intena(a5)
@@ -211,7 +208,7 @@ abs_0_00040236:
 abs_0_0004024A:
 	tst.w $0002(a6)
 	bne.b abs_0_0004024A
-	jmp runtime_address_0001E000.l
+	jmp $0001E000.l
 	dc.b $4B,$F9,$00,$DF,$F0,$00,$08,$2D,$00,$0E,$00,$02,$66,$F8,$08,$39
 	dc.b $00,$06,$00,$BF,$E0,$01,$66,$F6,$3B,$7C,$7F,$FF,$00,$96,$3B,$7C
 	dc.b $7F,$FF,$00,$9A,$41,$FA,$02,$82,$21,$D0,$00,$64,$41,$FA,$02,$50

@@ -14,7 +14,6 @@ _custom	EQU	$DFF000
 absolute_slot_00035002	EQU	$35002
 absolute_slot_00020000	EQU	$20000
 absolute_slot_00040000	EQU	$40000
-runtime_address_00020000	EQU	$20000
 
     SECTION section,code
 loc_0_00000000:
@@ -209,7 +208,7 @@ loc_0_00000180:
 	move.b d0,(a0)+
 	cmpa.l a2,a1
 	blt.b loc_0_0000016A
-	jmp runtime_address_00020000.l
+	jmp $00020000.l
 	dc.b $FF,$FF
 loc_0_00000190:
 	dc.b $00,$01,$02,$FF,$08,$FE,$04,$03,$10,$06,$20,$FA,$0C,$0F,$F7,$FD

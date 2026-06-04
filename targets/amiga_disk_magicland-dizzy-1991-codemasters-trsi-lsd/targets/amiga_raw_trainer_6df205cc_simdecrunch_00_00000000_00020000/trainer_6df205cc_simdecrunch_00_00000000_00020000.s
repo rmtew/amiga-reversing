@@ -42,7 +42,6 @@ INTF_CLRALL	EQU	$7FFF
 DMAF_CLRALL	EQU	$7FFF
 sprite_00030DCE	EQU	$30DCE
 sprite_0002142E	EQU	$2142E
-runtime_address_000386BC	EQU	$386BC
 absolute_slot_000000C0	EQU	$C0
 
     SECTION code,code
@@ -396,7 +395,7 @@ abs_0_0002056A:
 	move.l #$205C4,abs_0_00021426.l
 	rts
 abs_0_00020576:
-	movea.l #runtime_address_000386BC,a1
+	movea.l #$386BC,a1
 	move.w #$13,d3
 abs_0_00020580:
 	moveq.l #87,d1

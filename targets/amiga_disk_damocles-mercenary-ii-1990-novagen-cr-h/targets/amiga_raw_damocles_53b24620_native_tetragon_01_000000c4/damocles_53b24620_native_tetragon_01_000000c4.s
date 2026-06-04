@@ -25,11 +25,7 @@
     INCLUDE "hardware/intbits.i"
 
 _custom	EQU	$DFF000
-runtime_address_00031000	EQU	$31000
-runtime_address_00031064	EQU	$31064
 copper_list_00042000	EQU	$42000
-runtime_address_00044000	EQU	$44000
-runtime_address_00043000	EQU	$43000
 _ciaa	EQU	$BFE001
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF1P2	EQU	$4
@@ -86,9 +82,9 @@ abs_0_0004007A:
 	rts
 abs_0_000400A0:
 	movea.l d0,a6
-	movea.l #runtime_address_00031000,a1
+	movea.l #$31000,a1
 	jsr -$00C6(a6)
-	movea.l #runtime_address_00031064,a0
+	movea.l #$31064,a0
 	move.l #$38000,$0008(a0)
 	move.b #$1,d0
 	move.w #$140,d1
@@ -97,7 +93,7 @@ abs_0_000400A0:
 	move.l #$31064,$00031004.l
 	move.w #$82,d1
 	move.w #$19,d0
-	movea.l #runtime_address_00031000,a1
+	movea.l #$31000,a1
 	jsr -$00F0(a6)
 	move.b #$1,d0
 	jsr -$0156(a6)
@@ -106,14 +102,14 @@ abs_0_000400A0:
 	jsr -$003C(a6)
 	move.w #$FA,d1
 	move.w #$122,d0
-	movea.l #runtime_address_00031000,a1
+	movea.l #$31000,a1
 	jsr -$00F0(a6)
 	lea.l abs_0_0004004E(pc),a0
 	move.w #$2,d0
 	jsr -$003C(a6)
 	move.w #$A,d1
 	move.w #$3C,d0
-	movea.l #runtime_address_00031000,a1
+	movea.l #$31000,a1
 	jsr -$00F0(a6)
 	lea.l abs_0_00040050(pc),a0
 	move.w #$10,d0
@@ -129,7 +125,7 @@ abs_0_00040144:
 	movea.l #copper_list_00042000,a0
 	move.l a0,_custom+cop1lc.l	; copper_list pointer
 	move.w #$45,d3
-	movea.l #runtime_address_00044000,a0
+	movea.l #$44000,a0
 abs_0_0004016A:
 	bsr.w abs_0_00040278
 	move.w d0,(a0)+
@@ -140,9 +136,9 @@ abs_0_0004016A:
 	move.w d0,(a0)+
 	dbf.w d3,abs_0_0004016A
 abs_0_00040184:
-	movea.l #runtime_address_00044000,a4
+	movea.l #$44000,a4
 	move.w #$45,d3
-	movea.l #runtime_address_00043000,a5
+	movea.l #$43000,a5
 abs_0_00040194:
 	move.w (a4)+,d4
 	move.w (a4)+,d5

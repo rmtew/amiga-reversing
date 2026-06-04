@@ -4,13 +4,12 @@
 
     INCLUDE "hardware/custom.i"
 
-runtime_address_00020000	EQU	$20000
 _custom	EQU	$DFF000
 
     SECTION section_0,code
 loc_0_00000000:
 	lea.l loc_0_000000E8(pc),a0
-	lea.l runtime_address_00020000.l,a1
+	lea.l $00020000.l,a1
 	move.l (a0)+,d0
 	move.l (a0)+,d1
 	move.l (a0)+,d5
@@ -83,7 +82,7 @@ loc_0_0000009A:
 	blt.w loc_0_0000001A
 	tst.l d5
 	bne.b loc_0_000000B0
-	jmp runtime_address_00020000.l
+	jmp $00020000.l
 loc_0_000000B0:
 	move.w #$FFFF,d0
 loc_0_000000B4:

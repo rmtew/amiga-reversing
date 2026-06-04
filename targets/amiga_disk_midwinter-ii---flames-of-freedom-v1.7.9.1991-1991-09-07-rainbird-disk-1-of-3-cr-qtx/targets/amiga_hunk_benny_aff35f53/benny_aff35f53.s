@@ -9,7 +9,6 @@
     INCLUDE "hardware/custom.i"
 
 absolute_slot_00040000	EQU	$40000
-runtime_address_00040000	EQU	$40000
 _custom	EQU	$DFF000
 
     SECTION section_0,code
@@ -90,7 +89,7 @@ loc_0_0000009A:
 	blt.w loc_0_0000001A
 	tst.l d5
 	bne.b loc_0_000000B0
-	jmp runtime_address_00040000.l
+	jmp $00040000.l
 loc_0_000000B0:
 	move.w #$FFFF,d0
 loc_0_000000B4:

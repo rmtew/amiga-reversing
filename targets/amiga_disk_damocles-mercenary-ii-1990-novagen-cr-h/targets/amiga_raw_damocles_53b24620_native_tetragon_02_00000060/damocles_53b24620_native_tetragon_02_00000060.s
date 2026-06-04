@@ -85,22 +85,15 @@ app_5DC0 RS.L 1
 app_SIZEOF EQU __RS
 
 _custom	EQU	$DFF000
-runtime_address_00034F94	EQU	$34F94
-runtime_address_00034FFE	EQU	$34FFE
-runtime_address_00060000	EQU	$60000
-runtime_address_000459D4	EQU	$459D4
 _ciaa	EQU	$BFE001
 absolute_slot_0000028C	EQU	$28C
 absolute_slot_000003FC	EQU	$3FC
-runtime_address_0004C79C	EQU	$4C79C
-runtime_address_0004B110	EQU	$4B110
 absolute_slot_0007D9EA	EQU	$7D9EA
 absolute_slot_0007D920	EQU	$7D920
 absolute_slot_0007DA38	EQU	$7DA38
 absolute_slot_0007DB2C	EQU	$7DB2C
 absolute_slot_0007D94C	EQU	$7D94C
 absolute_slot_0007D924	EQU	$7D924
-runtime_address_00073500	EQU	$73500
 absolute_slot_0007F6EA	EQU	$7F6EA
 absolute_slot_0007B882	EQU	$7B882
 absolute_slot_0007F8AA	EQU	$7F8AA
@@ -109,40 +102,23 @@ absolute_slot_0007BA3A	EQU	$7BA3A
 absolute_slot_00079AE8	EQU	$79AE8
 absolute_slot_00079AE4	EQU	$79AE4
 absolute_slot_0007F8A4	EQU	$7F8A4
-runtime_address_00042D20	EQU	$42D20
-runtime_address_00042D24	EQU	$42D24
-runtime_address_00042E00	EQU	$42E00
-runtime_address_00042F40	EQU	$42F40
-runtime_address_0004418C	EQU	$4418C
 INTF_CLRALL	EQU	$7FFF
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_level_4_interrupt_autovector	EQU	$70
 m68k_vector_division_by_zero	EQU	$14
 absolute_slot_0007D480	EQU	$7D480
 absolute_slot_0007D500	EQU	$7D500
-runtime_address_00079540	EQU	$79540
-runtime_address_00078000	EQU	$78000
 absolute_slot_0007BC6C	EQU	$7BC6C
 absolute_slot_0007FAE8	EQU	$7FAE8
 absolute_slot_00079D2A	EQU	$79D2A
 absolute_slot_00079D35	EQU	$79D35
 absolute_slot_00079910	EQU	$79910
 absolute_slot_00079938	EQU	$79938
-runtime_address_000521B0	EQU	$521B0
 absolute_slot_0007FA3A	EQU	$7FA3A
 absolute_slot_0007B9FA	EQU	$7B9FA
-runtime_address_0004B122	EQU	$4B122
-runtime_address_0004B10C	EQU	$4B10C
-runtime_address_0004B116	EQU	$4B116
 _ciab	EQU	$BFD000
-runtime_address_00055686	EQU	$55686
 absolute_slot_000000FC	EQU	$FC
-runtime_address_0004B11E	EQU	$4B11E
 absolute_slot_0007FFFA	EQU	$7FFFA
-runtime_address_FFFFFFFF	EQU	$FFFFFFFF
-runtime_address_00042D0C	EQU	$42D0C
-runtime_address_00059CD4	EQU	$59CD4
-runtime_address_00042D10	EQU	$42D10
 absolute_slot_00000400	EQU	$400
 
     SECTION code,code
@@ -13404,7 +13380,7 @@ abs_0_0003409E:
 	move.b (a0)+,d0
 	add.w d0,d0
 	add.w d0,d0
-	movea.l #runtime_address_00034F94,a1
+	movea.l #$34F94,a1
 	move.l $0(a1,d0.w),abs_0_00033FD0.l
 	bra.b abs_0_0003409E
 abs_0_000340BA:
@@ -13414,7 +13390,7 @@ abs_0_000340BA:
 	move.b (a0)+,d0
 	add.w d0,d0
 	add.w d0,d0
-	movea.l #runtime_address_00034FFE,a1
+	movea.l #$34FFE,a1
 	move.l $0(a1,d0.w),abs_0_00033FD4.l
 	bra.b abs_0_0003409E
 abs_0_000340D6:
@@ -13445,7 +13421,7 @@ abs_0_0003413C:
 	move.b (a0)+,d0
 	add.w d0,d0
 	add.w d0,d0
-	movea.l #runtime_address_00034F94,a1
+	movea.l #$34F94,a1
 	move.l $0(a1,d0.w),abs_0_00033FE4.l
 	bra.b abs_0_0003413C
 abs_0_00034158:
@@ -13455,7 +13431,7 @@ abs_0_00034158:
 	move.b (a0)+,d0
 	add.w d0,d0
 	add.w d0,d0
-	movea.l #runtime_address_00034FFE,a1
+	movea.l #$34FFE,a1
 	move.l $0(a1,d0.w),abs_0_00033FE8.l
 	bra.b abs_0_0003413C
 abs_0_00034174:
@@ -13486,7 +13462,7 @@ abs_0_000341DA:
 	move.b (a0)+,d0
 	add.w d0,d0
 	add.w d0,d0
-	movea.l #runtime_address_00034F94,a1
+	movea.l #$34F94,a1
 	move.l $0(a1,d0.w),abs_0_00033FF8.l
 	bra.b abs_0_000341DA
 abs_0_000341F6:
@@ -13496,7 +13472,7 @@ abs_0_000341F6:
 	move.b (a0)+,d0
 	add.w d0,d0
 	add.w d0,d0
-	movea.l #runtime_address_00034FFE,a1
+	movea.l #$34FFE,a1
 	move.l $0(a1,d0.w),abs_0_00033FFC.l
 	bra.b abs_0_000341DA
 abs_0_00034212:
@@ -17873,7 +17849,7 @@ abs_0_00043080:
 	dc.w $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF	; lookup_table
 abs_0_0004518C:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	lea.l abs_0_00064000.l,a4
 	move.w abs_0_00042C6C.l,d0
 	move.w d0,d1
@@ -18223,7 +18199,7 @@ abs_0_000455F8:
 	rts
 abs_0_00045600:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movea.l abs_0_00042C08.l,a4
 	move.l abs_0_00042C0C.l,d5
 	movea.l abs_0_00042C10.l,a0
@@ -18379,7 +18355,7 @@ abs_0_00045804:
 abs_0_00045806:
 	movea.w abs_0_00042C74.l,a0
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	cmpi.l #659456,d1
 	blt.b abs_0_00045826
 	move.l #$91FF0,d1
@@ -18443,9 +18419,9 @@ abs_0_0004586E:
 	move.w d2,d3
 	move.w d5,d4
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movea.l #abs_0_000498B0,a4
-	movea.l #runtime_address_000459D4,a0
+	movea.l #$459D4,a0
 	tst.w abs_0_00042C06.l
 	bpl.b abs_0_000458C8
 	swap.w d0
@@ -24566,7 +24542,7 @@ abs_0_0004BC9A:
 	cmp.b abs_0_00007634.w,d0
 	bne.w abs_0_0004BD84
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	lea.l absolute_slot_0000028C.w,a0
 	jsr abs_0_00053D20.l
 	move.l a1,d1
@@ -24947,7 +24923,7 @@ abs_0_0004C17A:
 	move.w #$1000,abs_0_00007846.w
 abs_0_0004C1AC:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	lea.l abs_0_00064000.l,a4
 	lea.l abs_0_000350E0.l,a0
 	move.w abs_0_0000783E.w,d6
@@ -25177,7 +25153,7 @@ abs_0_0004C47E:
 	tst.w abs_0_00007834.w
 	ble.b abs_0_0004C47C
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movea.l abs_0_000064D0.w,a1
 	movea.l abs_0_000068D0.w,a2
 	movea.l abs_0_00006CD0.w,a3
@@ -25397,7 +25373,7 @@ abs_0_0004C726:
 	tst.w abs_0_000061CC.w
 	beq.b abs_0_0004C7A2
 	move.b abs_0_000061CE.w,d1
-	lea.l runtime_address_0004C79C.l,a0
+	lea.l $0004C79C.l,a0
 	cmpi.b #102,d1
 	bne.b abs_0_0004C742
 	tst.w abs_0_00007A60.w
@@ -25705,7 +25681,7 @@ abs_0_0004CBDA:
 	bgt.b abs_0_0004CC1C
 	add.w d0,d0
 	add.w d0,d0
-	movea.l runtime_address_0004B110.l,a0
+	movea.l $0004B110.l,a0
 	tst.w abs_0_00007A54.w
 	beq.b abs_0_0004CC24
 	cmp.w abs_0_00007A5E.w,d0
@@ -26043,7 +26019,7 @@ abs_0_0004D052:
 	dc.b $00,$06,$00,$06,$00,$06,$80,$01,$00,$FF,$00,$05,$00,$06,$C0,$05
 	dc.b $00,$01,$00,$06,$C0,$09,$00,$00,$FF,$00
 abs_0_0004D06C:
-	movea.l #runtime_address_00073500,a0
+	movea.l #$73500,a0
 	moveq.l #0,d0
 	move.b abs_0_00007860.w,d0
 	adda.w $0(a0,d0.w),a0
@@ -26123,7 +26099,7 @@ abs_0_0004D158:
 	moveq.l #0,d0
 	move.b (a0),d0
 abs_0_0004D16C:
-	movea.l runtime_address_0004B110.l,a0
+	movea.l $0004B110.l,a0
 	add.w d0,d0
 	add.w d0,d0
 	adda.l $0(a0,d0.w),a0
@@ -26162,7 +26138,7 @@ abs_0_0004D1DC:
 	bne.b abs_0_0004D1DC
 	move.b d0,(a0)
 abs_0_0004D1E8:
-	movea.l runtime_address_0004B110.l,a0
+	movea.l $0004B110.l,a0
 	add.w d0,d0
 	add.w d0,d0
 	adda.l $0(a0,d0.w),a0
@@ -26268,7 +26244,7 @@ abs_0_0004D368:
 abs_0_0004D376:
 	moveq.l #0,d0
 	move.b abs_0_000061CE.w,d0
-	movea.l runtime_address_0004B110.l,a0
+	movea.l $0004B110.l,a0
 	add.w d0,d0
 	add.w d0,d0
 	adda.l $0(a0,d0.w),a0
@@ -26431,7 +26407,7 @@ abs_0_0004D538:
 abs_0_0004D550:
 	add.w d1,d1
 	add.w d1,d1
-	movea.l runtime_address_0004B110.l,a0
+	movea.l $0004B110.l,a0
 	adda.l $0(a0,d1.w),a0
 	clr.w abs_0_00007950.w
 	move.l -$0014(a0),abs_0_00007952.w
@@ -27171,7 +27147,7 @@ abs_0_0004DDD8:
 	rts
 abs_0_0004DDFE:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_0000799A.w,d0
 	move.l abs_0_000079A2.w,d1
 	sub.l $5F40(a0),d0
@@ -27231,7 +27207,7 @@ abs_0_0004DEB6:
 	move.l d0,abs_0_00007ABA.w
 abs_0_0004DECA:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l $5F40(a0),d0
 	move.l $5FC0(a0),d1
 	exg d0,d1
@@ -28934,7 +28910,7 @@ abs_0_0004F10C:
 	lea.l abs_0_0000C988.l,a3
 	lea.l abs_0_0004EA7E.l,a4
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	clr.l abs_0_0004F072.l
 	move.l #$FFFFFFFF,abs_0_0004F07A.l
 	move.b (a0)+,d0
@@ -29005,7 +28981,7 @@ abs_0_0004F1C4:
 abs_0_0004F1C8:
 	add.w d0,d0
 	add.w d0,d0
-	movea.l runtime_address_00042D20.l,a2
+	movea.l $00042D20.l,a2
 	adda.w d0,a2
 	move.l (a2),abs_0_0004F31A+2.l
 	move.l (a2),abs_0_0004F362+2.l
@@ -29014,7 +28990,7 @@ abs_0_0004F1C8:
 	movea.l abs_0_00042C00.l,a3
 	adda.w $0(a2,d1.w),a3
 	move.w a3,abs_0_0004F086.l
-	movea.l runtime_address_00042D24.l,a4
+	movea.l $00042D24.l,a4
 	moveq.l #0,d3
 	moveq.l #0,d4
 	moveq.l #0,d5
@@ -29331,7 +29307,7 @@ abs_0_0004F4B8:
 	bsr.w abs_0_0004F0F6
 	move.w #$9540,abs_0_0004F314+2.l
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movem.l (a7)+,d1-d3/a0
 	move.l #$300000,d0
 	cmpi.w #2,abs_0_00007A8E.w
@@ -29354,7 +29330,7 @@ abs_0_0004F526:
 abs_0_0004F53E:
 	movem.l d0-d3,-(a7)
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_0000799A.w,d0
 	move.l abs_0_000079A2.w,d1
 	move.l $5F40(a1),d2
@@ -29743,7 +29719,7 @@ abs_0_0004F922:
 	dc.l abs_0_0004FB8A,abs_0_0004FBB8,abs_0_0004FBE6,abs_0_0004FC14	; lookup_table
 abs_0_0004F962:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29756,7 +29732,7 @@ abs_0_0004F962:
 	rts
 abs_0_0004F990:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29769,7 +29745,7 @@ abs_0_0004F990:
 	rts
 abs_0_0004F9BE:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29782,7 +29758,7 @@ abs_0_0004F9BE:
 	rts
 abs_0_0004F9EC:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29795,7 +29771,7 @@ abs_0_0004F9EC:
 	rts
 abs_0_0004FA1A:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29808,7 +29784,7 @@ abs_0_0004FA1A:
 	rts
 abs_0_0004FA48:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29821,7 +29797,7 @@ abs_0_0004FA48:
 	rts
 abs_0_0004FA76:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29834,7 +29810,7 @@ abs_0_0004FA76:
 	rts
 abs_0_0004FAA4:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29847,7 +29823,7 @@ abs_0_0004FAA4:
 	rts
 abs_0_0004FAD2:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29860,7 +29836,7 @@ abs_0_0004FAD2:
 	rts
 abs_0_0004FB00:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29873,7 +29849,7 @@ abs_0_0004FB00:
 	rts
 abs_0_0004FB2E:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29886,7 +29862,7 @@ abs_0_0004FB2E:
 	rts
 abs_0_0004FB5C:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29899,7 +29875,7 @@ abs_0_0004FB5C:
 	rts
 abs_0_0004FB8A:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29912,7 +29888,7 @@ abs_0_0004FB8A:
 	rts
 abs_0_0004FBB8:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29925,7 +29901,7 @@ abs_0_0004FBB8:
 	rts
 abs_0_0004FBE6:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -29938,7 +29914,7 @@ abs_0_0004FBE6:
 	rts
 abs_0_0004FC14:
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a2
+	movea.l #$42E00,a2
 	move.b $0(a2,d0.w),d7
 	movea.l #abs_0_00043080,a2
 	add.w d1,d1
@@ -30415,8 +30391,8 @@ abs_0_00050152:
 	addi.w #40,d0
 	dbf.w d1,abs_0_00050152
 	move.w #$27,d2
-	movea.l #runtime_address_00042F40,a1
-	movea.l #runtime_address_00042F40,a2
+	movea.l #$42F40,a1
+	movea.l #$42F40,a2
 	moveq.l #0,d1
 abs_0_0005016E:
 	move.b d1,(a1)+
@@ -30438,8 +30414,8 @@ abs_0_0005016E:
 	addq.b #1,d1
 	dbf.w d2,abs_0_0005016E
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
-	movea.l #runtime_address_0004418C,a0
+	movea.l #$60000,a6
+	movea.l #$4418C,a0
 	movea.l a0,a1
 	moveq.l #1,d0
 	move.l #$FFF0F000,(a0)+
@@ -30518,7 +30494,7 @@ abs_0_00050312:
 	bne.b abs_0_00050312
 	bsr.w abs_0_0005035A
 	movea.l #abs_0_00069540,a0	; bitmap memory plane 0 +$1540 ($00069540)
-	movea.l #runtime_address_00079540,a1
+	movea.l #$79540,a1
 	move.w #$27F,d0
 abs_0_0005033C:
 	move.l (a0)+,(a1)+
@@ -30531,7 +30507,7 @@ abs_0_0005033C:
 abs_0_0005035A:
 	moveq.l #0,d0
 	moveq.l #-1,d1
-	movea.l #runtime_address_00078000,a1
+	movea.l #$78000,a1
 	movea.l #$68000,a2	; bitmap memory plane 0 base $00068000
 	move.l #$54F,d2
 abs_0_00050370:
@@ -30733,7 +30709,7 @@ abs_0_000505A8:
 	clr.b abs_0_000073C9.w
 	move.w #$20,$612A(a0)
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_0000797A.w,d0
 	move.l #$A1F00,d5
 	exg d1,d0
@@ -31166,7 +31142,7 @@ abs_0_00050BAE:
 	move.w #$A0,d1
 	move.w #$43,d2
 	move.l abs_0_00042C00.l,d7
-	movea.l #runtime_address_00042E00,a0
+	movea.l #$42E00,a0
 	move.b $0(a0,d1.w),d7
 	movea.l #abs_0_00043080,a0
 	add.w d2,d2
@@ -31234,7 +31210,7 @@ abs_0_00050CB6:
 	rts
 abs_0_00050CCE:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_00007BF2.w,d1
 	move.l #$1030,d2
 	move.w $0(a5,d2.w),d2
@@ -31312,7 +31288,7 @@ abs_0_00050DA6:
 	move.w #$4F,d5
 	move.l abs_0_00007BF2.w,d4
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 abs_0_00050DCE:
 	move.l (a0)+,d0
 	move.l (a0)+,d1
@@ -31508,7 +31484,7 @@ abs_0_00050FB6:
 	movea.l #$3640,a0
 	move.l #$4F,d5
 	moveq.l #12,d6
-	movea.l #runtime_address_00042E00,a3
+	movea.l #$42E00,a3
 	move.l #$43080,d7
 	movea.l abs_0_00042C00.l,a4
 	movea.l abs_0_00050C22.l,a5
@@ -32840,7 +32816,7 @@ abs_0_0005228C:
 	move.w abs_0_00007862.w,abs_0_0005185E.l
 	move.w abs_0_00007864.w,abs_0_00051892.l
 abs_0_0005229C:
-	movea.l runtime_address_000521B0.l,a2
+	movea.l $000521B0.l,a2
 	move.w (a2),(a0)
 	move.w (a2)+,(a1)
 	move.w (a2),$1F40(a0)
@@ -33181,7 +33157,7 @@ abs_0_00052708:
 	movea.l abs_0_000079A2.w,a3
 	movea.l #abs_0_00008F5A,a4
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 abs_0_00052740:
 	move.l $5F40(a0),d3
 	sub.l a1,d3
@@ -33623,7 +33599,7 @@ abs_0_00052BB2:
 	movea.l abs_0_000079A2.w,a3
 	movea.l abs_0_00007918.w,a4
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 abs_0_00052BD2:
 	move.l #$0,d0
 	move.b (a4)+,d0
@@ -33707,7 +33683,7 @@ abs_0_00052CAA:
 	dc.b $00,$00,$00,$00
 abs_0_00052CAE:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	moveq.l #-1,d1
 	lea.l abs_0_0000B21C.l,a0
 	movea.l a0,a2
@@ -33729,7 +33705,7 @@ abs_0_00052CE4:
 	clr.w abs_0_00007882.w
 	move.w #$7FFF,abs_0_00007B42.w
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	lea.l abs_0_00007D18.w,a0
 	moveq.l #0,d0
 	tst.w abs_0_000078A6.w
@@ -34130,7 +34106,7 @@ abs_0_00053150:
 abs_0_00053152:
 	clr.w abs_0_00052FDA.l
 	move.w #$1,abs_0_00052FDC.l
-	movea.l runtime_address_0004B110.l,a4
+	movea.l $0004B110.l,a4
 	add.w d0,d0
 	add.w d0,d0
 	movea.w d0,a0
@@ -34198,7 +34174,7 @@ abs_0_000531EA:
 	cmpi.b #5,abs_0_00052FDB.l
 	beq.w abs_0_00053508
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_00052FDC(pc),d1
 	bsr.w abs_0_00053D6C
 	bcc.w abs_0_0005328A
@@ -34485,7 +34461,7 @@ abs_0_00053506:
 	rts
 abs_0_00053508:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l a1,d3
 	move.l a2,d4
 	move.l a3,d5
@@ -34621,7 +34597,7 @@ abs_0_0005363C:
 abs_0_00053648:
 	move.w abs_0_00053634.l,d0
 	move.w #$FFFF,abs_0_00053636.l
-	movea.l runtime_address_0004B122.l,a0
+	movea.l $0004B122.l,a0
 	add.w d0,d0
 	add.w d0,d0
 	adda.l $0(a0,d0.w),a0
@@ -34888,7 +34864,7 @@ abs_0_000538A6:
 	movea.l d1,a3
 	bsr.w abs_0_0005358C
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movem.l a1-a3,abs_0_00007B86.w
 	movea.l #$100,a0
 	movea.l abs_0_00053638(pc),a4
@@ -35252,7 +35228,7 @@ abs_0_00053C6C:
 	adda.w $0(a4,d0.w),a4
 	movem.l a0-a3,-(a7)
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movea.l #$200,a0
 abs_0_00053C94:
 	addq.l #4,a0
@@ -35465,7 +35441,7 @@ abs_0_00053EB4:
 	tst.b $7272(a0)
 	bpl.b abs_0_00053E92
 abs_0_00053EEA:
-	movea.l runtime_address_0004B110.l,a1
+	movea.l $0004B110.l,a1
 	adda.l $0(a1,a0.w),a1
 	cmpi.w #32769,(a1)
 	bne.b abs_0_00053EB2
@@ -35666,7 +35642,7 @@ abs_0_00054120:
 	cmp.w d0,d2
 	blt.w abs_0_000540B4
 abs_0_00054174:
-	movea.l runtime_address_0004B110.l,a2
+	movea.l $0004B110.l,a2
 	adda.l $0(a2,d3.w),a2
 	move.w (a2)+,d2
 	cmpi.w #32783,d2
@@ -36070,7 +36046,7 @@ abs_0_000545FA:
 	movea.l abs_0_00007A2C.w,a1
 	movea.l abs_0_00007A34.w,a3
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movea.l abs_0_000079BA.w,a2
 	movea.l $7B54.w,a0
 abs_0_00054616:
@@ -36325,7 +36301,7 @@ abs_0_000548CA:
 	move.w d4,abs_0_00007AF0.w
 	add.w d4,d4
 	add.w d4,d4
-	movea.l runtime_address_0004B10C.l,a2
+	movea.l $0004B10C.l,a2
 	adda.l $0(a2,d4.w),a2
 	move.w (a2),d4
 	bpl.b abs_0_00054968
@@ -36354,7 +36330,7 @@ abs_0_00054954:
 	move.w d4,abs_0_00007AF0.w
 	add.w d4,d4
 	add.w d4,d4
-	movea.l runtime_address_0004B10C.l,a2
+	movea.l $0004B10C.l,a2
 	adda.l $0(a2,d4.w),a2
 	bra.b abs_0_00054998
 abs_0_00054968:
@@ -36372,7 +36348,7 @@ abs_0_00054968:
 	move.b -$0005(a2),abs_0_00053635.l
 abs_0_00054998:
 	add.w d0,d0
-	movea.l runtime_address_0004B116.l,a0
+	movea.l $0004B116.l,a0
 	adda.w $0(a0,d0.w),a0
 	move.l a0,abs_0_00007A0E.w
 	move.w a0,abs_0_00007A12.w
@@ -36489,7 +36465,7 @@ abs_0_00054ADA:
 	move.w d0,abs_0_0000795E.w
 	add.w d0,d0
 	add.w d0,d0
-	movea.l runtime_address_0004B110.l,a0
+	movea.l $0004B110.l,a0
 	adda.l $0(a0,d0.w),a0
 	move.l -$0014(a0),abs_0_00007952.w
 	clr.w abs_0_00007950.w
@@ -36580,7 +36556,7 @@ abs_0_00054BAE:
 	move.l d0,$63A8(a3)
 	move.l d1,$67A8(a3)
 	move.l d2,$6BA8(a3)
-	movea.l runtime_address_0004B110.l,a2
+	movea.l $0004B110.l,a2
 	move.w a3,d1
 	move.w (a0)+,d0
 	move.l $0(a2,d0.w),$0(a2,d1.w)
@@ -36690,7 +36666,7 @@ abs_0_00054CF2:
 	cmpi.w #10,d0
 	bhi.w abs_0_00054F4A
 	lea.l $0DE7(a0),a1
-	movea.l runtime_address_0004B110.l,a3
+	movea.l $0004B110.l,a3
 	lea.l $0408(a3),a2
 	lea.l abs_0_000061CE.w,a4
 	lea.l abs_0_00054E14.l,a5
@@ -37312,7 +37288,7 @@ abs_0_0005554C:
 	beq.w abs_0_0005560E
 	cmpi.b #13,d0
 	beq.w abs_0_00055648
-	movea.l #runtime_address_00055686,a0
+	movea.l #$55686,a0
 	andi.w #255,d0
 	cmpi.w #68,d0
 	bgt.b abs_0_000555B8
@@ -37358,7 +37334,7 @@ abs_0_000555D4:
 	dc.b $00,$00
 abs_0_0005560E:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_00007BAC.w,d0
 	move.l #$FFFF1F80,d1
 	move.w $0(a5,d1.w),d1
@@ -37374,7 +37350,7 @@ abs_0_0005560E:
 	rts
 abs_0_00055648:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_00007BAC.w,d0
 	move.l #$1080,d1
 	move.w $0(a5,d1.w),d1
@@ -37575,7 +37551,7 @@ abs_0_000559BC:
 	moveq.l #0,d2
 	move.b $C(a0,d1.w),d2
 	add.w d2,d2
-	movea.l runtime_address_0004B116.l,a0
+	movea.l $0004B116.l,a0
 	adda.w $0(a0,d2.w),a0
 	move.l a0,abs_0_00007A0E.w
 	move.w a0,abs_0_00007A12.w
@@ -37688,7 +37664,7 @@ abs_0_00055ABC:
 	dc.b $FF,$FF,$10,$00,$FF,$FF,$10,$00,$00,$10,$00,$5A,$00,$00,$19,$00
 abs_0_00055D9C:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movea.l #abs_0_00064000,a4
 	move.w abs_0_00007A9E.w,d1
 	move.w d1,d2
@@ -38096,7 +38072,7 @@ abs_0_000561A6:
 	jsr abs_0_0004B1D4.l
 	exg d5,d1
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	bsr.w abs_0_000564AE
 	move.w a1,d7
 	bra.w abs_0_0005625A
@@ -38150,7 +38126,7 @@ abs_0_0005622E:
 	jsr abs_0_0004B1D4.l
 	exg d3,d1
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	bsr.w abs_0_000564AE
 	move.w a1,d7
 abs_0_0005625A:
@@ -38202,7 +38178,7 @@ abs_0_000562C4:
 	move.l #$7FFF1000,abs_0_00007890.w
 	movea.l abs_0_00007A16.w,a4
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 abs_0_000562DC:
 	move.w (a4),d3
 	cmpi.w #32768,d3
@@ -38273,7 +38249,7 @@ abs_0_00056356:
 	bra.w abs_0_00056356
 abs_0_0005639A:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	movea.l abs_0_000079BA.w,a2
 	lea.l $0004.w,a0
 abs_0_000563AE:
@@ -38333,7 +38309,7 @@ abs_0_00056420:
 	beq.b abs_0_0005641E
 	addq.w #4,a0
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 abs_0_00056442:
 	move.l $0140(a0),d3
 	sub.l a1,d3
@@ -40070,7 +40046,7 @@ abs_0_000574FA:
 	movea.l d2,a2
 abs_0_00057504:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.b $1240(a2),d2
 	move.b $1240(a1),d1
 	beq.b abs_0_00057538
@@ -40929,7 +40905,7 @@ abs_0_00057D28:
 	jmp (a4)
 abs_0_00057D66:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	cmpi.w #1,abs_0_00007AAE.w
 	beq.w abs_0_00058D96
 	bpl.w abs_0_000587C6
@@ -41138,7 +41114,7 @@ abs_0_0005853A:
 	bra.w abs_0_000585FE
 abs_0_0005854E:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_000078F6.w,d2
 	sub.l abs_0_0000799A.w,d2
 	move.l abs_0_000078FA.w,d3
@@ -41374,7 +41350,7 @@ abs_0_000587C6:
 	jsr abs_0_00050D4E.l
 abs_0_00058836:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_0000799E.w,d0
 	move.l abs_0_000079A2.w,d1
 	exg d0,d1
@@ -42021,7 +41997,7 @@ abs_0_00058ECC:
 	jsr abs_0_0004E02C.l
 	bsr.w abs_0_000546B6
 	move.w #$12C,d0
-	movea.l runtime_address_0004B110.l,a0
+	movea.l $0004B110.l,a0
 abs_0_00058F02:
 	move.l $0400(a0),$0(a0,d0.w)
 	addi.w #4,d0
@@ -42385,7 +42361,7 @@ abs_0_0005932C:
 	jsr abs_0_0004DECA.l
 	move.w a0,d0
 	lsr.w #1,d0
-	movea.l runtime_address_0004B11E.l,a1
+	movea.l $0004B11E.l,a1
 	adda.w $0(a1,d0.w),a1
 	move.l a1,abs_0_00007A16.w
 	cmpi.w #4,d0
@@ -42832,7 +42808,7 @@ abs_0_00059A4E:
 abs_0_00059A8C:
 	move.w #$87,d5
 	movea.l abs_0_00042C00.l,a1
-	movea.l #runtime_address_FFFFFFFF,a0
+	movea.l #$FFFFFFFF,a0
 	move.l #$FFFF,d1
 	move.b abs_0_00007AA0.w,d0
 	move.b abs_0_00007A9E.w,d2
@@ -42883,7 +42859,7 @@ abs_0_00059B04:
 abs_0_00059B0A:
 	movea.l d0,a3
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.l abs_0_00007986.w,d0
 	add.l abs_0_00007964.w,d0
 	movea.l d0,a4
@@ -43029,11 +43005,11 @@ abs_0_00059C88:
 	move.l d1,d3
 	not.l d3
 	move.l a3,d6
-	movea.l runtime_address_00042D0C.l,a3
-	movea.l #runtime_address_00059CD4,a5
+	movea.l $00042D0C.l,a3
+	movea.l #$59CD4,a5
 	tst.w d1
 	beq.b abs_0_00059CA4
-	movea.l runtime_address_00042D10.l,a3
+	movea.l $00042D10.l,a3
 abs_0_00059CA4:
 	move.l #$FFFFFFFF,d1
 	add.l d6,d7
@@ -43300,7 +43276,7 @@ abs_0_00059FAC:
 abs_0_00059FB0:
 	add.w d0,d0
 	add.w d0,d0
-	movea.l runtime_address_0004B10C.l,a0
+	movea.l $0004B10C.l,a0
 	adda.l $0(a0,d0.w),a0
 	move.w abs_0_000079B6.w,d6
 	move.w abs_0_000079B8.w,d7
@@ -44274,7 +44250,7 @@ abs_0_0005A988:
 	tst.w abs_0_00007B02.w
 	bmi.b abs_0_0005A972
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.w abs_0_000079AC.w,d0
 	move.w abs_0_00007B26.w,d1
 	move.w abs_0_00007B28.w,d2
@@ -45006,7 +44982,7 @@ abs_0_0005B316:
 	movea.l $2640(a0),a2
 abs_0_0005B332:
 	movea.l #abs_0_00064000,a5
-	movea.l #runtime_address_00060000,a6
+	movea.l #$60000,a6
 	move.b $5A40(a2),d2
 	andi.b #136,d2
 	move.b $5A40(a1),d1

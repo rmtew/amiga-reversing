@@ -22,7 +22,6 @@ _custom	EQU	$DFF000
 absolute_slot_0004F92B	EQU	$4F92B
 absolute_slot_00040000	EQU	$40000
 absolute_slot_00050000	EQU	$50000
-runtime_address_00040000	EQU	$40000
 _ciab	EQU	$BFD000
 m68k_vector_privilege_violation	EQU	$20
 stack_top_00000800	EQU	$800
@@ -31,7 +30,6 @@ absolute_slot_00059484	EQU	$59484
 absolute_slot_00002700	EQU	$2700
 absolute_slot_00001000	EQU	$1000
 absolute_slot_0007FFFF	EQU	$7FFFF
-runtime_address_00059484	EQU	$59484
 absolute_slot_000130B6	EQU	$130B6
 
     SECTION section_0,code
@@ -166,7 +164,7 @@ loc_1_000000F2:
 	move.b d0,(a0)+
 	cmpa.l a2,a1
 	blt.b loc_1_000000DC
-	jmp runtime_address_00040000.l
+	jmp $00040000.l
 loc_1_00000100:
 	dc.b $12,$E7,$FF,$7F,$C4,$9C,$AD,$19,$7D,$FF,$7F,$92,$D8,$60,$38,$88
 	dc.b $00,$C1,$41,$00,$81,$05,$80,$1A,$03,$B9,$BD,$57,$13,$7B,$21,$71
@@ -268,7 +266,7 @@ loc_2_0000008E:
 	cmpa.l a2,a1
 	blt.b loc_2_00000078
 	move.w #$7FFF,$009E(a6)
-	jmp runtime_address_00059484.l
+	jmp $00059484.l
 	dc.b "=|",$7F,$FF,$00,$9A,"Ns"	; mode=required, data_role=string, unit=byte
 loc_2_000000AA:
 	adda.l #$47368,a0

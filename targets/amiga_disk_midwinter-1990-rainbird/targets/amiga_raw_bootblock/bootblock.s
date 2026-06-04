@@ -21,7 +21,6 @@ _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF
 m68k_vector_level_1_interrupt_autovector	EQU	$64
 absolute_slot_000314E0	EQU	$314E0
-runtime_address_00031500	EQU	$31500
 _ciab	EQU	$BFD000
 disk_buffer_00070000	EQU	$70000
 
@@ -53,7 +52,7 @@ loc_0_00000038:
 	bsr.w loc_0_0000019A
 	tst.l d4
 	bmi.w loc_0_00000068
-	jmp runtime_address_00031500.l
+	jmp $00031500.l
 loc_0_00000068:
 	moveq.l #0,d0
 loc_0_0000006A:

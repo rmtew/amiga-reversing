@@ -38,7 +38,6 @@ app_0208 RS.W 1
 app_0218 RS.W 1
 app_SIZEOF EQU __RS
 
-runtime_address_00010000	EQU	$10000
 _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF
 m68k_vector_division_by_zero	EQU	$14
@@ -7309,7 +7308,7 @@ loc_0_00007774:
 	dc.b $00,$00,$00,$00
 loc_0_00007778:
 	movem.l d0-d7/a0-a6,-(a7)
-	movea.l #runtime_address_00010000,a3
+	movea.l #$10000,a3
 	lea.l $0(a4,d4.w),a5
 	lea.l $0(a4,d5.w),a6
 	move.l $0000(a5),loc_0_00007770.l

@@ -17,8 +17,6 @@ _custom	EQU	$DFF000
 _ciaa	EQU	$BFE001
 blitter_source_00040AF6	EQU	$40AF6
 absolute_slot_00049AF6	EQU	$49AF6
-runtime_address_00040368	EQU	$40368
-runtime_address_0004036E	EQU	$4036E
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 
     SECTION code,code
@@ -195,7 +193,7 @@ abs_0_000402E2:
 	dc.w $0000
 abs_0_000402EA:
 	movem.l d0-d7/a0-a6,-(a7)
-	movea.l runtime_address_00040368.l,a1
+	movea.l $00040368.l,a1
 	move.l $0364(a4),d0
 	tst.l d0
 	beq.b abs_0_00040358
@@ -211,7 +209,7 @@ abs_0_000402FE:
 	bra.b abs_0_0004032A
 abs_0_00040314:
 	addq.w #1,$0362(a4)
-	movea.l runtime_address_0004036E.l,a1
+	movea.l $0004036E.l,a1
 	move.w $0362(a4),d0
 	mulu.w #$280,d0
 	adda.l d0,a1

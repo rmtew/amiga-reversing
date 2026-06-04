@@ -7775,6 +7775,21 @@ static const M68kAddressObservationIR *source_quality_address_observation_for_ca
 static int source_quality_runtime_operand_expr_use_exists_at(const M68kSectionAnalysisIR *section,
   uint32_t offset, uint32_t operand_index, uint32_t runtime_address);
 
+static int source_quality_platform_call_input_use_exists_at(const M68kSectionAnalysisIR *section,
+    uint32_t offset, uint32_t operand_index) {
+  size_t index;
+  if (section == NULL || operand_index == UINT32_MAX) return 0;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT &&
+        use->offset == offset &&
+        use->operand_index == operand_index) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int append_expected_address_observation_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis,
     M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
   size_t candidate_index;
@@ -7801,6 +7816,11 @@ static int append_expected_address_observation_symbol_accesses_for_section(M68kS
       if (observation != NULL && observation->has_address &&
           source_quality_runtime_operand_expr_use_exists_at(section_analysis, observation->offset,
             observation->operand_index, observation->address)) {
+        continue;
+      }
+      if (observation != NULL &&
+          source_quality_platform_call_input_use_exists_at(section_analysis, observation->offset,
+            observation->operand_index)) {
         continue;
       }
       memset(&access, 0, sizeof(access));
@@ -8758,6 +8778,7 @@ static int append_platform_call_input_semantic_use(M68kSectionAnalysisIR *sectio
   use.offset = candidate->offset;
   use.size = candidate->byte_count;
   use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  use.operand_index = 0U;
   use.note_text = note;
   return m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use);
 }

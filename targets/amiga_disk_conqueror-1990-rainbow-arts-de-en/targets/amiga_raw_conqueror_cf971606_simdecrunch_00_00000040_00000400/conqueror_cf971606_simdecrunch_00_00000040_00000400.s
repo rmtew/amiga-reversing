@@ -45,10 +45,7 @@ absolute_slot_00017D00	EQU	$17D00
 absolute_slot_0001C000	EQU	$1C000
 absolute_slot_0001C0BE	EQU	$1C0BE
 absolute_slot_0001C0D8	EQU	$1C0D8
-runtime_address_0001C000	EQU	$1C000
-runtime_address_0002B01C	EQU	$2B01C
 _ciaa	EQU	$BFE001
-runtime_address_00056000	EQU	$56000
 bitmap_00010000	EQU	$10000
 bitmap_00010000_hi	EQU	bitmap_00010000/$10000
 bitmap_00010000_lo	EQU	bitmap_00010000-(bitmap_00010000_hi*$10000)
@@ -128,14 +125,14 @@ abs_0_000004C4:
 	move.w #$4E71,(a0)+
 	move.w #$4E71,(a0)+
 	move.w #$4E71,(a0)+
-	jsr runtime_address_0001C000.l
+	jsr $0001C000.l
 	move.w #$4E75,$0002B1D2.l
 	lea.l _custom+color.l,a0
 	moveq.l #15,d0
 abs_0_00000542:
 	clr.w (a0)+
 	dbf.w d0,abs_0_00000542
-	jsr runtime_address_0002B01C.l
+	jsr $0002B01C.l
 	move.l #abs_0_00000AB0,_custom+cop1lc.l	; copper_list pointer
 	clr.w _custom+copjmp1.l
 	move.w #COLORON,_custom+bplcon0.l
@@ -159,8 +156,8 @@ abs_0_00000584:
 	move.w #$4E71,(a0)+
 	move.w #$4E71,(a0)+
 	move.b #CIAICRF_SETCLR|CIAICRF_SP,_ciaa+ciaicr.l
-	jsr runtime_address_0001C000.l
-	jmp runtime_address_00056000.l
+	jsr $0001C000.l
+	jmp $00056000.l
 	dcb.b $8,$00
 	dc.b $20,$4C,$33,$FC,$82,$10,$00,$DF,$F0,$96,$23,$C0,$00,$00,$05,$D0
 	dc.b $23,$C8,$00,$00,$05,$D4,$61,$00,$03,$C8,$61,$00,$03,$DE,$61,$00

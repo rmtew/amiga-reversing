@@ -13,7 +13,6 @@
     INCLUDE "exec/memory.i"
     INCLUDE "hardware/custom.i"
 
-runtime_address_61646472	EQU	$61646472
 _custom	EQU	$DFF000
 
     SECTION section_0,code
@@ -114,7 +113,7 @@ loc_0_000000D4:
 loc_0_000000EC:
 	movem.l (a7)+,d0-d7/a0-a6
 loc_0_000000F0:
-	jmp runtime_address_61646472.l
+	jmp $61646472.l
 loc_0_000000F6:
 	bsr.b loc_0_00000112
 	addq.l #4,a3
