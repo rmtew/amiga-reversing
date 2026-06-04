@@ -499,6 +499,12 @@ def _platform_backend_harness_source_text() -> str:
         #include <string.h>
         #include "m68k_backend.h"
         #include "m68k_object.h"
+        #include "m68k_simulator.h"
+
+        const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction) {
+            (void)instruction;
+            return NULL;
+        }
 
         static int command_atari_duplicate_sections(void) {
             M68kDiagList diagnostics;
@@ -558,6 +564,7 @@ def _ensure_platform_backend_harness() -> Path:
         f'"{SRC_DIR / "platform_amiga_hunk.c"}" "{SRC_DIR / "platform_atari_st.c"}" '
         f'"{SRC_DIR / "platform_common.c"}" "{SRC_DIR / "platform_binary_io.c"}" '
         f'"{SRC_DIR / "m68k_diagnostics.c"}" "{SRC_DIR / "m68k_assembler_policy.c"}" '
+        f'"{SRC_DIR / "generated" / "amiga_os_runtime.c"}" "{SRC_DIR / "platform_name_table.c"}" '
         f'"{SRC_DIR / "generated" / "amiga_hunk_file_runtime.c"}" "{SRC_DIR / "generated" / "atari_st_prg_file_runtime.c"}" '
         f'/link /OUT:"{HARNESS_EXE}" || exit /b %errorlevel%\n'
         f'if not exist "{HARNESS_EXE}" exit /b 1\n'
@@ -575,6 +582,8 @@ def _ensure_platform_backend_harness() -> Path:
                 SRC_DIR / "platform_atari_st.c",
                 SRC_DIR / "platform_common.c",
                 SRC_DIR / "platform_binary_io.c",
+                SRC_DIR / "generated" / "amiga_os_runtime.c",
+                SRC_DIR / "platform_name_table.c",
                 SRC_DIR / "generated" / "amiga_hunk_file_runtime.c",
                 SRC_DIR / "generated" / "atari_st_prg_file_runtime.c",
             )

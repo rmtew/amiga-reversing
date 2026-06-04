@@ -11234,15 +11234,6 @@ static int test_render_evidence_create_with_access(M68kRenderEvidenceIR *render_
   return 0;
 }
 
-static int test_source_quality_analyze_with_empty_render_evidence(M68kSourceAnalysisIR *source_analysis) {
-  M68kRenderEvidenceIR render_evidence;
-  int result;
-  if (m68k_ir_render_evidence_create(&render_evidence) != 0) return -1;
-  result = m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis, &render_evidence);
-  m68k_ir_render_evidence_destroy(&render_evidence);
-  return result;
-}
-
 static int test_source_quality_analyze_with_render_evidence_json(M68kSourceAnalysisIR *source_analysis,
     uint32_t section_index, const M68kRenderedSymbolAccessIR *access, char **out_json) {
   M68kRenderEvidenceIR render_evidence;

@@ -4,7 +4,7 @@
     "block_usage": null,
     "boot_block": {
       "bootcode_entropy": 2.9,
-      "bootcode_has_code": true,
+      "bootcode_has_code": false,
       "bootcode_size": 1012,
       "checksum": "0x00000000",
       "checksum_valid": false,
@@ -15,17 +15,16 @@
         "entry_path": "bootblock",
         "local_target_id": "amiga_raw_bootblock",
         "source": {
-          "address_model": "local_offset",
           "byte_offset": 0,
           "byte_size": 1024,
-          "code_start_offset": 12,
-          "entrypoint": 458764,
-          "kind": "raw_binary",
-          "load_address": 458752
+          "kind": "asset_data",
+          "load_address": 458752,
+          "role": "bootblock"
         },
         "target_metadata": {
           "absolute_code_labels": [],
           "bootblock": {
+            "bootcode_has_code": false,
             "bootcode_offset": 12,
             "bootcode_size": 1012,
             "checksum": "0x00000000",
@@ -38,26 +37,7 @@
             "rootblock_ptr": 0
           },
           "custom_structs": [],
-          "entry_register_seeds": [
-            {
-              "context_name": null,
-              "entry_offset": null,
-              "kind": "library_base",
-              "library_name": "exec.library",
-              "note": "ExecBase",
-              "register": "A6",
-              "struct_name": "LIB"
-            },
-            {
-              "context_name": "trackdisk.device",
-              "entry_offset": null,
-              "kind": "struct_ptr",
-              "library_name": null,
-              "note": "IOStdReq (open trackdisk.device)",
-              "register": "A1",
-              "struct_name": "IO"
-            }
-          ],
+          "entry_register_seeds": [],
           "execution_views": [],
           "library": null,
           "resident": null,
@@ -76,27 +56,7 @@
     },
     "bootloader_analysis": {
       "memory_regions": [],
-      "stages": [
-        {
-          "base_addr": 458752,
-          "decode_outputs": [],
-          "decode_regions": [],
-          "derived_regions": [],
-          "disk_reads": [],
-          "entry_addr": 458764,
-          "handoff_target": null,
-          "handoffs": [],
-          "hardware_accesses": [],
-          "import_target": null,
-          "loads": [],
-          "materialized": true,
-          "memory_copies": [],
-          "name": "boot",
-          "reachable_instruction_count": 122,
-          "read_setups": [],
-          "size": 1012
-        }
-      ],
+      "stages": [],
       "transfers": []
     },
     "directories": null,
@@ -111,7 +71,7 @@
     "files": null,
     "filesystem": null,
     "non_dos": {
-      "bootcode_present": true,
+      "bootcode_present": false,
       "description": "Custom format disk (non-AmigaDOS)",
       "dos_magic_without_filesystem": true,
       "filesystem_parse_error": "C disk inspect output is missing root"
@@ -713,7 +673,7 @@
           "empty": false,
           "entropy": 0.78,
           "first_block": 0,
-          "has_code": true,
+          "has_code": false,
           "head": 0,
           "m68k_pattern_count": 0,
           "track": 0
@@ -6652,9 +6612,7 @@
     },
     "trackloader_analysis": {
       "boot_ascii_strings": [],
-      "candidate_code_tracks": [
-        0
-      ],
+      "candidate_code_tracks": [],
       "high_entropy_tracks": [],
       "nonempty_head0_tracks": 42,
       "nonempty_head1_tracks": 41,

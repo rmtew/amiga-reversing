@@ -4237,22 +4237,6 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
   return attached;
 }
 
-static const AmigaOsHardwareRegisterInfo *resolve_amiga_hardware_register_operand(const M68kRenderPlatformState *state,
-    const M68kOperandIR *operand) {
-  uint8_t base_reg = 0U;
-  int16_t displacement = 0;
-  uint32_t value = 0U;
-  if (operand == NULL) return NULL;
-  if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
-      state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
-      displacement >= 0) {
-    return amiga_os_find_hardware_register_by_base_id_offset(state->address_hardware_base_id[base_reg],
-      (uint32_t)(uint16_t)displacement);
-  }
-  if (operand_absolute_offset_local(operand, &value)) return amiga_os_find_hardware_register_by_cpu_address(value);
-  return NULL;
-}
-
 static const char *manual_representation_symbol_name(const M68kRenderLookup *lookup,
     const M68kAnalysisManualRepresentation *representation) {
   const M68kAnalysisPolicy *policy;

@@ -1,6 +1,7 @@
 {
   "absolute_code_labels": [],
   "bootblock": {
+    "bootcode_has_code": false,
     "bootcode_offset": 12,
     "bootcode_size": 1012,
     "checksum": "0x00000000",
@@ -15,26 +16,7 @@
   "custom_structs": [],
   "data_block_layouts": [],
   "entry_comments": [],
-  "entry_register_seeds": [
-    {
-      "context_name": null,
-      "entry_offset": null,
-      "kind": "library_base",
-      "library_name": "exec.library",
-      "note": "ExecBase",
-      "register": "A6",
-      "struct_name": "LIB"
-    },
-    {
-      "context_name": "trackdisk.device",
-      "entry_offset": null,
-      "kind": "struct_ptr",
-      "library_name": null,
-      "note": "IOStdReq (open trackdisk.device)",
-      "register": "A1",
-      "struct_name": "IO"
-    }
-  ],
+  "entry_register_seeds": [],
   "execution_views": [],
   "library": null,
   "manual_representations": [],

@@ -7557,6 +7557,62 @@ def test_real_dll_epic_bootblock_does_not_materialize_load_address_org() -> None
     ]
 
 
+def test_c_backend_non_code_bootblock_metadata_does_not_seed_boot_entry(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "blank_dos_bootblock.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    binary_path.write_bytes(b"DOS\0" + (0).to_bytes(4, "big") + (0).to_bytes(4, "big") + bytes(1012))
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "bootblock",
+                "entry_register_seeds": [],
+                "bootblock": {
+                    "magic_ascii": "DOS",
+                    "flags_byte": 0,
+                    "fs_description": "DOS\\0 - Original File System",
+                    "checksum": "0x00000000",
+                    "checksum_valid": False,
+                    "rootblock_ptr": 0,
+                    "bootcode_offset": 0x0C,
+                    "bootcode_size": 1012,
+                    "bootcode_has_code": False,
+                    "load_address": 0x70000,
+                    "entrypoint": 0x7000C,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY,
+        path=binary_path,
+        address_model=RawAddressModel.LOCAL_OFFSET,
+        load_address=0x70000,
+        entrypoint=0x70000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "blank_dos_bootblock.analysis",
+    )
+
+    policy = effective_policy_project_source_with_c_backend(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )["analysis_policy"]
+
+    assert {"section_index": 0, "offset": 0x0C} not in policy["entrypoints"]
+    assert not any(label["name"] == "boot_entry" for label in policy["named_labels"])
+    assert [
+        {key: item[key] for key in ("offset", "size", "kind", "comment")}
+        for item in policy["structured_data_items"][:3]
+    ] == [
+        {"offset": 0, "size": 4, "kind": "string", "comment": "NOTE: boot magic"},
+        {"offset": 4, "size": 4, "kind": "longs", "comment": "NOTE: boot checksum"},
+        {"offset": 8, "size": 4, "kind": "longs", "comment": "NOTE: boot root block"},
+    ]
+
+
 def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     original_source = (

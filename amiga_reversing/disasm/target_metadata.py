@@ -152,6 +152,7 @@ class BootBlockTargetMetadata:
     bootcode_size: int
     load_address: int
     entrypoint: int
+    bootcode_has_code: bool | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> BootBlockTargetMetadata:
@@ -163,6 +164,7 @@ class BootBlockTargetMetadata:
         rootblock_ptr = payload["rootblock_ptr"]
         bootcode_offset = payload["bootcode_offset"]
         bootcode_size = payload["bootcode_size"]
+        bootcode_has_code = payload.get("bootcode_has_code")
         load_address = payload["load_address"]
         entrypoint = payload["entrypoint"]
         assert isinstance(magic_ascii, str)
@@ -173,6 +175,7 @@ class BootBlockTargetMetadata:
         assert isinstance(rootblock_ptr, int)
         assert isinstance(bootcode_offset, int)
         assert isinstance(bootcode_size, int)
+        assert bootcode_has_code is None or isinstance(bootcode_has_code, bool)
         assert isinstance(load_address, int)
         assert isinstance(entrypoint, int)
         return cls(
@@ -184,6 +187,7 @@ class BootBlockTargetMetadata:
             rootblock_ptr=rootblock_ptr,
             bootcode_offset=bootcode_offset,
             bootcode_size=bootcode_size,
+            bootcode_has_code=bootcode_has_code,
             load_address=load_address,
             entrypoint=entrypoint,
         )
@@ -1502,6 +1506,9 @@ def write_target_corrections_metadata(target_dir: Path, metadata: TargetMetadata
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
+    bootblock = payload.get("bootblock")
+    if isinstance(bootblock, dict) and bootblock.get("bootcode_has_code") is None:
+        bootblock.pop("bootcode_has_code", None)
     seeded_entities = payload.get("seeded_entities")
     if isinstance(seeded_entities, list | tuple):
         for entity in seeded_entities:

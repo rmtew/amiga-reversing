@@ -184,7 +184,10 @@ static int block_range_has_nonzero(const unsigned char *data, size_t start, size
 static int boot_block_is_dos_longword_fill(const DiskContext *ctx, size_t boot_block_bytes) {
     size_t offset;
     if (ctx == NULL || ctx->data == NULL || boot_block_bytes < 4U || (boot_block_bytes % 4U) != 0U) return 0;
-    for (offset = 0U; offset + 4U <= boot_block_bytes; offset += 4U) {
+    if (memcmp(ctx->data, "DOS", 3U) != 0) return 0;
+    for (offset = AMIGA_DISK_FILE_BOOT_BLOCK_FIELD_ROOT_BLOCK_OFFSET + 4U; offset + 4U <= boot_block_bytes; offset += 4U) {
+        uint32_t value = read_u32be(ctx->data, offset);
+        if (value == 0U) continue;
         if (memcmp(ctx->data + offset, "DOS", 3U) != 0) return 0;
     }
     return 1;

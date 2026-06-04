@@ -2362,6 +2362,22 @@ rendered source evidence for runtime aliases
      and runtime views for the same address
   -> covered by isolated C fixture:
      source_quality_analyze_accepts_runtime_label_name_reference
+
+DOS longword-fill bootblock promoted as code
+  -> validation/corpus review found a DOS-looking bootblock whose second sector
+     is the structural fill pattern DOS80, DOS81, ..., DOSFF
+  -> root cause was producer-side disk inspection: boot_block_is_dos_longword_fill
+     checked the checksum/root longwords and therefore never recognized the
+     fill pattern
+  -> done: disk inspection treats zero bootcode plus DOSxx longwords as
+     structural bootblock data, not executable code
+  -> affected target reimported as asset_data:
+     3D Construction Kit II disk 2 amiga_raw_bootblock
+  -> stale rendered bootblock.s removed because the target no longer has a
+     rendered-source artifact
+  -> covered by focused fixtures:
+     test_inspect_disk_amiga_dos_longword_fill_bootblock_is_asset_data
+     test_c_backend_non_code_bootblock_metadata_does_not_seed_boot_entry
 ```
 
 When this validation fires on a real target during the proposal work, the slice

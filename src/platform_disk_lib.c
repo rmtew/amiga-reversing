@@ -486,8 +486,9 @@ static int append_bootblock_import_target_json(JsonBuilder *builder, const Amiga
             entry_offset) != 0)
         return -1;
     if (json_builder_appendf(builder,
-            ",\"bootcode_size\":%u,\"load_address\":%u,\"entrypoint\":%u}",
-            analysis->bootcode_size, load_address, load_address + entry_offset) != 0)
+            ",\"bootcode_size\":%u,\"bootcode_has_code\":%s,\"load_address\":%u,\"entrypoint\":%u}",
+            analysis->bootcode_size, analysis->bootcode_has_code ? "true" : "false", load_address,
+            load_address + entry_offset) != 0)
         return -1;
     if (json_builder_append(builder, ",\"resident\":null,\"library\":null") != 0) return -1;
     if (append_empty_target_metadata_arrays_json(builder) != 0) return -1;

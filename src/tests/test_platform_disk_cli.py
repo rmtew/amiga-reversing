@@ -139,6 +139,7 @@ class PlatformDiskCliTests(unittest.TestCase):
         self.assertEqual(boot_import["source"]["role"], "bootblock")
         self.assertEqual(boot_import["target_metadata"]["target_type"], "bootblock")
         self.assertEqual(boot_import["target_metadata"]["bootblock"]["entrypoint"], 0x7000C)
+        self.assertEqual(boot_import["target_metadata"]["bootblock"]["bootcode_has_code"], False)
         self.assertEqual(boot_import["target_metadata"]["entry_register_seeds"], [])
         self.assertEqual(actual["root"]["block_num"], 880)
         self.assertEqual(actual["root"]["hash_table"][:3], [900, 901, 0])
@@ -260,6 +261,23 @@ class PlatformDiskCliTests(unittest.TestCase):
         stages = {stage["name"]: stage for stage in actual["bootloader_analysis"]["stages"]}
         self.assertIn("boot", stages)
         self.assertNotIn("stage_1", stages)
+
+    def test_inspect_disk_amiga_dos_longword_fill_bootblock_is_asset_data(self) -> None:
+        image = bytearray(BLOCK_SIZE * TOTAL_BLOCKS)
+        image[0:3] = b"DOS"
+        for value in range(0x80, 0x100):
+            offset = BLOCK_SIZE + (value - 0x80) * 4
+            image[offset : offset + 4] = b"DOS" + bytes([value])
+
+        actual = self._run_cli("amiga-disk", "disk.adf", bytes(image))
+
+        self.assertEqual(actual["boot_block"]["is_dos"], 1)
+        self.assertEqual(actual["boot_block"]["bootcode_has_code"], 0)
+        boot_import = actual["boot_block"]["import_target"]
+        self.assertEqual(boot_import["source"]["kind"], "asset_data")
+        self.assertEqual(boot_import["target_metadata"]["bootblock"]["bootcode_has_code"], False)
+        self.assertEqual(boot_import["target_metadata"]["entry_register_seeds"], [])
+        self.assertEqual(actual["bootloader_analysis"]["stages"], [])
 
     def test_inspect_disk_amiga_synthetic_stage_read_setup_json(self) -> None:
         actual = self._run_cli("amiga-disk", "disk.adf", self._make_non_dos_bootable_adf_with_stage())

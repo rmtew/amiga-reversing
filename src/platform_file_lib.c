@@ -1986,6 +1986,26 @@ static int json_number_field_local(const char *object_start, const char *object_
   return 1;
 }
 
+static int json_bool_field_local(const char *object_start, const char *object_end, const char *key,
+    uint8_t *out_value, int *out_present) {
+  const char *value = json_find_key_local(object_start, object_end, key);
+  if (out_present != NULL) *out_present = 0;
+  if (out_value != NULL) *out_value = 0U;
+  if (value == NULL) return 1;
+  value = json_skip_ws_local(value, object_end);
+  if (value + 4 <= object_end && memcmp(value, "true", 4U) == 0) {
+    if (out_value != NULL) *out_value = 1U;
+    if (out_present != NULL) *out_present = 1;
+    return 1;
+  }
+  if (value + 5 <= object_end && memcmp(value, "false", 5U) == 0) {
+    if (out_present != NULL) *out_present = 1;
+    return 1;
+  }
+  if (value + 4 <= object_end && memcmp(value, "null", 4U) == 0) return 1;
+  return 0;
+}
+
 static const char *json_find_array_local(const char *text, const char *key, const char **out_end) {
   const char *end = text + strlen(text);
   const char *cursor = json_find_key_local(text, end, key);
@@ -7033,19 +7053,30 @@ static int append_metadata_bootblock_structure_local(const char *text, M68kAnaly
   const char *object_start = json_find_object_field_local(text, "bootblock", &object_end);
   uint32_t bootcode_offset = 0U;
   int has_bootcode_offset = 0;
+  uint8_t bootcode_has_code = 0U;
+  uint8_t checksum_valid = 0U;
+  int has_bootcode_has_code = 0;
+  int has_checksum_valid = 0;
+  int should_seed_boot_entry;
   if (object_start == NULL) return 1;
   policy->disable_implicit_entry_points = 1U;
-  if (!json_number_field_local(object_start, object_end, "bootcode_offset", &bootcode_offset, &has_bootcode_offset))
+  if (!json_number_field_local(object_start, object_end, "bootcode_offset", &bootcode_offset, &has_bootcode_offset) ||
+      !json_bool_field_local(object_start, object_end, "bootcode_has_code", &bootcode_has_code,
+        &has_bootcode_has_code) ||
+      !json_bool_field_local(object_start, object_end, "checksum_valid", &checksum_valid, &has_checksum_valid))
     return 0;
   if (!has_bootcode_offset || bootcode_offset < 12U) return 1;
+  should_seed_boot_entry = has_bootcode_has_code ? bootcode_has_code : (!has_checksum_valid || checksum_valid);
+  if (!policy_add_structured_data_item_local(policy, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_STRING,
+           "NOTE: boot magic") ||
+    !policy_add_structured_data_item_local(policy, 4U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
+      "NOTE: boot checksum") ||
+    !policy_add_structured_data_item_local(policy, 8U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
+      "NOTE: boot root block"))
+    return 0;
+  if (!should_seed_boot_entry) return 1;
   return policy_add_entry_point_local(policy, 0U, bootcode_offset) &&
-    policy_add_named_label_local(policy, 0U, bootcode_offset, "boot_entry") &&
-    policy_add_structured_data_item_local(policy, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_STRING,
-           "NOTE: boot magic") &&
-    policy_add_structured_data_item_local(policy, 4U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
-      "NOTE: boot checksum") &&
-    policy_add_structured_data_item_local(policy, 8U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
-      "NOTE: boot root block");
+    policy_add_named_label_local(policy, 0U, bootcode_offset, "boot_entry");
 }
 
 static uint8_t resident_field_kind_local(uint32_t size) {
