@@ -3198,6 +3198,10 @@ static const M68kAddressObservationIR *source_quality_address_observation_for_ca
 
 static int source_quality_candidate_data_target_for_operand(const M68kDecodeCandidate *candidate,
     uint32_t operand_index, uint32_t *out_section_index, uint32_t *out_offset);
+static int source_quality_relocation_data_target_for_operand(const M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kFactIR *facts, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint32_t operand_index, uint32_t *out_section_index,
+    uint32_t *out_offset);
 
 static const M68kFact *source_quality_unique_relocation_ref_for_operand(const M68kFactIR *facts,
     size_t section_index, const M68kDecodeCandidate *candidate, size_t operand_index);
@@ -4107,6 +4111,29 @@ static int source_quality_existing_structured_data_overlaps(const M68kSourceAnal
   return 0;
 }
 
+static int source_quality_existing_structured_data_conflicts_with_api_string(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset) {
+  size_t index;
+  if (source_analysis == NULL) return 0;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
+    uint32_t item_end;
+    if (!item->has_section_index || item->section_index != section_index || item->size == 0U ||
+        item->offset > UINT32_MAX - item->size) {
+      continue;
+    }
+    item_end = item->offset + item->size;
+    if (offset < item->offset || offset >= item_end) continue;
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U) {
+      if (item->offset == offset) return 1;
+      continue;
+    }
+    return 1;
+  }
+  return 0;
+}
+
 static int source_quality_range_ownership_covers_noncode_or_conflict(const M68kSectionAnalysisIR *section,
     uint32_t offset) {
   size_t index;
@@ -4115,6 +4142,19 @@ static int source_quality_range_ownership_covers_noncode_or_conflict(const M68kS
     const M68kRangeOwnershipIR *range = &section->range_ownerships[index];
     if (offset < range->start_offset || offset >= range->end_offset) continue;
     if (range->kind != M68K_RANGE_OWNERSHIP_CODE) return 1;
+  }
+  return 0;
+}
+
+static int source_quality_range_ownership_conflicts_with_api_string(const M68kSectionAnalysisIR *section,
+    uint32_t offset) {
+  size_t index;
+  if (section == NULL) return 0;
+  for (index = 0U; index < section->range_ownership_count; ++index) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[index];
+    if (offset < range->start_offset || offset >= range->end_offset) continue;
+    if (range->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN) return 1;
+    if (range->kind != M68K_RANGE_OWNERSHIP_TEXT) return 1;
   }
   return 0;
 }
@@ -4530,6 +4570,39 @@ static int source_quality_update_matching_structured_data_item(M68kSourceAnalysi
         &source_analysis->policy.structured_data_items[policy_index], item)) {
       source_quality_update_structured_data_item_if_not_downgrade(
         &source_analysis->policy.structured_data_items[policy_index], item, &updated);
+      break;
+    }
+  }
+  return updated;
+}
+
+static int source_quality_update_same_offset_structured_data_item(M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item) {
+  size_t index;
+  uint16_t policy_index;
+  int updated = 0;
+  if (source_analysis == NULL || item == NULL || !item->has_section_index) return 0;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    M68kAnalysisStructuredDataItem *existing = &source_analysis->structured_data_items[index];
+    if (existing->has_section_index && existing->section_index == item->section_index &&
+        existing->offset == item->offset && existing->kind == item->kind &&
+        (existing->semantic_role_flags & item->semantic_role_flags) == item->semantic_role_flags) {
+      M68kAnalysisStructuredDataItem replacement = *item;
+      m68k_analysis_structured_data_item_set_semantic_role_flags(&replacement,
+        replacement.semantic_role_flags | existing->semantic_role_flags);
+      source_quality_update_structured_data_item_if_not_downgrade(existing, &replacement, &updated);
+      break;
+    }
+  }
+  for (policy_index = 0U; policy_index < source_analysis->policy.structured_data_item_count; ++policy_index) {
+    M68kAnalysisStructuredDataItem *existing = &source_analysis->policy.structured_data_items[policy_index];
+    if (existing->has_section_index && existing->section_index == item->section_index &&
+        existing->offset == item->offset && existing->kind == item->kind &&
+        (existing->semantic_role_flags & item->semantic_role_flags) == item->semantic_role_flags) {
+      M68kAnalysisStructuredDataItem replacement = *item;
+      m68k_analysis_structured_data_item_set_semantic_role_flags(&replacement,
+        replacement.semantic_role_flags | existing->semantic_role_flags);
+      source_quality_update_structured_data_item_if_not_downgrade(existing, &replacement, &updated);
       break;
     }
   }
@@ -5300,9 +5373,9 @@ static void source_quality_audio_pointer_state_mark_dynamic(M68kSourceQualityAud
 }
 
 static void source_quality_audio_pointer_state_update_after_instruction(
-    M68kSourceQualityAudioPointerState *state, const M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction) {
+    M68kSourceQualityAudioPointerState *state, const M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kFactIR *facts, const M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   const M68kSourceQualityAudioPointerSource *source_value = NULL;
   uint32_t target_section_index = 0U;
@@ -5321,6 +5394,8 @@ static void source_quality_audio_pointer_state_update_after_instruction(
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U &&
       source_quality_operand_address_register_index(&instruction->operands[1], &dest_reg)) {
     if (source_quality_candidate_data_target_for_operand_with_analysis(section_analysis, candidate, 0U,
+        &target_section_index, &target_offset) ||
+        source_quality_relocation_data_target_for_operand(source_analysis, decode, facts, section, candidate, 0U,
         &target_section_index, &target_offset)) {
       source_quality_audio_pointer_state_set_reg(state, 2U, dest_reg, target_section_index, target_offset);
       return;
@@ -5349,6 +5424,14 @@ static void source_quality_audio_pointer_state_update_after_instruction(
       instruction->operand_count == 2U &&
       source_quality_operand_data_register_index(&instruction->operands[1], &dest_reg) &&
       source_quality_candidate_data_target_for_operand_with_analysis(section_analysis, candidate, 0U,
+        &target_section_index, &target_offset)) {
+    source_quality_audio_pointer_state_set_reg(state, 1U, dest_reg, target_section_index, target_offset);
+    return;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
+      instruction->operand_count == 2U &&
+      source_quality_operand_data_register_index(&instruction->operands[1], &dest_reg) &&
+      source_quality_relocation_data_target_for_operand(source_analysis, decode, facts, section, candidate, 0U,
         &target_section_index, &target_offset)) {
     source_quality_audio_pointer_state_set_reg(state, 1U, dest_reg, target_section_index, target_offset);
     return;
@@ -5496,8 +5579,8 @@ static int append_pc_relative_lookup_table_items(M68kSourceAnalysisIR *source_an
           }
         }
       }
-      source_quality_audio_pointer_state_update_after_instruction(&state, consumer_analysis, section, candidate,
-        &instruction);
+      source_quality_audio_pointer_state_update_after_instruction(&state, NULL, NULL, NULL, consumer_analysis,
+        section, candidate, &instruction);
     }
   }
   return 0;
@@ -5536,7 +5619,7 @@ static void source_quality_dispatch_pointer_state_update_after_instruction(M68kS
     source_quality_audio_pointer_state_clear_all(state);
     return;
   }
-  source_quality_audio_pointer_state_update_after_instruction(state, section_analysis, section, candidate,
+  source_quality_audio_pointer_state_update_after_instruction(state, NULL, NULL, NULL, section_analysis, section, candidate,
     instruction);
 }
 
@@ -6500,7 +6583,7 @@ static void source_quality_palette_hardware_range_state_update_after_instruction
   }
 }
 
-static int source_quality_palette_data_target_for_operand(const M68kSourceAnalysisIR *source_analysis,
+static int source_quality_relocation_data_target_for_operand(const M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, const M68kFactIR *facts, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, uint32_t operand_index, uint32_t *out_section_index,
     uint32_t *out_offset) {
@@ -6555,7 +6638,7 @@ static void source_quality_palette_data_pointer_state_update_after_instruction(
   }
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U &&
       source_quality_operand_address_register_index(&instruction->operands[1], &dest_reg)) {
-    if (source_quality_palette_data_target_for_operand(source_analysis, decode, facts, section, candidate, 0U,
+    if (source_quality_relocation_data_target_for_operand(source_analysis, decode, facts, section, candidate, 0U,
         &target_section_index, &target_offset)) {
       source_quality_audio_pointer_state_set_reg(state, 2U, dest_reg, target_section_index, target_offset);
       return;
@@ -6577,7 +6660,7 @@ static void source_quality_palette_data_pointer_state_update_after_instruction(
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
       instruction->operand_count == 2U &&
       source_quality_operand_data_register_index(&instruction->operands[1], &dest_reg) &&
-      source_quality_palette_data_target_for_operand(source_analysis, decode, facts, section, candidate, 0U,
+      source_quality_relocation_data_target_for_operand(source_analysis, decode, facts, section, candidate, 0U,
         &target_section_index, &target_offset)) {
     source_quality_audio_pointer_state_set_reg(state, 1U, dest_reg, target_section_index, target_offset);
     return;
@@ -7066,8 +7149,8 @@ static int append_audio_source_platform_semantic_uses_for_section(M68kSectionAna
     }
     source_quality_audio_length_sources_update_after_instruction(length_sources, &instruction);
     source_quality_audio_period_sources_update_after_instruction(period_sources, candidate, &instruction);
-    source_quality_audio_pointer_state_update_after_instruction(&pointer_state, section_analysis, section, candidate,
-      &instruction);
+    source_quality_audio_pointer_state_update_after_instruction(&pointer_state, NULL, NULL, NULL, section_analysis,
+      section, candidate, &instruction);
   }
   return 0;
 }
@@ -8870,8 +8953,8 @@ static int source_quality_api_string_segment_boundary_at(const M68kSourceAnalysi
     return 1;
   }
   return source_quality_section_has_label_at(section_analysis, offset) ||
-    source_quality_existing_structured_data_overlaps(source_analysis, section_index, offset, 1U) ||
-    source_quality_range_ownership_covers_noncode_or_conflict(section_analysis, offset);
+    source_quality_existing_structured_data_conflicts_with_api_string(source_analysis, section_index, offset) ||
+    source_quality_range_ownership_conflicts_with_api_string(section_analysis, offset);
 }
 
 static int append_api_string_structured_data_item(M68kSourceAnalysisIR *source_analysis,
@@ -8879,8 +8962,8 @@ static int append_api_string_structured_data_item(M68kSourceAnalysisIR *source_a
   M68kAnalysisStructuredDataItem item;
   const char *source_pattern;
   if (source_analysis == NULL || size == 0U ||
-      source_quality_has_structured_data_item_with_role(source_analysis, section_index, offset, size,
-        M68K_ANALYSIS_STRUCTURED_DATA_STRING, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
+      source_quality_has_structured_data_item(source_analysis, section_index, offset, size,
+        M68K_ANALYSIS_STRUCTURED_DATA_STRING, source_pattern_id)) {
     return 0;
   }
   memset(&item, 0, sizeof(item));
@@ -8898,6 +8981,7 @@ static int append_api_string_structured_data_item(M68kSourceAnalysisIR *source_a
   }
   m68k_analysis_structured_data_item_set_semantic_role_flags(&item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
   if (source_quality_update_matching_structured_data_item(source_analysis, &item)) return 0;
+  if (source_quality_update_same_offset_structured_data_item(source_analysis, &item)) return 0;
   return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
 }
 
@@ -8995,7 +9079,8 @@ static const M68kRecoveredPlatformCallIR *source_quality_recovered_platform_call
 
 static int append_platform_call_input_string_structured_data_items_for_section(
     M68kSourceAnalysisIR *source_analysis, const M68kDecodeIR *decode, M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint8_t *const *data_target_boundaries) {
+    const M68kFactIR *facts, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    uint8_t *const *data_target_boundaries) {
   M68kSourceQualityAudioPointerState state;
   size_t candidate_index;
   if (source_analysis == NULL || decode == NULL || section_analysis == NULL || section == NULL ||
@@ -9015,8 +9100,8 @@ static int append_platform_call_input_string_structured_data_items_for_section(
           data_target_boundaries) != 0) {
       return -1;
     }
-    source_quality_audio_pointer_state_update_after_instruction(&state, section_analysis, section, candidate,
-      &instruction);
+    source_quality_audio_pointer_state_update_after_instruction(&state, source_analysis, decode, facts,
+      section_analysis, section, candidate, &instruction);
   }
   return 0;
 }
@@ -9066,7 +9151,7 @@ static int source_quality_build_data_target_boundary_maps(const M68kDecodeIR *de
 }
 
 static int append_platform_call_input_string_structured_data_items(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start) {
   size_t section_index;
   uint8_t **data_target_boundaries = NULL;
   int result = -1;
@@ -9081,7 +9166,7 @@ static int append_platform_call_input_string_structured_data_items(M68kSourceAna
       (uint32_t)section_analysis->section_index, &decode_index);
     if (section == NULL) continue;
     if (append_platform_call_input_string_structured_data_items_for_section(source_analysis, decode,
-        section_analysis, section, accepted_start[decode_index], data_target_boundaries) != 0) {
+        section_analysis, facts, section, accepted_start[decode_index], data_target_boundaries) != 0) {
       goto done;
     }
   }
@@ -10136,7 +10221,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_indexed_word_dispatch_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0)
     return -1;
   if (append_pc_relative_lookup_table_items(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
-  if (append_platform_call_input_string_structured_data_items(source_analysis, decode, accepted_start) != 0)
+  if (append_platform_call_input_string_structured_data_items(source_analysis, decode, facts, accepted_start) != 0)
     return -1;
   m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;

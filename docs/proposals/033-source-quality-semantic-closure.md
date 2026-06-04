@@ -3062,27 +3062,60 @@ asserts it through `m68k_facts_v2_collect_source_analysis_profile()`, so the
 test does not pass merely because the source exporter happened to print a
 string.
 
-Render lookup may temporarily defer importing this exact structured-data item
-while the existing API-string formatter still owns the spelling of visible
-source. That is formatting support only:
+Render lookup now consumes this C-owned fact instead of rediscovering it from
+platform-call inputs. The renderer may still register a formatting span so the
+visible source stays readable, but it does not decide that the bytes are an API
+string:
 
 ```text
-source-quality owns "these bytes are the API string"
-render lookup owns "how this already-proven string is printed"
-render lookup must not re-infer the semantic fact
+source-quality:
+  recovered platform call + generated STRING_PTR input metadata
+  + pointer tracker proves target bytes
+  + C string validation
+  -> structured_data_item(kind=STRING, source_pattern=api_string_pointer)
+
+render lookup:
+  imports the structured-data item
+  -> formats the already-proven string span
+  -> does not scan call inputs to create API-string facts
 ```
 
-The migration is complete only when renderer-side API string classification is
-reduced to consuming this C-owned structured-data fact without changing
-existing source output.
+The pointer tracker covers both address-register and data-register API string
+inputs. That matters for `Open`, where the filename travels through `D1` and
+may be relocation-backed:
 
-The focused fixture asserts the analysis fact:
+```asm
+    move.l  #libfile_name,d1
+    move.l  #MODE_OLDFILE,d2
+    jsr     _LVOOpen(a6)
+    move.l  #path_prefix,d1
+    jsr     _LVOOpen(a6)
+
+path_prefix:
+    dc.b "LIBS:"
+libfile_name:
+    dc.b "monam.libfile",$00
+```
+
+The C producer must treat the nested pointer start as a boundary, not as a
+reason to split the outer string byte by byte. Existing compatible text ranges
+can be upgraded to `api_string_pointer`; incompatible structured data, code, or
+conflicted ownership still stops the promotion.
+
+The focused fixtures assert both the no-render analysis fact and the visible
+source shape:
 
 ```c
-M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"bitmap_memory\"") != NULL);
-M68K_C_ASSERT(strstr(analysis_json,
-  "\"note_text\":\"bitmap memory plane 0 +$10 ($00010010)\"") != NULL);
+M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER,
+  string_item->source_pattern_id);
+M68K_C_ASSERT(strstr(source, "loc_0_0000001C:\n\tdc.b \"LIBS:\"\n") != NULL);
+M68K_C_ASSERT(strstr(source, "loc_0_00000021:\n\tdc.b \"monam.libfile\",$00\n") != NULL);
 ```
+
+Exact-length API text buffers, such as `Write(file, buffer, length)`, remain a
+separate formatting path until they are migrated into the same source-quality
+ownership model. They are not C strings and should not use
+`api_string_pointer`.
 
 Copper pointer display-setup comments now follow the same rule too:
 
