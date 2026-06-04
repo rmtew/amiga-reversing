@@ -26870,6 +26870,7 @@ static int test_facts_v2_palette_upload_auto_classifies_source_table(void) {
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  const M68kPlatformSemanticUseIR *upload_use = NULL;
   char *source = NULL;
   size_t index;
   uint8_t bytes[80] = {
@@ -26913,6 +26914,21 @@ static int test_facts_v2_palette_upload_auto_classifies_source_table(void) {
   M68K_C_ASSERT(auto_item != NULL);
   M68K_C_ASSERT_U32(64U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
+  M68K_C_ASSERT(auto_item->has_consumer);
+  M68K_C_ASSERT_U32(0U, auto_item->consumer_section);
+  M68K_C_ASSERT_U32(12U, auto_item->consumer_offset);
+  for (index = 0U; index < source_analysis.sections[0].platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &source_analysis.sections[0].platform_semantic_uses[index];
+    if (use->kind == M68K_PLATFORM_SEMANTIC_USE_PALETTE && use->offset == 12U &&
+        use->note_text != NULL && strcmp(use->note_text, "palette upload 32 colors") == 0) {
+      upload_use = use;
+      break;
+    }
+  }
+  M68K_C_ASSERT(upload_use != NULL);
+  M68K_C_ASSERT(upload_use->has_target);
+  M68K_C_ASSERT_U32(0U, upload_use->target_section_index);
+  M68K_C_ASSERT_U32(16U, upload_use->target_offset);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);

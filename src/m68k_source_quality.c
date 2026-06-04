@@ -1782,6 +1782,33 @@ static int append_structured_data_platform_semantic_use(M68kSourceAnalysisIR *so
   return m68k_ir_section_analysis_append_platform_semantic_use(section, &use);
 }
 
+static int append_palette_upload_platform_semantic_use(M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item) {
+  M68kSectionAnalysisIR *section;
+  M68kPlatformSemanticUseIR use;
+  char note[64];
+  if (source_analysis == NULL || item == NULL ||
+      (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE) == 0U ||
+      !item->has_consumer || item->consumer_section >= source_analysis->section_count ||
+      item->size < 4U || (item->size & 1U) != 0U) {
+    return 0;
+  }
+  memset(&use, 0, sizeof(use));
+  snprintf(note, sizeof(note), "palette upload %u colors", (unsigned)(item->size / 2U));
+  use.kind = M68K_PLATFORM_SEMANTIC_USE_PALETTE;
+  use.offset = item->consumer_offset;
+  use.size = 0U;
+  use.role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE;
+  use.source_pattern_id = item->source_pattern_id;
+  use.confidence = 255U;
+  use.has_target = item->has_section_index;
+  use.target_section_index = item->section_index;
+  use.target_offset = item->offset;
+  use.note_text = note;
+  section = &source_analysis->sections[item->consumer_section];
+  return m68k_ir_section_analysis_append_platform_semantic_use(section, &use);
+}
+
 static int append_structured_data_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis) {
   static const uint32_t platform_role_flags[] = {
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST,
@@ -1803,6 +1830,7 @@ static int append_structured_data_platform_semantic_uses(M68kSourceAnalysisIR *s
       if ((item->semantic_role_flags & role_flag) == 0U) continue;
       if (append_structured_data_platform_semantic_use(source_analysis, item, role_flag) != 0) return -1;
     }
+    if (append_palette_upload_platform_semantic_use(source_analysis, item) != 0) return -1;
   }
   return 0;
 }

@@ -3374,6 +3374,33 @@ copper-list item. Source-quality must choose the copper-list item for the
 renderability proof, not let the placeholder suppress valid bitmap/sprite word
 symbols.
 
+Palette upload comments have been moved onto the same C-owned semantic path.
+The existing render-lookup classifier still detects the source palette table for
+now, but it records the upload instruction as the table consumer instead of
+emitting an instruction comment directly:
+
+```text
+palette table item
+  offset=$10
+  size=64
+  role=palette
+  consumer=$0C
+```
+
+Source-quality then publishes the visible comment as a semantic use at the
+consumer instruction:
+
+```text
+platform_semantic_use(kind=palette,
+  offset=$0C,
+  note_text="palette upload 32 colors",
+  target_offset=$10)
+```
+
+Render consumes that note like other `platform_semantic_use` comments. The
+remaining work is to move the palette table detection itself out of
+`m68k_analysis_render_lookup.c`; the comment is no longer render-owned.
+
 ### Slice 7: Table And Data Reference Closure
 
 Generalize C table descriptors:

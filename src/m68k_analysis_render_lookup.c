@@ -8882,7 +8882,6 @@ static int render_lookup_maybe_classify_palette_upload(M68kRenderLookup *lookup,
   uint8_t dest_reg = 0U;
   uint32_t available_register_bytes;
   uint32_t size;
-  char comment[96];
   if (lookup == NULL || decode == NULL || section == NULL || accepted_bytes == NULL || data_state == NULL ||
       hardware_state == NULL || candidate == NULL || instruction == NULL ||
       instruction->size_suffix != 'w' || instruction->operand_count != 2U ||
@@ -8914,8 +8913,9 @@ static int render_lookup_maybe_classify_palette_upload(M68kRenderLookup *lookup,
       size, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE, M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
     return -1;
   }
-  snprintf(comment, sizeof(comment), "palette upload %u colors", (unsigned)(size / 2U));
-  return render_lookup_add_instruction_comment(lookup, section->section_index, candidate->offset, comment);
+  render_lookup_set_auto_structured_data_item_consumer(lookup, source_value->section_index, source_value->offset,
+    section->section_index, candidate->offset);
+  return 0;
 }
 
 static int render_lookup_infer_amiga_palette_uploads(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
