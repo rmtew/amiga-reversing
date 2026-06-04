@@ -1561,6 +1561,7 @@ bitmap-memory comments
 palette upload comments
 audio-register comments
 hardware-access comments
+hardware-value comments
 ```
 
 Remaining work should name the exact unpinned family, add its source-quality
@@ -2857,6 +2858,22 @@ This closes the instruction-comment migration for the families covered by the
 old `attach_amiga_hardware_display_comment_for_render()` and
 `attach_amiga_hardware_access_comment_for_render()` paths. Instruction comments
 now come from C source-quality semantic-use facts.
+
+The render boundary for hardware-value notes is pinned:
+
+```text
+render_hardware_value_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses and their expected operand obligations
+     before render
+  -> display/blitter/disk-sync writes still render
+  -> "display 4 bitplanes ...", "blitter size ...", and
+     "disk sync word ..." do not appear
+```
+
+This test clears expected accesses as well as semantic uses because the same
+`hardware_value` fact family can own operand expressions and comments. The
+boundary being tested here is only the comment: render must not rediscover the
+human note after analysis facts are removed.
 
 Current hardware value-domain operand closure:
 
