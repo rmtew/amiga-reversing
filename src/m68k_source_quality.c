@@ -10134,6 +10134,152 @@ static const M68kAddressObservationIR *source_quality_address_observation_for_ca
   return NULL;
 }
 
+static const M68kDecodeCandidate *source_quality_accepted_candidate_covering_offset(
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset) {
+  size_t lo = 0U;
+  size_t hi;
+  if (section == NULL || accepted_start == NULL || offset >= section->size ||
+      section->candidate_count == 0U) {
+    return NULL;
+  }
+  hi = section->candidate_count;
+  while (lo < hi) {
+    size_t mid = lo + ((hi - lo) / 2U);
+    if (section->candidates[mid].offset <= offset) lo = mid + 1U;
+    else hi = mid;
+  }
+  while (lo > 0U) {
+    const M68kDecodeCandidate *candidate;
+    uint32_t candidate_end;
+    --lo;
+    candidate = &section->candidates[lo];
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (candidate->offset > offset ||
+        candidate->byte_count == 0U ||
+        candidate->offset > UINT32_MAX - candidate->byte_count) {
+      continue;
+    }
+    candidate_end = candidate->offset + candidate->byte_count;
+    if (offset > candidate->offset && offset < candidate_end) return candidate;
+    if (candidate->offset + 32U < offset) break;
+  }
+  return NULL;
+}
+
+static int source_quality_observation_materialized_source_offset(
+    const M68kSectionAnalysisIR *section_analysis, const M68kAddressObservationIR *observation,
+    uint32_t section_size, uint32_t *out_source_offset) {
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (section_analysis == NULL || observation == NULL || !observation->has_address) return 0;
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE) {
+    if (source_quality_any_runtime_address_source_offset(section_analysis, observation->address, section_size,
+        out_source_offset)) {
+      return 1;
+    }
+    if (observation->owner_offset < section_size) {
+      if (out_source_offset != NULL) *out_source_offset = observation->owner_offset;
+      return 1;
+    }
+  }
+  if (observation->has_target &&
+      observation->target_section_index == section_analysis->section_index &&
+      observation->target_offset < section_size) {
+    if (out_source_offset != NULL) *out_source_offset = observation->target_offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int append_expected_materialized_code_patch_symbol_accesses_for_section(
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const uint8_t *accepted_bytes) {
+  size_t observation_index;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL || accepted_bytes == NULL) return -1;
+  for (observation_index = 0U; observation_index < section_analysis->address_observation_count;
+       ++observation_index) {
+    const M68kAddressObservationIR *observation = &section_analysis->address_observations[observation_index];
+    const M68kDecodeCandidate *site_candidate;
+    const M68kDecodeCandidate *anchor_candidate;
+    const M68kSymbolOriginIR *origin;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    M68kExpectedSymbolAccessIR access;
+    uint32_t source_offset = 0U;
+    uint32_t access_width;
+    uint32_t anchor_end;
+    if (observation->source != M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND ||
+        observation->access_kind != M68K_SIM_ACCESS_MEMORY_WRITE ||
+        observation->operand_index == UINT32_MAX ||
+        !source_quality_observation_materialized_source_offset(section_analysis, observation, section->size,
+          &source_offset) ||
+        source_offset >= section->size) {
+      continue;
+    }
+    site_candidate = m68k_decode_ir_find_candidate_at_offset(section, observation->offset);
+    if (site_candidate == NULL ||
+        !source_quality_candidate_is_accepted_start(section, accepted_start, site_candidate) ||
+        m68k_decode_candidate_to_instruction(site_candidate, &instruction) != 0 ||
+        observation->operand_index >= instruction.operand_count) {
+      continue;
+    }
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL || observation->operand_index >= 4U ||
+        metadata->operand_access_kinds[observation->operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) {
+      continue;
+    }
+    access_width = observation->access_width != 0U ? observation->access_width :
+      source_quality_byte_width_for_instruction_size(&instruction);
+    if (!source_quality_accepted_range_has_code_byte(accepted_bytes, section->size, source_offset, access_width)) {
+      continue;
+    }
+    anchor_candidate = source_quality_accepted_candidate_covering_offset(section, accepted_start, source_offset);
+    if (anchor_candidate == NULL || anchor_candidate->byte_count == 0U ||
+        anchor_candidate->offset > UINT32_MAX - anchor_candidate->byte_count) {
+      continue;
+    }
+    anchor_end = anchor_candidate->offset + anchor_candidate->byte_count;
+    if (access_width == 0U ||
+        source_offset <= anchor_candidate->offset ||
+        source_offset > UINT32_MAX - access_width ||
+        source_offset + access_width > anchor_end) {
+      continue;
+    }
+    origin = source_quality_symbol_origin_at(section_analysis, anchor_candidate->offset);
+    if (origin == NULL) continue;
+    memset(&access, 0, sizeof(access));
+    access.symbol_name = origin->symbol_name;
+    access.producer = "materialized_code_patch_address_observation";
+    access.offset = observation->offset;
+    access.operand_index = observation->operand_index;
+    access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+    access.confidence = observation->confidence;
+    access.target_section_index = (uint32_t)section_analysis->section_index;
+    access.target_offset = anchor_candidate->offset;
+    access.has_target = 1U;
+    if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_expected_materialized_code_patch_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_expected_materialized_code_patch_symbol_accesses_for_section(section_analysis, section,
+        accepted_start[decode_index], accepted_bytes[decode_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int source_quality_runtime_operand_expr_use_exists_at(const M68kSectionAnalysisIR *section,
   uint32_t offset, uint32_t operand_index, uint32_t runtime_address);
 
@@ -12859,6 +13005,8 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_address_identities_and_ranges(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_expected_address_observation_symbol_accesses(source_analysis, decode,
     accepted_start));
+  SOURCE_QUALITY_CHECK_OK(append_expected_materialized_code_patch_symbol_accesses(source_analysis, decode,
+    accepted_start, accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_expected_platform_symbol_operand_accesses(source_analysis, decode, accepted_start));
 done:
 #undef SOURCE_QUALITY_CHECK_OK

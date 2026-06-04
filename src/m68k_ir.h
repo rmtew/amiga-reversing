@@ -532,8 +532,10 @@ typedef struct M68kSymbolRefIR {
   uint32_t pc_relative_displacement_base_offset;
   size_t symbol_index;
   size_t section_index;
+  uint32_t section_offset;
   int has_symbol;
   int has_section;
+  int has_section_offset;
   int32_t addend;
   int32_t symbolic_addend_value;
   char name[M68K_IR_SYMBOL_NAME_SIZE];

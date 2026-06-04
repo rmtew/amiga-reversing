@@ -27455,6 +27455,80 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_expects_materialized_code_patch_addend(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
+  M68kRenderEvidenceIR render_evidence;
+  char *source = NULL;
+  size_t access_index;
+  int saw_expected_patch = 0;
+  int saw_rendered_patch = 0;
+  uint8_t bytes[] = {
+    0x23U, 0xF0U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x0AU,
+    0x4EU, 0xB9U, 0x00U, 0x00U, 0x00U, 0x08U,
+    0x4EU, 0x75U
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0U;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
+    &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l $0(a0,d0.w),loc_0_00000008+2.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "$0000000A.l") == NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  for (access_index = 0U; access_index < source_analysis.sections[0].expected_symbol_access_count;
+       ++access_index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[access_index];
+    if (access->offset == 0U &&
+        access->operand_index == 1U &&
+        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+        access->target_section_index == 0U &&
+        access->target_offset == 8U &&
+        access->symbol_name != NULL &&
+        strcmp(access->symbol_name, "loc_0_00000008") == 0 &&
+        access->producer != NULL &&
+        strstr(access->producer, "materialized_code_patch_address_observation") != NULL) {
+      saw_expected_patch = 1;
+    }
+  }
+  saw_rendered_patch = test_render_evidence_has_symbol_access(&render_evidence, 0U, 0U, 1U,
+    M68K_RENDERED_SYMBOL_ACCESS_OPERAND, "loc_0_00000008", 0U, 8U);
+  M68K_C_ASSERT(saw_expected_patch);
+  M68K_C_ASSERT(saw_rendered_patch);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_ir_render_evidence_destroy(&render_evidence);
+  m68k_render_plan_destroy(&source_plan);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layout(void) {
   M68kObject object;
   M68kSection section;
@@ -31459,6 +31533,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_symbols_low_absolute_memory_slots},
     {"facts_v2_render_asm_source_symbols_absolute_address_uses",
       test_facts_v2_render_asm_source_symbols_absolute_address_uses},
+    {"facts_v2_render_asm_source_expects_materialized_code_patch_addend",
+      test_facts_v2_render_asm_source_expects_materialized_code_patch_addend},
     {"facts_v2_orphan_absolute_operand_records_unresolved_memory_layout",
       test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layout},
     {"facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner",

@@ -1195,6 +1195,82 @@ address is `$DCCE` but its addend-adjusted target is `$DE66`, the expected
 operand symbol must use the raw storage symbol when one exists. The addend
 target is not a safe substitute for the operand actually being read or written.
 
+### Implemented Slice: Materialized Code-Patch Addends
+
+Damocles also has the safe form of addend rendering: code writes into the
+immediate field of another accepted instruction. The raw address is inside
+code, but the source form humans need is the instruction anchor plus the byte
+addend:
+
+```asm
+    move.l $0(a0,d0.w),$000459BA.l
+
+abs_0_000459B8:
+    jsr abs_0_000459B8.l
+```
+
+The restored source should make the patch site explicit without inventing a
+separate label in the middle of the instruction:
+
+```asm
+    move.l $0(a0,d0.w),abs_0_000459B8+2.l
+
+abs_0_000459B8:
+    jsr abs_0_000459B8.l
+```
+
+This is not a general rule that every addend is trusted. Source-quality emits
+the obligation only when all of these are true:
+
+```text
+absolute operand observation
+  + memory write
+  + target maps to materialized runtime/storage bytes
+  + target byte is inside accepted code, not at instruction start
+  + write width stays wholly inside one accepted instruction
+  + the containing instruction has an accepted symbol origin
+  -> expected_symbol_access(producer=materialized_code_patch_address_observation)
+```
+
+The render evidence must carry the same target section/offset as the expected
+access. The visible label spelling may be a runtime/ORG alias such as
+`abs_0_000459B8`, while the semantic comparison still uses the concrete anchor
+target:
+
+```text
+offset=$458C8 operand=1
+  expected target=0:$449B8 producer=materialized_code_patch_address_observation
+  rendered target=0:$449B8 symbol=abs_0_000459B8
+```
+
+This closes the Damocles `$459BA/$459C6` case without weakening the wary addend
+rule. If the write lands across instruction boundaries, into unaccepted code,
+or into bytes with no accepted anchor, validation should fail or leave review
+evidence instead of rendering a reassuring symbolic addend.
+
+The Midwinter II `mwii` update-render pass exposed the matching false-positive
+case. Some storage addresses also alias a runtime view where the same numeric
+value lands inside section-0 code. That is not enough to create a code-patch
+obligation when the observation already has an explicit section-storage target:
+
+```asm
+    move.w loc_1_0000312E.l,loc_1_0000319C.l
+```
+
+The producer therefore follows the renderer boundary:
+
+```text
+owner=runtime_range
+  -> may translate runtime address to source code patch anchor
+
+owner=section_storage with explicit target section
+  -> storage/address observation owns the operand
+  -> do not also require materialized code-patch addend
+```
+
+This prevents source-quality from demanding a section-0 addend symbol for an
+operand that render correctly chose as section-1 storage.
+
 ### Implemented Boundary: Render Evidence Is Separate From Source Analysis
 
 `m68k_render_ir.c` records actual rendered symbol accesses during assembly
@@ -2352,6 +2428,8 @@ storage_label_statement for materialized runtime range starts
 pc_relative_storage_operand for cross-ORG PC-relative data operands
 pc_relative_storage_operand for cross-ORG PC-relative control operands
 pc_relative_storage_label_statement for those operand-required storage labels
+materialized_code_patch_address_observation for safe writes into accepted
+instruction interiors
 ```
 
 The PC-relative storage producers are deliberately narrow. Crossing a
@@ -4917,7 +4995,8 @@ same rule that source-quality meaning is produced by C.
 Primary fixtures:
 
 - Damocles Tetragon payload 2: in-image addresses, false `$42C00` run, absolute
-  ranges, low-memory base/vector distinction, lookup tables.
+  ranges, low-memory base/vector distinction, code-patch addends, lookup
+  tables.
 - Starglider: false `ori` code blocks near data and strings.
 - Pandora: false-code islands and string/table interactions.
 - Magicland Dizzy: dense low-memory app storage and disk/decompression-adjacent
@@ -4937,7 +5016,8 @@ Damocles Tetragon payload 2
   $00042C6C operands are numeric even though abs_0_00042C6C exists in-image
   address-looking literals are no longer promoted to `runtime_address_*`
   without a runtime-address fact proving runtime-domain identity
-  current source also shows numeric writes to $000459BA and $000459C6
+  writes to $000459BA and $000459C6 render as abs_0_000459B8+2 and
+  abs_0_000459C4+2 only when source-quality proves accepted instruction anchors
 
 Starglider
   loc_0_00005B04 is a repeated `ori.b #0,d0` island after an `rts`
@@ -5081,7 +5161,8 @@ checked-in `.s` diffs.
 - Damocles `$42C00` is no longer silently rendered as accepted code unless a
   real executable origin and credible run ending are proven.
 - Damocles `$42C6C`, `$42C70`, `$459BA`, and `$459C6` are handled through
-  in-image address identity and expected symbol access checks.
+  in-image address identity, materialized code-patch addend obligations, and
+  expected symbol access checks.
 - Numeric operands that target C-owned in-image storage either render through
   the approved symbol or emit a source-quality diagnostic.
 - `runtime_address_*` is used only when C analysis emits a runtime-address

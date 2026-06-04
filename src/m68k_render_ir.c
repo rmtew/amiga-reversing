@@ -6691,6 +6691,8 @@ static int attach_platform_semantic_target_operand_for_render(const M68kRenderLo
     operand->symbol_ref.has_name = 1U;
     operand->symbol_ref.has_section = 1;
     operand->symbol_ref.section_index = use->target_section_index;
+    operand->symbol_ref.has_section_offset = 1;
+    operand->symbol_ref.section_offset = use->target_offset;
     operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
       operand->symbol_ref.name, sizeof(operand->symbol_ref.name), use->target_section_index, use->target_offset);
     return 1;
@@ -8147,6 +8149,8 @@ void attach_operand_label_symbol(const M68kRenderLookup *lookup, M68kInstruction
   }
   operand->symbol_ref.has_section = 1;
   operand->symbol_ref.section_index = target_section_index;
+  operand->symbol_ref.has_section_offset = 1;
+  operand->symbol_ref.section_offset = target_offset;
 }
 
 static void attach_operand_storage_label_symbol(const M68kRenderLookup *lookup, M68kInstructionIR *instruction,
@@ -8161,6 +8165,8 @@ static void attach_operand_storage_label_symbol(const M68kRenderLookup *lookup, 
     operand->symbol_ref.name, sizeof(operand->symbol_ref.name), target_section_index, target_offset);
   operand->symbol_ref.has_section = 1;
   operand->symbol_ref.section_index = target_section_index;
+  operand->symbol_ref.has_section_offset = 1;
+  operand->symbol_ref.section_offset = target_offset;
 }
 
 static void attach_operand_label_addend_symbol(const M68kRenderLookup *lookup, M68kInstructionIR *instruction,
@@ -8175,6 +8181,8 @@ static void attach_operand_label_addend_symbol(const M68kRenderLookup *lookup, M
     operand->symbol_ref.name, sizeof(operand->symbol_ref.name), target_section_index, target_offset);
   operand->symbol_ref.has_section = 1;
   operand->symbol_ref.section_index = target_section_index;
+  operand->symbol_ref.has_section_offset = 1;
+  operand->symbol_ref.section_offset = target_offset;
   operand->symbol_ref.addend = addend;
 }
 
@@ -8672,6 +8680,8 @@ static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLo
       operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section_index, base_offset);
     operand->symbol_ref.has_section = 1;
     operand->symbol_ref.section_index = section_index;
+    operand->symbol_ref.has_section_offset = 1;
+    operand->symbol_ref.section_offset = base_offset;
     operand->symbol_ref.addend = addend;
     operand->symbol_ref.name_provenance = symbol_provenance;
   }
@@ -8748,6 +8758,8 @@ static int attach_pc_relative_interior_data_anchor_symbols(const M68kRenderLooku
       operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section->section_index, anchor->offset);
     operand->symbol_ref.has_section = 1;
     operand->symbol_ref.section_index = section->section_index;
+    operand->symbol_ref.has_section_offset = 1;
+    operand->symbol_ref.section_offset = anchor->offset;
     operand->symbol_ref.addend = (int32_t)addend;
   }
   return 0;
@@ -8984,6 +8996,8 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
       operand->symbol_ref.has_name = 1U;
       operand->symbol_ref.has_section = 1;
       operand->symbol_ref.section_index = fact->target_section_index;
+      operand->symbol_ref.has_section_offset = 1;
+      operand->symbol_ref.section_offset = fact->target_offset;
       if (target_runtime_address != fact->runtime_address) {
         int64_t addend = (int64_t)(uint64_t)fact->runtime_address - (int64_t)(uint64_t)target_runtime_address;
         if (addend >= INT32_MIN && addend <= INT32_MAX) operand->symbol_ref.addend = (int32_t)addend;
@@ -9063,6 +9077,8 @@ static int attach_existing_materialized_runtime_immediate_symbols(M68kRenderIRPr
     operand->symbol_ref.has_name = 1U;
     operand->symbol_ref.has_section = 1;
     operand->symbol_ref.section_index = section_index;
+    operand->symbol_ref.has_section_offset = 1;
+    operand->symbol_ref.section_offset = source_offset;
     operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
       operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section_index, source_offset);
   }
@@ -9303,6 +9319,8 @@ static void mark_cross_org_pc_relative_displacement_exprs(M68kRenderLookup *look
       operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section_index, (uint32_t)target);
     operand->symbol_ref.has_section = 1U;
     operand->symbol_ref.section_index = section_index;
+    operand->symbol_ref.has_section_offset = 1U;
+    operand->symbol_ref.section_offset = (uint32_t)target;
     operand->symbol_ref.render_pc_relative_displacement_expr = 1U;
     operand->symbol_ref.pc_relative_displacement_base_offset = (uint32_t)relative_base;
     render_lookup_mark_storage_label_target_ref(lookup, section_index, (uint32_t)target);
@@ -9785,6 +9803,12 @@ static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *prev
         access.target_offset = relocation->target_offset;
         access.has_target = 1U;
       }
+    }
+    if (!access.has_target && operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
+        operand->symbol_ref.section_index <= UINT32_MAX) {
+      access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
+      access.target_offset = operand->symbol_ref.section_offset;
+      access.has_target = 1U;
     }
     runtime_ref = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
     if (!access.has_target && runtime_ref != NULL && runtime_ref->target_section_index <= UINT32_MAX) {
