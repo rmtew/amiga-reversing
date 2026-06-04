@@ -1562,6 +1562,7 @@ palette upload comments
 audio-register comments
 hardware-access comments
 hardware-value comments
+platform address-use operand symbols
 platform stack-cleanup comments
 platform call-input operand expressions
 platform call-input comments
@@ -2682,11 +2683,34 @@ Implementation order:
 8. Done for palette upload comments: source-quality emits
    `palette` semantic uses with `note_text`, and render does not rediscover the
    upload comment when those facts are removed.
-9. Delete renderer scans once equivalent C facts drive the same source.
+9. Move inferred hardware-base seed production out of render lookup.
+10. Delete renderer scans once equivalent C facts drive the same source.
 ```
 
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
 `M68kPlatformSemanticUseIR` for higher-level meanings and comments.
+
+The current remaining platform-analysis ownership gap is not the consumer side.
+Source-quality already consumes hardware-base seeds to produce
+`platform_address_use`, hardware note, hardware value-domain, and runtime-sink
+facts. The problem is where those seeds originate:
+
+```text
+current:
+  render_lookup_infer_amiga_call_hardware_base_seeds()
+    -> inferred_hardware_base_seeds
+    -> copied into M68kSourceQualityHardwareBaseSeed[]
+    -> source-quality emits C-owned facts
+
+target:
+  source-quality infers call/callback hardware-base seeds directly
+    -> source-quality emits the same C-owned facts
+    -> render lookup no longer produces semantic seed input
+```
+
+That slice should preserve the existing conflict behavior: two different
+hardware bases for the same section/offset/register seed make the seed
+conflicted and prevent propagation.
 
 Current runtime-sink closure:
 
@@ -2754,9 +2778,10 @@ M68K_C_ASSERT(strstr(source, "\tmove.w #$9F40,") != NULL);
 M68K_C_ASSERT(strstr(source, "disk DMA read 16000 bytes") == NULL);
 ```
 
-This is intentionally not a renderer-side analysis shortcut. The renderer
-accepts C-owned note text first and falls back to legacy helpers only for
-semantic comments that have not yet been migrated.
+This is intentionally not a renderer-side analysis shortcut. In the source
+export path, renderer formatting consumes C-owned note text and operand symbols.
+If source analysis is present and the fact is absent, render must leave the
+operand/comment unsemantic rather than recreate the claim.
 
 Current audio-register comment closure:
 
@@ -2792,6 +2817,35 @@ M68K_C_ASSERT(strstr(analysis_json,
   "\"note_text\":\"sound sample length 128 bytes\"") != NULL);
 M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio data word\"") != NULL);
 ```
+
+The same rule covers hardware operand symbols. Source-quality emits
+`platform_address_use` records and matching expected symbol accesses for proven
+hardware-base and hardware-register operands:
+
+```text
+lea.l _custom.l,a0
+move.w #INTF_CLRALL,intena(a0)
+  -> platform_address_use(offset=move, operand=1,
+                          shape=hardware_register_access,
+                          symbol_name="intena")
+  -> expected_symbol_access(producer=platform_address_use,
+                            symbol_name="intena")
+```
+
+The focused negative fixture clears the `symbol_name` after source-quality
+analysis. Rendering must not rediscover `intena(a0)` from the tracked `_custom`
+base:
+
+```text
+facts_v2_render_asm_source_does_not_recreate_missing_platform_address_symbol
+  -> clears platform_address_use.symbol_name for intena
+  -> renders #INTF_CLRALL,$009A(a0)
+  -> does not render intena(a0)
+```
+
+Renderer fallback for hardware register names is now only a no-source-analysis
+preview compatibility path. It is not allowed to participate in source export
+or post-render validation.
 
 The render boundary is also explicit:
 
