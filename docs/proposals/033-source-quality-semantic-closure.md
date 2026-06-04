@@ -1564,6 +1564,7 @@ hardware-access comments
 hardware-value comments
 platform stack-cleanup comments
 platform call-input operand expressions
+platform call-input comments
 ```
 
 Remaining work should name the exact unpinned family, add its source-quality
@@ -3540,7 +3541,20 @@ M68K_C_ASSERT(strstr(analysis_json,
 The old render-owned `render_lookup_add_call_setup_comments_for_vector` path was
 deleted. The lingering `render_lookup_infer_amiga_call_input_comments` name was
 also retired after inspection showed the path no longer emitted comments. The
-later renderer-owned API string/text-buffer span pass was removed as well:
+render boundary for call-input comments is pinned:
+
+```text
+render_platform_call_input_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> the setup instruction still renders
+  -> "KNOWN: arg +8 funcOffset long" does not appear
+```
+
+This keeps documented API argument comments analysis-owned. The renderer may
+append a note already exported by source-quality; it may not walk recovered API
+calls and reconstruct the comment by itself.
+
+The later renderer-owned API string/text-buffer span pass was removed as well:
 source-quality now owns both `api_string_pointer` and `api_text_buffer`
 structured-data facts, while render lookup only imports and formats them.
 
