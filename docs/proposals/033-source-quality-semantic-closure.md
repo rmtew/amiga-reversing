@@ -714,6 +714,71 @@ instruction overwrote the argument register. Moving the scan into analysis
 removes that false symbol while preserving the valid helper-mediated
 `MEMF_FAST` cases in GenAm and MonAm.
 
+### Implemented Slice: Palette Upload Tables
+
+Amiga palette upload detection had the same ownership problem. The renderer
+used to watch data pointers and hardware COLOR register pointers, then create a
+structured data item while formatting source:
+
+```text
+lea.l   palette,a0
+lea.l   $00DFF180,a1
+move.w  (a0)+,(a1)+
+
+renderer:
+  -> infer a0 is source data
+  -> infer a1 is COLOR00..COLOR31
+  -> create palette structured-data item
+```
+
+That is analysis, not rendering. Source-quality analysis now owns the proof:
+
+```text
+accepted instruction stream
+  -> source pointer tracker proves source section/offset
+  -> hardware pointer tracker proves COLOR register range and byte offset
+  -> word postincrement copy proves upload shape
+  -> accepted source bytes prove the palette range is data, not code
+  -> structured_data_item(role=palette, kind=words, consumer=upload_site)
+```
+
+The tracker deliberately supports the real address forms already seen in
+fixtures:
+
+```text
+lea.l section-local-offset,a0
+  -> source table in same section
+
+lea.l runtime-address,a0
+  -> source table through materialized runtime view
+
+lea.l relocated-absolute,a0
+  -> source table in relocation target section
+```
+
+The important rule is still conservative. A literal that merely looks like an
+address does not become a palette or symbol. Promotion happens only when the
+copy into the hardware COLOR range proves how the source bytes are used.
+
+Render lookup no longer runs `render_lookup_infer_amiga_palette_uploads()`.
+Render support is now only consumption:
+
+```text
+source_analysis.structured_data_items[role=palette]
+  -> emit words
+  -> attach "palette upload 32 colors" comment at the consumer site
+  -> record render evidence
+```
+
+The isolated regressions cover same-section, runtime-translated, and
+relocation-backed cross-section sources:
+
+```text
+facts_v2_palette_upload_auto_classifies_source_table
+facts_v2_genam_palette_upload_uses_runtime_translated_source_table
+facts_v2_palette_upload_uses_source_section_accepted_bytes
+```
+
 ## Tutorial: Current-State Audit
 
 The current tree has already moved some work into the right layer. In
@@ -784,7 +849,6 @@ outputs are semantic, not presentational:
 
 ```text
 render_lookup_infer_platform_runtime_structured_data()
-render_lookup_infer_amiga_palette_uploads()
 render_lookup_infer_amiga_bitmap_memory_uses()
 render_lookup_infer_relocation_pointer_tables()
 render_lookup_infer_indexed_word_dispatch_tables()
