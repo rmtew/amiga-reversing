@@ -838,8 +838,6 @@ const char *lookup_instruction_comment(const M68kRenderLookup *lookup, size_t se
 const M68kRenderStringSpan *lookup_string_span_at_offset(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset);
 int append_comment_part_local(char *comment, size_t comment_size, const char *part);
-int render_lookup_add_amiga_call_input_text_buffer_spans(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-  uint8_t **accepted_start, uint8_t **accepted_bytes);
 const AmigaOsLibraryVectorInfo *resolve_amiga_direct_wrapper_vector_at(const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t wrapper_offset,
   unsigned depth);

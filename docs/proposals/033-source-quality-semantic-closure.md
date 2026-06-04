@@ -3112,10 +3112,36 @@ M68K_C_ASSERT(strstr(source, "loc_0_0000001C:\n\tdc.b \"LIBS:\"\n") != NULL);
 M68K_C_ASSERT(strstr(source, "loc_0_00000021:\n\tdc.b \"monam.libfile\",$00\n") != NULL);
 ```
 
-Exact-length API text buffers, such as `Write(file, buffer, length)`, remain a
-separate formatting path until they are migrated into the same source-quality
-ownership model. They are not C strings and should not use
-`api_string_pointer`.
+Exact-length API text buffers, such as `Write(file, buffer, length)`, now use
+the same source-quality ownership model, but with their own source pattern. They
+are not C strings and must not use `api_string_pointer`:
+
+```text
+source-quality:
+  recovered _LVOWrite call
+  + D2 buffer pointer proves target bytes
+  + D3 scalar proves exact length
+  + bounded multiline text-shape validation
+  -> structured_data_item(kind=STRING, source_pattern=api_text_buffer)
+
+render lookup:
+  imports the structured-data item
+  -> formats the already-proven bounded text span
+  -> does not scan Write inputs to create text-buffer facts
+```
+
+The no-render fixture asserts the analysis fact directly:
+
+```c
+M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER,
+  text_item->source_pattern_id);
+M68K_C_ASSERT_U32(24U, text_item->size);
+```
+
+The shape gate remains deliberately narrower than generic text inference: the
+buffer must be exact-length, printable/multiline, non-code, relocation-free,
+not already owned by incompatible structured data, and not immediately followed
+by a zero terminator that would make it a C-string candidate instead.
 
 Copper pointer display-setup comments now follow the same rule too:
 
@@ -3393,10 +3419,10 @@ M68K_C_ASSERT(strstr(analysis_json,
 
 The old render-owned `render_lookup_add_call_setup_comments_for_vector` path was
 deleted. The lingering `render_lookup_infer_amiga_call_input_comments` name was
-also retired after inspection showed the path no longer emitted comments; it now
-exists as `render_lookup_add_amiga_call_input_string_spans`, which describes the
-remaining string-span formatting support. Moving that string-span discovery into
-source-quality is separate from call-input note ownership.
+also retired after inspection showed the path no longer emitted comments. The
+later renderer-owned API string/text-buffer span pass was removed as well:
+source-quality now owns both `api_string_pointer` and `api_text_buffer`
+structured-data facts, while render lookup only imports and formats them.
 
 ### Implemented Slice: Stack Cleanup Notes
 

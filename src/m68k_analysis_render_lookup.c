@@ -5453,136 +5453,6 @@ static void data_pointer_state_update_after_instruction_ex(M68kRenderDataPointer
   }
 }
 
-static int auto_multiline_text_byte(uint8_t value);
-static int auto_string_alpha_byte(uint8_t value);
-
-static int render_lookup_api_string_segment_boundary_at(const M68kRenderLookup *lookup,
-    size_t section_index, uint32_t offset) {
-  M68kRenderRangeOwnershipView range;
-  if (lookup == NULL) return 0;
-  return lookup_has_label(lookup, section_index, offset) ||
-    lookup_has_anchor_local(lookup, section_index, offset) ||
-    lookup_range_ownership_covering_offset(lookup, section_index, offset, &range);
-}
-
-static int render_lookup_add_api_string_segment(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, uint32_t size, uint8_t source_pattern_id) {
-  M68kRenderRangeOwnershipView covering_range;
-  if (lookup == NULL || size == 0U) return 0;
-  if (lookup_range_ownership_covering_offset(lookup, section_index, offset, &covering_range)) {
-    return covering_range.kind == M68K_RANGE_OWNERSHIP_TEXT ? 0 : -1;
-  }
-  if (render_lookup_add_auto_string_item(lookup, section_index, offset, size,
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, source_pattern_id) != 0) {
-    return -1;
-  }
-  return render_lookup_add_string_span(lookup, section_index, offset, size);
-}
-
-static int render_api_text_buffer_shape_ok(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_bytes, uint32_t offset, uint32_t size) {
-  uint32_t cursor;
-  uint32_t alpha_count = 0U;
-  uint32_t printable_count = 0U;
-  int has_space = 0;
-  if (lookup == NULL || section == NULL || section->data == NULL || accepted_bytes == NULL ||
-      size < 4U || offset > section->size || size > section->size - offset) {
-    return 0;
-  }
-  for (cursor = offset; cursor < offset + size; ++cursor) {
-    uint8_t value = section->data[cursor];
-    if (!auto_multiline_text_byte(value)) return 0;
-    if (accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U) != 0) return 0;
-    if (lookup_relocation_at(lookup, section->section_index, cursor) != NULL) return 0;
-    {
-      M68kRenderRangeOwnershipView range;
-      if (lookup_range_ownership_covering_offset(lookup, section->section_index, cursor, &range)) return 0;
-    }
-    if (value == ' ') has_space = 1;
-    if (m68k_ir_byte_is_quoted_string_safe(value)) ++printable_count;
-    if (auto_string_alpha_byte(value)) ++alpha_count;
-  }
-  return alpha_count >= 6U && printable_count >= 8U && has_space;
-}
-
-static int render_lookup_add_api_text_buffer_segments(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_bytes, uint32_t offset, uint32_t size) {
-  uint32_t cursor;
-  uint32_t end;
-  if (!render_api_text_buffer_shape_ok(lookup, section, accepted_bytes, offset, size)) return 0;
-  cursor = offset;
-  end = offset + size;
-  while (cursor < end) {
-    uint32_t segment_end = end;
-    uint32_t probe;
-    for (probe = cursor + 1U; probe < end; ++probe) {
-      if (render_lookup_api_string_segment_boundary_at(lookup, section->section_index, probe)) {
-        segment_end = probe;
-        break;
-      }
-    }
-    if (segment_end <= cursor) break;
-    if (render_lookup_add_api_string_segment(lookup, section->section_index, cursor,
-        segment_end - cursor, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER) != 0) {
-      return -1;
-    }
-    cursor = segment_end;
-  }
-  return 0;
-}
-
-static int render_lookup_add_write_text_buffer_for_vector(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    const AmigaOsLibraryVectorInfo *vector, const M68kRenderDataPointerState *state, uint8_t **accepted_bytes,
-    const AmigaOsCallInputInfo *inputs, size_t input_count) {
-  const AmigaOsCallInputInfo *buffer_input = NULL;
-  const AmigaOsCallInputInfo *length_input = NULL;
-  const M68kRenderDataPointerValue *buffer_value;
-  uint32_t length;
-  size_t index;
-  if (lookup == NULL || decode == NULL || vector == NULL || state == NULL || accepted_bytes == NULL ||
-      inputs == NULL || vector->function_id != AMIGA_OS_FUNCTION_ID_WRITE) {
-    return 0;
-  }
-  for (index = 0U; index < input_count; ++index) {
-    if (inputs[index].input_id == AMIGA_OS_SYMBOL_ID_BUFFER_2 &&
-        inputs[index].reg_kind == AMIGA_OS_REGISTER_DATA && inputs[index].reg_index < 8U) {
-      buffer_input = &inputs[index];
-    } else if (inputs[index].input_id == AMIGA_OS_SYMBOL_ID_LENGTH_3 &&
-        inputs[index].reg_kind == AMIGA_OS_REGISTER_DATA && inputs[index].reg_index < 8U) {
-      length_input = &inputs[index];
-    }
-  }
-  if (buffer_input == NULL || length_input == NULL) return 0;
-  buffer_value = &state->data_regs[buffer_input->reg_index];
-  if (!buffer_value->known || !buffer_value->exact || buffer_value->section_index >= decode->section_count ||
-      !state->data_scalars[length_input->reg_index].known) {
-    return 0;
-  }
-  length = state->data_scalars[length_input->reg_index].value;
-  if (length == 0U || length > INT32_MAX) return 0;
-  {
-    const M68kDecodeSectionIR *buffer_section = &decode->sections[buffer_value->section_index];
-    if (buffer_section->data != NULL && buffer_value->offset < buffer_section->size &&
-        length < buffer_section->size - buffer_value->offset &&
-        buffer_section->data[buffer_value->offset + length] == 0U) {
-      return 0;
-    }
-  }
-  return render_lookup_add_api_text_buffer_segments(lookup, &decode->sections[buffer_value->section_index],
-    accepted_bytes[buffer_value->section_index], buffer_value->offset, length);
-}
-
-static int render_lookup_add_text_buffer_spans_for_vector_inputs(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    const AmigaOsLibraryVectorInfo *vector, const M68kRenderDataPointerState *state, uint8_t **accepted_bytes) {
-  const AmigaOsCallInputInfo *inputs;
-  size_t input_count = 0U;
-  if (lookup == NULL || decode == NULL || vector == NULL || state == NULL || accepted_bytes == NULL) return 0;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL) return 0;
-  return render_lookup_add_write_text_buffer_for_vector(lookup, decode, vector, state, accepted_bytes, inputs,
-    input_count);
-}
-
 static int append_render_lookup_recovered_local_call_summaries_for_section(const M68kRenderLookup *lookup,
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
@@ -7763,12 +7633,6 @@ static const char *render_lookup_code_start_reason_name(uint32_t reason) {
   default:
     return "unknown";
   }
-}
-
-static void data_pointer_state_update_after_instruction(M68kRenderDataPointerState *state,
-    const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction) {
-  data_pointer_state_update_after_instruction_ex(state, lookup, section, candidate, instruction, 0U);
 }
 
 static int append_render_lookup_violations_for_section(const M68kRenderLookup *lookup,
@@ -11630,58 +11494,6 @@ const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_call_vector(const M68
     candidate, 0U);
 }
 
-int render_lookup_add_amiga_call_input_text_buffer_spans(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted_start, uint8_t **accepted_bytes) {
-  M68kRenderPlatformState platform_state;
-  M68kRenderDataPointerState data_pointer_state;
-  size_t section_index;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
-      lookup->object == NULL ||
-      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
-    return 0;
-  }
-  memset(&platform_state, 0, sizeof(platform_state));
-  data_pointer_state_clear_all(&data_pointer_state);
-  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-    const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    size_t candidate_index;
-    data_pointer_state_clear_all(&data_pointer_state);
-    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
-      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-      M68kInstructionIR instruction;
-      const AmigaOsLibraryVectorInfo *platform_vector;
-      const AmigaOsLibraryVectorInfo *immediate_vector;
-      const AmigaOsLibraryVectorInfo *wrapper_call_vector;
-      const AmigaOsLibraryVectorInfo *direct_wrapper_vector;
-      const AmigaOsLibraryVectorInfo *vector;
-      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
-      platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
-        candidate->offset);
-      platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index,
-        candidate->offset);
-      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
-      platform_vector = attach_amiga_lvo_symbol_if_known(&platform_state, &instruction);
-      immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start[section_index],
-        candidate, &instruction);
-      wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, &platform_state, section, candidate);
-      direct_wrapper_vector = resolve_amiga_direct_wrapper_call_vector(lookup, decode, accepted_start,
-        section->section_index, candidate);
-      vector = platform_vector != NULL ? platform_vector :
-        (direct_wrapper_vector != NULL ? direct_wrapper_vector :
-        (wrapper_call_vector != NULL ? wrapper_call_vector : immediate_vector));
-      if (vector != NULL && render_lookup_add_text_buffer_spans_for_vector_inputs(lookup, decode, vector,
-          &data_pointer_state, accepted_bytes) != 0) {
-        return -1;
-      }
-      data_pointer_state_update_after_instruction(&data_pointer_state, lookup, section, candidate, &instruction);
-      platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
-      platform_state_update_after_instruction(&platform_state, lookup, &instruction);
-    }
-  }
-  return 0;
-}
-
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, uint8_t **accepted_bytes, M68kPlatformAnalysisPassStats *stats) {
   clock_t start;
@@ -11711,8 +11523,6 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   end = clock();
   if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
   start = clock();
-  if (render_lookup_add_amiga_call_input_text_buffer_spans(lookup, decode, accepted_start, accepted_bytes) != 0)
-    return -1;
   if (render_lookup_infer_bootblock_runtime_copies(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (stats != NULL) stats->call_comment_seconds = elapsed_seconds_local(start, end);
