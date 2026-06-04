@@ -1369,6 +1369,33 @@ exists" rule:
 append_expected_platform_symbol_operand_accesses()
 ```
 
+Implemented closure:
+
+```text
+source-quality creates platform_semantic_use(... operand_expr=...)
+  -> the same helper appends expected_symbol_access rows for every symbolic token
+  -> producer is the semantic family that owns the operand expression
+  -> render consumes operand_expr and records rendered symbol evidence
+```
+
+This removes the old split where a semantic-use pass could create the operand
+expression while a later, duplicated expected-access pass tried to rediscover
+the same producer. The helper now makes the ownership contract local:
+
+```c
+append_platform_operand_expr_semantic_use(...,
+  operand_expr="INTF_CLRALL",
+  expected_producer="platform_hardware_register_value_domain_operand")
+```
+
+Existing focused fixtures cover the three migrated families:
+
+```text
+platform_call_input_value_domain_operand
+platform_hardware_register_value_domain_operand
+platform_hardware_base_register_value_domain_operand
+```
+
 Current generated-equate progress:
 
 ```text
