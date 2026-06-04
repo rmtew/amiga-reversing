@@ -3712,24 +3712,48 @@ entry targets and data references
 mask/compare/loop index-domain proof when proven
 ```
 
-Because rendered source is still produced before that source-quality closure in
-the current end-to-end source-export path, the render lookup dispatch pass is
-still present as a mirror for formatting. This is an explicitly temporary
-compatibility bridge. Source-quality upserts same-range/same-role table items
-after render so the exported analysis does not contain both an
-`indexed_local_scalar_read` table and an `indexed_word_dispatch` table for the
-same bytes.
-
-The clean completion criterion for this sub-slice is therefore not "delete the
-render function" yet. It is:
+The dispatch closure now runs before source export in the facts-v2 source path:
 
 ```text
-source-quality table closure runs before source rendering
+decode/accepted ranges/platform passes
+  -> build source_analysis
+  -> source-quality table closure
   -> render lookup imports the immutable dispatch structured_data_items
+  -> source render consumes imported facts
+```
+
+That removes the temporary renderer-owned mirror for indexed/keyed dispatch
+classification. `render_lookup_infer_indexed_word_dispatch_tables()` and its
+keyed-long helper state were deleted. The renderer still owns formatting and
+label materialization, but it no longer decides that these bytes are dispatch
+tables.
+
+The completion invariant for this sub-slice is now:
+
+```text
+source-quality owns table classification
+  -> render lookup imports structured_data_items before source render
   -> biased leading entries, zero-guarded entries, keyed-long entries, and
      address-indexed entries render from imported facts
-  -> render_lookup_infer_indexed_word_dispatch_tables() can be deleted
+  -> weaker scalar observations cannot overwrite stronger dispatch facts
+  -> no render-side dispatch classifier is needed
 ```
+
+This matters for biased dispatch tables. A leading entry can first be observed
+as a plain PC-relative indexed read and later proven to be part of the
+dispatch table:
+
+```asm
+loc_0_0000000A:
+    dc.w loc_0_00000016-loc_0_0000000C ; lookup_table
+loc_0_0000000C:
+    dc.w loc_0_0000002E-loc_0_0000000C ; lookup_table
+```
+
+Same-range/same-role updates therefore rank source patterns. Plain scalar
+observations may fill an unknown item, but they must not downgrade a proven
+`indexed_word_dispatch`, `pc_relative_indexed_indirect_dispatch`, or
+`keyed_long_relative_dispatch` item back to numeric scalar data.
 
 The migration also removes the old render-side habit of creating zero-size
 auto structured-data anchors. A label should survive only when analysis can
@@ -3740,6 +3764,80 @@ explain a visible access, a structural boundary, or an object/platform origin:
 ; no abs_0_0004CACA label unless table-entry analysis proves that value is a
 ; target worth naming and rendering symbolically.
 ```
+
+The Bloodwych table at source offset `$120A` exposed the same rule from the
+other direction. Source-quality correctly proved a five-entry relative word
+dispatch table, but render still owned an earlier two-byte auto guess at the
+same start:
+
+```asm
+    lea.l abs_0_0000166A.l,a1
+    lea.l abs_0_000015AE.l,a0
+    adda.w $0(a0,d1.w),a1
+    jmp (a1)
+
+abs_0_000015AE:
+    dc.w $0000          ; stale two-byte guess
+    dc.b $FF,$6C,$00,$F0,$FF,$4E,$FF,$FA
+```
+
+The correct rendered result consumes the imported C table fact:
+
+```asm
+abs_0_000015AE:
+    dc.w abs_0_0000166A-abs_0_0000166A ; lookup_table
+    dc.w abs_0_000015D6-abs_0_0000166A
+    dc.w abs_0_0000175A-abs_0_0000166A
+    dc.w abs_0_000015B8-abs_0_0000166A
+    dc.w abs_0_00001664-abs_0_0000166A
+```
+
+That required two general fixes:
+
+```text
+address observation raw runtime value
+  -> resolved source/storage target
+  -> table base and entries use source offsets, not raw runtime literals
+
+same-start render auto item
+  -> source-analysis import may widen/replace the auto item
+  -> policy/manual ownership still wins
+  -> source render sees the C-owned table extent
+```
+
+The isolated regression is
+`render_lookup_import_source_analysis_widens_same_start_auto_item`. The target
+confirmation is Bloodwych rendered-source round-trip: source render is now
+content-exact; the remaining status is the existing container-shape mismatch,
+not a source-quality refusal.
+
+Pandora exposed the companion render invariant. A relative table expression may
+only name labels that can be emitted as definitions:
+
+```asm
+abs_0_0001A6DC:
+    dc.w abs_0_0001A25D-abs_0_0001A25C ; valid: both labels are renderable
+    dc.w abs_0_0001A25E-abs_0_0001A25C ; invalid: target is an interior byte
+```
+
+The second line assembles only if `abs_0_0001A25E` is defined. If render
+discovers that backward label after it has already passed the target offset,
+the source is invalid. The rule is therefore:
+
+```text
+relative table entry target/base is forward
+  -> render may materialize the label before reaching it
+
+relative table entry target/base is backward
+  -> label must already be renderable
+  -> otherwise keep the raw numeric table value
+```
+
+This is formatting support, not semantic discovery. C analysis still owns the
+table fact; render merely refuses a symbolic spelling that would create an
+undefined label. The isolated regression is
+`facts_v2_word_lookup_table_keeps_unrenderable_backward_target_raw`. Pandora's
+focused update-render round-trip is exact after the fix.
 
 ### Slice 8: Python/Web/Report Cleanup
 
