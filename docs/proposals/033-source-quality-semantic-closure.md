@@ -1556,6 +1556,7 @@ ambiguous, negative boundary tests that remove semantic uses before render:
 runtime-address sink pointer operands/comments
 disk DMA comments
 copper display-layout comments
+display-setup comments
 bitmap-memory comments
 palette upload comments
 ```
@@ -3211,6 +3212,15 @@ M68K_C_ASSERT(strstr(analysis_json,
 This note is intentionally list-level, like `copper_display_layout`, because it
 shares the copper-list start offset with the first row. Rendering it as an
 inline row comment would compete with the row's own `bitmap pointer` note.
+
+The render boundary is pinned too:
+
+```text
+render_display_setup_comment_requires_platform_semantic_use
+  -> removes platform_semantic_uses before render
+  -> code and copper data still render
+  -> "display setup 4 bitplanes ..." does not appear
+```
 
 The same placement rule applies when the copper list cannot be emitted through
 the structured copper-list renderer and must remain raw bytes:

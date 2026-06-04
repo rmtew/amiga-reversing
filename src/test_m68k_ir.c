@@ -27950,6 +27950,92 @@ static int test_facts_v2_copper_pointer_renders_combined_display_setup_comment(v
   return 0;
 }
 
+static int test_render_display_setup_comment_requires_platform_semantic_use(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kAnalysisPolicy policy;
+  M68kRenderIRPreview preview;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  M68kAnalysisLabelPoint analysis_labels[1];
+  size_t analysis_label_count = 0U;
+  uint8_t start_map[88];
+  uint8_t byte_map[88];
+  uint8_t bytes[88] = {
+    0x33u, 0xFCu, 0x42u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x00u,
+    0x33u, 0xFCu, 0x00u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x08u,
+    0x33u, 0xFCu, 0x00u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x0Au,
+    0x33u, 0xFCu, 0x00u, 0x38u, 0x00u, 0xDFu, 0xF0u, 0x92u,
+    0x33u, 0xFCu, 0x00u, 0xD0u, 0x00u, 0xDFu, 0xF0u, 0x94u,
+    0x33u, 0xFCu, 0x37u, 0x81u, 0x00u, 0xDFu, 0xF0u, 0x8Eu,
+    0x33u, 0xFCu, 0xFFu, 0xC1u, 0x00u, 0xDFu, 0xF0u, 0x90u,
+    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x44u, 0x00u, 0xDFu, 0xF0u, 0x80u,
+    0x4Eu, 0x75u,
+    0x00u, 0xE0u, 0x00u, 0x07u,
+    0x00u, 0xE2u, 0x00u, 0x00u,
+    0x00u, 0xE4u, 0x00u, 0x07u,
+    0x00u, 0xE6u, 0x20u, 0x00u,
+    0xFFu, 0xFFu, 0xFFu, 0xFEu
+  };
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  memset(&decode, 0, sizeof(decode));
+  memset(&facts, 0, sizeof(facts));
+  memset(&policy, 0, sizeof(policy));
+  memset(&preview, 0, sizeof(preview));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  start_map[8] = 1U;
+  start_map[16] = 1U;
+  start_map[24] = 1U;
+  start_map[32] = 1U;
+  start_map[40] = 1U;
+  start_map[48] = 1U;
+  start_map[56] = 1U;
+  start_map[66] = 1U;
+  memset(byte_map, 1, 68U);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build_with_source_analysis_mutator(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview,
+    test_clear_platform_semantic_uses, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "move.l") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "display setup 4 bitplanes") == NULL);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample(void) {
   M68kObject object;
   M68kSection section;
@@ -30697,6 +30783,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_palette_upload_uses_source_section_accepted_bytes},
     {"facts_v2_copper_pointer_renders_combined_display_setup_comment",
       test_facts_v2_copper_pointer_renders_combined_display_setup_comment},
+    {"render_display_setup_comment_requires_platform_semantic_use",
+      test_render_display_setup_comment_requires_platform_semantic_use},
     {"facts_v2_audio_pointer_and_length_auto_classifies_sound_sample",
       test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample},
     {"facts_v2_audio_length_register_source_comment",
