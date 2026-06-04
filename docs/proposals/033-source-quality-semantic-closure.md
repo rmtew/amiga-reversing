@@ -1563,6 +1563,7 @@ audio-register comments
 hardware-access comments
 hardware-value comments
 platform stack-cleanup comments
+platform call-input operand expressions
 ```
 
 Remaining work should name the exact unpinned family, add its source-quality
@@ -1670,6 +1671,21 @@ platform_call_input_value_domain_operand
 platform_hardware_register_value_domain_operand
 platform_hardware_base_register_value_domain_operand
 ```
+
+The render boundary for call-input operand expressions is pinned:
+
+```text
+render_platform_call_input_operand_requires_semantic_use
+  -> removes platform_semantic_uses and expected operand obligations
+     before render
+  -> the Alert() setup and call still render
+  -> AN_IconLib|AG_OpenLib|AO_DOSLib does not appear
+  -> the input value falls back to a numeric immediate
+```
+
+This is the rule for reverser-facing symbols: API-domain constants appear only
+when analysis has proved the operand is an API input and exported the semantic
+operand expression. A raw value that merely equals a useful constant stays raw.
 
 Current generated-equate progress:
 
