@@ -18356,6 +18356,9 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio period\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"audio data word\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind_name\":\"hardware_access\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"use_shape_name\":\"hardware_register_access\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"intena\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"aud0+ac_len\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"palette color 15\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"palette colors 0-1\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"note_text\":\"joystick/mouse port 0 data\"") != NULL);

@@ -1143,11 +1143,6 @@ format_copper_register_value_expr()
 copper_runtime_pointer_register()
 attach_amiga_hardware_register_symbols()
 resolve_amiga_hardware_register_operand()
-attach_amiga_hardware_register_immediate_symbols()
-attach_amiga_hardware_display_comment_for_render()
-attach_amiga_hardware_access_comment_for_render()
-attach_amiga_runtime_sink_comment_for_render()
-attach_platform_stack_cleanup_comment_for_render()
 external_runtime_address_ref_role()
 runtime_address_ref_sink_role()
 ```
@@ -1155,6 +1150,26 @@ runtime_address_ref_sink_role()
 Some of those functions are harmless formatting once the fact is already known.
 Others decide meaning from an instruction, register state, address, or future
 call. Those must move into C analysis/platform facts.
+
+The base-relative hardware-register symbol path is now fact-backed:
+
+```text
+lea.l _custom.l,a0
+move.w #INTF_CLRALL,intena(a0)
+
+analysis:
+  tracks a0 as _custom
+  proves operand 1 is hardware_register_access at $00DFF09A
+  exports platform_address_use(symbol_name="intena")
+
+render:
+  consumes platform_address_use
+  keeps direct hardware lookup only when no source analysis is available
+```
+
+That matters because `intena(a0)` is not just pretty printing. It is a
+semantic claim that `a0` is a hardware base and `$009A(a0)` is the interrupt
+enable register. The renderer must not rediscover that claim after analysis.
 
 The split should be:
 
@@ -2365,7 +2380,11 @@ Implementation order:
    expression.
 6. Done for runtime-address sink pointer comments: source-quality emits
    `runtime_sink_pointer` semantic uses and render appends their `note_text`.
-7. Delete renderer scans once equivalent C facts drive the same source.
+7. Done for base-relative hardware register operand symbols: source-quality
+   emits `platform_address_use` facts from its hardware-base tracker, and
+   render consumes those facts for operands such as `intena(a0)` and
+   `aud0+ac_len(a0)`.
+8. Delete renderer scans once equivalent C facts drive the same source.
 ```
 
 Keep `M68kPlatformAddressUseIR` for address-shape facts. Use
@@ -2564,6 +2583,38 @@ renderer-only state. The old
 `attach_amiga_hardware_register_immediate_symbols()` scan was deleted from
 `m68k_render_ir.c`; render now consumes `platform_semantic_use` operand
 expressions.
+
+Current hardware register operand-symbol closure:
+
+```text
+accepted instruction + source-quality hardware-base tracker
+  + operand is memory read/write/compute through a known hardware base
+  + generated Amiga metadata names the register/field/range
+  -> source-quality exports M68kPlatformAddressUseIR(
+       use_shape=hardware_register_access,
+       symbol_name="intena" or "aud0+ac_len",
+       address=$00DFF09A or field address)
+  -> renderer attaches that symbol to the operand
+  -> renderer does not call hardware-register lookup for source-analysis-backed
+     base-relative operands
+```
+
+Regression coverage now checks that the rendered source and the analysis facts
+agree:
+
+```c
+M68K_C_ASSERT(strstr(source,
+  "\tmove.w #INTF_CLRALL,intena(a0)\n") != NULL);
+M68K_C_ASSERT(strstr(analysis_json,
+  "\"use_shape_name\":\"hardware_register_access\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"intena\"") != NULL);
+M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"aud0+ac_len\"") != NULL);
+```
+
+The retained renderer fallback is only for callers that render without source
+analysis. The normal rendered-source path must have C-owned facts; if those
+facts are missing, the fix is to improve analysis, not to reintroduce
+renderer-side platform reasoning.
 
 Custom symbolic expressions such as BPLCON0 plane-count composition and BLTSIZE
 height/width composition remain supported, but as shared platform formatting:
