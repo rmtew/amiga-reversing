@@ -289,6 +289,63 @@ def test_roundtrip_report_analysis_export_uses_render_evidence_analysis(monkeypa
     assert [call["fn"] for call in calls] == ["analyze", "explain"]
 
 
+def test_roundtrip_report_analysis_export_keeps_explanation_when_analysis_fails(
+    monkeypatch, tmp_path: Path
+) -> None:
+    source_path = tmp_path / "demo.s"
+    binary_source = object()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    export_dir = tmp_path / "analysis"
+    calls: list[str] = []
+
+    class MetadataContext:
+        def __enter__(self) -> Path:
+            return tmp_path / "target_metadata.json"
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    def analyze(binary_source_arg: object, *, metadata_path: Path, project_root: Path) -> dict[str, object]:
+        assert binary_source_arg is binary_source
+        calls.append("analyze")
+        raise RuntimeError("source refused")
+
+    def explain(binary_source_arg: object, *, metadata_path: Path, project_root: Path) -> dict[str, object]:
+        assert binary_source_arg is binary_source
+        calls.append("explain")
+        return {"source_quality_explanations": [{"kind": "missing_expected_symbol_access"}]}
+
+    paths = SimpleNamespace(binary_source=binary_source, target_dir=target_dir)
+
+    monkeypatch.setattr(report_tool, "resolve_project_paths", lambda target, project_root: paths)
+    monkeypatch.setattr(report_tool, "effective_metadata_file", lambda path: MetadataContext())
+    monkeypatch.setattr(report_tool, "analyze_project_source_with_render_evidence_from_c_backend", analyze)
+    monkeypatch.setattr(report_tool, "source_quality_explain_project_source_with_c_backend", explain)
+
+    export_path = report_tool._export_target_analysis(
+        {
+            "target": "amiga_hunk_demo",
+            "status": "exception",
+            "rendered_source_full_file_exact": False,
+            "rendered_source_content_exact": False,
+            "failure_kinds": [],
+            "diff_range_count": None,
+            "tool_error": "RuntimeError: source refused",
+            "message": None,
+        },
+        source_path,
+        export_dir,
+    )
+
+    payload = json.loads(export_path.read_text(encoding="utf-8"))
+    assert payload["analysis_error"] == "RuntimeError: source refused"
+    assert payload["source_quality_explanation"]["source_quality_explanations"][0]["kind"] == (
+        "missing_expected_symbol_access"
+    )
+    assert calls == ["analyze", "explain"]
+
+
 def test_roundtrip_report_analysis_export_skips_success_by_default(monkeypatch, tmp_path: Path) -> None:
     source_path = tmp_path / "demo.s"
     calls: list[object] = []

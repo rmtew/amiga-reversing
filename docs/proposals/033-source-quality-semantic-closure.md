@@ -292,6 +292,26 @@ CListingArtifact.create(...)
        rendered_symbol_accesses from render_evidence
 ```
 
+The export path must also survive partial diagnostic failure. If render-evidence
+analysis is the component that refuses source, the worker still needs the
+source-quality explanation:
+
+```json
+{
+  "roundtrip_row": { "status": "exception" },
+  "analysis_error": "RuntimeError: source refused",
+  "source_quality_explanation": {
+    "source_quality_explanations": [
+      { "kind": "missing_expected_symbol_access" }
+    ]
+  }
+}
+```
+
+Only failure to resolve the target, open metadata, or write the export file
+should prevent an export path from being reported. Individual analysis
+components should record `*_error` fields and let the remaining components run.
+
 The GenAm failure exposed a separate false-code producer. Its real shape is a
 zero-guarded PC-indexed word dispatch table:
 

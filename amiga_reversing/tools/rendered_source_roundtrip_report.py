@@ -277,16 +277,22 @@ def _export_target_analysis(row: dict[str, Any], source_path: Path, analysis_exp
         "roundtrip_row": _report_row(row),
     }
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        payload["analysis"] = analyze_project_source_with_render_evidence_from_c_backend(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=PROJECT_ROOT,
-        )
-        payload["source_quality_explanation"] = source_quality_explain_project_source_with_c_backend(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=PROJECT_ROOT,
-        )
+        try:
+            payload["analysis"] = analyze_project_source_with_render_evidence_from_c_backend(
+                paths.binary_source,
+                metadata_path=metadata_path,
+                project_root=PROJECT_ROOT,
+            )
+        except Exception as exc:
+            payload["analysis_error"] = f"{type(exc).__name__}: {exc}"
+        try:
+            payload["source_quality_explanation"] = source_quality_explain_project_source_with_c_backend(
+                paths.binary_source,
+                metadata_path=metadata_path,
+                project_root=PROJECT_ROOT,
+            )
+        except Exception as exc:
+            payload["source_quality_explanation_error"] = f"{type(exc).__name__}: {exc}"
     analysis_export_dir.mkdir(parents=True, exist_ok=True)
     export_path = analysis_export_dir / f"{_safe_filename(target)}.analysis.json"
     export_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
