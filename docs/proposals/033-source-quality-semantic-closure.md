@@ -3283,6 +3283,20 @@ local runtime storage and coined external runtime-address symbols was deleted.
 Render consumes `platform_semantic_use.operand_expr`; it no longer decides that
 an immediate is a bitmap/disk-buffer pointer by scanning runtime refs itself.
 
+The later label-only variant of the same mistake was also deleted:
+
+```c
+render_lookup_infer_amiga_runtime_sink_immediate_refs(...)
+```
+
+That pass decoded accepted instructions during render lookup, resolved Amiga
+hardware sink destinations, mapped the immediate runtime value back into source
+storage, and called `render_lookup_mark_label()`. It no longer had visible
+ownership after source-quality started publishing `runtime_sink_pointer`
+semantic uses, target offsets, operand expressions, and expected symbol
+accesses. Corpus round-trip stayed content-exact after removal, proving the
+durable C facts now carry the behavior rather than the render cache.
+
 Remaining platform-comment work is the same rule applied to richer structured
 comments in other renderer helpers that still describe platform meaning while
 formatting data. Display-layout, display-setup, and bitmap-memory comments no
