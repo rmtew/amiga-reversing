@@ -941,6 +941,8 @@ void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRend
   const M68kDecodeIR *decode);
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
   M68kRenderLookup *lookup);
+int m68k_analysis_render_lookup_import_source_analysis_structured_data(M68kRenderLookup *lookup,
+  const M68kSourceAnalysisIR *source_analysis);
 int m68k_analysis_render_lookup_append_base_layout_fields(Arena *scratch_arena,
   const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);
 int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,

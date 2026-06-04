@@ -3,8 +3,8 @@
   "summary": {
     "failures": 0,
     "rendered_source_content_exact_only": 15,
-    "rendered_source_full_file_exact": 39,
-    "targets": 55,
+    "rendered_source_full_file_exact": 38,
+    "targets": 54,
     "unsupported": 1
   },
   "targets": [
@@ -36,16 +36,6 @@
       "rendered_source_full_file_exact": true,
       "status": "exact",
       "target": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-1-of-2-h-ministry-construction-kit__amiga_raw_bootblock",
-      "tool_error": null
-    },
-    {
-      "diff_range_count": 0,
-      "failure_kinds": [],
-      "message": null,
-      "rendered_source_content_exact": true,
-      "rendered_source_full_file_exact": true,
-      "status": "exact",
-      "target": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-2-of-2-construction-kit__amiga_raw_bootblock",
       "tool_error": null
     },
     {

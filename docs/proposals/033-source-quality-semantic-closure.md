@@ -3401,6 +3401,85 @@ Render consumes that note like other `platform_semantic_use` comments. The
 remaining work is to move the palette table detection itself out of
 `m68k_analysis_render_lookup.c`; the comment is no longer render-owned.
 
+Relocation-backed pointer table classification has also moved to
+source-quality. The old render-lookup pass scanned relocation records and
+accepted-code bytes while building the formatting cache:
+
+```text
+render_lookup_infer_relocation_pointer_tables
+  -> scan decoded sections
+  -> find consecutive reloc32 entries outside accepted code
+  -> create auto structured LONGS pointer table item
+```
+
+That was the wrong ownership boundary. Whether a relocated long run is a
+pointer table is source-analysis meaning, not source formatting. The new flow
+is:
+
+```text
+source-quality
+  -> scan relocation facts plus accepted bytes
+  -> require two or more consecutive reloc32 data entries
+  -> require targets inside known target sections
+  -> append structured_data_item(
+       kind=LONGS,
+       role=POINTER_TABLE,
+       source_pattern=RELOCATION_POINTER_TABLE)
+
+render setup
+  -> import C-owned structured_data_items into the render lookup cache
+  -> materialize long-table target labels
+  -> format the table from the imported facts
+```
+
+The render import is deliberately a cache handoff, not new analysis:
+
+```c
+if (render_asm_source) {
+    m68k_analysis_render_lookup_import_source_analysis_structured_data(
+        &render_lookup, source_analysis);
+    m68k_render_lookup_materialize_structured_long_table_target_labels(
+        &render_lookup, &decode);
+}
+```
+
+This keeps existing relocation pointer tables rendering exactly while deleting
+the renderer-owned classifier. The focused fixtures
+`facts_v2_relocation_backed_data_longs_auto_classify_pointer_table` and
+`facts_v2_relocation_pointer_table_does_not_promote_callback_targets_without_control_use`
+prove both halves: data relocations still become pointer tables, but callback
+targets are not promoted as executable code without control-flow proof.
+
+The implementation must also keep the evidence domain narrow. A first C-owned
+version reproduced the old behavior by walking every possible section offset and
+then searching all relocation facts for each four-byte span:
+
+```text
+for offset in section bytes:
+  if exact relocation fact exists at offset:
+    maybe extend pointer table
+```
+
+That is the right meaning but the wrong algorithm. The Search for the King web
+listing caught it as a CDP timeout: analysis spent tens of seconds in source
+quality before rendering could start. The fix is to iterate relocation facts as
+the primary domain, sort them by source offset, and only then check accepted-code
+bytes:
+
+```text
+reloc32 facts for section
+  -> sort by source offset
+  -> skip duplicate-offset relocations
+  -> skip entries overlapping accepted code
+  -> group offsets start, start+4, start+8...
+  -> emit pointer table only for runs of at least two longs
+```
+
+This is a source-quality rule for the rest of the proposal: analysis that is
+driven by sparse evidence must iterate the sparse evidence directly. Whole-image
+walks are valid only when the bytes themselves are the evidence, such as string
+or raw data classification.
+
 ### Slice 7: Table And Data Reference Closure
 
 Generalize C table descriptors:

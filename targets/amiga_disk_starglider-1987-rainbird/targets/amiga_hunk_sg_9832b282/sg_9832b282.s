@@ -7413,11 +7413,9 @@ loc_0_000079FC:
 	dc.b "ROOKIE",$00
 	dc.b $00
 loc_0_00007A04:
-	dc.b "POOR",$00
-	dc.b $00
+	dc.b $50,$4F,$4F,$52,$00,$00
 loc_0_00007A0A:
-	dc.b "FAIR",$00
-	dc.b $00
+	dc.b $46,$41,$49,$52,$00,$00
 loc_0_00007A10:
 	dc.b "AVERAGE",$00
 loc_0_00007A18:

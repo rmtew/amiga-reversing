@@ -10514,6 +10514,16 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     }
     m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
     m68k_ir_source_analysis_finalize_base_layout_conflicts(source_analysis);
+    if (render_asm_source &&
+        m68k_analysis_render_lookup_import_source_analysis_structured_data(&render_lookup, source_analysis) != 0) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 source-analysis structured data import failed");
+      goto fail;
+    }
+    if (render_asm_source) {
+      m68k_render_lookup_materialize_structured_long_table_target_labels(&render_lookup, &decode);
+      m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
+    }
   }
   if ((render_asm_source || mark_source_blockers) && facts_v2_has_source_blockers(out_profile)) {
     out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;

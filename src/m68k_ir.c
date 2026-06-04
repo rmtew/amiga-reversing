@@ -3110,6 +3110,33 @@ int m68k_ir_render_evidence_append_all(M68kRenderEvidenceIR *evidence,
     const M68kRenderEvidenceIR *source) {
   size_t section_index;
   if (evidence == NULL || evidence->arena == NULL || source == NULL) return -1;
+  if (evidence->section_count == 0U) {
+    if (source->section_count == 0U) return 0;
+    evidence->sections = (M68kRenderEvidenceSectionIR *)arena_calloc(evidence->arena,
+      source->section_count, sizeof(*evidence->sections));
+    if (evidence->sections == NULL) return -1;
+    evidence->section_count = source->section_count;
+    evidence->section_capacity = source->section_count;
+    for (section_index = 0U; section_index < source->section_count; ++section_index) {
+      const M68kRenderEvidenceSectionIR *source_section = &source->sections[section_index];
+      M68kRenderEvidenceSectionIR *dest_section = &evidence->sections[section_index];
+      size_t access_index;
+      dest_section->section_index = source_section->section_index;
+      dest_section->rendered_symbol_access_count = source_section->rendered_symbol_access_count;
+      dest_section->rendered_symbol_access_capacity = source_section->rendered_symbol_access_count;
+      if (source_section->rendered_symbol_access_count == 0U) continue;
+      dest_section->rendered_symbol_accesses = (M68kRenderedSymbolAccessIR *)arena_calloc(evidence->arena,
+        source_section->rendered_symbol_access_count, sizeof(*dest_section->rendered_symbol_accesses));
+      if (dest_section->rendered_symbol_accesses == NULL) return -1;
+      for (access_index = 0U; access_index < source_section->rendered_symbol_access_count; ++access_index) {
+        M68kRenderedSymbolAccessIR *copy = &dest_section->rendered_symbol_accesses[access_index];
+        *copy = source_section->rendered_symbol_accesses[access_index];
+        copy->symbol_name = arena_strdup(evidence->arena, source_section->rendered_symbol_accesses[access_index].symbol_name);
+        if (copy->symbol_name == NULL) return -1;
+      }
+    }
+    return 0;
+  }
   for (section_index = 0U; section_index < source->section_count; ++section_index) {
     const M68kRenderEvidenceSectionIR *section = &source->sections[section_index];
     size_t access_index;

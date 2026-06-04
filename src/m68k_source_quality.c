@@ -1075,16 +1075,66 @@ static int rendered_symbol_access_matches_expected(const M68kRenderedSymbolAcces
   return 1;
 }
 
-static int section_has_rendered_symbol_access(const M68kRenderEvidenceSectionIR *render_evidence_section,
+typedef struct M68kRenderedSymbolAccessOffsetIndex {
+  const M68kRenderedSymbolAccessIR **items;
+  size_t count;
+} M68kRenderedSymbolAccessOffsetIndex;
+
+static int compare_rendered_symbol_access_offset_ptrs(const void *left, const void *right) {
+  const M68kRenderedSymbolAccessIR *left_access = *(const M68kRenderedSymbolAccessIR *const *)left;
+  const M68kRenderedSymbolAccessIR *right_access = *(const M68kRenderedSymbolAccessIR *const *)right;
+  if (left_access->offset < right_access->offset) return -1;
+  if (left_access->offset > right_access->offset) return 1;
+  if (left_access->access_kind < right_access->access_kind) return -1;
+  if (left_access->access_kind > right_access->access_kind) return 1;
+  return 0;
+}
+
+static int rendered_symbol_access_offset_index_build(const M68kRenderEvidenceSectionIR *render_evidence_section,
+    M68kRenderedSymbolAccessOffsetIndex *index) {
+  size_t access_index;
+  if (index == NULL) return -1;
+  index->items = NULL;
+  index->count = 0U;
+  if (render_evidence_section == NULL || render_evidence_section->rendered_symbol_access_count == 0U) return 0;
+  index->items = (const M68kRenderedSymbolAccessIR **)calloc(
+    render_evidence_section->rendered_symbol_access_count, sizeof(*index->items));
+  if (index->items == NULL) return -1;
+  for (access_index = 0U; access_index < render_evidence_section->rendered_symbol_access_count; ++access_index) {
+    index->items[index->count++] = &render_evidence_section->rendered_symbol_accesses[access_index];
+  }
+  qsort(index->items, index->count, sizeof(*index->items), compare_rendered_symbol_access_offset_ptrs);
+  return 0;
+}
+
+static void rendered_symbol_access_offset_index_destroy(M68kRenderedSymbolAccessOffsetIndex *index) {
+  if (index == NULL) return;
+  free(index->items);
+  memset(index, 0, sizeof(*index));
+}
+
+static size_t rendered_symbol_access_offset_index_lower_bound(const M68kRenderedSymbolAccessOffsetIndex *index,
+    uint32_t offset) {
+  size_t low = 0U;
+  size_t high = index != NULL ? index->count : 0U;
+  while (low < high) {
+    size_t mid = low + ((high - low) / 2U);
+    if (index->items[mid]->offset < offset) low = mid + 1U;
+    else high = mid;
+  }
+  return low;
+}
+
+static int section_has_rendered_symbol_access(const M68kRenderedSymbolAccessOffsetIndex *rendered_index,
     const M68kExpectedSymbolAccessIR *expected) {
   uint8_t rendered_kind;
   size_t index;
-  if (render_evidence_section == NULL || expected == NULL) return 0;
+  if (rendered_index == NULL || expected == NULL) return 0;
   rendered_kind = rendered_symbol_access_kind_for_expected(expected->access_kind);
   if (rendered_kind == M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN) return 1;
-  for (index = 0U; index < render_evidence_section->rendered_symbol_access_count; ++index) {
-    if (rendered_symbol_access_matches_expected(&render_evidence_section->rendered_symbol_accesses[index], expected,
-        rendered_kind)) {
+  for (index = rendered_symbol_access_offset_index_lower_bound(rendered_index, expected->offset);
+      index < rendered_index->count && rendered_index->items[index]->offset == expected->offset; ++index) {
+    if (rendered_symbol_access_matches_expected(rendered_index->items[index], expected, rendered_kind)) {
       return 1;
     }
   }
@@ -1251,50 +1301,161 @@ static int append_platform_operand_expr_without_expected_access_diagnostics_for_
 static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSectionAnalysisIR *section,
     const M68kRenderEvidenceSectionIR *render_evidence_section) {
   size_t index;
+  M68kRenderedSymbolAccessOffsetIndex rendered_index;
+  int result = -1;
   if (section == NULL) return -1;
+  memset(&rendered_index, 0, sizeof(rendered_index));
   if (append_platform_operand_expr_without_expected_access_diagnostics_for_section(section) != 0) return -1;
+  if (rendered_symbol_access_offset_index_build(render_evidence_section, &rendered_index) != 0) return -1;
   for (index = 0U; index < section->expected_symbol_access_count; ++index) {
     const M68kExpectedSymbolAccessIR *access = &section->expected_symbol_accesses[index];
     if (!expected_symbol_access_has_precise_producer(access)) {
-      if (append_expected_symbol_access_without_producer_diagnostic(section, access) != 0) return -1;
+      if (append_expected_symbol_access_without_producer_diagnostic(section, access) != 0) goto done;
       continue;
     }
-    if (!section_has_rendered_symbol_access(render_evidence_section, access)) {
-      if (append_missing_expected_symbol_access_diagnostic(section, access) != 0) return -1;
+    if (!section_has_rendered_symbol_access(&rendered_index, access)) {
+      if (append_missing_expected_symbol_access_diagnostic(section, access) != 0) goto done;
     }
   }
+  result = 0;
+
+done:
+  rendered_symbol_access_offset_index_destroy(&rendered_index);
+  return result;
+}
+
+typedef struct M68kRenderedReferenceIndex {
+  const M68kRenderedSymbolAccessIR **by_target;
+  size_t by_target_count;
+  const M68kRenderedSymbolAccessIR **by_name;
+  size_t by_name_count;
+} M68kRenderedReferenceIndex;
+
+static void rendered_reference_index_destroy(M68kRenderedReferenceIndex *index);
+
+static int rendered_symbol_access_is_label_reference_candidate(const M68kRenderedSymbolAccessIR *access) {
+  return access != NULL && !access->comment_only &&
+    access->access_kind != M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT &&
+    access->access_kind != M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN;
+}
+
+static int compare_rendered_symbol_access_target_ptrs(const void *left, const void *right) {
+  const M68kRenderedSymbolAccessIR *left_access = *(const M68kRenderedSymbolAccessIR *const *)left;
+  const M68kRenderedSymbolAccessIR *right_access = *(const M68kRenderedSymbolAccessIR *const *)right;
+  if (left_access->target_section_index < right_access->target_section_index) return -1;
+  if (left_access->target_section_index > right_access->target_section_index) return 1;
+  if (left_access->target_offset < right_access->target_offset) return -1;
+  if (left_access->target_offset > right_access->target_offset) return 1;
   return 0;
 }
 
-static int rendered_symbol_access_references_label(const M68kRenderedSymbolAccessIR *label,
-    const M68kRenderedSymbolAccessIR *access) {
-  if (label == NULL || access == NULL || access->comment_only ||
-      access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT ||
-      access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN) {
-    return 0;
-  }
-  if (label->has_target && access->has_target) {
-    if (label->target_section_index == access->target_section_index &&
-        label->target_offset == access->target_offset) {
-      return 1;
-    }
-  }
-  return label->symbol_name != NULL && access->symbol_name != NULL &&
-    strcmp(label->symbol_name, access->symbol_name) == 0;
+static int compare_rendered_symbol_access_name_ptrs(const void *left, const void *right) {
+  const M68kRenderedSymbolAccessIR *left_access = *(const M68kRenderedSymbolAccessIR *const *)left;
+  const M68kRenderedSymbolAccessIR *right_access = *(const M68kRenderedSymbolAccessIR *const *)right;
+  const char *left_name = left_access->symbol_name != NULL ? left_access->symbol_name : "";
+  const char *right_name = right_access->symbol_name != NULL ? right_access->symbol_name : "";
+  return strcmp(left_name, right_name);
 }
 
-static int render_evidence_has_rendered_reference_to_label(const M68kRenderEvidenceIR *render_evidence,
-    const M68kRenderedSymbolAccessIR *label) {
+static int rendered_reference_index_build(const M68kRenderEvidenceIR *render_evidence,
+    M68kRenderedReferenceIndex *index) {
   size_t section_index;
-  size_t index;
-  if (render_evidence == NULL || label == NULL) return 0;
+  size_t target_capacity = 0U;
+  size_t name_capacity = 0U;
+  if (index == NULL) return -1;
+  memset(index, 0, sizeof(*index));
+  if (render_evidence == NULL) return 0;
   for (section_index = 0U; section_index < render_evidence->section_count; ++section_index) {
     const M68kRenderEvidenceSectionIR *section = &render_evidence->sections[section_index];
-    for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
-      if (rendered_symbol_access_references_label(label, &section->rendered_symbol_accesses[index])) return 1;
+    size_t access_index;
+    for (access_index = 0U; access_index < section->rendered_symbol_access_count; ++access_index) {
+      const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[access_index];
+      if (!rendered_symbol_access_is_label_reference_candidate(access)) continue;
+      if (access->has_target) ++target_capacity;
+      if (access->symbol_name != NULL && access->symbol_name[0] != '\0') ++name_capacity;
     }
   }
+  if (target_capacity != 0U) {
+    index->by_target = (const M68kRenderedSymbolAccessIR **)calloc(target_capacity, sizeof(*index->by_target));
+    if (index->by_target == NULL) return -1;
+  }
+  if (name_capacity != 0U) {
+    index->by_name = (const M68kRenderedSymbolAccessIR **)calloc(name_capacity, sizeof(*index->by_name));
+    if (index->by_name == NULL) {
+      rendered_reference_index_destroy(index);
+      return -1;
+    }
+  }
+  for (section_index = 0U; section_index < render_evidence->section_count; ++section_index) {
+    const M68kRenderEvidenceSectionIR *section = &render_evidence->sections[section_index];
+    size_t access_index;
+    for (access_index = 0U; access_index < section->rendered_symbol_access_count; ++access_index) {
+      const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[access_index];
+      if (!rendered_symbol_access_is_label_reference_candidate(access)) continue;
+      if (access->has_target) index->by_target[index->by_target_count++] = access;
+      if (access->symbol_name != NULL && access->symbol_name[0] != '\0') index->by_name[index->by_name_count++] = access;
+    }
+  }
+  if (index->by_target_count != 0U)
+    qsort(index->by_target, index->by_target_count, sizeof(*index->by_target),
+      compare_rendered_symbol_access_target_ptrs);
+  if (index->by_name_count != 0U)
+    qsort(index->by_name, index->by_name_count, sizeof(*index->by_name),
+      compare_rendered_symbol_access_name_ptrs);
   return 0;
+}
+
+static void rendered_reference_index_destroy(M68kRenderedReferenceIndex *index) {
+  if (index == NULL) return;
+  free(index->by_target);
+  free(index->by_name);
+  memset(index, 0, sizeof(*index));
+}
+
+static int rendered_reference_index_has_target(const M68kRenderedReferenceIndex *index,
+    uint32_t target_section_index, uint32_t target_offset) {
+  size_t low = 0U;
+  size_t high = index != NULL ? index->by_target_count : 0U;
+  while (low < high) {
+    size_t mid = low + ((high - low) / 2U);
+    const M68kRenderedSymbolAccessIR *access = index->by_target[mid];
+    if (access->target_section_index < target_section_index ||
+        (access->target_section_index == target_section_index && access->target_offset < target_offset)) {
+      low = mid + 1U;
+    } else {
+      high = mid;
+    }
+  }
+  while (low < (index != NULL ? index->by_target_count : 0U)) {
+    const M68kRenderedSymbolAccessIR *access = index->by_target[low];
+    if (access->target_section_index != target_section_index || access->target_offset != target_offset) break;
+    return 1;
+  }
+  return 0;
+}
+
+static int rendered_reference_index_has_name(const M68kRenderedReferenceIndex *index, const char *symbol_name) {
+  size_t low = 0U;
+  size_t high = index != NULL ? index->by_name_count : 0U;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  while (low < high) {
+    size_t mid = low + ((high - low) / 2U);
+    int cmp = strcmp(index->by_name[mid]->symbol_name, symbol_name);
+    if (cmp < 0) low = mid + 1U;
+    else high = mid;
+  }
+  return low < (index != NULL ? index->by_name_count : 0U) &&
+    strcmp(index->by_name[low]->symbol_name, symbol_name) == 0;
+}
+
+static int rendered_reference_index_references_label(const M68kRenderedReferenceIndex *index,
+    const M68kRenderedSymbolAccessIR *label) {
+  if (index == NULL || label == NULL) return 0;
+  if (label->has_target &&
+      rendered_reference_index_has_target(index, label->target_section_index, label->target_offset)) {
+    return 1;
+  }
+  return rendered_reference_index_has_name(index, label->symbol_name);
 }
 
 static int section_label_has_durable_unreferenced_origin(const M68kSectionAnalysisIR *section,
@@ -1422,7 +1583,8 @@ static int append_unreferenced_label_statement_diagnostic(M68kSectionAnalysisIR 
 }
 
 static int append_unreferenced_label_statement_diagnostics_for_section(M68kSourceAnalysisIR *source_analysis,
-    M68kSectionAnalysisIR *section, const M68kRenderEvidenceIR *render_evidence) {
+    M68kSectionAnalysisIR *section, const M68kRenderEvidenceIR *render_evidence,
+    const M68kRenderedReferenceIndex *reference_index) {
   size_t index;
   const M68kRenderEvidenceSectionIR *render_evidence_section;
   if (section == NULL || render_evidence == NULL) return -1;
@@ -1436,7 +1598,7 @@ static int append_unreferenced_label_statement_diagnostics_for_section(M68kSourc
     if (section_label_has_code_origin(section, access)) continue;
     if (section_label_has_noncode_range_origin(source_analysis, section, access)) continue;
     if (section_label_is_accepted_code_start(section, access)) continue;
-    if (!render_evidence_has_rendered_reference_to_label(render_evidence, access)) {
+    if (!rendered_reference_index_references_label(reference_index, access)) {
       if (append_unreferenced_label_statement_diagnostic(section, access) != 0) return -1;
     }
   }
@@ -3232,6 +3394,162 @@ static const M68kFact *source_quality_unique_relocation_ref_for_span(const M68kF
     match = fact;
   }
   return match;
+}
+
+static int source_quality_has_structured_data_item(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t size, uint8_t kind, uint8_t source_pattern_id) {
+  size_t index;
+  if (source_analysis == NULL) return 0;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
+    if (item->has_section_index && item->section_index == section_index && item->offset == offset &&
+        item->size == size && item->kind == kind && item->source_pattern_id == source_pattern_id) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+typedef struct SourceQualityRelocationRefIndex {
+  const M68kFact **items;
+  size_t count;
+} SourceQualityRelocationRefIndex;
+
+static int compare_source_quality_relocation_ref_offsets(const void *left, const void *right) {
+  const M68kFact *left_fact = *(const M68kFact *const *)left;
+  const M68kFact *right_fact = *(const M68kFact *const *)right;
+  if (left_fact->offset < right_fact->offset) return -1;
+  if (left_fact->offset > right_fact->offset) return 1;
+  return 0;
+}
+
+static int source_quality_build_relocation_pointer_ref_index(const M68kFactIR *facts,
+    const M68kDecodeIR *decode, uint32_t section_index, SourceQualityRelocationRefIndex *index) {
+  size_t fact_index;
+  size_t capacity = 0U;
+  if (index == NULL) return -1;
+  memset(index, 0, sizeof(*index));
+  if (facts == NULL || decode == NULL) return 0;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if (fact->kind == M68K_FACT_RELOCATION_REF && fact->section_index == section_index &&
+        fact->size == 4U && fact->target_section_index < decode->section_count) {
+      ++capacity;
+    }
+  }
+  if (capacity == 0U) return 0;
+  index->items = (const M68kFact **)calloc(capacity, sizeof(*index->items));
+  if (index->items == NULL) return -1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if (fact->kind == M68K_FACT_RELOCATION_REF && fact->section_index == section_index &&
+        fact->size == 4U && fact->target_section_index < decode->section_count) {
+      index->items[index->count++] = fact;
+    }
+  }
+  qsort(index->items, index->count, sizeof(*index->items), compare_source_quality_relocation_ref_offsets);
+  return 0;
+}
+
+static void source_quality_relocation_ref_index_destroy(SourceQualityRelocationRefIndex *index) {
+  if (index == NULL) return;
+  free(index->items);
+  memset(index, 0, sizeof(*index));
+}
+
+static int source_quality_relocation_ref_at_index_is_unique_offset(
+    const SourceQualityRelocationRefIndex *index, size_t item_index) {
+  uint32_t offset;
+  if (index == NULL || item_index >= index->count) return 0;
+  offset = index->items[item_index]->offset;
+  if (item_index != 0U && index->items[item_index - 1U]->offset == offset) return 0;
+  if (item_index + 1U < index->count && index->items[item_index + 1U]->offset == offset) return 0;
+  return 1;
+}
+
+static int source_quality_relocation_ref_at_index_is_data_pointer_long(
+    const SourceQualityRelocationRefIndex *index, size_t item_index, const uint8_t *accepted_bytes,
+    uint32_t section_size) {
+  const M68kFact *relocation;
+  uint32_t cursor;
+  if (index == NULL || accepted_bytes == NULL || item_index >= index->count) return 0;
+  relocation = index->items[item_index];
+  if (!source_quality_relocation_ref_at_index_is_unique_offset(index, item_index) ||
+      relocation->offset > section_size || 4U > section_size - relocation->offset) {
+    return 0;
+  }
+  for (cursor = 0U; cursor < 4U; ++cursor) {
+    if (accepted_bytes[relocation->offset + cursor] != 0U) return 0;
+  }
+  return 1;
+}
+
+static int append_relocation_pointer_table_item(M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t size) {
+  M68kAnalysisStructuredDataItem item;
+  if (source_analysis == NULL || size < 8U ||
+      source_quality_has_structured_data_item(source_analysis, section_index, offset, size,
+        M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
+        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE)) {
+    return 0;
+  }
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = section_index;
+  item.offset = offset;
+  item.size = size;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
+  return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
+}
+
+static int append_relocation_pointer_table_items(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_bytes) {
+  size_t decode_index;
+  if (source_analysis == NULL || decode == NULL || facts == NULL || accepted_bytes == NULL) return 0;
+  for (decode_index = 0U; decode_index < decode->section_count; ++decode_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[decode_index];
+    uint32_t section_index = 0U;
+    M68kSectionAnalysisIR *analysis_section;
+    SourceQualityRelocationRefIndex relocation_index;
+    size_t relocation_item_index = 0U;
+    int result = 0;
+    if (section->section_index > UINT32_MAX) continue;
+    section_index = (uint32_t)section->section_index;
+    analysis_section = source_analysis_section_by_index(source_analysis, section_index);
+    if (analysis_section == NULL) continue;
+    if (source_quality_build_relocation_pointer_ref_index(facts, decode, section_index, &relocation_index) != 0)
+      return -1;
+    while (relocation_item_index < relocation_index.count) {
+      uint32_t start;
+      uint32_t cursor;
+      if (!source_quality_relocation_ref_at_index_is_data_pointer_long(&relocation_index,
+          relocation_item_index, accepted_bytes[decode_index], section->size)) {
+        ++relocation_item_index;
+        continue;
+      }
+      start = relocation_index.items[relocation_item_index]->offset;
+      cursor = start;
+      while (relocation_item_index < relocation_index.count &&
+          source_quality_relocation_ref_at_index_is_data_pointer_long(&relocation_index,
+            relocation_item_index, accepted_bytes[decode_index], section->size) &&
+          relocation_index.items[relocation_item_index]->offset == cursor) {
+        cursor += 4U;
+        ++relocation_item_index;
+      }
+      if (cursor - start >= 8U) {
+        if (append_relocation_pointer_table_item(source_analysis, section_index, start, cursor - start) != 0) {
+          result = -1;
+          break;
+        }
+      }
+    }
+    source_quality_relocation_ref_index_destroy(&relocation_index);
+    if (result != 0) return result;
+  }
+  return 0;
 }
 
 static const M68kFact *source_quality_unique_relocation_ref_for_operand(const M68kFactIR *facts,
@@ -6832,6 +7150,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   if (append_hardware_base_platform_address_uses(source_analysis, decode, accepted_start, policy,
       hardware_base_seeds, hardware_base_seed_count) != 0)
     return -1;
+  if (append_relocation_pointer_table_items(source_analysis, decode, facts, accepted_bytes) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_manual_mid_instruction_diagnostics(source_analysis) != 0) return -1;
   if (append_manual_noncode_overlap_diagnostics(source_analysis) != 0) return -1;
@@ -6882,19 +7201,26 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
 int m68k_source_quality_analyze_rendered_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
     const M68kRenderEvidenceIR *render_evidence) {
   size_t section_index;
+  M68kRenderedReferenceIndex reference_index;
+  int result = -1;
   if (source_analysis == NULL || render_evidence == NULL) return -1;
+  if (rendered_reference_index_build(render_evidence, &reference_index) != 0) return -1;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kRenderEvidenceSectionIR *render_evidence_section =
       m68k_ir_render_evidence_section_by_index(render_evidence,
         (uint32_t)source_analysis->sections[section_index].section_index);
     if (append_missing_expected_symbol_access_diagnostics_for_section(&source_analysis->sections[section_index],
         render_evidence_section) != 0) {
-      return -1;
+      goto done;
     }
     if (append_unreferenced_label_statement_diagnostics_for_section(source_analysis,
-        &source_analysis->sections[section_index], render_evidence) != 0) {
-      return -1;
+        &source_analysis->sections[section_index], render_evidence, &reference_index) != 0) {
+      goto done;
     }
   }
-  return 0;
+  result = 0;
+
+done:
+  rendered_reference_index_destroy(&reference_index);
+  return result;
 }
