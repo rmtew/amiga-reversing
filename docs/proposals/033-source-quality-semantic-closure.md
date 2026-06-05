@@ -5781,6 +5781,38 @@ source analysis is present. The no-source-analysis fallback can still format
 legacy preview output, but it no longer opens the Amiga hardware-base tables
 itself.
 
+### Implemented Slice: Hardware-Base Seed Names Use Platform Facts
+
+Policy and manual register seeds can say that an address register contains a
+known platform base:
+
+```text
+at section:offset
+  A6 = _custom
+```
+
+Source-quality still owns the tracking problem:
+
+```text
+policy seed
+  -> register base state
+  -> later (disp,An) hardware register facts
+```
+
+But the generic source-quality pass should not know how to map the spelling
+`_custom` to an Amiga hardware-base id. That is platform metadata. The lookup is
+now routed through platform facts:
+
+```c
+if (!platform_facts_v2_hardware_base_id_for_symbol(platform, seed->name, &base_id))
+  continue;
+```
+
+This keeps existing `_custom` seed behaviour while closing another direct
+`amiga_os_*` call in `m68k_source_quality.c`. Unknown names and non-Amiga
+platforms fail closed, so a weak or misspelled seed cannot silently become a
+hardware-base proof.
+
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 
 Absolute hardware operand rendering had a stale fallback path after the

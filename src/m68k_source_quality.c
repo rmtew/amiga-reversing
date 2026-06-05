@@ -9334,8 +9334,8 @@ static void source_quality_hardware_base_state_apply_policy_register_seeds(Sourc
         seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) {
       continue;
     }
-    base_id = amiga_os_hardware_base_id(seed->name);
-    if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) continue;
+    if (!platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, seed->name, &base_id))
+      continue;
     source_quality_hardware_base_state_set(state, seed->reg_index, base_id);
   }
 }
