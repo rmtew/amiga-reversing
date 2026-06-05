@@ -1004,18 +1004,19 @@ static int candidate_has_call_flow_local(const M68kDecodeCandidate *candidate) {
   return instruction_has_call_flow_local(&instruction);
 }
 
-static const char *amiga_input_type_or_struct_name(const AmigaOsCallInputInfo *input) {
-  const char *name;
-  if (input == NULL) return NULL;
-  if (input->struct_id != AMIGA_OS_STRUCT_ID_NONE) {
-    name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, input->struct_id);
-    if (name != NULL && name[0] != '\0') return name;
-  }
-  if (input->type_id != AMIGA_OS_TYPE_ID_NONE) {
-    name = amiga_os_name(M68K_PLATFORM_NAME_TYPE, input->type_id);
-    if (name != NULL && name[0] != '\0') return name;
-  }
-  return NULL;
+static int platform_call_input_equal(const PlatformFactsV2CallInput *left,
+    const PlatformFactsV2CallInput *right) {
+  if (left == NULL || right == NULL) return 0;
+  return left->reg_kind == right->reg_kind &&
+    left->reg_index == right->reg_index &&
+    left->has_value_domain == right->has_value_domain &&
+    left->is_string_pointer == right->is_string_pointer &&
+    left->is_write_buffer == right->is_write_buffer &&
+    left->is_write_length == right->is_write_length &&
+    strcmp(left->input_name, right->input_name) == 0 &&
+    strcmp(left->type_name, right->type_name) == 0 &&
+    strcmp(left->semantic_kind_name, right->semantic_kind_name) == 0 &&
+    strcmp(left->value_domain_name, right->value_domain_name) == 0;
 }
 
 static const char *amiga_output_type_or_struct_name(const AmigaOsCallOutputInfo *output) {
@@ -1189,7 +1190,7 @@ static const M68kDecodeCandidate *find_previous_accepted_candidate(const M68kDec
 
 static int recovered_function_arg_temp_add(M68kRenderRecoveredFunctionArg *args, size_t *arg_count,
     size_t arg_capacity, size_t section_index, uint32_t function_offset, uint16_t stack_offset,
-    uint8_t reg_kind, uint8_t reg_index, const AmigaOsCallInputInfo *input) {
+    uint8_t reg_kind, uint8_t reg_index, const PlatformFactsV2CallInput *input) {
   size_t index;
   if (args == NULL || arg_count == NULL || input == NULL || stack_offset == 0U ||
       reg_kind == 0U || reg_index >= 8U) {
@@ -1199,7 +1200,7 @@ static int recovered_function_arg_temp_add(M68kRenderRecoveredFunctionArg *args,
     M68kRenderRecoveredFunctionArg *arg = &args[index];
     if (arg->section_index == section_index && arg->function_offset == function_offset &&
         arg->stack_offset == stack_offset && arg->reg_kind == reg_kind && arg->reg_index == reg_index) {
-      return arg->input == input ? 0 : -1;
+      return arg->input_valid != 0U && platform_call_input_equal(&arg->input, input) ? 0 : -1;
     }
   }
   if (*arg_count >= arg_capacity) return -1;
@@ -1209,7 +1210,8 @@ static int recovered_function_arg_temp_add(M68kRenderRecoveredFunctionArg *args,
   args[*arg_count].stack_offset = stack_offset;
   args[*arg_count].reg_kind = reg_kind;
   args[*arg_count].reg_index = reg_index;
-  args[*arg_count].input = input;
+  args[*arg_count].input_valid = 1U;
+  args[*arg_count].input = *input;
   *arg_count += 1U;
   return 0;
 }
@@ -1227,16 +1229,15 @@ static int collect_recovered_function_args_from_stack_load_instruction(
       displacement > (int16_t)stack_frame_depth) {
     uint8_t reg = 0U;
     uint8_t reg_kind = 0U;
-    const AmigaOsCallInputInfo *input;
+    PlatformFactsV2CallInput input;
     if (operand_is_data_register_local(&instruction->operands[1], &reg)) reg_kind = 1U;
     else if (instruction->operands[1].kind == M68K_ASM_OPERAND_AN) {
       reg = (uint8_t)instruction->operands[1].value.reg;
       reg_kind = 2U;
     }
-    input = amiga_vector_input_by_register(vector, reg_kind, reg);
-    if (input != NULL) {
+    if (amiga_vector_call_input_by_register(vector, reg_kind, reg, &input)) {
       return recovered_function_arg_temp_add(args, arg_count, arg_capacity, section_index, function_offset,
-        (uint16_t)(displacement - (int16_t)stack_frame_depth), reg_kind, reg, input);
+        (uint16_t)(displacement - (int16_t)stack_frame_depth), reg_kind, reg, &input);
     }
   }
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
@@ -1250,13 +1251,13 @@ static int collect_recovered_function_args_from_stack_load_instruction(
     for (bit = 0U; bit < 16U; ++bit) {
       uint8_t reg_kind;
       uint8_t reg_index;
-      const AmigaOsCallInputInfo *input;
+      PlatformFactsV2CallInput input;
       if ((mask & (1UL << bit)) == 0U) continue;
       reg_kind = bit < 8U ? 1U : 2U;
       reg_index = (uint8_t)(bit < 8U ? bit : bit - 8U);
-      input = amiga_vector_input_by_register(vector, reg_kind, reg_index);
-      if (input != NULL && recovered_function_arg_temp_add(args, arg_count, arg_capacity, section_index,
-          function_offset, stack_offset, reg_kind, reg_index, input) != 0) {
+      if (amiga_vector_call_input_by_register(vector, reg_kind, reg_index, &input) &&
+          recovered_function_arg_temp_add(args, arg_count, arg_capacity, section_index,
+            function_offset, stack_offset, reg_kind, reg_index, &input) != 0) {
         return -1;
       }
       stack_offset = (uint16_t)(stack_offset + 4U);
@@ -1305,8 +1306,9 @@ static int render_lookup_collect_recovered_function_args_from_wrapper(M68kRender
     if (vector == expected_vector) {
       size_t index;
       for (index = 0U; index < arg_count; ++index) {
+        if (args[index].input_valid == 0U) continue;
         if (render_lookup_add_recovered_function_arg(lookup, args[index].section_index, args[index].function_offset,
-            args[index].stack_offset, args[index].reg_kind, args[index].reg_index, args[index].input) != 0) {
+            args[index].stack_offset, args[index].reg_kind, args[index].reg_index, &args[index].input) != 0) {
           return -1;
         }
       }
@@ -5174,19 +5176,12 @@ static int append_render_lookup_recovered_function_args_for_section(const M68kRe
   }
   for (index = 0U; index < lookup->recovered_function_arg_count; ++index) {
     const M68kRenderRecoveredFunctionArg *arg = &lookup->recovered_function_args[index];
-    const AmigaOsCallInputInfo *input = arg->input;
-    const char *symbol_name;
-    const char *type_name;
-    const char *semantic_kind;
-    const char *value_domain_name;
-    if (arg->section_index != section_analysis->section_index || input == NULL) continue;
-    symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input->input_id);
-    type_name = amiga_input_type_or_struct_name(input);
-    semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input->semantic_kind_id);
-    value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
+    const PlatformFactsV2CallInput *input = &arg->input;
+    if (arg->section_index != section_analysis->section_index || arg->input_valid == 0U) continue;
     if (m68k_ir_section_analysis_append_recovered_function_arg(section_analysis,
         M68K_PLATFORM_BACKEND_AMIGA_HUNK, arg->function_offset, arg->stack_offset, arg->reg_kind, arg->reg_index,
-        NULL, symbol_name, type_name, semantic_kind, value_domain_name, 0U, 0, 0U, 0U, 0U, 0U, 0) != 0) {
+        NULL, input->input_name, input->type_name, input->semantic_kind_name, input->value_domain_name,
+        0U, 0, 0U, 0U, 0U, 0U, 0) != 0) {
       return -1;
     }
   }
@@ -6323,7 +6318,7 @@ int render_lookup_add_instruction_comment(M68kRenderLookup *lookup, size_t secti
 
 int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t section_index,
     uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
-    const AmigaOsCallInputInfo *input) {
+    const PlatformFactsV2CallInput *input) {
   size_t index;
   M68kRenderRecoveredFunctionArg *grown;
   size_t next_capacity;
@@ -6332,7 +6327,10 @@ int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t se
     M68kRenderRecoveredFunctionArg *entry = &lookup->recovered_function_args[index];
     if (entry->section_index == section_index && entry->function_offset == function_offset &&
         entry->stack_offset == stack_offset && entry->reg_kind == reg_kind && entry->reg_index == reg_index) {
-      if (entry->input != input) entry->input = NULL;
+      if (entry->input_valid == 0U || !platform_call_input_equal(&entry->input, input)) {
+        entry->input_valid = 0U;
+        platform_facts_v2_call_input_init(&entry->input);
+      }
       return 0;
     }
   }
@@ -6352,7 +6350,8 @@ int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t se
   lookup->recovered_function_args[lookup->recovered_function_arg_count].stack_offset = stack_offset;
   lookup->recovered_function_args[lookup->recovered_function_arg_count].reg_kind = reg_kind;
   lookup->recovered_function_args[lookup->recovered_function_arg_count].reg_index = reg_index;
-  lookup->recovered_function_args[lookup->recovered_function_arg_count].input = input;
+  lookup->recovered_function_args[lookup->recovered_function_arg_count].input_valid = 1U;
+  lookup->recovered_function_args[lookup->recovered_function_arg_count].input = *input;
   ++lookup->recovered_function_arg_count;
   return 0;
 }

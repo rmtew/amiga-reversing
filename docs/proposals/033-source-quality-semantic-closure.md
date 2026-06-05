@@ -4026,6 +4026,50 @@ focused tests cover `_LVOAlert` value-domain metadata and `_LVOWrite`
 buffer/length role detection through the platform-facts API, while the existing
 call-input rendering and JSON tests continue to prove the end-to-end behaviour.
 
+### Implemented Slice: Recovered Wrapper Args Store Platform Call Inputs
+
+The next stale path was recovered wrapper arguments. Source-quality had already
+moved normal call-input analysis to `PlatformFactsV2CallInput`, but render
+lookup still stored generated input table pointers for wrapper stack loads:
+
+```c
+typedef struct M68kRenderRecoveredFunctionArg {
+  ...
+  const AmigaOsCallInputInfo *input;
+} M68kRenderRecoveredFunctionArg;
+```
+
+That made the recovered-arg export re-enter generated Amiga tables just to
+recover the input symbol, type, semantic kind, and value domain:
+
+```text
+wrapper stack load
+  -> generated Amiga input pointer
+  -> later name lookup during source-analysis export
+```
+
+The storage now carries the same neutral descriptor by value:
+
+```c
+typedef struct M68kRenderRecoveredFunctionArg {
+  ...
+  uint8_t input_valid;
+  PlatformFactsV2CallInput input;
+} M68kRenderRecoveredFunctionArg;
+```
+
+The collection step still starts from an already-resolved Amiga library vector,
+but it asks platform facts for the input descriptor:
+
+```c
+amiga_vector_call_input_by_register(vector, reg_kind, reg_index, &input);
+```
+
+The durable fact is no longer a pointer into a generated Amiga array. Conflict
+handling remains explicit: if two recovered records claim the same wrapper
+argument with different descriptors, `input_valid` is cleared and no source
+analysis fact is exported for that ambiguous argument.
+
 ### Implemented Slice: Source-Quality Uses Opaque Hardware-Base Ids
 
 After the OS call-input descriptor work, `m68k_source_quality.c` still included

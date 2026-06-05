@@ -8429,28 +8429,14 @@ int candidate_has_local_helper_summary_fallthrough(const M68kDecodeCandidate *ca
   return 1;
 }
 
-const AmigaOsCallInputInfo *amiga_vector_input_by_register(const AmigaOsLibraryVectorInfo *vector,
-    uint8_t reg_kind, uint8_t reg_index) {
-  const AmigaOsCallInputInfo *inputs;
-  size_t input_count = 0U;
-  size_t index;
-  if (vector == NULL) return NULL;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL) return NULL;
-  for (index = 0U; index < input_count; ++index) {
-    if (inputs[index].reg_kind == reg_kind && inputs[index].reg_index == reg_index) return &inputs[index];
-  }
-  return NULL;
-}
-
-const AmigaOsCallInputInfo *amiga_vector_input_by_stack_index(const AmigaOsLibraryVectorInfo *vector,
-    size_t stack_index) {
-  const AmigaOsCallInputInfo *inputs;
-  size_t input_count = 0U;
-  if (vector == NULL) return NULL;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL || stack_index >= input_count) return NULL;
-  return &inputs[stack_index];
+int amiga_vector_call_input_by_register(const AmigaOsLibraryVectorInfo *vector,
+    uint8_t reg_kind, uint8_t reg_index, PlatformFactsV2CallInput *out_input) {
+  const char *symbol_name;
+  if (out_input != NULL) platform_facts_v2_call_input_init(out_input);
+  if (vector == NULL) return 0;
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
+  return platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name,
+    reg_kind, reg_index, out_input);
 }
 
 static int attach_symbolic_targets(const M68kRenderLookup *lookup, size_t source_section_index,

@@ -190,7 +190,8 @@ typedef struct M68kRenderRecoveredFunctionArg {
   uint16_t stack_offset;
   uint8_t reg_kind;
   uint8_t reg_index;
-  const AmigaOsCallInputInfo *input;
+  uint8_t input_valid;
+  PlatformFactsV2CallInput input;
 } M68kRenderRecoveredFunctionArg;
 
 typedef struct M68kRenderRecoveredLocalCallSummary {
@@ -796,7 +797,7 @@ int render_lookup_add_instruction_comment(M68kRenderLookup *lookup, size_t secti
   const char *comment);
 int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t section_index,
   uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
-  const AmigaOsCallInputInfo *input);
+  const PlatformFactsV2CallInput *input);
 int render_lookup_add_recovered_local_call_summary(M68kRenderLookup *lookup, size_t section_index,
   uint32_t target_offset, const AmigaOsLibraryVectorInfo *vector);
 int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
@@ -849,10 +850,8 @@ int asm_symbol_name_is_safe_local(const char *name);
 int ascii_contains_case_local(const char *text, const char *needle);
 const char *amiga_library_name_from_base_symbol_name(const char *symbol_name);
 int amiga_unknown_base_register_owner_name(uint8_t base_reg, char *buf, size_t buf_size);
-const AmigaOsCallInputInfo *amiga_vector_input_by_register(const AmigaOsLibraryVectorInfo *vector,
-  uint8_t reg_kind, uint8_t reg_index);
-const AmigaOsCallInputInfo *amiga_vector_input_by_stack_index(const AmigaOsLibraryVectorInfo *vector,
-  size_t stack_index);
+int amiga_vector_call_input_by_register(const AmigaOsLibraryVectorInfo *vector,
+  uint8_t reg_kind, uint8_t reg_index, PlatformFactsV2CallInput *out_input);
 const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRenderPlatformState *state,
   M68kInstructionIR *instruction);
 const AmigaOsLibraryVectorInfo *attach_amiga_lvo_immediate_if_known(const M68kRenderLookup *lookup,
