@@ -298,6 +298,28 @@ int platform_facts_v2_call_input_by_stack_index(uint8_t platform_kind, const cha
   return platform_facts_v2_call_input_at(platform_kind, symbol_name, stack_index, out_input);
 }
 
+int platform_facts_v2_calling_convention_preserved_data_mask(uint8_t platform_kind, uint8_t *out_mask) {
+  if (out_mask != NULL) *out_mask = 0U;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    if (out_mask != NULL) *out_mask = amiga_os_calling_convention_preserved_data_mask();
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_calling_convention_preserved_address_mask(uint8_t platform_kind, uint8_t *out_mask) {
+  if (out_mask != NULL) *out_mask = 0U;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    if (out_mask != NULL) *out_mask = amiga_os_calling_convention_preserved_address_mask();
+    return 1;
+  default:
+    return 0;
+  }
+}
+
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
   return amiga_os_hardware_base_symbol(base_id);

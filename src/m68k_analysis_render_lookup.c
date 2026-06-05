@@ -1801,13 +1801,13 @@ static void typed_state_clear_all(M68kRenderTypedState *state) {
   }
 }
 
-static void typed_state_apply_platform_call_clobbers(M68kRenderTypedState *state) {
-  uint8_t preserved_data;
-  uint8_t preserved_address;
+static void typed_state_apply_platform_call_clobbers(uint8_t platform_kind, M68kRenderTypedState *state) {
+  uint8_t preserved_data = 0U;
+  uint8_t preserved_address = 0U;
   uint8_t bit;
   if (state == NULL) return;
-  preserved_data = amiga_os_calling_convention_preserved_data_mask();
-  preserved_address = amiga_os_calling_convention_preserved_address_mask();
+  (void)platform_facts_v2_calling_convention_preserved_data_mask(platform_kind, &preserved_data);
+  (void)platform_facts_v2_calling_convention_preserved_address_mask(platform_kind, &preserved_address);
   for (bit = 0U; bit < 8U; ++bit) {
     if ((preserved_data & (uint8_t)(1U << bit)) == 0U) typed_state_clear_reg(state, 1U, bit);
     if ((preserved_address & (uint8_t)(1U << bit)) == 0U) typed_state_clear_reg(state, 2U, bit);
@@ -2985,7 +2985,7 @@ static int render_lookup_add_bootblock_runtime_copy(M68kRenderLookup *lookup, si
   return 0;
 }
 
-static void typed_flow_apply_call_input_alias_type(size_t section_index, uint32_t offset,
+static void typed_flow_apply_call_input_alias_type(uint8_t platform_kind, size_t section_index, uint32_t offset,
     M68kRenderTypedState *state, const AmigaOsCallInputInfo *input, int *io_changed) {
   uint8_t source_reg;
   uint8_t preserved_address;
@@ -2997,7 +2997,9 @@ static void typed_flow_apply_call_input_alias_type(size_t section_index, uint32_
   }
   source_reg = state->addr_reg_alias_source[input->reg_index];
   if (source_reg >= 8U) return;
-  preserved_address = amiga_os_calling_convention_preserved_address_mask();
+  if (!platform_facts_v2_calling_convention_preserved_address_mask(platform_kind, &preserved_address)) {
+    return;
+  }
   if ((preserved_address & (uint8_t)(1U << source_reg)) == 0U) return;
   provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_API_INPUT, section_index, offset);
   if (state->addr_regs[source_reg].known == 0U) {
@@ -3017,7 +3019,7 @@ static void typed_flow_apply_call_input_alias_type(size_t section_index, uint32_
   }
 }
 
-static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_t section_index,
+static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, uint8_t platform_kind, size_t section_index,
     uint32_t offset, M68kRenderTypedState *state, const AmigaOsLibraryVectorInfo *vector,
     int allow_lookup_storage, int *io_changed) {
   const AmigaOsCallInputInfo *inputs;
@@ -3056,7 +3058,7 @@ static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_
       }
       if (refined && io_changed != NULL) *io_changed = 1;
     }
-    typed_flow_apply_call_input_alias_type(section_index, offset, state, input, io_changed);
+    typed_flow_apply_call_input_alias_type(platform_kind, section_index, offset, state, input, io_changed);
   }
   return 0;
 }
@@ -3278,7 +3280,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   typed_provenance_clear(&source_provenance);
   typed_memory_base_clear(&source_memory_base);
   if (instruction_has_call_flow_local(instruction)) {
-    if (vector != NULL) typed_state_apply_platform_call_clobbers(state);
+    if (vector != NULL && lookup != NULL && lookup->object != NULL)
+      typed_state_apply_platform_call_clobbers(lookup->object->platform_backend_kind, state);
+    else if (vector != NULL) typed_state_clear_all(state);
     else typed_state_clear_all(state);
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count >= 2U &&
       instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
@@ -4090,7 +4094,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     return -1;
   }
   if (!record_typed_accesses &&
-      typed_flow_apply_call_input_type_refs(lookup, section->section_index,
+      typed_flow_apply_call_input_type_refs(lookup, lookup->object->platform_backend_kind, section->section_index,
       node->candidate->offset, out_typed_state, chosen_vector, allow_lookup_storage, io_changed) != 0) {
     return -1;
   }

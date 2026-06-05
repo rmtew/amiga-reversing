@@ -4070,6 +4070,40 @@ handling remains explicit: if two recovered records claim the same wrapper
 argument with different descriptors, `input_valid` is cleared and no source
 analysis fact is exported for that ambiguous argument.
 
+### Implemented Slice: Calling Convention Masks Use Platform Facts
+
+Typed-flow propagation still had a small direct Amiga dependency: render lookup
+asked generated Amiga runtime tables which data and address registers survive a
+platform call.
+
+```c
+amiga_os_calling_convention_preserved_data_mask();
+amiga_os_calling_convention_preserved_address_mask();
+```
+
+That policy is platform metadata. The generic typed-flow pass should only ask
+the selected platform for preservation masks, then apply its normal register
+state rules:
+
+```text
+platform call
+  -> platform preserved data/address masks
+  -> clear non-preserved typed registers
+  -> keep only platform-preserved type facts
+```
+
+The code now uses:
+
+```c
+platform_facts_v2_calling_convention_preserved_data_mask(platform, &mask);
+platform_facts_v2_calling_convention_preserved_address_mask(platform, &mask);
+```
+
+Existing typed-flow fixtures still prove that type facts survive only across
+platform-preserved registers. A focused platform-facts assertion pins the Amiga
+masks and verifies that non-Amiga platforms do not accidentally inherit Amiga
+calling-convention rules.
+
 ### Implemented Slice: Source-Quality Uses Opaque Hardware-Base Ids
 
 After the OS call-input descriptor work, `m68k_source_quality.c` still included

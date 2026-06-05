@@ -157,6 +157,8 @@ int platform_facts_v2_call_input_by_register(uint8_t platform_kind, const char *
   uint8_t reg_index, PlatformFactsV2CallInput *out_input);
 int platform_facts_v2_call_input_by_stack_index(uint8_t platform_kind, const char *symbol_name, size_t stack_index,
   PlatformFactsV2CallInput *out_input);
+int platform_facts_v2_calling_convention_preserved_data_mask(uint8_t platform_kind, uint8_t *out_mask);
+int platform_facts_v2_calling_convention_preserved_address_mask(uint8_t platform_kind, uint8_t *out_mask);
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id);
 const char *platform_facts_v2_hardware_base_symbol_for_address(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address);

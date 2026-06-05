@@ -13707,6 +13707,7 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   uint32_t base_address = 0U;
   PlatformFactsV2CallInput call_input;
   size_t call_input_count = 0U;
+  uint8_t preserved_mask = 0U;
   int32_t an_icon_lib = 0;
   int32_t ag_open_lib = 0;
   int32_t ao_dos_lib = 0;
@@ -13813,6 +13814,18 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT(platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     "_LVOWrite", 1U, 3U, &call_input));
   M68K_C_ASSERT(call_input.is_write_length);
+  M68K_C_ASSERT(platform_facts_v2_calling_convention_preserved_data_mask(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    &preserved_mask));
+  M68K_C_ASSERT_U32(252U, preserved_mask);
+  M68K_C_ASSERT(platform_facts_v2_calling_convention_preserved_address_mask(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    &preserved_mask));
+  M68K_C_ASSERT_U32(124U, preserved_mask);
+  M68K_C_ASSERT(!platform_facts_v2_calling_convention_preserved_data_mask(M68K_PLATFORM_BACKEND_ATARI_ST,
+    &preserved_mask));
+  M68K_C_ASSERT_U32(0U, preserved_mask);
+  M68K_C_ASSERT(!platform_facts_v2_calling_convention_preserved_address_mask(M68K_PLATFORM_BACKEND_ATARI_ST,
+    &preserved_mask));
+  M68K_C_ASSERT_U32(0U, preserved_mask);
   M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_ATARI_ST,
     base_id, offset, 0x7FFFU, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT_STR("", symbol_buf);
