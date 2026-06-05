@@ -29,6 +29,26 @@ static void platform_facts_v2_copy_text(char *buf, size_t buf_size, const char *
   snprintf(buf, buf_size, "%s", text);
 }
 
+static char platform_ascii_lower(char c) {
+  return (c >= 'A' && c <= 'Z') ? (char)(c - 'A' + 'a') : c;
+}
+
+static int platform_ascii_contains_case(const char *text, const char *needle) {
+  size_t text_index;
+  size_t needle_len;
+  if (text == NULL || needle == NULL || needle[0] == '\0') return 0;
+  needle_len = strlen(needle);
+  for (text_index = 0U; text[text_index] != '\0'; ++text_index) {
+    size_t needle_index;
+    for (needle_index = 0U; needle_index < needle_len; ++needle_index) {
+      if (text[text_index + needle_index] == '\0') return 0;
+      if (platform_ascii_lower(text[text_index + needle_index]) != platform_ascii_lower(needle[needle_index])) break;
+    }
+    if (needle_index == needle_len) return 1;
+  }
+  return 0;
+}
+
 static int amiga_is_callback_vector_slot(uint32_t address) {
   return m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_EXCEPTION) ||
     m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_INTERRUPT) ||
@@ -341,13 +361,16 @@ int platform_facts_v2_library_vector_lvo_matches_symbol(uint8_t platform_kind, i
 
 int platform_facts_v2_library_id_for_library_name(uint8_t platform_kind, const char *library_name,
     uint16_t *out_library_id) {
-  uint16_t library_id = 0U;
-  if (out_library_id != NULL) *out_library_id = 0U;
+  uint16_t library_id = AMIGA_OS_LIBRARY_ID_NONE;
+  if (out_library_id != NULL) *out_library_id = AMIGA_OS_LIBRARY_ID_NONE;
   if (library_name == NULL || library_name[0] == '\0') return 0;
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
     library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
-    if (library_id == 0U || amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id) == NULL) return 0;
+    if (library_id == AMIGA_OS_LIBRARY_ID_NONE ||
+        amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id) == NULL) {
+      return 0;
+    }
     if (out_library_id != NULL) *out_library_id = library_id;
     return 1;
   default:
@@ -356,7 +379,7 @@ int platform_facts_v2_library_id_for_library_name(uint8_t platform_kind, const c
 }
 
 const char *platform_facts_v2_library_name_for_id(uint8_t platform_kind, uint16_t library_id) {
-  if (library_id == 0U) return NULL;
+  if (library_id == AMIGA_OS_LIBRARY_ID_NONE) return NULL;
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
     return amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id);
@@ -366,13 +389,32 @@ const char *platform_facts_v2_library_name_for_id(uint8_t platform_kind, uint16_
 }
 
 const char *platform_facts_v2_library_name_for_base_id(uint8_t platform_kind, uint16_t base_id) {
-  if (base_id == 0U) return NULL;
+  if (base_id == AMIGA_OS_BASE_ID_NONE) return NULL;
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
     return amiga_os_find_library_name_by_base_id(base_id);
   default:
     return NULL;
   }
+}
+
+int platform_facts_v2_library_base_id_for_name(uint8_t platform_kind, const char *name, uint16_t *out_base_id) {
+  const char *base_name;
+  uint16_t base_id = AMIGA_OS_BASE_ID_NONE;
+  if (out_base_id != NULL) *out_base_id = AMIGA_OS_BASE_ID_NONE;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || name == NULL || name[0] == '\0') return 0;
+  base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, name);
+  if (base_id == AMIGA_OS_BASE_ID_NONE) {
+    base_name = platform_facts_v2_library_base_name_for_name(platform_kind, name);
+    if (base_name != NULL && base_name[0] != '\0')
+      base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name);
+  }
+  if (base_id == AMIGA_OS_BASE_ID_NONE ||
+      platform_facts_v2_library_name_for_base_id(platform_kind, base_id) == NULL) {
+    return 0;
+  }
+  if (out_base_id != NULL) *out_base_id = base_id;
+  return 1;
 }
 
 const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platform_kind, const char *library_name) {
@@ -398,6 +440,30 @@ const char *platform_facts_v2_library_name_for_name(uint8_t platform_kind, const
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || name == NULL || name[0] == '\0') return NULL;
   if (amiga_os_find_library_base_name(name) != NULL) return name;
   return amiga_os_find_library_name_by_base_name(name);
+}
+
+const char *platform_facts_v2_library_name_from_base_symbol_name(uint8_t platform_kind, const char *symbol_name) {
+  const char *matched_library = NULL;
+  size_t index;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || symbol_name == NULL || symbol_name[0] == '\0') return NULL;
+  if (platform_ascii_contains_case(symbol_name, "ExecBase")) return amiga_os_exec_base_library_name();
+  for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {
+    const AmigaOsLibraryVectorInfo *vector = amiga_os_library_vector_at(index);
+    const char *base_name;
+    const char *library_name;
+    if (vector == NULL) continue;
+    base_name = amiga_os_name(M68K_PLATFORM_NAME_BASE, vector->base_id);
+    if (base_name == NULL || base_name[0] == '\0') continue;
+    if (!platform_ascii_contains_case(symbol_name, base_name)) continue;
+    library_name = platform_facts_v2_library_name_for_base_name(platform_kind, base_name);
+    if (library_name == NULL || library_name[0] == '\0') continue;
+    if (matched_library == NULL) {
+      matched_library = library_name;
+    } else if (strcmp(matched_library, library_name) != 0) {
+      return NULL;
+    }
+  }
+  return matched_library;
 }
 
 const char *platform_facts_v2_library_base_struct_name_for_name(uint8_t platform_kind, const char *name) {

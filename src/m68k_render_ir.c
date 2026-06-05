@@ -79,30 +79,6 @@ int ascii_contains_case_local(const char *text, const char *needle) {
   return 0;
 }
 
-const char *amiga_library_name_from_base_symbol_name(const char *symbol_name) {
-  const char *matched_library = NULL;
-  size_t index;
-  if (symbol_name == NULL || symbol_name[0] == '\0') return NULL;
-  if (ascii_contains_case_local(symbol_name, "ExecBase")) return amiga_os_exec_base_library_name();
-  for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {
-    const AmigaOsLibraryVectorInfo *vector = amiga_os_library_vector_at(index);
-    const char *base_name;
-    const char *library_name;
-    if (vector == NULL) continue;
-    base_name = amiga_os_name(M68K_PLATFORM_NAME_BASE, vector->base_id);
-    if (base_name == NULL || base_name[0] == '\0') continue;
-    if (!ascii_contains_case_local(symbol_name, base_name)) continue;
-    library_name = platform_facts_v2_library_name_for_base_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_name);
-    if (library_name == NULL || library_name[0] == '\0') continue;
-    if (matched_library == NULL) {
-      matched_library = library_name;
-    } else if (strcmp(matched_library, library_name) != 0) {
-      return NULL;
-    }
-  }
-  return matched_library;
-}
-
 static uint64_t hash_step(uint64_t hash, uint64_t value) {
   hash ^= value;
   hash *= 1099511628211ULL;
@@ -1174,25 +1150,18 @@ void platform_state_clear_data_lvo(M68kRenderPlatformState *state, uint8_t reg_i
 }
 
 static uint16_t platform_base_id_from_name(const char *name) {
-  uint16_t base_id;
+  uint16_t base_id = AMIGA_OS_BASE_ID_NONE;
   const char *library_name;
-  const char *base_name;
   if (name == NULL || name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
-  base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, name);
-  if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
-  base_name = platform_facts_v2_library_base_name_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, name);
-  if (base_name != NULL && base_name[0] != '\0') {
-    base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name);
-    if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
-  }
-  library_name = amiga_library_name_from_base_symbol_name(name);
+  if (platform_facts_v2_library_base_id_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, name, &base_id)) return base_id;
+  library_name = platform_facts_v2_library_name_from_base_symbol_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, name);
   if (library_name == NULL || library_name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
-  base_name = platform_facts_v2_library_base_name_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name);
-  return base_name != NULL ? amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name) : AMIGA_OS_BASE_ID_NONE;
+  return platform_facts_v2_library_base_id_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name, &base_id) ?
+    base_id : AMIGA_OS_BASE_ID_NONE;
 }
 
 static const char *platform_library_name_from_base_id(uint16_t base_id) {
-  return base_id != AMIGA_OS_BASE_ID_NONE ? amiga_os_find_library_name_by_base_id(base_id) : NULL;
+  return platform_facts_v2_library_name_for_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_id);
 }
 
 void platform_state_set_register_library(M68kRenderPlatformState *state, uint8_t reg_index,
@@ -3886,7 +3855,8 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     uint32_t absolute_offset = 0U;
     const char *library_name = platform_state_operand_library(state, &instruction->operands[0]);
     if (library_name == NULL && instruction->operands[0].symbol_ref.has_name)
-      library_name = amiga_library_name_from_base_symbol_name(instruction->operands[0].symbol_ref.name);
+      library_name = platform_facts_v2_library_name_from_base_symbol_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        instruction->operands[0].symbol_ref.name);
     if (library_name == NULL && instruction->operands[0].symbol_ref.has_section &&
         operand_absolute_offset_local(&instruction->operands[0], &absolute_offset)) {
       library_name = lookup_global_base_slot_library(lookup, instruction->operands[0].symbol_ref.section_index,
@@ -6918,7 +6888,7 @@ const char *lookup_global_base_slot_library(const M68kRenderLookup *lookup, size
     const M68kRenderGlobalBaseSlot *slot = &lookup->global_base_slots[index];
     if (slot->section_index == section_index && slot->offset == offset &&
         slot->has_library_id != 0U && slot->conflicted == 0U) {
-      return amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, slot->library_id);
+      return platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, slot->library_id);
     }
   }
   return NULL;
@@ -7054,7 +7024,8 @@ const char *lookup_base_field_slot_library(const M68kRenderLookup *lookup, const
     has_matched_library = 1U;
     matched_library_id = slot->library_id;
   }
-  return has_matched_library ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, matched_library_id) : NULL;
+  return has_matched_library ? platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    matched_library_id) : NULL;
 }
 
 const char *lookup_app_base_field_slot_library(const M68kRenderLookup *lookup, int16_t displacement) {
@@ -7078,7 +7049,8 @@ const char *lookup_app_base_field_slot_library(const M68kRenderLookup *lookup, i
     has_matched_library = 1U;
     matched_library_id = slot->library_id;
   }
-  return has_matched_library ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, matched_library_id) : NULL;
+  return has_matched_library ? platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    matched_library_id) : NULL;
 }
 
 uint16_t lookup_base_field_slot_struct_id(const M68kRenderLookup *lookup, const char *owner_name,
@@ -7764,7 +7736,7 @@ const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup
   for (index = 0U; index < lookup->indexed_vector_wrapper_count; ++index) {
     const M68kRenderIndexedVectorWrapper *wrapper = &lookup->indexed_vector_wrappers[index];
     if (wrapper->section_index == section_index && wrapper->offset == offset && wrapper->has_library_id)
-      return amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, wrapper->library_id);
+      return platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, wrapper->library_id);
   }
   return NULL;
 }

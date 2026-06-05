@@ -7951,21 +7951,14 @@ static int candidate_indexed_read_from_known_local_base(const M68kDecodeSectionI
 }
 
 static uint16_t trace_base_id_from_name(const char *name) {
-  uint16_t base_id;
+  uint16_t base_id = AMIGA_OS_BASE_ID_NONE;
   const char *library_name;
-  const char *base_name;
   if (name == NULL || name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
-  base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, name);
-  if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
-  base_name = render_lookup_amiga_library_base_name_for_library_name(name);
-  if (base_name != NULL && base_name[0] != '\0') {
-    base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name);
-    if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
-  }
-  library_name = amiga_library_name_from_base_symbol_name(name);
+  if (platform_facts_v2_library_base_id_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, name, &base_id)) return base_id;
+  library_name = platform_facts_v2_library_name_from_base_symbol_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, name);
   if (library_name == NULL || library_name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
-  base_name = render_lookup_amiga_library_base_name_for_library_name(library_name);
-  return base_name != NULL ? amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name) : AMIGA_OS_BASE_ID_NONE;
+  return platform_facts_v2_library_base_id_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name, &base_id) ?
+    base_id : AMIGA_OS_BASE_ID_NONE;
 }
 
 static void trace_reg_set(M68kRenderTraceRegName *reg, const char *name) {

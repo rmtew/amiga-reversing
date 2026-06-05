@@ -13853,11 +13853,24 @@ static int test_platform_facts_v2_address_use_helpers(void) {
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_id));
   M68K_C_ASSERT(!platform_facts_v2_library_id_for_library_name(M68K_PLATFORM_BACKEND_ATARI_ST,
     "graphics.library", &library_id));
-  M68K_C_ASSERT_U32(0U, library_id);
+  M68K_C_ASSERT_U32(AMIGA_OS_LIBRARY_ID_NONE, library_id);
   M68K_C_ASSERT_STR("graphics.library", platform_facts_v2_library_name_for_base_id(
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, AMIGA_OS_BASE_ID_GFXBASE));
   M68K_C_ASSERT(platform_facts_v2_library_name_for_base_id(M68K_PLATFORM_BACKEND_ATARI_ST,
     AMIGA_OS_BASE_ID_GFXBASE) == NULL);
+  M68K_C_ASSERT(platform_facts_v2_library_base_id_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "graphics.library", &base_id));
+  M68K_C_ASSERT_U32(AMIGA_OS_BASE_ID_GFXBASE, base_id);
+  M68K_C_ASSERT(platform_facts_v2_library_base_id_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "GfxBase", &base_id));
+  M68K_C_ASSERT_U32(AMIGA_OS_BASE_ID_GFXBASE, base_id);
+  M68K_C_ASSERT_STR("graphics.library", platform_facts_v2_library_name_from_base_symbol_name(
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, "cached_GfxBase"));
+  M68K_C_ASSERT(platform_facts_v2_library_name_from_base_symbol_name(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "cached_GfxBase") == NULL);
+  M68K_C_ASSERT(!platform_facts_v2_library_base_id_for_name(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "graphics.library", &base_id));
+  M68K_C_ASSERT_U32(AMIGA_OS_BASE_ID_NONE, base_id);
   M68K_C_ASSERT_STR("GfxBase", platform_facts_v2_library_base_name_for_library_name(
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, "graphics.library"));
   M68K_C_ASSERT_STR("graphics.library", platform_facts_v2_library_name_for_base_name(

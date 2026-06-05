@@ -848,7 +848,6 @@ char ascii_lower_local(char c);
 int ascii_char_is_symbol_local(char c, int first);
 int asm_symbol_name_is_safe_local(const char *name);
 int ascii_contains_case_local(const char *text, const char *needle);
-const char *amiga_library_name_from_base_symbol_name(const char *symbol_name);
 int amiga_unknown_base_register_owner_name(uint8_t base_reg, char *buf, size_t buf_size);
 int amiga_vector_call_input_by_register(const AmigaOsLibraryVectorInfo *vector,
   uint8_t reg_kind, uint8_t reg_index, PlatformFactsV2CallInput *out_input);

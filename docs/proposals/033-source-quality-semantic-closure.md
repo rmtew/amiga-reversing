@@ -6223,6 +6223,39 @@ current data model. The platform decision about whether a library name/base id
 is known, and what its canonical spelling is, no longer comes from generated
 tables inside render lookup.
 
+### Implemented Slice: Renderer Base-Id Identity Uses Platform Facts
+
+The same identity rule still had one final form in the renderer and render
+lookup trace code. A value could arrive as a library name, a base symbol, or a
+generated symbol containing the base name:
+
+```text
+graphics.library  -> GfxBase -> base id
+GfxBase           -> base id
+cached_GfxBase    -> graphics.library -> GfxBase -> base id
+```
+
+Before this slice, that conversion was split between render lookup and final
+rendering:
+
+```c
+amiga_os_name_id(M68K_PLATFORM_NAME_BASE, name);
+amiga_os_find_library_name_by_base_id(base_id);
+amiga_library_name_from_base_symbol_name(symbol_name);
+```
+
+The base-name substring interpretation is now a platform-facts helper too:
+
+```c
+platform_facts_v2_library_base_id_for_name(platform, name, &base_id);
+platform_facts_v2_library_name_from_base_symbol_name(platform, symbol_name);
+```
+
+That preserves the existing renderer behaviour for known Amiga library bases
+while making the ownership explicit. The renderer may still carry current trace
+state, but it no longer opens generated Amiga base-name tables to decide what a
+name means. Non-Amiga platforms fail closed under focused C tests.
+
 ### Implemented Slice: LVO Call Predicates Use Platform Facts
 
 Render lookup still needs to recognise a few platform calls while it traces

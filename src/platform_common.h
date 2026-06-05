@@ -168,10 +168,12 @@ int platform_facts_v2_library_id_for_library_name(uint8_t platform_kind, const c
   uint16_t *out_library_id);
 const char *platform_facts_v2_library_name_for_id(uint8_t platform_kind, uint16_t library_id);
 const char *platform_facts_v2_library_name_for_base_id(uint8_t platform_kind, uint16_t base_id);
+int platform_facts_v2_library_base_id_for_name(uint8_t platform_kind, const char *name, uint16_t *out_base_id);
 const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platform_kind, const char *library_name);
 const char *platform_facts_v2_library_name_for_base_name(uint8_t platform_kind, const char *base_name);
 const char *platform_facts_v2_library_base_name_for_name(uint8_t platform_kind, const char *name);
 const char *platform_facts_v2_library_name_for_name(uint8_t platform_kind, const char *name);
+const char *platform_facts_v2_library_name_from_base_symbol_name(uint8_t platform_kind, const char *symbol_name);
 const char *platform_facts_v2_library_base_struct_name_for_name(uint8_t platform_kind, const char *name);
 int platform_facts_v2_library_base_has_specific_struct_name(uint8_t platform_kind, const char *name);
 int platform_facts_v2_library_base_field_symbol_name(uint8_t platform_kind, const char *name, int16_t displacement,
