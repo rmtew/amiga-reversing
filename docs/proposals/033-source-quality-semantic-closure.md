@@ -5594,6 +5594,34 @@ the remaining fallback to formatting support through the same platform facts
 API used by analysis, while keeping the source-analysis path authoritative when
 facts are present.
 
+### Implemented Slice: App-Base Hardware Exclusion Uses Platform Facts
+
+The typed app-slot pass also had a smaller ownership leak. When deciding whether
+an `a6` displacement should be treated as application storage, render lookup
+directly searched Amiga hardware register tables to avoid misclassifying custom
+chip registers:
+
+```text
+operand uses (disp,a6)
+  -> if disp is a known CUSTOM offset, do not call it app storage
+  -> otherwise, weak a6 fallback may classify it as app-base storage
+```
+
+That rule is still correct, but the hardware-address knowledge now lives behind
+the platform facts API:
+
+```c
+platform_facts_v2_hardware_base_offset_known(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  displacement);
+```
+
+This is intentionally conservative. The app-slot pass may use the result as a
+negative guard, but it does not get to learn hardware register table details or
+invent a symbol from a numeric displacement. Positive hardware naming remains a
+platform-address-use or platform-facts rendering concern.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only

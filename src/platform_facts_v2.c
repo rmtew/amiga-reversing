@@ -128,6 +128,12 @@ const char *platform_facts_v2_hardware_base_offset_symbol(uint8_t platform_kind,
   return NULL;
 }
 
+int platform_facts_v2_hardware_base_offset_known(uint8_t platform_kind, uint16_t base_id, uint32_t offset) {
+  char symbol_buf[64];
+  return platform_facts_v2_hardware_base_offset_symbol(platform_kind, base_id, offset, symbol_buf,
+    sizeof(symbol_buf)) != NULL;
+}
+
 int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address) {
   const char *base_symbol;
   if (out_address != NULL) *out_address = 0U;

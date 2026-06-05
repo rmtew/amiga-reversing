@@ -8991,12 +8991,9 @@ static int render_lookup_seed_policy_rsset_use_site_app_refs(M68kRenderLookup *l
 }
 
 static int displacement_is_custom_hardware_offset(int16_t displacement) {
-  uint32_t offset;
   if (displacement < 0) return 0;
-  offset = (uint32_t)(uint16_t)displacement;
-  return amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset) != NULL ||
-    amiga_os_find_hardware_register_field_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset) != NULL ||
-    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset) != NULL;
+  return platform_facts_v2_hardware_base_offset_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, (uint32_t)(uint16_t)displacement);
 }
 
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
