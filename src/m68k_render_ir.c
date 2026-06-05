@@ -843,7 +843,8 @@ static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview,
 static int render_asm_define_amiga_hardware_base_once(M68kRenderIRPreview *preview, const char *symbol_name) {
   uint32_t address;
   if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
-  if (!amiga_os_find_hardware_base_address(symbol_name, &address)) return 1;
+  if (!platform_facts_v2_hardware_base_address_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, &address))
+    return 1;
   if (address > (uint32_t)INT32_MAX) return 0;
   return render_asm_declare_symbol_hex_once(preview, symbol_name, address);
 }
@@ -1355,15 +1356,16 @@ static void platform_state_set_register_layout_base(M68kRenderPlatformState *sta
   }
 }
 
-static void platform_state_set_register_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index,
+static int platform_state_set_register_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index,
     const char *base_symbol) {
   uint16_t base_id;
-  if (state == NULL || reg_index >= 8U || base_symbol == NULL || base_symbol[0] == '\0') return;
-  base_id = amiga_os_hardware_base_id(base_symbol);
-  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return;
+  if (state == NULL || reg_index >= 8U || base_symbol == NULL || base_symbol[0] == '\0') return 0;
+  if (!platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_symbol, &base_id))
+    return 0;
   platform_state_clear_register(state, reg_index);
   m68k_bitset_u32_set(&state->address_hardware_base_known, reg_index);
   state->address_hardware_base_id[reg_index] = base_id;
+  return 1;
 }
 
 void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
@@ -1389,8 +1391,7 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
       continue;
     }
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) continue;
-    if (amiga_os_hardware_base_id(seed->name) != AMIGA_OS_HARDWARE_BASE_ID_NONE) {
-      platform_state_set_register_hardware_base(state, seed->reg_index, seed->name);
+    if (platform_state_set_register_hardware_base(state, seed->reg_index, seed->name)) {
       continue;
     }
     platform_state_set_register_library(state, seed->reg_index, seed->name);
@@ -3649,7 +3650,8 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
   }
   if (operand->symbol_ref.has_name != 0U) {
     uint32_t base_address;
-    if (amiga_os_find_hardware_base_address(operand->symbol_ref.name, &base_address))
+    if (platform_facts_v2_hardware_base_address_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        operand->symbol_ref.name, &base_address))
       return operand->symbol_ref.name;
   }
   if (m68k_ir_operand_immediate_value(operand, &value) || operand_absolute_offset_local(operand, &value)) {

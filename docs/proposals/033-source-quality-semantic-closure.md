@@ -5862,6 +5862,8 @@ platform facts for both forms:
 ```c
 platform_facts_v2_hardware_base_symbol(platform, base_id);
 platform_facts_v2_hardware_base_symbol_for_address(platform, address);
+platform_facts_v2_hardware_base_id_for_symbol(platform, symbol_name, &base_id);
+platform_facts_v2_hardware_base_address_for_symbol(platform, symbol_name, &address);
 ```
 
 The rule remains conservative. Source analysis must still prove that an operand
@@ -5869,6 +5871,14 @@ is a hardware-base address use before the renderer attaches the symbol when
 source analysis is present. The no-source-analysis fallback can still format
 legacy preview output, but it no longer opens the Amiga hardware-base tables
 itself.
+
+The same cleanup now covers render-side register seed state and symbol
+declarations. When a render preview sees a policy seed such as `A0 = _custom`,
+it asks platform facts whether `_custom` is a hardware base before treating the
+register as hardware-base state. When source export needs the `_custom EQU
+$DFF000` declaration, it asks platform facts for the symbol address. Render
+still owns formatting the declaration; platform facts owns deciding whether the
+symbol is a platform hardware base and what address/id it has.
 
 ### Implemented Slice: Hardware-Base Seed Names Use Platform Facts
 

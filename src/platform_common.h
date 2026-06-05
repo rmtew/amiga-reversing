@@ -159,6 +159,8 @@ int platform_facts_v2_call_input_by_stack_index(uint8_t platform_kind, const cha
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id);
 const char *platform_facts_v2_hardware_base_symbol_for_address(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address);
+int platform_facts_v2_hardware_base_address_for_symbol(uint8_t platform_kind, const char *symbol_name,
+  uint32_t *out_address);
 int platform_facts_v2_hardware_base_id_for_symbol(uint8_t platform_kind, const char *symbol_name,
   uint16_t *out_base_id);
 int platform_facts_v2_hardware_base_id_for_address(uint8_t platform_kind, uint32_t address, uint16_t *out_base_id);

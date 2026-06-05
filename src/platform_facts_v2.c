@@ -316,6 +316,13 @@ int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base
   return base_symbol != NULL && amiga_os_find_hardware_base_address(base_symbol, out_address);
 }
 
+int platform_facts_v2_hardware_base_address_for_symbol(uint8_t platform_kind, const char *symbol_name,
+    uint32_t *out_address) {
+  if (out_address != NULL) *out_address = 0U;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  return amiga_os_find_hardware_base_address(symbol_name, out_address);
+}
+
 int platform_facts_v2_hardware_base_id_for_symbol(uint8_t platform_kind, const char *symbol_name,
     uint16_t *out_base_id) {
   uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
