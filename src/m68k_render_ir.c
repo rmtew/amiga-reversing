@@ -92,7 +92,7 @@ const char *amiga_library_name_from_base_symbol_name(const char *symbol_name) {
     base_name = amiga_os_name(M68K_PLATFORM_NAME_BASE, vector->base_id);
     if (base_name == NULL || base_name[0] == '\0') continue;
     if (!ascii_contains_case_local(symbol_name, base_name)) continue;
-    library_name = amiga_os_find_library_name_by_base_name(base_name);
+    library_name = platform_facts_v2_library_name_for_base_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_name);
     if (library_name == NULL || library_name[0] == '\0') continue;
     if (matched_library == NULL) {
       matched_library = library_name;
@@ -1180,14 +1180,14 @@ static uint16_t platform_base_id_from_name(const char *name) {
   if (name == NULL || name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
   base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, name);
   if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
-  base_name = amiga_os_find_library_base_name(name);
+  base_name = platform_facts_v2_library_base_name_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, name);
   if (base_name != NULL && base_name[0] != '\0') {
     base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name);
     if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
   }
   library_name = amiga_library_name_from_base_symbol_name(name);
   if (library_name == NULL || library_name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
-  base_name = amiga_os_find_library_base_name(library_name);
+  base_name = platform_facts_v2_library_base_name_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name);
   return base_name != NULL ? amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name) : AMIGA_OS_BASE_ID_NONE;
 }
 

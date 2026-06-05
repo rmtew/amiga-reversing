@@ -6101,6 +6101,31 @@ call resolution yet. It only removes direct render-side table access for the
 name identity question, with focused assertions proving the Amiga mapping and
 non-Amiga fail-closed behavior.
 
+### Implemented Slice: Renderer Base-Name Conversion Uses Platform Facts
+
+One renderer-side helper remained outside that first cleanup. The platform
+state code sometimes receives a symbol spelling and needs to recover the
+corresponding library base id:
+
+```text
+"graphics.library" -> "GfxBase" -> base id
+"GfxBase"          -> base id
+"my_GfxBase_slot"  -> infer graphics.library, then "GfxBase"
+```
+
+The tracing and base-id assignment are still renderer state mechanics, but the
+library/base-name conversion inside that chain is platform metadata. The
+remaining direct calls:
+
+```c
+amiga_os_find_library_base_name(library_name);
+amiga_os_find_library_name_by_base_name(base_name);
+```
+
+now route through the existing platform-facts helpers. This keeps the current
+Amiga behavior while making the metadata boundary consistent with the other
+library/base-name render paths.
+
 ### Implemented Slice: Render-Lookup Library Names Use Platform Facts
 
 The previous slice handled renderer helpers, but render lookup still had the
