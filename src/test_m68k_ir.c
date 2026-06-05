@@ -13855,6 +13855,12 @@ static int test_platform_facts_v2_address_use_helpers(void) {
     "graphics.library") == NULL);
   M68K_C_ASSERT(platform_facts_v2_library_name_for_base_name(M68K_PLATFORM_BACKEND_ATARI_ST,
     "GfxBase") == NULL);
+  M68K_C_ASSERT(platform_facts_v2_library_base_name_for_name(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "graphics.library") == NULL);
+  M68K_C_ASSERT(platform_facts_v2_library_base_name_for_name(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "GfxBase") == NULL);
+  M68K_C_ASSERT(platform_facts_v2_library_name_for_name(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "GfxBase") == NULL);
   M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_ATARI_ST,
     base_id, offset, 0x7FFFU, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT_STR("", symbol_buf);

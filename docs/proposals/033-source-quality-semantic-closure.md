@@ -6101,6 +6101,42 @@ call resolution yet. It only removes direct render-side table access for the
 name identity question, with focused assertions proving the Amiga mapping and
 non-Amiga fail-closed behavior.
 
+### Implemented Slice: Render-Lookup Library Names Use Platform Facts
+
+The previous slice handled renderer helpers, but render lookup still had the
+same stale dependency in its typed-flow helpers. These paths are not pure
+formatting; they trace base values, library strings, global slots, and wrapper
+calls. Even so, the question below is still platform metadata, not typed-flow
+logic:
+
+```text
+is "graphics.library" a known library name?
+is "GfxBase" a known library base symbol?
+what base symbol corresponds to this library name?
+```
+
+Before this slice, `m68k_analysis_render_lookup.c` answered those questions
+with direct generated Amiga table calls:
+
+```c
+amiga_os_find_library_base_name(name);
+amiga_os_find_library_name_by_base_name(name);
+```
+
+The simple name-identity sites now use local wrappers over platform facts:
+
+```c
+platform_facts_v2_library_base_name_for_library_name(platform, library_name);
+platform_facts_v2_library_base_name_for_name(platform, name);
+```
+
+This does not move the typed-flow pass itself yet. It also does not replace the
+remaining generated-vector enumeration, vector-input metadata, or struct-field
+metadata. Those are larger semantic producers. The completed part is narrower:
+render lookup no longer opens generated Amiga tables merely to validate library
+or base-name spelling. Focused C assertions now include non-Amiga fail-closed
+coverage for both library-name and base-name inputs.
+
 ### Implemented Slice: LVO Call Predicates Use Platform Facts
 
 Render lookup still needs to recognise a few platform calls while it traces
