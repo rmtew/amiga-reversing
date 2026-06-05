@@ -13781,6 +13781,12 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT(platform_facts_v2_value_domain_symbolic_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     "exec.alert.number", alert_value, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT_STR("AN_IconLib|AG_OpenLib|AO_DOSLib", symbol_buf);
+  M68K_C_ASSERT(platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "INTF_CLRALL"));
+  M68K_C_ASSERT(platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "INTF_CLRALL"));
+  M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_ATARI_ST, "INTF_CLRALL"));
+  M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_ATARI_ST, "INTF_CLRALL"));
+  M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "not_a_symbol"));
+  M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "not_a_symbol"));
   M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_ATARI_ST,
     base_id, offset, 0x7FFFU, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT_STR("", symbol_buf);

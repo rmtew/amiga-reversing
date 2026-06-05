@@ -5754,6 +5754,34 @@ prints the row. It no longer knows how to look up Amiga register value-domain
 metadata. That keeps `INTF_CLRALL`, `DMAF_CLRALL`, `BEAMCON0_PAL`, and related
 expressions behind the same platform facts API boundary as register names.
 
+### Implemented Slice: Platform Symbol Tokens Use Platform Facts
+
+Source-quality records expected symbol-access facts for platform-generated
+operand expressions:
+
+```text
+operand expression: AN_IconLib|AG_OpenLib|AO_DOSLib
+  -> expected access: AN_IconLib
+  -> expected access: AG_OpenLib
+  -> expected access: AO_DOSLib
+```
+
+That validation belongs in source-quality, because the pass is checking whether
+the renderer visibly used the symbols it was told to use. But deciding whether a
+token is an Amiga include-backed symbol or an Amiga constant is platform
+metadata. The token scanner now asks platform facts:
+
+```c
+platform_facts_v2_symbol_name_is_known(platform, token);
+platform_facts_v2_symbol_name_is_equate(platform, token);
+```
+
+This keeps the useful validation behaviour while removing another direct
+`amiga_os_find_symbol_include()` / `amiga_os_find_constant_value()` dependency
+from `m68k_source_quality.c`. The generic pass still parses expression tokens
+and still decides which expected-access fact to emit; platform facts only
+answers the platform-symbol membership question.
+
 ### Implemented Slice: Hardware Base Symbols Use Platform Facts
 
 Renderer hardware-base formatting also had small direct Amiga lookups:

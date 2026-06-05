@@ -167,6 +167,30 @@ int platform_facts_v2_value_domain_symbolic_expr(uint8_t platform_kind, const ch
   return amiga_value_domain_symbolic_expr(domain_name, value, expr, expr_size);
 }
 
+int platform_facts_v2_symbol_name_is_known(uint8_t platform_kind, const char *symbol_name) {
+  int32_t constant_value = 0;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_find_symbol_include(symbol_name) != NULL ||
+      amiga_os_find_constant_value(symbol_name, &constant_value);
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_symbol_name_is_equate(uint8_t platform_kind, const char *symbol_name) {
+  int32_t constant_value = 0;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_find_symbol_include(symbol_name) == NULL &&
+      amiga_os_find_constant_value(symbol_name, &constant_value);
+  default:
+    return 0;
+  }
+}
+
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
   return amiga_os_hardware_base_symbol(base_id);

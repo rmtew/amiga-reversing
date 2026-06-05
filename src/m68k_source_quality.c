@@ -10092,10 +10092,8 @@ static int source_quality_symbol_name_is_plain_local(const char *name) {
 }
 
 static uint8_t source_quality_platform_symbol_expr_expected_access_kind(const char *symbol_expr) {
-  int32_t value = 0;
   if (source_quality_symbol_name_is_plain_local(symbol_expr) &&
-      amiga_os_find_symbol_include(symbol_expr) == NULL &&
-      amiga_os_find_constant_value(symbol_expr, &value)) {
+      platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_expr)) {
     return M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
   }
   return M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
@@ -10108,7 +10106,6 @@ static int append_expected_platform_symbol_expr_accesses(M68kSectionAnalysisIR *
   while (symbol_expr[index] != '\0') {
     char token[M68K_IR_SYMBOL_NAME_SIZE];
     size_t token_len = 0U;
-    int32_t constant_value = 0;
     while (symbol_expr[index] != '\0' && !source_quality_symbol_token_char(symbol_expr[index], 1)) ++index;
     while (symbol_expr[index] != '\0' && source_quality_symbol_token_char(symbol_expr[index], token_len == 0U)) {
       if (token_len + 1U < sizeof(token)) token[token_len++] = symbol_expr[index];
@@ -10116,8 +10113,7 @@ static int append_expected_platform_symbol_expr_accesses(M68kSectionAnalysisIR *
     }
     if (token_len == 0U || token_len >= sizeof(token)) continue;
     token[token_len] = '\0';
-    if (amiga_os_find_symbol_include(token) == NULL &&
-        !amiga_os_find_constant_value(token, &constant_value)) {
+    if (!platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK, token)) {
       continue;
     }
     {
