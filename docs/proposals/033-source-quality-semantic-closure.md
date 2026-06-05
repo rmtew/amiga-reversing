@@ -6232,6 +6232,49 @@ platform facts owns the mapping from `_LVO*` symbol names to signed offsets.
 Focused C assertions cover the positive OpenLibrary match, a wrong-symbol
 negative match, and non-Amiga fail-closed behavior.
 
+### Implemented Slice: OpenDevice Inputs Use Platform Facts
+
+The next stale `OpenDevice` path was not the call predicate itself. It was the
+follow-up lookup used to name and type the application `IO` request slot:
+
+```asm
+    lea     trackdisk_name(pc),a0
+    lea     app_trackdisk_iorequest(a6),a1
+    jsr     _LVOOpenDevice(a6)
+```
+
+The analysis already proves the flow shape:
+
+```text
+A6 is SysBase
+  + call is _LVOOpenDevice
+  + A0 is a known device name
+  + A1 is an app-relative address
+  -> app_<device>_iorequest is an IO request slot
+```
+
+Before this slice, render lookup reopened generated Amiga vector metadata to
+find the A1 input:
+
+```c
+amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENDEVICE);
+amiga_os_library_vector_inputs(open_device, &count);
+```
+
+The path now asks platform facts for the public call-input descriptor:
+
+```c
+platform_facts_v2_call_input_by_register(platform, "_LVOOpenDevice",
+    AMIGA_OS_REGISTER_ADDRESS, 1, &input);
+```
+
+Render lookup still records the proven app slot because that is its current
+typed-flow job. The generated-table decision about which register is the
+`iORequest` input and that its platform type is `IO` now belongs to platform
+facts. The local code converts the returned type name back into the existing
+struct-id storage only at the point where the current typed-slot data model
+requires it.
+
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 
 Absolute hardware operand rendering had a stale fallback path after the

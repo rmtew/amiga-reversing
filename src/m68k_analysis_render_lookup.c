@@ -8473,23 +8473,16 @@ static int format_app_named_value_slot_symbol(const char *source_name, char *sym
   return written > 0 && (size_t)written < symbol_name_size;
 }
 
-static const AmigaOsCallInputInfo *open_device_iorequest_input_info(void) {
-  const AmigaOsLibraryVectorInfo *open_device =
-    amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENDEVICE);
-  const AmigaOsCallInputInfo *inputs;
-  size_t count = 0U;
-  size_t index;
-  if (open_device == NULL) return NULL;
-  inputs = amiga_os_library_vector_inputs(open_device, &count);
-  if (inputs == NULL) return NULL;
-  for (index = 0U; index < count; ++index) {
-    const AmigaOsCallInputInfo *input = &inputs[index];
-    if (input->reg_kind == AMIGA_OS_REGISTER_ADDRESS && input->reg_index == 1U &&
-        input->struct_id == AMIGA_OS_STRUCT_ID_IO) {
-      return input;
-    }
+static int open_device_iorequest_input_info(PlatformFactsV2CallInput *out_input) {
+  PlatformFactsV2CallInput input;
+  if (out_input != NULL) platform_facts_v2_call_input_init(out_input);
+  if (!platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "_LVOOpenDevice",
+      AMIGA_OS_REGISTER_ADDRESS, 1U, &input)) {
+    return 0;
   }
-  return NULL;
+  if (strcmp(input.type_name, "IO") != 0) return 0;
+  if (out_input != NULL) *out_input = input;
+  return 1;
 }
 
 static int amiga_vector_iorequest_address_register(const AmigaOsLibraryVectorInfo *vector, uint8_t *out_reg) {
@@ -8513,15 +8506,15 @@ static int amiga_vector_iorequest_address_register(const AmigaOsLibraryVectorInf
 
 static int format_open_device_app_iorequest_slot_name(const char *device_name, char *symbol_name,
     size_t symbol_name_size) {
-  const AmigaOsCallInputInfo *input = open_device_iorequest_input_info();
-  const char *input_name = input != NULL ? amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input->input_id) : NULL;
+  PlatformFactsV2CallInput input;
   char device_part[48];
   char input_part[32];
   int written;
   if (symbol_name == NULL || symbol_name_size == 0U) return 0;
   symbol_name[0] = '\0';
+  if (!open_device_iorequest_input_info(&input)) return 0;
   if (!format_lower_symbol_component(device_name, device_part, sizeof(device_part)) ||
-      !format_lower_symbol_component(input_name, input_part, sizeof(input_part))) {
+      !format_lower_symbol_component(input.input_name, input_part, sizeof(input_part))) {
     return 0;
   }
   written = snprintf(symbol_name, symbol_name_size, "app_%s_%s", device_part, input_part);
@@ -9160,19 +9153,23 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       if (candidate_is_exec_open_device_call(&trace_state, candidate) &&
           trace_state.addr_regs[0].known && trace_state.app_addresses[1].known) {
         char iorequest_slot_name[64];
-        const AmigaOsCallInputInfo *iorequest_input = open_device_iorequest_input_info();
+        PlatformFactsV2CallInput iorequest_input;
+        uint16_t iorequest_struct_id = AMIGA_OS_STRUCT_ID_NONE;
         int typed_slot_added = 0;
         int32_t device_base_displacement = (int32_t)trace_state.app_addresses[1].displacement +
           (int32_t)AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET;
+        if (open_device_iorequest_input_info(&iorequest_input)) {
+          iorequest_struct_id = lookup_policy_struct_id_by_name(lookup->policy, iorequest_input.type_name);
+        }
         if (render_lookup_add_device_instance(lookup, trace_state.app_addresses[1].displacement,
             trace_state.addr_regs[0].name) != 0 ||
             render_lookup_add_device_call(lookup, section->section_index, candidate->offset,
             trace_state.addr_regs[0].name) != 0) {
           goto cleanup;
         }
-        if (iorequest_input != NULL && iorequest_input->struct_id != AMIGA_OS_STRUCT_ID_NONE &&
+        if (iorequest_struct_id != AMIGA_OS_STRUCT_ID_NONE &&
             render_lookup_add_typed_app_slot_region(lookup, trace_state.app_addresses[1].displacement,
-              iorequest_input->struct_id, section->section_index, candidate->offset, &typed_slot_added) != 0) {
+              iorequest_struct_id, section->section_index, candidate->offset, &typed_slot_added) != 0) {
           goto cleanup;
         }
         if (format_open_device_app_iorequest_slot_name(trace_state.addr_regs[0].name, iorequest_slot_name,
