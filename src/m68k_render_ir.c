@@ -5137,16 +5137,12 @@ static void render_lookup_mark_materialized_runtime_code_operand_patch_labels(M6
         uint32_t source_offset = 0U;
         uint32_t access_width = 0U;
         uint32_t anchor_offset = 0U;
-        uint8_t platform_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
-        uint32_t platform_owner_offset = 0U;
         if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
             operand->symbol_ref.has_name != 0U ||
             !operand_absolute_offset_local(operand, &runtime_address)) {
           continue;
         }
-        if (platform_facts_v2_absolute_memory_owner(platform_kind, runtime_address, &platform_owner_kind,
-            &platform_owner_offset) ||
-            m68k_cpu_find_exception_vector_by_address(runtime_address) != NULL ||
+        if (platform_facts_v2_address_has_symbolic_owner(platform_kind, runtime_address) ||
             !lookup_materialized_runtime_address_source_offset(lookup, section->section_index, runtime_address,
               &source_offset)) {
           continue;
@@ -9009,16 +9005,12 @@ static int attach_materialized_runtime_absolute_storage_symbols(const M68kRender
     uint32_t runtime_address = 0U;
     uint32_t source_offset = 0U;
     uint32_t access_width = 0U;
-    uint8_t platform_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
-    uint32_t platform_owner_offset = 0U;
     if (operand->symbol_ref.has_name != 0U ||
         !render_absolute_ref_access_kind(metadata->operand_access_kinds[operand_index]) ||
         !operand_absolute_offset_local(operand, &runtime_address)) {
       continue;
     }
-    if (platform_facts_v2_absolute_memory_owner(platform_kind, runtime_address, &platform_owner_kind,
-        &platform_owner_offset) ||
-        m68k_cpu_find_exception_vector_by_address(runtime_address) != NULL ||
+    if (platform_facts_v2_address_has_symbolic_owner(platform_kind, runtime_address) ||
         !lookup_materialized_runtime_address_source_offset(lookup, section->section_index, runtime_address,
           &source_offset)) {
       continue;

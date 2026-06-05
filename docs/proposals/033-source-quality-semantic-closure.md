@@ -5803,6 +5803,33 @@ forms through distinct APIs. It also proves that plain `$0020` is not accepted
 by the address API, preventing in-image storage addresses such as `$0130` from
 being accidentally reinterpreted as CUSTOM register offsets.
 
+### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
+
+Materialized runtime storage/code patch rendering had another duplicate guard:
+
+```text
+if platform absolute-memory owner exists
+  -> do not materialize as source storage
+
+if CPU exception vector exists
+  -> do not materialize as source storage
+```
+
+The second check was renderer-local knowledge. It has been replaced with the
+shared symbolic-owner predicate:
+
+```c
+platform_facts_v2_address_has_symbolic_owner(platform_kind, runtime_address)
+```
+
+This deliberately does not move CPU vectors into
+`platform_facts_v2_absolute_memory_owner()`. That owner function feeds address
+observations, and low-memory values may still be application storage unless the
+instruction shape proves vector semantics. The render guard only needs the
+narrower question: "does this address already have a stronger symbolic owner
+than materialized runtime storage?" For that question, CPU vectors and hardware
+owners are both exclusions.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only
