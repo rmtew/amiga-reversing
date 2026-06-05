@@ -875,14 +875,65 @@ renderer needs to answer quickly while formatting already-proven facts.
 
 ### Remaining Wrong Boundary: Render Lookup As Analyzer
 
-`m68k_analysis_render_lookup.c` still runs major analysis passes whose names and
-outputs are semantic, not presentational:
+`m68k_analysis_render_lookup.c` used to run structured-data producers while
+building a render cache:
 
 ```text
 render_lookup_infer_relocation_pointer_tables()
 render_lookup_add_auto_structured_data_item()
 source_analysis_append_auto_structured_data_policy()
 ```
+
+Those structured-data producer paths have now moved to C source-quality or have
+been deleted as dead render-side helpers. The remaining wrong boundary is a
+different family: platform and typed-flow analysis still lives in render lookup
+because those passes were historically used to feed both formatting and later
+source-analysis export.
+
+Current audit:
+
+```text
+render_lookup_infer_global_base_slots()
+  -> finds OpenLibrary/typed base slots and app base storage
+
+render_lookup_infer_amiga_recovered_local_call_summaries()
+render_lookup_infer_amiga_recovered_function_args()
+  -> recovers helper/wrapper API call semantics and stack/register inputs
+
+render_lookup_analyze_amiga_app_state_slots()
+render_lookup_analyze_amiga_typed_refs()
+  -> infers typed app slots, field accesses, and unresolved typed accesses
+
+render_lookup_record_bootblock_disk_read_call()
+render_lookup_infer_bootblock_runtime_copies()
+  -> recovers bootblock disk reads and post-read runtime copies
+```
+
+This is one analyzer family, not four unrelated renderer conveniences. For
+example, bootblock runtime-copy recovery depends on disk-read facts, and
+disk-read facts are discovered inside the typed API-call flow that recognizes
+`DoIO()` with a seeded `trackdisk.device` IO request. Moving only the runtime
+copy pass would still leave the semantic proof in render lookup.
+
+The clean migration is therefore:
+
+```text
+analysis/platform-amiga typed-flow pass
+  -> recovered_platform_calls
+  -> recovered_platform_disk_reads
+  -> recovered_platform_runtime_copies
+  -> typed app/global/base-slot facts
+  -> unresolved typed-access facts
+
+render lookup
+  -> imports those facts
+  -> materializes labels/comments needed to format already-proven facts
+```
+
+The next implementation slices should move this family by output fact group,
+but each slice must keep producer evidence together. A slice that only copies a
+downstream render lookup array into `M68kSourceAnalysisIR` is not enough; the
+analysis that decides the fact exists must move with it.
 
 `render_lookup_infer_platform_runtime_structured_data()` and
 `render_lookup_infer_amiga_bitmap_memory_uses()` have been removed from this
@@ -983,15 +1034,13 @@ decode/facts
 Source-quality still upserts same-range/same-role table items so weaker early
 observations cannot downgrade later dispatch proof.
 
-The remaining entries show the same wrong boundary for later slices: they
-classify source meaning while building a render cache. Generic string and
-data-span inference still needs the same audit: byte-shape analysis belongs in
-C analysis/source-quality, while render lookup should keep only visibility,
-label, and formatting caches.
-
-Those passes build `M68kAnalysisStructuredDataItem` records, range ownership
-views, table metadata, consumer registers, index domains, and source patterns.
-They then append those analysis facts to `M68kSourceAnalysisIR`.
+The generic string/data-span audit is closed for the known producer lanes:
+string-table sequences, single terminated/bounded text, Mac OS symbol strings,
+and multiline text now originate in source-quality. Render lookup still stores
+imported items in its `auto_structured_data_items` cache because that cache is
+how the renderer answers range-ownership questions quickly, but the append-back
+path that turned render cache entries into source-analysis facts has been
+removed.
 
 The clean path is not to keep this under a "render lookup" name. Split it:
 
@@ -5429,15 +5478,15 @@ when the rendered source is content-exact, but final acceptance should keep the
 distinction visible in the report instead of treating them as source render
 regressions.
 
-The table-closure render updates exposed expected target churn and one remaining
-cleanup lane. Pointer and indexed-local scalar tables now render from C-owned
-facts, so comments and labels can shift as source-quality facts replace
-renderer guesses. Some targets also show noisy byte-line resplitting and small
-string spelling changes where generic data-span inference is still interacting
-with render formatting. That is not a reason to keep table classification in
-render lookup; it is evidence for the next cleanup: move the remaining generic
-data/span producers into C analysis, then leave render lookup as formatting
-support only.
+The table and text closure updates exposed expected target churn while
+source-quality facts replaced renderer guesses. That churn is now mostly a
+formatting question: render lookup imports C-owned tables and strings, and the
+remaining stale boundary is the platform typed-flow analyzer family still
+living in `m68k_analysis_render_lookup.c`. That is not a reason to keep platform
+semantics in render lookup; it is evidence for the next cleanup: move the
+producer-side Amiga typed-flow, recovered API-call, disk-read/runtime-copy, and
+base-slot facts into an analysis/platform module, then leave render lookup as
+formatting support only.
 
 ## Non-Goals
 
