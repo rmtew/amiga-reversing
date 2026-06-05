@@ -6124,7 +6124,10 @@ amiga_os_find_library_name_by_base_name(base_name);
 
 now route through the existing platform-facts helpers. This keeps the current
 Amiga behavior while making the metadata boundary consistent with the other
-library/base-name render paths.
+library/base-name render paths. The same rule now covers indexed wrapper LVO
+rendering: those helpers may still return an Amiga vector object until the
+larger vector-metadata boundary moves, but they no longer ask generated Amiga
+tables to translate the library name into its base symbol.
 
 ### Implemented Slice: Render-Lookup Library Names Use Platform Facts
 

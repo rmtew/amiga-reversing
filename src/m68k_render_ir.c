@@ -4560,7 +4560,7 @@ const AmigaOsLibraryVectorInfo *attach_amiga_lvo_immediate_if_known(const M68kRe
   }
   library_name = lookup_indexed_vector_wrapper_library(lookup, section->section_index, wrapper_offset);
   if (library_name == NULL) return NULL;
-  base_name = amiga_os_find_library_base_name(library_name);
+  base_name = platform_facts_v2_library_base_name_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name);
   if (base_name == NULL) return NULL;
   vector = amiga_os_find_library_vector(base_name, lvo);
   if (vector == NULL) return NULL;
@@ -4592,7 +4592,7 @@ const AmigaOsLibraryVectorInfo *resolve_amiga_indexed_wrapper_call_vector(
   }
   library_name = lookup_indexed_vector_wrapper_library(lookup, wrapper_section_index, wrapper_offset);
   if (library_name == NULL || library_name[0] == '\0') return NULL;
-  base_name = amiga_os_find_library_base_name(library_name);
+  base_name = platform_facts_v2_library_base_name_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name);
   if (base_name == NULL || base_name[0] == '\0') return NULL;
   if (!lookup_indexed_vector_wrapper_index_reg(lookup, wrapper_section_index, wrapper_offset, &index_reg))
     return NULL;
