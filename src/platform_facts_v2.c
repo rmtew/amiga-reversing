@@ -334,6 +334,17 @@ int platform_facts_v2_hardware_base_id_for_symbol(uint8_t platform_kind, const c
   return 1;
 }
 
+int platform_facts_v2_custom_hardware_base_id(uint8_t platform_kind, uint16_t *out_base_id) {
+  if (out_base_id != NULL) *out_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    if (out_base_id != NULL) *out_base_id = AMIGA_OS_HARDWARE_BASE_ID_CUSTOM;
+    return 1;
+  default:
+    return 0;
+  }
+}
+
 int platform_facts_v2_hardware_base_id_for_address(uint8_t platform_kind, uint32_t address, uint16_t *out_base_id) {
   uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
   if (out_base_id != NULL) *out_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;

@@ -69,6 +69,7 @@ typedef enum PlatformFactsV2DisplaySetupRegisterKind {
 } PlatformFactsV2DisplaySetupRegisterKind;
 
 #define PLATFORM_FACTS_V2_CALL_INPUT_TEXT_SIZE 64U
+#define PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE 0U
 
 typedef struct PlatformFactsV2ResolvedCall {
   uint8_t platform_kind;
@@ -163,6 +164,7 @@ int platform_facts_v2_hardware_base_address_for_symbol(uint8_t platform_kind, co
   uint32_t *out_address);
 int platform_facts_v2_hardware_base_id_for_symbol(uint8_t platform_kind, const char *symbol_name,
   uint16_t *out_base_id);
+int platform_facts_v2_custom_hardware_base_id(uint8_t platform_kind, uint16_t *out_base_id);
 int platform_facts_v2_hardware_base_id_for_address(uint8_t platform_kind, uint32_t address, uint16_t *out_base_id);
 int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, uint32_t address,
   uint16_t *out_base_id, uint32_t *out_offset);

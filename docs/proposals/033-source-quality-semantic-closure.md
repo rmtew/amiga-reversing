@@ -1083,17 +1083,17 @@ owns structured range state.
 
 ### Remaining Wrong Boundary: Generic Core Includes Amiga Semantics
 
-`m68k_source_quality.c` currently still includes generated Amiga runtime
-knowledge directly:
+`m68k_source_quality.c` previously included generated Amiga runtime knowledge
+directly:
 
 ```c
 #include "generated/amiga_os_runtime.h"
 ```
 
-CPU exception vector address-use naming and platform-owned address exclusion
-have moved behind `platform_facts_v2_*`. Amiga hardware registers, `_custom`,
-ExecBase, and library/device semantics are platform extension facts. The
-reliable shape is:
+CPU exception vector address-use naming, platform-owned address exclusion,
+Amiga hardware registers, `_custom`, ExecBase, and library/device semantics
+have moved behind `platform_facts_v2_*` for the source-quality paths covered by
+this proposal. The reliable shape is:
 
 ```c
 typedef struct M68kPlatformSourceQualityHooks {
@@ -4025,6 +4025,40 @@ from `m68k_source_quality.c` without weakening the existing analysis. The
 focused tests cover `_LVOAlert` value-domain metadata and `_LVOWrite`
 buffer/length role detection through the platform-facts API, while the existing
 call-input rendering and JSON tests continue to prove the end-to-end behaviour.
+
+### Implemented Slice: Source-Quality Uses Opaque Hardware-Base Ids
+
+After the OS call-input descriptor work, `m68k_source_quality.c` still included
+the generated Amiga runtime only for hardware-base constants:
+
+```c
+AMIGA_OS_HARDWARE_BASE_ID_NONE
+AMIGA_OS_HARDWARE_BASE_ID_CUSTOM
+```
+
+Those constants were not semantic proof, but they kept the generic
+source-quality pass tied to generated Amiga headers. The pass now treats
+hardware-base ids as opaque platform-facts values:
+
+```c
+PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE
+platform_facts_v2_custom_hardware_base_id(platform, &custom_base_id)
+```
+
+The rule is the same as the other platform-facts migrations. Source-quality
+still owns propagation and validation:
+
+```text
+known hardware-base id
+  -> register state
+  -> base-relative hardware access facts
+  -> semantic uses and expected symbol accesses
+```
+
+Platform facts owns the platform-specific identities. This removes
+`#include "generated/amiga_os_runtime.h"` from `m68k_source_quality.c`; the
+focused platform-facts test checks the Amiga `_custom` id and the non-Amiga
+closed result.
 
 ### Implemented Slice: Stack Cleanup Notes
 

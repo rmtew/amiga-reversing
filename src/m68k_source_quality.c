@@ -4,7 +4,6 @@
 #include "m68k_bitset.h"
 #include "m68k_instruction_spec.h"
 #include "m68k_simulator.h"
-#include "generated/amiga_os_runtime.h"
 #include "platform_common.h"
 
 #include <stdio.h>
@@ -2044,10 +2043,12 @@ static int format_source_quality_copper_display_row_note(uint16_t first, uint16_
     size_t buf_size) {
   uint8_t semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_UNKNOWN;
   uint32_t register_offset = (uint32_t)(first & 0x01FEU);
+  uint16_t custom_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (buf == NULL || buf_size == 0U || (first & 1U) != 0U) return 0;
   buf[0] = '\0';
+  if (!platform_facts_v2_custom_hardware_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &custom_base_id)) return 0;
   return platform_facts_v2_hardware_base_offset_access_note(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, register_offset, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U,
+    custom_base_id, register_offset, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U,
     (uint32_t)second, &semantic_use_kind, buf, buf_size) &&
     semantic_use_kind == M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE;
 }
@@ -2065,15 +2066,17 @@ static int source_quality_copper_runtime_pointer_info(uint16_t register_word,
   const char *role;
   uint32_t anchor_offset = 0U;
   uint32_t role_flags;
+  uint16_t custom_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (out_info != NULL) memset(out_info, 0, sizeof(*out_info));
   if ((register_word & 1U) != 0U) return 0;
+  if (!platform_facts_v2_custom_hardware_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &custom_base_id)) return 0;
   role = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, register_offset);
+    custom_base_id, register_offset);
   role_flags = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(
-    M68K_PLATFORM_BACKEND_AMIGA_HUNK, AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, register_offset);
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, custom_base_id, register_offset);
   if (role == NULL || role[0] == '\0') return 0;
   if (!platform_facts_v2_hardware_base_offset_runtime_address_sink_anchor_offset(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, register_offset, &anchor_offset)) {
+      custom_base_id, register_offset, &anchor_offset)) {
     return 0;
   }
   if (out_info != NULL) {
@@ -9301,7 +9304,7 @@ typedef struct SourceQualityHardwareBaseState {
 
 static void source_quality_hardware_base_state_set(SourceQualityHardwareBaseState *state, uint8_t reg_index,
     uint16_t base_id) {
-  if (state == NULL || reg_index >= 8U || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return;
+  if (state == NULL || reg_index >= 8U || base_id == PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE) return;
   m68k_bitset_u32_set(&state->address_base_known, reg_index);
   state->address_base_id[reg_index] = base_id;
 }
@@ -9309,7 +9312,7 @@ static void source_quality_hardware_base_state_set(SourceQualityHardwareBaseStat
 static void source_quality_hardware_base_state_clear(SourceQualityHardwareBaseState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   m68k_bitset_u32_clear(&state->address_base_known, reg_index);
-  state->address_base_id[reg_index] = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  state->address_base_id[reg_index] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
 }
 
 static void source_quality_hardware_base_state_clear_all(SourceQualityHardwareBaseState *state) {
@@ -9347,7 +9350,7 @@ static void source_quality_hardware_base_state_apply_inferred_register_seeds(Sou
   for (index = 0U; index < seed_count; ++index) {
     const M68kSourceQualityHardwareBaseSeed *seed = &seeds[index];
     if (seed->conflicted != 0U || seed->section_index != section_index || seed->offset != offset ||
-        seed->reg_index >= 8U || seed->hardware_base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+        seed->reg_index >= 8U || seed->hardware_base_id == PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE) {
       continue;
     }
     source_quality_hardware_base_state_set(state, seed->reg_index, seed->hardware_base_id);
@@ -9358,13 +9361,13 @@ static int source_quality_operand_hardware_base_id(const SourceQualityHardwareBa
     const M68kOperandIR *operand, uint16_t *out_base_id) {
   uint8_t reg = 0U;
   uint32_t value = 0U;
-  uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
-  if (out_base_id != NULL) *out_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  uint16_t base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+  if (out_base_id != NULL) *out_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (operand == NULL) return 0;
   if (source_quality_operand_address_register_index(operand, &reg) &&
       state != NULL && reg < 8U && m68k_bitset_u32_has(state->address_base_known, reg)) {
     if (out_base_id != NULL) *out_base_id = state->address_base_id[reg];
-    return state->address_base_id[reg] != AMIGA_OS_HARDWARE_BASE_ID_NONE;
+    return state->address_base_id[reg] != PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   }
   if (m68k_ir_operand_immediate_value(operand, &value) ||
       source_quality_operand_absolute_offset(operand, &value)) {
@@ -9379,7 +9382,7 @@ static int source_quality_operand_hardware_base_id(const SourceQualityHardwareBa
 static void source_quality_hardware_base_state_update_after_instruction(SourceQualityHardwareBaseState *state,
     const M68kInstructionIR *instruction) {
   uint8_t dest_reg = 0U;
-  uint16_t source_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  uint16_t source_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (state == NULL || instruction == NULL) return;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
     source_quality_hardware_base_state_clear_all(state);
@@ -9442,7 +9445,7 @@ static int source_quality_hardware_base_seed_list_append(SourceQualityHardwareBa
   size_t index;
   if (out_changed != NULL) *out_changed = 0U;
   if (list == NULL || seed == NULL || seed->reg_index >= 8U ||
-      seed->hardware_base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+      seed->hardware_base_id == PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE) {
     return 0;
   }
   for (index = 0U; index < list->count; ++index) {
@@ -10565,7 +10568,7 @@ static int platform_address_use_operand_matches_accepted_instruction(const M68kP
   if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS) {
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
-    uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+    uint16_t base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
     uint32_t register_offset = 0U;
     char symbol_buf[96];
     const char *symbol_name;
@@ -12231,7 +12234,7 @@ static int append_expected_hardware_register_value_domain_symbol_accesses_for_se
     const M68kDecodeCandidate *candidate;
     M68kInstructionIR instruction;
     const M68kSimFormMetadata *metadata;
-    uint16_t hardware_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+    uint16_t hardware_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
     uint32_t hardware_register_offset = 0U;
     int use_bit_domain;
     size_t operand_index;
