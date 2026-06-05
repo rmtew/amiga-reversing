@@ -523,15 +523,50 @@ int platform_facts_v2_is_callback_vector_slot(uint8_t platform_kind, uint32_t ad
   }
 }
 
+static const AmigaOsHardwareRegisterInfo *platform_facts_v2_amiga_runtime_address_sink_register(
+    uint32_t address) {
+  const AmigaOsHardwareRegisterInfo *hardware_register =
+    amiga_os_find_hardware_register_by_cpu_address(address);
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  if (hardware_register == NULL) {
+    hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
+    if (hardware_range != NULL) {
+      hardware_register =
+        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
+    }
+  }
+  if (hardware_register == NULL ||
+      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
+      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
+    return NULL;
+  }
+  return hardware_register;
+}
+
+static const AmigaOsHardwareRegisterInfo *platform_facts_v2_amiga_runtime_address_sink_register_for_base_offset(
+    uint16_t base_id, uint32_t offset) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(base_id, offset);
+  if (hardware_register == NULL) {
+    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(base_id, offset);
+    if (hardware_range != NULL) {
+      hardware_register = amiga_os_find_hardware_register_by_base_id_offset(base_id, hardware_range->offset);
+    }
+  }
+  if (hardware_register == NULL ||
+      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
+      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
+    return NULL;
+  }
+  return hardware_register;
+}
+
 int platform_facts_v2_is_runtime_address_sink(uint8_t platform_kind, uint32_t address) {
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
-  {
-    const AmigaOsHardwareRegisterInfo *hardware_register =
-      amiga_os_find_hardware_register_by_cpu_address(address);
-    return hardware_register != NULL &&
-      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U;
-  }
+    return platform_facts_v2_amiga_runtime_address_sink_register(address) != NULL;
   default:
     return 0;
   }
@@ -542,12 +577,9 @@ uint16_t platform_facts_v2_runtime_address_sink_kind(uint8_t platform_kind, uint
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
   {
     const AmigaOsHardwareRegisterInfo *hardware_register =
-      amiga_os_find_hardware_register_by_cpu_address(address);
-    if (hardware_register == NULL ||
-        (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U) {
-      return AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
-    }
-    return hardware_register->runtime_target_kind;
+      platform_facts_v2_amiga_runtime_address_sink_register(address);
+    return hardware_register != NULL ? hardware_register->runtime_target_kind :
+      AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
   }
   default:
     return 0U;
@@ -592,6 +624,20 @@ uint32_t platform_facts_v2_runtime_address_sink_data_class_flags(uint8_t platfor
       platform_facts_v2_runtime_address_sink_kind(platform_kind, address));
   default:
     return 0U;
+  }
+}
+
+const char *platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(uint8_t platform_kind,
+    uint16_t base_id, uint32_t offset) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterInfo *hardware_register =
+      platform_facts_v2_amiga_runtime_address_sink_register_for_base_offset(base_id, offset);
+    return hardware_register != NULL ? hardware_register->runtime_target_role : NULL;
+  }
+  default:
+    return NULL;
   }
 }
 

@@ -5763,6 +5763,46 @@ The focused fixture keeps the useful stack-top cases, rejects low vector address
 `$00000004`, and also rejects Amiga hardware register `$00DFF09A` as a stack-top
 candidate.
 
+### Implemented Slice: Runtime Sink Role Lookup Uses Platform Facts
+
+Runtime-address references can point at platform sink registers. On Amiga, those
+include copper pointers, disk DMA pointers, blitter pointers, bitmap plane
+pointers, sprite pointers, and audio sample pointers.
+
+The renderer previously found external sink roles by walking Amiga hardware
+register tables itself:
+
+```text
+runtime ref targets external address/offset
+  -> renderer searches hardware register by CPU address
+  -> renderer searches hardware range by CPU address
+  -> renderer searches CUSTOM register by offset
+  -> renderer searches CUSTOM range by offset
+  -> renderer reads runtime_target_role from metadata
+```
+
+That is now a platform-facts responsibility. The important correction is that
+the two forms stay separate. A CPU address is not treated as a CUSTOM-relative
+offset merely because its numeric value happens to match one.
+
+```c
+platform_facts_v2_runtime_address_sink_data_class(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  0x00DFF020); /* "disk_buffer" */
+
+platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  0x0020);    /* "disk_buffer" */
+```
+
+Render no longer knows how to search those Amiga register/range tables for this
+case. It asks platform facts for the sink role, then formats the already-proven
+runtime-address symbol or comment. The fixture covers both absolute and offset
+forms through distinct APIs. It also proves that plain `$0020` is not accepted
+by the address API, preventing in-image storage addresses such as `$0130` from
+being accidentally reinterpreted as CUSTOM register offsets.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only

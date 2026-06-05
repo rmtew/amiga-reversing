@@ -6642,44 +6642,20 @@ static void render_platform_semantic_header_comments_for_raw_data(M68kRenderIRPr
   }
 }
 
-static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_register(const M68kFact *fact) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
-  if (fact == NULL || fact->target_section_index != (size_t)-1 || fact->target_offset == 0U) return NULL;
-  hardware_register = amiga_os_find_hardware_register_by_cpu_address(fact->target_offset);
-  if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(fact->target_offset);
-    if (hardware_range != NULL)
-      hardware_register =
-        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
-  }
-  if (hardware_register == NULL)
-    hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
-      fact->target_offset);
-  if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
-      fact->target_offset);
-    if (hardware_range != NULL)
-      hardware_register =
-        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
-  }
-  if (hardware_register == NULL ||
-      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
-    return NULL;
-  }
-  return hardware_register;
-}
-
 static const char *external_runtime_address_ref_role(const M68kRenderLookup *lookup, const M68kFact *fact) {
-  const AmigaOsHardwareRegisterInfo *hardware_register = external_runtime_address_ref_sink_register(fact);
   const M68kSection *section;
   const char *role;
-  if (hardware_register != NULL) return hardware_register->runtime_target_role;
-  if (lookup == NULL || fact == NULL || lookup->object == NULL ||
-      fact->source_section_index >= lookup->object->section_count) {
-    return NULL;
+  if (lookup == NULL || fact == NULL || lookup->object == NULL) return NULL;
+  if (fact->target_section_index == (size_t)-1 && fact->target_offset != 0U) {
+    role = platform_facts_v2_runtime_address_sink_data_class(lookup->object->platform_backend_kind,
+      fact->target_offset);
+    if (role == NULL || role[0] == '\0') {
+      role = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(
+        lookup->object->platform_backend_kind, AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, fact->target_offset);
+    }
+    if (role != NULL && role[0] != '\0') return role;
   }
+  if (fact->source_section_index >= lookup->object->section_count) return NULL;
   section = &lookup->object->sections[fact->source_section_index];
   role = platform_facts_v2_runtime_address_storage_sink_data_class(lookup->object->platform_backend_kind,
     section->data, section->data_size, fact->source_offset);

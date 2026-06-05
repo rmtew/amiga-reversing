@@ -19822,8 +19822,14 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF080U));
   M68K_C_ASSERT_STR("disk_buffer",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF020U));
+  M68K_C_ASSERT_STR("disk_buffer",
+    platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0020U));
   M68K_C_ASSERT_STR("blitter_source",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF048U));
+  M68K_C_ASSERT_STR("blitter_source",
+    platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0048U));
   M68K_C_ASSERT_STR("blitter_destination",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF054U));
   M68K_C_ASSERT_STR("sound_sample",
@@ -19838,6 +19844,7 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     platform_facts_v2_runtime_address_sink_kind(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
   M68K_C_ASSERT(platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF080U));
   M68K_C_ASSERT(platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF020U));
+  M68K_C_ASSERT(!platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x0020U));
   M68K_C_ASSERT(!platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
   return 0;
 }
