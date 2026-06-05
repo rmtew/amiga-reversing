@@ -134,20 +134,30 @@ int platform_facts_v2_hardware_base_offset_known(uint8_t platform_kind, uint16_t
     sizeof(symbol_buf)) != NULL;
 }
 
-int platform_facts_v2_hardware_base_offset_value_expr(uint8_t platform_kind, uint16_t base_id,
-    uint32_t offset, uint32_t value, char *expr, size_t expr_size) {
+int platform_facts_v2_hardware_base_offset_immediate_expr(uint8_t platform_kind, uint16_t base_id,
+    uint32_t offset, uint32_t value, int use_bit_domain, char *expr, size_t expr_size) {
   const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint16_t domain_id;
   const char *domain_name;
   if (expr != NULL && expr_size != 0U) expr[0] = '\0';
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return 0;
   hardware_register = amiga_os_find_hardware_register_by_base_id_offset(base_id, offset);
   if (hardware_register == NULL) return 0;
-  if (platform_amiga_hardware_register_custom_immediate_expr(hardware_register, value, 0, expr, expr_size)) {
+  if (platform_amiga_hardware_register_custom_immediate_expr(hardware_register, value, use_bit_domain, expr,
+      expr_size)) {
     return 1;
   }
-  if (hardware_register->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
-  domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, hardware_register->value_domain_id);
+  domain_id = use_bit_domain ? hardware_register->bit_domain_id : hardware_register->value_domain_id;
+  if (domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
+  domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, domain_id);
+  if (domain_name == NULL || domain_name[0] == '\0') return 0;
   return amiga_value_domain_symbolic_expr(domain_name, value, expr, expr_size);
+}
+
+int platform_facts_v2_hardware_base_offset_value_expr(uint8_t platform_kind, uint16_t base_id,
+    uint32_t offset, uint32_t value, char *expr, size_t expr_size) {
+  return platform_facts_v2_hardware_base_offset_immediate_expr(platform_kind, base_id, offset, value, 0, expr,
+    expr_size);
 }
 
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {

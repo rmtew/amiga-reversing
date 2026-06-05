@@ -1687,6 +1687,26 @@ move.w #$7fff,intena(a0)
   -> expected_symbol_access:platform_hardware_base_register_value_domain_operand
 ```
 
+The value-domain formatter for both producer families now sits behind platform
+facts:
+
+```c
+platform_facts_v2_hardware_base_offset_immediate_expr(
+  platform,
+  base_id,
+  register_offset,
+  value,
+  use_bit_domain,
+  symbol_expr,
+  symbol_expr_size);
+```
+
+Source-quality still decides that the operand is a hardware write/read and that
+an immediate operand must be checked. It no longer opens the Amiga register
+metadata to choose the immediate/value-domain expression. That keeps the
+analysis producer in C while moving the Amiga-specific value-domain lookup to
+the platform facts seam.
+
 Stack-cleanup comments are now a recovered platform-call fact consumption case,
 not a render-time rediscovery case:
 

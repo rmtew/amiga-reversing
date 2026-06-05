@@ -12498,22 +12498,13 @@ static int append_platform_stack_cleanup_semantic_uses(M68kSourceAnalysisIR *sou
   return 0;
 }
 
-static int source_quality_hardware_register_immediate_symbol_expr(
-    const AmigaOsHardwareRegisterInfo *hardware_register, const M68kInstructionIR *instruction,
+static int source_quality_hardware_register_immediate_symbol_expr(uint16_t hardware_base_id,
+    uint32_t hardware_register_offset, const M68kInstructionIR *instruction,
     int use_bit_domain, uint32_t value, char *symbol_expr, size_t symbol_expr_size) {
-  uint16_t domain_id;
-  const char *domain_name = NULL;
-  if (hardware_register == NULL || instruction == NULL || symbol_expr == NULL || symbol_expr_size == 0U) return 0;
+  if (instruction == NULL || symbol_expr == NULL || symbol_expr_size == 0U) return 0;
   if (!use_bit_domain) value = source_quality_immediate_domain_value_for_instruction_size(instruction, value);
-  if (platform_amiga_hardware_register_custom_immediate_expr(hardware_register, value, use_bit_domain, symbol_expr,
-      symbol_expr_size)) {
-    return 1;
-  }
-  domain_id = use_bit_domain ? hardware_register->bit_domain_id : hardware_register->value_domain_id;
-  if (domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
-  domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, domain_id);
-  if (domain_name == NULL || domain_name[0] == '\0') return 0;
-  return amiga_value_domain_symbolic_expr(domain_name, value, symbol_expr, symbol_expr_size);
+  return platform_facts_v2_hardware_base_offset_immediate_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    hardware_base_id, hardware_register_offset, value, use_bit_domain, symbol_expr, symbol_expr_size);
 }
 
 static int append_expected_hardware_register_value_domain_symbol_accesses_for_section(
@@ -12525,7 +12516,8 @@ static int append_expected_hardware_register_value_domain_symbol_accesses_for_se
     const M68kDecodeCandidate *candidate;
     M68kInstructionIR instruction;
     const M68kSimFormMetadata *metadata;
-    const AmigaOsHardwareRegisterInfo *hardware_register;
+    uint16_t hardware_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+    uint32_t hardware_register_offset = 0U;
     int use_bit_domain;
     size_t operand_index;
     if (observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) continue;
@@ -12539,8 +12531,10 @@ static int append_expected_hardware_register_value_domain_symbol_accesses_for_se
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) continue;
-    hardware_register = amiga_os_find_hardware_register_by_cpu_address(observation->address);
-    if (hardware_register == NULL) continue;
+    if (!platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        observation->address, &hardware_base_id, &hardware_register_offset)) {
+      continue;
+    }
     use_bit_domain =
       metadata->operation_type == M68K_SIM_OP_BIT_TEST ||
       metadata->operation_type == M68K_SIM_OP_BIT_SET ||
@@ -12550,8 +12544,8 @@ static int append_expected_hardware_register_value_domain_symbol_accesses_for_se
       char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
       uint32_t value = 0U;
       if (!m68k_ir_operand_immediate_value(&instruction.operands[operand_index], &value)) continue;
-      if (!source_quality_hardware_register_immediate_symbol_expr(hardware_register, &instruction, use_bit_domain,
-          value, symbol_expr, sizeof(symbol_expr))) continue;
+      if (!source_quality_hardware_register_immediate_symbol_expr(hardware_base_id, hardware_register_offset,
+          &instruction, use_bit_domain, value, symbol_expr, sizeof(symbol_expr))) continue;
       if (append_platform_operand_expr_semantic_use(section_analysis, candidate,
           M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE, (uint32_t)operand_index, symbol_expr,
           observation->confidence, "platform_hardware_register_value_domain_operand",
@@ -12617,7 +12611,6 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
       uint8_t access_kind = metadata->operand_access_kinds[operand_index];
       uint8_t base_reg = 0U;
       int16_t displacement = 0;
-      const AmigaOsHardwareRegisterInfo *hardware_register;
       size_t immediate_index;
       if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE &&
           access_kind != M68K_SIM_ACCESS_MEMORY_READ &&
@@ -12631,15 +12624,15 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
           displacement < 0) {
         continue;
       }
-      hardware_register = amiga_os_find_hardware_register_by_base_id_offset(state.address_base_id[base_reg],
-        (uint32_t)(uint16_t)displacement);
-      if (hardware_register == NULL) continue;
       for (immediate_index = 0U; immediate_index < instruction.operand_count; ++immediate_index) {
         char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
         uint32_t value = 0U;
         if (!m68k_ir_operand_immediate_value(&instruction.operands[immediate_index], &value)) continue;
-        if (!source_quality_hardware_register_immediate_symbol_expr(hardware_register, &instruction, use_bit_domain,
-            value, symbol_expr, sizeof(symbol_expr))) continue;
+        if (!source_quality_hardware_register_immediate_symbol_expr(state.address_base_id[base_reg],
+            (uint32_t)(uint16_t)displacement, &instruction, use_bit_domain, value, symbol_expr,
+            sizeof(symbol_expr))) {
+          continue;
+        }
         if (append_platform_operand_expr_semantic_use(section_analysis, candidate,
             M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE, (uint32_t)immediate_index, symbol_expr,
             M68K_FACT_CONFIDENCE_TOOL_INFERRED, "platform_hardware_base_register_value_domain_operand",

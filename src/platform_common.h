@@ -103,6 +103,8 @@ const char *platform_facts_v2_address_use_symbol_from_observation(uint8_t platfo
 int platform_facts_v2_hardware_base_offset_known(uint8_t platform_kind, uint16_t base_id, uint32_t offset);
 const char *platform_facts_v2_hardware_base_offset_symbol(uint8_t platform_kind, uint16_t base_id,
   uint32_t offset, char *symbol_buf, size_t symbol_buf_size);
+int platform_facts_v2_hardware_base_offset_immediate_expr(uint8_t platform_kind, uint16_t base_id,
+  uint32_t offset, uint32_t value, int use_bit_domain, char *expr, size_t expr_size);
 int platform_facts_v2_hardware_base_offset_value_expr(uint8_t platform_kind, uint16_t base_id,
   uint32_t offset, uint32_t value, char *expr, size_t expr_size);
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id);
