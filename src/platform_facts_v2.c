@@ -331,6 +331,13 @@ int platform_facts_v2_library_vector_lvo_for_symbol(uint8_t platform_kind, const
   return 1;
 }
 
+int platform_facts_v2_library_vector_lvo_matches_symbol(uint8_t platform_kind, int16_t lvo,
+    const char *symbol_name) {
+  int16_t expected_lvo = 0;
+  return platform_facts_v2_library_vector_lvo_for_symbol(platform_kind, symbol_name, &expected_lvo) &&
+    expected_lvo == lvo;
+}
+
 const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platform_kind, const char *library_name) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || library_name == NULL || library_name[0] == '\0')
     return NULL;

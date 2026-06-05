@@ -8565,17 +8565,15 @@ static int candidate_lea_app_base_address_to_address_reg(const M68kDecodeCandida
 static int candidate_is_exec_open_library_call(const M68kRenderBaseTraceState *state,
     const M68kDecodeCandidate *candidate) {
   int16_t lvo = 0;
-  const AmigaOsLibraryVectorInfo *open_library;
-  const AmigaOsLibraryVectorInfo *old_open_library;
   if (state == NULL || !state->addr_regs[6].known ||
       state->addr_regs[6].base_id != AMIGA_OS_BASE_ID_SYSBASE) {
     return 0;
   }
   if (!candidate_calls_a6_lvo(candidate, &lvo)) return 0;
-  open_library = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENLIBRARY);
-  old_open_library = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOLDOPENLIBRARY);
-  return (open_library != NULL && open_library->lvo == lvo) ||
-    (old_open_library != NULL && old_open_library->lvo == lvo);
+  return platform_facts_v2_library_vector_lvo_matches_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, lvo,
+      "_LVOOpenLibrary") ||
+    platform_facts_v2_library_vector_lvo_matches_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, lvo,
+      "_LVOOldOpenLibrary");
 }
 
 static int amiga_vector_is_open_library(const AmigaOsLibraryVectorInfo *vector) {
@@ -8587,14 +8585,13 @@ static int amiga_vector_is_open_library(const AmigaOsLibraryVectorInfo *vector) 
 static int candidate_is_exec_open_device_call(const M68kRenderBaseTraceState *state,
     const M68kDecodeCandidate *candidate) {
   int16_t lvo = 0;
-  const AmigaOsLibraryVectorInfo *open_device;
   if (state == NULL || !state->addr_regs[6].known ||
       state->addr_regs[6].base_id != AMIGA_OS_BASE_ID_SYSBASE) {
     return 0;
   }
   if (!candidate_calls_a6_lvo(candidate, &lvo)) return 0;
-  open_device = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENDEVICE);
-  return open_device != NULL && open_device->lvo == lvo;
+  return platform_facts_v2_library_vector_lvo_matches_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, lvo,
+    "_LVOOpenDevice");
 }
 
 static int render_lookup_record_device_call_from_iorequest(M68kRenderLookup *lookup,

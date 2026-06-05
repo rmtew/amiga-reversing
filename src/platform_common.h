@@ -161,6 +161,8 @@ int platform_facts_v2_calling_convention_preserved_data_mask(uint8_t platform_ki
 int platform_facts_v2_calling_convention_preserved_address_mask(uint8_t platform_kind, uint8_t *out_mask);
 int platform_facts_v2_library_vector_lvo_for_symbol(uint8_t platform_kind, const char *symbol_name,
   int16_t *out_lvo);
+int platform_facts_v2_library_vector_lvo_matches_symbol(uint8_t platform_kind, int16_t lvo,
+  const char *symbol_name);
 const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platform_kind, const char *library_name);
 const char *platform_facts_v2_library_name_for_base_name(uint8_t platform_kind, const char *base_name);
 const char *platform_facts_v2_library_base_name_for_name(uint8_t platform_kind, const char *name);

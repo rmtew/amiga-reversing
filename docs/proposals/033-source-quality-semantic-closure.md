@@ -6101,6 +6101,41 @@ call resolution yet. It only removes direct render-side table access for the
 name identity question, with focused assertions proving the Amiga mapping and
 non-Amiga fail-closed behavior.
 
+### Implemented Slice: LVO Call Predicates Use Platform Facts
+
+Render lookup still needs to recognise a few platform calls while it traces
+typed base flow. For example, an Exec-base call can prove that `D0` now contains
+the library base returned by `OpenLibrary`:
+
+```asm
+    move.l  SysBase,a6
+    lea     dos_library_name(pc),a1
+    jsr     _LVOOpenLibrary(a6)
+```
+
+The proof belongs to the typed-flow pass:
+
+```text
+A6 is proven SysBase
+  + accepted candidate is jsr (negative displacement,a6)
+  + displacement matches _LVOOpenLibrary or _LVOOldOpenLibrary
+  -> D0 receives the opened library base
+```
+
+The stale boundary was the last bullet. `m68k_analysis_render_lookup.c` opened
+the generated Amiga vector table by symbol id only to compare the candidate LVO
+number. That metadata question now goes through platform facts:
+
+```c
+platform_facts_v2_library_vector_lvo_matches_symbol(platform, lvo, "_LVOOpenLibrary");
+```
+
+The same helper handles the `OpenDevice` predicate. This is intentionally a
+predicate-only change: render lookup still owns the flow trace for now, while
+platform facts owns the mapping from `_LVO*` symbol names to signed offsets.
+Focused C assertions cover the positive OpenLibrary match, a wrong-symbol
+negative match, and non-Amiga fail-closed behavior.
+
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 
 Absolute hardware operand rendering had a stale fallback path after the
