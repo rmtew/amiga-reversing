@@ -3021,28 +3021,19 @@ static int render_asm_word_relative_lookup_table(M68kRenderIRPreview *preview,
 }
 
 static int format_copper_register_symbol(uint16_t copper_register_word, char *buf, size_t buf_size) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
-  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  const char *symbol;
   uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
   if ((copper_register_word & 1U) != 0U) return 0;
-  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-  if (hardware_register != NULL && hardware_register->symbol_name != NULL &&
-      hardware_register->symbol_name[0] != '\0') {
-    snprintf(buf, buf_size, "%s", hardware_register->symbol_name);
+  symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset, buf, buf_size);
+  if (symbol == NULL || symbol[0] == '\0') return 0;
+  if (symbol != buf) {
+    snprintf(buf, buf_size, "%s", symbol);
     return strlen(buf) + 1U < buf_size;
   }
-  hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-  if (hardware_field != NULL &&
-      platform_amiga_format_hardware_register_field_symbol(hardware_field, 0, buf, buf_size))
-    return 1;
-  hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-  if (hardware_range != NULL &&
-      platform_amiga_format_hardware_register_range_symbol(hardware_range, offset, 0, buf, buf_size))
-    return 1;
-  return 0;
+  return 1;
 }
 
 static int format_copper_register_value_expr(uint16_t copper_register_word, uint16_t value, char *buf,

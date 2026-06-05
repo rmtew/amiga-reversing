@@ -5661,6 +5661,39 @@ instead of becoming `MP_SIGBIT(a0)`. Existing `$80` absolute-slot tests continue
 to pass, proving that low-memory storage was not accidentally folded into the
 hardware guard.
 
+### Implemented Slice: Copper Register Names Use Platform Facts
+
+Copper-list rendering still had a direct hardware-table lookup for the register
+word in each `dc.w register,value` pair:
+
+```text
+copper register word
+  -> renderer searches CUSTOM register table
+  -> renderer searches CUSTOM field table
+  -> renderer searches CUSTOM range table
+  -> renderer formats the symbol
+```
+
+That is formatting, but it was still a duplicated platform decision. The
+symbol-name path now delegates to the same platform facts helper used by
+analysis and other render fallback code:
+
+```c
+platform_facts_v2_hardware_base_offset_symbol(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  offset,
+  buf,
+  buf_size);
+```
+
+The renderer still copies the returned symbol into its caller buffer because the
+facts helper may return either a static name such as `bplcon0` or a formatted
+field/range expression such as `aud0+ac_len`. The value-expression path still
+uses register metadata directly because it needs value-domain formatting, not
+only a register symbol. That is a remaining facts-API expansion candidate, not
+part of this symbol-name cleanup.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only
