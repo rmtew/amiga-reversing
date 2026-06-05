@@ -4765,7 +4765,8 @@ uint8_t format_lookup_asm_label_with_generation(const M68kRenderLookup *lookup, 
   if (lookup != NULL && lookup->object != NULL &&
       lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     const char *library_name = lookup_global_base_slot_library(lookup, section_index, offset);
-    const char *base_name = amiga_os_find_library_base_name(library_name);
+    const char *base_name = platform_facts_v2_library_base_name_for_library_name(
+      lookup->object->platform_backend_kind, library_name);
     if (base_name == NULL) base_name = library_name;
     if (base_name != NULL &&
         platform_amiga_format_global_base_slot_label(section_index, 'l', base_name, buf, buf_size)) {
@@ -6926,7 +6927,8 @@ const char *lookup_global_base_slot_library(const M68kRenderLookup *lookup, size
 static int base_field_owner_matches(const M68kRenderBaseFieldSlot *slot, const char *owner_name) {
   if (slot == NULL || owner_name == NULL || owner_name[0] == '\0') return 0;
   if (render_base_field_slot_owner_is_app_base(slot)) {
-    return platform_state_name_is_app_base(owner_name) || amiga_os_find_library_base_name(owner_name) != NULL;
+    return platform_state_name_is_app_base(owner_name) ||
+      platform_facts_v2_library_base_name_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, owner_name) != NULL;
   }
   return slot->owner_name[0] != '\0' && strcmp(slot->owner_name, owner_name) == 0;
 }
@@ -6936,8 +6938,7 @@ static int app_base_slot_symbol_name_from_library(const char *library_name, char
   const char *base_name;
   if (symbol_name != NULL && symbol_name_size != 0U) symbol_name[0] = '\0';
   if (library_name == NULL || library_name[0] == '\0') return 0;
-  base_name = amiga_os_find_library_base_name(library_name);
-  if (base_name == NULL && amiga_os_find_library_name_by_base_name(library_name) != NULL) base_name = library_name;
+  base_name = platform_facts_v2_library_base_name_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name);
   if (base_name == NULL) return 0;
   return platform_amiga_format_app_base_slot_name(base_name, symbol_name, symbol_name_size);
 }
@@ -6996,9 +6997,7 @@ static const char *library_base_struct_name_for_field_lookup(const char *owner_n
   const char *library_name;
   const char *struct_name;
   if (owner_name == NULL || owner_name[0] == '\0') return NULL;
-  library_name = amiga_os_find_library_base_name(owner_name) != NULL
-    ? owner_name
-    : amiga_os_find_library_name_by_base_name(owner_name);
+  library_name = platform_facts_v2_library_name_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, owner_name);
   if (library_name == NULL || library_name[0] == '\0') return NULL;
   struct_name = amiga_os_find_library_base_struct_name(library_name);
   if (struct_name != NULL && struct_name[0] != '\0') return struct_name;
@@ -7031,9 +7030,7 @@ static int library_base_has_specific_struct_name(const char *owner_name) {
   const char *struct_name;
   const char *common_struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, AMIGA_OS_STRUCT_ID_LIB);
   if (owner_name == NULL || owner_name[0] == '\0') return 0;
-  library_name = amiga_os_find_library_base_name(owner_name) != NULL
-    ? owner_name
-    : amiga_os_find_library_name_by_base_name(owner_name);
+  library_name = platform_facts_v2_library_name_for_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, owner_name);
   if (library_name == NULL || library_name[0] == '\0') return 0;
   struct_name = amiga_os_find_library_base_struct_name(library_name);
   return struct_name != NULL && struct_name[0] != '\0' &&

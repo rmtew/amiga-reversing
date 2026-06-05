@@ -331,6 +331,31 @@ int platform_facts_v2_library_vector_lvo_for_symbol(uint8_t platform_kind, const
   return 1;
 }
 
+const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platform_kind, const char *library_name) {
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || library_name == NULL || library_name[0] == '\0')
+    return NULL;
+  return amiga_os_find_library_base_name(library_name);
+}
+
+const char *platform_facts_v2_library_name_for_base_name(uint8_t platform_kind, const char *base_name) {
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_name == NULL || base_name[0] == '\0') return NULL;
+  return amiga_os_find_library_name_by_base_name(base_name);
+}
+
+const char *platform_facts_v2_library_base_name_for_name(uint8_t platform_kind, const char *name) {
+  const char *base_name;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || name == NULL || name[0] == '\0') return NULL;
+  base_name = amiga_os_find_library_base_name(name);
+  if (base_name != NULL && base_name[0] != '\0') return base_name;
+  return amiga_os_find_library_name_by_base_name(name) != NULL ? name : NULL;
+}
+
+const char *platform_facts_v2_library_name_for_name(uint8_t platform_kind, const char *name) {
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || name == NULL || name[0] == '\0') return NULL;
+  if (amiga_os_find_library_base_name(name) != NULL) return name;
+  return amiga_os_find_library_name_by_base_name(name);
+}
+
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
   return amiga_os_hardware_base_symbol(base_id);

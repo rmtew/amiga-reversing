@@ -6074,6 +6074,33 @@ This keeps existing `_custom` seed behaviour while closing another direct
 platforms fail closed, so a weak or misspelled seed cannot silently become a
 hardware-base proof.
 
+### Implemented Slice: Library/Base Names Use Platform Facts
+
+Some render helpers need to move between a platform library name and its base
+symbol:
+
+```text
+graphics.library <-> GfxBase
+intuition.library <-> IntuitionBase
+```
+
+That mapping is platform metadata. Render may still decide that a global slot
+or app-base field should be printed as a base symbol, but it should not open the
+generated Amiga tables to resolve the spelling. The name-only helpers are now
+available through platform facts:
+
+```c
+platform_facts_v2_library_base_name_for_library_name(platform, "graphics.library");
+platform_facts_v2_library_name_for_base_name(platform, "GfxBase");
+platform_facts_v2_library_base_name_for_name(platform, owner_name);
+platform_facts_v2_library_name_for_name(platform, owner_name);
+```
+
+This slice deliberately does not move struct-field lookup or library-vector
+call resolution yet. It only removes direct render-side table access for the
+name identity question, with focused assertions proving the Amiga mapping and
+non-Amiga fail-closed behavior.
+
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 
 Absolute hardware operand rendering had a stale fallback path after the
