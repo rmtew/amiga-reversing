@@ -5563,6 +5563,37 @@ producer-side Amiga typed-flow, recovered API-call, disk-read/runtime-copy, and
 base-slot facts into an analysis/platform module, then leave render lookup as
 formatting support only.
 
+### Implemented Slice: Render Hardware Offset Lookup Uses Platform Facts
+
+The renderer still had one duplicate Amiga hardware lookup path for base-relative
+operands:
+
+```text
+known custom base in address register
+  + displacement
+  -> renderer directly searches hardware register/field/range tables
+  -> renderer formats the symbol itself
+```
+
+That path is now fact-backed. Render import still prefers a
+`platform_address_use` produced by source-quality analysis. The legacy fallback
+used only when no source analysis is available now calls the platform facts
+helper instead of reimplementing base-id/offset lookup in `m68k_render_ir.c`:
+
+```c
+base_symbol = platform_facts_v2_hardware_base_offset_symbol(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  state->address_hardware_base_id[base_reg],
+  displacement,
+  symbol_name,
+  sizeof(symbol_name));
+```
+
+This does not make fallback rendering the desired ownership model. It narrows
+the remaining fallback to formatting support through the same platform facts
+API used by analysis, while keeping the source-analysis path authoritative when
+facts are present.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only
