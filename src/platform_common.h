@@ -91,6 +91,8 @@ const char *platform_facts_v2_hardware_base_offset_runtime_address_sink_data_cla
   uint16_t base_id, uint32_t offset);
 uint32_t platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(uint8_t platform_kind,
   uint16_t base_id, uint32_t offset);
+int platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(uint8_t platform_kind,
+  uint32_t sink_address, uint32_t length_register_address);
 uint16_t platform_facts_v2_runtime_address_storage_sink_kind(uint8_t platform_kind,
   const uint8_t *data, uint32_t size, uint32_t value_offset);
 const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t platform_kind,

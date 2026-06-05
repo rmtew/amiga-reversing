@@ -3451,9 +3451,8 @@ static int source_quality_runtime_ref_sink_address(const M68kDecodeSectionIR *se
 }
 
 static int source_quality_candidate_immediate_audio_length_bytes(const M68kDecodeCandidate *candidate,
-    uint32_t audio_register_offset, uint32_t *out_size) {
+    uint32_t sink_address, uint32_t *out_size) {
   M68kInstructionIR instruction;
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
   uint32_t immediate = 0U;
   uint32_t dest_address = 0U;
   if (out_size != NULL) *out_size = 0U;
@@ -3466,10 +3465,8 @@ static int source_quality_candidate_immediate_audio_length_bytes(const M68kDecod
       !source_quality_candidate_operand_absolute_value(candidate, 1U, &dest_address)) {
     return 0;
   }
-  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  if (hardware_field == NULL ||
-      hardware_field->register_offset != audio_register_offset ||
-      hardware_field->field_symbol_id != AMIGA_OS_SYMBOL_ID_AC_LEN) {
+  if (!platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      sink_address, dest_address)) {
     return 0;
   }
   *out_size = (immediate & 0xFFFFU) * 2U;
@@ -3479,13 +3476,11 @@ static int source_quality_candidate_immediate_audio_length_bytes(const M68kDecod
 static uint32_t source_quality_sound_sample_size_from_nearby_audio_length_write(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const M68kRuntimeAddressRefIR *ref, uint32_t sink_address) {
   const M68kDecodeCandidate *pointer_candidate;
-  const AmigaOsHardwareRegisterInfo *hardware_register;
   uint32_t cursor;
   uint8_t step;
   if (section == NULL || accepted_start == NULL || ref == NULL) return 0U;
-  hardware_register = amiga_os_find_hardware_register_by_cpu_address(sink_address);
-  if (hardware_register == NULL ||
-      hardware_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE) {
+  if ((platform_facts_v2_runtime_address_sink_data_class_flags(M68K_PLATFORM_BACKEND_AMIGA_HUNK, sink_address) &
+      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE) == 0U) {
     return 0U;
   }
   pointer_candidate = m68k_decode_ir_find_candidate_at_offset(section, ref->offset);
@@ -3495,7 +3490,7 @@ static uint32_t source_quality_sound_sample_size_from_nearby_audio_length_write(
     const M68kDecodeCandidate *candidate = m68k_decode_ir_find_candidate_at_offset(section, cursor);
     uint32_t size = 0U;
     if (candidate == NULL || candidate->byte_count == 0U) return 0U;
-    if (source_quality_candidate_immediate_audio_length_bytes(candidate, hardware_register->offset, &size))
+    if (source_quality_candidate_immediate_audio_length_bytes(candidate, sink_address, &size))
       return size;
     cursor += candidate->byte_count;
   }
@@ -5223,7 +5218,7 @@ static int source_quality_audio_pointer_write_source_reg(const M68kDecodeCandida
   const M68kSimFormMetadata *metadata;
   size_t source_index = 0U, dest_index = 0U;
   uint32_t dest_address = 0U;
-  uint16_t sink_kind;
+  uint32_t sink_role_flags;
   if (out_reg != NULL) *out_reg = 0U;
   if (candidate == NULL || instruction == NULL || out_reg == NULL ||
       instruction->size_suffix != 'l' ||
@@ -5234,8 +5229,9 @@ static int source_quality_audio_pointer_write_source_reg(const M68kDecodeCandida
       !source_quality_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
     return 0;
   }
-  sink_kind = platform_facts_v2_runtime_address_sink_kind(M68K_PLATFORM_BACKEND_AMIGA_HUNK, dest_address);
-  return sink_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE;
+  sink_role_flags = platform_facts_v2_runtime_address_sink_data_class_flags(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    dest_address);
+  return (sink_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE) != 0U;
 }
 
 static int format_source_quality_audio_length_source_note(const M68kSourceQualityAudioLengthSource *source,

@@ -727,6 +727,28 @@ uint32_t platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_
   }
 }
 
+int platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(uint8_t platform_kind,
+    uint32_t sink_address, uint32_t length_register_address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterInfo *sink_register =
+      platform_facts_v2_amiga_runtime_address_sink_register(sink_address);
+    const AmigaOsHardwareRegisterFieldInfo *length_field;
+    if (sink_register == NULL ||
+        sink_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE) {
+      return 0;
+    }
+    length_field = amiga_os_find_hardware_register_field_by_cpu_address(length_register_address);
+    return length_field != NULL &&
+      length_field->register_offset == sink_register->offset &&
+      length_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN;
+  }
+  default:
+    return 0;
+  }
+}
+
 uint16_t platform_facts_v2_runtime_address_storage_sink_kind(uint8_t platform_kind,
     const uint8_t *data, uint32_t size, uint32_t value_offset) {
   switch (platform_kind) {

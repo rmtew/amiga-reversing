@@ -5948,6 +5948,41 @@ from the existing platform-facts data-class APIs. Bitmap detection now checks
 `M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP` instead of comparing an Amiga
 runtime-kind enum in source-quality.
 
+### Implemented Slice: Audio Sample Sink Length Uses Platform Facts
+
+Audio sample reconstruction has a second-order source-quality rule:
+
+```asm
+    move.l  a0,aud0+ac_ptr
+    move.w  #$0120,aud0+ac_len
+```
+
+The first write proves the runtime sink role: `a0` points at sound sample data.
+The nearby length write can then give the sample byte size. The proof is still
+instruction-local and flow-local:
+
+```text
+accepted long write to runtime sink
+  + sink role flags include SOUND_SAMPLE
+  + nearby accepted word write
+  + word write targets that same audio channel's length register
+  -> sound-sample structured data size = immediate_words * 2
+```
+
+The old code checked the sink register kind and `ac_len` hardware field by
+opening Amiga metadata directly. Platform facts now owns that relationship:
+
+```c
+platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  0x00DFF0A0,  /* aud0 pointer sink */
+  0x00DFF0A4); /* aud0 length field */
+```
+
+Source-quality now asks for structured role flags to identify a sound-sample
+sink and uses the helper above to match the channel length register. It no
+longer compares Amiga runtime-kind enums or field ids for this rule.
+
 ### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
 
 Materialized runtime storage/code patch rendering had another duplicate guard:
