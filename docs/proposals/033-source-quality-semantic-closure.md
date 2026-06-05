@@ -6197,6 +6197,32 @@ render lookup no longer opens generated Amiga tables merely to validate library
 or base-name spelling. Focused C assertions now include non-Amiga fail-closed
 coverage for both library-name and base-name inputs.
 
+### Implemented Slice: Render-Lookup Library Identity Uses Platform Facts
+
+Render lookup also carried a lower-level version of the same leak: once it had a
+library spelling or base id, it converted through generated Amiga name tables to
+store or compare internal ids:
+
+```c
+amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
+amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id);
+amiga_os_find_library_name_by_base_id(base_id);
+```
+
+Those conversions now go through platform facts:
+
+```c
+platform_facts_v2_library_id_for_library_name(platform, library_name, &library_id);
+platform_facts_v2_library_name_for_id(platform, library_id);
+platform_facts_v2_library_name_for_base_id(platform, base_id);
+```
+
+This is still a boundary-cleanup slice, not the final typed-flow migration.
+Render lookup still stores ids in existing slot records because that is the
+current data model. The platform decision about whether a library name/base id
+is known, and what its canonical spelling is, no longer comes from generated
+tables inside render lookup.
+
 ### Implemented Slice: LVO Call Predicates Use Platform Facts
 
 Render lookup still needs to recognise a few platform calls while it traces

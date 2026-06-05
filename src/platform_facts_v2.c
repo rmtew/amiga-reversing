@@ -339,6 +339,42 @@ int platform_facts_v2_library_vector_lvo_matches_symbol(uint8_t platform_kind, i
     expected_lvo == lvo;
 }
 
+int platform_facts_v2_library_id_for_library_name(uint8_t platform_kind, const char *library_name,
+    uint16_t *out_library_id) {
+  uint16_t library_id = 0U;
+  if (out_library_id != NULL) *out_library_id = 0U;
+  if (library_name == NULL || library_name[0] == '\0') return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
+    if (library_id == 0U || amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id) == NULL) return 0;
+    if (out_library_id != NULL) *out_library_id = library_id;
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+const char *platform_facts_v2_library_name_for_id(uint8_t platform_kind, uint16_t library_id) {
+  if (library_id == 0U) return NULL;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id);
+  default:
+    return NULL;
+  }
+}
+
+const char *platform_facts_v2_library_name_for_base_id(uint8_t platform_kind, uint16_t base_id) {
+  if (base_id == 0U) return NULL;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_find_library_name_by_base_id(base_id);
+  default:
+    return NULL;
+  }
+}
+
 const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platform_kind, const char *library_name) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || library_name == NULL || library_name[0] == '\0')
     return NULL;

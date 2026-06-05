@@ -5368,14 +5368,14 @@ static const char *unique_library_for_observed_lvos(const M68kRenderGlobalBaseOb
     if (vector == NULL) continue;
     if (library_id_seen_local(seen_ids, seen_count, vector->library_id)) continue;
     if (seen_count < sizeof(seen_ids) / sizeof(seen_ids[0])) seen_ids[seen_count++] = vector->library_id;
-    library_name = amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, vector->library_id);
+    library_name = platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, vector->library_id);
     base_name = render_lookup_amiga_library_base_name_for_library_name(library_name);
     if (library_name == NULL || base_name == NULL) continue;
     if (!library_has_all_observed_lvos(base_name, observation)) continue;
     if (matched_library_id != 0U && matched_library_id != vector->library_id) return NULL;
     matched_library_id = vector->library_id;
   }
-  return matched_library_id != 0U ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, matched_library_id) : NULL;
+  return platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, matched_library_id);
 }
 
 static int render_lookup_add_global_base_slot(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
@@ -5387,8 +5387,9 @@ static int render_lookup_add_global_base_slot(M68kRenderLookup *lookup, size_t s
   const char *canonical_library_name;
   uint8_t has_source = source_section_index != SIZE_MAX && source_offset != UINT32_MAX;
   if (lookup == NULL || library_name == NULL || library_name[0] == '\0') return 0;
-  library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
-  canonical_library_name = library_id != 0U ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id) : NULL;
+  if (!platform_facts_v2_library_id_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name, &library_id))
+    return 0;
+  canonical_library_name = platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_id);
   if (canonical_library_name == NULL || canonical_library_name[0] == '\0' ||
       render_lookup_amiga_library_base_name_for_library_name(canonical_library_name) == NULL) {
     return 0;
@@ -5472,8 +5473,11 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
       value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE) {
     if (slot_library_name[0] == '\0' ||
         render_lookup_amiga_library_base_name_for_library_name(slot_library_name) == NULL) return 0;
+    if (!platform_facts_v2_library_id_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, slot_library_name,
+        &slot_library_id)) {
+      return 0;
+    }
     has_slot_library_id = 1U;
-    slot_library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, slot_library_name);
   } else if (value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS) {
     if (owner_kind != M68K_RENDER_BASE_FIELD_SLOT_OWNER_APP_BASE) return 0;
   } else if (symbol_name == NULL || symbol_name[0] == '\0') {
@@ -6229,7 +6233,8 @@ int render_lookup_add_indexed_vector_wrapper(M68kRenderLookup *lookup, size_t se
   uint16_t library_id;
   if (lookup == NULL || index_reg >= 8U || library_name == NULL || library_name[0] == '\0') return 0;
   if (render_lookup_amiga_library_base_name_for_library_name(library_name) == NULL) return 0;
-  library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
+  if (!platform_facts_v2_library_id_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_name, &library_id))
+    return 0;
   for (index = 0U; index < lookup->indexed_vector_wrapper_count; ++index) {
     M68kRenderIndexedVectorWrapper *wrapper = &lookup->indexed_vector_wrappers[index];
     if (wrapper->section_index != section_index || wrapper->offset != offset) continue;
@@ -6933,7 +6938,7 @@ static const char *amiga_library_base_name_for_render_effect(const char *library
 }
 
 static const char *amiga_library_base_name_for_render_effect_id(uint16_t library_id) {
-  const char *library_name = library_id != 0U ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id) : NULL;
+  const char *library_name = platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_id);
   return amiga_library_base_name_for_render_effect(library_name);
 }
 
@@ -8165,7 +8170,7 @@ static const char *trace_library_from_operand(const M68kRenderBaseTraceState *st
     const M68kOperandIR *operand) {
   const M68kRenderTraceRegName *reg = trace_reg_from_operand(state, operand);
   if (reg == NULL || reg->base_id == AMIGA_OS_BASE_ID_NONE) return NULL;
-  return amiga_os_find_library_name_by_base_id(reg->base_id);
+  return platform_facts_v2_library_name_for_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, reg->base_id);
 }
 
 static const char *trace_local_slot_library(const M68kRenderBaseTraceState *state, uint8_t base_reg,
@@ -8389,7 +8394,7 @@ static const char *trace_local_slot_library(const M68kRenderBaseTraceState *stat
   for (index = 0U; index < sizeof(state->local_slots) / sizeof(state->local_slots[0]); ++index) {
     const M68kRenderTraceLocalSlot *slot = &state->local_slots[index];
     if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement)
-      return slot->base_id != AMIGA_OS_BASE_ID_NONE ? amiga_os_find_library_name_by_base_id(slot->base_id) : NULL;
+      return platform_facts_v2_library_name_for_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, slot->base_id);
   }
   return NULL;
 }
@@ -9603,7 +9608,7 @@ static int analysis_record_platform_vector_call(M68kSourceAnalysisBuildStats *st
   if (note_kind != M68K_PLATFORM_CALL_NOTE_NONE) {
     note_symbol_name = symbol_name;
     symbol_name = NULL;
-    library_name = amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, vector->library_id);
+    library_name = platform_facts_v2_library_name_for_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, vector->library_id);
     note_base_name = render_lookup_amiga_library_base_name_for_library_name(library_name);
   }
   available_since = vector->available_since_raw;

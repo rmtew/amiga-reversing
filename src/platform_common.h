@@ -164,6 +164,10 @@ int platform_facts_v2_library_vector_lvo_for_symbol(uint8_t platform_kind, const
   int16_t *out_lvo);
 int platform_facts_v2_library_vector_lvo_matches_symbol(uint8_t platform_kind, int16_t lvo,
   const char *symbol_name);
+int platform_facts_v2_library_id_for_library_name(uint8_t platform_kind, const char *library_name,
+  uint16_t *out_library_id);
+const char *platform_facts_v2_library_name_for_id(uint8_t platform_kind, uint16_t library_id);
+const char *platform_facts_v2_library_name_for_base_id(uint8_t platform_kind, uint16_t base_id);
 const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platform_kind, const char *library_name);
 const char *platform_facts_v2_library_name_for_base_name(uint8_t platform_kind, const char *base_name);
 const char *platform_facts_v2_library_base_name_for_name(uint8_t platform_kind, const char *name);

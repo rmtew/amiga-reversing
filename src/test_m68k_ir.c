@@ -13708,6 +13708,7 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   PlatformFactsV2CallInput call_input;
   size_t call_input_count = 0U;
   uint8_t preserved_mask = 0U;
+  uint16_t library_id = 0U;
   int16_t lvo = 0;
   int32_t an_icon_lib = 0;
   int32_t ag_open_lib = 0;
@@ -13845,6 +13846,18 @@ static int test_platform_facts_v2_address_use_helpers(void) {
     -552, "_LVOOpenDevice"));
   M68K_C_ASSERT(!platform_facts_v2_library_vector_lvo_matches_symbol(M68K_PLATFORM_BACKEND_ATARI_ST,
     -552, "_LVOOpenLibrary"));
+  M68K_C_ASSERT(platform_facts_v2_library_id_for_library_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "graphics.library", &library_id));
+  M68K_C_ASSERT(library_id != 0U);
+  M68K_C_ASSERT_STR("graphics.library", platform_facts_v2_library_name_for_id(
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, library_id));
+  M68K_C_ASSERT(!platform_facts_v2_library_id_for_library_name(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "graphics.library", &library_id));
+  M68K_C_ASSERT_U32(0U, library_id);
+  M68K_C_ASSERT_STR("graphics.library", platform_facts_v2_library_name_for_base_id(
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, AMIGA_OS_BASE_ID_GFXBASE));
+  M68K_C_ASSERT(platform_facts_v2_library_name_for_base_id(M68K_PLATFORM_BACKEND_ATARI_ST,
+    AMIGA_OS_BASE_ID_GFXBASE) == NULL);
   M68K_C_ASSERT_STR("GfxBase", platform_facts_v2_library_base_name_for_library_name(
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, "graphics.library"));
   M68K_C_ASSERT_STR("graphics.library", platform_facts_v2_library_name_for_base_name(
