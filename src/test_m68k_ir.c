@@ -19877,6 +19877,10 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A0U));
   M68K_C_ASSERT(platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A0U, 0x00DFF0A4U));
+  M68K_C_ASSERT(platform_facts_v2_is_audio_length_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A4U));
+  M68K_C_ASSERT(platform_facts_v2_is_audio_period_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A6U));
+  M68K_C_ASSERT(!platform_facts_v2_is_audio_length_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A6U));
+  M68K_C_ASSERT(!platform_facts_v2_is_audio_period_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A4U));
   M68K_C_ASSERT(!platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A0U, 0x00DFF0A6U));
   M68K_C_ASSERT(!platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(

@@ -5176,7 +5176,6 @@ static const M68kSourceQualityAudioPointerSource *source_quality_audio_pointer_s
 static int source_quality_audio_length_write_source_reg(const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t *out_reg) {
   const M68kSimFormMetadata *metadata;
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
   size_t source_index = 0U, dest_index = 0U;
   uint32_t dest_address = 0U;
   if (out_reg != NULL) *out_reg = 0U;
@@ -5189,14 +5188,12 @@ static int source_quality_audio_length_write_source_reg(const M68kDecodeCandidat
       !source_quality_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
     return 0;
   }
-  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN;
+  return platform_facts_v2_is_audio_length_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, dest_address);
 }
 
 static int source_quality_audio_period_write_source_reg(const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t *out_reg) {
   const M68kSimFormMetadata *metadata;
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
   size_t source_index = 0U, dest_index = 0U;
   uint32_t dest_address = 0U;
   if (out_reg != NULL) *out_reg = 0U;
@@ -5209,8 +5206,7 @@ static int source_quality_audio_period_write_source_reg(const M68kDecodeCandidat
       !source_quality_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
     return 0;
   }
-  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER;
+  return platform_facts_v2_is_audio_period_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, dest_address);
 }
 
 static int source_quality_audio_pointer_write_source_reg(const M68kDecodeCandidate *candidate,

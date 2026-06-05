@@ -5983,6 +5983,30 @@ Source-quality now asks for structured role flags to identify a sound-sample
 sink and uses the helper above to match the channel length register. It no
 longer compares Amiga runtime-kind enums or field ids for this rule.
 
+The audio source tracker has the same boundary:
+
+```text
+move.w d0,aud0+ac_len
+  -> source-quality proves register write shape and source register
+  -> platform facts says destination is an audio length register
+  -> source-quality records "length came from d0"
+
+move.w d1,aud0+ac_per
+  -> source-quality proves register write shape and source register
+  -> platform facts says destination is an audio period register
+  -> source-quality records "period came from d1"
+```
+
+Those checks now use:
+
+```c
+platform_facts_v2_is_audio_length_register(platform, address);
+platform_facts_v2_is_audio_period_register(platform, address);
+```
+
+The tracker no longer opens Amiga hardware-field metadata just to distinguish
+`ac_len` from `ac_per`.
+
 ### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
 
 Materialized runtime storage/code patch rendering had another duplicate guard:

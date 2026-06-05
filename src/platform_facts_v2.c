@@ -749,6 +749,32 @@ int platform_facts_v2_runtime_sound_sample_length_register_matches_sink_address(
   }
 }
 
+int platform_facts_v2_is_audio_length_register(uint8_t platform_kind, uint32_t address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterFieldInfo *hardware_field =
+      amiga_os_find_hardware_register_field_by_cpu_address(address);
+    return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN;
+  }
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_is_audio_period_register(uint8_t platform_kind, uint32_t address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterFieldInfo *hardware_field =
+      amiga_os_find_hardware_register_field_by_cpu_address(address);
+    return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER;
+  }
+  default:
+    return 0;
+  }
+}
+
 uint16_t platform_facts_v2_runtime_address_storage_sink_kind(uint8_t platform_kind,
     const uint8_t *data, uint32_t size, uint32_t value_offset) {
   switch (platform_kind) {
