@@ -85,6 +85,7 @@ typedef struct PlatformFactsV2ResolvedCall {
 typedef struct PlatformFactsV2CallInput {
   uint8_t reg_kind;
   uint8_t reg_index;
+  uint8_t has_struct_type;
   uint8_t has_value_domain;
   uint8_t is_string_pointer;
   uint8_t is_write_buffer;

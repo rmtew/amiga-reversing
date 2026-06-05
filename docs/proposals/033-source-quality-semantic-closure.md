@@ -6275,6 +6275,33 @@ facts. The local code converts the returned type name back into the existing
 struct-id storage only at the point where the current typed-slot data model
 requires it.
 
+### Implemented Slice: Typed-Flow Call Inputs Use Platform Facts
+
+The general typed-flow path had the same remaining vector-input leak. Once a
+call vector was known, render lookup still walked generated input rows to decide
+which address registers carried platform struct pointers:
+
+```c
+inputs = amiga_os_library_vector_inputs(vector, &input_count);
+if (inputs[index].struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+    typed_state_set_reg_struct_id(...);
+}
+```
+
+That logic now consumes `PlatformFactsV2CallInput` descriptors instead:
+
+```c
+platform_facts_v2_call_input_count_for_symbol(platform, symbol_name, &count);
+platform_facts_v2_call_input_at(platform, symbol_name, index, &input);
+```
+
+The descriptor now carries `has_struct_type`, which distinguishes a real
+platform struct input from a primitive type name. Render lookup still translates
+the returned `type_name` into the current internal struct-id storage because the
+typed-flow state has not yet been converted to name/domain storage. The metadata
+decision, however, is no longer made by opening generated Amiga vector input
+tables in render lookup.
+
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 
 Absolute hardware operand rendering had a stale fallback path after the

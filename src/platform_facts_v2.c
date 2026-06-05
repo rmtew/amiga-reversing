@@ -210,6 +210,7 @@ static int platform_facts_v2_amiga_populate_call_input(const AmigaOsLibraryVecto
   if (vector == NULL || input == NULL || out_input == NULL) return 0;
   out_input->reg_kind = input->reg_kind;
   out_input->reg_index = input->reg_index;
+  out_input->has_struct_type = input->struct_id != AMIGA_OS_STRUCT_ID_NONE;
   out_input->has_value_domain = input->value_domain_id != AMIGA_OS_VALUE_DOMAIN_ID_NONE;
   out_input->is_string_pointer = input->semantic_kind_id == AMIGA_OS_SEMANTIC_KIND_ID_STRING_PTR;
   out_input->is_write_buffer =

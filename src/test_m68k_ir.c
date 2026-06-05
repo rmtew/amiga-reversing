@@ -13806,6 +13806,7 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT(platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     "_LVOAlert", 1U, 7U, &call_input));
   M68K_C_ASSERT(call_input.has_value_domain);
+  M68K_C_ASSERT(!call_input.has_struct_type);
   M68K_C_ASSERT_STR("exec.alert.number", call_input.value_domain_name);
   M68K_C_ASSERT(!platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_ATARI_ST,
     "_LVOAlert", 1U, 7U, &call_input));
@@ -13817,6 +13818,7 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT(call_input.is_write_length);
   M68K_C_ASSERT(platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     "_LVOOpenDevice", AMIGA_OS_REGISTER_ADDRESS, 1U, &call_input));
+  M68K_C_ASSERT(call_input.has_struct_type);
   M68K_C_ASSERT_STR("iORequest", call_input.input_name);
   M68K_C_ASSERT_STR("IO", call_input.type_name);
   M68K_C_ASSERT(platform_facts_v2_calling_convention_preserved_data_mask(M68K_PLATFORM_BACKEND_AMIGA_HUNK,

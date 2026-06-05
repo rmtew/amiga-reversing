@@ -1024,6 +1024,7 @@ static int platform_call_input_equal(const PlatformFactsV2CallInput *left,
   if (left == NULL || right == NULL) return 0;
   return left->reg_kind == right->reg_kind &&
     left->reg_index == right->reg_index &&
+    left->has_struct_type == right->has_struct_type &&
     left->has_value_domain == right->has_value_domain &&
     left->is_string_pointer == right->is_string_pointer &&
     left->is_write_buffer == right->is_write_buffer &&
@@ -3001,11 +3002,12 @@ static int render_lookup_add_bootblock_runtime_copy(M68kRenderLookup *lookup, si
 }
 
 static void typed_flow_apply_call_input_alias_type(uint8_t platform_kind, size_t section_index, uint32_t offset,
-    M68kRenderTypedState *state, const AmigaOsCallInputInfo *input, int *io_changed) {
+    M68kRenderTypedState *state, const PlatformFactsV2CallInput *input, uint16_t input_struct_id,
+    int *io_changed) {
   uint8_t source_reg;
   uint8_t preserved_address;
   M68kRenderTypedProvenance provenance;
-  if (state == NULL || input == NULL || input->struct_id == AMIGA_OS_STRUCT_ID_NONE ||
+  if (state == NULL || input == NULL || input_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
       input->reg_kind != AMIGA_OS_REGISTER_ADDRESS || input->reg_index >= 8U ||
       !m68k_bitset_u32_has(state->addr_reg_alias_known, input->reg_index)) {
     return;
@@ -3018,12 +3020,12 @@ static void typed_flow_apply_call_input_alias_type(uint8_t platform_kind, size_t
   if ((preserved_address & (uint8_t)(1U << source_reg)) == 0U) return;
   provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_API_INPUT, section_index, offset);
   if (state->addr_regs[source_reg].known == 0U) {
-    typed_state_set_reg_struct_id(state, AMIGA_OS_REGISTER_ADDRESS, source_reg, input->struct_id, &provenance);
+    typed_state_set_reg_struct_id(state, AMIGA_OS_REGISTER_ADDRESS, source_reg, input_struct_id, &provenance);
     if (io_changed != NULL) *io_changed = 1;
-  } else if (state->addr_regs[source_reg].struct_id != input->struct_id) {
+  } else if (state->addr_regs[source_reg].struct_id != input_struct_id) {
     int conflict = 0;
     uint16_t merged_struct_id = typed_struct_id_refined_merge(state->addr_regs[source_reg].struct_id,
-      input->struct_id, &conflict);
+      input_struct_id, &conflict);
     if (conflict == 0U && merged_struct_id != AMIGA_OS_STRUCT_ID_NONE &&
         merged_struct_id != state->addr_regs[source_reg].struct_id) {
       state->addr_regs[source_reg].struct_id = merged_struct_id;
@@ -3037,43 +3039,48 @@ static void typed_flow_apply_call_input_alias_type(uint8_t platform_kind, size_t
 static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, uint8_t platform_kind, size_t section_index,
     uint32_t offset, M68kRenderTypedState *state, const AmigaOsLibraryVectorInfo *vector,
     int allow_lookup_storage, int *io_changed) {
-  const AmigaOsCallInputInfo *inputs;
+  const char *symbol_name;
   size_t input_count = 0U;
   size_t index;
   if (lookup == NULL || state == NULL || vector == NULL) return 0;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL) return 0;
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  if (!platform_facts_v2_call_input_count_for_symbol(platform_kind, symbol_name, &input_count)) return 0;
   for (index = 0U; index < input_count; ++index) {
-    const AmigaOsCallInputInfo *input = &inputs[index];
+    PlatformFactsV2CallInput input;
+    uint16_t input_struct_id;
     int added = 0;
-    if (input->struct_id == AMIGA_OS_STRUCT_ID_NONE ||
-        input->reg_kind != AMIGA_OS_REGISTER_ADDRESS || input->reg_index >= 8U) {
+    if (!platform_facts_v2_call_input_at(platform_kind, symbol_name, index, &input)) continue;
+    if (!input.has_struct_type || input.reg_kind != AMIGA_OS_REGISTER_ADDRESS || input.reg_index >= 8U) {
       continue;
     }
-    if (allow_lookup_storage && state->app_addr_regs[input->reg_index].known) {
-      if (render_lookup_add_typed_app_slot_region(lookup, state->app_addr_regs[input->reg_index].displacement,
-          input->struct_id, section_index, offset, &added) != 0) {
+    input_struct_id = lookup_policy_struct_id_by_name(lookup->policy, input.type_name);
+    if (input_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
+    if (allow_lookup_storage && state->app_addr_regs[input.reg_index].known) {
+      if (render_lookup_add_typed_app_slot_region(lookup, state->app_addr_regs[input.reg_index].displacement,
+          input_struct_id, section_index, offset, &added) != 0) {
         return -1;
       }
       if (added && io_changed != NULL) *io_changed = 1;
     }
-    if (state->addr_regs[input->reg_index].known &&
-        state->addr_regs[input->reg_index].struct_id != input->struct_id &&
-        amiga_struct_prefix_chain_contains(input->struct_id, state->addr_regs[input->reg_index].struct_id)) {
+    if (state->addr_regs[input.reg_index].known &&
+        state->addr_regs[input.reg_index].struct_id != input_struct_id &&
+        amiga_struct_prefix_chain_contains(input_struct_id, state->addr_regs[input.reg_index].struct_id)) {
       int refined = 0;
-      uint16_t root_struct_id = state->addr_regs[input->reg_index].struct_id;
-      M68kRenderTypedRegValue input_value = state->addr_regs[input->reg_index];
-      if (typed_state_refine_address_reg_from_prefix(lookup, state, input->reg_index,
-          root_struct_id, input->struct_id, section_index, offset, &refined) != 0) {
+      uint16_t root_struct_id = state->addr_regs[input.reg_index].struct_id;
+      M68kRenderTypedRegValue input_value = state->addr_regs[input.reg_index];
+      if (typed_state_refine_address_reg_from_prefix(lookup, state, input.reg_index,
+          root_struct_id, input_struct_id, section_index, offset, &refined) != 0) {
         return -1;
       }
-      if (typed_state_promote_matching_stored_values(state, &input_value, root_struct_id, input->struct_id,
+      if (typed_state_promote_matching_stored_values(state, &input_value, root_struct_id, input_struct_id,
           section_index, offset)) {
         refined = 1;
       }
       if (refined && io_changed != NULL) *io_changed = 1;
     }
-    typed_flow_apply_call_input_alias_type(platform_kind, section_index, offset, state, input, io_changed);
+    typed_flow_apply_call_input_alias_type(platform_kind, section_index, offset, state, &input, input_struct_id,
+      io_changed);
   }
   return 0;
 }
@@ -4413,15 +4420,21 @@ cleanup:
 }
 
 static int amiga_vector_has_typed_flow_info(const AmigaOsLibraryVectorInfo *vector) {
-  const AmigaOsCallInputInfo *inputs;
+  const char *symbol_name;
   size_t input_count = 0U;
   size_t index;
   if (vector == NULL) return 0;
   if (amiga_output_has_typed_info(&vector->output)) return 1;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL) return 0;
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  if (!platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, &input_count))
+    return 0;
   for (index = 0U; index < input_count; ++index) {
-    if (inputs[index].struct_id != AMIGA_OS_STRUCT_ID_NONE) return 1;
+    PlatformFactsV2CallInput input;
+    if (platform_facts_v2_call_input_at(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, index, &input) &&
+        input.has_struct_type) {
+      return 1;
+    }
   }
   return 0;
 }
