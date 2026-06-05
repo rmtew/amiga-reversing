@@ -6520,3 +6520,14 @@ owners are both exclusions.
 - Do not hand-edit generated target source as the fix.
 - Do not hide incomplete analysis behind fallback rendering.
 - Do not treat exact round-trip as proof of semantic source quality.
+
+## Later Observations
+
+- The CDP disk-project smoke test exposed that opening
+  `amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec`
+  takes about 111 seconds to render source, while the reported facts/profile
+  stages account for only a few seconds. The smoke test now opens the smaller
+  bootblock target after proving the `king` hunk target is listed, but the
+  timing gap should be profiled separately. This is not a reason to weaken
+  source-quality validation; it is evidence that source-plan/render timing
+  needs better instrumentation and a clean performance fix.

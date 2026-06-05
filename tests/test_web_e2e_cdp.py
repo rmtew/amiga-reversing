@@ -4936,12 +4936,24 @@ def test_brave_cdp_disk_project_browsing_and_target_listing(
         assert page.evaluate("document.querySelector('[data-tab=\"targets\"]')?.classList.contains('active')")
         page.click("[data-tab='contents']")
         page.wait_for_expression("document.querySelector(\"[data-tab-panel='contents']\").hidden === false")
-        page.evaluate("document.querySelectorAll('.disk-target-button')[1].click()")
+        page.wait_for_expression(
+            """
+            Array.from(document.querySelectorAll('.disk-target-button'))
+              .some((button) => button.textContent.includes('king'))
+            """
+        )
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.disk-target-button'))
+              .find((button) => button.textContent.includes('Boot Block'))
+              .click()
+            """
+        )
         page.wait_for_expression(
             "document.querySelectorAll('.listing-row-instruction').length > 0",
             timeout=45.0,
         )
-        assert page.evaluate("location.pathname.includes('amiga_hunk_')")
+        assert page.evaluate("location.pathname.includes('amiga_raw_bootblock')")
         page.assert_no_errors()
 
 
