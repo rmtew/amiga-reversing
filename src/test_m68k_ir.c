@@ -19943,6 +19943,16 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT_STR("disk DMA read 16000 bytes", note);
   M68K_C_ASSERT(!platform_facts_v2_hardware_access_note_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
     0x00DFF024U, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U, 0x9F40U, &semantic_use_kind, note, sizeof(note)));
+  M68K_C_ASSERT(platform_facts_v2_display_setup_register_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF100U, &semantic_use_kind));
+  M68K_C_ASSERT_U32(PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPLCON0, semantic_use_kind);
+  M68K_C_ASSERT(platform_facts_v2_display_setup_register_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF092U, &semantic_use_kind));
+  M68K_C_ASSERT_U32(PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DDFSTRT, semantic_use_kind);
+  M68K_C_ASSERT(!platform_facts_v2_display_setup_register_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF024U, &semantic_use_kind));
+  M68K_C_ASSERT(!platform_facts_v2_display_setup_register_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
+    0x00DFF100U, &semantic_use_kind));
   return 0;
 }
 

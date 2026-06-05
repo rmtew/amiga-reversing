@@ -2275,54 +2275,50 @@ static int source_quality_candidate_operand_absolute_value(const M68kDecodeCandi
 }
 
 static int source_quality_display_setup_record_register_write(M68kSourceQualityDisplaySetup *setup,
-    const AmigaOsHardwareRegisterInfo *hardware_register, uint32_t value) {
+    uint8_t register_kind, uint32_t value) {
   uint16_t word = (uint16_t)value;
-  if (setup == NULL || hardware_register == NULL) return 0;
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0) {
-    setup->has_bplcon0 = 1U;
-    setup->bplcon0 = word;
-    return 1;
+  if (setup == NULL) return 0;
+  switch (register_kind) {
+    case PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPLCON0:
+      setup->has_bplcon0 = 1U;
+      setup->bplcon0 = word;
+      return 1;
+    case PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DIWSTRT:
+      setup->has_diwstrt = 1U;
+      setup->diwstrt = word;
+      return 1;
+    case PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DIWSTOP:
+      setup->has_diwstop = 1U;
+      setup->diwstop = word;
+      return 1;
+    case PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DDFSTRT:
+      setup->has_ddfstrt = 1U;
+      setup->ddfstrt = word;
+      return 1;
+    case PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DDFSTOP:
+      setup->has_ddfstop = 1U;
+      setup->ddfstop = word;
+      return 1;
+    case PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPL1MOD:
+      setup->has_bpl1mod = 1U;
+      setup->bpl1mod = (int16_t)word;
+      return 1;
+    case PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPL2MOD:
+      setup->has_bpl2mod = 1U;
+      setup->bpl2mod = (int16_t)word;
+      return 1;
+    default:
+      return 0;
   }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTRT) {
-    setup->has_diwstrt = 1U;
-    setup->diwstrt = word;
-    return 1;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTOP) {
-    setup->has_diwstop = 1U;
-    setup->diwstop = word;
-    return 1;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTRT) {
-    setup->has_ddfstrt = 1U;
-    setup->ddfstrt = word;
-    return 1;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTOP) {
-    setup->has_ddfstop = 1U;
-    setup->ddfstop = word;
-    return 1;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL1MOD) {
-    setup->has_bpl1mod = 1U;
-    setup->bpl1mod = (int16_t)word;
-    return 1;
-  }
-  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL2MOD) {
-    setup->has_bpl2mod = 1U;
-    setup->bpl2mod = (int16_t)word;
-    return 1;
-  }
-  return 0;
 }
 
 static int source_quality_display_setup_collect_immediate_write(M68kSourceQualityDisplaySetup *setup,
     const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
-  const AmigaOsHardwareRegisterInfo *hardware_register;
   size_t source_index = 0U, dest_index = 0U;
   uint32_t value = 0U;
   uint32_t dest_address = 0U;
+  uint8_t register_kind = PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_NONE;
   if (setup == NULL || candidate == NULL || instruction == NULL || instruction->size_suffix != 'w' ||
       !source_quality_instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index,
         &metadata) ||
@@ -2331,8 +2327,11 @@ static int source_quality_display_setup_collect_immediate_write(M68kSourceQualit
       !source_quality_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
     return 0;
   }
-  hardware_register = amiga_os_find_hardware_register_by_cpu_address(dest_address);
-  return source_quality_display_setup_record_register_write(setup, hardware_register, value);
+  if (!platform_facts_v2_display_setup_register_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, dest_address,
+      &register_kind)) {
+    return 0;
+  }
+  return source_quality_display_setup_record_register_write(setup, register_kind, value);
 }
 
 static int source_quality_collect_display_setup_before_offset(const M68kDecodeSectionIR *section,

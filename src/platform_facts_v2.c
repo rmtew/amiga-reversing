@@ -466,6 +466,41 @@ int platform_facts_v2_hardware_base_offset_access_note(uint8_t platform_kind, ui
     offset, access_kind, byte_width, has_immediate_value, value, out_semantic_use_kind, buf, buf_size);
 }
 
+static uint8_t facts_v2_display_setup_register_kind_for_amiga_symbol(uint16_t symbol_id) {
+  switch (symbol_id) {
+    case AMIGA_OS_SYMBOL_ID_BPLCON0:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPLCON0;
+    case AMIGA_OS_SYMBOL_ID_DIWSTRT:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DIWSTRT;
+    case AMIGA_OS_SYMBOL_ID_DIWSTOP:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DIWSTOP;
+    case AMIGA_OS_SYMBOL_ID_DDFSTRT:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DDFSTRT;
+    case AMIGA_OS_SYMBOL_ID_DDFSTOP:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DDFSTOP;
+    case AMIGA_OS_SYMBOL_ID_BPL1MOD:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPL1MOD;
+    case AMIGA_OS_SYMBOL_ID_BPL2MOD:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPL2MOD;
+    default:
+      return PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_NONE;
+  }
+}
+
+int platform_facts_v2_display_setup_register_for_address(uint8_t platform_kind, uint32_t address,
+    uint8_t *out_register_kind) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint8_t register_kind;
+  if (out_register_kind != NULL) *out_register_kind = PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_NONE;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  hardware_register = amiga_os_find_hardware_register_by_cpu_address(address);
+  if (hardware_register == NULL) return 0;
+  register_kind = facts_v2_display_setup_register_kind_for_amiga_symbol(hardware_register->symbol_id);
+  if (register_kind == PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_NONE) return 0;
+  if (out_register_kind != NULL) *out_register_kind = register_kind;
+  return 1;
+}
+
 int platform_facts_v2_address_has_hardware_owner(uint8_t platform_kind, uint32_t address) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
   return amiga_os_find_hardware_base_symbol_by_address(address) != NULL ||

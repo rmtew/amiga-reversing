@@ -57,6 +57,17 @@ typedef enum PlatformFactsV2ImageOffsetTargetKind {
   PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_BSS = 3
 } PlatformFactsV2ImageOffsetTargetKind;
 
+typedef enum PlatformFactsV2DisplaySetupRegisterKind {
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_NONE = 0,
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPLCON0 = 1,
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DIWSTRT = 2,
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DIWSTOP = 3,
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DDFSTRT = 4,
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_DDFSTOP = 5,
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPL1MOD = 6,
+  PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPL2MOD = 7
+} PlatformFactsV2DisplaySetupRegisterKind;
+
 typedef struct PlatformFactsV2ResolvedCall {
   uint8_t platform_kind;
   uint8_t kind;
@@ -133,6 +144,8 @@ int platform_facts_v2_hardware_access_note_for_address(uint8_t platform_kind, ui
 int platform_facts_v2_hardware_base_offset_access_note(uint8_t platform_kind, uint16_t base_id, uint32_t offset,
   uint8_t access_kind, uint32_t byte_width, uint8_t has_immediate_value, uint32_t value,
   uint8_t *out_semantic_use_kind, char *buf, size_t buf_size);
+int platform_facts_v2_display_setup_register_for_address(uint8_t platform_kind, uint32_t address,
+  uint8_t *out_register_kind);
 uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t platform_file_kind,
   uint8_t fixup_kind, uint32_t width, uint32_t raw_value);
 int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,

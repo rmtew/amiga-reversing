@@ -6151,6 +6151,45 @@ the previously easy-to-break COLOR range case where the CPU address must be
 converted to the register-range owner offset before formatting `palette color`
 notes.
 
+### Implemented Slice: Display Setup Register Selection Uses Platform Facts
+
+Display setup summaries are still source-quality facts. The analysis walks
+accepted instructions before a copper-list/display consumer and records the
+immediate values that define the display mode:
+
+```asm
+    move.w  #$4200,$00DFF100.l    ; bplcon0
+    move.w  #$2C81,$00DFF08E.l    ; diwstrt
+    move.w  #$2CC1,$00DFF090.l    ; diwstop
+```
+
+The generic part is the flow and value tracking. The platform-specific part is
+the register classification. Source-quality no longer asks the Amiga hardware
+table whether `$00DFF100` is `bplcon0`. It asks platform facts for a small
+display-setup register kind:
+
+```c
+platform_facts_v2_display_setup_register_for_address(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  0x00DFF100,
+  &register_kind); /* PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPLCON0 */
+```
+
+The local display setup state then records by generic kind:
+
+```text
+BPLCON0  -> plane count / hires / color
+DIWSTRT  -> visible window start
+DIWSTOP  -> visible window stop
+DDFSTRT  -> fetch start
+DDFSTOP  -> fetch stop
+BPL1MOD  -> odd/even plane modulo
+BPL2MOD  -> odd/even plane modulo
+```
+
+That keeps the restored-source behavior unchanged while removing the direct
+`AmigaOsHardwareRegisterInfo` dependency from the display setup collector.
+
 ### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
 
 Materialized runtime storage/code patch rendering had another duplicate guard:
