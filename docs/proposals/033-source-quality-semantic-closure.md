@@ -5958,6 +5958,22 @@ $DFF000` declaration, it asks platform facts for the symbol address. Render
 still owns formatting the declaration; platform facts owns deciding whether the
 symbol is a platform hardware base and what address/id it has.
 
+The remaining render-side hardware-base constants have now been removed as
+well. `m68k_render_ir.c` no longer compares against
+`AMIGA_OS_HARDWARE_BASE_ID_NONE` or hardcodes
+`AMIGA_OS_HARDWARE_BASE_ID_CUSTOM` for copper/register formatting paths. It
+uses the opaque platform-facts forms instead:
+
+```c
+PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE
+platform_facts_v2_custom_hardware_base_id(platform, &custom_base_id)
+```
+
+This does not move new analysis into rendering. It only keeps existing
+formatting helpers from depending on generated Amiga identity constants.
+Source-quality still owns the proof that an operand or structured item should
+be treated as a hardware access.
+
 ### Implemented Slice: Hardware-Base Seed Names Use Platform Facts
 
 Policy and manual register seeds can say that an address register contains a

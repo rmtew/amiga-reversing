@@ -1080,7 +1080,7 @@ static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_
   state->address_base_id[reg_index] = 0U;
   state->address_base_library[reg_index][0] = '\0';
   m68k_bitset_u32_clear(&state->address_hardware_base_known, reg_index);
-  state->address_hardware_base_id[reg_index] = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  state->address_hardware_base_id[reg_index] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   m68k_bitset_u32_clear(&state->address_app_base_known, reg_index);
   m68k_bitset_u32_clear(&state->address_layout_base_known, reg_index);
   state->address_layout_base_symbol[reg_index][0] = '\0';
@@ -1130,7 +1130,7 @@ static void platform_state_clear_address_layout_base(M68kRenderPlatformState *st
 static void platform_state_clear_address_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   m68k_bitset_u32_clear(&state->address_hardware_base_known, reg_index);
-  state->address_hardware_base_id[reg_index] = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  state->address_hardware_base_id[reg_index] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
 }
 
 static void platform_state_clear_all_hardware_bases(M68kRenderPlatformState *state) {
@@ -3024,11 +3024,13 @@ static int render_asm_word_relative_lookup_table(M68kRenderIRPreview *preview,
 static int format_copper_register_symbol(uint16_t copper_register_word, char *buf, size_t buf_size) {
   const char *symbol;
   uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
+  uint16_t custom_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
   if ((copper_register_word & 1U) != 0U) return 0;
+  if (!platform_facts_v2_custom_hardware_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &custom_base_id)) return 0;
   symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset, buf, buf_size);
+    custom_base_id, offset, buf, buf_size);
   if (symbol == NULL || symbol[0] == '\0') return 0;
   if (symbol != buf) {
     snprintf(buf, buf_size, "%s", symbol);
@@ -3040,11 +3042,13 @@ static int format_copper_register_symbol(uint16_t copper_register_word, char *bu
 static int format_copper_register_value_expr(uint16_t copper_register_word, uint16_t value, char *buf,
     size_t buf_size) {
   uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
+  uint16_t custom_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
   if ((copper_register_word & 1U) != 0U) return 0;
+  if (!platform_facts_v2_custom_hardware_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &custom_base_id)) return 0;
   return platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset, value, buf, buf_size);
+    custom_base_id, offset, value, buf, buf_size);
 }
 
 static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPreview *preview,
@@ -4033,7 +4037,7 @@ static const M68kPlatformAddressUseIR *source_analysis_hardware_register_use_for
   if (section_analysis == NULL) return NULL;
   for (index = 0U; index < section_analysis->platform_address_use_count; ++index) {
     const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
-    uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+    uint16_t base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
     uint32_t register_offset = 0U;
     if (use->offset != offset ||
         use->operand_index != operand_index ||
@@ -4042,7 +4046,7 @@ static const M68kPlatformAddressUseIR *source_analysis_hardware_register_use_for
         use->symbol_name[0] == '\0' ||
         !platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, use->address,
           &base_id, &register_offset) ||
-        base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE ||
+        base_id == PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE ||
         register_offset != displacement) {
       continue;
     }
@@ -6640,13 +6644,15 @@ static void render_platform_semantic_header_comments_for_raw_data(M68kRenderIRPr
 static const char *external_runtime_address_ref_role(const M68kRenderLookup *lookup, const M68kFact *fact) {
   const M68kSection *section;
   const char *role;
+  uint16_t custom_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (lookup == NULL || fact == NULL || lookup->object == NULL) return NULL;
   if (fact->target_section_index == (size_t)-1 && fact->target_offset != 0U) {
     role = platform_facts_v2_runtime_address_sink_data_class(lookup->object->platform_backend_kind,
       fact->target_offset);
-    if (role == NULL || role[0] == '\0') {
+    if ((role == NULL || role[0] == '\0') &&
+        platform_facts_v2_custom_hardware_base_id(lookup->object->platform_backend_kind, &custom_base_id)) {
       role = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(
-        lookup->object->platform_backend_kind, AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, fact->target_offset);
+        lookup->object->platform_backend_kind, custom_base_id, fact->target_offset);
     }
     if (role != NULL && role[0] != '\0') return role;
   }
