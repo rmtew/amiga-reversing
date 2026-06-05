@@ -13704,6 +13704,10 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
   uint32_t offset = 0U;
   uint32_t base_address = 0U;
+  int32_t an_icon_lib = 0;
+  int32_t ag_open_lib = 0;
+  int32_t ao_dos_lib = 0;
+  uint32_t alert_value = 0U;
   memset(&observation, 0, sizeof(observation));
   observation.address = 0x70U;
   observation.access_kind = M68K_SIM_ACCESS_MEMORY_WRITE;
@@ -13749,6 +13753,13 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT(platform_facts_v2_hardware_base_offset_immediate_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     base_id, offset, 0x7FFFU, 0, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT_STR("INTF_CLRALL", symbol_buf);
+  M68K_C_ASSERT(amiga_os_find_constant_value("AN_IconLib", &an_icon_lib));
+  M68K_C_ASSERT(amiga_os_find_constant_value("AG_OpenLib", &ag_open_lib));
+  M68K_C_ASSERT(amiga_os_find_constant_value("AO_DOSLib", &ao_dos_lib));
+  alert_value = (uint32_t)(an_icon_lib | ag_open_lib | ao_dos_lib);
+  M68K_C_ASSERT(platform_facts_v2_value_domain_symbolic_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "exec.alert.number", alert_value, symbol_buf, sizeof(symbol_buf)));
+  M68K_C_ASSERT_STR("AN_IconLib|AG_OpenLib|AO_DOSLib", symbol_buf);
   M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_ATARI_ST,
     base_id, offset, 0x7FFFU, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT_STR("", symbol_buf);

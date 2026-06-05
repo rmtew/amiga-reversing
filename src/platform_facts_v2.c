@@ -160,6 +160,13 @@ int platform_facts_v2_hardware_base_offset_value_expr(uint8_t platform_kind, uin
     expr_size);
 }
 
+int platform_facts_v2_value_domain_symbolic_expr(uint8_t platform_kind, const char *domain_name,
+    uint32_t value, char *expr, size_t expr_size) {
+  if (expr != NULL && expr_size != 0U) expr[0] = '\0';
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  return amiga_value_domain_symbolic_expr(domain_name, value, expr, expr_size);
+}
+
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
   return amiga_os_hardware_base_symbol(base_id);

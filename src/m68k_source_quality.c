@@ -11868,7 +11868,10 @@ static int append_platform_call_input_operand_expr_semantic_uses_for_call(
     if (!source_quality_find_platform_call_input_immediate(section, accepted_start, call, input, &producer, &value))
       continue;
     value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
-    if (!amiga_value_domain_symbolic_expr(value_domain_name, value, symbol_expr, sizeof(symbol_expr))) continue;
+    if (!platform_facts_v2_value_domain_symbolic_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        value_domain_name, value, symbol_expr, sizeof(symbol_expr))) {
+      continue;
+    }
     if (append_platform_operand_expr_semantic_use(section_analysis, producer,
         M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT, 0U, symbol_expr,
         M68K_FACT_CONFIDENCE_TOOL_INFERRED, "platform_call_input_value_domain_operand",

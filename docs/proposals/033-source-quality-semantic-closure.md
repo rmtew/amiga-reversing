@@ -1707,6 +1707,21 @@ metadata to choose the immediate/value-domain expression. That keeps the
 analysis producer in C while moving the Amiga-specific value-domain lookup to
 the platform facts seam.
 
+The platform call-input operand producer follows the same rule for generated
+value domains such as Alert numbers:
+
+```text
+move.l #AN_IconLib|AG_OpenLib|AO_DOSLib,d7
+jsr    _LVOAlert(a6)
+  -> source-quality proves D7 is the Alert number input
+  -> platform_facts_v2_value_domain_symbolic_expr(...)
+  -> operand expression and expected-symbol accesses are emitted
+```
+
+The source-quality pass still owns the data-flow proof from the call metadata
+to the immediate producer. The platform facts layer owns the backend-specific
+value-domain formatting.
+
 Stack-cleanup comments are now a recovered platform-call fact consumption case,
 not a render-time rediscovery case:
 
