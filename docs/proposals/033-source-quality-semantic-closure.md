@@ -4861,6 +4861,32 @@ That means the source-quality pass owns the string before render lookup imports
 it; render lookup no longer needs a private fallback to keep the assembler
 readable.
 
+### Implemented Slice: Render Auto Producer Cleanup
+
+After the generic string producers moved to C, render lookup still carried dead
+helpers named like producers:
+
+```text
+render_lookup_add_auto_structured_data_item()
+render_lookup_set_auto_structured_data_item_target()
+render_lookup_set_auto_structured_data_item_source_pattern()
+```
+
+Those helpers had no remaining callers. Keeping them would make the ownership
+boundary look ambiguous and invite future render-side semantic producers. They
+have been removed. Render lookup still stores imported source-analysis items in
+its auto-item arrays because that is rendering support, not analysis:
+
+```text
+C source_quality emits structured_data_item
+  -> render_lookup_import_source_analysis_structured_data_item()
+  -> render owns formatting/range lookup only
+```
+
+The cleanup is intentionally source-neutral: C unit tests pass and the
+read-only rendered-source round-trip reports the same exact/content-exact target
+set with no new rendered-source churn.
+
 ### Implemented Slice: Mac OS Symbol String Ownership
 
 Mac OS high-bit symbol records had the same ownership bug as the generic text
