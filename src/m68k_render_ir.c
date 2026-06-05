@@ -4072,9 +4072,6 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
     const char *base_symbol = NULL;
-    const AmigaOsHardwareRegisterInfo *hardware_register = NULL;
-    const AmigaOsHardwareRegisterFieldInfo *hardware_field = NULL;
-    const AmigaOsHardwareRegisterRangeInfo *hardware_range = NULL;
     char symbol_name[64];
     if (operand->symbol_ref.has_name != 0U && !may_replace_generated_symbol) continue;
     if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
@@ -4121,7 +4118,6 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
       const M68kPlatformAddressUseIR *hardware_base_use;
       const M68kPlatformAddressUseIR *hardware_register_use;
       if (section == NULL || candidate == NULL) continue;
-      base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
       hardware_base_use = source_analysis_platform_address_use_for_operand(source_analysis,
         section->section_index, candidate->offset, operand_index, value,
         M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS);
@@ -4140,36 +4136,6 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         attach_amiga_platform_symbol(operand, hardware_register_use->symbol_name);
         attached = 1;
         continue;
-      }
-      if (source_analysis != NULL) continue;
-      if (operand->symbol_ref.has_name != 0U) continue;
-      hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(value);
-      if (hardware_field != NULL &&
-          platform_amiga_format_hardware_register_field_symbol(hardware_field, 1, symbol_name,
-            sizeof(symbol_name))) {
-        attach_amiga_platform_symbol(operand, symbol_name);
-        attached = 1;
-        continue;
-      }
-      hardware_register = amiga_os_find_hardware_register_by_cpu_address(value);
-      if (hardware_register != NULL) {
-        snprintf(symbol_name, sizeof(symbol_name), "%s+%s", hardware_register->base_symbol,
-          hardware_register->symbol_name);
-        attach_amiga_platform_symbol(operand, symbol_name);
-        attached = 1;
-        continue;
-      }
-      hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(value);
-      if (hardware_range != NULL &&
-          platform_amiga_format_hardware_register_range_symbol(hardware_range, value - hardware_range->base_address,
-            1, symbol_name, sizeof(symbol_name))) {
-        attach_amiga_platform_symbol(operand, symbol_name);
-        attached = 1;
-        continue;
-      }
-      if (base_symbol != NULL && base_symbol[0] != '\0') {
-        attach_amiga_platform_symbol(operand, base_symbol);
-        attached = 1;
       }
       continue;
     }

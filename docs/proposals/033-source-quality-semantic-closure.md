@@ -5694,6 +5694,40 @@ uses register metadata directly because it needs value-domain formatting, not
 only a register symbol. That is a remaining facts-API expansion candidate, not
 part of this symbol-name cleanup.
 
+### Implemented Slice: Dead Absolute Hardware Fallback Removed
+
+Absolute hardware operand rendering had a stale fallback path after the
+source-analysis lookup:
+
+```text
+absolute operand
+  -> ask source analysis for a hardware-base or hardware-register use
+  -> if no hardware-register use exists, continue
+  -> otherwise, after the fact, try renderer-local hardware table lookup
+```
+
+The final renderer-local lookup could not run. If `source_analysis` was absent,
+`source_analysis_platform_address_use_for_operand` returned `NULL` and the
+function had already continued. If `source_analysis` was present, the fallback
+was explicitly skipped before it could attach a symbol.
+
+The dead fallback has been removed instead of being rewritten. That keeps the
+ownership rule clear:
+
+```text
+absolute hardware symbol
+  = source-analysis/platform-address-use fact
+  -> rendered symbol
+
+no fact
+  -> no renderer-invented hardware symbol
+```
+
+This is a small cleanup, but it matters for proposal 033 because dormant
+renderer-side semantic paths are the same class of problem as active renderer
+guesses. They make future behaviour harder to reason about and can reintroduce
+symbol promotion without the analysis evidence this proposal requires.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only
