@@ -13703,6 +13703,7 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   char symbol_buf[96];
   uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
   uint32_t offset = 0U;
+  uint32_t palette_offset = 0U;
   uint32_t base_address = 0U;
   int32_t an_icon_lib = 0;
   int32_t ag_open_lib = 0;
@@ -13735,6 +13736,11 @@ static int test_platform_facts_v2_address_use_helpers(void) {
     AMIGA_OS_HARDWARE_BASE_ID_CUSTOM));
   M68K_C_ASSERT_STR("_custom", platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     0x00DFF000U));
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_id_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF000U, &base_id));
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, base_id);
+  M68K_C_ASSERT(!platform_facts_v2_hardware_base_id_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
+    0x00DFF000U, &base_id));
   M68K_C_ASSERT(platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_ATARI_ST,
     AMIGA_OS_HARDWARE_BASE_ID_CUSTOM) == NULL);
   M68K_C_ASSERT(platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
@@ -13745,6 +13751,14 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT_U32(0x09AU, offset);
   M68K_C_ASSERT(platform_facts_v2_hardware_base_offset_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     base_id, offset));
+  M68K_C_ASSERT(platform_facts_v2_palette_color_register_range_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF180U, &palette_offset));
+  M68K_C_ASSERT_U32(0U, palette_offset);
+  M68K_C_ASSERT(platform_facts_v2_palette_color_register_range_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF19EU, &palette_offset));
+  M68K_C_ASSERT_U32(0x1EU, palette_offset);
+  M68K_C_ASSERT(!platform_facts_v2_palette_color_register_range_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF09AU, &palette_offset));
   M68K_C_ASSERT_STR("intena", platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     base_id, offset, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT(platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,

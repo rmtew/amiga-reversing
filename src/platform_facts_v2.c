@@ -185,6 +185,16 @@ int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base
   return base_symbol != NULL && amiga_os_find_hardware_base_address(base_symbol, out_address);
 }
 
+int platform_facts_v2_hardware_base_id_for_address(uint8_t platform_kind, uint32_t address, uint16_t *out_base_id) {
+  uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  if (out_base_id != NULL) *out_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  base_id = amiga_os_find_hardware_base_id_by_address(address);
+  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return 0;
+  if (out_base_id != NULL) *out_base_id = base_id;
+  return 1;
+}
+
 int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, uint32_t address,
     uint16_t *out_base_id, uint32_t *out_offset) {
   const AmigaOsHardwareRegisterFieldInfo *hardware_field;
@@ -210,6 +220,30 @@ int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, ui
   if (out_base_id != NULL) *out_base_id = hardware_range->base_id;
   if (out_offset != NULL) *out_offset = address - hardware_range->base_address;
   return 1;
+}
+
+int platform_facts_v2_palette_color_register_range_offset_for_address(uint8_t platform_kind, uint32_t address,
+    uint32_t *out_range_offset) {
+  if (out_range_offset != NULL) *out_range_offset = 0U;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range =
+      amiga_os_find_hardware_register_range_by_cpu_address(address);
+    uint32_t range_start;
+    if (hardware_range == NULL || hardware_range->symbol_id != AMIGA_OS_SYMBOL_ID_COLOR ||
+        hardware_range->base_address > UINT32_MAX - hardware_range->offset) {
+      return 0;
+    }
+    range_start = hardware_range->base_address + hardware_range->offset;
+    if (address < range_start) return 0;
+    if (out_range_offset != NULL)
+      *out_range_offset = address - range_start;
+    return 1;
+  }
+  default:
+    return 0;
+  }
 }
 
 int platform_facts_v2_address_has_hardware_owner(uint8_t platform_kind, uint32_t address) {

@@ -5036,7 +5036,6 @@ typedef struct M68kSourceQualityAudioPointerState {
 
 typedef struct M68kSourceQualityPaletteHardwareRangePointer {
   uint8_t known;
-  const AmigaOsHardwareRegisterRangeInfo *range;
   uint32_t offset;
 } M68kSourceQualityPaletteHardwareRangePointer;
 
@@ -8830,25 +8829,22 @@ static void source_quality_palette_hardware_range_state_clear_reg(
   memset(&state->addr_regs[reg], 0, sizeof(state->addr_regs[reg]));
 }
 
-static int source_quality_instruction_loads_hardware_range_to_address_reg(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, const AmigaOsHardwareRegisterRangeInfo **out_range,
-    uint32_t *out_range_offset, uint8_t *out_reg) {
-  const AmigaOsHardwareRegisterRangeInfo *range;
+static int source_quality_instruction_loads_palette_range_to_address_reg(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint32_t *out_range_offset, uint8_t *out_reg) {
   uint32_t absolute = 0U;
   uint8_t dest_reg = 0U;
-  if (out_range != NULL) *out_range = NULL;
   if (out_range_offset != NULL) *out_range_offset = 0U;
   if (out_reg != NULL) *out_reg = 0U;
-  if (candidate == NULL || instruction == NULL || out_range == NULL || out_range_offset == NULL ||
-      out_reg == NULL || instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA || instruction->operand_count != 2U ||
+  if (candidate == NULL || instruction == NULL || out_range_offset == NULL || out_reg == NULL ||
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA || instruction->operand_count != 2U ||
       !source_quality_operand_address_register_index(&instruction->operands[1], &dest_reg) ||
       !source_quality_candidate_operand_absolute_value(candidate, 0U, &absolute)) {
     return 0;
   }
-  range = amiga_os_find_hardware_register_range_by_cpu_address(absolute);
-  if (range == NULL) return 0;
-  *out_range = range;
-  *out_range_offset = absolute - range->base_address - range->offset;
+  if (!platform_facts_v2_palette_color_register_range_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      absolute, out_range_offset)) {
+    return 0;
+  }
   *out_reg = dest_reg;
   return 1;
 }
@@ -8856,7 +8852,6 @@ static int source_quality_instruction_loads_hardware_range_to_address_reg(const 
 static void source_quality_palette_hardware_range_state_update_after_instruction(
     M68kSourceQualityPaletteHardwareRangeState *state, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction) {
-  const AmigaOsHardwareRegisterRangeInfo *range = NULL;
   uint32_t range_offset = 0U;
   uint8_t dest_reg = 0U;
   size_t operand_index;
@@ -8867,10 +8862,9 @@ static void source_quality_palette_hardware_range_state_update_after_instruction
     source_quality_palette_hardware_range_state_clear_all(state);
     return;
   }
-  if (source_quality_instruction_loads_hardware_range_to_address_reg(candidate, instruction, &range,
-      &range_offset, &dest_reg)) {
+  if (source_quality_instruction_loads_palette_range_to_address_reg(candidate, instruction, &range_offset,
+      &dest_reg)) {
     state->addr_regs[dest_reg].known = 1U;
-    state->addr_regs[dest_reg].range = range;
     state->addr_regs[dest_reg].offset = range_offset;
     return;
   }
@@ -9311,8 +9305,7 @@ static int source_quality_maybe_classify_palette_upload(M68kSourceAnalysisIR *so
   }
   source_value = &data_state->addr_regs[source_reg];
   dest_value = &hardware_state->addr_regs[dest_reg];
-  if (!source_value->known || !source_value->exact || !dest_value->known || dest_value->range == NULL ||
-      dest_value->range->symbol_id != AMIGA_OS_SYMBOL_ID_COLOR ||
+  if (!source_value->known || !source_value->exact || !dest_value->known ||
       source_value->target_section_index >= decode->section_count ||
       accepted_bytes[source_value->target_section_index] == NULL ||
       source_value->target_offset >= decode->sections[source_value->target_section_index].size ||
@@ -9556,8 +9549,8 @@ static int source_quality_operand_hardware_base_id(const SourceQualityHardwareBa
   }
   if (m68k_ir_operand_immediate_value(operand, &value) ||
       source_quality_operand_absolute_offset(operand, &value)) {
-    base_id = amiga_os_find_hardware_base_id_by_address(value);
-    if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return 0;
+    if (!platform_facts_v2_hardware_base_id_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, value, &base_id))
+      return 0;
     if (out_base_id != NULL) *out_base_id = base_id;
     return 1;
   }

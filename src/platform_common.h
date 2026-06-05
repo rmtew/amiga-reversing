@@ -122,8 +122,11 @@ int platform_facts_v2_value_domain_symbolic_expr(uint8_t platform_kind, const ch
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id);
 const char *platform_facts_v2_hardware_base_symbol_for_address(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address);
+int platform_facts_v2_hardware_base_id_for_address(uint8_t platform_kind, uint32_t address, uint16_t *out_base_id);
 int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, uint32_t address,
   uint16_t *out_base_id, uint32_t *out_offset);
+int platform_facts_v2_palette_color_register_range_offset_for_address(uint8_t platform_kind, uint32_t address,
+  uint32_t *out_range_offset);
 uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t platform_file_kind,
   uint8_t fixup_kind, uint32_t width, uint32_t raw_value);
 int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,

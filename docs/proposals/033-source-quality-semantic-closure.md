@@ -6007,6 +6007,75 @@ platform_facts_v2_is_audio_period_register(platform, address);
 The tracker no longer opens Amiga hardware-field metadata just to distinguish
 `ac_len` from `ac_per`.
 
+### Implemented Slice: Palette Range Tracking Uses Platform Facts
+
+Palette upload reconstruction has two distinct responsibilities:
+
+```text
+source-quality
+  -> proves instruction shape and register/data flow
+
+platform facts
+  -> knows whether an absolute address is the COLOR register range
+  -> returns the offset inside that range
+```
+
+The old source-quality state stored an Amiga hardware-register range pointer.
+That meant a flow tracker which should only know "this address register points
+into the palette sink" also knew the shape of the Amiga metadata table:
+
+```text
+lea.l $00DFF180,a1
+  -> source-quality opened Amiga hardware range table
+  -> stored AmigaOsHardwareRegisterRangeInfo *
+  -> later checked symbol_id == COLOR
+```
+
+The state now stores only the proven portable fact:
+
+```c
+typedef struct M68kSourceQualityPaletteHardwareRangePointer {
+  uint8_t known;
+  uint32_t offset;
+} M68kSourceQualityPaletteHardwareRangePointer;
+```
+
+The platform-specific lookup is behind platform facts:
+
+```c
+platform_facts_v2_palette_color_register_range_offset_for_address(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  0x00DFF19E,
+  &offset); /* offset = 0x1E inside COLOR */
+```
+
+The source-quality rule therefore reads as:
+
+```text
+lea.l absolute,aN
+  + platform facts proves absolute is COLOR range
+  -> track aN as palette sink with range offset
+
+move.w (source)+,(aN)+
+  + source pointer proves accepted source bytes
+  + aN is tracked palette sink
+  -> classify source bytes as palette table
+```
+
+Hardware-base discovery follows the same boundary. Source-quality may prove an
+operand is an immediate or absolute address, but the platform layer decides
+whether that value names a hardware base:
+
+```c
+platform_facts_v2_hardware_base_id_for_address(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  0x00DFF000,
+  &base_id); /* _custom */
+```
+
+This keeps the analysis code from directly depending on Amiga hardware-base
+tables while preserving the existing palette-table and hardware-base outcomes.
+
 ### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
 
 Materialized runtime storage/code patch rendering had another duplicate guard:
