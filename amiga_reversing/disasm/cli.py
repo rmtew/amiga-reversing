@@ -9,6 +9,7 @@ from pathlib import Path
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.c_backend import render_binary_source_with_c_backend
+from amiga_reversing.disasm.source_numbers import parse_source_int
 
 
 class StageTimer:
@@ -72,10 +73,10 @@ def main(argv: list[str] | None = None) -> None:
                         help="Output .s file path")
     parser.add_argument("--target-dir", "-t",
                         help="Target output directory (e.g. targets/amiga_hunk_genam)")
-    parser.add_argument("--base-addr", type=lambda x: int(x, 0),
+    parser.add_argument("--base-addr", type=parse_source_int,
                         default=0,
                         help="Runtime base address (e.g. 0x400)")
-    parser.add_argument("--code-start", type=lambda x: int(x, 0),
+    parser.add_argument("--code-start", type=parse_source_int,
                         default=0,
                         help="Byte offset where code begins (skips bootstrap)")
     parser.add_argument("--profile-stages", action="store_true",

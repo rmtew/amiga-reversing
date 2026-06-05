@@ -10,6 +10,8 @@ from datetime import date
 from pathlib import Path
 from typing import cast
 
+from amiga_reversing.disasm.source_numbers import parse_source_int
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_OS_VERSION_ORDER = ("1.0", "1.1", "1.2", "1.3", "2.0", "2.04", "2.1", "3.0", "3.1", "3.5")
 KNOWN_CORRECTION_REVIEW_STATUSES = {"seeded", "validated"}
@@ -530,9 +532,7 @@ def _parse_int(value: object) -> int | None:
         if not text:
             return None
         try:
-            if text.startswith("$"):
-                return int(text[1:], 16)
-            return int(text, 0)
+            return parse_source_int(text)
         except ValueError:
             return None
     return None

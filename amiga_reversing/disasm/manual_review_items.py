@@ -7,6 +7,7 @@ from amiga_reversing.disasm.manual_actions import (
     ReviewItemState,
     finalize_review_items,
 )
+from amiga_reversing.disasm.source_numbers import parse_source_int
 
 DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER = 6
 
@@ -353,19 +354,19 @@ def _annotation_range(annotation: dict[str, object]) -> tuple[int, int, int] | N
         hunk_text, range_text = range_text.split(":", 1)
         if hunk_text.lower().startswith("h"):
             try:
-                hunk = int(hunk_text[1:], 0)
+                hunk = parse_source_int(hunk_text[1:])
             except ValueError:
                 return None
     if ".." in range_text:
         start_text, end_text = range_text.split("..", 1)
         try:
-            start = int(start_text.replace("$", "0x"), 0)
-            parsed_end = int(end_text.replace("$", "0x"), 0)
+            start = parse_source_int(start_text)
+            parsed_end = parse_source_int(end_text)
         except ValueError:
             return None
         return hunk, start, parsed_end if parsed_end > start else start + 1
     try:
-        start = int(range_text.replace("$", "0x"), 0)
+        start = parse_source_int(range_text)
     except ValueError:
         return None
     return hunk, start, start + 1
@@ -444,7 +445,7 @@ def _optional_int(value: object) -> int | None:
         return value
     if isinstance(value, str):
         try:
-            return int(value.replace("$", "0x"), 0)
+            return parse_source_int(value)
         except ValueError:
             return None
     return None

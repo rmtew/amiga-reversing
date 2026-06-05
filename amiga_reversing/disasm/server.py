@@ -112,6 +112,7 @@ from amiga_reversing.disasm.reproduction import (
     write_target_reproduction_options,
 )
 from amiga_reversing.disasm.source_export import source_export_payload
+from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
     SuppressedSeededItemKind,
     TargetMetadata,
@@ -1075,7 +1076,7 @@ def _parse_int_arg(
     if raw in (None, ""):
         return default
     assert raw is not None
-    return int(raw, 0)
+    return parse_source_int(raw)
 
 
 def _first_query_value(values: Mapping[str, Sequence[str]], key: str) -> str | None:

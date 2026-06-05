@@ -326,6 +326,21 @@ The current shared parser already accepts `$nnnn`, `0xnnnn`, decimal, binary
 that parser for positional raw entry offsets and `--entry-offset` policy
 arguments.
 
+The same rule now applies to Python tooling inputs that workers use while
+diagnosing source-quality failures:
+
+```text
+reversing-loop --label-offset $42C00
+web listing query source_offset=$42C00
+manual seed range h0:$42C00..$42C70
+platform KB numeric value %10010000
+```
+
+These are not independent numeric dialects. They use the shared
+`parse_source_int()` helper so a value copied from rendered source, notes, or a
+C CLI invocation means the same thing in Python tooling. Decimal text remains
+decimal, so `010` is ten rather than an old octal spelling.
+
 The GenAm failure exposed a separate false-code producer. Its real shape is a
 zero-guarded PC-indexed word dispatch table:
 

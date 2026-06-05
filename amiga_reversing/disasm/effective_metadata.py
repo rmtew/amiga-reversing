@@ -24,6 +24,7 @@ from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     load_manual_projection,
 )
+from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
     AbsoluteCodeLabelMetadata,
     CustomStructFieldMetadata,
@@ -69,7 +70,7 @@ def _manual_seed_int(seed: Mapping[str, object], field_name: str) -> int | None:
         return value
     if isinstance(value, str):
         try:
-            return int(value, 0)
+            return parse_source_int(value)
         except ValueError:
             return None
     return None
@@ -89,17 +90,17 @@ def _parse_manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int | N
         hunk_text, range_text = range_text.split(":", 1)
         if hunk_text.lower().startswith("h"):
             try:
-                hunk = int(hunk_text[1:], 0)
+                hunk = parse_source_int(hunk_text[1:])
             except ValueError:
                 return None
     if ".." in range_text:
         start_text, end_text = range_text.split("..", 1)
         try:
-            return hunk, int(start_text.replace("$", "0x"), 0), int(end_text.replace("$", "0x"), 0)
+            return hunk, parse_source_int(start_text), parse_source_int(end_text)
         except ValueError:
             return None
     try:
-        return hunk, int(range_text.replace("$", "0x"), 0), None
+        return hunk, parse_source_int(range_text), None
     except ValueError:
         return None
 

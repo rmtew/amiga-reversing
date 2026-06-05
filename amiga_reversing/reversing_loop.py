@@ -67,6 +67,7 @@ from amiga_reversing.disasm.project_paths import (
     resolve_project_paths,
 )
 from amiga_reversing.disasm.reproduction import run_reproduction
+from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
     SeededEntityMetadata,
@@ -198,7 +199,7 @@ _DECISION_VERIFIER_ARTIFACTS_FILE = "decision_verifier_artifacts.json"
 
 
 def _parse_int_auto(value: str) -> int:
-    return int(value, 0)
+    return parse_source_int(value)
 
 
 def _int_or_none(value: object) -> int | None:
