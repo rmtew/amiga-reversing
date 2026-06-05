@@ -11887,7 +11887,7 @@ abs_0_000099C8:
 abs_0_000099CC:
 	dc.b $00,$08,$00,$06,$00,$06,$00,$00	; lookup_table
 abs_0_000099D4:
-	dc.b "K>K4K.KK"
+	dc.b $4B,$3E,$4B,$34,$4B,$2E,$4B,$4B	; lookup_table
 abs_0_000099DC:
 	moveq.l #0,d0
 	moveq.l #0,d1

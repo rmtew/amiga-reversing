@@ -4787,8 +4787,79 @@ facts_v2_line_terminated_sequence_does_not_split_format_placeholder
 ```
 
 The render lookup fallback that performed dense string-sequence discovery has
-been deleted. Remaining render-side generic text detection is now a visible
-cleanup lane, not the desired long-term ownership model.
+been deleted. Generic single-string detection is covered by the next slice;
+remaining render-side generic data-span detection is now a visible cleanup lane,
+not the desired long-term ownership model.
+
+### Implemented Slice: Generic Single-String Ownership
+
+Single terminated and bounded text spans had the same renderer-owned shape:
+
+```text
+render lookup sees printable bytes
+  -> render creates terminated_text or bounded_text structured data
+  -> source_analysis inherits a renderer decision
+```
+
+That path has been moved into source-quality analysis. The C scanner now owns
+the generic single-string proof:
+
+```text
+candidate start
+  + quoted-string-safe payload
+  + NUL/$FF terminator or label-bounded readable span
+  + no relocation/interior label/range/accepted-code overlap
+  + no length-prefixed record shape
+  -> structured_data_item(kind=STRING, source_pattern=terminated_text|bounded_text)
+```
+
+For code sections, weak printable bytes are still not code. The scanner uses
+the accepted-code map as the hard boundary: bytes already accepted as
+instructions block generic text, while unaccepted code-section bytes may be
+classified as data text if the normal string proof is present. The old
+nearby-terminal-code guard is also analysis-owned now, so an unlabeled printable
+run immediately after a function epilogue is not promoted just because its bytes
+happen to decode as text.
+
+Bounded text still needs a visible boundary because it has no terminator:
+
+```asm
+    bra.b after_title
+title:
+    dc.b " TETRAGON "
+after_title:
+    rts
+```
+
+The source-quality result is:
+
+```text
+source_analysis.structured_data_items:
+  section=0 offset=2 size=10 kind=string source_pattern=bounded_text
+```
+
+Render lookup no longer runs `render_lookup_infer_data_strings()`. It imports
+the C-owned item and formats it. The focused analysis-only regressions are:
+
+```text
+facts_v2_analysis_collects_terminated_text_without_source_render
+  -> C source_analysis owns terminated_text before render
+
+facts_v2_analysis_collects_bounded_text_without_source_render
+  -> C source_analysis owns bounded_text before render
+```
+
+The Damocles Tetragon 02 planet-name span is the target-scale smoke test for
+this rule. It sits in a code-bearing raw payload but has no accepted-code
+overlap:
+
+```text
+offset=$71DC size=249 source_pattern=terminated_text
+```
+
+That means the source-quality pass owns the string before render lookup imports
+it; render lookup no longer needs a private fallback to keep the assembler
+readable.
 
 ### Implemented Slice: Mac OS Symbol String Ownership
 
@@ -5307,11 +5378,11 @@ The table-closure render updates exposed expected target churn and one remaining
 cleanup lane. Pointer and indexed-local scalar tables now render from C-owned
 facts, so comments and labels can shift as source-quality facts replace
 renderer guesses. Some targets also show noisy byte-line resplitting and small
-string spelling changes where generic data/string inference is still
-interacting with render formatting. That is not a reason to keep table
-classification in render lookup; it is evidence for the next cleanup: move the
-remaining generic data/string producers into C analysis, then leave render
-lookup as formatting support only.
+string spelling changes where generic data-span inference is still interacting
+with render formatting. That is not a reason to keep table classification in
+render lookup; it is evidence for the next cleanup: move the remaining generic
+data/span producers into C analysis, then leave render lookup as formatting
+support only.
 
 ## Non-Goals
 
