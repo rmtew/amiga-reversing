@@ -19767,8 +19767,10 @@ static int test_facts_v2_hardware_base_runtime_sink_exports_pointer_comment(void
 }
 
 static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata(void) {
+  char note[160];
   char symbol_expr[64];
   uint32_t anchor_offset = 0U;
+  uint8_t semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_UNKNOWN;
   const AmigaOsHardwareRegisterInfo *cop1lc =
     amiga_os_find_hardware_register_by_cpu_address(0x00DFF080U);
   const AmigaOsHardwareRegisterInfo *intena =
@@ -19918,6 +19920,29 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT(platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF020U));
   M68K_C_ASSERT(!platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x0020U));
   M68K_C_ASSERT(!platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
+  M68K_C_ASSERT(platform_facts_v2_hardware_access_note_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF100U, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U, 0x4200U, &semantic_use_kind, note, sizeof(note)));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE, semantic_use_kind);
+  M68K_C_ASSERT_STR("display 4 bitplanes lores color", note);
+  M68K_C_ASSERT(platform_facts_v2_hardware_access_note_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF024U, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U, 0x9F40U, &semantic_use_kind, note, sizeof(note)));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_SEMANTIC_USE_DISK_DMA, semantic_use_kind);
+  M68K_C_ASSERT_STR("disk DMA read 16000 bytes", note);
+  M68K_C_ASSERT(platform_facts_v2_hardware_access_note_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF0A4U, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U, 0x0010U, &semantic_use_kind, note, sizeof(note)));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER, semantic_use_kind);
+  M68K_C_ASSERT_STR("sound sample length 32 bytes", note);
+  M68K_C_ASSERT(platform_facts_v2_hardware_access_note_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF180U, M68K_SIM_ACCESS_MEMORY_WRITE, 4U, 0U, 0U, &semantic_use_kind, note, sizeof(note)));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_SEMANTIC_USE_HARDWARE_ACCESS, semantic_use_kind);
+  M68K_C_ASSERT_STR("palette colors 0-1", note);
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_offset_access_note(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0024U, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U, 0x9F40U,
+    &semantic_use_kind, note, sizeof(note)));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_SEMANTIC_USE_DISK_DMA, semantic_use_kind);
+  M68K_C_ASSERT_STR("disk DMA read 16000 bytes", note);
+  M68K_C_ASSERT(!platform_facts_v2_hardware_access_note_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
+    0x00DFF024U, M68K_SIM_ACCESS_MEMORY_WRITE, 2U, 1U, 0x9F40U, &semantic_use_kind, note, sizeof(note)));
   return 0;
 }
 

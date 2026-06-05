@@ -6076,6 +6076,81 @@ platform_facts_v2_hardware_base_id_for_address(
 This keeps the analysis code from directly depending on Amiga hardware-base
 tables while preserving the existing palette-table and hardware-base outcomes.
 
+### Implemented Slice: Hardware Access Notes Use Platform Facts
+
+Source-quality still owns the proof that an accepted instruction performs a
+hardware access:
+
+```text
+accepted instruction
+  + simulator metadata says operand writes memory
+  + address observation says target is hardware-owned
+  + immediate/source operand is known when needed
+  -> semantic-use candidate
+```
+
+But the text and semantic-use kind are platform knowledge. A write to `dsklen`
+is not generically a "disk DMA read"; that meaning comes from the Amiga
+hardware table and DSKLEN bit layout. The source-quality layer therefore no
+longer opens Amiga register/range metadata to decide note text:
+
+```c
+platform_facts_v2_hardware_access_note_for_address(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  0x00DFF024,
+  M68K_SIM_ACCESS_MEMORY_WRITE,
+  2,
+  1,
+  0x9F40,
+  &semantic_use_kind,
+  note,
+  sizeof(note));
+```
+
+That returns both pieces the source-quality layer needs:
+
+```text
+semantic_use_kind = disk_dma
+note              = "disk DMA read 16000 bytes"
+```
+
+The same API exists for hardware-base-relative instructions:
+
+```asm
+    move.w  #$9F40,dsklen(a6)
+```
+
+```c
+platform_facts_v2_hardware_base_offset_access_note(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  0x0024,
+  M68K_SIM_ACCESS_MEMORY_WRITE,
+  2,
+  1,
+  0x9F40,
+  &semantic_use_kind,
+  note,
+  sizeof(note));
+```
+
+The source-quality call sites now pass only the evidence they have already
+proved: address/base+offset, access kind, byte width, and optional immediate
+value. Platform facts decides whether that evidence has a semantic note for:
+
+```text
+display register values
+disk DMA/sync register values
+audio register values/accesses
+hardware read notes such as joystick or interrupt state
+palette COLOR range writes
+```
+
+The test fixture covers both absolute and `_custom`-relative forms, including
+the previously easy-to-break COLOR range case where the CPU address must be
+converted to the register-range owner offset before formatting `palette color`
+notes.
+
 ### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
 
 Materialized runtime storage/code patch rendering had another duplicate guard:

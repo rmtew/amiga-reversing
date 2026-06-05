@@ -127,6 +127,12 @@ int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, ui
   uint16_t *out_base_id, uint32_t *out_offset);
 int platform_facts_v2_palette_color_register_range_offset_for_address(uint8_t platform_kind, uint32_t address,
   uint32_t *out_range_offset);
+int platform_facts_v2_hardware_access_note_for_address(uint8_t platform_kind, uint32_t address,
+  uint8_t access_kind, uint32_t byte_width, uint8_t has_immediate_value, uint32_t value,
+  uint8_t *out_semantic_use_kind, char *buf, size_t buf_size);
+int platform_facts_v2_hardware_base_offset_access_note(uint8_t platform_kind, uint16_t base_id, uint32_t offset,
+  uint8_t access_kind, uint32_t byte_width, uint8_t has_immediate_value, uint32_t value,
+  uint8_t *out_semantic_use_kind, char *buf, size_t buf_size);
 uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t platform_file_kind,
   uint8_t fixup_kind, uint32_t width, uint32_t raw_value);
 int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,

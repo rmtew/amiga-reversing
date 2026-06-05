@@ -246,6 +246,226 @@ int platform_facts_v2_palette_color_register_range_offset_for_address(uint8_t pl
   }
 }
 
+static int facts_v2_format_amiga_disk_dma_note(const AmigaOsHardwareRegisterInfo *hardware_register,
+    uint32_t value, char *buf, size_t buf_size) {
+  uint32_t word = value & 0xFFFFU;
+  uint32_t byte_length;
+  const char *direction;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_register == NULL ||
+      (hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKLEN &&
+       hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKSYNC)) {
+    return 0;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DSKSYNC) {
+    snprintf(buf, buf_size, "disk sync word $%04X", (unsigned)word);
+    return strlen(buf) + 1U < buf_size;
+  }
+  if ((word & AMIGA_OS_DSKLEN_DMA_ENABLE_MASK) == 0U) return 0;
+  byte_length = (word & AMIGA_OS_DSKLEN_LENGTH_MASK) * AMIGA_OS_DSKLEN_LENGTH_UNIT_BYTES;
+  if (byte_length == 0U) return 0;
+  direction = (word & AMIGA_OS_DSKLEN_WRITE_MASK) != 0U ? "write" : "read";
+  snprintf(buf, buf_size, "disk DMA %s %u bytes", direction, (unsigned)byte_length);
+  return strlen(buf) + 1U < buf_size;
+}
+
+static int facts_v2_format_amiga_hardware_value_note(const AmigaOsHardwareRegisterInfo *hardware_register,
+    uint32_t value, char *buf, size_t buf_size) {
+  uint32_t word = value & 0xFFFFU;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_register == NULL) return 0;
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0) {
+    uint32_t plane_count = (word >> 12) & 7U;
+    const char *resolution = (word & 0x8000U) != 0U ? "hires" : "lores";
+    const char *color = (word & 0x0200U) != 0U ? " color" : "";
+    if (plane_count == 0U) return 0;
+    snprintf(buf, buf_size, "display %u bitplanes %s%s", (unsigned)plane_count, resolution, color);
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON1) {
+    snprintf(buf, buf_size, "display scroll pf1=%u pf2=%u",
+      (unsigned)(word & 0xFU), (unsigned)((word >> 4) & 0xFU));
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTRT) {
+    snprintf(buf, buf_size, "display window start v=$%02X h=$%02X",
+      (unsigned)((word >> 8) & 0xFFU), (unsigned)(word & 0xFFU));
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTOP) {
+    snprintf(buf, buf_size, "display window stop v=$%02X h=$%02X",
+      (unsigned)((word >> 8) & 0xFFU), (unsigned)(word & 0xFFU));
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTRT) {
+    snprintf(buf, buf_size, "display fetch start $%02X", (unsigned)(word & 0xFFU));
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTOP) {
+    snprintf(buf, buf_size, "display fetch stop $%02X", (unsigned)(word & 0xFFU));
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL1MOD ||
+      hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL2MOD) {
+    int16_t modulo = (int16_t)word;
+    snprintf(buf, buf_size, "bitplane modulo %d bytes", (int)modulo);
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE) {
+    uint32_t height = (word >> 6) & 0x3FFU;
+    uint32_t width_words = word & 0x3FU;
+    if (height == 0U) height = 1024U;
+    if (width_words == 0U) width_words = 64U;
+    snprintf(buf, buf_size, "blitter size %u rows x %u words (%u bytes/row)",
+      (unsigned)height, (unsigned)width_words, (unsigned)(width_words * 2U));
+    return strlen(buf) + 1U < buf_size;
+  }
+  return 0;
+}
+
+static int facts_v2_format_amiga_audio_register_note(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
+    uint32_t value, int has_immediate, char *buf, size_t buf_size) {
+  uint32_t word = value & 0xFFFFU;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_field == NULL) return 0;
+  if (has_immediate) {
+    if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN) {
+      snprintf(buf, buf_size, "sound sample length %u bytes", (unsigned)(word * 2U));
+      return strlen(buf) + 1U < buf_size;
+    }
+    if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER) {
+      snprintf(buf, buf_size, "audio period %u", (unsigned)word);
+      return strlen(buf) + 1U < buf_size;
+    }
+    if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_VOL) {
+      snprintf(buf, buf_size, "audio volume %u", (unsigned)word);
+      return strlen(buf) + 1U < buf_size;
+    }
+    return 0;
+  }
+  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER) {
+    snprintf(buf, buf_size, "audio period");
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_DAT) {
+    snprintf(buf, buf_size, "audio data word");
+    return strlen(buf) + 1U < buf_size;
+  }
+  return 0;
+}
+
+static int facts_v2_format_amiga_hardware_register_access_note(
+    const AmigaOsHardwareRegisterInfo *hardware_register, uint8_t access_kind, char *buf, size_t buf_size) {
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_register == NULL || access_kind != M68K_SIM_ACCESS_MEMORY_READ) return 0;
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_JOY0DAT) {
+    snprintf(buf, buf_size, "joystick/mouse port 0 data");
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_JOY1DAT) {
+    snprintf(buf, buf_size, "joystick/mouse port 1 data");
+    return strlen(buf) + 1U < buf_size;
+  }
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_INTREQR) {
+    snprintf(buf, buf_size, "interrupt request state");
+    return strlen(buf) + 1U < buf_size;
+  }
+  return 0;
+}
+
+static int facts_v2_format_amiga_hardware_range_access_note(
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range, uint32_t offset, uint8_t access_kind,
+    uint32_t byte_width, char *buf, size_t buf_size) {
+  uint32_t index;
+  uint32_t color_count;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_range == NULL || hardware_range->symbol_id != AMIGA_OS_SYMBOL_ID_COLOR ||
+      access_kind != M68K_SIM_ACCESS_MEMORY_WRITE || offset < hardware_range->offset) {
+    return 0;
+  }
+  index = (offset - hardware_range->offset) / 2U;
+  color_count = byte_width > 2U ? byte_width / 2U : 1U;
+  if (color_count > 1U) {
+    snprintf(buf, buf_size, "palette colors %u-%u", (unsigned)index, (unsigned)(index + color_count - 1U));
+  } else {
+    snprintf(buf, buf_size, "palette color %u", (unsigned)index);
+  }
+  return strlen(buf) + 1U < buf_size;
+}
+
+static int facts_v2_amiga_hardware_access_note(const AmigaOsHardwareRegisterInfo *hardware_register,
+    const AmigaOsHardwareRegisterFieldInfo *hardware_field, const AmigaOsHardwareRegisterRangeInfo *hardware_range,
+    uint32_t owner_offset, uint8_t access_kind, uint32_t byte_width, uint8_t has_immediate_value, uint32_t value,
+    uint8_t *out_semantic_use_kind, char *buf, size_t buf_size) {
+  if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_UNKNOWN;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (has_immediate_value) {
+    if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE) return 0;
+    if (facts_v2_format_amiga_hardware_value_note(hardware_register, value, buf, buf_size)) {
+      if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE;
+      return 1;
+    }
+    if (facts_v2_format_amiga_disk_dma_note(hardware_register, value, buf, buf_size)) {
+      if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_DISK_DMA;
+      return 1;
+    }
+    if (facts_v2_format_amiga_audio_register_note(hardware_field, value, 1, buf, buf_size)) {
+      if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER;
+      return 1;
+    }
+    return 0;
+  }
+  if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE && access_kind != M68K_SIM_ACCESS_MEMORY_READ) return 0;
+  if (facts_v2_format_amiga_audio_register_note(hardware_field, 0U, 0, buf, buf_size)) {
+    if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_AUDIO_REGISTER;
+    return 1;
+  }
+  if (facts_v2_format_amiga_hardware_register_access_note(hardware_register, access_kind, buf, buf_size) ||
+      facts_v2_format_amiga_hardware_range_access_note(hardware_range, owner_offset, access_kind, byte_width,
+        buf, buf_size)) {
+    if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_HARDWARE_ACCESS;
+    return 1;
+  }
+  return 0;
+}
+
+int platform_facts_v2_hardware_access_note_for_address(uint8_t platform_kind, uint32_t address,
+    uint8_t access_kind, uint32_t byte_width, uint8_t has_immediate_value, uint32_t value,
+    uint8_t *out_semantic_use_kind, char *buf, size_t buf_size) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  uint32_t owner_offset = address;
+  if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_UNKNOWN;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  hardware_register = amiga_os_find_hardware_register_by_cpu_address(address);
+  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(address);
+  hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
+  if (hardware_range != NULL) owner_offset = address - hardware_range->base_address;
+  return facts_v2_amiga_hardware_access_note(
+    hardware_register, hardware_field, hardware_range, owner_offset, access_kind, byte_width, has_immediate_value,
+    value, out_semantic_use_kind, buf, buf_size);
+}
+
+int platform_facts_v2_hardware_base_offset_access_note(uint8_t platform_kind, uint16_t base_id, uint32_t offset,
+    uint8_t access_kind, uint32_t byte_width, uint8_t has_immediate_value, uint32_t value,
+    uint8_t *out_semantic_use_kind, char *buf, size_t buf_size) {
+  if (out_semantic_use_kind != NULL) *out_semantic_use_kind = M68K_PLATFORM_SEMANTIC_USE_UNKNOWN;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return 0;
+  return facts_v2_amiga_hardware_access_note(
+    amiga_os_find_hardware_register_by_base_id_offset(base_id, offset),
+    amiga_os_find_hardware_register_field_by_base_id_offset(base_id, offset),
+    amiga_os_find_hardware_register_range_by_base_id_offset(base_id, offset),
+    offset, access_kind, byte_width, has_immediate_value, value, out_semantic_use_kind, buf, buf_size);
+}
+
 int platform_facts_v2_address_has_hardware_owner(uint8_t platform_kind, uint32_t address) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
   return amiga_os_find_hardware_base_symbol_by_address(address) != NULL ||
