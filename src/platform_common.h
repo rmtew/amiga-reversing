@@ -85,6 +85,8 @@ const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_k
 uint32_t platform_facts_v2_runtime_address_sink_data_class_flags(uint8_t platform_kind, uint32_t address);
 uint16_t platform_facts_v2_hardware_base_offset_runtime_address_sink_kind(uint8_t platform_kind,
   uint16_t base_id, uint32_t offset);
+int platform_facts_v2_hardware_base_offset_runtime_address_sink_anchor_offset(uint8_t platform_kind,
+  uint16_t base_id, uint32_t offset, uint32_t *out_anchor_offset);
 const char *platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(uint8_t platform_kind,
   uint16_t base_id, uint32_t offset);
 uint32_t platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(uint8_t platform_kind,

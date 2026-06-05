@@ -685,6 +685,23 @@ uint16_t platform_facts_v2_hardware_base_offset_runtime_address_sink_kind(uint8_
   }
 }
 
+int platform_facts_v2_hardware_base_offset_runtime_address_sink_anchor_offset(uint8_t platform_kind,
+    uint16_t base_id, uint32_t offset, uint32_t *out_anchor_offset) {
+  if (out_anchor_offset != NULL) *out_anchor_offset = 0U;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterInfo *hardware_register =
+      platform_facts_v2_amiga_runtime_address_sink_register_for_base_offset(base_id, offset);
+    if (hardware_register == NULL) return 0;
+    if (out_anchor_offset != NULL) *out_anchor_offset = hardware_register->offset;
+    return 1;
+  }
+  default:
+    return 0;
+  }
+}
+
 const char *platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(uint8_t platform_kind,
     uint16_t base_id, uint32_t offset) {
   switch (platform_kind) {

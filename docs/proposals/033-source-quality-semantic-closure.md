@@ -5908,6 +5908,46 @@ It also proves that plain `$0020` is not accepted by the address API,
 preventing in-image storage addresses such as `$0130` from being accidentally
 reinterpreted as CUSTOM register offsets.
 
+### Implemented Slice: Copper Storage Sinks Use Platform Facts
+
+Copper-list runtime pointer discovery had a related leak. Source-quality needed
+to recognize paired register/value rows:
+
+```asm
+    dc.w bplpt+0,$0006
+    dc.w bplpt+2,$0000
+```
+
+The row-shape proof still belongs in source-quality:
+
+```text
+first row writes even CUSTOM offset
+second row writes offset+2
+two values form a non-zero runtime pointer
+structured role proves bitmap/sprite/audio/etc. source
+```
+
+But the old helper opened the Amiga hardware tables to discover the sink
+register/range start, runtime role string, runtime kind, and role flags. That
+duplicated the same metadata boundary that the runtime-sink operand path had
+just removed.
+
+Platform facts now exposes the missing reusable fact:
+
+```c
+platform_facts_v2_hardware_base_offset_runtime_address_sink_anchor_offset(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  0x00E2,
+  &anchor_offset); /* anchor_offset = 0x00E0 for bplpt */
+```
+
+Source-quality uses that anchor offset only to validate the high/low pointer
+pair and compute the pointer index. Role text and structured role flags come
+from the existing platform-facts data-class APIs. Bitmap detection now checks
+`M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP` instead of comparing an Amiga
+runtime-kind enum in source-quality.
+
 ### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
 
 Materialized runtime storage/code patch rendering had another duplicate guard:

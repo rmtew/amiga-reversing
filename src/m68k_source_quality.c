@@ -2130,68 +2130,76 @@ static int format_source_quality_copper_display_row_note(uint16_t first, uint16_
   return format_source_quality_amiga_hardware_value_note(hardware_register, (uint32_t)second, buf, buf_size);
 }
 
-static const AmigaOsHardwareRegisterInfo *source_quality_copper_runtime_pointer_register(uint16_t register_word) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+typedef struct SourceQualityCopperRuntimePointerInfo {
+  const char *role;
+  uint32_t register_offset;
+  uint32_t anchor_offset;
+  uint32_t role_flags;
+} SourceQualityCopperRuntimePointerInfo;
+
+static int source_quality_copper_runtime_pointer_info(uint16_t register_word,
+    SourceQualityCopperRuntimePointerInfo *out_info) {
   uint32_t register_offset = (uint32_t)(register_word & 0x01FEU);
-  if ((register_word & 1U) != 0U) return NULL;
-  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
-    register_offset);
-  if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
-      register_offset);
-    if (hardware_range != NULL) {
-      hardware_register =
-        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
-    }
+  const char *role;
+  uint32_t anchor_offset = 0U;
+  uint32_t role_flags;
+  if (out_info != NULL) memset(out_info, 0, sizeof(*out_info));
+  if ((register_word & 1U) != 0U) return 0;
+  role = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, register_offset);
+  role_flags = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, register_offset);
+  if (role == NULL || role[0] == '\0') return 0;
+  if (!platform_facts_v2_hardware_base_offset_runtime_address_sink_anchor_offset(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, register_offset, &anchor_offset)) {
+    return 0;
   }
-  if (hardware_register == NULL ||
-      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
-    return NULL;
+  if (out_info != NULL) {
+    out_info->role = role;
+    out_info->register_offset = register_offset;
+    out_info->anchor_offset = anchor_offset;
+    out_info->role_flags = role_flags;
   }
-  return hardware_register;
+  return 1;
 }
 
 static int format_source_quality_copper_runtime_pointer_note(const uint8_t *data, uint32_t offset, uint32_t cursor,
     uint32_t size, uint16_t first, uint16_t second, char *buf, size_t buf_size) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  uint32_t register_offset = (uint32_t)(first & 0x01FEU);
+  SourceQualityCopperRuntimePointerInfo pointer_info;
   uint32_t pointer_index;
   uint16_t next_first;
   uint16_t next_second;
   uint32_t pointer_address;
   if (data == NULL || buf == NULL || buf_size == 0U || cursor + 8U > size) return 0;
   buf[0] = '\0';
-  hardware_register = source_quality_copper_runtime_pointer_register(first);
-  if (hardware_register == NULL) return 0;
-  if (register_offset < hardware_register->offset ||
-      ((register_offset - hardware_register->offset) & 3U) != 0U) {
+  if (!source_quality_copper_runtime_pointer_info(first, &pointer_info)) return 0;
+  if (pointer_info.register_offset < pointer_info.anchor_offset ||
+      ((pointer_info.register_offset - pointer_info.anchor_offset) & 3U) != 0U) {
     return 0;
   }
   next_first = m68k_read_u16be(data + offset + cursor + 4U);
   next_second = m68k_read_u16be(data + offset + cursor + 6U);
-  if ((next_first & 1U) != 0U || (uint32_t)(next_first & 0x01FEU) != register_offset + 2U) return 0;
-  pointer_index = (register_offset - hardware_register->offset) / 4U;
+  if ((next_first & 1U) != 0U ||
+      (uint32_t)(next_first & 0x01FEU) != pointer_info.register_offset + 2U) {
+    return 0;
+  }
+  pointer_index = (pointer_info.register_offset - pointer_info.anchor_offset) / 4U;
   pointer_address = ((uint32_t)second << 16) | next_second;
   if (pointer_address == 0U) {
-    snprintf(buf, buf_size, "%s pointer %u disabled", hardware_register->runtime_target_role,
-      (unsigned)pointer_index);
+    snprintf(buf, buf_size, "%s pointer %u disabled", pointer_info.role, (unsigned)pointer_index);
   } else {
-    snprintf(buf, buf_size, "%s pointer $%08X", hardware_register->runtime_target_role,
-      (unsigned)pointer_address);
+    snprintf(buf, buf_size, "%s pointer $%08X", pointer_info.role, (unsigned)pointer_address);
   }
   return strlen(buf) + 1U < buf_size;
 }
 
 static int source_quality_copper_bitmap_pointer_at(const uint8_t *data, uint32_t offset, uint32_t cursor,
     uint32_t size, uint32_t *out_pointer) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
+  SourceQualityCopperRuntimePointerInfo pointer_info;
   uint16_t first;
   uint16_t second;
   uint16_t next_first;
   uint16_t next_second;
-  uint32_t register_offset;
   if (out_pointer != NULL) *out_pointer = 0U;
   if (data == NULL || out_pointer == NULL || cursor + 8U > size) return 0;
   first = m68k_read_u16be(data + offset + cursor);
@@ -2199,50 +2207,26 @@ static int source_quality_copper_bitmap_pointer_at(const uint8_t *data, uint32_t
   next_first = m68k_read_u16be(data + offset + cursor + 4U);
   next_second = m68k_read_u16be(data + offset + cursor + 6U);
   if ((first & 1U) != 0U || (next_first & 1U) != 0U) return 0;
-  register_offset = (uint32_t)(first & 0x01FEU);
-  hardware_register = source_quality_copper_runtime_pointer_register(first);
-  if (hardware_register == NULL ||
-      hardware_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP) {
+  if (!source_quality_copper_runtime_pointer_info(first, &pointer_info) ||
+      (pointer_info.role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) == 0U) {
     return 0;
   }
-  if (register_offset < hardware_register->offset ||
-      ((register_offset - hardware_register->offset) & 3U) != 0U) {
+  if (pointer_info.register_offset < pointer_info.anchor_offset ||
+      ((pointer_info.register_offset - pointer_info.anchor_offset) & 3U) != 0U) {
     return 0;
   }
-  if ((uint32_t)(next_first & 0x01FEU) != register_offset + 2U) return 0;
+  if ((uint32_t)(next_first & 0x01FEU) != pointer_info.register_offset + 2U) return 0;
   *out_pointer = ((uint32_t)second << 16) | next_second;
   return *out_pointer != 0U;
 }
 
-static uint32_t source_quality_runtime_target_kind_role_flags(uint16_t kind) {
-  switch (kind) {
-    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_COPPER_LIST:
-      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
-    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_DISK_BUFFER:
-      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER;
-    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_SOURCE:
-      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE;
-    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_DESTINATION:
-      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION;
-    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP:
-      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
-    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SPRITE:
-      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
-    case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE:
-      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
-    default:
-      return 0U;
-  }
-}
-
 static int source_quality_copper_runtime_pointer_details_at(const uint8_t *data, uint32_t offset, uint32_t cursor,
     uint32_t size, uint32_t *out_pointer, uint32_t *out_role_flags, const char **out_role) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
+  SourceQualityCopperRuntimePointerInfo pointer_info;
   uint16_t first;
   uint16_t second;
   uint16_t next_first;
   uint16_t next_second;
-  uint32_t register_offset;
   if (out_pointer != NULL) *out_pointer = 0U;
   if (out_role_flags != NULL) *out_role_flags = 0U;
   if (out_role != NULL) *out_role = NULL;
@@ -2252,21 +2236,15 @@ static int source_quality_copper_runtime_pointer_details_at(const uint8_t *data,
   next_first = m68k_read_u16be(data + offset + cursor + 4U);
   next_second = m68k_read_u16be(data + offset + cursor + 6U);
   if ((first & 1U) != 0U || (next_first & 1U) != 0U) return 0;
-  register_offset = (uint32_t)(first & 0x01FEU);
-  hardware_register = source_quality_copper_runtime_pointer_register(first);
-  if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
-      hardware_register->runtime_target_role[0] == '\0') {
-    return 0;
-  }
-  if (register_offset < hardware_register->offset ||
-      ((register_offset - hardware_register->offset) & 3U) != 0U ||
-      (uint32_t)(next_first & 0x01FEU) != register_offset + 2U) {
+  if (!source_quality_copper_runtime_pointer_info(first, &pointer_info)) return 0;
+  if (pointer_info.register_offset < pointer_info.anchor_offset ||
+      ((pointer_info.register_offset - pointer_info.anchor_offset) & 3U) != 0U ||
+      (uint32_t)(next_first & 0x01FEU) != pointer_info.register_offset + 2U) {
     return 0;
   }
   if (out_pointer != NULL) *out_pointer = ((uint32_t)second << 16) | next_second;
-  if (out_role_flags != NULL)
-    *out_role_flags = source_quality_runtime_target_kind_role_flags(hardware_register->runtime_target_kind);
-  if (out_role != NULL) *out_role = hardware_register->runtime_target_role;
+  if (out_role_flags != NULL) *out_role_flags = pointer_info.role_flags;
+  if (out_role != NULL) *out_role = pointer_info.role;
   return out_pointer == NULL || *out_pointer != 0U;
 }
 
@@ -11372,7 +11350,7 @@ static int append_expected_copper_runtime_pointer_word_symbol_accesses(M68kSourc
     if (decode_section == NULL || decode_section->data == NULL) continue;
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
-      const AmigaOsHardwareRegisterInfo *hardware_register;
+      SourceQualityCopperRuntimePointerInfo pointer_info;
       uint32_t pointer_address = 0U;
       uint16_t first;
       char high_symbol[80];
@@ -11390,15 +11368,11 @@ static int append_expected_copper_runtime_pointer_word_symbol_accesses(M68kSourc
         continue;
       }
       first = m68k_read_u16be(decode_section->data + ref->offset);
-      hardware_register = source_quality_copper_runtime_pointer_register(first);
-      if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
-          hardware_register->runtime_target_role[0] == '\0') {
-        continue;
-      }
-      platform_format_runtime_address_symbol_name(hardware_register->runtime_target_role, ref->runtime_address,
-        "_hi", high_symbol, sizeof(high_symbol));
-      platform_format_runtime_address_symbol_name(hardware_register->runtime_target_role, ref->runtime_address,
-        "_lo", low_symbol, sizeof(low_symbol));
+      if (!source_quality_copper_runtime_pointer_info(first, &pointer_info)) continue;
+      platform_format_runtime_address_symbol_name(pointer_info.role, ref->runtime_address, "_hi", high_symbol,
+        sizeof(high_symbol));
+      platform_format_runtime_address_symbol_name(pointer_info.role, ref->runtime_address, "_lo", low_symbol,
+        sizeof(low_symbol));
       if (high_symbol[0] == '\0' || low_symbol[0] == '\0') continue;
       if (append_copper_runtime_pointer_word_symbol_access_and_use(section, ref->offset, high_symbol,
           ref->runtime_address, ref->data_class_flags, ref->confidence) != 0) {

@@ -19754,6 +19754,7 @@ static int test_facts_v2_hardware_base_runtime_sink_exports_pointer_comment(void
 
 static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata(void) {
   char symbol_expr[64];
+  uint32_t anchor_offset = 0U;
   const AmigaOsHardwareRegisterInfo *cop1lc =
     amiga_os_find_hardware_register_by_cpu_address(0x00DFF080U);
   const AmigaOsHardwareRegisterInfo *intena =
@@ -19876,6 +19877,13 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A0U));
   M68K_C_ASSERT_STR("bitmap",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0E0U));
+  M68K_C_ASSERT(
+    platform_facts_v2_hardware_base_offset_runtime_address_sink_anchor_offset(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x00E2U, &anchor_offset));
+  M68K_C_ASSERT_U32(0x00E0U, anchor_offset);
+  M68K_C_ASSERT(
+    !platform_facts_v2_hardware_base_offset_runtime_address_sink_anchor_offset(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x009AU, &anchor_offset));
   M68K_C_ASSERT_STR("sprite",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF120U));
   M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP,
