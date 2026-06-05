@@ -6013,6 +6013,35 @@ decides whether an `aN` displacement is actually a `_custom` register offset no
 longer hardcodes the Amiga custom-base id; it obtains the id through
 `platform_facts_v2_custom_hardware_base_id()`.
 
+### Implemented Slice: LVO Symbol Declarations Use Platform Facts
+
+Render export still has to make `_LVO*` operands assemble. When the target
+source cannot rely on an include file for a library-vector symbol, the renderer
+declares the symbol as an `EQU`:
+
+```asm
+_LVOOpenLibrary EQU -552
+```
+
+That declaration is rendering support, but deciding whether `_LVOOpenLibrary`
+is a known platform library vector and what signed offset it has is platform
+metadata. The old helper opened the generated Amiga vector table directly:
+
+```c
+amiga_os_find_library_vector_by_symbol_id(symbol_id);
+```
+
+The renderer now asks the platform-facts boundary by symbol name:
+
+```c
+platform_facts_v2_library_vector_lvo_for_symbol(platform, "_LVOOpenLibrary", &lvo);
+```
+
+The effect is deliberately narrow. Source/render still decide whether an
+operand token needs an include or an `EQU`; platform facts only answers the
+metadata question. Non-Amiga platforms fail closed, and the focused C fixture
+pins `_LVOOpenLibrary` to `-552` without requiring a full target render.
+
 ### Implemented Slice: Hardware-Base Seed Names Use Platform Facts
 
 Policy and manual register seeds can say that an address register contains a

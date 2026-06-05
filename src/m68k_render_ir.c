@@ -827,17 +827,16 @@ static int format_target_equate_value_expr(const M68kAnalysisTargetEquate *equat
   return 1;
 }
 
-static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview, uint16_t symbol_id) {
-  const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id);
-  const AmigaOsLibraryVectorInfo *vector = amiga_os_find_library_vector_by_symbol_id(symbol_id);
-  if (symbol_name == NULL || symbol_name[0] == '\0' || vector == NULL) {
+static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview, const char *symbol_name) {
+  int16_t lvo;
+  if (!platform_facts_v2_library_vector_lvo_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, &lvo)) {
     if (preview != NULL) {
       ++preview->asm_source_instruction_render_failures;
       record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     }
     return 0;
   }
-  return render_asm_declare_symbol_once(preview, symbol_name, (int32_t)vector->lvo);
+  return render_asm_declare_symbol_once(preview, symbol_name, (int32_t)lvo);
 }
 
 static int render_asm_define_amiga_hardware_base_once(M68kRenderIRPreview *preview, const char *symbol_name) {
@@ -902,13 +901,11 @@ static int render_asm_define_amiga_hardware_instance_alias_once(M68kRenderIRPrev
 
 static int render_asm_include_for_amiga_symbol(M68kRenderIRPreview *preview, const char *symbol_name) {
   const char *include_path;
-  uint16_t symbol_id;
   if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
   include_path = amiga_os_find_symbol_include(symbol_name);
   if (include_path != NULL && include_path[0] != '\0') return render_asm_include_once(preview, include_path);
-  symbol_id = amiga_os_name_id(M68K_PLATFORM_NAME_SYMBOL, symbol_name);
-  if (amiga_os_find_library_vector_by_symbol_id(symbol_id) != NULL)
-    return render_asm_define_amiga_lvo_symbol_once(preview, symbol_id);
+  if (platform_facts_v2_library_vector_lvo_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, NULL))
+    return render_asm_define_amiga_lvo_symbol_once(preview, symbol_name);
   return 1;
 }
 

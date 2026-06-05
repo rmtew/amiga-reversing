@@ -320,6 +320,17 @@ int platform_facts_v2_calling_convention_preserved_address_mask(uint8_t platform
   }
 }
 
+int platform_facts_v2_library_vector_lvo_for_symbol(uint8_t platform_kind, const char *symbol_name,
+    int16_t *out_lvo) {
+  const AmigaOsLibraryVectorInfo *vector;
+  if (out_lvo != NULL) *out_lvo = 0;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  vector = amiga_os_find_library_vector_by_symbol_name(symbol_name);
+  if (vector == NULL) return 0;
+  if (out_lvo != NULL) *out_lvo = vector->lvo;
+  return 1;
+}
+
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
   return amiga_os_hardware_base_symbol(base_id);
