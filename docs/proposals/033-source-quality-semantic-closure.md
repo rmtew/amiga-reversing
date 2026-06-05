@@ -5719,6 +5719,33 @@ prints the row. It no longer knows how to look up Amiga register value-domain
 metadata. That keeps `INTF_CLRALL`, `DMAF_CLRALL`, `BEAMCON0_PAL`, and related
 expressions behind the same platform facts API boundary as register names.
 
+### Implemented Slice: Hardware Base Symbols Use Platform Facts
+
+Renderer hardware-base formatting also had small direct Amiga lookups:
+
+```text
+state says register holds CUSTOM base id
+  -> renderer asks Amiga metadata for `_custom`
+
+literal/address operand is $00DFF000
+  -> renderer asks Amiga metadata whether that is a hardware base
+```
+
+Those are formatting-support questions, not new semantic proof, but they still
+duplicated platform metadata access in `m68k_render_ir.c`. The renderer now asks
+platform facts for both forms:
+
+```c
+platform_facts_v2_hardware_base_symbol(platform, base_id);
+platform_facts_v2_hardware_base_symbol_for_address(platform, address);
+```
+
+The rule remains conservative. Source analysis must still prove that an operand
+is a hardware-base address use before the renderer attaches the symbol when
+source analysis is present. The no-source-analysis fallback can still format
+legacy preview output, but it no longer opens the Amiga hardware-base tables
+itself.
+
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 
 Absolute hardware operand rendering had a stale fallback path after the

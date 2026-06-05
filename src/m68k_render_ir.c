@@ -3644,7 +3644,8 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
   if (operand == NULL) return NULL;
   if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
       state != NULL && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
-    return amiga_os_hardware_base_symbol(state->address_hardware_base_id[reg]);
+    return platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      state->address_hardware_base_id[reg]);
   }
   if (operand->symbol_ref.has_name != 0U) {
     uint32_t base_address;
@@ -3652,7 +3653,7 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
       return operand->symbol_ref.name;
   }
   if (m68k_ir_operand_immediate_value(operand, &value) || operand_absolute_offset_local(operand, &value)) {
-    base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
+    base_symbol = platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, value);
     if (base_symbol != NULL && base_symbol[0] != '\0') return base_symbol;
   }
   return NULL;
@@ -4079,9 +4080,11 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
       }
       if (hardware_register_use == NULL &&
           state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) {
-        hardware_base_symbol = amiga_os_hardware_base_symbol(state->address_hardware_base_id[base_reg]);
+        hardware_base_symbol = platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          state->address_hardware_base_id[base_reg]);
         if (section != NULL && candidate != NULL && hardware_base_symbol != NULL &&
-            amiga_os_find_hardware_base_address(hardware_base_symbol, &hardware_base_address)) {
+            platform_facts_v2_hardware_base_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+              state->address_hardware_base_id[base_reg], &hardware_base_address)) {
           hardware_register_use = source_analysis_platform_address_use_for_operand(source_analysis,
             section->section_index, candidate->offset, operand_index,
             hardware_base_address + (uint32_t)(uint16_t)displacement,
@@ -4136,7 +4139,7 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
     if (m68k_ir_operand_immediate_value(operand, &value)) {
       const M68kPlatformAddressUseIR *hardware_base_use;
       if (section == NULL || candidate == NULL) continue;
-      base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
+      base_symbol = platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, value);
       if (base_symbol == NULL || base_symbol[0] == '\0') continue;
       hardware_base_use = source_analysis_platform_address_use_for_operand(source_analysis,
         section->section_index, candidate->offset, operand_index, value,

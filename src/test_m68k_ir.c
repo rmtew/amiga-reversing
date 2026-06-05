@@ -13727,6 +13727,14 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT(platform_facts_v2_hardware_base_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, &base_address));
   M68K_C_ASSERT_U32(0x00DFF000U, base_address);
+  M68K_C_ASSERT_STR("_custom", platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM));
+  M68K_C_ASSERT_STR("_custom", platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF000U));
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_ATARI_ST,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM) == NULL);
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
+    0x00DFF000U) == NULL);
   M68K_C_ASSERT(platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     0x00DFF09AU, &base_id, &offset));
   M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, base_id);
