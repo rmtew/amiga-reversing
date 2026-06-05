@@ -4887,6 +4887,35 @@ The cleanup is intentionally source-neutral: C unit tests pass and the
 read-only rendered-source round-trip reports the same exact/content-exact target
 set with no new rendered-source churn.
 
+### Implemented Slice: Render Auto Append-Back Removal
+
+The next cleanup removes the final append-back path:
+
+```text
+render lookup AUTO structured-data ownership
+  -> m68k_analysis_render_lookup_append_auto_policy()
+  -> source_analysis.structured_data_items
+```
+
+That path made render lookup a latent analysis producer even after the concrete
+text and table producers had moved into source-quality. It also made the
+pipeline order harder to reason about: a fact could appear only because a render
+preview ran first.
+
+The source-quality boundary is now one-way:
+
+```text
+source-quality creates structured_data_item facts
+  -> render lookup imports those facts for ownership and formatting
+  -> render evidence records what was emitted
+  -> source-quality validates emitted evidence
+```
+
+Render evidence validation remains post-render because it compares expected
+analysis obligations with the actual source text emitted by the renderer. It is
+not an analysis producer and does not mutate source analysis with new semantic
+facts.
+
 ### Implemented Slice: Mac OS Symbol String Ownership
 
 Mac OS high-bit symbol records had the same ownership bug as the generic text
@@ -5008,7 +5037,7 @@ render auto terminated_text $001F..$0037
 render policy control_string_stream $0000..$0020
   -> disable contained weak auto range
   -> disable contained weak policy range
-  -> render and auto-policy append see only multiline_text
+  -> render sees only multiline_text
 ```
 
 The render layer still owns formatting. For C-owned multiline text it formats

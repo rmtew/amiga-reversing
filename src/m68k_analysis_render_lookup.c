@@ -7911,38 +7911,6 @@ static int candidate_indexed_read_from_known_local_base(const M68kDecodeSectionI
   return 0;
 }
 
-static int source_analysis_append_auto_structured_data_policy(M68kSourceAnalysisIR *source_analysis,
-    const M68kRenderLookup *lookup) {
-  size_t index;
-  if (source_analysis == NULL || lookup == NULL) return 0;
-  for (index = 0U; index < lookup->range_ownership_count; ++index) {
-    M68kRenderRangeOwnershipView range;
-    size_t existing_index;
-    int exists = 0;
-    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
-    if (range.structured_item_source != M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO ||
-        range.structured_item == NULL) {
-      continue;
-    }
-    for (existing_index = 0U; existing_index < source_analysis->structured_data_item_count; ++existing_index) {
-      const M68kAnalysisStructuredDataItem *existing = &source_analysis->structured_data_items[existing_index];
-      if (existing->has_section_index == range.structured_item->has_section_index &&
-          existing->section_index == range.structured_item->section_index &&
-          existing->offset == range.structured_item->offset &&
-          existing->size == range.structured_item->size &&
-          existing->kind == range.structured_item->kind &&
-          existing->semantic_role_flags == range.structured_item->semantic_role_flags) {
-        exists = 1;
-        break;
-      }
-    }
-    if (exists) continue;
-    if (m68k_ir_source_analysis_append_structured_data_item(source_analysis, range.structured_item) != 0)
-      return -1;
-  }
-  return 0;
-}
-
 static uint16_t trace_base_id_from_name(const char *name) {
   uint16_t base_id;
   const char *library_name;
@@ -10038,11 +10006,6 @@ int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kSourc
   return 0;
 }
 
-int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
-    M68kRenderLookup *lookup) {
-  return source_analysis_append_auto_structured_data_policy(source_analysis, lookup);
-}
-
 static int append_base_layout_fields_from_slots(M68kSourceAnalysisIR *source_analysis,
     const M68kBaseLayoutSlot *slots, size_t slot_count) {
   size_t index;
@@ -10149,7 +10112,6 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
   memset(&section_analysis, 0, sizeof(section_analysis));
   scratch_arena = arena_create(4096U);
   if (scratch_arena == NULL) return -1;
-  if (m68k_analysis_render_lookup_append_auto_policy(source_analysis, lookup) != 0) goto fail;
   if (m68k_analysis_render_lookup_append_base_layout_fields(scratch_arena, lookup, decode, source_analysis) != 0)
     goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
