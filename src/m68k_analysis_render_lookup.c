@@ -8992,9 +8992,11 @@ static int render_lookup_seed_policy_rsset_use_site_app_refs(M68kRenderLookup *l
 }
 
 static int displacement_is_custom_hardware_offset(int16_t displacement) {
+  uint16_t custom_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   if (displacement < 0) return 0;
+  if (!platform_facts_v2_custom_hardware_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &custom_base_id)) return 0;
   return platform_facts_v2_hardware_base_offset_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, (uint32_t)(uint16_t)displacement);
+    custom_base_id, (uint32_t)(uint16_t)displacement);
 }
 
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,

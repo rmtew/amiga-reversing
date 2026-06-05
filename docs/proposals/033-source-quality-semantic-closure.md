@@ -5974,6 +5974,11 @@ formatting helpers from depending on generated Amiga identity constants.
 Source-quality still owns the proof that an operand or structured item should
 be treated as a hardware access.
 
+The same rule now covers render-lookup app-base exclusion. The helper that
+decides whether an `aN` displacement is actually a `_custom` register offset no
+longer hardcodes the Amiga custom-base id; it obtains the id through
+`platform_facts_v2_custom_hardware_base_id()`.
+
 ### Implemented Slice: Hardware-Base Seed Names Use Platform Facts
 
 Policy and manual register seeds can say that an address register contains a
