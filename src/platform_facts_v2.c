@@ -363,6 +363,57 @@ const char *platform_facts_v2_library_name_for_name(uint8_t platform_kind, const
   return amiga_os_find_library_name_by_base_name(name);
 }
 
+const char *platform_facts_v2_library_base_struct_name_for_name(uint8_t platform_kind, const char *name) {
+  const char *library_name;
+  const char *struct_name;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || name == NULL || name[0] == '\0') return NULL;
+  library_name = platform_facts_v2_library_name_for_name(platform_kind, name);
+  if (library_name == NULL || library_name[0] == '\0') return NULL;
+  struct_name = amiga_os_find_library_base_struct_name(library_name);
+  if (struct_name != NULL && struct_name[0] != '\0') return struct_name;
+  return amiga_os_name(M68K_PLATFORM_NAME_STRUCT, AMIGA_OS_STRUCT_ID_LIB);
+}
+
+int platform_facts_v2_library_base_has_specific_struct_name(uint8_t platform_kind, const char *name) {
+  const char *struct_name = platform_facts_v2_library_base_struct_name_for_name(platform_kind, name);
+  const char *common_struct_name;
+  if (struct_name == NULL || struct_name[0] == '\0') return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    common_struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, AMIGA_OS_STRUCT_ID_LIB);
+    return common_struct_name == NULL || strcmp(struct_name, common_struct_name) != 0;
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_library_base_field_symbol_name(uint8_t platform_kind, const char *name, int16_t displacement,
+    char *symbol_buf, size_t symbol_buf_size) {
+  const char *struct_name;
+  const char *common_struct_name;
+  const AmigaOsStructFieldInfo *field;
+  const char *field_name;
+  if (symbol_buf != NULL && symbol_buf_size != 0U) symbol_buf[0] = '\0';
+  if (symbol_buf == NULL || symbol_buf_size == 0U) return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    struct_name = platform_facts_v2_library_base_struct_name_for_name(platform_kind, name);
+    if (struct_name == NULL || struct_name[0] == '\0') return 0;
+    common_struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, AMIGA_OS_STRUCT_ID_LIB);
+    field = amiga_os_find_struct_field(struct_name, displacement);
+    if (field == NULL && common_struct_name != NULL && strcmp(struct_name, common_struct_name) != 0) {
+      field = amiga_os_find_struct_field_by_struct_id(AMIGA_OS_STRUCT_ID_LIB, displacement);
+    }
+    if (field == NULL) return 0;
+    field_name = amiga_os_name(M68K_PLATFORM_NAME_FIELD, field->field_id);
+    if (field_name == NULL || field_name[0] == '\0') return 0;
+    snprintf(symbol_buf, symbol_buf_size, "%s", field_name);
+    return strlen(field_name) < symbol_buf_size;
+  default:
+    return 0;
+  }
+}
+
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
   return amiga_os_hardware_base_symbol(base_id);

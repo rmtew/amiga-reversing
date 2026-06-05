@@ -6129,6 +6129,38 @@ rendering: those helpers may still return an Amiga vector object until the
 larger vector-metadata boundary moves, but they no longer ask generated Amiga
 tables to translate the library name into its base symbol.
 
+### Implemented Slice: Renderer Library-Base Fields Use Platform Facts
+
+Library-base field rendering had the same ownership problem one layer deeper.
+The renderer can prove that an operand is a field access through a known library
+base, but the field spelling is platform metadata:
+
+```asm
+    tst.w   LIB_VERSION(a6)
+```
+
+The old renderer path selected a base struct, fell back to the common `LIB`
+struct, and looked up the field name directly in generated Amiga tables:
+
+```c
+amiga_os_find_library_base_struct_name(library_name);
+amiga_os_find_struct_field(struct_name, displacement);
+amiga_os_find_struct_field_by_struct_id(AMIGA_OS_STRUCT_ID_LIB, displacement);
+```
+
+That lookup now goes through platform facts:
+
+```c
+platform_facts_v2_library_base_field_symbol_name(platform, owner_name, displacement, buf, sizeof(buf));
+platform_facts_v2_library_base_has_specific_struct_name(platform, owner_name);
+```
+
+The renderer still decides whether a proven base-field slot should be printed.
+Platform facts now owns the mapping from owner spelling and displacement to the
+field symbol, including the common `LIB` fallback. Focused C assertions cover a
+specific `graphics.library` base struct, the `LIB_VERSION` fallback field, an
+unknown displacement, and non-Amiga fail-closed behavior.
+
 ### Implemented Slice: Render-Lookup Library Names Use Platform Facts
 
 The previous slice handled renderer helpers, but render lookup still had the

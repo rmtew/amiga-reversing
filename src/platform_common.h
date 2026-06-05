@@ -167,6 +167,10 @@ const char *platform_facts_v2_library_base_name_for_library_name(uint8_t platfor
 const char *platform_facts_v2_library_name_for_base_name(uint8_t platform_kind, const char *base_name);
 const char *platform_facts_v2_library_base_name_for_name(uint8_t platform_kind, const char *name);
 const char *platform_facts_v2_library_name_for_name(uint8_t platform_kind, const char *name);
+const char *platform_facts_v2_library_base_struct_name_for_name(uint8_t platform_kind, const char *name);
+int platform_facts_v2_library_base_has_specific_struct_name(uint8_t platform_kind, const char *name);
+int platform_facts_v2_library_base_field_symbol_name(uint8_t platform_kind, const char *name, int16_t displacement,
+  char *symbol_buf, size_t symbol_buf_size);
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id);
 const char *platform_facts_v2_hardware_base_symbol_for_address(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address);
