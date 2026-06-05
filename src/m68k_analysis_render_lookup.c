@@ -8499,18 +8499,20 @@ static int open_device_iorequest_input_info(PlatformFactsV2CallInput *out_input)
 }
 
 static int amiga_vector_iorequest_address_register(const AmigaOsLibraryVectorInfo *vector, uint8_t *out_reg) {
-  const AmigaOsCallInputInfo *inputs;
+  const char *symbol_name;
   size_t count = 0U;
   size_t index;
   if (out_reg != NULL) *out_reg = 0U;
   if (vector == NULL) return 0;
-  inputs = amiga_os_library_vector_inputs(vector, &count);
-  if (inputs == NULL) return 0;
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  if (!platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, &count)) return 0;
   for (index = 0U; index < count; ++index) {
-    const AmigaOsCallInputInfo *input = &inputs[index];
-    if (input->reg_kind == AMIGA_OS_REGISTER_ADDRESS && input->reg_index < 8U &&
-        input->struct_id == AMIGA_OS_STRUCT_ID_IO) {
-      if (out_reg != NULL) *out_reg = input->reg_index;
+    PlatformFactsV2CallInput input;
+    if (!platform_facts_v2_call_input_at(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, index, &input)) continue;
+    if (input.reg_kind == AMIGA_OS_REGISTER_ADDRESS && input.reg_index < 8U &&
+        input.has_struct_type && strcmp(input.type_name, "IO") == 0) {
+      if (out_reg != NULL) *out_reg = input.reg_index;
       return 1;
     }
   }

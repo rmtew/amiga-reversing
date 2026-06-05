@@ -6302,6 +6302,13 @@ typed-flow state has not yet been converted to name/domain storage. The metadata
 decision, however, is no longer made by opening generated Amiga vector input
 tables in render lookup.
 
+The same descriptor path now covers device-call recording. The helper that
+recognises which register carries an `IO` request for an already-known device
+call no longer scans generated vector inputs either; it asks platform facts for
+call inputs and checks for a struct-typed `IO` address-register input. After
+this slice, render lookup has no remaining direct
+`amiga_os_library_vector_inputs()` calls.
+
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 
 Absolute hardware operand rendering had a stale fallback path after the
