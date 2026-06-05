@@ -13713,6 +13713,7 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   int32_t an_icon_lib = 0;
   int32_t ag_open_lib = 0;
   int32_t ao_dos_lib = 0;
+  int32_t constant_value = 0;
   uint32_t alert_value = 0U;
   memset(&observation, 0, sizeof(observation));
   observation.address = 0x70U;
@@ -13797,8 +13798,20 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT_STR("AN_IconLib|AG_OpenLib|AO_DOSLib", symbol_buf);
   M68K_C_ASSERT(platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "INTF_CLRALL"));
   M68K_C_ASSERT(platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "INTF_CLRALL"));
+  M68K_C_ASSERT(platform_facts_v2_symbol_constant_value(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "INTF_CLRALL", &constant_value));
+  M68K_C_ASSERT_U32(0x7FFFU, (uint32_t)constant_value);
+  M68K_C_ASSERT(platform_facts_v2_symbol_include(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "diwstrt") != NULL);
+  M68K_C_ASSERT_STR("spr+sd_SIZEOF", platform_facts_v2_hardware_register_instance_alias_expr(
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, "spr1"));
   M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_ATARI_ST, "INTF_CLRALL"));
   M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_ATARI_ST, "INTF_CLRALL"));
+  M68K_C_ASSERT(!platform_facts_v2_symbol_constant_value(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "INTF_CLRALL", &constant_value));
+  M68K_C_ASSERT_U32(0U, (uint32_t)constant_value);
+  M68K_C_ASSERT(platform_facts_v2_symbol_include(M68K_PLATFORM_BACKEND_ATARI_ST, "diwstrt") == NULL);
+  M68K_C_ASSERT(platform_facts_v2_hardware_register_instance_alias_expr(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "spr1") == NULL);
   M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "not_a_symbol"));
   M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "not_a_symbol"));
   M68K_C_ASSERT(platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,

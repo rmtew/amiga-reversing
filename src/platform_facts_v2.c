@@ -223,6 +223,37 @@ int platform_facts_v2_symbol_name_is_equate(uint8_t platform_kind, const char *s
   }
 }
 
+const char *platform_facts_v2_symbol_include(uint8_t platform_kind, const char *symbol_name) {
+  if (symbol_name == NULL || symbol_name[0] == '\0') return NULL;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_find_symbol_include(symbol_name);
+  default:
+    return NULL;
+  }
+}
+
+int platform_facts_v2_symbol_constant_value(uint8_t platform_kind, const char *symbol_name, int32_t *out_value) {
+  if (out_value != NULL) *out_value = 0;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_find_constant_value(symbol_name, out_value);
+  default:
+    return 0;
+  }
+}
+
+const char *platform_facts_v2_hardware_register_instance_alias_expr(uint8_t platform_kind, const char *symbol_name) {
+  if (symbol_name == NULL || symbol_name[0] == '\0') return NULL;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_find_hardware_register_instance_alias_expr(symbol_name);
+  default:
+    return NULL;
+  }
+}
+
 static int platform_facts_v2_amiga_populate_call_input(const AmigaOsLibraryVectorInfo *vector,
     const AmigaOsCallInputInfo *input, PlatformFactsV2CallInput *out_input) {
   const char *name;

@@ -5955,6 +5955,44 @@ from `m68k_source_quality.c`. The generic pass still parses expression tokens
 and still decides which expected-access fact to emit; platform facts only
 answers the platform-symbol membership question.
 
+### Implemented Slice: Renderer Symbol Include And Equate Facts
+
+The matching render-side support had the same metadata leak. Rendering still
+owns the formatting decision:
+
+```text
+symbol has an include path
+  -> emit INCLUDE once
+
+symbol is an include-free constant
+  -> emit EQU once
+
+hardware register instance has an alias expression
+  -> emit alias EQU once, after including tokens used by that expression
+```
+
+But the questions below are platform metadata:
+
+```c
+amiga_os_find_symbol_include(symbol_name);
+amiga_os_find_constant_value(symbol_name, &value);
+amiga_os_find_hardware_register_instance_alias_expr(symbol_name);
+```
+
+The renderer now asks platform facts instead:
+
+```c
+platform_facts_v2_symbol_include(platform, symbol_name);
+platform_facts_v2_symbol_constant_value(platform, symbol_name, &value);
+platform_facts_v2_hardware_register_instance_alias_expr(platform, symbol_name);
+```
+
+This keeps assembly output behaviour unchanged while making the renderer a
+consumer of platform metadata rather than a second owner of it. Focused C
+coverage pins an Amiga include-backed hardware symbol, an include-free constant,
+the hardware register alias expression for `spr1`, and non-Amiga fail-closed
+results.
+
 ### Implemented Slice: Hardware Base Symbols Use Platform Facts
 
 Renderer hardware-base formatting also had small direct Amiga lookups:

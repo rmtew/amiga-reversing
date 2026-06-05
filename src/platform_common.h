@@ -150,6 +150,9 @@ int platform_facts_v2_value_domain_symbolic_expr(uint8_t platform_kind, const ch
   uint32_t value, char *expr, size_t expr_size);
 int platform_facts_v2_symbol_name_is_known(uint8_t platform_kind, const char *symbol_name);
 int platform_facts_v2_symbol_name_is_equate(uint8_t platform_kind, const char *symbol_name);
+const char *platform_facts_v2_symbol_include(uint8_t platform_kind, const char *symbol_name);
+int platform_facts_v2_symbol_constant_value(uint8_t platform_kind, const char *symbol_name, int32_t *out_value);
+const char *platform_facts_v2_hardware_register_instance_alias_expr(uint8_t platform_kind, const char *symbol_name);
 int platform_facts_v2_call_input_count_for_symbol(uint8_t platform_kind, const char *symbol_name,
   size_t *out_input_count);
 int platform_facts_v2_call_input_at(uint8_t platform_kind, const char *symbol_name, size_t input_index,

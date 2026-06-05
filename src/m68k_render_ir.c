@@ -827,8 +827,8 @@ static int render_asm_define_amiga_hardware_base_once(M68kRenderIRPreview *previ
 static int render_asm_define_amiga_constant_once(M68kRenderIRPreview *preview, const char *symbol_name) {
   int32_t value;
   if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
-  if (amiga_os_find_symbol_include(symbol_name) != NULL) return 1;
-  if (!amiga_os_find_constant_value(symbol_name, &value)) return 1;
+  if (platform_facts_v2_symbol_include(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name) != NULL) return 1;
+  if (!platform_facts_v2_symbol_constant_value(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, &value)) return 1;
   if (value >= 0) return render_asm_declare_symbol_hex_once(preview, symbol_name, (uint32_t)value);
   return render_asm_declare_symbol_once(preview, symbol_name, value);
 }
@@ -869,7 +869,7 @@ static int render_asm_define_amiga_hardware_instance_alias_once(M68kRenderIRPrev
   const char *expr;
   if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
   if (preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 1;
-  expr = amiga_os_find_hardware_register_instance_alias_expr(symbol_name);
+  expr = platform_facts_v2_hardware_register_instance_alias_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name);
   if (expr == NULL || expr[0] == '\0') return 1;
   if (!render_asm_include_for_symbol_expr(preview, expr)) return 0;
   return render_asm_declare_symbol_expr_once(preview, symbol_name, expr);
@@ -878,7 +878,7 @@ static int render_asm_define_amiga_hardware_instance_alias_once(M68kRenderIRPrev
 static int render_asm_include_for_amiga_symbol(M68kRenderIRPreview *preview, const char *symbol_name) {
   const char *include_path;
   if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
-  include_path = amiga_os_find_symbol_include(symbol_name);
+  include_path = platform_facts_v2_symbol_include(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name);
   if (include_path != NULL && include_path[0] != '\0') return render_asm_include_once(preview, include_path);
   if (platform_facts_v2_library_vector_lvo_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, NULL))
     return render_asm_define_amiga_lvo_symbol_once(preview, symbol_name);
