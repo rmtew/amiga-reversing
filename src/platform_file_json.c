@@ -3928,9 +3928,10 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
   if (json_builder_create(&builder) != 0)
     goto oom;
   if (json_builder_appendf(&builder,
-      "{\"file_kind\":%u,\"analysis_policy\":{\"max_cpu\":%u,\"entry_point_count\":%u,"
+      "{\"file_kind\":%u,\"platform_backend_kind\":%u,\"analysis_policy\":{\"max_cpu\":%u,\"entry_point_count\":%u,"
       "\"structured_data_item_count\":%u,\"structured_data_items\":[",
-      (unsigned)source_analysis->file_kind, (unsigned)source_analysis->policy.max_cpu,
+      (unsigned)source_analysis->file_kind, (unsigned)source_analysis->platform_backend_kind,
+      (unsigned)source_analysis->policy.max_cpu,
       (unsigned)source_analysis->policy.entry_point_count,
       (unsigned)m68k_ir_source_analysis_structured_data_item_count(source_analysis)) != 0) {
     goto oom;

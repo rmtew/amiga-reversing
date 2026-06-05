@@ -6655,6 +6655,128 @@ static int source_quality_auto_string_range_has_code_byte(const M68kDecodeSectio
   return 0;
 }
 
+static int source_quality_macos_symbol_string_interior_clear(const M68kSourceAnalysisIR *source_analysis,
+    const M68kSectionAnalysisIR *section_analysis, const M68kFactIR *facts, uint32_t section_index,
+    uint32_t offset) {
+  uint8_t owner_kind = M68K_RANGE_OWNERSHIP_UNKNOWN;
+  if (source_quality_relocation_fact_at_offset(facts, section_index, offset)) return 0;
+  if (source_quality_section_has_label_at(section_analysis, offset)) return 0;
+  if (source_quality_structured_data_item_covers_offset(source_analysis, section_index, offset)) return 0;
+  if (source_quality_range_ownership_kind_at(section_analysis, offset, &owner_kind)) return 0;
+  (void)owner_kind;
+  return 1;
+}
+
+static uint32_t source_quality_macos_symbol_string_record_span(const M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeSectionIR *section, const M68kSectionAnalysisIR *section_analysis, const M68kFactIR *facts,
+    const uint8_t *accepted_bytes, uint32_t offset) {
+  uint32_t length;
+  uint32_t cursor;
+  uint32_t padding_count = 0U;
+  uint32_t section_index;
+  if (source_analysis == NULL || source_analysis->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS ||
+      section == NULL || section_analysis == NULL || section->data == NULL || offset >= section->size ||
+      (section->data[offset] & 0x80U) == 0U) {
+    return 0U;
+  }
+  section_index = (uint32_t)section->section_index;
+  length = section->data[offset] & 0x7FU;
+  if (length < 3U || offset + 1U > section->size || length > section->size - offset - 1U) return 0U;
+  if (!source_quality_auto_string_start_byte(section->data[offset + 1U])) return 0U;
+  if (!source_quality_macos_symbol_string_interior_clear(source_analysis, section_analysis, facts, section_index,
+      offset)) {
+    return 0U;
+  }
+  for (cursor = 0U; cursor < length; ++cursor) {
+    uint32_t payload_offset = offset + 1U + cursor;
+    if (!m68k_ir_byte_is_quoted_string_safe(section->data[payload_offset])) return 0U;
+    if (!source_quality_macos_symbol_string_interior_clear(source_analysis, section_analysis, facts, section_index,
+        payload_offset)) {
+      return 0U;
+    }
+  }
+  cursor = offset + 1U + length;
+  while (cursor < section->size && section->data[cursor] == 0U && padding_count < 3U &&
+      source_quality_macos_symbol_string_interior_clear(source_analysis, section_analysis, facts, section_index,
+        cursor)) {
+    ++cursor;
+    ++padding_count;
+  }
+  if (source_quality_auto_string_range_has_code_byte(section, accepted_bytes, offset, cursor - offset)) return 0U;
+  return cursor - offset;
+}
+
+static int append_source_quality_macos_symbol_string_item(M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset, uint32_t size) {
+  M68kAnalysisStructuredDataItem item;
+  const char *source_pattern;
+  if (source_analysis == NULL || size == 0U ||
+      source_quality_has_structured_data_item(source_analysis, section_index, offset, size,
+        M68K_ANALYSIS_STRUCTURED_DATA_STRING,
+        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MACOS_SYMBOL_RECORD)) {
+    return 0;
+  }
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = section_index;
+  item.offset = offset;
+  item.size = size;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MACOS_SYMBOL_RECORD;
+  item.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+  source_pattern = m68k_analysis_structured_data_source_pattern_name(item.source_pattern_id);
+  if (source_pattern != NULL) {
+    (void)m68k_analysis_structured_data_item_set_text(&item,
+      M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN, source_pattern, strlen(source_pattern));
+  }
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING |
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING |
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING);
+  if (source_quality_update_matching_structured_data_item(source_analysis, &item)) return 0;
+  return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
+}
+
+static int append_macos_symbol_string_items_for_section(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis, const M68kFactIR *facts,
+    const uint8_t *accepted_bytes) {
+  uint32_t offset = 0U;
+  if (source_analysis == NULL || section == NULL || section_analysis == NULL || section->data == NULL) return 0;
+  while (offset < section->size) {
+    uint32_t span = source_quality_macos_symbol_string_record_span(source_analysis, section, section_analysis, facts,
+      accepted_bytes, offset);
+    if (span == 0U) {
+      ++offset;
+      continue;
+    }
+    if (append_source_quality_macos_symbol_string_item(source_analysis, (uint32_t)section->section_index, offset,
+        span) != 0) {
+      return -1;
+    }
+    offset += span;
+  }
+  return 0;
+}
+
+static int append_macos_symbol_string_items(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_bytes) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL) return 0;
+  if (source_analysis->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_macos_symbol_string_items_for_section(source_analysis, section, section_analysis, facts,
+        accepted_bytes != NULL ? accepted_bytes[decode_index] : NULL) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static uint32_t source_quality_auto_string_table_sequence_span(const M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeSectionIR *section, const M68kSectionAnalysisIR *section_analysis,
     const uint8_t *accepted_bytes, uint32_t offset) {
@@ -12971,6 +13093,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
     accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_platform_call_input_string_structured_data_items(source_analysis, decode, facts,
     accepted_start, accepted_bytes));
+  SOURCE_QUALITY_CHECK_OK(append_macos_symbol_string_items(source_analysis, decode, facts, accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_multiline_string_items(source_analysis, decode, facts, accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_string_table_sequence_items(source_analysis, decode, accepted_bytes));
   m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);

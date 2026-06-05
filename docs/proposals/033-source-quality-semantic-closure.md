@@ -4790,6 +4790,64 @@ The render lookup fallback that performed dense string-sequence discovery has
 been deleted. Remaining render-side generic text detection is now a visible
 cleanup lane, not the desired long-term ownership model.
 
+### Implemented Slice: Mac OS Symbol String Ownership
+
+Mac OS high-bit symbol records had the same ownership bug as the generic text
+cases:
+
+```text
+render lookup sees $87,"GETRSRC",0,0
+  -> render creates macos_symbol_string structured data
+  -> source_analysis inherits a renderer decision
+```
+
+That is backwards. The platform backend is now copied into the C
+`M68kSourceAnalysisIR`, and source-quality analysis owns the platform-specific
+structured-data decision:
+
+```c
+typedef struct M68kSourceAnalysisIR {
+  M68kPlatformFileKind file_kind;
+  uint8_t platform_backend_kind;
+  uint8_t reserved0[3];
+  M68kAnalysisPolicy policy;
+  ...
+} M68kSourceAnalysisIR;
+```
+
+The C scanner runs only for the Mac OS backend:
+
+```text
+platform_backend_kind == MACOS
+  + high bit length byte
+  + quoted-string-safe payload
+  + no relocation/label/range/accepted-code overlap
+  + optional NUL padding
+  -> structured_data_item(
+       kind=STRING,
+       roles=string|length_prefixed_string|macos_symbol_string,
+       source_pattern=macos_symbol_record)
+```
+
+Render lookup no longer has a Mac symbol recognizer. It imports the C-owned
+structured-data item and formats it:
+
+```text
+C source quality proves macos_symbol_record
+  -> render lookup imports the item
+  -> renderer prints bytes/text for that item
+  -> post-render source_analysis still shows the C-owned fact
+```
+
+The focused regression is analysis-only, so it cannot pass because render
+lookup reintroduced the decision:
+
+```text
+facts_v2_analysis_collects_macos_symbol_string_without_source_render
+  -> source_analysis has one MACOS_SYMBOL_STRING item at offset 0
+  -> source_pattern is MACOS_SYMBOL_RECORD
+```
+
 ### Implemented Slice: Multiline Text Ownership
 
 Multiline text promotion had the same renderer-owned shape:

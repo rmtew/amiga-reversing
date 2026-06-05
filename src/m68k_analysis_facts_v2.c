@@ -10163,6 +10163,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     if (m68k_ir_source_analysis_create(source_analysis) != 0) goto fail;
     source_analysis_live = 1;
     source_analysis->file_kind = object->platform_file_kind;
+    source_analysis->platform_backend_kind = object->platform_backend_kind;
     if (m68k_ir_source_analysis_set_policy(source_analysis, policy) != 0) goto fail;
   }
   start = clock();

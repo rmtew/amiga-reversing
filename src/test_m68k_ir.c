@@ -25747,6 +25747,48 @@ static int test_facts_v2_macos_highbit_symbol_string_renders_structured_data(voi
   return 0;
 }
 
+static int test_facts_v2_analysis_collects_macos_symbol_string_without_source_render(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  uint16_t index;
+  uint32_t symbol_items = 0U;
+  uint8_t bytes[] = {
+    0x87u, 'G', 'E', 'T', 'R', 'S', 'R', 'C', 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_MACOS, source_analysis.platform_backend_kind);
+  for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING)) {
+      M68K_C_ASSERT_U32(0U, item->offset);
+      M68K_C_ASSERT_U32(sizeof(bytes), item->size);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MACOS_SYMBOL_RECORD,
+        item->source_pattern_id);
+      ++symbol_items;
+    }
+  }
+  M68K_C_ASSERT_U32(1U, symbol_items);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_highbit_symbol_string_is_not_generic_pascal(void) {
   M68kObject object;
   M68kSection section;
@@ -31794,6 +31836,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_fixed_width_text_table_is_not_length_prefixed},
     {"facts_v2_macos_highbit_symbol_string_renders_structured_data",
       test_facts_v2_macos_highbit_symbol_string_renders_structured_data},
+    {"facts_v2_analysis_collects_macos_symbol_string_without_source_render",
+      test_facts_v2_analysis_collects_macos_symbol_string_without_source_render},
     {"facts_v2_highbit_symbol_string_is_not_generic_pascal",
       test_facts_v2_highbit_symbol_string_is_not_generic_pascal},
     {"facts_v2_source_analysis_retains_many_auto_structured_strings",

@@ -2074,6 +2074,8 @@ typedef struct M68kSectionAnalysisIR {
 
 typedef struct M68kSourceAnalysisIR {
   M68kPlatformFileKind file_kind;
+  uint8_t platform_backend_kind;
+  uint8_t reserved0[3];
   M68kAnalysisPolicy policy;
   M68kAnalysisFindings findings;
   M68kAnalysisStructuredDataItem *structured_data_items;
