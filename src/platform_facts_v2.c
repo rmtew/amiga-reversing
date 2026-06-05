@@ -3,6 +3,7 @@
 #include "m68k_decode_ir.h"
 #include "m68k_ir.h"
 #include "m68k_parse_util.h"
+#include "m68k_simulator.h"
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/amiga_os_runtime.h"
 #include "generated/atari_st_os_runtime.h"
@@ -20,6 +21,146 @@ static int amiga_is_callback_vector_slot(uint32_t address) {
   return m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_EXCEPTION) ||
     m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_INTERRUPT) ||
     m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_TRAP);
+}
+
+uint8_t platform_facts_v2_address_use_shape_from_observation(uint8_t platform_kind,
+    const M68kAddressObservationIR *observation) {
+  if (observation == NULL || !observation->has_address) return M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN;
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR) {
+    if (observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE)
+      return M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL;
+    if (observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS)
+      return M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE;
+    return M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE;
+  }
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER ||
+      observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
+    if (platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+        observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
+        amiga_os_find_hardware_base_id_by_address(observation->address) != AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+      return M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS;
+    }
+    return M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS;
+  }
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {
+    return M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL;
+  }
+  if (observation->address < 0x400U &&
+      (observation->access_kind == M68K_SIM_ACCESS_MEMORY_READ ||
+       observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ||
+       observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS)) {
+    return observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ?
+      M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE : M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE;
+  }
+  return M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN;
+}
+
+const char *platform_facts_v2_address_use_symbol_from_observation(uint8_t platform_kind,
+    const M68kAddressObservationIR *observation, uint8_t shape, char *symbol_buf, size_t symbol_buf_size) {
+  if (symbol_buf != NULL && symbol_buf_size != 0U) symbol_buf[0] = '\0';
+  if (observation == NULL || !observation->has_address) return NULL;
+  switch (shape) {
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL: {
+      const M68kCpuExceptionVectorInfo *vector = m68k_cpu_find_exception_vector_by_address(observation->address);
+      return vector != NULL && vector->symbol_name != NULL && vector->symbol_name[0] != '\0'
+        ? vector->symbol_name
+        : NULL;
+    }
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS:
+      return platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK ?
+        amiga_os_find_hardware_base_symbol_by_address(observation->address) : NULL;
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS: {
+      const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+      const AmigaOsHardwareRegisterInfo *hardware_register;
+      const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+      if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return NULL;
+      hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(observation->address);
+      if (hardware_field != NULL &&
+          platform_amiga_format_hardware_register_field_symbol(hardware_field, 1, symbol_buf, symbol_buf_size)) {
+        return symbol_buf;
+      }
+      hardware_register = amiga_os_find_hardware_register_by_cpu_address(observation->address);
+      if (hardware_register != NULL && hardware_register->base_symbol != NULL &&
+          hardware_register->base_symbol[0] != '\0' && hardware_register->symbol_name != NULL &&
+          hardware_register->symbol_name[0] != '\0') {
+        int written = snprintf(symbol_buf, symbol_buf_size, "%s+%s", hardware_register->base_symbol,
+          hardware_register->symbol_name);
+        return written > 0 && (size_t)written < symbol_buf_size ? symbol_buf : NULL;
+      }
+      hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(observation->address);
+      if (hardware_range != NULL &&
+          platform_amiga_format_hardware_register_range_symbol(hardware_range,
+            observation->address - hardware_range->base_address, 1, symbol_buf, symbol_buf_size)) {
+        return symbol_buf;
+      }
+      return amiga_os_find_hardware_base_symbol_by_address(observation->address);
+    }
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL:
+      return platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK ? "ExecBase" : NULL;
+    default:
+      return NULL;
+  }
+}
+
+const char *platform_facts_v2_hardware_base_offset_symbol(uint8_t platform_kind, uint16_t base_id,
+    uint32_t offset, char *symbol_buf, size_t symbol_buf_size) {
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  if (symbol_buf != NULL && symbol_buf_size != 0U) symbol_buf[0] = '\0';
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
+  hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(base_id, offset);
+  if (hardware_field != NULL &&
+      platform_amiga_format_hardware_register_field_symbol(hardware_field, 0, symbol_buf, symbol_buf_size)) {
+    return symbol_buf;
+  }
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(base_id, offset);
+  if (hardware_register != NULL && hardware_register->symbol_name != NULL &&
+      hardware_register->symbol_name[0] != '\0') {
+    return hardware_register->symbol_name;
+  }
+  hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(base_id, offset);
+  if (hardware_range != NULL &&
+      platform_amiga_format_hardware_register_range_symbol(hardware_range, offset, 0, symbol_buf,
+        symbol_buf_size)) {
+    return symbol_buf;
+  }
+  return NULL;
+}
+
+int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address) {
+  const char *base_symbol;
+  if (out_address != NULL) *out_address = 0U;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return 0;
+  base_symbol = amiga_os_hardware_base_symbol(base_id);
+  return base_symbol != NULL && amiga_os_find_hardware_base_address(base_symbol, out_address);
+}
+
+int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, uint32_t address,
+    uint16_t *out_base_id, uint32_t *out_offset) {
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  if (out_base_id != NULL) *out_base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(address);
+  if (hardware_field != NULL) {
+    if (out_base_id != NULL) *out_base_id = hardware_field->base_id;
+    if (out_offset != NULL) *out_offset = hardware_field->register_offset + hardware_field->field_offset;
+    return 1;
+  }
+  hardware_register = amiga_os_find_hardware_register_by_cpu_address(address);
+  if (hardware_register != NULL) {
+    if (out_base_id != NULL) *out_base_id = hardware_register->base_id;
+    if (out_offset != NULL) *out_offset = hardware_register->offset;
+    return 1;
+  }
+  hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
+  if (hardware_range == NULL) return 0;
+  if (out_base_id != NULL) *out_base_id = hardware_range->base_id;
+  if (out_offset != NULL) *out_offset = address - hardware_range->base_address;
+  return 1;
 }
 
 static int facts_v2_accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,

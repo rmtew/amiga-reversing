@@ -8,6 +8,7 @@
 
 struct M68kDecodeSectionIR;
 struct M68kInstructionIR;
+struct M68kAddressObservationIR;
 
 static inline uint16_t m68k_read_u16be(const uint8_t *data) {
   return (uint16_t)(((uint16_t)data[0] << 8) | (uint16_t)data[1]);
@@ -91,6 +92,15 @@ uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t
 int platform_facts_v2_absolute_memory_owner(uint8_t platform_kind, uint32_t address,
   uint8_t *out_owner_kind, uint32_t *out_owner_offset);
 int platform_facts_v2_absolute_memory_owner_stays_literal(uint8_t platform_kind, uint32_t address);
+uint8_t platform_facts_v2_address_use_shape_from_observation(uint8_t platform_kind,
+  const struct M68kAddressObservationIR *observation);
+const char *platform_facts_v2_address_use_symbol_from_observation(uint8_t platform_kind,
+  const struct M68kAddressObservationIR *observation, uint8_t shape, char *symbol_buf, size_t symbol_buf_size);
+const char *platform_facts_v2_hardware_base_offset_symbol(uint8_t platform_kind, uint16_t base_id,
+  uint32_t offset, char *symbol_buf, size_t symbol_buf_size);
+int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address);
+int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, uint32_t address,
+  uint16_t *out_base_id, uint32_t *out_offset);
 uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t platform_file_kind,
   uint8_t fixup_kind, uint32_t width, uint32_t raw_value);
 int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,

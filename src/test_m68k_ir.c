@@ -77,6 +77,7 @@ static int test_render_ir_preview_build_with_source_analysis_mutator(const M68kO
   if (render_asm_source) {
     if (m68k_ir_source_analysis_create(&source_analysis) != 0) goto cleanup;
     source_analysis_live = 1;
+    source_analysis.platform_backend_kind = object->platform_backend_kind;
     source_analysis.file_kind = object->platform_file_kind;
     if (m68k_ir_source_analysis_set_policy(&source_analysis, effective_policy) != 0) goto cleanup;
     if (m68k_analysis_render_lookup_build_source_analysis(&lookup, decode, effective_policy,
@@ -13597,6 +13598,7 @@ static int test_source_quality_analyze_exports_platform_address_uses(void) {
   char *analysis_json = NULL;
   size_t index;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  source_analysis.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
   section_analysis.section_index = 0U;
   section_analysis.section_size = 24U;
@@ -13691,6 +13693,43 @@ static int test_source_quality_analyze_exports_platform_address_uses(void) {
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_platform_facts_v2_address_use_helpers(void) {
+  M68kAddressObservationIR observation;
+  char symbol_buf[96];
+  uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
+  uint32_t offset = 0U;
+  uint32_t base_address = 0U;
+  memset(&observation, 0, sizeof(observation));
+  observation.address = 0x70U;
+  observation.access_kind = M68K_SIM_ACCESS_MEMORY_WRITE;
+  observation.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+  observation.has_address = 1U;
+  M68K_C_ASSERT_U32(M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL,
+    platform_facts_v2_address_use_shape_from_observation(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &observation));
+  M68K_C_ASSERT_STR("m68k_vector_level_4_interrupt_autovector",
+    platform_facts_v2_address_use_symbol_from_observation(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &observation,
+      M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL, symbol_buf, sizeof(symbol_buf)));
+  observation.address = 0x00DFF000U;
+  observation.access_kind = M68K_SIM_ACCESS_COMPUTE_ADDRESS;
+  observation.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER;
+  M68K_C_ASSERT_U32(M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS,
+    platform_facts_v2_address_use_shape_from_observation(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &observation));
+  M68K_C_ASSERT(platform_facts_v2_address_use_symbol_from_observation(M68K_PLATFORM_BACKEND_ATARI_ST,
+    &observation, M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS, symbol_buf, sizeof(symbol_buf)) == NULL);
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, &base_address));
+  M68K_C_ASSERT_U32(0x00DFF000U, base_address);
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    0x00DFF09AU, &base_id, &offset));
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, base_id);
+  M68K_C_ASSERT_U32(0x09AU, offset);
+  M68K_C_ASSERT_STR("intena", platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    base_id, offset, symbol_buf, sizeof(symbol_buf)));
+  M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
+    0x00DFF09AU, &base_id, &offset));
   return 0;
 }
 
@@ -31456,6 +31495,8 @@ int m68k_c_ir_tests(void) {
       test_code_origin_evidence_kind_names},
     {"source_quality_analyze_exports_platform_address_uses",
       test_source_quality_analyze_exports_platform_address_uses},
+    {"platform_facts_v2_address_use_helpers",
+      test_platform_facts_v2_address_use_helpers},
     {"source_quality_analyze_exports_platform_semantic_uses",
       test_source_quality_analyze_exports_platform_semantic_uses},
     {"source_quality_analyze_exports_structured_data_range_ownership",

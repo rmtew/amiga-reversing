@@ -111,115 +111,15 @@ static int append_address_observations_for_section(M68kSectionAnalysisIR *sectio
   return 0;
 }
 
-static uint8_t platform_address_use_shape_from_observation(const M68kAddressObservationIR *observation) {
-  if (observation == NULL || !observation->has_address) return M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN;
-  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR) {
-    if (observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE)
-      return M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL;
-    if (observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS)
-      return M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE;
-    return M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE;
-  }
-  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER ||
-      observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
-    if (observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
-        amiga_os_find_hardware_base_id_by_address(observation->address) != AMIGA_OS_HARDWARE_BASE_ID_NONE) {
-      return M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS;
-    }
-    return M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS;
-  }
-  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {
-    return M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL;
-  }
-  if (observation->address < 0x400U &&
-      (observation->access_kind == M68K_SIM_ACCESS_MEMORY_READ ||
-       observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ||
-       observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS)) {
-    return observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ?
-      M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE : M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE;
-  }
-  return M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN;
-}
-
-static const char *platform_address_use_symbol_from_observation(const M68kAddressObservationIR *observation,
-    uint8_t shape, char *symbol_buf, size_t symbol_buf_size) {
-  if (symbol_buf != NULL && symbol_buf_size != 0U) symbol_buf[0] = '\0';
-  if (observation == NULL || !observation->has_address) return NULL;
-  switch (shape) {
-    case M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL: {
-      const M68kCpuExceptionVectorInfo *vector = m68k_cpu_find_exception_vector_by_address(observation->address);
-      return vector != NULL && vector->symbol_name != NULL && vector->symbol_name[0] != '\0'
-        ? vector->symbol_name
-        : NULL;
-    }
-    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS:
-      return amiga_os_find_hardware_base_symbol_by_address(observation->address);
-    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS: {
-      const AmigaOsHardwareRegisterFieldInfo *hardware_field =
-        amiga_os_find_hardware_register_field_by_cpu_address(observation->address);
-      const AmigaOsHardwareRegisterInfo *hardware_register;
-      const AmigaOsHardwareRegisterRangeInfo *hardware_range;
-      if (hardware_field != NULL &&
-          platform_amiga_format_hardware_register_field_symbol(hardware_field, 1, symbol_buf, symbol_buf_size)) {
-        return symbol_buf;
-      }
-      hardware_register = amiga_os_find_hardware_register_by_cpu_address(observation->address);
-      if (hardware_register != NULL && hardware_register->base_symbol != NULL &&
-          hardware_register->base_symbol[0] != '\0' && hardware_register->symbol_name != NULL &&
-          hardware_register->symbol_name[0] != '\0') {
-        int written = snprintf(symbol_buf, symbol_buf_size, "%s+%s", hardware_register->base_symbol,
-          hardware_register->symbol_name);
-        return written > 0 && (size_t)written < symbol_buf_size ? symbol_buf : NULL;
-      }
-      hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(observation->address);
-      if (hardware_range != NULL &&
-          platform_amiga_format_hardware_register_range_symbol(hardware_range,
-            observation->address - hardware_range->base_address, 1, symbol_buf, symbol_buf_size)) {
-        return symbol_buf;
-      }
-      return amiga_os_find_hardware_base_symbol_by_address(observation->address);
-    }
-    case M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL:
-      return "ExecBase";
-    default:
-      return NULL;
-  }
-}
-
-static const char *platform_address_use_symbol_from_hardware_base_offset(uint16_t base_id, uint32_t offset,
-    char *symbol_buf, size_t symbol_buf_size) {
-  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
-  if (symbol_buf != NULL && symbol_buf_size != 0U) symbol_buf[0] = '\0';
-  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;
-  hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(base_id, offset);
-  if (hardware_field != NULL &&
-      platform_amiga_format_hardware_register_field_symbol(hardware_field, 0, symbol_buf, symbol_buf_size)) {
-    return symbol_buf;
-  }
-  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(base_id, offset);
-  if (hardware_register != NULL && hardware_register->symbol_name != NULL &&
-      hardware_register->symbol_name[0] != '\0') {
-    return hardware_register->symbol_name;
-  }
-  hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(base_id, offset);
-  if (hardware_range != NULL &&
-      platform_amiga_format_hardware_register_range_symbol(hardware_range, offset, 0, symbol_buf,
-        symbol_buf_size)) {
-    return symbol_buf;
-  }
-  return NULL;
-}
-
-static int append_platform_address_uses_for_section(M68kSectionAnalysisIR *section) {
+static int append_platform_address_uses_for_section(
+    M68kSectionAnalysisIR *section, uint8_t platform_kind) {
   size_t index;
   if (section == NULL) return -1;
   for (index = 0U; index < section->address_observation_count; ++index) {
     const M68kAddressObservationIR *observation = &section->address_observations[index];
     M68kPlatformAddressUseIR use;
     char symbol_buf[96];
-    uint8_t shape = platform_address_use_shape_from_observation(observation);
+    uint8_t shape = platform_facts_v2_address_use_shape_from_observation(platform_kind, observation);
     if (shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN) continue;
     memset(&use, 0, sizeof(use));
     symbol_buf[0] = '\0';
@@ -231,8 +131,8 @@ static int append_platform_address_uses_for_section(M68kSectionAnalysisIR *secti
     use.access_kind = observation->access_kind;
     use.use_shape = shape;
     use.confidence = observation->confidence;
-    use.symbol_name = (char *)platform_address_use_symbol_from_observation(observation, shape, symbol_buf,
-      sizeof(symbol_buf));
+    use.symbol_name = (char *)platform_facts_v2_address_use_symbol_from_observation(platform_kind, observation,
+      shape, symbol_buf, sizeof(symbol_buf));
     if (m68k_ir_section_analysis_append_platform_address_use(section, &use) != 0) return -1;
   }
   return 0;
@@ -256,10 +156,12 @@ static uint8_t address_identity_role_from_owner(uint8_t owner_kind) {
   }
 }
 
-static uint8_t address_identity_owner_from_observation(const M68kAddressObservationIR *observation) {
+static uint8_t address_identity_owner_from_observation(
+    const M68kAddressObservationIR *observation, uint8_t platform_kind) {
   if (observation == NULL) return M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
   if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR &&
-      platform_address_use_shape_from_observation(observation) != M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL) {
+      platform_facts_v2_address_use_shape_from_observation(platform_kind,
+        observation) != M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL) {
     return M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
   }
   return observation->owner_kind;
@@ -451,10 +353,10 @@ static int source_analysis_assign_absolute_memory_symbols(M68kSourceAnalysisIR *
 }
 
 static void address_identity_merge_observation(M68kAddressIdentityIR *identity,
-    const M68kAddressObservationIR *observation, uint32_t section_index) {
+    const M68kAddressObservationIR *observation, uint32_t section_index, uint8_t platform_kind) {
   if (identity == NULL || observation == NULL) return;
   if (identity->observation_count == 0U) {
-    uint8_t owner_kind = address_identity_owner_from_observation(observation);
+    uint8_t owner_kind = address_identity_owner_from_observation(observation, platform_kind);
     identity->source_section_index = section_index;
     identity->source_offset = observation->offset;
     identity->absolute_address = observation->address;
@@ -468,7 +370,7 @@ static void address_identity_merge_observation(M68kAddressIdentityIR *identity,
       identity->has_runtime_address = 1U;
     }
   } else {
-    uint8_t owner_kind = address_identity_owner_from_observation(observation);
+    uint8_t owner_kind = address_identity_owner_from_observation(observation, platform_kind);
     if (identity->owner_kind != owner_kind && owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN) {
       identity->conflicted = 1U;
       identity->conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
@@ -517,7 +419,7 @@ static int append_address_identities_and_ranges(M68kSourceAnalysisIR *source_ana
       observation->identity_id = source_analysis->address_identities[identity_index].identity_id;
       observation->has_identity = 1U;
       address_identity_merge_observation(&source_analysis->address_identities[identity_index], observation,
-        (uint32_t)section->section_index);
+        (uint32_t)section->section_index, source_analysis->platform_backend_kind);
     }
   }
   for (section_index = 0U; section_index < source_analysis->address_identity_count; ++section_index) {
@@ -10092,7 +9994,7 @@ static int source_quality_infer_call_hardware_base_seeds(const M68kDecodeIR *dec
 static int append_hardware_base_platform_address_uses_for_section(
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kAnalysisPolicy *policy, const M68kSourceQualityHardwareBaseSeed *hardware_base_seeds,
-    size_t hardware_base_seed_count) {
+    size_t hardware_base_seed_count, uint8_t platform_kind) {
   SourceQualityHardwareBaseState state;
   size_t candidate_index;
   if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
@@ -10119,7 +10021,6 @@ static int append_hardware_base_platform_address_uses_for_section(
       int16_t displacement = 0;
       uint16_t base_id;
       uint32_t base_address = 0U;
-      const char *base_symbol;
       const char *symbol_name;
       char symbol_buf[96];
       M68kPlatformAddressUseIR use;
@@ -10135,12 +10036,10 @@ static int append_hardware_base_platform_address_uses_for_section(
         continue;
       }
       base_id = state.address_base_id[base_reg];
-      base_symbol = amiga_os_hardware_base_symbol(base_id);
-      if (base_symbol == NULL ||
-          !amiga_os_find_hardware_base_address(base_symbol, &base_address)) {
+      if (!platform_facts_v2_hardware_base_address(platform_kind, base_id, &base_address)) {
         continue;
       }
-      symbol_name = platform_address_use_symbol_from_hardware_base_offset(base_id,
+      symbol_name = platform_facts_v2_hardware_base_offset_symbol(platform_kind, base_id,
         (uint32_t)(uint16_t)displacement, symbol_buf, sizeof(symbol_buf));
       if (symbol_name == NULL || symbol_name[0] == '\0') continue;
       memset(&use, 0, sizeof(use));
@@ -10172,7 +10071,8 @@ static int append_hardware_base_platform_address_uses(M68kSourceAnalysisIR *sour
       (uint32_t)section_analysis->section_index, &decode_index);
     if (section == NULL || section->section_index >= decode->section_count) continue;
     if (append_hardware_base_platform_address_uses_for_section(section_analysis, section,
-        accepted_start[decode_index], policy, hardware_base_seeds, hardware_base_seed_count) != 0) {
+        accepted_start[decode_index], policy, hardware_base_seeds, hardware_base_seed_count,
+        source_analysis->platform_backend_kind) != 0) {
       return -1;
     }
   }
@@ -10911,7 +10811,7 @@ static const M68kAddressObservationIR *platform_address_use_matching_observation
 }
 
 static int platform_address_use_operand_matches_accepted_instruction(const M68kPlatformAddressUseIR *use,
-    const M68kInstructionIR *instruction) {
+    const M68kInstructionIR *instruction, uint8_t platform_kind) {
   uint32_t value = 0U;
   if (use == NULL || instruction == NULL || use->operand_index >= instruction->operand_count) return 0;
   if (source_quality_operand_absolute_offset(&instruction->operands[use->operand_index], &value)) {
@@ -10920,9 +10820,6 @@ static int platform_address_use_operand_matches_accepted_instruction(const M68kP
   if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS) {
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
-    const AmigaOsHardwareRegisterFieldInfo *hardware_field;
-    const AmigaOsHardwareRegisterInfo *hardware_register;
-    const AmigaOsHardwareRegisterRangeInfo *hardware_range;
     uint16_t base_id = AMIGA_OS_HARDWARE_BASE_ID_NONE;
     uint32_t register_offset = 0U;
     char symbol_buf[96];
@@ -10932,24 +10829,10 @@ static int platform_address_use_operand_matches_accepted_instruction(const M68kP
         displacement < 0) {
       return 0;
     }
-    hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(use->address);
-    if (hardware_field != NULL) {
-      base_id = hardware_field->base_id;
-      register_offset = hardware_field->register_offset + hardware_field->field_offset;
-    } else {
-      hardware_register = amiga_os_find_hardware_register_by_cpu_address(use->address);
-      if (hardware_register != NULL) {
-        base_id = hardware_register->base_id;
-        register_offset = hardware_register->offset;
-      } else {
-        hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(use->address);
-        if (hardware_range == NULL) return 0;
-        base_id = hardware_range->base_id;
-        register_offset = use->address - hardware_range->base_address;
-      }
-    }
+    if (!platform_facts_v2_hardware_base_offset_for_address(platform_kind, use->address, &base_id,
+        &register_offset)) return 0;
     if ((uint32_t)(uint16_t)displacement != register_offset) return 0;
-    symbol_name = platform_address_use_symbol_from_hardware_base_offset(base_id, register_offset, symbol_buf,
+    symbol_name = platform_facts_v2_hardware_base_offset_symbol(platform_kind, base_id, register_offset, symbol_buf,
       sizeof(symbol_buf));
     return symbol_name != NULL && use->symbol_name != NULL && strcmp(symbol_name, use->symbol_name) == 0;
   }
@@ -10991,7 +10874,8 @@ static int append_expected_platform_symbol_operand_accesses(M68kSourceAnalysisIR
         continue;
       }
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
-          !platform_address_use_operand_matches_accepted_instruction(use, &instruction)) {
+          !platform_address_use_operand_matches_accepted_instruction(use, &instruction,
+            source_analysis->platform_backend_kind)) {
         continue;
       }
       memset(&access, 0, sizeof(access));
@@ -13454,7 +13338,8 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
     }
     SOURCE_QUALITY_CHECK_OK(append_code_origins_for_section(section));
     SOURCE_QUALITY_CHECK_OK(append_address_observations_for_section(section));
-    SOURCE_QUALITY_CHECK_OK(append_platform_address_uses_for_section(section));
+    SOURCE_QUALITY_CHECK_OK(append_platform_address_uses_for_section(section,
+      source_analysis->platform_backend_kind));
     SOURCE_QUALITY_CHECK_OK(append_accepted_runs_for_section(section, decode_section));
     SOURCE_QUALITY_CHECK_OK(append_accepted_code_range_ownerships_for_section(section));
     SOURCE_QUALITY_CHECK_OK(append_orphan_conflict_ranges_for_section(section));

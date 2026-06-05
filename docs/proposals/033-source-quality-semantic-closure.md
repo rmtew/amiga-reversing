@@ -1083,7 +1083,7 @@ owns structured range state.
 
 ### Remaining Wrong Boundary: Generic Core Includes Amiga Semantics
 
-`m68k_source_quality.c` currently includes generated Amiga and CPU runtime
+`m68k_source_quality.c` currently still includes generated Amiga and CPU runtime
 knowledge directly:
 
 ```c
@@ -1091,9 +1091,10 @@ knowledge directly:
 #include "generated/m68k_cpu_runtime.h"
 ```
 
-CPU exception vectors are generic enough for the M68K core. Amiga hardware
-registers, `_custom`, ExecBase, and library/device semantics are platform
-extension facts. The reliable shape is:
+CPU exception vector address-use naming has moved behind `platform_facts_v2_*`,
+but other source-quality semantic-comment owner logic still consults the CPU
+vector table directly. Amiga hardware registers, `_custom`, ExecBase, and
+library/device semantics are platform extension facts. The reliable shape is:
 
 ```c
 typedef struct M68kPlatformSourceQualityHooks {
@@ -1136,6 +1137,70 @@ decides whether an address is hardware, vector, ExecBase, bitmap, copper, audio,
 disk, OS-call, or trap meaning must move to C analysis/platform facts first.
 After the migration, render may ask "what string do I print for this proven
 platform fact?", not "does this number have platform meaning?"
+
+### Implemented Slice: Platform Address-Use Hooks
+
+The address-use portion of this boundary is now behind `platform_facts_v2_*`
+helpers. Source-quality still owns generic address observations, identities,
+ranges, expected accesses, and diagnostics, but it no longer formats Amiga
+hardware/vector/ExecBase address-use symbols itself:
+
+```c
+uint8_t platform_facts_v2_address_use_shape_from_observation(
+  uint8_t platform_kind,
+  const M68kAddressObservationIR *observation);
+
+const char *platform_facts_v2_address_use_symbol_from_observation(
+  uint8_t platform_kind,
+  const M68kAddressObservationIR *observation,
+  uint8_t shape,
+  char *symbol_buf,
+  size_t symbol_buf_size);
+```
+
+The source-quality flow is now:
+
+```text
+M68kAddressObservationIR
+  -> platform_facts_v2_address_use_shape_from_observation(platform_kind, ...)
+  -> platform_facts_v2_address_use_symbol_from_observation(platform_kind, ...)
+  -> M68kPlatformAddressUseIR
+  -> expected platform symbol access
+  -> render evidence validation
+```
+
+Hardware-base relative accesses use the same platform boundary:
+
+```c
+int platform_facts_v2_hardware_base_address(
+  uint8_t platform_kind,
+  uint16_t base_id,
+  uint32_t *out_address);
+
+int platform_facts_v2_hardware_base_offset_for_address(
+  uint8_t platform_kind,
+  uint32_t address,
+  uint16_t *out_base_id,
+  uint32_t *out_offset);
+```
+
+This is deliberately not a naming shortcut. A platform symbol is emitted only
+after the access shape has evidence: vector write, low-memory base/storage,
+hardware base address, hardware register access, or ExecBase literal. A number
+that merely looks like an address remains numeric or review evidence until an
+analysis pass proves how it is used.
+
+The test harness now also copies `object->platform_backend_kind` into synthetic
+source analyses before source-quality validation. That closes a hidden test
+setup gap: platform facts must be selected explicitly, not by accidental
+Amiga-default behavior in generic source-quality code.
+
+Remaining work in this family is the larger Amiga semantic producers still
+living in generic source-quality and render paths: bitmap/copper/audio/disk
+semantic-use classification, OS call input domains, typed app/global slot flow,
+and the remaining render lookup platform passes. Those should move in the same
+direction: platform facts produce typed evidence, generic validation checks
+schema and render evidence, rendering only formats proven facts.
 
 ### Partially Closed Gap: Address Identity And Renderer Cleanup
 
