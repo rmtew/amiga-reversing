@@ -163,6 +163,15 @@ int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, ui
   return 1;
 }
 
+int platform_facts_v2_address_has_symbolic_owner(uint8_t platform_kind, uint32_t address) {
+  if (m68k_cpu_find_exception_vector_by_address(address) != NULL) return 1;
+  if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  return amiga_os_find_hardware_base_symbol_by_address(address) != NULL ||
+    amiga_os_find_hardware_register_by_cpu_address(address) != NULL ||
+    amiga_os_find_hardware_register_field_by_cpu_address(address) != NULL ||
+    amiga_os_find_hardware_register_range_by_cpu_address(address) != NULL;
+}
+
 static int facts_v2_accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     uint32_t offset) {
   return section != NULL && accepted_start != NULL && offset < section->size && accepted_start[offset] != 0U;

@@ -5,7 +5,6 @@
 #include "m68k_instruction_spec.h"
 #include "m68k_simulator.h"
 #include "generated/amiga_os_runtime.h"
-#include "generated/m68k_cpu_runtime.h"
 #include "platform_common.h"
 
 #include <stdio.h>
@@ -10409,7 +10408,8 @@ static int source_quality_instruction_writes_register(const M68kInstructionIR *i
 }
 
 static int source_quality_observation_is_stack_top_symbol_operand(const M68kInstructionIR *instruction,
-    const M68kSimFormMetadata *metadata, const M68kAddressObservationIR *observation) {
+    const M68kSimFormMetadata *metadata, const M68kAddressObservationIR *observation,
+    uint8_t platform_kind) {
   uint8_t dest_reg = 0U;
   uint32_t value = 0U;
   if (instruction == NULL || metadata == NULL || observation == NULL ||
@@ -10429,11 +10429,7 @@ static int source_quality_observation_is_stack_top_symbol_operand(const M68kInst
     return 0;
   }
   return value == observation->address && value != 0U &&
-    m68k_cpu_find_exception_vector_by_address(value) == NULL &&
-    amiga_os_find_hardware_base_symbol_by_address(value) == NULL &&
-    amiga_os_find_hardware_register_by_cpu_address(value) == NULL &&
-    amiga_os_find_hardware_register_field_by_cpu_address(value) == NULL &&
-    amiga_os_find_hardware_register_range_by_cpu_address(value) == NULL;
+    !platform_facts_v2_address_has_symbolic_owner(platform_kind, value);
 }
 
 static int source_quality_observation_has_bitmap_runtime_comment_owner(
@@ -10454,7 +10450,7 @@ static int source_quality_observation_has_bitmap_runtime_comment_owner(
 
 static int source_quality_observation_requires_rendered_absolute_symbol(
     const M68kSectionAnalysisIR *section, const M68kDecodeCandidate *candidate,
-    const M68kAddressObservationIR *observation) {
+    const M68kAddressObservationIR *observation, uint8_t platform_kind) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   uint32_t address = 0U;
@@ -10478,7 +10474,7 @@ static int source_quality_observation_requires_rendered_absolute_symbol(
       metadata->operand_access_kinds[observation->operand_index] != observation->access_kind) {
     return 0;
   }
-  if (source_quality_observation_is_stack_top_symbol_operand(&instruction, metadata, observation)) {
+  if (source_quality_observation_is_stack_top_symbol_operand(&instruction, metadata, observation, platform_kind)) {
     return 0;
   }
   if (source_quality_observation_has_bitmap_runtime_comment_owner(section, observation)) {
@@ -10528,7 +10524,8 @@ static const M68kSymbolOriginIR *source_quality_section_storage_observation_orig
       observation->access_kind != M68K_SIM_ACCESS_COMPUTE_ADDRESS) {
     return NULL;
   }
-  if (source_quality_observation_is_stack_top_symbol_operand(&instruction, metadata, observation) ||
+  if (source_quality_observation_is_stack_top_symbol_operand(&instruction, metadata, observation,
+        source_analysis->platform_backend_kind) ||
       source_quality_observation_has_bitmap_runtime_comment_owner(section, observation)) {
     return NULL;
   }
@@ -10733,7 +10730,8 @@ static int append_expected_address_observation_symbol_accesses_for_section(M68kS
       const M68kSymbolOriginIR *section_storage_origin = NULL;
       uint32_t section_storage_target_offset = 0U;
       int requires_absolute_symbol =
-        source_quality_observation_requires_rendered_absolute_symbol(section_analysis, candidate, observation);
+        source_quality_observation_requires_rendered_absolute_symbol(section_analysis, candidate, observation,
+          source_analysis->platform_backend_kind);
       M68kExpectedSymbolAccessIR access;
       if (!requires_absolute_symbol) {
         section_storage_origin = source_quality_section_storage_observation_origin(source_analysis, section_analysis,

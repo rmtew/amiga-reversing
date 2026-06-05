@@ -1083,18 +1083,17 @@ owns structured range state.
 
 ### Remaining Wrong Boundary: Generic Core Includes Amiga Semantics
 
-`m68k_source_quality.c` currently still includes generated Amiga and CPU runtime
+`m68k_source_quality.c` currently still includes generated Amiga runtime
 knowledge directly:
 
 ```c
 #include "generated/amiga_os_runtime.h"
-#include "generated/m68k_cpu_runtime.h"
 ```
 
-CPU exception vector address-use naming has moved behind `platform_facts_v2_*`,
-but other source-quality semantic-comment owner logic still consults the CPU
-vector table directly. Amiga hardware registers, `_custom`, ExecBase, and
-library/device semantics are platform extension facts. The reliable shape is:
+CPU exception vector address-use naming and platform-owned address exclusion
+have moved behind `platform_facts_v2_*`. Amiga hardware registers, `_custom`,
+ExecBase, and library/device semantics are platform extension facts. The
+reliable shape is:
 
 ```c
 typedef struct M68kPlatformSourceQualityHooks {
@@ -1182,6 +1181,10 @@ int platform_facts_v2_hardware_base_offset_for_address(
   uint32_t address,
   uint16_t *out_base_id,
   uint32_t *out_offset);
+
+int platform_facts_v2_address_has_symbolic_owner(
+  uint8_t platform_kind,
+  uint32_t address);
 ```
 
 This is deliberately not a naming shortcut. A platform symbol is emitted only
@@ -1194,6 +1197,13 @@ The test harness now also copies `object->platform_backend_kind` into synthetic
 source analyses before source-quality validation. That closes a hidden test
 setup gap: platform facts must be selected explicitly, not by accidental
 Amiga-default behavior in generic source-quality code.
+
+The follow-up cleanup moved the stack-top absolute-symbol exclusion through
+`platform_facts_v2_address_has_symbolic_owner()`. Source-quality still decides
+whether an operand needs a rendered absolute symbol, but the answer "this value
+is already a CPU-vector or platform-owned hardware address" now comes from
+platform facts. That removed the direct CPU runtime include from
+`m68k_source_quality.c` for this path.
 
 Remaining work in this family is the larger Amiga semantic producers still
 living in generic source-quality and render paths: bitmap/copper/audio/disk

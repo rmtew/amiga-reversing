@@ -13712,6 +13712,8 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT_STR("m68k_vector_level_4_interrupt_autovector",
     platform_facts_v2_address_use_symbol_from_observation(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &observation,
       M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL, symbol_buf, sizeof(symbol_buf)));
+  M68K_C_ASSERT(platform_facts_v2_address_has_symbolic_owner(M68K_PLATFORM_BACKEND_ATARI_ST, 0x70U));
+  M68K_C_ASSERT(!platform_facts_v2_address_has_symbolic_owner(M68K_PLATFORM_BACKEND_ATARI_ST, 0x00DFF09AU));
   observation.address = 0x00DFF000U;
   observation.access_kind = M68K_SIM_ACCESS_COMPUTE_ADDRESS;
   observation.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER;
@@ -13728,6 +13730,7 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT_U32(0x09AU, offset);
   M68K_C_ASSERT_STR("intena", platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     base_id, offset, symbol_buf, sizeof(symbol_buf)));
+  M68K_C_ASSERT(platform_facts_v2_address_has_symbolic_owner(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
   M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_ATARI_ST,
     0x00DFF09AU, &base_id, &offset));
   return 0;
