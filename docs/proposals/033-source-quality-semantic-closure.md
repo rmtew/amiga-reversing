@@ -5689,10 +5689,35 @@ platform_facts_v2_hardware_base_offset_symbol(
 
 The renderer still copies the returned symbol into its caller buffer because the
 facts helper may return either a static name such as `bplcon0` or a formatted
-field/range expression such as `aud0+ac_len`. The value-expression path still
-uses register metadata directly because it needs value-domain formatting, not
-only a register symbol. That is a remaining facts-API expansion candidate, not
-part of this symbol-name cleanup.
+field/range expression such as `aud0+ac_len`.
+
+### Implemented Slice: Copper Register Value Expressions Use Platform Facts
+
+Copper-list value formatting had the same ownership leak in a different form:
+
+```text
+copper register word and value
+  -> renderer finds CUSTOM register metadata
+  -> renderer applies Amiga custom immediate/value-domain formatting
+  -> renderer emits INTF_CLRALL, BEAMCON0_PAL, and similar symbols
+```
+
+That path now asks the platform facts layer for the value expression:
+
+```c
+platform_facts_v2_hardware_base_offset_value_expr(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  offset,
+  value,
+  buf,
+  buf_size);
+```
+
+The renderer still decides whether a copper row is a move/wait/skip and still
+prints the row. It no longer knows how to look up Amiga register value-domain
+metadata. That keeps `INTF_CLRALL`, `DMAF_CLRALL`, `BEAMCON0_PAL`, and related
+expressions behind the same platform facts API boundary as register names.
 
 ### Implemented Slice: Dead Absolute Hardware Fallback Removed
 

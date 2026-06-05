@@ -13735,6 +13735,12 @@ static int test_platform_facts_v2_address_use_helpers(void) {
     base_id, offset));
   M68K_C_ASSERT_STR("intena", platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     base_id, offset, symbol_buf, sizeof(symbol_buf)));
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    base_id, offset, 0x7FFFU, symbol_buf, sizeof(symbol_buf)));
+  M68K_C_ASSERT_STR("INTF_CLRALL", symbol_buf);
+  M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_ATARI_ST,
+    base_id, offset, 0x7FFFU, symbol_buf, sizeof(symbol_buf)));
+  M68K_C_ASSERT_STR("", symbol_buf);
   M68K_C_ASSERT(platform_facts_v2_address_has_hardware_owner(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
   M68K_C_ASSERT(platform_facts_v2_address_has_symbolic_owner(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
   M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_known(M68K_PLATFORM_BACKEND_ATARI_ST,

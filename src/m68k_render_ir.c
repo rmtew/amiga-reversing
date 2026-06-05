@@ -3038,18 +3038,12 @@ static int format_copper_register_symbol(uint16_t copper_register_word, char *bu
 
 static int format_copper_register_value_expr(uint16_t copper_register_word, uint16_t value, char *buf,
     size_t buf_size) {
-  const AmigaOsHardwareRegisterInfo *hardware_register;
-  const char *domain_name;
   uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
   if ((copper_register_word & 1U) != 0U) return 0;
-  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-  if (hardware_register == NULL) return 0;
-  if (platform_amiga_hardware_register_custom_immediate_expr(hardware_register, value, 0, buf, buf_size)) return 1;
-  if (hardware_register->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
-  domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, hardware_register->value_domain_id);
-  return amiga_value_domain_symbolic_expr(domain_name, value, buf, buf_size);
+  return platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset, value, buf, buf_size);
 }
 
 static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPreview *preview,
