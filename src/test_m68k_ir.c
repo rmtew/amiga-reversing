@@ -7640,6 +7640,7 @@ static int test_facts_v2_absolute_stack_top_load_renders_equ_symbol(void) {
     "SECTION section_0,code\n"
     "\tlea $00080000.l,a7\n"
     "\tmovea.l #$0007FFFC,a7\n"
+    "\tmovea.l #$00DFF09A,a7\n"
     "\tadda.w #$12,a7\n"
     "\tmovea.l $00000004.l,a6\n"
     "\trts\n";
@@ -7661,6 +7662,7 @@ static int test_facts_v2_absolute_stack_top_load_renders_equ_symbol(void) {
   M68K_C_ASSERT(strstr(source, "stack_top_0007FFFC\tEQU\t$7FFFC\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l stack_top_00080000.l,a7\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l #stack_top_0007FFFC,a7\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "stack_top_00DFF09A") == NULL);
   M68K_C_ASSERT(strstr(source, "\tadda.w #$12,a7\n") != NULL);
   M68K_C_ASSERT(strstr(source, "stack_top_00000012") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $00000004.l,a6\n") != NULL);

@@ -5728,6 +5728,41 @@ renderer-side semantic paths are the same class of problem as active renderer
 guesses. They make future behaviour harder to reason about and can reintroduce
 symbol promotion without the analysis evidence this proposal requires.
 
+### Implemented Slice: Stack-Top Guard Uses Shared Symbolic-Owner Facts
+
+The renderer has one intentionally narrow runtime-address symbol invention:
+loading an absolute address into `a7` may render as a stack-top equate:
+
+```asm
+  lea.l stack_top_00080000.l,a7
+  movea.l #stack_top_0007FFFC,a7
+```
+
+That is useful only when the literal has no stronger meaning. CPU vectors,
+ExecBase, hardware registers, and other platform-owned addresses must not be
+renamed as stack tops merely because they flow into `a7`.
+
+Source-quality validation already used the shared ownership predicate:
+
+```c
+!platform_facts_v2_address_has_symbolic_owner(platform_kind, value)
+```
+
+Render now uses the same predicate instead of duplicating CPU-vector and Amiga
+hardware table checks. The rule is therefore backend-aware:
+
+```text
+address has a platform/CPU symbolic owner
+  -> keep the stronger owner, do not invent stack_top_*
+
+address has no symbolic owner and is loaded into a7
+  -> stack_top_* render is allowed
+```
+
+The focused fixture keeps the useful stack-top cases, rejects low vector address
+`$00000004`, and also rejects Amiga hardware register `$00DFF09A` as a stack-top
+candidate.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only

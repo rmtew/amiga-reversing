@@ -9265,11 +9265,7 @@ static int attach_absolute_stack_top_symbol(M68kRenderIRPreview *preview, M68kIn
       !operand_absolute_offset_local(&instruction->operands[source_index], &value)) {
     return 0;
   }
-  if (value == 0U || m68k_cpu_find_exception_vector_by_address(value) != NULL ||
-      amiga_os_find_hardware_base_symbol_by_address(value) != NULL ||
-      amiga_os_find_hardware_register_by_cpu_address(value) != NULL ||
-      amiga_os_find_hardware_register_field_by_cpu_address(value) != NULL ||
-      amiga_os_find_hardware_register_range_by_cpu_address(value) != NULL) {
+  if (value == 0U || platform_facts_v2_address_has_symbolic_owner(preview->platform_backend_kind, value)) {
     return 0;
   }
   if (!render_asm_define_runtime_address_symbol_once(preview, "stack_top", value, symbol, sizeof(symbol)))
