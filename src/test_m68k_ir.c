@@ -19853,10 +19853,22 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT_STR("disk_buffer",
     platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
       AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0020U));
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_DISK_BUFFER,
+    platform_facts_v2_hardware_base_offset_runtime_address_sink_kind(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0020U));
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER,
+    platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0020U));
   M68K_C_ASSERT_STR("blitter_source",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF048U));
   M68K_C_ASSERT_STR("blitter_source",
     platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0048U));
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_SOURCE,
+    platform_facts_v2_hardware_base_offset_runtime_address_sink_kind(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0048U));
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE,
+    platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
       AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0048U));
   M68K_C_ASSERT_STR("blitter_destination",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF054U));

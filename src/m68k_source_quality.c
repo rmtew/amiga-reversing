@@ -3023,45 +3023,40 @@ static int source_quality_candidate_is_accepted_start(const M68kDecodeSectionIR 
     m68k_decode_ir_find_candidate_at_offset(section, candidate->offset) == candidate;
 }
 
-static const AmigaOsHardwareRegisterInfo *source_quality_runtime_sink_register_for_cpu_address(uint32_t address) {
-  const AmigaOsHardwareRegisterInfo *hardware_register = amiga_os_find_hardware_register_by_cpu_address(address);
-  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
-  if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
-    if (hardware_range != NULL) {
-      hardware_register =
-        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
-    }
+static int source_quality_runtime_sink_info_for_cpu_address(uint32_t address,
+    const char **out_role, uint32_t *out_role_flags) {
+  const char *role = platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, address);
+  if (out_role != NULL) *out_role = NULL;
+  if (out_role_flags != NULL) *out_role_flags = 0U;
+  if (role == NULL || role[0] == '\0') return 0;
+  if (out_role != NULL) *out_role = role;
+  if (out_role_flags != NULL) {
+    *out_role_flags = platform_facts_v2_runtime_address_sink_data_class_flags(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      address);
   }
-  if (hardware_register == NULL ||
-      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE ||
-      hardware_register->runtime_target_role == NULL ||
-      hardware_register->runtime_target_role[0] == '\0') {
-    return NULL;
-  }
-  return hardware_register;
+  return 1;
 }
 
-static const AmigaOsHardwareRegisterInfo *source_quality_runtime_sink_register_for_base_id_offset(
-    uint16_t base_id, uint32_t offset) {
-  const AmigaOsHardwareRegisterInfo *hardware_register =
-    amiga_os_find_hardware_register_by_base_id_offset(base_id, offset);
-  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
-  if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(base_id, offset);
-    if (hardware_range != NULL) {
-      hardware_register = amiga_os_find_hardware_register_by_base_id_offset(base_id, hardware_range->offset);
-    }
+static int source_quality_runtime_sink_info_for_base_id_offset(uint16_t base_id, uint32_t offset,
+    uint32_t *out_sink_address, const char **out_role, uint32_t *out_role_flags) {
+  uint32_t base_address = 0U;
+  const char *role = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_id, offset);
+  if (out_sink_address != NULL) *out_sink_address = 0U;
+  if (out_role != NULL) *out_role = NULL;
+  if (out_role_flags != NULL) *out_role_flags = 0U;
+  if (role == NULL || role[0] == '\0') return 0;
+  if (!platform_facts_v2_hardware_base_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_id, &base_address) ||
+      base_address > UINT32_MAX - offset) {
+    return 0;
   }
-  if (hardware_register == NULL ||
-      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE ||
-      hardware_register->runtime_target_role == NULL ||
-      hardware_register->runtime_target_role[0] == '\0') {
-    return NULL;
+  if (out_sink_address != NULL) *out_sink_address = base_address + offset;
+  if (out_role != NULL) *out_role = role;
+  if (out_role_flags != NULL) {
+    *out_role_flags = platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(
+      M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_id, offset);
   }
-  return hardware_register;
+  return 1;
 }
 
 static const M68kRuntimeAddressRefIR *source_quality_runtime_sink_ref_for_offset(
@@ -3156,21 +3151,20 @@ static int source_quality_unique_symbol_origin_at_storage_offset(const M68kSourc
 }
 
 static void source_quality_runtime_sink_note_text(const M68kSectionAnalysisIR *section_analysis,
-    const AmigaOsHardwareRegisterInfo *hardware_register, const M68kRuntimeAddressRefIR *runtime_ref,
+    const char *sink_role, const M68kRuntimeAddressRefIR *runtime_ref,
     uint32_t offset, char *note, size_t note_size) {
-  if (note == NULL || note_size == 0U || hardware_register == NULL) return;
+  if (note == NULL || note_size == 0U || sink_role == NULL || sink_role[0] == '\0') return;
   if (runtime_ref != NULL && !runtime_ref->has_target &&
       !source_quality_runtime_sink_has_dynamic_source_use(section_analysis, offset)) {
-    snprintf(note, note_size, "%s pointer $%08X", hardware_register->runtime_target_role,
-      (unsigned)runtime_ref->runtime_address);
+    snprintf(note, note_size, "%s pointer $%08X", sink_role, (unsigned)runtime_ref->runtime_address);
   } else {
-    snprintf(note, note_size, "%s pointer", hardware_register->runtime_target_role);
+    snprintf(note, note_size, "%s pointer", sink_role);
   }
 }
 
 static void source_quality_runtime_sink_set_operand_fact(M68kPlatformSemanticUseIR *use,
     const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis,
-    const AmigaOsHardwareRegisterInfo *hardware_register, const M68kRuntimeAddressRefIR *runtime_ref,
+    const char *sink_role, const M68kRuntimeAddressRefIR *runtime_ref,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction,
     char *operand_expr, size_t operand_expr_size) {
@@ -3217,12 +3211,11 @@ static void source_quality_runtime_sink_set_operand_fact(M68kPlatformSemanticUse
       source_quality_runtime_address_maps_to_materialized_source(section_analysis, runtime_ref->runtime_address)) {
     return;
   }
-  if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
-      hardware_register->runtime_target_role[0] == '\0' || operand_expr == NULL || operand_expr_size == 0U) {
+  if (sink_role == NULL || sink_role[0] == '\0' || operand_expr == NULL || operand_expr_size == 0U) {
     return;
   }
-  platform_format_runtime_address_symbol_name(hardware_register->runtime_target_role, runtime_ref->runtime_address, "",
-    operand_expr, operand_expr_size);
+  platform_format_runtime_address_symbol_name(sink_role, runtime_ref->runtime_address, "", operand_expr,
+    operand_expr_size);
   if (operand_expr[0] == '\0') return;
   use->operand_expr = operand_expr;
   use->has_operand_expr = 1U;
@@ -3237,7 +3230,8 @@ static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnal
   if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
   for (observation_index = 0U; observation_index < section_analysis->address_observation_count; ++observation_index) {
     const M68kAddressObservationIR *observation = &section_analysis->address_observations[observation_index];
-    const AmigaOsHardwareRegisterInfo *hardware_register;
+    const char *sink_role = NULL;
+    uint32_t role_flags = 0U;
     const M68kDecodeCandidate *candidate;
     const M68kRuntimeAddressRefIR *runtime_ref;
     M68kInstructionIR instruction;
@@ -3250,24 +3244,22 @@ static int append_runtime_sink_pointer_semantic_uses_for_section(M68kSectionAnal
          observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE)) {
       continue;
     }
-    hardware_register = source_quality_runtime_sink_register_for_cpu_address(observation->address);
-    if (hardware_register == NULL) continue;
+    if (!source_quality_runtime_sink_info_for_cpu_address(observation->address, &sink_role, &role_flags)) continue;
     candidate = m68k_decode_ir_find_candidate_at_offset(section, observation->offset);
     if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
     runtime_ref = source_quality_runtime_sink_ref_for_offset(section_analysis, observation->offset,
       observation->address);
-    source_quality_runtime_sink_note_text(section_analysis, hardware_register, runtime_ref, observation->offset, note,
+    source_quality_runtime_sink_note_text(section_analysis, sink_role, runtime_ref, observation->offset, note,
       sizeof(note));
     memset(&use, 0, sizeof(use));
     use.kind = M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER;
     use.offset = candidate->offset;
     use.size = candidate->byte_count;
-    use.role_flags = platform_facts_v2_runtime_address_sink_data_class_flags(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-      observation->address);
+    use.role_flags = role_flags;
     use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     use.note_text = note;
-    source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, hardware_register, runtime_ref,
+    source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, sink_role, runtime_ref,
       section, accepted_start, candidate, &instruction, operand_expr, sizeof(operand_expr));
     if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
     if (use.has_operand_expr &&
@@ -10218,7 +10210,8 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
       uint8_t base_reg = 0U;
       int16_t displacement = 0;
       uint32_t sink_address;
-      const AmigaOsHardwareRegisterInfo *hardware_register;
+      const char *sink_role = NULL;
+      uint32_t role_flags = 0U;
       const M68kRuntimeAddressRefIR *runtime_ref;
       M68kPlatformSemanticUseIR use;
       char note[160];
@@ -10232,22 +10225,21 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
           displacement < 0) {
         continue;
       }
-      hardware_register = source_quality_runtime_sink_register_for_base_id_offset(state.address_base_id[base_reg],
-        (uint32_t)(uint16_t)displacement);
-      if (hardware_register == NULL) continue;
-      sink_address = hardware_register->base_address + (uint32_t)(uint16_t)displacement;
+      if (!source_quality_runtime_sink_info_for_base_id_offset(state.address_base_id[base_reg],
+          (uint32_t)(uint16_t)displacement, &sink_address, &sink_role, &role_flags)) {
+        continue;
+      }
       runtime_ref = source_quality_runtime_sink_ref_for_offset(section_analysis, candidate->offset, sink_address);
-      source_quality_runtime_sink_note_text(section_analysis, hardware_register, runtime_ref, candidate->offset, note,
+      source_quality_runtime_sink_note_text(section_analysis, sink_role, runtime_ref, candidate->offset, note,
         sizeof(note));
       memset(&use, 0, sizeof(use));
       use.kind = M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER;
       use.offset = candidate->offset;
       use.size = candidate->byte_count;
-      use.role_flags = platform_facts_v2_runtime_address_sink_data_class_flags(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-        sink_address);
+      use.role_flags = role_flags;
       use.confidence = runtime_ref != NULL ? runtime_ref->confidence : M68K_FACT_CONFIDENCE_TOOL_INFERRED;
       use.note_text = note;
-      source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, hardware_register,
+      source_quality_runtime_sink_set_operand_fact(&use, source_analysis, section_analysis, sink_role,
         runtime_ref, section, accepted_start, candidate, &instruction, operand_expr, sizeof(operand_expr));
       if (m68k_ir_section_analysis_append_platform_semantic_use(section_analysis, &use) != 0) return -1;
       if (use.has_operand_expr &&

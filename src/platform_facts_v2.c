@@ -670,6 +670,21 @@ uint32_t platform_facts_v2_runtime_address_sink_data_class_flags(uint8_t platfor
   }
 }
 
+uint16_t platform_facts_v2_hardware_base_offset_runtime_address_sink_kind(uint8_t platform_kind,
+    uint16_t base_id, uint32_t offset) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterInfo *hardware_register =
+      platform_facts_v2_amiga_runtime_address_sink_register_for_base_offset(base_id, offset);
+    return hardware_register != NULL ? hardware_register->runtime_target_kind :
+      AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
+  }
+  default:
+    return 0U;
+  }
+}
+
 const char *platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(uint8_t platform_kind,
     uint16_t base_id, uint32_t offset) {
   switch (platform_kind) {
@@ -681,6 +696,17 @@ const char *platform_facts_v2_hardware_base_offset_runtime_address_sink_data_cla
   }
   default:
     return NULL;
+  }
+}
+
+uint32_t platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(uint8_t platform_kind,
+    uint16_t base_id, uint32_t offset) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_runtime_target_kind_data_class_flags(
+      platform_facts_v2_hardware_base_offset_runtime_address_sink_kind(platform_kind, base_id, offset));
+  default:
+    return 0U;
   }
 }
 

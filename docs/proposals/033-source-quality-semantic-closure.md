@@ -5885,10 +5885,28 @@ platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class(
 
 Render no longer knows how to search those Amiga register/range tables for this
 case. It asks platform facts for the sink role, then formats the already-proven
-runtime-address symbol or comment. The fixture covers both absolute and offset
-forms through distinct APIs. It also proves that plain `$0020` is not accepted
-by the address API, preventing in-image storage addresses such as `$0130` from
-being accidentally reinterpreted as CUSTOM register offsets.
+runtime-address symbol or comment. Source-quality runtime-sink semantic-use
+emission now follows the same rule: it proves the instruction/address use, but
+role text, runtime-target kind, and structured-data role flags come from
+platform facts.
+
+The fixture covers both absolute and offset forms through distinct APIs:
+
+```c
+platform_facts_v2_hardware_base_offset_runtime_address_sink_kind(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  0x0048); /* BLITTER_SOURCE */
+
+platform_facts_v2_hardware_base_offset_runtime_address_sink_data_class_flags(
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+  0x0048); /* M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE */
+```
+
+It also proves that plain `$0020` is not accepted by the address API,
+preventing in-image storage addresses such as `$0130` from being accidentally
+reinterpreted as CUSTOM register offsets.
 
 ### Implemented Slice: Materialized Runtime Guards Use Symbolic Owners
 
