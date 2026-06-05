@@ -13705,6 +13705,8 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   uint32_t offset = 0U;
   uint32_t palette_offset = 0U;
   uint32_t base_address = 0U;
+  PlatformFactsV2CallInput call_input;
+  size_t call_input_count = 0U;
   int32_t an_icon_lib = 0;
   int32_t ag_open_lib = 0;
   int32_t ao_dos_lib = 0;
@@ -13787,6 +13789,21 @@ static int test_platform_facts_v2_address_use_helpers(void) {
   M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_ATARI_ST, "INTF_CLRALL"));
   M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_known(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "not_a_symbol"));
   M68K_C_ASSERT(!platform_facts_v2_symbol_name_is_equate(M68K_PLATFORM_BACKEND_AMIGA_HUNK, "not_a_symbol"));
+  M68K_C_ASSERT(platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "_LVOAlert", &call_input_count));
+  M68K_C_ASSERT(call_input_count > 0U);
+  M68K_C_ASSERT(platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "_LVOAlert", 1U, 7U, &call_input));
+  M68K_C_ASSERT(call_input.has_value_domain);
+  M68K_C_ASSERT_STR("exec.alert.number", call_input.value_domain_name);
+  M68K_C_ASSERT(!platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_ATARI_ST,
+    "_LVOAlert", 1U, 7U, &call_input));
+  M68K_C_ASSERT(platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "_LVOWrite", 1U, 2U, &call_input));
+  M68K_C_ASSERT(call_input.is_write_buffer);
+  M68K_C_ASSERT(platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "_LVOWrite", 1U, 3U, &call_input));
+  M68K_C_ASSERT(call_input.is_write_length);
   M68K_C_ASSERT(!platform_facts_v2_hardware_base_offset_value_expr(M68K_PLATFORM_BACKEND_ATARI_ST,
     base_id, offset, 0x7FFFU, symbol_buf, sizeof(symbol_buf)));
   M68K_C_ASSERT_STR("", symbol_buf);

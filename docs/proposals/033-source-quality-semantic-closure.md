@@ -3965,6 +3965,67 @@ The later renderer-owned API string/text-buffer span pass was removed as well:
 source-quality now owns both `api_string_pointer` and `api_text_buffer`
 structured-data facts, while render lookup only imports and formats them.
 
+### Implemented Slice: OS Call Inputs Use Platform Facts Descriptors
+
+The source-quality implementation still had a platform boundary leak after the
+call-input notes moved out of rendering. It directly consumed generated Amiga
+runtime records:
+
+```c
+const AmigaOsLibraryVectorInfo *vector;
+const AmigaOsCallInputInfo *input;
+```
+
+That meant the generic analysis pass was not only deciding that a setup
+instruction matched a call input; it also knew Amiga-specific function ids,
+input ids, semantic-kind ids, value-domain ids, and generated name-table
+lookups.
+
+That is now split at the right level. Platform facts exposes copied,
+platform-neutral input descriptors:
+
+```c
+typedef struct PlatformFactsV2CallInput {
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  uint8_t has_value_domain;
+  uint8_t is_string_pointer;
+  uint8_t is_write_buffer;
+  uint8_t is_write_length;
+  char input_name[64];
+  char type_name[64];
+  char semantic_kind_name[64];
+  char value_domain_name[64];
+} PlatformFactsV2CallInput;
+```
+
+Source-quality now asks questions in generic terms:
+
+```c
+platform_facts_v2_call_input_by_register(platform, "_LVOAlert", 1, 7, &input);
+platform_facts_v2_call_input_by_stack_index(platform, "_LVOAllocMem", 0, &input);
+platform_facts_v2_call_input_at(platform, "_LVOWrite", index, &input);
+```
+
+The Amiga platform-facts implementation maps `_LVO*` symbols to the generated
+runtime tables, fills names, marks value-domain inputs, identifies string
+pointers, and marks the special `Write` buffer/length roles. Source-quality
+still owns the control/data-flow proof:
+
+```text
+accepted setup instruction
+  -> register/stack input descriptor matches
+  -> produce platform_call_input semantic use
+  -> produce operand expression from value_domain_name when an immediate proves it
+  -> produce api_string_pointer/api_text_buffer structured data when pointer data proves it
+```
+
+This removes the `AmigaOsCallInputInfo` / `AmigaOsLibraryVectorInfo` dependency
+from `m68k_source_quality.c` without weakening the existing analysis. The
+focused tests cover `_LVOAlert` value-domain metadata and `_LVOWrite`
+buffer/length role detection through the platform-facts API, while the existing
+call-input rendering and JSON tests continue to prove the end-to-end behaviour.
+
 ### Implemented Slice: Stack Cleanup Notes
 
 Atari GEMDOS stack-cleanup comments now use the same analysis-owned route.

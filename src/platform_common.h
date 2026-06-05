@@ -68,6 +68,8 @@ typedef enum PlatformFactsV2DisplaySetupRegisterKind {
   PLATFORM_FACTS_V2_DISPLAY_SETUP_REGISTER_BPL2MOD = 7
 } PlatformFactsV2DisplaySetupRegisterKind;
 
+#define PLATFORM_FACTS_V2_CALL_INPUT_TEXT_SIZE 64U
+
 typedef struct PlatformFactsV2ResolvedCall {
   uint8_t platform_kind;
   uint8_t kind;
@@ -79,7 +81,21 @@ typedef struct PlatformFactsV2ResolvedCall {
   char note_symbol_name[64];
 } PlatformFactsV2ResolvedCall;
 
+typedef struct PlatformFactsV2CallInput {
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  uint8_t has_value_domain;
+  uint8_t is_string_pointer;
+  uint8_t is_write_buffer;
+  uint8_t is_write_length;
+  char input_name[PLATFORM_FACTS_V2_CALL_INPUT_TEXT_SIZE];
+  char type_name[PLATFORM_FACTS_V2_CALL_INPUT_TEXT_SIZE];
+  char semantic_kind_name[PLATFORM_FACTS_V2_CALL_INPUT_TEXT_SIZE];
+  char value_domain_name[PLATFORM_FACTS_V2_CALL_INPUT_TEXT_SIZE];
+} PlatformFactsV2CallInput;
+
 void platform_facts_v2_resolved_call_init(PlatformFactsV2ResolvedCall *info);
+void platform_facts_v2_call_input_init(PlatformFactsV2CallInput *input);
 int platform_facts_v2_resolve_trap_call(uint8_t platform_kind,
   const struct M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t block_start,
   uint32_t trap_offset, PlatformFactsV2ResolvedCall *out_info);
@@ -132,6 +148,14 @@ int platform_facts_v2_value_domain_symbolic_expr(uint8_t platform_kind, const ch
   uint32_t value, char *expr, size_t expr_size);
 int platform_facts_v2_symbol_name_is_known(uint8_t platform_kind, const char *symbol_name);
 int platform_facts_v2_symbol_name_is_equate(uint8_t platform_kind, const char *symbol_name);
+int platform_facts_v2_call_input_count_for_symbol(uint8_t platform_kind, const char *symbol_name,
+  size_t *out_input_count);
+int platform_facts_v2_call_input_at(uint8_t platform_kind, const char *symbol_name, size_t input_index,
+  PlatformFactsV2CallInput *out_input);
+int platform_facts_v2_call_input_by_register(uint8_t platform_kind, const char *symbol_name, uint8_t reg_kind,
+  uint8_t reg_index, PlatformFactsV2CallInput *out_input);
+int platform_facts_v2_call_input_by_stack_index(uint8_t platform_kind, const char *symbol_name, size_t stack_index,
+  PlatformFactsV2CallInput *out_input);
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id);
 const char *platform_facts_v2_hardware_base_symbol_for_address(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_hardware_base_address(uint8_t platform_kind, uint16_t base_id, uint32_t *out_address);

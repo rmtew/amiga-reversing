@@ -11308,7 +11308,8 @@ static uint32_t source_quality_runtime_sink_role_flags_for_immediate_register_lo
 }
 
 static int source_quality_find_platform_call_input_immediate(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call, const AmigaOsCallInputInfo *input,
+    const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call,
+    const PlatformFactsV2CallInput *input,
     const M68kDecodeCandidate **out_candidate, uint32_t *out_value) {
   uint32_t cursor;
   size_t scan_count = 0U;
@@ -11338,75 +11339,28 @@ static int source_quality_find_platform_call_input_immediate(const M68kDecodeSec
   return 0;
 }
 
-static const char *source_quality_amiga_input_type_or_struct_name(const AmigaOsCallInputInfo *input) {
-  const char *name;
-  if (input == NULL) return NULL;
-  if (input->struct_id != AMIGA_OS_STRUCT_ID_NONE) {
-    name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, input->struct_id);
-    if (name != NULL && name[0] != '\0') return name;
-  }
-  if (input->type_id != AMIGA_OS_TYPE_ID_NONE) {
-    name = amiga_os_name(M68K_PLATFORM_NAME_TYPE, input->type_id);
-    if (name != NULL && name[0] != '\0') return name;
-  }
-  return NULL;
-}
-
-static int format_source_quality_amiga_call_input_note(uint16_t stack_offset,
-    const AmigaOsCallInputInfo *input, char *buf, size_t buf_size) {
-  const char *symbol_name;
-  const char *type_name;
-  const char *semantic_kind;
-  const char *value_domain_name;
+static int format_source_quality_platform_call_input_note(uint16_t stack_offset,
+    const PlatformFactsV2CallInput *input, char *buf, size_t buf_size) {
   size_t used;
   if (buf == NULL || buf_size == 0U || input == NULL || stack_offset == 0U) return 0;
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input->input_id);
-  type_name = source_quality_amiga_input_type_or_struct_name(input);
-  semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input->semantic_kind_id);
-  value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
   snprintf(buf, buf_size, "KNOWN: arg +%u", (unsigned)stack_offset);
   used = strlen(buf);
-  if (symbol_name != NULL && symbol_name[0] != '\0' && used + strlen(symbol_name) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", symbol_name);
+  if (input->input_name[0] != '\0' && used + strlen(input->input_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", input->input_name);
     used = strlen(buf);
   }
-  if (type_name != NULL && type_name[0] != '\0' && used + strlen(type_name) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", type_name);
+  if (input->type_name[0] != '\0' && used + strlen(input->type_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", input->type_name);
     used = strlen(buf);
   }
-  if (semantic_kind != NULL && semantic_kind[0] != '\0' && used + strlen(semantic_kind) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", semantic_kind);
+  if (input->semantic_kind_name[0] != '\0' && used + strlen(input->semantic_kind_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", input->semantic_kind_name);
     used = strlen(buf);
   }
-  if (value_domain_name != NULL && value_domain_name[0] != '\0' &&
-      used + strlen(value_domain_name) + 2U < buf_size) {
-    snprintf(buf + used, buf_size - used, " %s", value_domain_name);
+  if (input->value_domain_name[0] != '\0' && used + strlen(input->value_domain_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", input->value_domain_name);
   }
   return 1;
-}
-
-static const AmigaOsCallInputInfo *source_quality_amiga_vector_input_by_register(
-    const AmigaOsLibraryVectorInfo *vector, uint8_t reg_kind, uint8_t reg_index) {
-  const AmigaOsCallInputInfo *inputs;
-  size_t input_count = 0U;
-  size_t index;
-  if (vector == NULL) return NULL;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL) return NULL;
-  for (index = 0U; index < input_count; ++index) {
-    if (inputs[index].reg_kind == reg_kind && inputs[index].reg_index == reg_index) return &inputs[index];
-  }
-  return NULL;
-}
-
-static const AmigaOsCallInputInfo *source_quality_amiga_vector_input_by_stack_index(
-    const AmigaOsLibraryVectorInfo *vector, size_t stack_index) {
-  const AmigaOsCallInputInfo *inputs;
-  size_t input_count = 0U;
-  if (vector == NULL) return NULL;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL || stack_index >= input_count) return NULL;
-  return &inputs[stack_index];
 }
 
 static int source_quality_operand_is_predec_a7(const M68kOperandIR *operand) {
@@ -11557,11 +11511,11 @@ static int source_quality_stack_frame_depth_before_candidate(const M68kDecodeSec
 }
 
 static int append_platform_call_input_semantic_use(M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeCandidate *candidate, uint16_t stack_offset, const AmigaOsCallInputInfo *input) {
+    const M68kDecodeCandidate *candidate, uint16_t stack_offset, const PlatformFactsV2CallInput *input) {
   M68kPlatformSemanticUseIR use;
   char note[192];
   if (section_analysis == NULL || candidate == NULL || input == NULL || stack_offset == 0U) return 0;
-  if (!format_source_quality_amiga_call_input_note(stack_offset, input, note, sizeof(note))) return 0;
+  if (!format_source_quality_platform_call_input_note(stack_offset, input, note, sizeof(note))) return 0;
   memset(&use, 0, sizeof(use));
   use.kind = M68K_PLATFORM_SEMANTIC_USE_PLATFORM_CALL_INPUT;
   use.offset = candidate->offset;
@@ -11592,27 +11546,27 @@ static int append_platform_operand_expr_semantic_use(M68kSectionAnalysisIR *sect
 
 static int append_platform_call_input_operand_expr_semantic_uses_for_call(
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    const M68kRecoveredPlatformCallIR *call, const AmigaOsLibraryVectorInfo *vector) {
-  const AmigaOsCallInputInfo *inputs;
+    const M68kRecoveredPlatformCallIR *call, const char *call_symbol) {
   size_t input_count = 0U;
   size_t input_index;
-  if (section_analysis == NULL || section == NULL || accepted_start == NULL || call == NULL || vector == NULL) {
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL || call == NULL ||
+      call_symbol == NULL || call_symbol[0] == '\0') {
     return 0;
   }
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL) return 0;
+  if (!platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, &input_count))
+    return 0;
   for (input_index = 0U; input_index < input_count; ++input_index) {
-    const AmigaOsCallInputInfo *input = &inputs[input_index];
+    PlatformFactsV2CallInput input;
     const M68kDecodeCandidate *producer = NULL;
-    const char *value_domain_name;
     char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
     uint32_t value = 0U;
-    if (input->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) continue;
-    if (!source_quality_find_platform_call_input_immediate(section, accepted_start, call, input, &producer, &value))
+    if (!platform_facts_v2_call_input_at(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, input_index, &input))
       continue;
-    value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
+    if (!input.has_value_domain) continue;
+    if (!source_quality_find_platform_call_input_immediate(section, accepted_start, call, &input, &producer, &value))
+      continue;
     if (!platform_facts_v2_value_domain_symbolic_expr(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-        value_domain_name, value, symbol_expr, sizeof(symbol_expr))) {
+        input.value_domain_name, value, symbol_expr, sizeof(symbol_expr))) {
       continue;
     }
     if (append_platform_operand_expr_semantic_use(section_analysis, producer,
@@ -11625,16 +11579,16 @@ static int append_platform_call_input_operand_expr_semantic_uses_for_call(
   return 0;
 }
 
-static const AmigaOsLibraryVectorInfo *source_quality_recovered_call_vector(
-    const M68kRecoveredPlatformCallIR *call) {
+static const char *source_quality_recovered_call_symbol(const M68kRecoveredPlatformCallIR *call) {
   const char *symbol_name;
-  const AmigaOsLibraryVectorInfo *vector;
   if (call == NULL) return NULL;
   symbol_name = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
-  vector = amiga_os_find_library_vector_by_symbol_name(symbol_name);
-  if (vector != NULL) return vector;
+  if (platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, NULL))
+    return symbol_name;
   symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
-  return amiga_os_find_library_vector_by_symbol_name(symbol_name);
+  return platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, NULL)
+    ? symbol_name
+    : NULL;
 }
 
 static int source_quality_find_c_string_span(const M68kDecodeSectionIR *section, uint32_t offset,
@@ -11811,35 +11765,44 @@ static int append_api_text_buffer_structured_data_segments(M68kSourceAnalysisIR 
     text_size, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER, 0U, data_target_boundaries);
 }
 
-static int append_write_text_buffer_structured_data_item_for_vector(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, const M68kFactIR *facts, const AmigaOsLibraryVectorInfo *vector,
-    const M68kSourceQualityAudioPointerState *state, const AmigaOsCallInputInfo *inputs, size_t input_count,
+static int append_write_text_buffer_structured_data_item_for_call(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, const M68kFactIR *facts, const char *call_symbol,
+    const M68kSourceQualityAudioPointerState *state,
     uint8_t *const *accepted_bytes, uint8_t *const *data_target_boundaries) {
-  const AmigaOsCallInputInfo *buffer_input = NULL;
-  const AmigaOsCallInputInfo *length_input = NULL;
+  PlatformFactsV2CallInput buffer_input;
+  PlatformFactsV2CallInput length_input;
   const M68kSourceQualityAudioPointerSource *buffer_value;
   uint32_t length;
+  size_t input_count = 0U;
   size_t index;
-  if (source_analysis == NULL || decode == NULL || vector == NULL || state == NULL || inputs == NULL ||
-      accepted_bytes == NULL || vector->function_id != AMIGA_OS_FUNCTION_ID_WRITE) {
+  int has_buffer_input = 0;
+  int has_length_input = 0;
+  if (source_analysis == NULL || decode == NULL || call_symbol == NULL || call_symbol[0] == '\0' ||
+      state == NULL || accepted_bytes == NULL ||
+      !platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, &input_count)) {
     return 0;
   }
+  platform_facts_v2_call_input_init(&buffer_input);
+  platform_facts_v2_call_input_init(&length_input);
   for (index = 0U; index < input_count; ++index) {
-    if (inputs[index].input_id == AMIGA_OS_SYMBOL_ID_BUFFER_2 &&
-        inputs[index].reg_kind == 1U && inputs[index].reg_index < 8U) {
-      buffer_input = &inputs[index];
-    } else if (inputs[index].input_id == AMIGA_OS_SYMBOL_ID_LENGTH_3 &&
-        inputs[index].reg_kind == 1U && inputs[index].reg_index < 8U) {
-      length_input = &inputs[index];
+    PlatformFactsV2CallInput input;
+    if (!platform_facts_v2_call_input_at(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, index, &input))
+      continue;
+    if (input.is_write_buffer && input.reg_kind == 1U && input.reg_index < 8U) {
+      buffer_input = input;
+      has_buffer_input = 1;
+    } else if (input.is_write_length && input.reg_kind == 1U && input.reg_index < 8U) {
+      length_input = input;
+      has_length_input = 1;
     }
   }
-  if (buffer_input == NULL || length_input == NULL) return 0;
-  buffer_value = &state->data_regs[buffer_input->reg_index];
+  if (!has_buffer_input || !has_length_input) return 0;
+  buffer_value = &state->data_regs[buffer_input.reg_index];
   if (!buffer_value->known || !buffer_value->exact || buffer_value->target_section_index >= decode->section_count ||
-      !state->data_scalars[length_input->reg_index].known) {
+      !state->data_scalars[length_input.reg_index].known) {
     return 0;
   }
-  length = state->data_scalars[length_input->reg_index].value;
+  length = state->data_scalars[length_input.reg_index].value;
   if (length == 0U || length > INT32_MAX) return 0;
   {
     const M68kDecodeSectionIR *buffer_section = &decode->sections[buffer_value->target_section_index];
@@ -11857,29 +11820,31 @@ static int append_platform_call_input_string_structured_data_items_for_call(M68k
     const M68kDecodeIR *decode, const M68kFactIR *facts, const M68kSourceQualityAudioPointerState *state,
     const M68kRecoveredPlatformCallIR *call, uint8_t *const *accepted_bytes,
     uint8_t *const *data_target_boundaries) {
-  const AmigaOsLibraryVectorInfo *vector;
-  const AmigaOsCallInputInfo *inputs;
+  const char *call_symbol;
   size_t input_count = 0U;
   size_t input_index;
   if (source_analysis == NULL || decode == NULL || state == NULL || call == NULL) return 0;
-  vector = source_quality_recovered_call_vector(call);
-  if (vector == NULL) return 0;
-  inputs = amiga_os_library_vector_inputs(vector, &input_count);
-  if (inputs == NULL) return 0;
-  if (append_write_text_buffer_structured_data_item_for_vector(source_analysis, decode, facts, vector, state,
-      inputs, input_count, accepted_bytes, data_target_boundaries) != 0) {
+  call_symbol = source_quality_recovered_call_symbol(call);
+  if (call_symbol == NULL ||
+      !platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, &input_count)) {
+    return 0;
+  }
+  if (append_write_text_buffer_structured_data_item_for_call(source_analysis, decode, facts, call_symbol, state,
+      accepted_bytes, data_target_boundaries) != 0) {
     return -1;
   }
   for (input_index = 0U; input_index < input_count; ++input_index) {
-    const AmigaOsCallInputInfo *input = &inputs[input_index];
+    PlatformFactsV2CallInput input;
     const M68kSourceQualityAudioPointerSource *value = NULL;
     const M68kDecodeSectionIR *target_section;
     uint32_t string_size = 0U;
-    if (input->semantic_kind_id != AMIGA_OS_SEMANTIC_KIND_ID_STRING_PTR || input->reg_index >= 8U) continue;
-    if (input->reg_kind == 1U) value = state->data_regs[input->reg_index].known ?
-      &state->data_regs[input->reg_index] : NULL;
-    else if (input->reg_kind == 2U) value = state->addr_regs[input->reg_index].known ?
-      &state->addr_regs[input->reg_index] : NULL;
+    if (!platform_facts_v2_call_input_at(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, input_index, &input))
+      continue;
+    if (!input.is_string_pointer || input.reg_index >= 8U) continue;
+    if (input.reg_kind == 1U) value = state->data_regs[input.reg_index].known ?
+      &state->data_regs[input.reg_index] : NULL;
+    else if (input.reg_kind == 2U) value = state->addr_regs[input.reg_index].known ?
+      &state->addr_regs[input.reg_index] : NULL;
     if (value == NULL || !value->exact || value->target_section_index >= decode->section_count) continue;
     target_section = &decode->sections[value->target_section_index];
     if (!source_quality_find_c_string_span(target_section, value->target_offset, &string_size)) continue;
@@ -12006,7 +11971,6 @@ done:
 static int append_local_wrapper_call_input_semantic_uses(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call) {
   const char *call_symbol;
-  const AmigaOsLibraryVectorInfo *vector;
   uint32_t cursor;
   uint16_t push_stack_offset = 4U;
   size_t scan_count = 0U;
@@ -12018,20 +11982,22 @@ static int append_local_wrapper_call_input_semantic_uses(M68kSectionAnalysisIR *
   if (call_symbol == NULL || call_symbol[0] == '\0') {
     call_symbol = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   }
-  vector = amiga_os_find_library_vector_by_symbol_name(call_symbol);
-  if (vector == NULL) return 0;
+  call_symbol = platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, NULL)
+    ? call_symbol
+    : source_quality_recovered_call_symbol(call);
+  if (call_symbol == NULL) return 0;
   cursor = call->offset;
   while (scan_count < 12U) {
     const M68kDecodeCandidate *candidate =
       source_quality_previous_accepted_candidate(section, accepted_start, cursor);
     M68kInstructionIR instruction;
-    const AmigaOsCallInputInfo *input;
+    PlatformFactsV2CallInput input;
     if (candidate == NULL || candidate->byte_count == 0U) break;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
     if (!source_quality_instruction_is_long_stack_push(&instruction)) break;
-    input = source_quality_amiga_vector_input_by_stack_index(vector, (size_t)((push_stack_offset / 4U) - 1U));
-    if (input == NULL ||
-        append_platform_call_input_semantic_use(section_analysis, candidate, push_stack_offset, input) != 0) {
+    if (!platform_facts_v2_call_input_by_stack_index(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol,
+        (size_t)((push_stack_offset / 4U) - 1U), &input) ||
+        append_platform_call_input_semantic_use(section_analysis, candidate, push_stack_offset, &input) != 0) {
       break;
     }
     push_stack_offset = (uint16_t)(push_stack_offset + 4U);
@@ -12043,22 +12009,23 @@ static int append_local_wrapper_call_input_semantic_uses(M68kSectionAnalysisIR *
 
 static int append_stack_load_platform_call_input_semantic_uses(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
-    const AmigaOsLibraryVectorInfo *vector, uint16_t stack_frame_depth) {
+    const char *call_symbol, uint16_t stack_frame_depth) {
   int16_t displacement = 0;
-  if (section_analysis == NULL || candidate == NULL || instruction == NULL || vector == NULL) return 0;
+  if (section_analysis == NULL || candidate == NULL || instruction == NULL ||
+      call_symbol == NULL || call_symbol[0] == '\0') return 0;
   if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
        instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) &&
       instruction->size_suffix == 'l' && instruction->operand_count == 2U &&
       source_quality_operand_is_stack_displacement(&instruction->operands[0], &displacement)) {
     uint8_t reg = 0U;
     uint8_t reg_kind = 0U;
-    const AmigaOsCallInputInfo *input;
+    PlatformFactsV2CallInput input;
     if (source_quality_operand_data_register_index(&instruction->operands[1], &reg)) reg_kind = 1U;
     else if (source_quality_operand_address_register_index(&instruction->operands[1], &reg)) reg_kind = 2U;
-    input = source_quality_amiga_vector_input_by_register(vector, reg_kind, reg);
-    if (input != NULL && displacement > (int16_t)stack_frame_depth) {
+    if (platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, reg_kind, reg,
+        &input) && displacement > (int16_t)stack_frame_depth) {
       if (append_platform_call_input_semantic_use(section_analysis, candidate,
-          (uint16_t)(displacement - (int16_t)stack_frame_depth), input) != 0) {
+          (uint16_t)(displacement - (int16_t)stack_frame_depth), &input) != 0) {
         return -1;
       }
       return 1;
@@ -12075,16 +12042,18 @@ static int append_stack_load_platform_call_input_semantic_uses(M68kSectionAnalys
     for (bit = 0U; bit < 16U; ++bit) {
       uint8_t reg_kind;
       uint8_t reg_index;
-      const AmigaOsCallInputInfo *input;
+      PlatformFactsV2CallInput input;
+      int has_input;
       if ((mask & (1UL << bit)) == 0U) continue;
       reg_kind = bit < 8U ? 1U : 2U;
       reg_index = (uint8_t)(bit < 8U ? bit : bit - 8U);
-      input = source_quality_amiga_vector_input_by_register(vector, reg_kind, reg_index);
-      if (input != NULL &&
-          append_platform_call_input_semantic_use(section_analysis, candidate, stack_offset, input) != 0) {
+      has_input = platform_facts_v2_call_input_by_register(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol, reg_kind,
+        reg_index, &input);
+      if (has_input && append_platform_call_input_semantic_use(section_analysis, candidate, stack_offset,
+          &input) != 0) {
         return -1;
       }
-      if (input != NULL) added = 1;
+      if (has_input) added = 1;
       stack_offset = (uint16_t)(stack_offset + 4U);
     }
     return added;
@@ -12094,13 +12063,13 @@ static int append_stack_load_platform_call_input_semantic_uses(M68kSectionAnalys
 
 static int append_platform_call_input_semantic_uses_for_call(M68kSectionAnalysisIR *section_analysis,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRecoveredPlatformCallIR *call,
-    const AmigaOsLibraryVectorInfo *vector) {
+    const char *call_symbol) {
   uint32_t cursor;
   uint16_t push_stack_offset = 4U;
   size_t scan_count = 0U;
   int allow_register_stack_loads;
-  if (section_analysis == NULL || section == NULL || accepted_start == NULL || call == NULL || vector == NULL)
-    return 0;
+  if (section_analysis == NULL || section == NULL || accepted_start == NULL || call == NULL ||
+      call_symbol == NULL || call_symbol[0] == '\0') return 0;
   if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL) return 0;
   allow_register_stack_loads = call->note_kind == M68K_PLATFORM_CALL_NOTE_NONE ||
     call->note_kind == M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL;
@@ -12118,7 +12087,7 @@ static int append_platform_call_input_semantic_uses_for_call(M68kSectionAnalysis
         source_quality_stack_frame_depth_before_candidate(section, accepted_start, candidate->offset,
           &stack_frame_depth)) {
       load_result = append_stack_load_platform_call_input_semantic_uses(section_analysis, candidate, &instruction,
-        vector, stack_frame_depth);
+        call_symbol, stack_frame_depth);
       if (load_result < 0) return -1;
     }
     if (load_result > 0) {
@@ -12127,10 +12096,10 @@ static int append_platform_call_input_semantic_uses_for_call(M68kSectionAnalysis
       continue;
     }
     if (source_quality_instruction_is_long_stack_push(&instruction)) {
-      const AmigaOsCallInputInfo *input = source_quality_amiga_vector_input_by_stack_index(vector,
-        (size_t)((push_stack_offset / 4U) - 1U));
-      if (input == NULL ||
-          append_platform_call_input_semantic_use(section_analysis, candidate, push_stack_offset, input) != 0) {
+      PlatformFactsV2CallInput input;
+      if (!platform_facts_v2_call_input_by_stack_index(M68K_PLATFORM_BACKEND_AMIGA_HUNK, call_symbol,
+          (size_t)((push_stack_offset / 4U) - 1U), &input) ||
+          append_platform_call_input_semantic_use(section_analysis, candidate, push_stack_offset, &input) != 0) {
         break;
       }
       push_stack_offset = (uint16_t)(push_stack_offset + 4U);
@@ -12150,14 +12119,14 @@ static int append_platform_call_input_semantic_uses_for_section(M68kSectionAnaly
   for (call_index = 0U; call_index < section_analysis->recovered_platform_call_count; ++call_index) {
     const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[call_index];
     const char *call_symbol = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
-    const AmigaOsLibraryVectorInfo *vector;
     if (call_symbol == NULL || call_symbol[0] == '\0') {
       call_symbol = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
     }
     if (call_symbol == NULL || call_symbol[0] == '\0') continue;
-    vector = source_quality_recovered_call_vector(call);
+    call_symbol = source_quality_recovered_call_symbol(call);
+    if (call_symbol == NULL) continue;
     if (append_platform_call_input_operand_expr_semantic_uses_for_call(section_analysis, section, accepted_start,
-        call, vector) != 0) {
+        call, call_symbol) != 0) {
       return -1;
     }
     if (call->note_kind == M68K_PLATFORM_CALL_NOTE_LOCAL_HELPER_SYMBOL) continue;
@@ -12168,7 +12137,7 @@ static int append_platform_call_input_semantic_uses_for_section(M68kSectionAnaly
       continue;
     }
     if (append_platform_call_input_semantic_uses_for_call(section_analysis, section, accepted_start, call,
-        vector) != 0) {
+        call_symbol) != 0) {
       return -1;
     }
   }

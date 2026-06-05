@@ -17,6 +17,18 @@ void platform_facts_v2_resolved_call_init(PlatformFactsV2ResolvedCall *info) {
   memset(info, 0, sizeof(*info));
 }
 
+void platform_facts_v2_call_input_init(PlatformFactsV2CallInput *input) {
+  if (input == NULL) return;
+  memset(input, 0, sizeof(*input));
+}
+
+static void platform_facts_v2_copy_text(char *buf, size_t buf_size, const char *text) {
+  if (buf == NULL || buf_size == 0U) return;
+  buf[0] = '\0';
+  if (text == NULL || text[0] == '\0') return;
+  snprintf(buf, buf_size, "%s", text);
+}
+
 static int amiga_is_callback_vector_slot(uint32_t address) {
   return m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_EXCEPTION) ||
     m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_INTERRUPT) ||
@@ -189,6 +201,101 @@ int platform_facts_v2_symbol_name_is_equate(uint8_t platform_kind, const char *s
   default:
     return 0;
   }
+}
+
+static int platform_facts_v2_amiga_populate_call_input(const AmigaOsLibraryVectorInfo *vector,
+    const AmigaOsCallInputInfo *input, PlatformFactsV2CallInput *out_input) {
+  const char *name;
+  if (out_input != NULL) platform_facts_v2_call_input_init(out_input);
+  if (vector == NULL || input == NULL || out_input == NULL) return 0;
+  out_input->reg_kind = input->reg_kind;
+  out_input->reg_index = input->reg_index;
+  out_input->has_value_domain = input->value_domain_id != AMIGA_OS_VALUE_DOMAIN_ID_NONE;
+  out_input->is_string_pointer = input->semantic_kind_id == AMIGA_OS_SEMANTIC_KIND_ID_STRING_PTR;
+  out_input->is_write_buffer =
+    vector->function_id == AMIGA_OS_FUNCTION_ID_WRITE && input->input_id == AMIGA_OS_SYMBOL_ID_BUFFER_2;
+  out_input->is_write_length =
+    vector->function_id == AMIGA_OS_FUNCTION_ID_WRITE && input->input_id == AMIGA_OS_SYMBOL_ID_LENGTH_3;
+  name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input->input_id);
+  platform_facts_v2_copy_text(out_input->input_name, sizeof(out_input->input_name), name);
+  if (input->struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+    name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, input->struct_id);
+  } else if (input->type_id != AMIGA_OS_TYPE_ID_NONE) {
+    name = amiga_os_name(M68K_PLATFORM_NAME_TYPE, input->type_id);
+  } else {
+    name = NULL;
+  }
+  platform_facts_v2_copy_text(out_input->type_name, sizeof(out_input->type_name), name);
+  name = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input->semantic_kind_id);
+  platform_facts_v2_copy_text(out_input->semantic_kind_name, sizeof(out_input->semantic_kind_name), name);
+  name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
+  platform_facts_v2_copy_text(out_input->value_domain_name, sizeof(out_input->value_domain_name), name);
+  out_input->has_value_domain = out_input->value_domain_name[0] != '\0';
+  return 1;
+}
+
+static int platform_facts_v2_amiga_call_input_at(const char *symbol_name, size_t input_index,
+    PlatformFactsV2CallInput *out_input) {
+  const AmigaOsLibraryVectorInfo *vector;
+  const AmigaOsCallInputInfo *inputs;
+  size_t input_count = 0U;
+  if (out_input != NULL) platform_facts_v2_call_input_init(out_input);
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  vector = amiga_os_find_library_vector_by_symbol_name(symbol_name);
+  if (vector == NULL) return 0;
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  if (inputs == NULL || input_index >= input_count) return 0;
+  return platform_facts_v2_amiga_populate_call_input(vector, &inputs[input_index], out_input);
+}
+
+int platform_facts_v2_call_input_count_for_symbol(uint8_t platform_kind, const char *symbol_name,
+    size_t *out_input_count) {
+  if (out_input_count != NULL) *out_input_count = 0U;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsLibraryVectorInfo *vector = amiga_os_find_library_vector_by_symbol_name(symbol_name);
+    if (vector == NULL) return 0;
+    if (out_input_count != NULL) *out_input_count = vector->input_count;
+    return 1;
+  }
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_call_input_at(uint8_t platform_kind, const char *symbol_name, size_t input_index,
+    PlatformFactsV2CallInput *out_input) {
+  if (out_input != NULL) platform_facts_v2_call_input_init(out_input);
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return platform_facts_v2_amiga_call_input_at(symbol_name, input_index, out_input);
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_call_input_by_register(uint8_t platform_kind, const char *symbol_name, uint8_t reg_kind,
+    uint8_t reg_index, PlatformFactsV2CallInput *out_input) {
+  size_t input_count = 0U;
+  size_t index;
+  if (out_input != NULL) platform_facts_v2_call_input_init(out_input);
+  if (!platform_facts_v2_call_input_count_for_symbol(platform_kind, symbol_name, &input_count)) return 0;
+  for (index = 0U; index < input_count; ++index) {
+    PlatformFactsV2CallInput input;
+    if (!platform_facts_v2_call_input_at(platform_kind, symbol_name, index, &input)) continue;
+    if (input.reg_kind == reg_kind && input.reg_index == reg_index) {
+      if (out_input != NULL) *out_input = input;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+int platform_facts_v2_call_input_by_stack_index(uint8_t platform_kind, const char *symbol_name, size_t stack_index,
+    PlatformFactsV2CallInput *out_input) {
+  return platform_facts_v2_call_input_at(platform_kind, symbol_name, stack_index, out_input);
 }
 
 const char *platform_facts_v2_hardware_base_symbol(uint8_t platform_kind, uint16_t base_id) {
