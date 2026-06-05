@@ -5622,6 +5622,45 @@ negative guard, but it does not get to learn hardware register table details or
 invent a symbol from a numeric displacement. Positive hardware naming remains a
 platform-address-use or platform-facts rendering concern.
 
+### Implemented Slice: Typed Absolute Storage Rejects Hardware Owners Only
+
+Typed-flow also had an absolute-storage path:
+
+```text
+store typed value to absolute address
+load typed value from same absolute address
+  -> propagate the type through that storage slot
+```
+
+That is valid for real program storage, including low-memory storage used by
+some targets. The first attempted cleanup used the broad symbolic-owner helper
+and failed existing low-memory fixtures because CPU-vector-range addresses such
+as `$80` may still be application storage when the instruction shape does not
+prove vector semantics. The correct rule is narrower:
+
+```text
+absolute address is hardware-owned
+  -> do not track it as typed storage
+
+absolute address merely looks like low-memory/vector space
+  -> do not reject it here
+  -> let address-use/range analysis decide whether vector semantics are proven
+```
+
+The platform facts API now exposes that distinction explicitly:
+
+```c
+platform_facts_v2_address_has_hardware_owner(platform, address)
+platform_facts_v2_address_has_symbolic_owner(platform, address)
+```
+
+Typed absolute-storage tracking uses the hardware-owner predicate. The focused
+regression stores an API-typed value through a hardware field address
+`$00DFF0A4`, reloads it, and verifies the later `(a0)` access stays numeric
+instead of becoming `MP_SIGBIT(a0)`. Existing `$80` absolute-slot tests continue
+to pass, proving that low-memory storage was not accidentally folded into the
+hardware guard.
+
 ## Non-Goals
 
 - Do not add Damocles-only, Starglider-only, Pandora-only, or Magicland-only

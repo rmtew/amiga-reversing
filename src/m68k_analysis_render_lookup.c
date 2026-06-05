@@ -2160,7 +2160,9 @@ static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *l
   uint8_t base_reg = 0U;
   int16_t displacement = 0;
   uint32_t absolute_offset = 0U;
-  (void)lookup;
+  uint8_t platform_kind = lookup != NULL && lookup->object != NULL
+    ? (uint8_t)lookup->object->platform_backend_kind
+    : 0U;
   if (out_kind != NULL) *out_kind = 0U;
   if (out_section_index != NULL) *out_section_index = (size_t)-1;
   if (out_displacement != NULL) *out_displacement = 0;
@@ -2184,7 +2186,7 @@ static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *l
     return 1;
   }
   if (operand_absolute_offset_local(operand, &absolute_offset)) {
-    if (amiga_os_find_hardware_register_by_cpu_address(absolute_offset) != NULL) return 0;
+    if (platform_facts_v2_address_has_hardware_owner(platform_kind, absolute_offset)) return 0;
     if (out_kind != NULL) *out_kind = M68K_RENDER_TYPED_STORAGE_ABSOLUTE;
     if (out_section_index != NULL)
       *out_section_index = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : current_section_index;

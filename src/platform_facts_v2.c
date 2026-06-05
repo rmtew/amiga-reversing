@@ -169,13 +169,17 @@ int platform_facts_v2_hardware_base_offset_for_address(uint8_t platform_kind, ui
   return 1;
 }
 
-int platform_facts_v2_address_has_symbolic_owner(uint8_t platform_kind, uint32_t address) {
-  if (m68k_cpu_find_exception_vector_by_address(address) != NULL) return 1;
+int platform_facts_v2_address_has_hardware_owner(uint8_t platform_kind, uint32_t address) {
   if (platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
   return amiga_os_find_hardware_base_symbol_by_address(address) != NULL ||
     amiga_os_find_hardware_register_by_cpu_address(address) != NULL ||
     amiga_os_find_hardware_register_field_by_cpu_address(address) != NULL ||
     amiga_os_find_hardware_register_range_by_cpu_address(address) != NULL;
+}
+
+int platform_facts_v2_address_has_symbolic_owner(uint8_t platform_kind, uint32_t address) {
+  if (m68k_cpu_find_exception_vector_by_address(address) != NULL) return 1;
+  return platform_facts_v2_address_has_hardware_owner(platform_kind, address);
 }
 
 static int facts_v2_accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,

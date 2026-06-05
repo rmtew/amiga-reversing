@@ -92,6 +92,7 @@ uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t
 int platform_facts_v2_absolute_memory_owner(uint8_t platform_kind, uint32_t address,
   uint8_t *out_owner_kind, uint32_t *out_owner_offset);
 int platform_facts_v2_absolute_memory_owner_stays_literal(uint8_t platform_kind, uint32_t address);
+int platform_facts_v2_address_has_hardware_owner(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_address_has_symbolic_owner(uint8_t platform_kind, uint32_t address);
 uint8_t platform_facts_v2_address_use_shape_from_observation(uint8_t platform_kind,
   const struct M68kAddressObservationIR *observation);
