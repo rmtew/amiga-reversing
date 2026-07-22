@@ -777,6 +777,13 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   and pause, but not DOS completion, the `startup-sequence` `wait 5`, or
   Pandora's executable entry. The next observation must identify the active
   Exec task/process or an OS loader event before claiming target reachability.
+- The next NDK-backed observation reads ExecBase's current task plus capped
+  `TaskReady` and `TaskWait` lists. At twelve seconds it found the `Initial
+  CLI`, `CON`, and two `File System` processes, but no `pandora` process; the
+  current task at that sample was `input.device`. This establishes a DOS-stage
+  boot checkpoint while leaving the startup-sequence and executable-load
+  transition unproven. Persistent-session results are returned as nested JSON
+  observations rather than an escaped debugger transcript.
 - The exploratory command is:
 
   ```text

@@ -127,7 +127,8 @@ try {
     if ($ContinueSeconds) {
         $python = (Get-Command py.exe -ErrorAction Stop).Source
         $sessionScript = Get-ToolPath 'tools\winuae_gdb_session.py'
-        $gdbArgs = @($sessionScript, '--gdb', $gdb, '--continue-seconds', "$ContinueSeconds")
+        $ndk = Get-ToolPath 'knowledge\amiga_ndk_includes_parsed.json'
+        $gdbArgs = @($sessionScript, '--gdb', $gdb, '--ndk', $ndk, '--continue-seconds', "$ContinueSeconds")
         $gdbProcess = Start-Process -FilePath $python -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
         $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + 15) * 1000
     }
@@ -149,8 +150,15 @@ try {
         Get-Content -LiteralPath $gdbStderr -Raw
     ) -join [Environment]::NewLine
     Remove-Item -LiteralPath $gdbStdout, $gdbStderr -Force
+    $sessionObservation = $null
     if ($ContinueSeconds) {
-        if ($gdbOutput -notmatch '"status":\s*"ok"') {
+        try {
+            $sessionObservation = $gdbOutput | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            throw "Persistent GDB session did not return JSON.`n$gdbOutput"
+        }
+        if ($sessionObservation.status -ne 'ok') {
             throw "Persistent GDB session did not complete successfully.`n$gdbOutput"
         }
     }
@@ -173,8 +181,9 @@ try {
         state_directory = $resolvedStateDirectory
         floppy0 = $resolvedFloppy0
         continue_seconds = $ContinueSeconds
-        gdb_output = $gdbOutput.Trim()
-    } | ConvertTo-Json -Depth 3
+        gdb_output = if ($ContinueSeconds) { $null } else { $gdbOutput.Trim() }
+        observation = $sessionObservation
+    } | ConvertTo-Json -Depth 10
 }
 finally {
     if (-not $process.HasExited) {

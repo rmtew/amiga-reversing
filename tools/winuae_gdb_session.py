@@ -102,7 +102,72 @@ def mi_stop_reason(record: str) -> str | None:
     return match.group(1) if match else None
 
 
-def run_session(gdb_path: Path, continue_seconds: int) -> dict[str, object]:
+def ndk_field_offset(ndk: dict[str, object], struct_name: str, field_name: str) -> int:
+    structs = ndk["structs"]
+    fields = structs[struct_name]["fields"]
+    for field in fields:
+        if field["name"] == field_name:
+            return int(field["offset"])
+    raise MiError(f"NDK has no {struct_name}.{field_name} field.")
+
+
+def read_memory(gdb: MiProcess, address: int, count: int) -> bytes:
+    record = gdb.command(f"-data-read-memory-bytes 0x{address:x} {count}")
+    contents = mi_memory_bytes(record)
+    if contents is None or len(contents) != count * 2:
+        raise MiError(f"Could not read {count} bytes at 0x{address:08x}: {record}")
+    return bytes.fromhex(contents)
+
+
+def inspect_node(gdb: MiProcess, address: int, node_type_offset: int, node_name_offset: int, known_types: dict[str, int]) -> tuple[dict[str, object], int]:
+    node = read_memory(gdb, address, node_name_offset + 4)
+    successor = int.from_bytes(node[:4], "big")
+    name_address = int.from_bytes(node[node_name_offset : node_name_offset + 4], "big")
+    name_bytes = read_memory(gdb, name_address, 64) if name_address else b""
+    name = name_bytes.split(b"\0", 1)[0].decode("latin-1", errors="replace") or None
+    node_type = node[node_type_offset]
+    type_name = next((name for name, value in known_types.items() if value == node_type), None)
+    return {
+        "address": f"0x{address:08x}",
+        "node_type": node_type,
+        "node_type_name": type_name,
+        "name": name,
+    }, successor
+
+
+def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, object]:
+    # ExecBase's absolute pointer is the Amiga Exec ABI's longword at address 4.
+    exec_base = int.from_bytes(read_memory(gdb, 4, 4), "big")
+    this_task_offset = ndk_field_offset(ndk, "ExecBase", "ThisTask")
+    node_type_offset = ndk_field_offset(ndk, "LN", "LN_TYPE")
+    node_name_offset = ndk_field_offset(ndk, "LN", "LN_NAME")
+    list_head_offset = ndk_field_offset(ndk, "LH", "LH_HEAD")
+    task = int.from_bytes(read_memory(gdb, exec_base + this_task_offset, 4), "big")
+    known_types = {
+        name: int(record["value"])
+        for name, record in ndk["constants"].items()
+        if name in {"NT_PROCESS", "NT_TASK"}
+    }
+    current, _ = inspect_node(gdb, task, node_type_offset, node_name_offset, known_types)
+    report: dict[str, object] = {
+        "exec_base": f"0x{exec_base:08x}",
+        "current_task": current,
+    }
+    for report_name, field_name in (("ready_tasks", "TaskReady"), ("waiting_tasks", "TaskWait")):
+        list_address = exec_base + ndk_field_offset(ndk, "ExecBase", field_name)
+        node_address = int.from_bytes(read_memory(gdb, list_address + list_head_offset, 4), "big")
+        tail_sentinel = list_address + 4
+        nodes: list[dict[str, object]] = []
+        while node_address and node_address != tail_sentinel and len(nodes) < 32:
+            node, node_address = inspect_node(gdb, node_address, node_type_offset, node_name_offset, known_types)
+            nodes.append(node)
+        report[report_name] = nodes
+        report[f"{report_name}_truncated"] = bool(node_address and node_address != tail_sentinel)
+    return report
+
+
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int) -> dict[str, object]:
+    ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
         gdb.command("-gdb-set pagination off")
@@ -116,6 +181,7 @@ def run_session(gdb_path: Path, continue_seconds: int) -> dict[str, object]:
         pc = gdb.command("-data-evaluate-expression $pc")
         sp = gdb.command("-data-evaluate-expression $sp")
         memory = gdb.command("-data-read-memory-bytes 0xfc0000 8")
+        current_task = inspect_current_task(gdb, ndk)
         gdb.command('-interpreter-exec console "kill"')
         return {
             "status": "ok",
@@ -124,6 +190,7 @@ def run_session(gdb_path: Path, continue_seconds: int) -> dict[str, object]:
             "pc": mi_value(pc),
             "sp": mi_value(sp),
             "memory_0xfc0000": mi_memory_bytes(memory),
+            "current_task": current_task,
         }
     finally:
         gdb.close()
@@ -132,12 +199,13 @@ def run_session(gdb_path: Path, continue_seconds: int) -> dict[str, object]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gdb", required=True, type=Path)
+    parser.add_argument("--ndk", required=True, type=Path)
     parser.add_argument("--continue-seconds", required=True, type=int)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
         parser.error("--continue-seconds must be between 1 and 120")
     try:
-        result = run_session(args.gdb.resolve(), args.continue_seconds)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1
