@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "platform": "windows-x64",
+  "purpose": "Local agentic reversing runtime; no ROMs, target media, or user-specific paths are included.",
+  "tools": [
+    {
+      "file": "winuae-gdb.exe",
+      "sha256": "759A7F89223110C86193F2021D6C47B04FBB145E45C39387D7CA19E3AE24F377",
+      "size_bytes": 28682752,
+      "role": "Strict-headless WinUAE emulator with Bartman GDB server",
+      "source_repository": "https://github.com/BartmanAbyss/WinUAE.git",
+      "source_base_commit": "b34884cc25e561eecac5dcec70cac97d6b12b2d9",
+      "local_commits": [
+        "d7853f49 Make local WinUAE build paths portable",
+        "353046b4 Add strict headless host startup",
+        "539f3260 Write runtime executable to tracked ext bundle",
+        "a3b85de3 Harden first-run headless startup"
+      ],
+      "build": {
+        "project": "od-win32/winuae_msvc15/winuae_msvc.vcxproj",
+        "configuration": "FullRelease",
+        "platform": "x64",
+        "toolchain": "Visual Studio 2022 MSVC 14.43.34808"
+      },
+      "license": "GPL-2.0-only"
+    },
+    {
+      "file": "m68k-amiga-elf-gdb.exe",
+      "sha256": "D423D93677EE0E718282765161F7F55352A8E8709B3BD03AE43409BCE1717BC9",
+      "size_bytes": 8709120,
+      "role": "Bartman prebuilt GDB Remote Protocol client",
+      "source_repository": "https://github.com/BartmanAbyss/vscode-amiga-debug.git",
+      "source_commit": "055097bba74dd1b2f764dcb90781d2017bd1d499",
+      "upstream": "GNU GDB 17.0.50.20250202-git, modified by Bartman",
+      "license": "GPL-3.0-or-later"
+    }
+  ],
+  "validated_contract": {
+    "date": "2026-07-22",
+    "headless": "A fresh external INI launches with -s headless=yes without a visible WinUAE window, physical display enumeration, initial Direct3D probe, ROM-scan completion dialog, or crash-report dialog.",
+    "debugger": "GDB server binds only to 127.0.0.1:2345. Bartman GDB attached to a legal-ROM 68000/ECS/1 MB no-media boot, read PC/SP and 8 bytes at 0x00fc0000, then stopped the emulator using the orderly GDB kill request."
+  }
+}

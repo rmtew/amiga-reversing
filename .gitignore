@@ -20,6 +20,13 @@ ext/*.lha
 *.exe
 !ext/tools/ancient/Ancient.exe
 !ext/tools/ndif2raw/ndif2raw.exe
+ext/tools/winuae/windows-x64/*
+!ext/tools/winuae/
+!ext/tools/winuae/windows-x64/
+!ext/tools/winuae/windows-x64/winuae-gdb.exe
+!ext/tools/winuae/windows-x64/m68k-amiga-elf-gdb.exe
+!ext/tools/winuae/windows-x64/manifest.json
+!ext/tools/winuae/windows-x64/README.md
 *.pyc
 __pycache__/
 *.prof
