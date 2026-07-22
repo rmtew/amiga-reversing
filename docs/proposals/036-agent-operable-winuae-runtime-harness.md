@@ -757,6 +757,11 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   directly to that directory; the related local fork history is on branch
   `codex/local-workspace-build`. The bundle excludes
   ROMs, target media, user paths, PDBs, logs, and generated configuration.
+- `tools/run_winuae_headless.ps1` is the local agent-facing launcher. It takes
+  an explicit legal ROM path, stores mutable INI/data state under the caller's
+  temporary directory by default, waits for loopback GDB, runs an optional GDB
+  command array, returns JSON, and ends through GDB `kill`. Both GDB launches
+  use hidden console windows; this is part of the local headless contract.
 - The exploratory command is:
 
   ```text
