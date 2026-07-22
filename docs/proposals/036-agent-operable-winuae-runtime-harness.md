@@ -762,6 +762,12 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   temporary directory by default, waits for loopback GDB, runs an optional GDB
   command array, returns JSON, and ends through GDB `kill`. Both GDB launches
   use hidden console windows; this is part of the local headless contract.
+- The first target-media smoke mounted the imported original
+  `Pandora (1988)(Firebird).adf` as `DF0:` and completed the same hidden
+  GDB/clean-shutdown path. GDB initially stops at the Kickstart reset vector
+  (`pc=0x00fc00d2`), so this proves media attachment only. It does not yet
+  prove Pandora execution, a loaded-program address, or a target breakpoint;
+  those require a controlled continue/pause checkpoint in the next slice.
 - The exploratory command is:
 
   ```text

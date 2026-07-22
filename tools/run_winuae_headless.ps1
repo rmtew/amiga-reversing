@@ -4,6 +4,8 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$RomPath,
 
+    [string]$Floppy0,
+
     [string]$StateDirectory = (Join-Path ([System.IO.Path]::GetTempPath()) 'amiga-reversing2\winuae'),
 
     [string[]]$GdbCommand = @(),
@@ -55,6 +57,7 @@ function Request-OrderlyGdbShutdown([string]$gdbPath, [string]$stateDirectory) {
 $emulator = Get-ToolPath 'ext\tools\winuae\windows-x64\winuae-gdb.exe'
 $gdb = Get-ToolPath 'ext\tools\winuae\windows-x64\m68k-amiga-elf-gdb.exe'
 $resolvedRom = (Resolve-Path -LiteralPath $RomPath).Path
+$resolvedFloppy0 = if ($Floppy0) { (Resolve-Path -LiteralPath $Floppy0).Path } else { $null }
 
 if (Get-NetTCPConnection -State Listen -LocalPort 2345 -ErrorAction SilentlyContinue) {
     throw 'TCP port 2345 is already in use; stop the existing WinUAE GDB session first.'
@@ -79,6 +82,9 @@ $emulatorArgs = @(
     '-s', 'bogomem_size=0',
     '-s', 'fastmem_size=0'
 )
+if ($resolvedFloppy0) {
+    $emulatorArgs += '-s', "floppy0=$resolvedFloppy0"
+}
 
 $process = Start-Process -FilePath $emulator -ArgumentList (ConvertTo-ArgumentListString $emulatorArgs) -PassThru
 $ready = $false
@@ -129,6 +135,7 @@ try {
     [pscustomobject]@{
         status = 'ok'
         state_directory = $resolvedStateDirectory
+        floppy0 = $resolvedFloppy0
         gdb_output = $gdbOutput.Trim()
     } | ConvertTo-Json -Depth 3
 }

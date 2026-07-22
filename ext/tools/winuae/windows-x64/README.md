@@ -31,3 +31,11 @@ orderly `kill` request.
 .\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \
   -GdbCommand @('info registers pc sp', 'x/8xb 0xfc0000')
 ```
+
+To attach one original ADF as `DF0:`, pass its local path explicitly. The image
+remains untracked and is never copied into the runtime state directory.
+
+```powershell
+.\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \
+  -Floppy0 .\bin\uploads\Pandora` (1988`)(Firebird).adf
+```
