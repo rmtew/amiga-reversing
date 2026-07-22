@@ -11,6 +11,9 @@ param(
     [string[]]$GdbCommand = @(),
 
     [ValidateRange(1, 120)]
+    [int]$ContinueSeconds,
+
+    [ValidateRange(1, 120)]
     [int]$StartupTimeoutSeconds = 45,
 
     [ValidateRange(1, 300)]
@@ -18,6 +21,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ($ContinueSeconds -and $GdbCommand.Count) {
+    throw 'ContinueSeconds cannot be combined with GdbCommand.'
+}
 
 if ([string]::IsNullOrWhiteSpace($StateDirectory)) {
     $StateDirectory = Join-Path 'C:\tmp' (Join-Path 'amiga-reversing2\winuae\runs' ([guid]::NewGuid().ToString()))
@@ -51,7 +58,10 @@ function Request-OrderlyGdbShutdown([string]$gdbPath, [string]$stateDirectory) {
     $shutdownOut = Join-Path $stateDirectory 'gdb-shutdown.stdout.txt'
     $shutdownErr = Join-Path $stateDirectory 'gdb-shutdown.stderr.txt'
     $shutdownArgs = ConvertTo-ArgumentListString @('-q', '-batch', '-ex', 'target remote 127.0.0.1:2345', '-ex', 'kill')
-    $shutdown = Start-Process -FilePath $gdbPath -ArgumentList $shutdownArgs -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $shutdownOut -RedirectStandardError $shutdownErr
+    $shutdown = Start-Process -FilePath $gdbPath -ArgumentList $shutdownArgs -WindowStyle Hidden -PassThru -RedirectStandardOutput $shutdownOut -RedirectStandardError $shutdownErr
+    if (-not $shutdown.WaitForExit(5000)) {
+        Stop-Process -Id $shutdown.Id -Force
+    }
     Remove-Item -LiteralPath $shutdownOut, $shutdownErr -Force -ErrorAction SilentlyContinue
     for ($second = 0; $second -lt 5; $second++) {
         if ($process.HasExited) {
@@ -112,24 +122,39 @@ try {
         throw "WinUAE did not expose its GDB listener within $StartupTimeoutSeconds seconds."
     }
 
-    $gdbArgs = @('-q', '-batch', '-ex', 'set pagination off', '-ex', 'target remote 127.0.0.1:2345')
-    foreach ($command in $GdbCommand) {
-        $gdbArgs += '-ex', $command
-    }
-    $gdbArgs += '-ex', 'kill'
     $gdbStdout = Join-Path $resolvedStateDirectory 'gdb.stdout.txt'
     $gdbStderr = Join-Path $resolvedStateDirectory 'gdb.stderr.txt'
-    $gdbProcess = Start-Process -FilePath $gdb -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
-    if (-not $gdbProcess.WaitForExit($GdbTimeoutSeconds * 1000)) {
+    if ($ContinueSeconds) {
+        $python = (Get-Command py.exe -ErrorAction Stop).Source
+        $sessionScript = Get-ToolPath 'tools\winuae_gdb_session.py'
+        $gdbArgs = @($sessionScript, '--gdb', $gdb, '--continue-seconds', "$ContinueSeconds")
+        $gdbProcess = Start-Process -FilePath $python -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
+        $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + 15) * 1000
+    }
+    else {
+        $gdbArgs = @('-q', '-batch', '-ex', 'set pagination off', '-ex', 'target remote 127.0.0.1:2345')
+        foreach ($command in $GdbCommand) {
+            $gdbArgs += '-ex', $command
+        }
+        $gdbArgs += '-ex', 'kill'
+        $gdbProcess = Start-Process -FilePath $gdb -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
+        $gdbTimeoutMilliseconds = $GdbTimeoutSeconds * 1000
+    }
+    if (-not $gdbProcess.WaitForExit($gdbTimeoutMilliseconds)) {
         Stop-Process -Id $gdbProcess.Id -Force
-        throw "GDB did not complete within $GdbTimeoutSeconds seconds."
+        throw "GDB did not complete within $([math]::Ceiling($gdbTimeoutMilliseconds / 1000)) seconds."
     }
     $gdbOutput = @(
         Get-Content -LiteralPath $gdbStdout -Raw
         Get-Content -LiteralPath $gdbStderr -Raw
     ) -join [Environment]::NewLine
     Remove-Item -LiteralPath $gdbStdout, $gdbStderr -Force
-    if ($gdbOutput -notmatch '\[Inferior 1 \(Remote target\) killed\]') {
+    if ($ContinueSeconds) {
+        if ($gdbOutput -notmatch '"status":\s*"ok"') {
+            throw "Persistent GDB session did not complete successfully.`n$gdbOutput"
+        }
+    }
+    elseif ($gdbOutput -notmatch '\[Inferior 1 \(Remote target\) killed\]') {
         throw "GDB did not confirm orderly remote shutdown.`n$gdbOutput"
     }
 
@@ -147,6 +172,7 @@ try {
         status = 'ok'
         state_directory = $resolvedStateDirectory
         floppy0 = $resolvedFloppy0
+        continue_seconds = $ContinueSeconds
         gdb_output = $gdbOutput.Trim()
     } | ConvertTo-Json -Depth 3
 }

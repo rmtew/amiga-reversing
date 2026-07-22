@@ -41,3 +41,14 @@ remains untracked and is never copied into the runtime state directory.
 .\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \
   -Floppy0 .\bin\uploads\Pandora` (1988`)(Firebird).adf
 ```
+
+For the first bounded execution-control probe, use `-ContinueSeconds` instead
+of `-GdbCommand`. It keeps one hidden MI-mode GDB connection open, continues
+for the requested wall-clock interval, interrupts it, records PC/SP and a
+small ROM memory read, then kills the emulator. The JSON result is an
+observation only; it does not establish that a target executable was reached.
+
+```powershell
+.\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \
+  -Floppy0 .\bin\uploads\Pandora` (1988`)(Firebird).adf -ContinueSeconds 8
+```

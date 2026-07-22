@@ -768,6 +768,15 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   (`pc=0x00fc00d2`), so this proves media attachment only. It does not yet
   prove Pandora execution, a loaded-program address, or a target breakpoint;
   those require a controlled continue/pause checkpoint in the next slice.
+- A bounded persistent MI-mode GDB session is now available through
+  `tools/run_winuae_headless.ps1 -ContinueSeconds <n>`. It retains one hidden
+  GDB connection through continue, interrupt, PC/SP and bounded-memory
+  inspection, and GDB `kill`; WinUAE state is isolated beneath `C:\tmp` per
+  invocation. An eight-second cold boot with the original Pandora ADF paused
+  at `pc=0x00fc0f90`, still in Kickstart ROM. This proves controlled execution
+  and pause, but not DOS completion, the `startup-sequence` `wait 5`, or
+  Pandora's executable entry. The next observation must identify the active
+  Exec task/process or an OS loader event before claiming target reachability.
 - The exploratory command is:
 
   ```text
