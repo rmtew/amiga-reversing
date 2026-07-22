@@ -11,7 +11,10 @@ param(
     [string[]]$GdbCommand = @(),
 
     [ValidateRange(1, 120)]
-    [int]$StartupTimeoutSeconds = 45
+    [int]$StartupTimeoutSeconds = 45,
+
+    [ValidateRange(1, 300)]
+    [int]$GdbTimeoutSeconds = 45
 )
 
 $ErrorActionPreference = 'Stop'
@@ -112,14 +115,18 @@ try {
     $gdbArgs += '-ex', 'kill'
     $gdbStdout = Join-Path $resolvedStateDirectory 'gdb.stdout.txt'
     $gdbStderr = Join-Path $resolvedStateDirectory 'gdb.stderr.txt'
-    $gdbProcess = Start-Process -FilePath $gdb -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
+    $gdbProcess = Start-Process -FilePath $gdb -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
+    if (-not $gdbProcess.WaitForExit($GdbTimeoutSeconds * 1000)) {
+        Stop-Process -Id $gdbProcess.Id -Force
+        throw "GDB did not complete within $GdbTimeoutSeconds seconds."
+    }
     $gdbOutput = @(
         Get-Content -LiteralPath $gdbStdout -Raw
         Get-Content -LiteralPath $gdbStderr -Raw
     ) -join [Environment]::NewLine
     Remove-Item -LiteralPath $gdbStdout, $gdbStderr -Force
-    if ($gdbProcess.ExitCode -ne 0) {
-        throw "GDB failed with exit code $($gdbProcess.ExitCode).`n$gdbOutput"
+    if ($gdbOutput -notmatch '\[Inferior 1 \(Remote target\) killed\]') {
+        throw "GDB did not confirm orderly remote shutdown.`n$gdbOutput"
     }
 
     for ($second = 0; $second -lt 10; $second++) {
