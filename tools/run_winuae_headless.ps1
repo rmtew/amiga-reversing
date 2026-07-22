@@ -14,6 +14,9 @@ param(
     [int]$ContinueSeconds,
 
     [ValidateRange(1, 120)]
+    [int]$LoadSegWatchSeconds,
+
+    [ValidateRange(1, 120)]
     [int]$StartupTimeoutSeconds = 45,
 
     [ValidateRange(1, 300)]
@@ -22,8 +25,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-if ($ContinueSeconds -and $GdbCommand.Count) {
-    throw 'ContinueSeconds cannot be combined with GdbCommand.'
+if (($ContinueSeconds -or $LoadSegWatchSeconds) -and $GdbCommand.Count) {
+    throw 'ContinueSeconds/LoadSegWatchSeconds cannot be combined with GdbCommand.'
+}
+if ($LoadSegWatchSeconds -and -not $ContinueSeconds) {
+    throw 'LoadSegWatchSeconds requires ContinueSeconds.'
 }
 
 if ([string]::IsNullOrWhiteSpace($StateDirectory)) {
@@ -129,8 +135,11 @@ try {
         $sessionScript = Get-ToolPath 'tools\winuae_gdb_session.py'
         $ndk = Get-ToolPath 'knowledge\amiga_ndk_includes_parsed.json'
         $gdbArgs = @($sessionScript, '--gdb', $gdb, '--ndk', $ndk, '--continue-seconds', "$ContinueSeconds")
+        if ($LoadSegWatchSeconds) {
+            $gdbArgs += '--loadseg-watch-seconds', "$LoadSegWatchSeconds"
+        }
         $gdbProcess = Start-Process -FilePath $python -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
-        $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + 15) * 1000
+        $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + $LoadSegWatchSeconds + 15) * 1000
     }
     else {
         $gdbArgs = @('-q', '-batch', '-ex', 'set pagination off', '-ex', 'target remote 127.0.0.1:2345')
@@ -181,6 +190,7 @@ try {
         state_directory = $resolvedStateDirectory
         floppy0 = $resolvedFloppy0
         continue_seconds = $ContinueSeconds
+        loadseg_watch_seconds = $LoadSegWatchSeconds
         gdb_output = if ($ContinueSeconds) { $null } else { $gdbOutput.Trim() }
         observation = $sessionObservation
     } | ConvertTo-Json -Depth 10

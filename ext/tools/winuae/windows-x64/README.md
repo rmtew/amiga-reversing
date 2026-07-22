@@ -53,3 +53,9 @@ establish that a target executable was reached.
 .\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \
   -Floppy0 .\bin\uploads\Pandora` (1988`)(Firebird).adf -ContinueSeconds 8
 ```
+
+`-LoadSegWatchSeconds` adds a second bounded phase after that initial pause.
+It resolves the live `dos.library` base and `LoadSeg` LVO from the parsed NDK,
+then reports a `LoadSeg` breakpoint hit and its filename argument or an
+explicit timeout. It is an OS-loader observation, not a claim that the
+observed program is the target under study.

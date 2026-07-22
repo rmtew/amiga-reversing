@@ -17,6 +17,10 @@ class MiError(RuntimeError):
     """A GDB/MI request did not complete successfully."""
 
 
+class MiTimeout(MiError):
+    """A GDB/MI request did not complete before its bounded deadline."""
+
+
 class MiProcess:
     def __init__(self, gdb_path: Path) -> None:
         self._process = subprocess.Popen(
@@ -59,11 +63,11 @@ class MiProcess:
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise MiError("Timed out waiting for GDB/MI response: " + " | ".join(transcript[-8:]))
+                raise MiTimeout("Timed out waiting for GDB/MI response: " + " | ".join(transcript[-8:]))
             try:
                 line = self._lines.get(timeout=remaining)
             except queue.Empty as exc:
-                raise MiError("Timed out waiting for GDB/MI response.") from exc
+                raise MiTimeout("Timed out waiting for GDB/MI response.") from exc
             if line is None:
                 raise MiError(f"GDB exited with code {self._process.returncode}: " + " | ".join(transcript[-8:]))
             transcript.append(line)
@@ -135,9 +139,66 @@ def inspect_node(gdb: MiProcess, address: int, node_type_offset: int, node_name_
     }, successor
 
 
-def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, object]:
+def read_c_string(gdb: MiProcess, address: int) -> str | None:
+    if not address:
+        return None
+    return read_memory(gdb, address, 64).split(b"\0", 1)[0].decode("latin-1", errors="replace") or None
+
+
+def exec_base_address(gdb: MiProcess) -> int:
     # ExecBase's absolute pointer is the Amiga Exec ABI's longword at address 4.
-    exec_base = int.from_bytes(read_memory(gdb, 4, 4), "big")
+    return int.from_bytes(read_memory(gdb, 4, 4), "big")
+
+
+def locate_library(gdb: MiProcess, ndk: dict[str, object], library_name: str) -> int:
+    exec_base = exec_base_address(gdb)
+    list_address = exec_base + ndk_field_offset(ndk, "ExecBase", "LibList")
+    head_offset = ndk_field_offset(ndk, "LH", "LH_HEAD")
+    name_offset = ndk_field_offset(ndk, "LN", "LN_NAME")
+    node_address = int.from_bytes(read_memory(gdb, list_address + head_offset, 4), "big")
+    tail_sentinel = list_address + 4
+    for _ in range(64):
+        if not node_address or node_address == tail_sentinel:
+            break
+        node = read_memory(gdb, node_address, name_offset + 4)
+        name_address = int.from_bytes(node[name_offset : name_offset + 4], "big")
+        if read_c_string(gdb, name_address) == library_name:
+            return node_address
+        node_address = int.from_bytes(node[:4], "big")
+    raise MiError(f"{library_name} is not present in ExecBase.LibList.")
+
+
+def watch_loadseg(gdb: MiProcess, ndk: dict[str, object], timeout_seconds: int) -> dict[str, object]:
+    dos_base = locate_library(gdb, ndk, "dos.library")
+    loadseg_lvo = int(ndk["libraries"]["dos.library"]["functions"]["LoadSeg"]["lvo"])
+    loadseg_address = dos_base + loadseg_lvo
+    gdb.command(f"-break-insert *0x{loadseg_address:x}")
+    gdb.command("-exec-continue")
+    try:
+        stop = gdb.wait_for_stop(timeout_seconds)
+    except MiTimeout:
+        gdb.command("-exec-interrupt")
+        stop = gdb.wait_for_stop()
+        return {
+            "status": "timeout",
+            "dos_library_base": f"0x{dos_base:08x}",
+            "loadseg_address": f"0x{loadseg_address:08x}",
+            "stop_reason": mi_stop_reason(stop),
+        }
+    d1 = gdb.command("-data-evaluate-expression $d1")
+    d1_value = mi_value(d1)
+    d1_address = int(d1_value, 0) if d1_value is not None else 0
+    return {
+        "status": "hit" if mi_stop_reason(stop) == "breakpoint-hit" else "stopped_otherwise",
+        "dos_library_base": f"0x{dos_base:08x}",
+        "loadseg_address": f"0x{loadseg_address:08x}",
+        "stop_reason": mi_stop_reason(stop),
+        "loadseg_name": read_c_string(gdb, d1_address),
+    }
+
+
+def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, object]:
+    exec_base = exec_base_address(gdb)
     this_task_offset = ndk_field_offset(ndk, "ExecBase", "ThisTask")
     node_type_offset = ndk_field_offset(ndk, "LN", "LN_TYPE")
     node_name_offset = ndk_field_offset(ndk, "LN", "LN_NAME")
@@ -166,7 +227,7 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
     return report
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int) -> dict[str, object]:
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -182,6 +243,7 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int) -> dict[s
         sp = gdb.command("-data-evaluate-expression $sp")
         memory = gdb.command("-data-read-memory-bytes 0xfc0000 8")
         current_task = inspect_current_task(gdb, ndk)
+        loader_watch = watch_loadseg(gdb, ndk, loadseg_watch_seconds) if loadseg_watch_seconds else None
         gdb.command('-interpreter-exec console "kill"')
         return {
             "status": "ok",
@@ -191,6 +253,7 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int) -> dict[s
             "sp": mi_value(sp),
             "memory_0xfc0000": mi_memory_bytes(memory),
             "current_task": current_task,
+            "loadseg_watch": loader_watch,
         }
     finally:
         gdb.close()
@@ -201,11 +264,14 @@ def main() -> int:
     parser.add_argument("--gdb", required=True, type=Path)
     parser.add_argument("--ndk", required=True, type=Path)
     parser.add_argument("--continue-seconds", required=True, type=int)
+    parser.add_argument("--loadseg-watch-seconds", type=int)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
         parser.error("--continue-seconds must be between 1 and 120")
+    if args.loadseg_watch_seconds is not None and not 1 <= args.loadseg_watch_seconds <= 120:
+        parser.error("--loadseg-watch-seconds must be between 1 and 120")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1

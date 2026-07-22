@@ -784,6 +784,15 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   boot checkpoint while leaving the startup-sequence and executable-load
   transition unproven. Persistent-session results are returned as nested JSON
   observations rather than an escaped debugger transcript.
+- A second persistent-session phase can now resolve `dos.library` through the
+  live Exec library list and derive `LoadSeg` from the parsed NDK. With the
+  twelve-second DOS checkpoint plus a thirty-second loader watch, the resolved
+  base was `0x00005d20` and `LoadSeg` was `0x00005c8a`; its breakpoint did not
+  fire before the bounded timeout. The breakpoint was accepted, so this is a
+  valid negative result for this one cold-boot timing window, not evidence that
+  Pandora is absent or unreachable. The next investigation should identify the
+  command/segment currently associated with `Initial CLI` or establish whether
+  the headless profile advances the startup delay at the expected rate.
 - The exploratory command is:
 
   ```text
