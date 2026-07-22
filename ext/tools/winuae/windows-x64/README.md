@@ -23,9 +23,11 @@ in this directory.
 ## Local runner
 
 Use `tools/run_winuae_headless.ps1` with a legal local Kickstart ROM. It keeps
-mutable WinUAE state outside the repository by default, waits for the loopback
-GDB server, executes any supplied GDB commands, and shuts down with GDB's
-orderly `kill` request.
+mutable WinUAE state outside the repository in a new temporary directory for
+each invocation by default, waits for the loopback GDB server, executes any
+supplied GDB commands, and shuts down with GDB's orderly `kill` request. Pass
+`-StateDirectory` only when deliberately retaining runtime state, such as a
+future validated savestate workflow.
 
 ```powershell
 .\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \

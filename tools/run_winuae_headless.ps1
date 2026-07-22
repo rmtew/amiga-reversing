@@ -6,7 +6,7 @@ param(
 
     [string]$Floppy0,
 
-    [string]$StateDirectory = (Join-Path ([System.IO.Path]::GetTempPath()) 'amiga-reversing2\winuae'),
+    [string]$StateDirectory,
 
     [string[]]$GdbCommand = @(),
 
@@ -18,6 +18,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($StateDirectory)) {
+    $StateDirectory = Join-Path 'C:\tmp' (Join-Path 'amiga-reversing2\winuae\runs' ([guid]::NewGuid().ToString()))
+}
 
 function Get-ToolPath([string]$relativePath) {
     $path = Join-Path $PSScriptRoot "..\\$relativePath"
