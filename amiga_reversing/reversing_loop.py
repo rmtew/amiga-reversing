@@ -20,6 +20,8 @@ from typing import cast
 from amiga_reversing.disasm import projects, server
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
+    RawAddressModel,
+    RawBinarySource,
     resolve_target_binary_source,
 )
 from amiga_reversing.disasm.c_backend import (
@@ -389,7 +391,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     run_parser.add_argument("--comment-text")
     run_parser.add_argument("--label-section", type=_parse_int_auto, default=0)
-    run_parser.add_argument("--label-offset", type=_parse_int_auto)
+    label_address_group = run_parser.add_mutually_exclusive_group()
+    label_address_group.add_argument(
+        "--label-offset",
+        type=_parse_int_auto,
+        help="Source offset of the existing label (for example 0x2BC4).",
+    )
+    label_address_group.add_argument(
+        "--label-runtime-address",
+        type=_parse_int_auto,
+        help="Runtime address of the existing label; resolve it through the target's execution view.",
+    )
     run_parser.add_argument("--label-name")
     run_parser.add_argument("--label-rationale")
     run_parser.add_argument("--label-evidence", action="append", default=[])
@@ -587,6 +599,7 @@ def main(argv: list[str] | None = None) -> int:
                     dry_run=args.dry_run,
                     section_index=args.label_section,
                     source_offset=args.label_offset,
+                    runtime_address=args.label_runtime_address,
                     new_label=args.label_name,
                     rationale=args.label_rationale,
                     evidence_lines=tuple(args.label_evidence),
@@ -4864,6 +4877,7 @@ def run_listing_backed_label_rename_iteration(
     dry_run: bool = False,
     section_index: int = 0,
     source_offset: int | None = None,
+    runtime_address: int | None = None,
     new_label: str | None = None,
     rationale: str | None = None,
     evidence_lines: tuple[str, ...] = (),
@@ -4903,8 +4917,32 @@ def run_listing_backed_label_rename_iteration(
         )
 
     missing: list[str] = []
-    if source_offset is None:
-        missing.append("label_offset")
+    if source_offset is not None and runtime_address is not None:
+        missing.append("one_of_label_offset_or_label_runtime_address")
+    elif source_offset is None and runtime_address is None:
+        missing.append("label_offset_or_label_runtime_address")
+    elif runtime_address is not None:
+        try:
+            source_offset = _source_offset_for_runtime_address(
+                target_id,
+                runtime_address,
+                project_root=project_root,
+            )
+        except ValueError as exc:
+            verification = {"status": "failed", "layers": [{"layer": "address_resolution", "status": "failed", "message": str(exc)}]}
+            return _write_listing_command_report(
+                target_id,
+                run_state=run_result.run_state,
+                iteration_id=iteration_id,
+                inspect_report=inspect_report,
+                selected_work_item=None,
+                command=None,
+                action_result={"status": "blocked"},
+                verification=verification,
+                workflow_profile=None,
+                next_evidence={"kind": "ambiguous_address_space", "name": str(exc)},
+                project_root=project_root,
+            )
     label_name = _clean_label_name(new_label)
     if label_name is None:
         missing.append("label_name")
@@ -9780,6 +9818,44 @@ def _select_listing_label_rename_action(
         "message": "label.rename was unavailable for label candidates",
         "candidates": checked_candidates,
     }
+
+
+def _source_offset_for_runtime_address(
+    target_id: str,
+    runtime_address: int,
+    *,
+    project_root: Path,
+) -> int:
+    """Resolve one runtime address to a canonical source offset.
+
+    Runtime execution views are authoritative because copied or relocated code
+    need not use the source binary's declared load address.  A raw-binary
+    runtime-absolute descriptor provides a conservative fallback when no
+    execution view covers the address.
+    """
+
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    metadata = effective_target_metadata(target_dir)
+    matches: list[tuple[int, str]] = []
+    if metadata is not None:
+        for view in metadata.execution_views:
+            runtime_end = view.base_addr + (view.source_end - view.source_start)
+            if view.base_addr <= runtime_address < runtime_end:
+                matches.append((view.source_start + runtime_address - view.base_addr, view.name))
+    if len(matches) == 1:
+        return matches[0][0]
+    if len(matches) > 1:
+        view_names = ", ".join(name for _, name in matches)
+        raise ValueError(f"runtime address 0x{runtime_address:08X} matches multiple execution views: {view_names}")
+
+    source = resolve_target_binary_source(target_dir, project_root=project_root)
+    if isinstance(source, RawBinarySource) and source.address_model is RawAddressModel.RUNTIME_ABSOLUTE:
+        source_offset = runtime_address - source.load_address
+        if 0 <= source_offset < source.path.stat().st_size:
+            return source_offset
+    raise ValueError(
+        f"runtime address 0x{runtime_address:08X} does not map to a target execution view or raw-binary load range"
+    )
 
 
 def _listing_label_rename_candidates(

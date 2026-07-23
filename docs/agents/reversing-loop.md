@@ -11,7 +11,8 @@ private mutation path.
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --dry-run`
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target>`
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-comment`
-- `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-label-rename --label-offset <offset> --label-name <name>`
+- `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-label-rename --label-offset <source-offset> --label-name <name>`
+- `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-label-rename --label-runtime-address <runtime-address> --label-name <name>`
 
 ## Mode Choice
 
@@ -110,6 +111,12 @@ issue before trying the target action again.
   Manual Action Log state is local/ignored and must be summarized in reports.
 
 ## Listing Workflow
+
+For a listing-backed label rename, supply exactly one coordinate: use
+`--label-offset` for the listing's source offset, or `--label-runtime-address`
+when the target has an observed execution view. The latter is resolved through
+that view before the command selects the canonical source label; do not subtract
+load addresses by hand.
 
 Use one Python/server process for listing access and command execution. Listing
 locators are available only after the listing artifact is opened, and that

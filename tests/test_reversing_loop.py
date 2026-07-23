@@ -15199,6 +15199,33 @@ def test_listing_backed_label_rename_dry_run_selects_label_command(
     assert report["action_result"]["status"] == "dry_run"
 
 
+def test_runtime_label_address_resolves_through_execution_view(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop,
+        "effective_target_metadata",
+        lambda target_dir: SimpleNamespace(
+            execution_views=(
+                SimpleNamespace(source_start=0, source_end=0x58000, base_addr=0x10000, name="observed payload"),
+            )
+        ),
+    )
+
+    assert reversing_loop._source_offset_for_runtime_address("demo", 0x12BC4, project_root=tmp_path) == 0x2BC4
+
+
+def test_runtime_label_address_rejects_unmapped_address(tmp_path: Path) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path)
+
+    with pytest.raises(ValueError, match="does not map"):
+        reversing_loop._source_offset_for_runtime_address("demo", 0x12BC4, project_root=tmp_path)
+
+
 def test_listing_backed_label_rename_executes_and_verifies(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
