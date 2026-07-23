@@ -4620,12 +4620,15 @@ static int runtime_address_space_append_range(M68kRuntimeAddressSpace *space, si
 static int runtime_address_conflict_is_temporal_overlay(const M68kRuntimeAddressRange *existing,
     size_t section_index, uint32_t source_offset, uint32_t runtime_address, uint32_t size, uint8_t kind) {
   uint64_t existing_start, existing_end, new_start, new_end;
-  if (existing == NULL || kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY ||
-      existing->kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY ||
+  if (existing == NULL || existing->kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY ||
       existing->section_index != section_index || source_offset != 0U ||
-      existing->source_offset != 0U || runtime_address >= existing->runtime_address || size == 0U) {
+      existing->source_offset != 0U || size == 0U ||
+      (kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY && kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY)) {
     return 0;
   }
+  /* A source-zero policy view can explicitly confirm a later self-copy which
+     overlays an initial loader view.  Both describe valid, distinct temporal
+     states; the normal overlap rule still rejects arbitrary source remaps. */
   existing_start = existing->runtime_address;
   existing_end = existing_start + existing->size;
   new_start = runtime_address;

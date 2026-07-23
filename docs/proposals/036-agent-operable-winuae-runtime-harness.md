@@ -834,6 +834,18 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   the project's existing x64 base-address warning. This is a build probe only;
   it neither launches WinUAE nor proves the required invisible/headless
   contract.
+- Runtime-PC attribution must be a first-class projection of target analysis,
+  not a byte scan over rendered assembly. A Pandora probe proved the wrapper
+  executing at `$00010BC6` from decoded source offset `$00000BC6`; the
+  canonical listing currently maps that source row only through the initial
+  `$00020000` decompression-load view. Adding a confirmed `$00010000`
+  source-zero copy view correctly passed fact seeding after temporal-overlay
+  support was added, but exposed an existing source-render provenance invariant
+  at `$00006138`. The attempted view was removed through the command API so
+  the target remains renderable. Next: preserve source-quality provenance when
+  a confirmed temporal execution view supersedes an initial load view, then
+  make GDB observations resolve to canonical row locators. Do not substitute
+  rendered-source parsing or add joystick injection first.
 
 ## Decision Record
 
