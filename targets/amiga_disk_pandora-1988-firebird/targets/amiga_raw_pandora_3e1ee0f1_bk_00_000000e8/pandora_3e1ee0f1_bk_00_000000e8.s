@@ -324,7 +324,7 @@ abs_0_00010498:
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_BLITTER,dmacon(a5)
 	bsr.w abs_0_000107CC
 	jsr abs_0_00019F26.l
-	lea.l abs_0_000108E4(pc),a0
+	lea.l handle_level_3_interrupts(pc),a0
 	move.l a0,m68k_vector_level_3_interrupt_autovector.w
 	moveq.l #120,d0
 	move.w d0,bpl1mod(a5)
@@ -603,7 +603,7 @@ abs_0_00010886:
 	clr.b ciacra(a0)
 	move.w #$809,$009C(a5)
 	rts
-abs_0_000108E4:
+handle_level_3_interrupts:
 	movem.l d0/a0-a1/a5-a6,-(a7)
 	lea.l absolute_slot_000039FC.l,a6
 	lea.l _custom.l,a5
