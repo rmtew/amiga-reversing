@@ -179,7 +179,7 @@ app_0358 RS.L 1
     RS.B 4
 app_copper_interrupt_callback RS.L 1
 app_vertical_blank_callback RS.L 1
-app_0368 RS.L 1
+app_blitter_interrupt_callback RS.L 1
     RS.B 1154
 app_07EE RS.W 1
     RSSET $0287
@@ -626,7 +626,7 @@ abs_0_00010910:
 abs_0_00010928:
 	btst #6,d0
 	beq.b abs_0_00010940
-	movea.l app_0368(a6),a0
+	movea.l app_blitter_interrupt_callback(a6),a0
 	jsr (a0)
 	move.w #$40,$009C(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
