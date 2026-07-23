@@ -793,6 +793,15 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   Pandora is absent or unreachable. The next investigation should identify the
   command/segment currently associated with `Initial CLI` or establish whether
   the headless profile advances the startup delay at the expected rate.
+- Process inspection now reports a process's `pr_SegList` BPTR, live code
+  address, and a 16-byte prefix. At the twelve-second checkpoint `Initial CLI`
+  pointed to code at `0x00005ed8` with prefix
+  `003fcf86003fd3e8003fe0b500000000`, which does not match the imported
+  Pandora payload prefix `33fc7fff00dff09a33fc7fff00dff096`. Thus Pandora had
+  not been loaded at that checkpoint. A normal visible WinUAE run has since
+  been observed reaching a starfield title state, so the next comparison must
+  use its exact saved machine profile; do not infer that profile merely from
+  an old configuration-list screenshot.
 - The exploratory command is:
 
   ```text

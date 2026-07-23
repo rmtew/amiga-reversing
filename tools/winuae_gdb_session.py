@@ -168,6 +168,19 @@ def locate_library(gdb: MiProcess, ndk: dict[str, object], library_name: str) ->
     raise MiError(f"{library_name} is not present in ExecBase.LibList.")
 
 
+def inspect_process_segment(gdb: MiProcess, ndk: dict[str, object], process_address: int) -> dict[str, object]:
+    seg_list_offset = ndk_field_offset(ndk, "Process", "pr_SegList")
+    seg_list_bptr = int.from_bytes(read_memory(gdb, process_address + seg_list_offset, 4), "big")
+    segment_header = seg_list_bptr << 2
+    code_address = segment_header + 4 if seg_list_bptr else 0
+    code_prefix = read_memory(gdb, code_address, 16).hex() if code_address else None
+    return {
+        "segment_list_bptr": f"0x{seg_list_bptr:08x}",
+        "segment_code_address": f"0x{code_address:08x}" if code_address else None,
+        "segment_code_prefix": code_prefix,
+    }
+
+
 def watch_loadseg(gdb: MiProcess, ndk: dict[str, object], timeout_seconds: int) -> dict[str, object]:
     dos_base = locate_library(gdb, ndk, "dos.library")
     loadseg_lvo = int(ndk["libraries"]["dos.library"]["functions"]["LoadSeg"]["lvo"])
@@ -210,6 +223,8 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
         if name in {"NT_PROCESS", "NT_TASK"}
     }
     current, _ = inspect_node(gdb, task, node_type_offset, node_name_offset, known_types)
+    if current["node_type_name"] == "NT_PROCESS":
+        current["process_segment"] = inspect_process_segment(gdb, ndk, task)
     report: dict[str, object] = {
         "exec_base": f"0x{exec_base:08x}",
         "current_task": current,
@@ -221,6 +236,8 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
         nodes: list[dict[str, object]] = []
         while node_address and node_address != tail_sentinel and len(nodes) < 32:
             node, node_address = inspect_node(gdb, node_address, node_type_offset, node_name_offset, known_types)
+            if node["node_type_name"] == "NT_PROCESS":
+                node["process_segment"] = inspect_process_segment(gdb, ndk, int(node["address"], 0))
             nodes.append(node)
         report[report_name] = nodes
         report[f"{report_name}_truncated"] = bool(node_address and node_address != tail_sentinel)
