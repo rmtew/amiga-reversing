@@ -16,6 +16,8 @@ param(
     [ValidateRange(1, 120)]
     [int]$LoadSegWatchSeconds,
 
+    [string]$TargetPayloadPath,
+
     [ValidateRange(1, 120)]
     [int]$StartupTimeoutSeconds = 45,
 
@@ -30,6 +32,9 @@ if (($ContinueSeconds -or $LoadSegWatchSeconds) -and $GdbCommand.Count) {
 }
 if ($LoadSegWatchSeconds -and -not $ContinueSeconds) {
     throw 'LoadSegWatchSeconds requires ContinueSeconds.'
+}
+if ($TargetPayloadPath -and -not $ContinueSeconds) {
+    throw 'TargetPayloadPath requires ContinueSeconds.'
 }
 
 if ([string]::IsNullOrWhiteSpace($StateDirectory)) {
@@ -81,6 +86,7 @@ $emulator = Get-ToolPath 'ext\tools\winuae\windows-x64\winuae-gdb.exe'
 $gdb = Get-ToolPath 'ext\tools\winuae\windows-x64\m68k-amiga-elf-gdb.exe'
 $resolvedRom = (Resolve-Path -LiteralPath $RomPath).Path
 $resolvedFloppy0 = if ($Floppy0) { (Resolve-Path -LiteralPath $Floppy0).Path } else { $null }
+$resolvedTargetPayload = if ($TargetPayloadPath) { (Resolve-Path -LiteralPath $TargetPayloadPath).Path } else { $null }
 
 if (Get-NetTCPConnection -State Listen -LocalPort 2345 -ErrorAction SilentlyContinue) {
     throw 'TCP port 2345 is already in use; stop the existing WinUAE GDB session first.'
@@ -100,10 +106,11 @@ $emulatorArgs = @(
     '-s', "kickstart_rom_file=$resolvedRom",
     '-s', 'cpu_model=68000',
     '-s', 'cpu_compatible=true',
-    '-s', 'chipset=ecs',
-    '-s', 'chipmem_size=2',
-    '-s', 'bogomem_size=0',
-    '-s', 'fastmem_size=0'
+    '-s', 'chipset=ocs',
+    '-s', 'chipmem_size=1',
+    '-s', 'bogomem_size=2',
+    '-s', 'fastmem_size=0',
+    '-s', 'floppy_speed=800'
 )
 if ($resolvedFloppy0) {
     $emulatorArgs += '-s', "floppy0=$resolvedFloppy0"
@@ -137,6 +144,9 @@ try {
         $gdbArgs = @($sessionScript, '--gdb', $gdb, '--ndk', $ndk, '--continue-seconds', "$ContinueSeconds")
         if ($LoadSegWatchSeconds) {
             $gdbArgs += '--loadseg-watch-seconds', "$LoadSegWatchSeconds"
+        }
+        if ($resolvedTargetPayload) {
+            $gdbArgs += '--target-payload', $resolvedTargetPayload
         }
         $gdbProcess = Start-Process -FilePath $python -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
         $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + $LoadSegWatchSeconds + 15) * 1000
@@ -189,6 +199,7 @@ try {
         status = 'ok'
         state_directory = $resolvedStateDirectory
         floppy0 = $resolvedFloppy0
+        target_payload = $resolvedTargetPayload
         continue_seconds = $ContinueSeconds
         loadseg_watch_seconds = $LoadSegWatchSeconds
         gdb_output = if ($ContinueSeconds) { $null } else { $gdbOutput.Trim() }

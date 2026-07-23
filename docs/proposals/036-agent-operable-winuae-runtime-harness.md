@@ -802,6 +802,22 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   been observed reaching a starfield title state, so the next comparison must
   use its exact saved machine profile; do not infer that profile merely from
   an old configuration-list screenshot.
+- The visible reference run was confirmed as WinUAE's
+  `a500_13_512_512.uae`: OCS, 512K chip RAM, and 512K slow RAM. The headless
+  runner now uses those values rather than its earlier ECS/1MB-chip/no-slow
+  probe profile. Its manually selected maximum floppy slider maps to
+  `floppy_speed=800`, which the headless runner also sets explicitly. The title
+  progression requires mapped joystick input; mouse clicks are not a valid
+  scenario action. Input injection remains a later, explicitly documented
+  capability after this matching cold-boot profile is observed reaching the
+  same state.
+- A payload-identity observation accepts an explicit decoded target artifact,
+  reads 16 bytes at the paused PC, and reports a match only when that sequence
+  has one exact payload offset. With the matched profile at sixty seconds, the
+  live PC was `0x00010c84`; its bytes matched the Pandora decoded payload only
+  at offset `0xC84`, establishing runtime base `0x00010000`. This proves that
+  Pandora code is executing within the `Initial CLI` process. It does not yet
+  identify the starfield checkpoint or inject the required joystick action.
 - The exploratory command is:
 
   ```text

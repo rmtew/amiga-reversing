@@ -29,6 +29,11 @@ supplied GDB commands, and shuts down with GDB's orderly `kill` request. Pass
 `-StateDirectory` only when deliberately retaining runtime state, such as a
 future validated savestate workflow.
 
+Its current fixed machine profile matches the local Pandora reference run:
+A500/Kickstart 1.3, 68000-compatible CPU, OCS, 512K chip RAM, and 512K slow
+RAM. Floppy speed is explicitly set to WinUAE's maximum `800`, matching the
+reference run. ROM and floppy media remain explicit inputs.
+
 ```powershell
 .\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \
   -GdbCommand @('info registers pc sp', 'x/8xb 0xfc0000')
@@ -45,9 +50,9 @@ remains untracked and is never copied into the runtime state directory.
 For the first bounded execution-control probe, use `-ContinueSeconds` instead
 of `-GdbCommand`. It keeps one hidden MI-mode GDB connection open, continues
 for the requested wall-clock interval, interrupts it, records PC/SP, a small
-ROM memory read, and the active Exec task's documented node information, then
-kills the emulator. The JSON result is an observation only; it does not
-establish that a target executable was reached.
+ROM memory read, 16 bytes at the paused PC, and the active Exec task's
+documented node information, then kills the emulator. The JSON result is an
+observation only; it does not establish that a target executable was reached.
 
 ```powershell
 .\tools\run_winuae_headless.ps1 -RomPath C:\path\to\kick34005.a500 \
@@ -59,3 +64,9 @@ It resolves the live `dos.library` base and `LoadSeg` LVO from the parsed NDK,
 then reports a `LoadSeg` breakpoint hit and its filename argument or an
 explicit timeout. It is an OS-loader observation, not a claim that the
 observed program is the target under study.
+
+For byte-backed target identity, pass a decoded target payload with
+`-TargetPayloadPath`. The session compares 16 bytes at the paused PC against
+that explicit artifact and, only for one exact match, reports its payload
+offset and inferred runtime base. A no-match or multiple matches remains an
+observation, not a negative reachability conclusion.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import queue
 import re
@@ -210,6 +211,35 @@ def watch_loadseg(gdb: MiProcess, ndk: dict[str, object], timeout_seconds: int) 
     }
 
 
+def detect_payload_execution(payload_path: Path, pc_address: int, pc_memory: bytes) -> dict[str, object]:
+    payload = payload_path.read_bytes()
+    offsets: list[int] = []
+    start = 0
+    while len(offsets) < 16:
+        offset = payload.find(pc_memory, start)
+        if offset < 0:
+            break
+        offsets.append(offset)
+        start = offset + 1
+    result: dict[str, object] = {
+        "payload_name": payload_path.name,
+        "payload_sha256": hashlib.sha256(payload).hexdigest(),
+        "sample_size": len(pc_memory),
+        "matching_offsets": [f"0x{offset:x}" for offset in offsets],
+    }
+    if len(offsets) == 1:
+        result.update({
+            "status": "pc_matched",
+            "payload_offset": f"0x{offsets[0]:x}",
+            "runtime_base": f"0x{pc_address - offsets[0]:08x}",
+        })
+    elif offsets:
+        result["status"] = "ambiguous"
+    else:
+        result["status"] = "not_matched"
+    return result
+
+
 def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, object]:
     exec_base = exec_base_address(gdb)
     this_task_offset = ndk_field_offset(ndk, "ExecBase", "ThisTask")
@@ -244,7 +274,7 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
     return report
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None) -> dict[str, object]:
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -259,18 +289,25 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
         pc = gdb.command("-data-evaluate-expression $pc")
         sp = gdb.command("-data-evaluate-expression $sp")
         memory = gdb.command("-data-read-memory-bytes 0xfc0000 8")
+        pc_value = mi_value(pc)
+        pc_address = int(pc_value, 0) if pc_value is not None else 0
+        pc_memory_bytes = read_memory(gdb, pc_address, 16) if pc_address else b""
+        pc_memory = pc_memory_bytes.hex() if pc_memory_bytes else None
         current_task = inspect_current_task(gdb, ndk)
         loader_watch = watch_loadseg(gdb, ndk, loadseg_watch_seconds) if loadseg_watch_seconds else None
+        target_detection = detect_payload_execution(target_payload_path, pc_address, pc_memory_bytes) if target_payload_path and pc_memory_bytes else None
         gdb.command('-interpreter-exec console "kill"')
         return {
             "status": "ok",
             "continue_seconds": continue_seconds,
             "stop_reason": mi_stop_reason(stop),
-            "pc": mi_value(pc),
+            "pc": pc_value,
             "sp": mi_value(sp),
+            "memory_pc": pc_memory,
             "memory_0xfc0000": mi_memory_bytes(memory),
             "current_task": current_task,
             "loadseg_watch": loader_watch,
+            "target_detection": target_detection,
         }
     finally:
         gdb.close()
@@ -282,13 +319,14 @@ def main() -> int:
     parser.add_argument("--ndk", required=True, type=Path)
     parser.add_argument("--continue-seconds", required=True, type=int)
     parser.add_argument("--loadseg-watch-seconds", type=int)
+    parser.add_argument("--target-payload", type=Path)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
         parser.error("--continue-seconds must be between 1 and 120")
     if args.loadseg_watch_seconds is not None and not 1 <= args.loadseg_watch_seconds <= 120:
         parser.error("--loadseg-watch-seconds must be between 1 and 120")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1
