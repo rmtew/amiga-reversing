@@ -883,6 +883,13 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   row, otherwise requires a uniquely matched live payload checkpoint, and
   reports the requested row plus the observed breakpoint result. The same
   Pandora run verified `s0:00000BA8:instruction:755` at `$00010BA8`.
+- A breakpoint result also records the paused 68K stack return address. This
+  turned the first reachability probe into a control-flow result: title-state
+  execution reached `s0:00000E14:instruction:967`, returning to `$00010904`.
+  Static inspection identifies the preceding `$00010902` instruction as
+  `jsr (app_0360)`, after the Copper interrupt bit is tested. That evidence
+  supports the rendered label `handle_copper_interrupt_palette_effect`; it
+  does not itself make the generic app slot name authoritative.
 
 ## Decision Record
 

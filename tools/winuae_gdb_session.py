@@ -316,12 +316,30 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
         if breakpoint_address is not None:
             gdb.command(f"-break-insert *0x{breakpoint_address:x}")
             gdb.command("-exec-continue")
-            breakpoint_stop = gdb.wait_for_stop(breakpoint_wait_seconds)
+            breakpoint_status = "hit"
+            try:
+                breakpoint_stop = gdb.wait_for_stop(breakpoint_wait_seconds)
+            except MiTimeout:
+                gdb.command("-exec-interrupt")
+                breakpoint_stop = gdb.wait_for_stop()
+                breakpoint_status = "timeout"
             breakpoint_pc = gdb.command("-data-evaluate-expression $pc")
+            breakpoint_sp = gdb.command("-data-evaluate-expression $sp")
+            breakpoint_sp_value = mi_value(breakpoint_sp)
+            breakpoint_sp_address = int(breakpoint_sp_value, 0) if breakpoint_sp_value is not None else 0
+            breakpoint_return_address = None
+            if breakpoint_sp_address:
+                try:
+                    breakpoint_return_address = f"0x{int.from_bytes(read_memory(gdb, breakpoint_sp_address, 4), 'big'):08x}"
+                except MiError:
+                    pass
             breakpoint = {
                 "address": f"0x{breakpoint_address:08x}",
+                "status": breakpoint_status,
                 "stop_reason": mi_stop_reason(breakpoint_stop),
                 "pc": mi_value(breakpoint_pc),
+                "sp": breakpoint_sp_value,
+                "stack_return_address": breakpoint_return_address,
             }
         gdb.command('-interpreter-exec console "kill"')
         return {

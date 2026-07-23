@@ -119,7 +119,7 @@ def resolve_breakpoint_hit(row: dict[str, object], runner_report: dict[str, obje
         expected_address = runtime_base + source_offset if isinstance(runtime_base, int) and isinstance(source_offset, int) else None
     hit_pc = _as_int(breakpoint_record.get("pc"))
     return {
-        "status": "hit" if expected_address is not None and hit_pc == expected_address and breakpoint_record.get("stop_reason") == "breakpoint-hit" else "not_hit",
+        "status": "hit" if expected_address is not None and hit_pc == expected_address and breakpoint_record.get("status") == "hit" and breakpoint_record.get("stop_reason") == "breakpoint-hit" else "not_hit",
         "requested_row": {
             "stable_key": row["stable_key"],
             "section_index": row["section_index"],

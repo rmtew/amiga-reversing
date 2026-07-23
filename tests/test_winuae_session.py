@@ -48,7 +48,7 @@ def test_resolve_breakpoint_hit_requires_the_expected_runtime_pc() -> None:
     report = {
         "observation": {
             "active_execution": {"payload": {"runtime_base": "0x10000"}},
-            "breakpoint": {"stop_reason": "breakpoint-hit", "pc": "0x10ba8"},
+            "breakpoint": {"status": "hit", "stop_reason": "breakpoint-hit", "pc": "0x10ba8"},
         }
     }
 
