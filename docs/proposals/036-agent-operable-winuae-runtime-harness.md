@@ -877,6 +877,12 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   each Kickstart instruction and makes boot impractically slow. The harness
   therefore follows the extension's operational model: reach a known target
   checkpoint first, then arm bounded code breakpoints.
+- The public `amiga_reversing.tools.winuae_session` wrapper accepts a canonical
+  `--breakpoint-stable-key`, never a raw GDB address. It validates the current
+  listing row, uses a reviewed runtime-observation view when one covers that
+  row, otherwise requires a uniquely matched live payload checkpoint, and
+  reports the requested row plus the observed breakpoint result. The same
+  Pandora run verified `s0:00000BA8:instruction:755` at `$00010BA8`.
 
 ## Decision Record
 

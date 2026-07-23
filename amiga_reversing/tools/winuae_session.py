@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -31,6 +32,8 @@ class HeadlessWinUaeSession:
     floppy0: Path | None = None
     state_directory: Path | None = None
     continue_seconds: int = 60
+    breakpoint_source_offset: int | None = None
+    breakpoint_runtime_address: int | None = None
 
     def command(self) -> list[str]:
         command = [
@@ -52,6 +55,10 @@ class HeadlessWinUaeSession:
             command.extend(("-Floppy0", str(self.floppy0)))
         if self.state_directory is not None:
             command.extend(("-StateDirectory", str(self.state_directory)))
+        if self.breakpoint_runtime_address is not None:
+            command.extend(("-BreakpointAddress", f"0x{self.breakpoint_runtime_address:x}"))
+        elif self.breakpoint_source_offset is not None:
+            command.extend(("-BreakpointSourceOffset", f"0x{self.breakpoint_source_offset:x}"))
         return command
 
 
@@ -68,6 +75,61 @@ def _as_int(value: object) -> int | None:
         return None
 
 
+def resolve_breakpoint_stable_key(target_id: str, stable_key: str) -> dict[str, object]:
+    """Resolve and validate one canonical listing row for a runtime breakpoint."""
+
+    match = re.fullmatch(r"s(?P<section>\d+):(?P<offset>[0-9A-Fa-f]{8}):.+", stable_key)
+    if match is None:
+        raise ValueError("Breakpoint stable key must use the canonical s<section>:<offset>:... form.")
+    section_index = int(match.group("section"))
+    source_offset = int(match.group("offset"), 16)
+    _, _, artifact = build_project_listing_artifact_profile(target_id)
+    try:
+        row = artifact.row_for_source_offset(section_index=section_index, offset=source_offset)
+        observation_views = getattr(artifact, "_runtime_observation_views", ())
+    finally:
+        artifact.close()
+    if row is None or row.get("stable_key") != stable_key:
+        raise ValueError(f"Breakpoint stable key is not a current canonical row: {stable_key}")
+    for view in observation_views:
+        base_addr = view.get("base_addr") if isinstance(view, dict) else None
+        source_start = view.get("source_start") if isinstance(view, dict) else None
+        source_end = view.get("source_end") if isinstance(view, dict) else None
+        if not all(isinstance(value, int) for value in (base_addr, source_start, source_end)):
+            continue
+        if source_start <= source_offset < source_end:
+            row["runtime_observation_view"] = dict(view)
+            row["runtime_breakpoint_address"] = base_addr + source_offset - source_start
+            break
+    return row
+
+
+def resolve_breakpoint_hit(row: dict[str, object], runner_report: dict[str, object]) -> dict[str, object]:
+    """Bind one temporary runtime breakpoint result back to its canonical row."""
+
+    observation = runner_report.get("observation")
+    breakpoint = observation.get("breakpoint") if isinstance(observation, dict) else None
+    breakpoint_record = breakpoint if isinstance(breakpoint, dict) else {}
+    active_execution = observation.get("active_execution") if isinstance(observation, dict) else None
+    payload = active_execution.get("payload") if isinstance(active_execution, dict) else None
+    runtime_base = _as_int(payload.get("runtime_base")) if isinstance(payload, dict) else None
+    source_offset = row.get("start_offset")
+    expected_address = row.get("runtime_breakpoint_address")
+    if not isinstance(expected_address, int):
+        expected_address = runtime_base + source_offset if isinstance(runtime_base, int) and isinstance(source_offset, int) else None
+    hit_pc = _as_int(breakpoint_record.get("pc"))
+    return {
+        "status": "hit" if expected_address is not None and hit_pc == expected_address and breakpoint_record.get("stop_reason") == "breakpoint-hit" else "not_hit",
+        "requested_row": {
+            "stable_key": row["stable_key"],
+            "section_index": row["section_index"],
+            "source_offset": source_offset,
+            "kind": row["kind"],
+            "text": row["text"].strip(),
+        },
+        "expected_runtime_address": f"0x{expected_address:08x}" if expected_address is not None else None,
+        "observation": breakpoint_record or None,
+    }
 def resolve_paused_pc(target_id: str, runner_report: dict[str, object]) -> dict[str, object]:
     """Resolve a runner JSON observation to a canonical listing row.
 
@@ -171,6 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--continue-seconds", type=int, default=60, choices=range(1, 121))
     parser.add_argument("--state-directory", type=Path)
     parser.add_argument("--runner", type=Path, default=DEFAULT_HEADLESS_RUNNER)
+    parser.add_argument("--breakpoint-stable-key")
     parser.add_argument("--run", action="store_true", help="run the bounded session; otherwise print the launch plan")
     return parser
 
@@ -178,6 +241,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     paths = resolve_project_paths(args.target)
+    breakpoint_row = resolve_breakpoint_stable_key(args.target, args.breakpoint_stable_key) if args.breakpoint_stable_key else None
     session = HeadlessWinUaeSession(
         rom_path=args.rom,
         floppy0=args.floppy0,
@@ -185,12 +249,17 @@ def main(argv: list[str] | None = None) -> int:
         runner_path=args.runner,
         state_directory=args.state_directory,
         continue_seconds=args.continue_seconds,
+        breakpoint_source_offset=breakpoint_row["start_offset"] if breakpoint_row is not None and "runtime_breakpoint_address" not in breakpoint_row else None,
+        breakpoint_runtime_address=breakpoint_row.get("runtime_breakpoint_address") if breakpoint_row is not None else None,
     )
     if not args.run:
-        print(json.dumps({"status": "planned", "target_id": args.target, "command": session.command()}, indent=2))
+        print(json.dumps({"status": "planned", "target_id": args.target, "breakpoint_stable_key": args.breakpoint_stable_key, "command": session.command()}, indent=2))
         return 0
     report = run_session(session)
-    print(json.dumps({"runner": report, "pc_resolution": resolve_paused_pc(args.target, report)}, indent=2))
+    result = {"runner": report, "pc_resolution": resolve_paused_pc(args.target, report)}
+    if breakpoint_row is not None:
+        result["breakpoint"] = resolve_breakpoint_hit(breakpoint_row, report)
+    print(json.dumps(result, indent=2))
     return 0
 
 

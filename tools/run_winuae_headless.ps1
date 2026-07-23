@@ -20,6 +20,8 @@ param(
 
     [string]$BreakpointAddress,
 
+    [string]$BreakpointSourceOffset,
+
     [ValidateRange(1, 120)]
     [int]$BreakpointWaitSeconds = 60,
 
@@ -43,6 +45,12 @@ if ($TargetPayloadPath -and -not $ContinueSeconds) {
 }
 if ($BreakpointAddress -and -not $ContinueSeconds) {
     throw 'BreakpointAddress requires ContinueSeconds.'
+}
+if ($BreakpointSourceOffset -and -not $ContinueSeconds) {
+    throw 'BreakpointSourceOffset requires ContinueSeconds.'
+}
+if ($BreakpointAddress -and $BreakpointSourceOffset) {
+    throw 'Specify either BreakpointAddress or BreakpointSourceOffset, not both.'
 }
 
 if ([string]::IsNullOrWhiteSpace($StateDirectory)) {
@@ -159,8 +167,11 @@ try {
         if ($BreakpointAddress) {
             $gdbArgs += '--breakpoint-address', $BreakpointAddress, '--breakpoint-wait-seconds', "$BreakpointWaitSeconds"
         }
+        if ($BreakpointSourceOffset) {
+            $gdbArgs += '--breakpoint-source-offset', $BreakpointSourceOffset, '--breakpoint-wait-seconds', "$BreakpointWaitSeconds"
+        }
         $gdbProcess = Start-Process -FilePath $python -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
-        $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + $LoadSegWatchSeconds + $(if ($BreakpointAddress) { $BreakpointWaitSeconds } else { 0 }) + 15) * 1000
+        $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + $LoadSegWatchSeconds + $(if ($BreakpointAddress -or $BreakpointSourceOffset) { $BreakpointWaitSeconds } else { 0 }) + 15) * 1000
     }
     else {
         $gdbArgs = @('-q', '-batch', '-ex', 'set pagination off', '-ex', 'target remote 127.0.0.1:2345')

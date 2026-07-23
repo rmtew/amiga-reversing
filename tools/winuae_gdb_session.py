@@ -274,7 +274,7 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
     return report
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_wait_seconds: int) -> dict[str, object]:
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -304,6 +304,15 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "payload": target_detection,
         }
         breakpoint = None
+        if breakpoint_address is not None and breakpoint_source_offset is not None:
+            raise MiError("Specify either a breakpoint address or a source offset, not both.")
+        if breakpoint_source_offset is not None:
+            if not target_detection or target_detection.get("status") != "pc_matched":
+                raise MiError("A source-offset breakpoint requires a uniquely matched target payload checkpoint.")
+            runtime_base = target_detection.get("runtime_base")
+            if not isinstance(runtime_base, str):
+                raise MiError("Target payload checkpoint has no runtime base.")
+            breakpoint_address = int(runtime_base, 0) + breakpoint_source_offset
         if breakpoint_address is not None:
             gdb.command(f"-break-insert *0x{breakpoint_address:x}")
             gdb.command("-exec-continue")
@@ -340,6 +349,7 @@ def main() -> int:
     parser.add_argument("--loadseg-watch-seconds", type=int)
     parser.add_argument("--target-payload", type=Path)
     parser.add_argument("--breakpoint-address", type=lambda value: int(value, 0))
+    parser.add_argument("--breakpoint-source-offset", type=lambda value: int(value, 0))
     parser.add_argument("--breakpoint-wait-seconds", type=int, default=60)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
@@ -349,7 +359,7 @@ def main() -> int:
     if not 1 <= args.breakpoint_wait_seconds <= 120:
         parser.error("--breakpoint-wait-seconds must be between 1 and 120")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_wait_seconds)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1
