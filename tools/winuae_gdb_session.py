@@ -257,7 +257,7 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
         current["process_segment"] = inspect_process_segment(gdb, ndk, task)
     report: dict[str, object] = {
         "exec_base": f"0x{exec_base:08x}",
-        "current_task": current,
+        "active_task": current,
     }
     for report_name, field_name in (("ready_tasks", "TaskReady"), ("waiting_tasks", "TaskWait")):
         list_address = exec_base + ndk_field_offset(ndk, "ExecBase", field_name)
@@ -293,9 +293,16 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
         pc_address = int(pc_value, 0) if pc_value is not None else 0
         pc_memory_bytes = read_memory(gdb, pc_address, 16) if pc_address else b""
         pc_memory = pc_memory_bytes.hex() if pc_memory_bytes else None
-        current_task = inspect_current_task(gdb, ndk)
+        exec_state = inspect_current_task(gdb, ndk)
         loader_watch = watch_loadseg(gdb, ndk, loadseg_watch_seconds) if loadseg_watch_seconds else None
         target_detection = detect_payload_execution(target_payload_path, pc_address, pc_memory_bytes) if target_payload_path and pc_memory_bytes else None
+        active_task = exec_state["active_task"]
+        active_process = active_task if active_task["node_type_name"] == "NT_PROCESS" else None
+        active_execution = {
+            "status": "target_payload_executing" if target_detection and target_detection["status"] == "pc_matched" else "unclassified",
+            "process": active_process,
+            "payload": target_detection,
+        }
         gdb.command('-interpreter-exec console "kill"')
         return {
             "status": "ok",
@@ -305,9 +312,9 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "sp": mi_value(sp),
             "memory_pc": pc_memory,
             "memory_0xfc0000": mi_memory_bytes(memory),
-            "current_task": current_task,
+            "exec_state": exec_state,
+            "active_execution": active_execution,
             "loadseg_watch": loader_watch,
-            "target_detection": target_detection,
         }
     finally:
         gdb.close()

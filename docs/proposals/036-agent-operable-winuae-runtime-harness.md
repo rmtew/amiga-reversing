@@ -816,8 +816,11 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   has one exact payload offset. With the matched profile at sixty seconds, the
   live PC was `0x00010c84`; its bytes matched the Pandora decoded payload only
   at offset `0xC84`, establishing runtime base `0x00010000`. This proves that
-  Pandora code is executing within the `Initial CLI` process. It does not yet
-  identify the starfield checkpoint or inject the required joystick action.
+  Pandora code is executing within the `Initial CLI` process. Runtime reports
+  therefore distinguish Exec's `active_task`/`active_process` from
+  `active_execution.payload`; a process name alone is not a program identity.
+  It does not yet identify the starfield checkpoint or inject the required
+  joystick action.
 - The exploratory command is:
 
   ```text
