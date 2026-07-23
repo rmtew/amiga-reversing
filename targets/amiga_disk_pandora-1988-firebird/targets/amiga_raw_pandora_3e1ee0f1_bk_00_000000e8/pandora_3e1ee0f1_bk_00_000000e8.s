@@ -178,7 +178,7 @@ app_0356 RS.W 1
 app_0358 RS.L 1
     RS.B 4
 app_copper_interrupt_callback RS.L 1
-app_0364 RS.L 1
+app_vertical_blank_callback RS.L 1
 app_0368 RS.L 1
     RS.B 1154
 app_07EE RS.W 1
@@ -314,7 +314,7 @@ abs_0_00010498:
 	move.w d0,dmacon(a5)
 	move.w d0,intena(a5)
 	move.w d0,intreq(a5)
-	move.l a0,app_0364(a6)
+	move.l a0,app_vertical_blank_callback(a6)
 	move.l a0,$0190(a6)
 	lea.l abs_0_00010452(pc),a7
 	moveq.l #-1,d0
@@ -340,7 +340,7 @@ abs_0_00010498:
 	bsr.w abs_0_00010F88
 	move.w #DMAF_RASTER,dmacon(a5)
 	lea.l abs_0_0001094E(pc),a0
-	move.l a0,app_0364(a6)
+	move.l a0,app_vertical_blank_callback(a6)
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l abs_0_000109EA(pc),a0
@@ -618,7 +618,7 @@ handle_level_3_interrupts:
 abs_0_00010910:
 	btst #5,d0
 	beq.b abs_0_00010928
-	movea.l app_0364(a6),a0
+	movea.l app_vertical_blank_callback(a6),a0
 	jsr (a0)
 	move.w #$20,$009C(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
@@ -1073,7 +1073,7 @@ abs_0_00010F88:
 	lea.l copper_list_00020ED8(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_00010F54(pc),a0
-	move.l a0,app_0364(a6)
+	move.l a0,app_vertical_blank_callback(a6)
 	move.l app_frame_counter(a6),d5
 	addi.l #150,d5
 	move.w #INTF_SETCLR|INTF_INTEN,intena(a5)
