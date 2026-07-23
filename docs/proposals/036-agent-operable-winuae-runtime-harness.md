@@ -865,6 +865,17 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   commands and does not append target facts. This is the minimal agent-facing
   observation contract; selected evidence remains a reviewed Manual Action Log
   decision.
+- Code breakpoints are not yet a usable checkpoint primitive in this WinUAE
+  GDB transport. On the matched Pandora profile, GDB accepted a breakpoint at
+  runtime `$00010BA8`; after verifying that the target bytes were resident at
+  that address, execution nevertheless advanced through `$00010BB8` without a
+  breakpoint stop. This rules out the earlier "breakpoint was overwritten by
+  load" explanation but does not establish a general emulator defect. The
+  experimental surface was removed rather than exposing a false capability.
+  Current supported operations remain bounded continue/pause, register and
+  memory reads, process inspection, and payload-PC attribution. A future
+  breakpoint investigation must first isolate the remote-protocol behavior
+  with a minimal fixture before adding it back to the agent interface.
 
 ## Decision Record
 
