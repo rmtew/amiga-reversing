@@ -1,0 +1,4 @@
+interface:
+  display_name: "Headless Amiga Runtime"
+  short_description: "Operate and improve headless Amiga runtime"
+  default_prompt: "Use $headless-amiga-runtime to investigate this Amiga runtime behavior headlessly."
