@@ -89,7 +89,7 @@ app_021A RS.W 1
     RS.B 6
 app_0222 RS.B 1
     RS.B 1
-app_0224 RS.W 1
+app_scrolling_message_timer RS.W 1
 app_0226 RS.W 1
 app_0228 RS.W 1
 app_022A RS.W 1
@@ -98,11 +98,11 @@ app_022D RS.B 1
 app_022E RS.B 1
 app_022F RS.B 1
 app_0230 RS.W 1
-app_0232 RS.L 1
+app_scrolling_message_queue_head RS.L 1
     RS.B 60
 app_0272 RS.L 1
-app_0276 RS.L 1
-app_027A RS.B 1
+app_scrolling_message_queue_tail RS.L 1
+app_message_palette_flash_countdown RS.B 1
 app_027B RS.B 1
 app_current_palette RS.L 1
 app_0280 RS.L 1
@@ -409,8 +409,8 @@ abs_0_000105C2:
 	andi.b #127,d0
 	bne.b abs_0_0001066C
 	lea.l abs_0_0005CABC.l,a0
-	bsr.w abs_0_00012BC8
-	bsr.w abs_0_00012BC4
+	bsr.w enqueue_scrolling_message
+	bsr.w enqueue_blank_scrolling_message
 	move.w #$310,d0
 	jsr abs_0_0005D330.l
 abs_0_0001066C:
@@ -669,7 +669,7 @@ handle_vertical_blank_frame_update:
 	move.l app_0210(a6),$0124(a5)
 	btst.b #7,app_022E(a6)
 	bne.b abs_0_000109CC
-	bsr.w abs_0_00012C24
+	bsr.w update_scrolling_message_ticker
 abs_0_000109CC:
 	movem.l d2-d7/a3-a6,-(a7)
 	jsr update_audio_channels.l
@@ -2050,7 +2050,7 @@ abs_0_0001283E:
 	movem.l (a7)+,d0/d7/a0-a2
 	rts
 abs_0_00012878:
-	clr.w app_0224(a6)
+	clr.w app_scrolling_message_timer(a6)
 	clr.w app_0226(a6)
 	clr.w app_0228(a6)
 	clr.w app_022A(a6)
@@ -2250,16 +2250,16 @@ abs_0_00012AE8:
 	bsr.w abs_0_00015FFE
 	movem.l (a7)+,d0/a0
 	beq.b abs_0_00012B34
-	tst.w app_0224(a6)
+	tst.w app_scrolling_message_timer(a6)
 	bne.b abs_0_00012B32
-	move.w #$46,app_0224(a6)
+	move.w #$46,app_scrolling_message_timer(a6)
 	moveq.l #0,d0
 	move.b $0046(a4),d0
 	bsr.w abs_0_00012B7E
-	bsr.w abs_0_00012BC8
+	bsr.w enqueue_scrolling_message
 	lea.l abs_0_00012B5E(pc),a0
-	bsr.w abs_0_00012BC8
-	bsr.w abs_0_00012BC4
+	bsr.w enqueue_scrolling_message
+	bsr.w enqueue_blank_scrolling_message
 	move.w #$216,d0
 	jsr abs_0_0005D330.l
 abs_0_00012B32:
@@ -2290,25 +2290,25 @@ abs_0_00012B7E:
 abs_0_00012B9A:
 	dcb.b $29,$20
 	dc.b $00
-abs_0_00012BC4:
+enqueue_blank_scrolling_message:
 	lea.l abs_0_00012B9A(pc),a0
-abs_0_00012BC8:
+enqueue_scrolling_message:
 	move #$2700,sr
 	btst.b #5,app_02A6(a6)
 	bne.b abs_0_00012C00
 	move.l a0,d0
 	tst.l d0
 	beq.b abs_0_00012C00
-	movea.l app_0276(a6),a1
+	movea.l app_scrolling_message_queue_tail(a6),a1
 	lea.l app_0272(a6),a2
 	cmpa.l a2,a1
 	bcc.b abs_0_00012C00
 	move.l a0,(a1)+
-	move.l a1,app_0276(a6)
+	move.l a1,app_scrolling_message_queue_tail(a6)
 	clr.l (a1)
 	bset.b #6,app_022E(a6)
 	bne.b abs_0_00012BFC
-	move.b #$14,app_027A(a6)
+	move.b #$14,app_message_palette_flash_countdown(a6)
 abs_0_00012BFC:
 	move.w d0,d0
 	bra.b abs_0_00012C04
@@ -2317,22 +2317,22 @@ abs_0_00012C00:
 abs_0_00012C04:
 	move #$2000,sr
 	rts
-abs_0_00012C0A:
-	lea.l app_0232(a6),a0
+dequeue_scrolling_message:
+	lea.l app_scrolling_message_queue_head(a6),a0
 	lea.l app_0272(a6),a1
 abs_0_00012C12:
 	move.l $0004(a0),(a0)+
 	cmpa.l a1,a0
 	bne.b abs_0_00012C12
-	subq.l #4,app_0276(a6)
-	tst.l app_0232(a6)
+	subq.l #4,app_scrolling_message_queue_tail(a6)
+	tst.l app_scrolling_message_queue_head(a6)
 	rts
-abs_0_00012C24:
-	tst.w app_0224(a6)
+update_scrolling_message_ticker:
+	tst.w app_scrolling_message_timer(a6)
 	beq.b abs_0_00012C2E
-	subq.w #1,app_0224(a6)
+	subq.w #1,app_scrolling_message_timer(a6)
 abs_0_00012C2E:
-	move.b app_027A(a6),d0
+	move.b app_message_palette_flash_countdown(a6),d0
 	tst.b d0
 	beq.b abs_0_00012C50
 	move.w #$FFF,d1
@@ -2343,15 +2343,15 @@ abs_0_00012C2E:
 	move.w #$F55,d1
 abs_0_00012C48:
 	move.w d1,app_0230(a6)
-	move.b d0,app_027A(a6)
+	move.b d0,app_message_palette_flash_countdown(a6)
 abs_0_00012C50:
 	btst.b #6,app_022E(a6)
 	beq.w abs_0_00012CAE
-	bsr.w abs_0_00012CBA
-	movea.l app_0232(a6),a0
+	bsr.w scroll_message_ticker_left
+	movea.l app_scrolling_message_queue_head(a6),a0
 	moveq.l #0,d0
 	move.b (a0)+,d0
-	move.l a0,app_0232(a6)
+	move.l a0,app_scrolling_message_queue_head(a6)
 	cmp.b #$61,d0
 	bcs.b abs_0_00012C74
 	bclr #5,d0
@@ -2374,14 +2374,14 @@ abs_0_00012CA4:
 	move.w d0,d0
 	bra.b abs_0_00012CB8
 abs_0_00012CA8:
-	bsr.w abs_0_00012C0A
+	bsr.w dequeue_scrolling_message
 	bne.b abs_0_00012CA4
 abs_0_00012CAE:
 	bclr.b #6,app_022E(a6)
 	move #$1,ccr
 abs_0_00012CB8:
 	rts
-abs_0_00012CBA:
+scroll_message_ticker_left:
 	movea.l #$778A0,a0
 	movea.l a0,a1
 	addq.l #1,a1
@@ -5835,8 +5835,8 @@ abs_0_000180B8:
 	beq.b abs_0_000180F6
 	move.l a0,-(a7)
 	lea.l abs_0_00018162(pc),a0
-	bsr.w abs_0_00012BC8
-	bsr.w abs_0_00012BC4
+	bsr.w enqueue_scrolling_message
+	bsr.w enqueue_blank_scrolling_message
 	movea.l (a7)+,a0
 	bra.w abs_0_00017F02
 abs_0_000180F6:
@@ -6544,8 +6544,8 @@ abs_0_000189DA:
 	addq.b #1,app_02D9(a6)
 abs_0_000189FA:
 	lea.l abs_0_0001A7C0.l,a0
-	bsr.w abs_0_00012BC8
-	bsr.w abs_0_00012BC4
+	bsr.w enqueue_scrolling_message
+	bsr.w enqueue_blank_scrolling_message
 	bsr.w abs_0_000129BC
 	move.w #$106,d0
 	jsr abs_0_0005D330.l
@@ -6859,8 +6859,8 @@ abs_0_0001942E:
 	btst.b #4,$0019(a2)
 	beq.b abs_0_0001944A
 	lea.l abs_0_0001944C(pc),a0
-	bsr.w abs_0_00012BC8
-	bsr.w abs_0_00012BC4
+	bsr.w enqueue_scrolling_message
+	bsr.w enqueue_blank_scrolling_message
 abs_0_0001944A:
 	rts
 abs_0_0001944C:
@@ -7061,8 +7061,8 @@ abs_0_000199D8:
 abs_0_000199DE:
 	bclr.b #6,app_022E(a6)
 	beq.b abs_0_000199F2
-	lea.l app_0232(a6),a1
-	move.l a1,app_0276(a6)
+	lea.l app_scrolling_message_queue_head(a6),a1
+	move.l a1,app_scrolling_message_queue_tail(a6)
 	bsr.w abs_0_00019AB2
 abs_0_000199F2:
 	bsr.b abs_0_000199AC
@@ -7072,12 +7072,12 @@ abs_0_000199F2:
 	add.w d0,d0
 	add.w a2,d0
 	move.w d0,app_0324(a6)
-	movea.l app_0276(a6),a1
+	movea.l app_scrolling_message_queue_tail(a6),a1
 	lea.l app_0272(a6),a2
 	cmpa.l a2,a1
 	bcc.b abs_0_00019A28
 	move.l a0,(a1)+
-	move.l a1,app_0276(a6)
+	move.l a1,app_scrolling_message_queue_tail(a6)
 	clr.l (a1)
 	bset.b #5,app_02A6(a6)
 	bne.b abs_0_00019A24
@@ -7091,14 +7091,14 @@ abs_0_00019A28:
 abs_0_00019A2C:
 	rts
 abs_0_00019A2E:
-	lea.l app_0232(a6),a0
+	lea.l app_scrolling_message_queue_head(a6),a0
 	lea.l app_0272(a6),a1
 abs_0_00019A36:
 	move.l $0004(a0),(a0)+
 	cmpa.l a1,a0
 	bne.b abs_0_00019A36
-	subq.l #4,app_0276(a6)
-	tst.l app_0232(a6)
+	subq.l #4,app_scrolling_message_queue_tail(a6)
+	tst.l app_scrolling_message_queue_head(a6)
 	rts
 abs_0_00019A48:
 	movem.l d0-d1/a0-a3,-(a7)
@@ -7109,7 +7109,7 @@ abs_0_00019A48:
 	bsr.b abs_0_00019A2E
 	beq.b abs_0_00019A82
 	bsr.w abs_0_00019AB2
-	movea.l app_0232(a6),a0
+	movea.l app_scrolling_message_queue_head(a6),a0
 	bsr.w abs_0_000199AC
 	add.w d0,d0
 	movea.w d0,a2
@@ -7331,9 +7331,9 @@ abs_0_0001A056:
 	clr.b app_033C(a6)
 	clr.b app_033D(a6)
 	clr.b app_033E(a6)
-	lea.l app_0232(a6),a0
-	move.l a0,app_0276(a6)
-	clr.l app_0232(a6)
+	lea.l app_scrolling_message_queue_head(a6),a0
+	move.l a0,app_scrolling_message_queue_tail(a6)
+	clr.l app_scrolling_message_queue_head(a6)
 	clr.b app_0284(a6)
 	move.w #$9999,app_0286(a6)
 	move.b #$1,app_0288(a6)
