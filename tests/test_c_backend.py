@@ -7494,6 +7494,41 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
     assert "loc_0_00000010:" not in source
 
 
+def test_listing_artifact_runtime_observation_view_maps_pc_without_source_view(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(binary_path, "amiga-raw", 0),
+        metadata_text="",
+        runtime_observation_views=(
+            {
+                "execution_view_id": "observed-stage",
+                "source_start": 0,
+                "source_end": 2,
+                "base_addr": 0x10000,
+                "name": "observed stage",
+            },
+        ),
+        include_dir="",
+        project_root=PROJECT_ROOT,
+    )
+    try:
+        row = artifact.row_for_runtime_address(address=0x10000)
+    finally:
+        artifact.close()
+    assert row is not None
+    assert row["stable_key"] == "s0:00000000:instruction:0"
+    assert row["runtime_address"] == 0x10000
+    assert row["runtime_observation_view"] == {
+        "execution_view_id": "observed-stage",
+        "source_start": 0,
+        "source_end": 2,
+        "base_addr": 0x10000,
+        "name": "observed stage",
+    }
+
+
 def test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org() -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths(

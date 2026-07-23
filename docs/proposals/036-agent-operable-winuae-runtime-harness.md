@@ -841,11 +841,18 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   `$00020000` decompression-load view. Adding a confirmed `$00010000`
   source-zero copy view correctly passed fact seeding after temporal-overlay
   support was added, but exposed an existing source-render provenance invariant
-  at `$00006138`. The attempted view was removed through the command API so
-  the target remains renderable. Next: preserve source-quality provenance when
-  a confirmed temporal execution view supersedes an initial load view, then
-  make GDB observations resolve to canonical row locators. Do not substitute
-  rendered-source parsing or add joystick injection first.
+  at `$00006138`. The attempted source-rendering view was removed through the
+  command API so the target remains renderable. Instead, the manual-action
+  model now has a separate runtime-observation view: it is persisted with its
+  debugger evidence, emitted only for the listing artifact, and is never
+  supplied to C source rendering. The corrected Pandora observation maps
+  runtime PC `$00010BC6` to canonical row
+  `s0:00000BC6:instruction:766` while retaining the initial `$00020000`
+  rendering view. This is the right boundary for debugger attribution. A
+  future confirmed copy that must change rendered source still needs explicit
+  temporal source-provenance support; do not promote a debugger observation
+  automatically. Do not substitute rendered-source parsing or add joystick
+  injection first.
 
 ## Decision Record
 

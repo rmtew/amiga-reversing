@@ -111,6 +111,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_action(),
         _target_execution_view_edit_action(),
         _target_execution_view_remove_action(),
+        _target_runtime_observation_view_action(),
+        _target_runtime_observation_view_remove_action(),
         _target_custom_struct_action(),
         _target_custom_struct_edit_action(),
         _target_custom_struct_rename_action(),
@@ -151,6 +153,10 @@ def target_catalog_manual_payload(
         return "create_manual_execution_view", {"execution_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_execution_view":
         return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_runtime_observation_view":
+        return "create_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_payload(params)}
+    if action.get("action") == "remove_manual_runtime_observation_view":
+        return "remove_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_identity_payload(params)}
     if action.get("action") == "create_manual_target_equate":
         return "create_manual_target_equate", {"target_equate": _target_equate_payload(params)}
     if action.get("action") == "rename_manual_target_equate":
@@ -5263,6 +5269,24 @@ def _target_execution_view_remove_action() -> dict[str, object]:
         "target.execution_view.remove",
         "Remove execution view",
         "remove_manual_execution_view",
+        _execution_view_identity_parameter_schema(),
+    )
+
+
+def _target_runtime_observation_view_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.runtime_observation_view.add",
+        "Add runtime observation view",
+        "create_manual_runtime_observation_view",
+        _execution_view_parameter_schema(),
+    )
+
+
+def _target_runtime_observation_view_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.runtime_observation_view.remove",
+        "Remove runtime observation view",
+        "remove_manual_runtime_observation_view",
         _execution_view_identity_parameter_schema(),
     )
 

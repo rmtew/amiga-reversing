@@ -2215,6 +2215,12 @@ def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool 
     if metadata is None:
         return ""
     payload = target_metadata_json_payload(metadata)
+    projection = load_manual_projection(
+        target_dir,
+        binary_source=resolve_target_binary_source(target_dir),
+    )
+    if projection.runtime_observation_views:
+        payload["runtime_observation_views"] = [dict(view) for view in projection.runtime_observation_views]
     _add_source_context(target_dir, payload)
     _add_source_descriptor_execution_view(target_dir, payload)
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"

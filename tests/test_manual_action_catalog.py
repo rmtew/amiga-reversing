@@ -1097,6 +1097,36 @@ def test_target_execution_view_remove_command_payload() -> None:
     }
 
 
+def test_target_runtime_observation_view_add_and_remove_command_payloads() -> None:
+    parameters = {
+        "execution_view_id": "observed-stage",
+        "source_start": 0x20,
+        "source_end": 0x80,
+        "base_addr": 0x4000,
+        "name": "observed_stage",
+    }
+    kind, payload = target_catalog_manual_payload(
+        "target.runtime_observation_view.add", parameters
+    )
+
+    assert kind == "create_manual_runtime_observation_view"
+    assert payload == {"runtime_observation_view": parameters}
+
+    kind, payload = target_catalog_manual_payload(
+        "target.runtime_observation_view.remove", parameters
+    )
+
+    assert kind == "remove_manual_runtime_observation_view"
+    assert payload == {
+        "runtime_observation_view": {
+            "execution_view_id": "observed-stage",
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+        }
+    }
+
+
 def test_target_custom_struct_add_and_edit_command_payloads() -> None:
     for command_id in ("target.custom_struct.add", "target.custom_struct.edit"):
         kind, payload = target_catalog_manual_payload(

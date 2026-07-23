@@ -176,6 +176,8 @@ class ManualActionKind(StrEnum):
     INTERPRET_MANUAL_A5_HARDWARE_REF = "interpret_manual_a5_hardware_ref"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
+    CREATE_MANUAL_RUNTIME_OBSERVATION_VIEW = "create_manual_runtime_observation_view"
+    REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW = "remove_manual_runtime_observation_view"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -227,6 +229,8 @@ class ManualActionLogProjection:
     a5_hardware_refs: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
+    runtime_observation_views: tuple[dict[str, object], ...]
+    removed_runtime_observation_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
     resolutions: tuple[dict[str, object], ...]
     active_action_ids: tuple[str, ...]
@@ -398,6 +402,8 @@ def _empty_projection(
         a5_hardware_refs=(),
         execution_views=(),
         removed_execution_views=(),
+        runtime_observation_views=(),
+        removed_runtime_observation_views=(),
         review_notes=(),
         resolutions=(),
         active_action_ids=(),
@@ -1681,6 +1687,8 @@ def _project_actions(
     a5_hardware_refs: dict[str, dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
+    runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
+    removed_runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
@@ -1953,6 +1961,19 @@ def _project_actions(
             removed = dict(existing_view or view)
             removed["cleanup_action_id"] = action.action_id
             removed_execution_views[view_key] = removed
+        elif action.kind is ManualActionKind.CREATE_MANUAL_RUNTIME_OBSERVATION_VIEW:
+            view = dict(_action_object(action, "runtime_observation_view"))
+            view["owner_action_id"] = action.action_id
+            view_key = _execution_view_key(view)
+            removed_runtime_observation_views.pop(view_key, None)
+            runtime_observation_views[view_key] = view
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW:
+            view = _action_object(action, "runtime_observation_view")
+            view_key = _execution_view_key(view)
+            existing_view = runtime_observation_views.pop(view_key, None)
+            removed = dict(existing_view or view)
+            removed["cleanup_action_id"] = action.action_id
+            removed_runtime_observation_views[view_key] = removed
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -2017,6 +2038,8 @@ def _project_actions(
         a5_hardware_refs=tuple(a5_hardware_refs.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
+        runtime_observation_views=tuple(runtime_observation_views.values()),
+        removed_runtime_observation_views=tuple(removed_runtime_observation_views.values()),
         review_notes=tuple(review_notes.values()),
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),

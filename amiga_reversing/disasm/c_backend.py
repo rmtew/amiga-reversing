@@ -783,11 +783,13 @@ def build_listing_artifact_profile_from_binary_source(
         profile["cache_identity"] = binary_source.stable_cache_identity
         return int(total_rows) if isinstance(total_rows, int) else 0, profile, artifact
     metadata_text = _metadata_path_text(metadata_path)
+    runtime_observation_views = _runtime_observation_views_from_metadata_path(metadata_path)
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
         artifact = CListingArtifact.create(
             source_file,
             metadata_text=metadata_text,
+            runtime_observation_views=runtime_observation_views,
             include_dir=str(include_dir),
             project_root=project_root,
         )
@@ -1008,6 +1010,31 @@ def _metadata_path_text(metadata_path: Path | None) -> str:
     if metadata_path is None or not metadata_path.exists():
         return ""
     return str(metadata_path)
+
+
+def _runtime_observation_views_from_metadata_path(metadata_path: Path | None) -> tuple[dict[str, object], ...]:
+    if metadata_path is None or not metadata_path.exists():
+        return ()
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ()
+    raw_views = payload.get("runtime_observation_views") if isinstance(payload, dict) else None
+    if not isinstance(raw_views, list):
+        return ()
+    views: list[dict[str, object]] = []
+    for raw_view in raw_views:
+        if not isinstance(raw_view, dict):
+            continue
+        source_start = raw_view.get("source_start")
+        source_end = raw_view.get("source_end")
+        base_addr = raw_view.get("base_addr")
+        if not all(isinstance(value, int) and not isinstance(value, bool) for value in (source_start, source_end, base_addr)):
+            continue
+        if source_start < 0 or source_end <= source_start or base_addr < 0:
+            continue
+        views.append(dict(raw_view))
+    return tuple(views)
 
 
 def _entry_offsets_text(entry_offset_args: tuple[str, ...]) -> str:
@@ -1633,9 +1660,10 @@ class _CBackendSourceFile:
 
 
 class CListingArtifact:
-    def __init__(self, dll: CDLL, handle: c_void_p) -> None:
+    def __init__(self, dll: CDLL, handle: c_void_p, *, runtime_observation_views: tuple[dict[str, object], ...] = ()) -> None:
         self._dll = dll
         self._handle = handle
+        self._runtime_observation_views = runtime_observation_views
 
     @classmethod
     def create(
@@ -1643,6 +1671,7 @@ class CListingArtifact:
         source_file: _CBackendSourceFile,
         *,
         metadata_text: str,
+        runtime_observation_views: tuple[dict[str, object], ...] = (),
         include_dir: str,
         project_root: Path,
     ) -> CListingArtifact:
@@ -1674,7 +1703,7 @@ class CListingArtifact:
             error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
             if result != 0 or not artifact.value:
                 raise RuntimeError(f"C backend DLL failed: {error_text}")
-            return cls(dll, artifact)
+            return cls(dll, artifact, runtime_observation_views=runtime_observation_views)
         finally:
             if error.value:
                 dll.platform_file_free_text(error)
@@ -1888,6 +1917,18 @@ class CListingArtifact:
             ),
         )
         if combined.get("found") is not True:
+            for view in self._runtime_observation_views:
+                source_start = cast(int, view["source_start"])
+                source_end = cast(int, view["source_end"])
+                base_addr = cast(int, view["base_addr"])
+                if address < base_addr or address >= base_addr + (source_end - source_start):
+                    continue
+                row = self.row_for_source_offset(section_index=0, offset=source_start + address - base_addr)
+                if row is None:
+                    continue
+                row["runtime_address"] = address
+                row["runtime_observation_view"] = dict(view)
+                return row
             return None
         listing_window = cast(dict[str, object], combined.get("listing", {}))
         rows = _c_listing_row_dicts(listing_window.get("rows", []))

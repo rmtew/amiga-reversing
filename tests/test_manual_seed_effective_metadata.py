@@ -1331,6 +1331,48 @@ def test_effective_metadata_applies_manual_execution_view(tmp_path: Path) -> Non
     ]
 
 
+def test_effective_metadata_carries_runtime_observation_view_without_execution_view(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_runtime_observation_view",
+                runtime_observation_view={
+                    "execution_view_id": "observed-stage",
+                    "source_start": 0x20,
+                    "source_end": 0x80,
+                    "base_addr": 0x4000,
+                    "name": "observed_stage",
+                    "comment": "debugger observation",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload.get("execution_views", []) == []
+    assert payload["runtime_observation_views"] == [
+        {
+            "execution_view_id": "observed-stage",
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "observed_stage",
+            "comment": "debugger observation",
+            "owner_action_id": "a1",
+        }
+    ]
+
+
 def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
