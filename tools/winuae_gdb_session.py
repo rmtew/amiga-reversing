@@ -274,7 +274,7 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
     return report
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None) -> dict[str, object]:
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_wait_seconds: int) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -303,6 +303,17 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "process": active_process,
             "payload": target_detection,
         }
+        breakpoint = None
+        if breakpoint_address is not None:
+            gdb.command(f"-break-insert *0x{breakpoint_address:x}")
+            gdb.command("-exec-continue")
+            breakpoint_stop = gdb.wait_for_stop(breakpoint_wait_seconds)
+            breakpoint_pc = gdb.command("-data-evaluate-expression $pc")
+            breakpoint = {
+                "address": f"0x{breakpoint_address:08x}",
+                "stop_reason": mi_stop_reason(breakpoint_stop),
+                "pc": mi_value(breakpoint_pc),
+            }
         gdb.command('-interpreter-exec console "kill"')
         return {
             "status": "ok",
@@ -315,6 +326,7 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "exec_state": exec_state,
             "active_execution": active_execution,
             "loadseg_watch": loader_watch,
+            "breakpoint": breakpoint,
         }
     finally:
         gdb.close()
@@ -327,13 +339,17 @@ def main() -> int:
     parser.add_argument("--continue-seconds", required=True, type=int)
     parser.add_argument("--loadseg-watch-seconds", type=int)
     parser.add_argument("--target-payload", type=Path)
+    parser.add_argument("--breakpoint-address", type=lambda value: int(value, 0))
+    parser.add_argument("--breakpoint-wait-seconds", type=int, default=60)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
         parser.error("--continue-seconds must be between 1 and 120")
     if args.loadseg_watch_seconds is not None and not 1 <= args.loadseg_watch_seconds <= 120:
         parser.error("--loadseg-watch-seconds must be between 1 and 120")
+    if not 1 <= args.breakpoint_wait_seconds <= 120:
+        parser.error("--breakpoint-wait-seconds must be between 1 and 120")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_wait_seconds)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1

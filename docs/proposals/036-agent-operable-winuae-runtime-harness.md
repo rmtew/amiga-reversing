@@ -865,17 +865,18 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   commands and does not append target facts. This is the minimal agent-facing
   observation contract; selected evidence remains a reviewed Manual Action Log
   decision.
-- Code breakpoints are not yet a usable checkpoint primitive in this WinUAE
-  GDB transport. On the matched Pandora profile, GDB accepted a breakpoint at
-  runtime `$00010BA8`; after verifying that the target bytes were resident at
-  that address, execution nevertheless advanced through `$00010BB8` without a
-  breakpoint stop. This rules out the earlier "breakpoint was overwritten by
-  load" explanation but does not establish a general emulator defect. The
-  experimental surface was removed rather than exposing a false capability.
-  Current supported operations remain bounded continue/pause, register and
-  memory reads, process inspection, and payload-PC attribution. A future
-  breakpoint investigation must first isolate the remote-protocol behavior
-  with a minimal fixture before adding it back to the agent interface.
+- Code breakpoints are a usable checkpoint primitive after a normal boot and
+  a controlled pause. The initial failure at runtime `$00010BA8` was a fork
+  defect: the GDB `Z0` handler reused a disabled WinUAE breakpoint slot without
+  resetting its `cnt` hit counter or `chain` field. WinUAE's own
+  `instruction_breakpoint()` constructor resets both. The pinned fork now does
+  the same. On 2026-07-23, the strictly headless Pandora runner booted for 60
+  seconds, paused at `$00010C9C`, installed `$00010BA8`, continued, and
+  received GDB `breakpoint-hit` with `pc=0x10ba8`. Do not arm ordinary code
+  breakpoints from the reset vector: WinUAE's trace-check path then evaluates
+  each Kickstart instruction and makes boot impractically slow. The harness
+  therefore follows the extension's operational model: reach a known target
+  checkpoint first, then arm bounded code breakpoints.
 
 ## Decision Record
 
