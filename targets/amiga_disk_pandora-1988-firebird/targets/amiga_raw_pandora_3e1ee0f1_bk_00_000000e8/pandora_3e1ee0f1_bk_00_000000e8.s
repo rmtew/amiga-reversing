@@ -389,7 +389,7 @@ abs_0_000105C2:
 	bsr.w abs_0_000182F0
 	jsr abs_0_00018814.l
 	jsr abs_0_00019250.l
-	bsr.w abs_0_00017DF0
+	bsr.w update_world_object_interactions
 	jsr abs_0_00018984.l
 	bsr.w abs_0_00012D2A
 	lea.l _custom.l,a5
@@ -2007,7 +2007,7 @@ abs_0_000127C4:
 	bsr.w finalize_inventory_selection
 	cmp.b #$64,d0
 	bne.w abs_0_00012712
-	lea.l abs_0_00017CEC(pc),a0
+	lea.l announce_item_trade(pc),a0
 	bsr.w abs_0_00017CFE
 	rts
 open_nearby_object_inventory_panel:
@@ -2199,7 +2199,7 @@ abs_0_00012A0C:
 handle_inventory_panel_selection:
 	tst.b app_inventory_selection_latched(a6)
 	bne.w abs_0_00012AB6
-	bsr.w abs_0_00017BA6
+	bsr.w clear_inventory_item_selection_flags
 	movea.l app_0358(a6),a5
 	lea.l abs_0_0005C322.l,a4
 	move.w app_inventory_cursor_y(a6),d0
@@ -2585,7 +2585,7 @@ abs_0_00012F18:
 abs_0_00012F44:
 	btst.b #3,$0048(a5)
 	bne.b abs_0_00012F56
-	bsr.w abs_0_00017BBA
+	bsr.w validate_npc_item_trade
 	bcs.b abs_0_00012F16
 	bra.w abs_0_00017792
 abs_0_00012F56:
@@ -2614,11 +2614,11 @@ abs_0_00012F8E:
 	clr.b (a1)
 	move.b $0001(a1),$0001(a0)
 	bclr.b #3,$0048(a5)
-	bsr.w abs_0_00017CEC
+	bsr.w announce_item_trade
 	move.b d6,$0046(a5)
-	bsr.w abs_0_00017B86
+	bsr.w display_current_item_name
 	bsr.w refresh_selected_item_name_display
-	bsr.w abs_0_00017BA6
+	bsr.w clear_inventory_item_selection_flags
 	rts
 abs_0_00012FB2:
 	dc.l $67FDE432,$95429168,$DA0597A3,$54FFA672	; lookup_table
@@ -5408,7 +5408,7 @@ abs_0_00017B6E:
 	move.l a2,(a0)
 	move.l a2,(a1)
 	rts
-abs_0_00017B86:
+display_current_item_name:
 	move.l a5,-(a7)
 	moveq.l #0,d0
 	move.b $0046(a5),d0
@@ -5419,7 +5419,7 @@ abs_0_00017B86:
 	bsr.w abs_0_00016632
 	movea.l (a7)+,a5
 	rts
-abs_0_00017BA6:
+clear_inventory_item_selection_flags:
 	lea.l abs_0_0001300A(pc),a0
 abs_0_00017BAA:
 	move.l (a0)+,d0
@@ -5429,29 +5429,29 @@ abs_0_00017BAA:
 	bra.b abs_0_00017BAA
 abs_0_00017BB8:
 	rts
-abs_0_00017BBA:
+validate_npc_item_trade:
 	btst.b #4,$0048(a5)
 	bne.b abs_0_00017C0A
 	move.b $0046(a5),d0
-	bsr.w abs_0_00017CE4
+	bsr.w is_tradeable_item_id
 	bcs.b abs_0_00017C06
 	lea.l abs_0_0005C322.l,a4
 	move.b $0046(a4),d0
-	bsr.w abs_0_00017CE4
+	bsr.w is_tradeable_item_id
 	bcs.w abs_0_00017BF2
 	move.b $0046(a4),d0
 	cmp.b #$2,d0
-	bcc.b abs_0_00017C1A
+	bcc.b evaluate_npc_trade_offer
 	move.b $0046(a5),d0
 	cmp.b #$2,d0
-	bcc.b abs_0_00017C1A
+	bcc.b evaluate_npc_trade_offer
 abs_0_00017BF2:
 	movea.l $0014(a5),a0
 	moveq.l #3,d7
 abs_0_00017BF8:
 	move.b (a0),d0
-	bsr.w abs_0_00017CE4
-	bcs.b abs_0_00017C10
+	bsr.w is_tradeable_item_id
+	bcs.b select_npc_trade_item
 	addq.l #2,a0
 	dbf.w d7,abs_0_00017BF8
 abs_0_00017C06:
@@ -5460,11 +5460,11 @@ abs_0_00017C06:
 abs_0_00017C0A:
 	move #$1,ccr
 	rts
-abs_0_00017C10:
+select_npc_trade_item:
 	move.b (a0),$0046(a5)
-	bsr.w abs_0_00017B86
+	bsr.w display_current_item_name
 	bra.b abs_0_00017C06
-abs_0_00017C1A:
+evaluate_npc_trade_offer:
 	movea.l $0018(a5),a2
 	moveq.l #3,d7
 	move.b $0046(a4),d0
@@ -5480,18 +5480,18 @@ abs_0_00017C36:
 	move.b $0001(a2),d0
 	cmp.b $004C(a5),d0
 	bcc.b abs_0_00017C46
-	bsr.b abs_0_00017C8E
+	bsr.b select_nearest_trade_offer
 	bcs.b abs_0_00017C0A
 	bra.b abs_0_00017C0A
 abs_0_00017C46:
-	lea.l abs_0_00017C50(pc),a0
+	lea.l npc_trade_rejection_message(pc),a0
 	bsr.w abs_0_000199DE
 	bra.b abs_0_00017BF2
-abs_0_00017C50:
+npc_trade_rejection_message:
 	dc.b "Give me that, LET GO",$00
-abs_0_00017C65:
+npc_trade_counteroffer_message:
 	dc.b "I'll give you what I'm carrying for that",$00
-abs_0_00017C8E:
+select_nearest_trade_offer:
 	move.b d0,d2
 	moveq.l #-1,d3
 	movea.l $0014(a5),a0
@@ -5519,26 +5519,26 @@ abs_0_00017CB6:
 	bmi.b abs_0_00017CDE
 	move.b (a1),$0046(a5)
 	bset.b #3,$0048(a5)
-	bsr.w abs_0_00017B86
-	lea.l abs_0_00017C65(pc),a0
+	bsr.w display_current_item_name
+	lea.l npc_trade_counteroffer_message(pc),a0
 	bsr.w abs_0_000199DE
 	move.w d0,d0
 	rts
 abs_0_00017CDE:
 	move #$1,ccr
 	rts
-abs_0_00017CE4:
+is_tradeable_item_id:
 	subq.b #7,d0
 	cmp.b #$F,d0
 	rts
-abs_0_00017CEC:
-	lea.l abs_0_00017D00(pc),a0
+announce_item_trade:
+	lea.l objects_traded_message(pc),a0
 	bsr.w abs_0_000199DE
 	move.w #$112,d0
 	jsr abs_0_0005D330.l
 abs_0_00017CFE:
 	rts
-abs_0_00017D00:
+objects_traded_message:
 	dc.b "..... YOU HAVE TRADED OBJECTS .....",$00
 	dc.b $08,$EE,$00,$04,$02,$7B,$1D,$6E,$02,$C9,$02,$89,$4E,$75
 abs_0_00017D32:
@@ -5602,7 +5602,7 @@ abs_0_00017DD6:
 	bsr.w abs_0_000125DE
 abs_0_00017DEE:
 	rts
-abs_0_00017DF0:
+update_world_object_interactions:
 	lea.l abs_0_0005C322.l,a4
 	movea.l app_02A8(a6),a0
 	move.w app_02AC(a6),d7
@@ -5618,7 +5618,7 @@ abs_0_00017E04:
 	btst.b #4,$0019(a2)
 	bne.w abs_0_00017F08
 	btst.b #2,$0019(a2)
-	bne.w abs_0_0001807C
+	bne.w handle_item_receptacle_interaction
 	btst.b #0,$0019(a2)
 	beq.w abs_0_00017F02
 	move.w $0004(a1),d0
@@ -5802,7 +5802,7 @@ abs_0_00018032:
 	bsr.w abs_0_00018544
 	jsr abs_0_0005C9AE.l
 	rts
-abs_0_0001807C:
+handle_item_receptacle_interaction:
 	btst.b #1,$0048(a4)
 	bne.w abs_0_00017F02
 	move.w $0004(a1),d0
@@ -5826,28 +5826,28 @@ abs_0_000180B2:
 abs_0_000180B8:
 	add.w d1,d0
 	cmp.w #$1C,d0
-	bcc.w abs_0_0001814E
+	bcc.w clear_item_receptacle_proximity
 	movea.l $001A(a2),a3
 	bset.b #0,$0005(a3)
 	bne.w abs_0_00017F02
 	clr.b app_02D8(a6)
 	tst.l (a3)
-	beq.b abs_0_00018104
+	beq.b deposit_item_in_receptacle
 	move.b $0046(a4),d0
 	cmp.b $0004(a3),d0
-	beq.b abs_0_000180F6
+	beq.b complete_item_receptacle_interaction
 	move.l a0,-(a7)
-	lea.l abs_0_00018162(pc),a0
+	lea.l incorrect_receptacle_item_message(pc),a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	movea.l (a7)+,a0
 	bra.w abs_0_00017F02
-abs_0_000180F6:
+complete_item_receptacle_interaction:
 	move.l (a3),$0014(a2)
 	clr.l (a3)
 	clr.b $0046(a4)
 	bra.w refresh_selected_item_name_display
-abs_0_00018104:
+deposit_item_in_receptacle:
 	move.b $0046(a4),d0
 	cmp.b #$2,d0
 	bcc.w abs_0_00017F02
@@ -5867,13 +5867,13 @@ abs_0_00018104:
 	jsr abs_0_0005D2FE.l
 abs_0_0001814C:
 	rts
-abs_0_0001814E:
+clear_item_receptacle_proximity:
 	move.l $001A(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a3
 	bclr.b #0,$0005(a3)
 	bra.w abs_0_00017F02
-abs_0_00018162:
+incorrect_receptacle_item_message:
 	dc.b "...INCORRECT OBJECT...",$00
 	dc.b $00
 abs_0_0001817A:
@@ -6505,7 +6505,7 @@ abs_0_00018960:
 	addq.b #1,app_02CF(a6)
 	movea.l $0014(a5),a0
 	move.b (a0),$0046(a5)
-	bsr.w abs_0_00017B86
+	bsr.w display_current_item_name
 abs_0_00018982:
 	rts
 abs_0_00018984:
