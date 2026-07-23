@@ -104,7 +104,7 @@ app_0272 RS.L 1
 app_0276 RS.L 1
 app_027A RS.B 1
 app_027B RS.B 1
-app_027C RS.L 1
+app_current_palette RS.L 1
 app_0280 RS.L 1
 app_0284 RS.B 1
 app_0285 RS.B 1
@@ -339,14 +339,14 @@ abs_0_00010498:
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
 	bsr.w abs_0_00010F88
 	move.w #DMAF_RASTER,dmacon(a5)
-	lea.l abs_0_0001094E(pc),a0
+	lea.l handle_vertical_blank_frame_update(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l abs_0_000109EA(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_0001076E(pc),a0
-	move.l a0,app_027C(a6)
+	move.l a0,app_current_palette(a6)
 	bsr.w abs_0_000166D6
 	move.l #$78000,app_display_bitplane_base(a6)
 	move.l #$78000,app_back_bitplane_base(a6)
@@ -467,7 +467,7 @@ abs_0_000106D8:
 abs_0_00010724:
 	move.w #$1,app_0286(a6)
 	lea.l abs_0_0005D5DE.l,a0
-	move.l a0,app_027C(a6)
+	move.l a0,app_current_palette(a6)
 	st.b app_02D8(a6)
 	bset.b #1,abs_0_0005C36A.l
 	move.b #$46,app_02CC(a6)
@@ -476,8 +476,8 @@ abs_0_0001074C:
 	bra.w abs_0_000105A8
 abs_0_00010750:
 	rts
-abs_0_00010752:
-	movea.l app_027C(a6),a0
+apply_current_palette:
+	movea.l app_current_palette(a6),a0
 	movea.l #$DFF180,a1
 	move.l (a0)+,(a1)+
 	move.l (a0)+,(a1)+
@@ -565,7 +565,7 @@ abs_0_0001084E:
 	move.w d2,app_input_y_step(a6)
 	move.w d0,app_input_direction_mask(a6)
 	rts
-abs_0_00010858:
+poll_keyboard_serial_input:
 	move.w $001E(a5),d0
 	btst #3,d0
 	beq.b abs_0_00010886
@@ -636,7 +636,7 @@ abs_0_00010940:
 	move.w d0,$009C(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
-abs_0_0001094E:
+handle_vertical_blank_frame_update:
 	bclr.b #5,app_027B(a6)
 	movem.l d1/a2,-(a7)
 	addq.l #1,app_frame_counter(a6)
@@ -648,7 +648,7 @@ abs_0_0001094E:
 	move.l a0,$00E8(a5)
 	lea.l $0028(a0),a0
 	move.l a0,$00EC(a5)
-	bsr.w abs_0_00010752
+	bsr.w apply_current_palette
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l $00065370.l,a0
@@ -672,10 +672,10 @@ abs_0_0001094E:
 	bsr.w abs_0_00012C24
 abs_0_000109CC:
 	movem.l d2-d7/a3-a6,-(a7)
-	jsr abs_0_0005D8FC.l
+	jsr update_audio_channels.l
 	movem.l (a7)+,d2-d7/a3-a6
 	movem.l (a7)+,d1/a2
-	bsr.w abs_0_00010858
+	bsr.w poll_keyboard_serial_input
 	bset.b #5,app_027B(a6)
 	rts
 abs_0_000109EA:
@@ -906,7 +906,7 @@ abs_0_00010D20:
 	lea.l abs_0_00010AE8(pc),a1
 	jsr abs_0_00012640.l
 	lea.l abs_0_00010AC8(pc),a0
-	move.l a0,app_027C(a6)
+	move.l a0,app_current_palette(a6)
 	move.w #$63,d7
 	movea.l #$400,a2
 	bsr.w abs_0_00010C22
@@ -1045,7 +1045,7 @@ copper_list_00020ED8:
 	dc.w $FFFF,$FFFE
 abs_0_00010F54:
 	addq.l #1,app_frame_counter(a6)
-	bsr.w abs_0_00010752
+	bsr.w apply_current_palette
 	move.b #$20,app_palette_effect_countdown(a6)
 	lea.l abs_0_00010B28(pc),a0
 	move.l a0,app_0280(a6)
@@ -1083,7 +1083,7 @@ abs_0_00010FD2:
 	btst.b #0,app_033E(a6)
 	beq.b abs_0_00010FEC
 	movem.l d5/a6,-(a7)
-	jsr abs_0_0005D8FC.l
+	jsr update_audio_channels.l
 	movem.l (a7)+,d5/a6
 abs_0_00010FEC:
 	cmp.l app_frame_counter(a6),d5
@@ -26660,7 +26660,7 @@ abs_0_0005D8F6:
 	bra.w abs_0_0005E4AE
 abs_0_0005D8FA:
 	rts
-abs_0_0005D8FC:
+update_audio_channels:
 	lea.l abs_0_0005D7DE(pc),a3
 	tst.b $0529(a3)
 	beq.b abs_0_0005D8F6
