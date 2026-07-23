@@ -177,7 +177,7 @@ app_033E RS.B 1
 app_0356 RS.W 1
 app_0358 RS.L 1
     RS.B 4
-app_0360 RS.L 1
+app_copper_interrupt_callback RS.L 1
 app_0364 RS.L 1
 app_0368 RS.L 1
     RS.B 1154
@@ -342,7 +342,7 @@ abs_0_00010498:
 	lea.l abs_0_0001094E(pc),a0
 	move.l a0,app_0364(a6)
 	lea.l abs_0_00010A72(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l abs_0_000109EA(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_0001076E(pc),a0
@@ -610,7 +610,7 @@ abs_0_000108E4:
 	move.w intreqr(a5),d0	; interrupt request state
 	btst #4,d0
 	beq.b abs_0_00010910
-	movea.l app_0360(a6),a0
+	movea.l app_copper_interrupt_callback(a6),a0
 	jsr (a0)
 	move.w #INTF_COPER,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
@@ -650,7 +650,7 @@ abs_0_0001094E:
 	move.l a0,$00EC(a5)
 	bsr.w abs_0_00010752
 	lea.l abs_0_00010A72(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l $00065370.l,a0
 	move.w app_0214(a6),d0
 	addi.w #128,d0
@@ -725,18 +725,18 @@ abs_0_00010A72:
 	move.l (a0)+,color+$18(a5)	; palette colors 12-13
 	move.l (a0)+,color+$1C(a5)	; palette colors 14-15
 	lea.l abs_0_00010AA2(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 abs_0_00010AA2:
 	move.w app_0230(a6),color+$02(a5)	; palette color 1
 	move.w #$E8,color+$14(a5)
 	lea.l abs_0_00010AB8(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 abs_0_00010AB8:
 	bset.b #7,app_027B(a6)
 	lea.l abs_0_00010A72(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 abs_0_00010AC8:
 	dcb.b $20,$00
@@ -751,7 +751,7 @@ abs_0_00010B68:
 	dc.b $00,$0E,$00,$22,$00,$44,$00,$66,$00,$88,$00,$AA,$00,$CC,$00,$EE
 	dc.b $00,$E0,$02,$00,$04,$00,$06,$00,$08,$00,$0A,$00,$0C,$00,$0E,$00
 	dc.b $0E,$00,$02,$2A,$04,$4A,$06,$6A,$08,$8A,$0A,$AA,$0C,$CA,$0E,$EA
-abs_0_00010BA8:
+update_star_motion:
 	move.w $0000(a2),d0
 	asl.w #4,d0
 	move.b $0008(a2),d1
@@ -923,7 +923,7 @@ abs_0_00010D94:
 	lea.l abs_0_00010D9C(pc),a3
 	bra.w abs_0_00010C58
 abs_0_00010D9C:
-	bsr.w abs_0_00010BA8
+	bsr.w update_star_motion
 	bne.b abs_0_00010DA6
 	bsr.w abs_0_00010BD6
 abs_0_00010DA6:
@@ -960,10 +960,10 @@ abs_0_00010DE8:
 	move.l d0,color+$18(a5)	; palette colors 12-13
 	subq.b #1,app_palette_effect_countdown(a6)
 	bne.b abs_0_00010DE4
-	lea.l abs_0_00010E14(pc),a0
-	move.l a0,app_0360(a6)
+	lea.l handle_copper_interrupt_palette_effect(pc),a0
+	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010E14:
+handle_copper_interrupt_palette_effect:
 	lea.l abs_0_00010E88(pc),a0
 	move.b #$18,app_palette_effect_countdown(a6)
 abs_0_00010E1E:
@@ -981,7 +981,7 @@ abs_0_00010E22:
 	subq.b #1,app_palette_effect_countdown(a6)
 	bne.b abs_0_00010E1E
 	lea.l abs_0_00010E4E(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 abs_0_00010E4E:
 	lea.l abs_0_00010EB8(pc),a0
@@ -1001,7 +1001,7 @@ abs_0_00010E5C:
 	subq.b #1,app_palette_effect_countdown(a6)
 	bne.b abs_0_00010E58
 	lea.l abs_0_00010DE0(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 abs_0_00010E88:
 	dc.b $00,$00,$05,$55,$08,$88,$0B,$BB,$0F,$FF,$0E,$EE,$0D,$DD,$0C,$CC
@@ -1069,7 +1069,7 @@ abs_0_00010F88:
 	move.w #DMAF_MASTER,dmacon(a5)
 	bsr.w abs_0_00010D20
 	lea.l abs_0_00010DE0(pc),a0
-	move.l a0,app_0360(a6)
+	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l copper_list_00020ED8(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_00010F54(pc),a0
