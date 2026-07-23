@@ -654,8 +654,15 @@ These notes record an exploratory build setup only. They do not select Bartman
 WinUAE as the runtime baseline, establish headless operation, or make the
 unversioned dependency bundle acceptable for a reproducible implementation.
 
-- Clone location: `resources/clone_amiga/WinUAE` at Bartman commit
-  `b34884cc25e561eecac5dcec70cac97d6b12b2d9`.
+- Clone location: `resources/clone_amiga/WinUAE`, based on Bartman commit
+  `b34884cc25e561eecac5dcec70cac97d6b12b2d9`. Its publish remote is now the
+  project fork `https://github.com/rmtew/WinUAE`.
+- The headless-runtime work is published as
+  `origin/codex/local-workspace-build` at `e53b7a8e8210b57b00675bff5a4c45086ed59331`,
+  five commits ahead of `origin/master` and with no upstream-master divergence
+  at the time of publication. This branch contains the portable build paths,
+  strict headless startup, committed runtime-bundle output, first-run hardening,
+  and GDB breakpoint-slot initialization fix.
 - The clone's Visual Studio project is
   `od-win32/winuae_msvc15/winuae_msvc.vcxproj`. Its historical `C:\dev`
   dependency references were changed to the project-local default
