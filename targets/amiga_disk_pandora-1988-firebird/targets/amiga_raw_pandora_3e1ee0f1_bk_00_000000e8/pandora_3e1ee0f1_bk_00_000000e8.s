@@ -135,10 +135,7 @@ app_02B6 RS.B 1
 app_02B7 RS.B 1
 app_02B8 RS.B 1
 app_02B9 RS.B 1
-app_02BA RS.B 1
-app_02BB RS.B 1
-app_02BC RS.B 1
-app_02BD RS.B 1
+app_inventory_display_item_ids RS.B 4
     RS.B 4
 app_02C2 RS.B 1
     RS.B 5
@@ -184,6 +181,12 @@ app_blitter_interrupt_callback RS.L 1
 app_07EE RS.W 1
     RSSET $0287
 app_0287 RS.B 1
+    RSSET $02BB
+app_02BB RS.B 1
+    RSSET $02BC
+app_02BC RS.B 1
+    RSSET $02BD
+app_02BD RS.B 1
     RSSET $07EF
 app_07EF RS.B 1
     RSSET $07F0
@@ -1963,8 +1966,8 @@ abs_0_00012714:
 	btst.b #1,$0048(a5)
 	bne.w abs_0_000127EA
 abs_0_00012754:
-	bsr.w abs_0_000129EA
-	bsr.w abs_0_00012878
+	bsr.w refresh_inventory_panel
+	bsr.w reset_inventory_panel_state
 	lea.l abs_0_0001340A(pc),a5
 	bsr.w abs_0_000166A0
 	lea.l abs_0_00013436(pc),a5
@@ -1973,7 +1976,7 @@ abs_0_00012754:
 	bsr.w abs_0_000194AC
 	bra.w abs_0_000194E2
 abs_0_00012778:
-	bsr.w abs_0_00012878
+	bsr.w reset_inventory_panel_state
 	bsr.w abs_0_000194C0
 	bclr.b #1,app_033C(a6)
 	move.b #$6C,d0
@@ -2010,13 +2013,13 @@ abs_0_000127C4:
 abs_0_000127EA:
 	bset.b #4,app_022E(a6)
 	movea.l $0014(a5),a0
-	move.b (a0),app_02BA(a6)
+	move.b (a0),app_inventory_display_item_ids(a6)
 	move.b $0002(a0),app_02BB(a6)
 	move.b $0004(a0),app_02BC(a6)
 	move.b $0006(a0),app_02BD(a6)
-	bsr.w abs_0_0001283E
-	bsr.w abs_0_000129EA
-	bsr.w abs_0_00012878
+	bsr.w build_carried_item_name_list
+	bsr.w refresh_inventory_panel
+	bsr.w reset_inventory_panel_state
 	lea.l abs_0_000133DE(pc),a5
 	bsr.w abs_0_000166A0
 	lea.l abs_0_0001340A(pc),a5
@@ -2027,29 +2030,29 @@ abs_0_000127EA:
 	bsr.w abs_0_000194AC
 	bsr.w abs_0_000194E2
 	rts
-abs_0_0001283E:
+build_carried_item_name_list:
 	movem.l d0/d7/a0-a2,-(a7)
 	lea.l abs_0_000133EA(pc),a1
-	lea.l app_02BA(a6),a2
+	lea.l app_inventory_display_item_ids(a6),a2
 	clr.w d0
 	move.b (a2)+,d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	move.l a0,(a1)+
 	clr.w d0
 	move.b (a2)+,d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	move.l a0,(a1)+
 	clr.w d0
 	move.b (a2)+,d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	move.l a0,(a1)+
 	clr.w d0
 	move.b (a2),d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	move.l a0,(a1)
 	movem.l (a7)+,d0/d7/a0-a2
 	rts
-abs_0_00012878:
+reset_inventory_panel_state:
 	clr.w app_scrolling_message_timer(a6)
 	clr.w app_0226(a6)
 	clr.w app_0228(a6)
@@ -2147,11 +2150,11 @@ abs_0_00012990:
 	bra.w abs_0_000194E2
 abs_0_000129A8:
 	bset.b #5,app_022E(a6)
-	bsr.w abs_0_000129BC
+	bsr.w refresh_selected_item_name_display
 	moveq.l #0,d0
 	move.b abs_0_0005C368.l,d0
 	rts
-abs_0_000129BC:
+refresh_selected_item_name_display:
 	btst.b #2,app_022E(a6)
 	bne.b abs_0_000129E8
 	move.l a5,-(a7)
@@ -2161,22 +2164,22 @@ abs_0_000129BC:
 	bcc.b abs_0_000129D6
 	moveq.l #1,d0
 abs_0_000129D6:
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	lea.l abs_0_000132AA(pc),a5
 	move.l d0,$000C(a5)
 	bsr.w abs_0_000166A0
 	movea.l (a7)+,a5
 abs_0_000129E8:
 	rts
-abs_0_000129EA:
+refresh_inventory_panel:
 	movem.l d7/a2-a5,-(a7)
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
 	lea.l app_pocket_item_ids(a6),a1
 	lea.l abs_0_00013416(pc),a2
 	lea.l abs_0_00013442(pc),a3
-	lea.l abs_0_0001A6DC.l,a4
-	lea.l abs_0_0001A25C.l,a5
+	lea.l item_name_offset_table.l,a4
+	lea.l item_name_string_table.l,a5
 abs_0_00012A0C:
 	moveq.l #0,d0
 	move.b (a0)+,d0
@@ -2213,7 +2216,7 @@ abs_0_00012A32:
 	movea.l $0014(a5),a0
 	move.b $0(a0,d1.w),d2
 	move.b $0046(a4),$0(a0,d1.w)
-	lea.l app_02BA(a6),a1
+	lea.l app_inventory_display_item_ids(a6),a1
 	move.b $0046(a4),$0(a1,d0.w)
 	move.b d2,$0046(a4)
 	cmp.b $0046(a5),d2
@@ -2222,7 +2225,7 @@ abs_0_00012A32:
 	move.l #abs_0_0001A25D,abs_0_000133BE.l
 abs_0_00012A9E:
 	move.l d0,-(a7)
-	bsr.w abs_0_0001283E
+	bsr.w build_carried_item_name_list
 	move.l (a7)+,d0
 	lea.l abs_0_000133DE(pc),a5
 	move.l #$70000,$01E0(a6)
@@ -2231,18 +2234,18 @@ abs_0_00012AB6:
 	rts
 abs_0_00012AB8:
 	cmp.w #$60,d2
-	beq.b abs_0_00012AE8
+	beq.b handle_item_too_large_for_pockets
 	move.b $0046(a4),d2
 	lea.l app_carried_item_ids(a6),a0
 	move.b $0(a0,d0.w),$0046(a4)
 	move.b d2,$0(a0,d0.w)
 	move.w d0,-(a7)
-	bsr.w abs_0_000129EA
+	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
 	lea.l abs_0_0001340A(pc),a5
 	move.l #$70000,$01E0(a6)
 	bra.w abs_0_00016632
-abs_0_00012AE8:
+handle_item_too_large_for_pockets:
 	movem.l d0/a0,-(a7)
 	moveq.l #0,d0
 	move.b $0046(a4),d0
@@ -2255,9 +2258,9 @@ abs_0_00012AE8:
 	move.w #$46,app_scrolling_message_timer(a6)
 	moveq.l #0,d0
 	move.b $0046(a4),d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	bsr.w enqueue_scrolling_message
-	lea.l abs_0_00012B5E(pc),a0
+	lea.l item_too_large_for_pockets_message(pc),a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	move.w #$216,d0
@@ -2270,20 +2273,20 @@ abs_0_00012B34:
 	move.b $0(a0,d0.w),$0046(a4)
 	move.b d2,$0(a0,d0.w)
 	move.w d0,-(a7)
-	bsr.w abs_0_000129EA
+	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
 	lea.l abs_0_00013436(pc),a5
 	move.l #$70000,$01E0(a6)
 	bra.w abs_0_00016632
-abs_0_00012B5E:
+item_too_large_for_pockets_message:
 	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00
 	dc.b $00
-abs_0_00012B7E:
+resolve_item_name:
 	andi.w #127,d0
 	add.w d0,d0
-	lea.l abs_0_0001A6DC.l,a0
+	lea.l item_name_offset_table.l,a0
 	move.w $0(a0,d0.w),d0
-	lea.l abs_0_0001A25C.l,a0
+	lea.l item_name_string_table.l,a0
 	adda.w d0,a0
 	move.l a0,d0
 	rts
@@ -2576,7 +2579,7 @@ abs_0_00012F18:
 	clr.b $0046(a4)
 	movea.l $0010(a5),a0
 	bsr.w abs_0_000199DE
-	bsr.w abs_0_000129BC
+	bsr.w refresh_selected_item_name_display
 	bset.b #4,app_02A6(a6)
 	bra.b abs_0_00012F16
 abs_0_00012F44:
@@ -2614,7 +2617,7 @@ abs_0_00012F8E:
 	bsr.w abs_0_00017CEC
 	move.b d6,$0046(a5)
 	bsr.w abs_0_00017B86
-	bsr.w abs_0_000129BC
+	bsr.w refresh_selected_item_name_display
 	bsr.w abs_0_00017BA6
 	rts
 abs_0_00012FB2:
@@ -5409,7 +5412,7 @@ abs_0_00017B86:
 	move.l a5,-(a7)
 	moveq.l #0,d0
 	move.b $0046(a5),d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	lea.l abs_0_000133B2.l,a5
 	move.l a0,$000C(a5)
 	moveq.l #0,d0
@@ -5843,7 +5846,7 @@ abs_0_000180F6:
 	move.l (a3),$0014(a2)
 	clr.l (a3)
 	clr.b $0046(a4)
-	bra.w abs_0_000129BC
+	bra.w refresh_selected_item_name_display
 abs_0_00018104:
 	move.b $0046(a4),d0
 	cmp.b #$2,d0
@@ -5851,7 +5854,7 @@ abs_0_00018104:
 	move.l $0014(a2),(a3)
 	clr.l $0014(a2)
 	move.b $0004(a3),$0046(a4)
-	bsr.w abs_0_000129BC
+	bsr.w refresh_selected_item_name_display
 	move.b $0046(a4),d0
 	cmp.b #$68,d0
 	bne.b abs_0_0001814C
@@ -6127,7 +6130,7 @@ abs_0_00018416:
 	bne.b abs_0_00018492
 	lea.l abs_0_00013386.l,a5
 	moveq.l #0,d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	move.l a0,$000C(a5)
 	lea.l abs_0_000133B2.l,a5
 	move.l a0,$000C(a5)
@@ -6149,7 +6152,7 @@ abs_0_0001844C:
 	lea.l abs_0_000133B2.l,a1
 	moveq.l #0,d0
 	move.b $0046(a5),d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	move.l a0,$000C(a1)
 	movea.l a1,a5
 	bsr.b abs_0_00018494
@@ -6546,7 +6549,7 @@ abs_0_000189FA:
 	lea.l abs_0_0001A7C0.l,a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
-	bsr.w abs_0_000129BC
+	bsr.w refresh_selected_item_name_display
 	move.w #$106,d0
 	jsr abs_0_0005D330.l
 abs_0_00018A16:
@@ -7359,7 +7362,7 @@ abs_0_0001A0D2:
 abs_0_0001A0E2:
 	moveq.l #0,d0
 	move.b $004A(a5),d0
-	bsr.w abs_0_00012B7E
+	bsr.w resolve_item_name
 	move.l d0,$0000(a5)
 	movea.l $001C(a5),a2
 	movea.l $0014(a5),a3
@@ -7479,7 +7482,7 @@ abs_0_0001A1B4:
 	move.l a0,app_029E(a6)
 	movea.l (a7)+,a5
 	rts
-abs_0_0001A25C:
+item_name_string_table:
 	dc.b $00
 abs_0_0001A25D:
 	dc.b $00
@@ -7687,121 +7690,121 @@ abs_0_0001A6C0:
 	dc.b "Kzin 97 ball",$00
 abs_0_0001A6CD:
 	dc.b "Amiga Computing"
-abs_0_0001A6DC:
-	dc.w abs_0_0001A25D-abs_0_0001A25C	; lookup_table
-	dc.w abs_0_0001A25E-abs_0_0001A25C
-	dc.w abs_0_0001A26B-abs_0_0001A25C
-	dc.w abs_0_0001A272-abs_0_0001A25C
-	dc.w abs_0_0001A277-abs_0_0001A25C
-	dc.w abs_0_0001A284-abs_0_0001A25C
-	dc.w abs_0_0001A290-abs_0_0001A25C
-	dc.w abs_0_0001A298-abs_0_0001A25C
-	dc.w abs_0_0001A2A3-abs_0_0001A25C
-	dc.w abs_0_0001A2B0-abs_0_0001A25C
-	dc.w abs_0_0001A2BD-abs_0_0001A25C
-	dc.w abs_0_0001A2C7-abs_0_0001A25C
-	dc.w abs_0_0001A2D3-abs_0_0001A25C
-	dc.w abs_0_0001A2DE-abs_0_0001A25C
-	dc.w abs_0_0001A2EC-abs_0_0001A25C
-	dc.w abs_0_0001A2EC-abs_0_0001A25C
-	dc.w abs_0_0001A2EC-abs_0_0001A25C
-	dc.w abs_0_0001A2EC-abs_0_0001A25C
-	dc.w abs_0_0001A2EC-abs_0_0001A25C
-	dc.w abs_0_0001A2F8-abs_0_0001A25C
-	dc.w abs_0_0001A305-abs_0_0001A25C
-	dc.w abs_0_0001A305-abs_0_0001A25C
-	dc.w abs_0_0001A305-abs_0_0001A25C
-	dc.w abs_0_0001A305-abs_0_0001A25C
-	dc.w abs_0_0001A311-abs_0_0001A25C
-	dc.w abs_0_0001A31E-abs_0_0001A25C
-	dc.w abs_0_0001A32A-abs_0_0001A25C
-	dc.w abs_0_0001A337-abs_0_0001A25C
-	dc.w abs_0_0001A346-abs_0_0001A25C
-	dc.w abs_0_0001A351-abs_0_0001A25C
-	dc.w abs_0_0001A35E-abs_0_0001A25C
-	dc.w abs_0_0001A36B-abs_0_0001A25C
-	dc.w abs_0_0001A377-abs_0_0001A25C
-	dc.w abs_0_0001A382-abs_0_0001A25C
-	dc.w abs_0_0001A38C-abs_0_0001A25C
-	dc.w abs_0_0001A396-abs_0_0001A25C
-	dc.w abs_0_0001A3A3-abs_0_0001A25C
-	dc.w abs_0_0001A3AE-abs_0_0001A25C
-	dc.w abs_0_0001A3B9-abs_0_0001A25C
-	dc.w abs_0_0001A3C2-abs_0_0001A25C
-	dc.w abs_0_0001A3D0-abs_0_0001A25C
-	dc.w abs_0_0001A3D8-abs_0_0001A25C
-	dc.w abs_0_0001A3E3-abs_0_0001A25C
-	dc.w abs_0_0001A3EF-abs_0_0001A25C
-	dc.w abs_0_0001A3FB-abs_0_0001A25C
-	dc.w abs_0_0001A401-abs_0_0001A25C
-	dc.w abs_0_0001A40B-abs_0_0001A25C
-	dc.w abs_0_0001A411-abs_0_0001A25C
-	dc.w abs_0_0001A41D-abs_0_0001A25C
-	dc.w abs_0_0001A42A-abs_0_0001A25C
-	dc.w abs_0_0001A43A-abs_0_0001A25C
-	dc.w abs_0_0001A446-abs_0_0001A25C
-	dc.w abs_0_0001A453-abs_0_0001A25C
-	dc.w abs_0_0001A45C-abs_0_0001A25C
-	dc.w abs_0_0001A46D-abs_0_0001A25C
-	dc.w abs_0_0001A474-abs_0_0001A25C
-	dc.w abs_0_0001A481-abs_0_0001A25C
-	dc.w abs_0_0001A489-abs_0_0001A25C
-	dc.w abs_0_0001A493-abs_0_0001A25C
-	dc.w abs_0_0001A4A0-abs_0_0001A25C
-	dc.w abs_0_0001A4A9-abs_0_0001A25C
-	dc.w abs_0_0001A4B6-abs_0_0001A25C
-	dc.w abs_0_0001A4BC-abs_0_0001A25C
-	dc.w abs_0_0001A4C9-abs_0_0001A25C
-	dc.w abs_0_0001A4D6-abs_0_0001A25C
-	dc.w abs_0_0001A4DF-abs_0_0001A25C
-	dc.w abs_0_0001A4EC-abs_0_0001A25C
-	dc.w abs_0_0001A4F4-abs_0_0001A25C
-	dc.w abs_0_0001A500-abs_0_0001A25C
-	dc.w abs_0_0001A506-abs_0_0001A25C
-	dc.w abs_0_0001A50E-abs_0_0001A25C
-	dc.w abs_0_0001A517-abs_0_0001A25C
-	dc.w abs_0_0001A520-abs_0_0001A25C
-	dc.w abs_0_0001A52A-abs_0_0001A25C
-	dc.w abs_0_0001A531-abs_0_0001A25C
-	dc.w abs_0_0001A539-abs_0_0001A25C
-	dc.w abs_0_0001A544-abs_0_0001A25C
-	dc.w abs_0_0001A552-abs_0_0001A25C
-	dc.w abs_0_0001A559-abs_0_0001A25C
-	dc.w abs_0_0001A562-abs_0_0001A25C
-	dc.w abs_0_0001A56F-abs_0_0001A25C
-	dc.w abs_0_0001A57D-abs_0_0001A25C
-	dc.w abs_0_0001A58A-abs_0_0001A25C
-	dc.w abs_0_0001A598-abs_0_0001A25C
-	dc.w abs_0_0001A5A9-abs_0_0001A25C
-	dc.w abs_0_0001A5BA-abs_0_0001A25C
-	dc.w abs_0_0001A5BA-abs_0_0001A25C
-	dc.w abs_0_0001A5BA-abs_0_0001A25C
-	dc.w abs_0_0001A5CB-abs_0_0001A25C
-	dc.w abs_0_0001A5DC-abs_0_0001A25C
-	dc.w abs_0_0001A5E8-abs_0_0001A25C
-	dc.w abs_0_0001A5E8-abs_0_0001A25C
-	dc.w abs_0_0001A5F7-abs_0_0001A25C
-	dc.w abs_0_0001A5F7-abs_0_0001A25C
-	dc.w abs_0_0001A5FF-abs_0_0001A25C
-	dc.w abs_0_0001A60C-abs_0_0001A25C
-	dc.w abs_0_0001A611-abs_0_0001A25C
-	dc.w abs_0_0001A618-abs_0_0001A25C
-	dc.w abs_0_0001A626-abs_0_0001A25C
-	dc.w abs_0_0001A631-abs_0_0001A25C
-	dc.w abs_0_0001A637-abs_0_0001A25C
-	dc.w abs_0_0001A641-abs_0_0001A25C
-	dc.w abs_0_0001A64C-abs_0_0001A25C
-	dc.w abs_0_0001A655-abs_0_0001A25C
-	dc.w abs_0_0001A662-abs_0_0001A25C
-	dc.w abs_0_0001A66F-abs_0_0001A25C
-	dc.w abs_0_0001A67B-abs_0_0001A25C
-	dc.w abs_0_0001A686-abs_0_0001A25C
-	dc.w abs_0_0001A690-abs_0_0001A25C
-	dc.w abs_0_0001A69B-abs_0_0001A25C
-	dc.w abs_0_0001A6A7-abs_0_0001A25C
-	dc.w abs_0_0001A6B3-abs_0_0001A25C
-	dc.w abs_0_0001A6C0-abs_0_0001A25C
-	dc.w abs_0_0001A6CD-abs_0_0001A25C
+item_name_offset_table:
+	dc.w abs_0_0001A25D-item_name_string_table	; lookup_table
+	dc.w abs_0_0001A25E-item_name_string_table
+	dc.w abs_0_0001A26B-item_name_string_table
+	dc.w abs_0_0001A272-item_name_string_table
+	dc.w abs_0_0001A277-item_name_string_table
+	dc.w abs_0_0001A284-item_name_string_table
+	dc.w abs_0_0001A290-item_name_string_table
+	dc.w abs_0_0001A298-item_name_string_table
+	dc.w abs_0_0001A2A3-item_name_string_table
+	dc.w abs_0_0001A2B0-item_name_string_table
+	dc.w abs_0_0001A2BD-item_name_string_table
+	dc.w abs_0_0001A2C7-item_name_string_table
+	dc.w abs_0_0001A2D3-item_name_string_table
+	dc.w abs_0_0001A2DE-item_name_string_table
+	dc.w abs_0_0001A2EC-item_name_string_table
+	dc.w abs_0_0001A2EC-item_name_string_table
+	dc.w abs_0_0001A2EC-item_name_string_table
+	dc.w abs_0_0001A2EC-item_name_string_table
+	dc.w abs_0_0001A2EC-item_name_string_table
+	dc.w abs_0_0001A2F8-item_name_string_table
+	dc.w abs_0_0001A305-item_name_string_table
+	dc.w abs_0_0001A305-item_name_string_table
+	dc.w abs_0_0001A305-item_name_string_table
+	dc.w abs_0_0001A305-item_name_string_table
+	dc.w abs_0_0001A311-item_name_string_table
+	dc.w abs_0_0001A31E-item_name_string_table
+	dc.w abs_0_0001A32A-item_name_string_table
+	dc.w abs_0_0001A337-item_name_string_table
+	dc.w abs_0_0001A346-item_name_string_table
+	dc.w abs_0_0001A351-item_name_string_table
+	dc.w abs_0_0001A35E-item_name_string_table
+	dc.w abs_0_0001A36B-item_name_string_table
+	dc.w abs_0_0001A377-item_name_string_table
+	dc.w abs_0_0001A382-item_name_string_table
+	dc.w abs_0_0001A38C-item_name_string_table
+	dc.w abs_0_0001A396-item_name_string_table
+	dc.w abs_0_0001A3A3-item_name_string_table
+	dc.w abs_0_0001A3AE-item_name_string_table
+	dc.w abs_0_0001A3B9-item_name_string_table
+	dc.w abs_0_0001A3C2-item_name_string_table
+	dc.w abs_0_0001A3D0-item_name_string_table
+	dc.w abs_0_0001A3D8-item_name_string_table
+	dc.w abs_0_0001A3E3-item_name_string_table
+	dc.w abs_0_0001A3EF-item_name_string_table
+	dc.w abs_0_0001A3FB-item_name_string_table
+	dc.w abs_0_0001A401-item_name_string_table
+	dc.w abs_0_0001A40B-item_name_string_table
+	dc.w abs_0_0001A411-item_name_string_table
+	dc.w abs_0_0001A41D-item_name_string_table
+	dc.w abs_0_0001A42A-item_name_string_table
+	dc.w abs_0_0001A43A-item_name_string_table
+	dc.w abs_0_0001A446-item_name_string_table
+	dc.w abs_0_0001A453-item_name_string_table
+	dc.w abs_0_0001A45C-item_name_string_table
+	dc.w abs_0_0001A46D-item_name_string_table
+	dc.w abs_0_0001A474-item_name_string_table
+	dc.w abs_0_0001A481-item_name_string_table
+	dc.w abs_0_0001A489-item_name_string_table
+	dc.w abs_0_0001A493-item_name_string_table
+	dc.w abs_0_0001A4A0-item_name_string_table
+	dc.w abs_0_0001A4A9-item_name_string_table
+	dc.w abs_0_0001A4B6-item_name_string_table
+	dc.w abs_0_0001A4BC-item_name_string_table
+	dc.w abs_0_0001A4C9-item_name_string_table
+	dc.w abs_0_0001A4D6-item_name_string_table
+	dc.w abs_0_0001A4DF-item_name_string_table
+	dc.w abs_0_0001A4EC-item_name_string_table
+	dc.w abs_0_0001A4F4-item_name_string_table
+	dc.w abs_0_0001A500-item_name_string_table
+	dc.w abs_0_0001A506-item_name_string_table
+	dc.w abs_0_0001A50E-item_name_string_table
+	dc.w abs_0_0001A517-item_name_string_table
+	dc.w abs_0_0001A520-item_name_string_table
+	dc.w abs_0_0001A52A-item_name_string_table
+	dc.w abs_0_0001A531-item_name_string_table
+	dc.w abs_0_0001A539-item_name_string_table
+	dc.w abs_0_0001A544-item_name_string_table
+	dc.w abs_0_0001A552-item_name_string_table
+	dc.w abs_0_0001A559-item_name_string_table
+	dc.w abs_0_0001A562-item_name_string_table
+	dc.w abs_0_0001A56F-item_name_string_table
+	dc.w abs_0_0001A57D-item_name_string_table
+	dc.w abs_0_0001A58A-item_name_string_table
+	dc.w abs_0_0001A598-item_name_string_table
+	dc.w abs_0_0001A5A9-item_name_string_table
+	dc.w abs_0_0001A5BA-item_name_string_table
+	dc.w abs_0_0001A5BA-item_name_string_table
+	dc.w abs_0_0001A5BA-item_name_string_table
+	dc.w abs_0_0001A5CB-item_name_string_table
+	dc.w abs_0_0001A5DC-item_name_string_table
+	dc.w abs_0_0001A5E8-item_name_string_table
+	dc.w abs_0_0001A5E8-item_name_string_table
+	dc.w abs_0_0001A5F7-item_name_string_table
+	dc.w abs_0_0001A5F7-item_name_string_table
+	dc.w abs_0_0001A5FF-item_name_string_table
+	dc.w abs_0_0001A60C-item_name_string_table
+	dc.w abs_0_0001A611-item_name_string_table
+	dc.w abs_0_0001A618-item_name_string_table
+	dc.w abs_0_0001A626-item_name_string_table
+	dc.w abs_0_0001A631-item_name_string_table
+	dc.w abs_0_0001A637-item_name_string_table
+	dc.w abs_0_0001A641-item_name_string_table
+	dc.w abs_0_0001A64C-item_name_string_table
+	dc.w abs_0_0001A655-item_name_string_table
+	dc.w abs_0_0001A662-item_name_string_table
+	dc.w abs_0_0001A66F-item_name_string_table
+	dc.w abs_0_0001A67B-item_name_string_table
+	dc.w abs_0_0001A686-item_name_string_table
+	dc.w abs_0_0001A690-item_name_string_table
+	dc.w abs_0_0001A69B-item_name_string_table
+	dc.w abs_0_0001A6A7-item_name_string_table
+	dc.w abs_0_0001A6B3-item_name_string_table
+	dc.w abs_0_0001A6C0-item_name_string_table
+	dc.w abs_0_0001A6CD-item_name_string_table
 abs_0_0001A7C0:
 	dc.b " ITEM DEPOSITED",$00
 abs_0_0001A7D0:
