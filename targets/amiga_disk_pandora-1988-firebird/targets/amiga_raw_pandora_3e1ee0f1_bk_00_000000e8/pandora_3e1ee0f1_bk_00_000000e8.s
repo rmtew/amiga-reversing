@@ -82,18 +82,18 @@ app_020A RS.B 1
 app_020B RS.B 1
 app_020C RS.L 1
 app_0210 RS.L 1
-app_0214 RS.W 1
-app_0216 RS.W 1
+app_inventory_cursor_x RS.W 1
+app_inventory_cursor_y RS.W 1
 app_0218 RS.W 1
 app_021A RS.W 1
     RS.B 6
 app_0222 RS.B 1
     RS.B 1
 app_scrolling_message_timer RS.W 1
-app_0226 RS.W 1
-app_0228 RS.W 1
-app_022A RS.W 1
-app_022C RS.B 1
+app_inventory_cursor_x_step RS.W 1
+app_inventory_cursor_y_step RS.W 1
+app_inventory_cursor_move_countdown RS.W 1
+app_inventory_selection_latched RS.B 1
 app_022D RS.B 1
 app_022E RS.B 1
 app_022F RS.B 1
@@ -380,9 +380,9 @@ abs_0_000105C2:
 	btst.b #5,app_027B(a6)
 	beq.b abs_0_000105C2
 	bsr.w abs_0_00012EE6
-	bsr.w abs_0_000126EC
+	bsr.w update_inventory_panel_availability
 	bsr.w abs_0_00017D48
-	bsr.w abs_0_000128D4
+	bsr.w handle_inventory_panel_input
 	bsr.w abs_0_000124AE
 	bsr.w abs_0_000124FE
 	bsr.w abs_0_0001253C
@@ -655,9 +655,9 @@ handle_vertical_blank_frame_update:
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l $00065370.l,a0
-	move.w app_0214(a6),d0
+	move.w app_inventory_cursor_x(a6),d0
 	addi.w #128,d0
-	move.w app_0216(a6),d1
+	move.w app_inventory_cursor_y(a6),d1
 	addi.w #44,d1
 	lsl.w #8,d1
 	lsr.w #1,d0
@@ -1937,7 +1937,7 @@ abs_0_0001268E:
 abs_0_000126E6:
 	movem.l (a7)+,d0-d2/a0-a2
 	rts
-abs_0_000126EC:
+update_inventory_panel_availability:
 	lea.l abs_0_0005C322.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_00012712
@@ -1945,17 +1945,17 @@ abs_0_000126EC:
 	andi.b #3,d0
 	bne.b abs_0_00012712
 	tst.b absolute_slot_000039BC.l
-	bne.b abs_0_00012714
+	bne.b toggle_inventory_panel
 	bclr.b #3,app_022E(a6)
 abs_0_00012712:
 	rts
-abs_0_00012714:
+toggle_inventory_panel:
 	bset.b #3,app_022E(a6)
 	bne.b abs_0_00012712
 	move.w #$311,d0
 	jsr abs_0_0005D330.l
 	bset.b #2,app_022E(a6)
-	bne.w abs_0_00012778
+	bne.w close_inventory_panel
 	bclr.b #4,app_022E(a6)
 	tst.l app_nearest_object_ptr(a6)
 	beq.b abs_0_00012754
@@ -1964,7 +1964,7 @@ abs_0_00012714:
 	bsr.w abs_0_0001268E
 	bcc.b abs_0_00012754
 	btst.b #1,$0048(a5)
-	bne.w abs_0_000127EA
+	bne.w open_nearby_object_inventory_panel
 abs_0_00012754:
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
@@ -1972,10 +1972,10 @@ abs_0_00012754:
 	bsr.w abs_0_000166A0
 	lea.l abs_0_00013436(pc),a5
 	bsr.w abs_0_000166A0
-	clr.w app_0214(a6)
+	clr.w app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
 	bra.w abs_0_000194E2
-abs_0_00012778:
+close_inventory_panel:
 	bsr.w reset_inventory_panel_state
 	bsr.w abs_0_000194C0
 	bclr.b #1,app_033C(a6)
@@ -2004,13 +2004,13 @@ abs_0_000127C4:
 	bsr.w abs_0_000166A0
 	lea.l abs_0_000133B2(pc),a5
 	bsr.w abs_0_000166A0
-	bsr.w abs_0_000129A8
+	bsr.w finalize_inventory_selection
 	cmp.b #$64,d0
 	bne.w abs_0_00012712
 	lea.l abs_0_00017CEC(pc),a0
 	bsr.w abs_0_00017CFE
 	rts
-abs_0_000127EA:
+open_nearby_object_inventory_panel:
 	bset.b #4,app_022E(a6)
 	movea.l $0014(a5),a0
 	move.b (a0),app_inventory_display_item_ids(a6)
@@ -2026,7 +2026,7 @@ abs_0_000127EA:
 	bsr.w abs_0_000166A0
 	lea.l abs_0_00013436(pc),a5
 	bsr.w abs_0_000166A0
-	move.w #$C0,app_0214(a6)
+	move.w #$C0,app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
 	bsr.w abs_0_000194E2
 	rts
@@ -2054,13 +2054,13 @@ build_carried_item_name_list:
 	rts
 reset_inventory_panel_state:
 	clr.w app_scrolling_message_timer(a6)
-	clr.w app_0226(a6)
-	clr.w app_0228(a6)
-	clr.w app_022A(a6)
-	clr.w app_0214(a6)
-	move.w #$8B,app_0216(a6)
-	move.b #$1,app_022C(a6)
-abs_0_00012898:
+	clr.w app_inventory_cursor_x_step(a6)
+	clr.w app_inventory_cursor_y_step(a6)
+	clr.w app_inventory_cursor_move_countdown(a6)
+	clr.w app_inventory_cursor_x(a6)
+	move.w #$8B,app_inventory_cursor_y(a6)
+	move.b #$1,app_inventory_selection_latched(a6)
+update_inventory_panel_player_palette:
 	move.l a0,-(a7)
 	lea.l abs_0_000134C2(pc),a0
 	move.b abs_0_0005C368.l,d0
@@ -2080,18 +2080,18 @@ abs_0_000128CC:
 	bsr.w abs_0_000194E2
 	movea.l (a7)+,a0
 	rts
-abs_0_000128D4:
+handle_inventory_panel_input:
 	btst.b #2,app_022E(a6)
 	beq.b abs_0_00012918
 	btst.b #1,abs_0_0005C36A.l
 	bne.b abs_0_00012918
-	tst.w app_022A(a6)
-	bne.w abs_0_00012990
+	tst.w app_inventory_cursor_move_countdown(a6)
+	bne.w advance_inventory_cursor_move
 	tst.b app_022F(a6)
-	beq.b abs_0_0001291A
-	bsr.w abs_0_00012A32
-	bsr.b abs_0_00012898
-	st.b app_022C(a6)
+	beq.b start_inventory_cursor_move
+	bsr.w handle_inventory_panel_selection
+	bsr.b update_inventory_panel_player_palette
+	st.b app_inventory_selection_latched(a6)
 	bclr.b #7,app_02A6(a6)
 	move.b $0046(a4),d0
 	subi.b #18,d0
@@ -2100,14 +2100,14 @@ abs_0_000128D4:
 	bset.b #7,app_02A6(a6)
 abs_0_00012918:
 	rts
-abs_0_0001291A:
-	clr.b app_022C(a6)
+start_inventory_cursor_move:
+	clr.b app_inventory_selection_latched(a6)
 	move.w app_input_direction_mask(a6),d0
 	beq.b abs_0_00012918
-	clr.w app_0226(a6)
-	clr.w app_0228(a6)
+	clr.w app_inventory_cursor_x_step(a6)
+	clr.w app_inventory_cursor_y_step(a6)
 	move.w app_input_x_step(a6),d0
-	add.w app_0214(a6),d0
+	add.w app_inventory_cursor_x(a6),d0
 	cmp.w #$C0,d0
 	bcc.b abs_0_0001296A
 	btst.b #4,app_022E(a6)
@@ -2124,31 +2124,31 @@ abs_0_00012948:
 	add.w d0,d0
 	add.w d1,d0
 	add.w d0,d0
-	move.w d0,app_0226(a6)
-	move.w #$8,app_022A(a6)
+	move.w d0,app_inventory_cursor_x_step(a6)
+	move.w #$8,app_inventory_cursor_move_countdown(a6)
 	rts
 abs_0_0001296A:
 	move.w app_input_y_step(a6),d0
 	beq.b abs_0_0001298E
 	add.w d0,d0
 	move.w d0,d1
-	add.w app_0216(a6),d0
+	add.w app_inventory_cursor_y(a6),d0
 	cmp.w #$A4,d0
 	bcc.b abs_0_0001298E
 	cmp.w #$8B,d0
 	bcs.b abs_0_0001298E
-	move.w d1,app_0228(a6)
-	move.w #$4,app_022A(a6)
+	move.w d1,app_inventory_cursor_y_step(a6)
+	move.w #$4,app_inventory_cursor_move_countdown(a6)
 abs_0_0001298E:
 	rts
-abs_0_00012990:
-	move.w app_0226(a6),d0
-	add.w d0,app_0214(a6)
-	move.w app_0228(a6),d0
-	add.w d0,app_0216(a6)
-	subq.w #1,app_022A(a6)
+advance_inventory_cursor_move:
+	move.w app_inventory_cursor_x_step(a6),d0
+	add.w d0,app_inventory_cursor_x(a6)
+	move.w app_inventory_cursor_y_step(a6),d0
+	add.w d0,app_inventory_cursor_y(a6)
+	subq.w #1,app_inventory_cursor_move_countdown(a6)
 	bra.w abs_0_000194E2
-abs_0_000129A8:
+finalize_inventory_selection:
 	bset.b #5,app_022E(a6)
 	bsr.w refresh_selected_item_name_display
 	moveq.l #0,d0
@@ -2196,22 +2196,22 @@ abs_0_00012A0C:
 	dbf.w d7,abs_0_00012A0C
 	movem.l (a7)+,d7/a2-a5
 	rts
-abs_0_00012A32:
-	tst.b app_022C(a6)
+handle_inventory_panel_selection:
+	tst.b app_inventory_selection_latched(a6)
 	bne.w abs_0_00012AB6
 	bsr.w abs_0_00017BA6
 	movea.l app_0358(a6),a5
 	lea.l abs_0_0005C322.l,a4
-	move.w app_0216(a6),d0
+	move.w app_inventory_cursor_y(a6),d0
 	subi.w #139,d0
 	lsr.w #2,d0
 	move.w d0,d1
 	andi.b #6,d1
 	lsr.w #1,d0
-	move.w app_0214(a6),d2
+	move.w app_inventory_cursor_x(a6),d2
 	subi.w #0,d2
 	cmp.w #$C0,d2
-	bne.b abs_0_00012AB8
+	bne.b transfer_selected_item_to_carried_inventory
 	bset.b #4,app_02A6(a6)
 	movea.l $0014(a5),a0
 	move.b $0(a0,d1.w),d2
@@ -2232,7 +2232,7 @@ abs_0_00012A9E:
 	bsr.w abs_0_00016632
 abs_0_00012AB6:
 	rts
-abs_0_00012AB8:
+transfer_selected_item_to_carried_inventory:
 	cmp.w #$60,d2
 	beq.b handle_item_too_large_for_pockets
 	move.b $0046(a4),d2
@@ -2252,7 +2252,7 @@ handle_item_too_large_for_pockets:
 	lea.l abs_0_0001A804.l,a0
 	bsr.w abs_0_00015FFE
 	movem.l (a7)+,d0/a0
-	beq.b abs_0_00012B34
+	beq.b transfer_selected_item_to_pocket_inventory
 	tst.w app_scrolling_message_timer(a6)
 	bne.b abs_0_00012B32
 	move.w #$46,app_scrolling_message_timer(a6)
@@ -2267,7 +2267,7 @@ handle_item_too_large_for_pockets:
 	jsr abs_0_0005D330.l
 abs_0_00012B32:
 	rts
-abs_0_00012B34:
+transfer_selected_item_to_pocket_inventory:
 	move.b $0046(a4),d2
 	lea.l app_pocket_item_ids(a6),a0
 	move.b $0(a0,d0.w),$0046(a4)
@@ -5136,7 +5136,7 @@ abs_0_0001778A:
 abs_0_00017792:
 	btst.b #2,app_022E(a6)
 	beq.b abs_0_0001779E
-	bsr.w abs_0_00012778
+	bsr.w close_inventory_panel
 abs_0_0001779E:
 	bset.b #1,app_022E(a6)
 	lea.l abs_0_00013302.l,a5
@@ -6880,8 +6880,8 @@ abs_0_00019486:
 	rts
 abs_0_000194AC:
 	bclr.b #0,app_020A(a6)
-	move.w app_0214(a6),app_0218(a6)
-	move.w app_0216(a6),app_021A(a6)
+	move.w app_inventory_cursor_x(a6),app_0218(a6)
+	move.w app_inventory_cursor_y(a6),app_021A(a6)
 	rts
 abs_0_000194C0:
 	bset.b #0,app_020A(a6)
@@ -6890,7 +6890,7 @@ abs_0_000194C0:
 	lea.l abs_0_0005D5DE.l,a0
 	move.l a0,app_020C(a6)
 	move.l a0,app_0210(a6)
-	move.w #$1A4,app_0214(a6)
+	move.w #$1A4,app_inventory_cursor_x(a6)
 	movea.l (a7)+,a0
 abs_0_000194E0:
 	rts
