@@ -853,6 +853,18 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   temporal source-provenance support; do not promote a debugger observation
   automatically. Do not substitute rendered-source parsing or add joystick
   injection first.
+- The public `amiga-winuae-session` entrypoint is now a strict read-only
+  wrapper around `tools/run_winuae_headless.ps1`, replacing its former
+  GUI/debugger-session model and stale clone path. Its default operation prints
+  an explicit launch plan; `--run` invokes the already-bounded headless runner
+  with the target's decoded payload, then returns `mapped`,
+  `mapped_with_runtime_view`, `unmapped_runtime_address`, or
+  `not_target_payload` PC attribution. The second status means a repeated byte
+  sample was disambiguated only by an already-reviewed observation view; it
+  does not create that view. The entrypoint does not accept arbitrary GDB
+  commands and does not append target facts. This is the minimal agent-facing
+  observation contract; selected evidence remains a reviewed Manual Action Log
+  decision.
 
 ## Decision Record
 

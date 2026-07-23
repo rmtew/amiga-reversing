@@ -116,7 +116,7 @@ if ($resolvedFloppy0) {
     $emulatorArgs += '-s', "floppy0=$resolvedFloppy0"
 }
 
-$process = Start-Process -FilePath $emulator -ArgumentList (ConvertTo-ArgumentListString $emulatorArgs) -PassThru
+$process = Start-Process -FilePath $emulator -ArgumentList (ConvertTo-ArgumentListString $emulatorArgs) -WindowStyle Hidden -PassThru
 $ready = $false
 
 try {

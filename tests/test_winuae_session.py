@@ -2,73 +2,72 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from amiga_reversing.tools import winuae_session
 
 
-def test_winuae_session_command_uses_cli_root_and_debugger() -> None:
-    session = winuae_session.WinUaeSession(
-        winuae_exe=Path(r"C:\Tools\WinUAE\winuae64.exe"),
-        cli_root=Path(r"C:\work\cli root"),
-        config_path=Path(r"C:\work\debug.uae"),
+def test_headless_session_command_is_non_interactive_and_payload_bound() -> None:
+    session = winuae_session.HeadlessWinUaeSession(
+        rom_path=Path(r"C:\roms\kick.rom"),
+        floppy0=Path(r"C:\media\pandora.adf"),
+        target_payload_path=Path(r"C:\target\binary.bin"),
+        runner_path=Path(r"C:\repo\tools\run_winuae_headless.ps1"),
+        state_directory=Path(r"C:\tmp\winuae"),
+        continue_seconds=60,
     )
 
     assert session.command() == [
-        r"C:\Tools\WinUAE\winuae64.exe",
-        "-G",
-        "-D",
-        r"-cli=C:\work\cli root",
-        r"-config=C:\work\debug.uae",
+        "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+        r"C:\repo\tools\run_winuae_headless.ps1", "-RomPath", r"C:\roms\kick.rom",
+        "-TargetPayloadPath", r"C:\target\binary.bin", "-ContinueSeconds", "60",
+        "-Floppy0", r"C:\media\pandora.adf", "-StateDirectory", r"C:\tmp\winuae",
     ]
-    assert winuae_session.command_line(session.command()) == (
-        r"C:\Tools\WinUAE\winuae64.exe -G -D "
-        r'"-cli=C:\work\cli root" -config=C:\work\debug.uae'
+
+
+def test_resolve_paused_pc_rejects_ambiguous_payload_without_runtime_view(monkeypatch) -> None:
+    report = {"observation": {"pc": "0x00010bc6", "active_execution": {"payload": {"status": "ambiguous"}}}}
+    monkeypatch.setattr(
+        winuae_session,
+        "build_project_listing_artifact_profile",
+        lambda _: (0, {}, _FakeArtifact({"runtime_observation_view": None})),
     )
 
-
-def test_write_cmd_file_forwards_extra_args(tmp_path: Path) -> None:
-    cmd_path = tmp_path / "run-winuae.cmd"
-    session = winuae_session.WinUaeSession(
-        winuae_exe=Path("winuae64.exe"),
-        cli_root=tmp_path / "cli",
-        start_debugger=False,
-        no_gui=False,
-    )
-
-    winuae_session.write_cmd_file(cmd_path, session)
-
-    assert cmd_path.read_text(encoding="utf-8") == f"@echo off\nwinuae64.exe -cli={tmp_path}\\cli %*\n"
+    assert winuae_session.resolve_paused_pc("unused", report) == {
+        "status": "not_target_payload",
+        "pc": "0x00010bc6",
+        "payload": {"status": "ambiguous"},
+        "reason": "ambiguous payload sample has no confirmed runtime observation view",
+    }
 
 
-def test_write_startup_sequence_creates_boot_script(tmp_path: Path) -> None:
-    startup_path = winuae_session.write_startup_sequence(
-        tmp_path / "cli",
-        ["cd dh0:work", "run >nil: target"],
-    )
+def test_resolve_paused_pc_uses_confirmed_runtime_view_for_ambiguous_sample(monkeypatch) -> None:
+    row = {
+        "stable_key": "s0:00000BB8:instruction:761",
+        "section_index": 0,
+        "start_offset": 0xBB8,
+        "kind": "instruction",
+        "text": "\tmove.w d0,$0004(a2)\n",
+        "runtime_observation_view": {"source_start": 0, "base_addr": 0x10000},
+    }
+    report = {
+        "observation": {
+            "pc": "0x00010bb8",
+            "active_execution": {"payload": {"status": "ambiguous", "matching_offsets": ["0xbb8", "0xc44"]}},
+        }
+    }
+    monkeypatch.setattr(winuae_session, "build_project_listing_artifact_profile", lambda _: (0, {}, _FakeArtifact(row)))
 
-    assert startup_path == tmp_path / "cli" / "S" / "startup-sequence"
-    assert startup_path.read_text(encoding="ascii") == "cd dh0:work\nrun >nil: target\n"
+    resolved = winuae_session.resolve_paused_pc("pandora", report)
+
+    assert resolved["status"] == "mapped_with_runtime_view"
+    assert resolved["canonical_row"]["stable_key"] == "s0:00000BB8:instruction:761"
 
 
-def test_main_prints_and_writes_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    cmd_path = tmp_path / "session.cmd"
-    result = winuae_session.main(
-        [
-            "--winuae",
-            "winuae64.exe",
-            "--cli-root",
-            str(tmp_path / "cli"),
-            "--no-debugger",
-            "--show-gui",
-            "--cmd-out",
-            str(cmd_path),
-            "--startup-command",
-            "echo ready",
-        ]
-    )
+class _FakeArtifact:
+    def __init__(self, row):
+        self._row = row
 
-    assert result == 0
-    assert capsys.readouterr().out == f"winuae64.exe -cli={tmp_path}\\cli\n"
-    assert cmd_path.read_text(encoding="utf-8") == f"@echo off\nwinuae64.exe -cli={tmp_path}\\cli %*\n"
-    assert (tmp_path / "cli" / "S" / "startup-sequence").read_text(encoding="ascii") == "echo ready\n"
+    def row_for_runtime_address(self, *, address: int):
+        return self._row
+
+    def close(self) -> None:
+        pass
