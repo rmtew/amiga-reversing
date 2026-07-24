@@ -294,6 +294,13 @@ from D0 to the `item_state` field of every eligible `world_object_ptr_table`
 entry. Null entries and objects whose `world_object_flags` have bit 1 set are
 skipped, establishing this as a shared state-update pass rather than an object
 local helper.
+
+The matching effect triggers are now explicit. `decrease_active_world_object_item_state`
+at `$0005B0D6` queues the message "I am now stronger than you could possibly
+imagine." and tail-calls that pass with D0 = `-15`. The two distinct, otherwise
+identical `$0005B10A` and `$0005B112` entrypoints each tail-call it with D0 =
+`+15`; they remain separately labelled because their dispatch contexts have not
+yet been recovered.
 The resulting long at prefix offset `+0x00` is represented as `item_name_ptr`.
 
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
