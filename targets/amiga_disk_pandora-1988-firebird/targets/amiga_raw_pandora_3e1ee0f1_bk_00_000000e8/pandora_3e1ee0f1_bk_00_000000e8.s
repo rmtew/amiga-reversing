@@ -503,7 +503,7 @@ abs_0_000105C2:
 	bsr.w abs_0_000124FE
 	bsr.w abs_0_0001253C
 	bsr.w update_nearby_object_detection
-	jsr abs_0_00018814.l
+	jsr process_security_checkpoint_response.l
 	jsr update_active_world_object_positions.l
 	bsr.w update_world_object_interactions
 	jsr abs_0_00018984.l
@@ -7003,11 +7003,11 @@ abs_0_00018802:
 	move #$1,ccr
 abs_0_00018806:
 	rts
-abs_0_00018808:
+clear_security_checkpoint_state:
 	clr.b app_02CF(a6)
 	jsr abs_0_0005D368.l
 	rts
-abs_0_00018814:
+process_security_checkpoint_response:
 	lea.l player_world_object.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_0001884E
@@ -7024,7 +7024,7 @@ abs_0_00018814:
 	bne.b abs_0_00018850
 abs_0_00018848:
 	tst.b app_02CF(a6)
-	bne.b abs_0_00018808
+	bne.b clear_security_checkpoint_state
 abs_0_0001884E:
 	rts
 abs_0_00018850:
@@ -7034,7 +7034,7 @@ abs_0_00018850:
 	bcc.b abs_0_0001884E
 	tst.b app_02CF(a6)
 	bne.b abs_0_00018864
-	bsr.w abs_0_00018960
+	bsr.w begin_security_checkpoint_response
 abs_0_00018864:
 	subq.w #1,app_02D0(a6)
 	bne.b abs_0_00018896
@@ -7081,16 +7081,16 @@ abs_0_0001890C:
 	moveq.l #31,d0
 	sub.b app_02CE(a6),d0
 	add.w d0,d0
-	move.w abs_0_00018920(pc,d0.w),d0
+	move.w rgb12_color(pc,d0.w),d0
 abs_0_00018918:
 	move.w d0,abs_0_00010772.l
 	rts
-abs_0_00018920:
-	dc.w $0000,$0EEE,$0000,$0EEE,$0000,$0EEE,$0000,$0EEE	; lookup_table
-	dc.w $0000,$0666,$0AAA,$0EEE,$0000,$0666,$0AAA,$0EEE	; lookup_table
-	dc.w $0000,$0222,$0444,$0666,$0888,$0AAA,$0CCC,$0EEE	; lookup_table
-	dc.w $0EEE,$0CCC,$0AAA,$0888,$0666,$0444,$0222,$0000	; lookup_table
-abs_0_00018960:
+rgb12_color:
+	dc.w $0000,$0EEE,$0000,$0EEE,$0000,$0EEE,$0000,$0EEE	; security_checkpoint_alert_palette
+	dc.w $0000,$0666,$0AAA,$0EEE,$0000,$0666,$0AAA,$0EEE	; security_checkpoint_alert_palette
+	dc.w $0000,$0222,$0444,$0666,$0888,$0AAA,$0CCC,$0EEE	; security_checkpoint_alert_palette
+	dc.w $0EEE,$0CCC,$0AAA,$0888,$0666,$0444,$0222,$0000	; security_checkpoint_alert_palette
+begin_security_checkpoint_response:
 	move.l a5,d0
 	beq.b abs_0_00018982
 	move.w abs_0_00010772.l,app_02D2(a6)
@@ -22394,7 +22394,16 @@ abs_0_0004A738:
 	dc.b $3F,$00,$00,$00,$00,$00,$00,$70
 	dcb.b $16,$00
 	dc.b $1F,$00,$00,$00,$00,$00,$00,$38
-	dcb.b $E7,$00
+	dcb.b $C7,$00
+abs_0_0004D310:
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
 abs_0_0004D330:
 	ori.b #0,d0
 	ori.b #0,d0
@@ -22416,6 +22425,7 @@ abs_0_0004D338:
 	and.b d0,d0
 	and.b d0,d0
 	or.b d0,d0
+abs_0_0004D368:
 	ori.b #3,d3
 	ori.b #1,d3
 	move.l d0,d0
@@ -27557,10 +27567,7 @@ abs_0_0005D30A:
 	move.w #$201,d0
 	bra.b start_feedback_audio_sequence
 abs_0_0005D310:
-	moveq.l #14,d0
-	bsr.b start_feedback_audio_sequence
-	move.w #$30C,d0
-	bra.b start_feedback_audio_sequence
+	dc.b $70,$0E,$61,$1C,$30,$3C,$03,$0C,$60,$16
 abs_0_0005D31A:
 	move.w #$102,d0
 	bra.b start_feedback_audio_sequence
@@ -27590,11 +27597,8 @@ abs_0_0005D364:
 	move.w d0,d0
 	rts
 abs_0_0005D368:
-	bclr.b #7,app_033C(a6)
-	movem.l d1-d7/a1-a6,-(a7)
-	jsr reset_audio_channels.l
-	movem.l (a7)+,d1-d7/a1-a6
-	rts
+	dc.b $08,$AE,$00,$07,$03,$3C,$48,$E7,$7F,$7E,$4E,$B9,$00,$05,$D8,$72
+	dc.b $4C,$DF,$7E,$FE,$4E,$75
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_musician:
 	jsr is_player_within_world_object_interaction_range.l

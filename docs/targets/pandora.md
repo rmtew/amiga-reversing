@@ -360,6 +360,16 @@ that zone. Its exact six-byte `id_card_clearance_by_variant` table at
 `$000187DC` is recorded as the `clearance_tier` byte array rather than anonymous
 lookup data.
 
+`process_security_checkpoint_response` at `$00018814` consumes a failed
+clearance check for the nearby restricted state. It starts and counts down the
+checkpoint response, drives the RGB12 alert color stored at `$00010772`, and
+performs the player/object position transition when the response completes.
+`begin_security_checkpoint_response` saves the current color, starts the
+response, and displays the nearby object's item; `clear_security_checkpoint_state`
+clears the response state. The indexed 32-word
+`security_checkpoint_rgb12_palette_sequence` at `$00018920` is now an explicit
+word array rather than three anonymous lookup-table fragments.
+
 ### Confirmed interaction helpers
 
 `restore_world_object_position_state` at `$0001867E` clears the active
