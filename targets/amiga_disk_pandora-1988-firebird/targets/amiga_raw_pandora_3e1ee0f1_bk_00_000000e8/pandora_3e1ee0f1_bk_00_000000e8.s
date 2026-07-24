@@ -214,6 +214,7 @@ INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING	EQU	5
 INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED	EQU	7
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
+INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING	EQU	$3
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 active_world_object_ptr_table	EQU	$1309A
 sample_ptr	EQU	0
@@ -27046,20 +27047,32 @@ interact_with_gardener:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D4DE
 	bset.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
-	bne.b abs_0_0005D4E2
+	bne.b update_gardener_feedback_audio
 	move.w #$217,d0
 	jsr start_feedback_audio_sequence.l
 abs_0_0005D4DE:
 	move.w d0,d0
 	rts
-abs_0_0005D4E2:
+update_gardener_feedback_audio:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
 	bne.b abs_0_0005D4DE
 	bclr.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_gardener
-	dc.b $08,$2E,$00,$01,$02,$2E,$66,$12,$08,$EE,$00,$03,$03,$3E,$66,$0E
-	dc.b $30,$3C,$02,$14,$4E,$B9,$00,$05,$D3,$30,$30,$00,$4E,$75,$4A,$39
-	dc.b $00,$05,$E6,$54,$66,$F4,$08,$AE,$00,$03,$03,$3E,$60,$D2
+update_interaction_audio_sequence_214:
+	btst.b #1,app_022E(a6)
+	bne.b abs_0_0005D50C
+	bset.b #3,app_world_interaction_audio_flags(a6)
+	bne.b abs_0_0005D510
+	move.w #$214,d0
+	jsr start_feedback_audio_sequence.l
+abs_0_0005D50C:
+	move.w d0,d0
+	rts
+abs_0_0005D510:
+	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
+	bne.b abs_0_0005D50C
+	bclr.b #3,app_world_interaction_audio_flags(a6)
+	bra.b update_interaction_audio_sequence_214
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_squash_player:
 	move.b selected_item_id(a5),d0

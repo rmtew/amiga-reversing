@@ -258,6 +258,19 @@ Both bytes are reset by `initialize_world_state`.  The audio byte's bit 0 is
 also used by the broader audio-player update path, so it remains intentionally
 unnamed until that subsystem is recovered.
 
+### Recovered orphan interaction-audio code
+
+Two code blocks immediately following `interact_with_gardener` were previously
+rendered as raw bytes despite valid M68K instruction streams and terminal or
+backward control flow. `update_gardener_feedback_audio` at `$0005D4E2` tests
+channel 2's playback ticks, clears the Gardener pending latch when playback
+ends, and returns to the Gardener interaction callback. The adjacent
+`update_interaction_audio_sequence_214` at `$0005D4F2` has the same latch/
+playback-completion shape for sequence `$214` and audio-flag bit 3. The latter
+is named `INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING`. No world-object-table
+or direct-pointer reference identifies its owner, so the routine name records
+behavior rather than guessing an NPC.
+
 `is_player_within_world_object_interaction_range` at `$00012664` compares the
 player and selected object's coordinates and returns the condition code used by
 the Musician and Diabetic paths. Its current bounds are an absolute Y delta
