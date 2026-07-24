@@ -344,6 +344,18 @@ target is `default_audio_pitch_sequence_stream` at `$0005DE7E`. For `$b0..$bf`,
 rebased word offsets for volume sequences. The sequence-byte encodings remain
 raw until the command language is fully recovered.
 
+### Audio sequence command dispatch
+
+Bytes below `$a0` enter an eleven-entry relative-offset table,
+`audio_sequence_command_dispatch_offsets` at `$0005DCE8`, again rebased from
+`initialize_audio_player`. Its destinations at `$0005DC2E..$0005DCDC` are now
+recovered code rather than a raw-byte island. They advance the channel program,
+set pitch-delta and pitch-modulation state, set per-channel note/configuration
+values, trigger the default sample path, reset channels, or update player-wide
+controls before returning to the shared packed-stream decoder. The `$4e75` RTS
+at `$0005DCDE` is a decisive code boundary within the dispatch island; it is
+not an inline-data marker.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

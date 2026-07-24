@@ -27363,6 +27363,7 @@ abs_0_0005DA6E:
 	move.w d0,aud0+ac_per(a6)	; audio period
 abs_0_0005DA94:
 	sf.b $0016(a0)
+abs_0_0005DA98:
 	move.l a1,$0004(a0)
 	move.w $001C(a0),$001E(a0)
 	move.w #$8200,d1
@@ -27495,22 +27496,70 @@ abs_0_0005DBFE:
 	bra.w abs_0_0005DA1A
 abs_0_0005DC20:
 	add.b d0,d0
-	lea.l abs_0_0005DCE8(pc),a2
+	lea.l audio_sequence_command_dispatch_offsets(pc),a2
 	movea.w $0(a2,d0.w),a2
 	jmp $0(a3,a2.w)
-	dc.b $30,$28,$00,$0A,$34,$68,$00,$08,$D4,$C0,$54,$40,$4A,$73,$A0,$00
-	dc.b $66,$06,$34,$68,$00,$08,$70,$02,$32,$73,$A0,$00,$D3,$CB,$31,$40
-	dc.b $00,$0A,$60,$00,$FD,$C8,$42,$68,$00,$20,$11,$59,$00,$14,$11,$59
-	dc.b $00,$15,$08,$E8,$00,$01,$00,$00,$60,$00,$FD,$B2,$31,$68,$00,$1C
-	dc.b $00,$1E,$21,$49,$00,$04,$29,$7A,$00,$96,$00,$00,$39,$7C,$00,$20
-	dc.b $00,$04,$4A,$2C,$00,$0B,$66,$0C,$2D,$7A,$00,$84,$00,$A0,$3D,$7C
-	dc.b $00,$20,$00,$A4,$60,$00,$FE,$1A,$60,$00,$FE,$00,$60,$00,$FB,$D6
-	dc.b $17,$59,$05,$2A,$60,$00,$FD,$76,$50,$E8,$00,$01,$11,$59,$00,$2C
-	dc.b $11,$59,$00,$2E,$42,$28,$00,$2D,$60,$00,$FD,$62,$51,$E8,$00,$01
-	dc.b $60,$00,$FD,$5A,$11,$59,$00,$03,$60,$00,$FD,$52,$11,$59,$00,$08
-	dc.b $11,$59,$00,$09,$31,$7C,$00,$00,$00,$0A,$60,$00,$FD,$40,$10,$19
-	dc.b $48,$80,$37,$40,$05,$20,$60,$00,$FD,$34
-abs_0_0005DCE8:
+abs_0_0005DC2E:
+	move.w $000A(a0),d0
+	movea.w $0008(a0),a2
+	adda.w d0,a2
+	addq.w #2,d0
+	tst.w $0(a3,a2.w)
+	bne.b abs_0_0005DC46
+	movea.w $0008(a0),a2
+	moveq.l #2,d0
+abs_0_0005DC46:
+	movea.w $0(a3,a2.w),a1
+	adda.l a3,a1
+	move.w d0,$000A(a0)
+	bra.w abs_0_0005DA1A
+abs_0_0005DC54:
+	clr.w $0020(a0)
+	move.b (a1)+,$0014(a0)
+	move.b (a1)+,$0015(a0)
+	bset.b #1,$0000(a0)
+	bra.w abs_0_0005DA1A
+abs_0_0005DC6A:
+	move.w $001C(a0),$001E(a0)
+	move.l a1,$0004(a0)
+	move.l abs_0_0005DD0C(pc),$0000(a4)
+	move.w #$20,$0004(a4)
+	tst.b $000B(a4)
+	bne.b abs_0_0005DC92
+	move.l abs_0_0005DD0C(pc),$00A0(a6)
+	move.w #$20,$00A4(a6)
+abs_0_0005DC92:
+	bra.w abs_0_0005DAAE
+abs_0_0005DC96:
+	bra.w abs_0_0005DA98
+abs_0_0005DC9A:
+	bra.w reset_audio_channels
+abs_0_0005DC9E:
+	move.b (a1)+,$052A(a3)
+	bra.w abs_0_0005DA1A
+abs_0_0005DCA6:
+	st.b $0001(a0)
+	move.b (a1)+,$002C(a0)
+	move.b (a1)+,$002E(a0)
+	clr.b $002D(a0)
+	bra.w abs_0_0005DA1A
+abs_0_0005DCBA:
+	sf.b $0001(a0)
+	bra.w abs_0_0005DA1A
+abs_0_0005DCC2:
+	move.b (a1)+,$0003(a0)
+	bra.w abs_0_0005DA1A
+abs_0_0005DCCA:
+	move.b (a1)+,$0008(a0)
+	move.b (a1)+,$0009(a0)
+	move.w #$0,$000A(a0)
+	bra.w abs_0_0005DA1A
+abs_0_0005DCDC:
+	move.b (a1)+,d0
+	ext.w d0
+	move.w d0,$0520(a3)
+	bra.w abs_0_0005DA1A
+audio_sequence_command_dispatch_offsets:
 	dc.b $04,$50,$04,$76,$04,$8C,$04,$B8,$04,$BC,$04,$C0,$04,$C8,$04,$DC
 	dc.b $04,$E4,$04,$EC,$04,$FE
 abs_0_0005DCFE:
