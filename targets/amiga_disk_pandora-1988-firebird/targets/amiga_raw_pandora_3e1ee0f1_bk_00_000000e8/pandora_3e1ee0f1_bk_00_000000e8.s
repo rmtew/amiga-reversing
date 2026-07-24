@@ -198,6 +198,8 @@ app_02BB RS.B 1
 app_02BC RS.B 1
     RSSET $02BD
 app_02BD RS.B 1
+    RSSET $02C9
+app_02C9 RS.B 1
     RSSET $07EF
 app_07EF RS.B 1
     RSSET $07F0
@@ -5308,25 +5310,73 @@ abs_0_0001716C:
 	bra.b abs_0_00017166
 abs_0_00017174:
 	bra.b abs_0_0001711E
-	dc.b $67,$75,$6E,$66,$69,$72,$65,$2E,$64,$61,$74,$00,$70,$61,$6E,$64
-	dc.b $6F,$72,$61,$31,$2E,$70,$69,$31,$00,$00
+	dc.b $67,$75,$6E,$66,$69,$72,$65,$2E,$64,$61,$74,$00
+abs_0_00017182:
+	dc.b "pandora1.pi1",$00
+	dc.b $00
 prepare_work_buffer_arguments:
 	lea.l abs_0_000134C2(pc),a0
 	lea.l abs_0_00013462(pc),a2
 	lea.l $00077FE0.l,a1
 	moveq.l #15,d7
 	rts
-	dc.b $2F,$3C,$00,$01,$34,$C2,$5C,$8F,$4E,$75,$2F,$3C,$00,$01,$A7,$D8
-	dc.b $5C,$8F,$42,$67,$2F,$3C,$00,$07,$80,$00,$2F,$3C,$00,$07,$80,$00
-	dc.b $4F,$EF,$00,$0C,$5C,$8F,$4B,$FA,$FF,$B8,$49,$F9,$00,$07,$7F,$DE
-	dc.b $2E,$3C,$00,$00,$7D,$22,$61,$B6,$4E,$B9,$00,$01,$26,$40,$61,$C0
-	dc.b $7E,$0F,$3F,$07,$61,$A8,$4E,$B9,$00,$01,$25,$DE,$61,$B2,$3E,$3C
-	dc.b $27,$10,$51,$CF,$FF,$FE,$3E,$1F,$51,$CF,$FF,$E8,$41,$FA,$35,$EA
-	dc.b $4A,$90,$50,$88,$4A,$18,$66,$FC,$20,$08,$52,$80,$02,$00,$00,$FE
-	dc.b $20,$40,$60,$EC,$61,$00,$FF,$78,$4E,$B9,$00,$01,$26,$14,$61,$80
-	dc.b $7E,$0F,$3F,$07,$61,$00,$FF,$68,$4E,$B9,$00,$01,$25,$FA,$61,$00
-	dc.b $FF,$70,$3E,$3C,$27,$10,$51,$CF,$FF,$FE,$3E,$1F,$51,$CF,$FF,$E4
-	dc.b $4E,$75
+return_work_buffer_argument:
+	move.l #abs_0_000134C2,-(a7)
+	addq.l #6,a7
+	rts
+render_work_buffer_overlay:
+	move.l #$1A7D8,-(a7)
+	addq.l #6,a7
+	clr.w -(a7)
+	move.l #$78000,-(a7)
+	move.l #$78000,-(a7)
+	lea.l $000C(a7),a7
+	addq.l #6,a7
+	lea.l abs_0_00017182(pc),a5
+	lea.l $00077FDE.l,a4
+	move.l #$7D22,d7
+	bsr.b prepare_work_buffer_arguments
+	jsr clear_rgb12_palette_components.l
+	bsr.b return_work_buffer_argument
+	moveq.l #15,d7
+abs_0_000171E4:
+	move.w d7,-(a7)
+	bsr.b prepare_work_buffer_arguments
+	jsr add_rgb12_palette_components.l
+	bsr.b return_work_buffer_argument
+	move.w #$2710,d7
+abs_0_000171F4:
+	dbf.w d7,abs_0_000171F4
+	move.w (a7)+,d7
+	dbf.w d7,abs_0_000171E4
+	lea.l abs_0_0001A7EA(pc),a0
+abs_0_00017202:
+	tst.l (a0)
+	addq.l #8,a0
+abs_0_00017206:
+	tst.b (a0)+
+	bne.b abs_0_00017206
+	move.l a0,d0
+	addq.l #1,d0
+	andi.b #254,d0
+	movea.l d0,a0
+	bra.b abs_0_00017202
+	dc.b $61,$00,$FF,$78,$4E,$B9,$00,$01
+fade_out_work_buffer_palette:
+	move.l (a4),d3
+	bsr.b return_work_buffer_argument
+	moveq.l #15,d7
+abs_0_00017224:
+	move.w d7,-(a7)
+	bsr.w prepare_work_buffer_arguments
+	jsr subtract_rgb12_palette_components.l
+	bsr.w return_work_buffer_argument
+	move.w #$2710,d7
+abs_0_00017238:
+	dbf.w d7,abs_0_00017238
+	move.w (a7)+,d7
+	dbf.w d7,abs_0_00017224
+	rts
 abs_0_00017244:
 	lea.l abs_0_0004A738.l,a0
 	lea.l $00066DC8.l,a1
@@ -6086,8 +6136,12 @@ announce_item_trade:
 abs_0_00017CFE:
 	rts
 objects_traded_message:
-	dc.b "..... YOU HAVE TRADED OBJECTS .....",$00
-	dc.b $08,$EE,$00,$04,$02,$7B,$1D,$6E,$02,$C9,$02,$89,$4E,$75
+	dc.b "..... YOU HAVE TRADED OBJECTS ...."
+start_trade_result_countdown:
+	move.l d0,d7
+	bset.b #4,app_027B(a6)
+	move.b app_02C9(a6),app_0289(a6)
+	rts
 abs_0_00017D32:
 	bset.b #4,app_027B(a6)
 	move.b #$2,app_0289(a6)
@@ -8734,8 +8788,10 @@ terminal_item_deposited_message:
 abs_0_0001A7D0:
 	dc.b "PANDORA",$00
 	dc.b $63,$3A,$5C,$64,$65,$76,$70,$61,$63,$5C,$68,$61,$72,$64,$61,$5C
-	dc.b $00,$00,$00,$01,$B3,$A8,$00,$03,$E1,$FA,$67,$72,$61,$70,$68,$69
-	dc.b $63,$73,$2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
+	dc.b $00,$00
+abs_0_0001A7EA:
+	dc.b $00,$01,$B3,$A8,$00,$03,$E1,$FA,$67,$72,$61,$70,$68,$69,$63,$73
+	dc.b $2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
 abs_0_0001A804:
 	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80
 abs_0_0001A813:
@@ -32428,7 +32484,8 @@ abs_0_0006536E:
 	dc.b $44,$6F,$5B,$E8,$44,$6F,$5B,$E9,$44,$6F,$5B,$EA,$44,$6F,$5B,$EB
 	dc.b $44,$6F,$5B,$EC,$44,$6F,$5B,$ED,$44,$6F,$5B,$EE,$44,$6F,$5B,$EF
 	dc.b $44,$6F,$5B,$F0,$44,$6F,$5B,$F1,$44,$6F,$5B,$F2,$44,$6F,$5B,$F3
-	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F,$5B,$F7
+	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F
+	dc.b $5B,$F7
 	dc.b $44,$6F,$5B,$F8,$44,$6F,$5B,$F9,$44,$6F,$5B,$FA,$44,$6F,$5B,$FB
 	dc.b $44,$6F,$5B,$FC,$44,$6F,$5B,$FD,$44,$6F,$5B,$FE,$44,$6F,$5B,$FF
 	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03

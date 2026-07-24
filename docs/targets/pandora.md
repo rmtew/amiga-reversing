@@ -624,6 +624,25 @@ rebased through `$0001D0A8` to populate the runtime pointer grid; consumers
 have not yet established whether the contiguous records beyond this required
 prefix belong to the same table.
 
+### Palette and trade-result code islands
+
+The `$4e75` instruction is treated as a code indicator when recovering an
+otherwise raw island: it is an `RTS` boundary, not generic byte data. The two
+independent palette routines at `$000171AC` and `$0001721E` are consequently
+recovered as code. The latter, `fade_out_work_buffer_palette`, initializes the
+palette-fade state and performs sixteen delayed subtractive RGB12 palette
+steps before its terminal `RTS` at `$00017242`. Its predecessor performs the
+corresponding clear-and-add sequence. The surrounding pointer-walk at
+`$00017202` is a distinct non-returning loop, so its fall-through bytes are a
+separate function rather than an extension of that loop.
+
+`start_trade_result_countdown` at `$00017D22`, immediately after the trade
+announcement text, sets the trade-result flag (`app_027B` bit 4) and copies a
+saved byte at `app_02C9` into the countdown byte `app_0289`. The following
+routine decrements that countdown and clears the same flag on expiry. This
+short helper is therefore code bounded by its `$4e75`, despite having no
+direct static call site currently recovered.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
