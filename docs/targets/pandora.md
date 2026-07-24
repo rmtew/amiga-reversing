@@ -588,6 +588,14 @@ context, and reinstates tilemap base `$4000`. The routine is bounded by the
 `RTS` at `$000190B0`; its predecessor bytes are terminal text/asset data, not
 part of the routine.
 
+The adjacent world-object updater uses two two-byte arrays for selected item
+IDs `$18` and `$19`: `initial_cooldown_ticks` at `$0001924C` contains the
+initial values `$05,$01`, and `cooldown_ticks` at `$0001924E` is the mutable
+copy. Initialization copies the two bytes together; the updater indexes the
+mutable array after subtracting `$18` from the selected item ID, tests it, and
+decrements it before applying that item's effect. Their precise item-specific
+semantics remain intentionally unnamed pending additional consumers.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

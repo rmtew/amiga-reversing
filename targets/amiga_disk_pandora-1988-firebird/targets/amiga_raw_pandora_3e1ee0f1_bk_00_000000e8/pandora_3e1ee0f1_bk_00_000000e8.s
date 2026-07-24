@@ -7449,10 +7449,10 @@ swap_tilemap_context:
 	move.w d1,-(a0)
 	move.w d0,-(a0)
 	rts
-abs_0_0001924C:
-	dc.b $05,$01
-abs_0_0001924E:
-	dc.w $0000
+initial_cooldown_ticks:
+	dc.b $05,$01	; selected_item_effect_cooldown_initial_values
+cooldown_ticks:
+	dc.b $00,$00	; selected_item_effect_cooldown_array
 update_active_world_object_positions:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.w abs_0_000193D8
@@ -7477,7 +7477,7 @@ abs_0_0001926E:
 	cmp.b #$2,d0
 	bcc.w abs_0_000193D8
 	move.w d0,app_0322(a6)
-	lea.l abs_0_0001924E(pc),a0
+	lea.l cooldown_ticks(pc),a0
 	tst.b $0(a0,d0.w)
 	beq.w abs_0_000193D8
 	subq.b #1,$0(a0,d0.w)
@@ -8170,7 +8170,7 @@ abs_0_00019F06:
 	rts
 initialize_world_state:
 	move.l a5,-(a7)
-	move.w abs_0_0001924C.l,abs_0_0001924E.l
+	move.w initial_cooldown_ticks.l,cooldown_ticks.l
 	move.w #$BB8,app_0328(a6)
 	move.l #$24C28,$64C0.w
 	move.w #$2710,d0
