@@ -26991,7 +26991,7 @@ abs_0_0005DA1A:
 	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DA6E:
 	andi.w #255,d0
-	lea.l abs_0_0005DDD4(pc),a2
+	lea.l audio_pitch_scalars(pc),a2
 	move.w $000A(a5),d1
 	moveq.l #10,d2
 	add.w d0,d0
@@ -27025,7 +27025,7 @@ abs_0_0005DAD2:
 	move.l a1,$0010(a0)
 	add.b d1,d0
 	andi.w #255,d0
-	lea.l abs_0_0005DDD4(pc),a2
+	lea.l audio_pitch_scalars(pc),a2
 	move.w $000A(a5),d1
 	moveq.l #10,d2
 	add.w d0,d0
@@ -27169,7 +27169,7 @@ abs_0_0005DD12:
 	dc.w $0000	; lookup_table
 abs_0_0005DD14:
 	dcb.b $C0,$00
-abs_0_0005DDD4:
+audio_pitch_scalars:
 	dc.w $2000	; lookup_table
 	dc.w $1E30
 	dc.w $1C80
