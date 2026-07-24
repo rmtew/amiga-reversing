@@ -7188,95 +7188,212 @@ abs_0_00018A18:
 	dc.w $0002,$DBA8,$0002,$DBA8,$0002,$DBA8,$0002,$DBA8	; lookup_table
 	dc.w $0002,$DBA8,$0002,$DBA8,$0002,$DBA8,$0002,$DBA8	; lookup_table
 	dc.w $0002,$DBA8,$0002,$DBA8,$0002,$DC28,$0002,$DBA8	; lookup_table
-	dc.w $0002,$DBA8,$0002,$DCA8,$0001,$8D54,$0001,$8DA6	; lookup_table
-	dc.w $0001,$8DE0,$0001,$8E2C,$0001,$8E7E,$0001,$8EBC	; lookup_table
-	dc.w $0001,$8F0C,$0001,$8F26,$0001,$8F52,$0001,$8FA8	; lookup_table
-	dc.w $0000,$0000,$434C,$4541,$5241,$4E43,$453A,$0043	; lookup_table
-	dc.w $4152,$4420,$4E41,$4D45,$3A00,$454E,$5452,$593A	; lookup_table
-	dc.w $004E,$6F6E,$6520,$0041,$6C70,$6861,$0044,$656C	; lookup_table
-	dc.w $7461,$0050,$6920,$2020,$004F,$6D65,$6761,$0020	; lookup_table
-	dc.w $2020,$2020,$2020,$2020,$2020,$2020,$2020,$2020	; lookup_table
-	dc.w $2020,$2020,$2020,$2020,$2020,$2020,$2020,$2000	; lookup_table
-	dc.w $5465,$726D,$696E,$616C,$206D,$6F64,$6500,$4143	; lookup_table
-	dc.w $4345,$5353,$2044,$454E,$4945,$442E,$2E2E,$0049	; lookup_table
-	dc.w $4420,$5245,$5155,$4952,$4544,$0000,$00F0,$00D0	; lookup_table
-	dc.w $636F,$6D70,$7574,$6572,$2070,$6C61,$6E73,$2074	; lookup_table
-	dc.w $6F20,$6472,$6F70,$0D67,$656E,$6574,$6963,$2070	; lookup_table
-	dc.w $6F64,$7320,$686F,$6C64,$696E,$670D,$696E,$7661	; lookup_table
-	dc.w $7369,$6F6E,$2066,$6F72,$6365,$2E20,$6D75,$7374	; lookup_table
-	dc.w $0D77,$6172,$6E20,$6561,$7274,$682E,$0000,$01B0	; lookup_table
-	dc.w $00D0,$736F,$6D65,$6F6E,$6520,$7368,$6F75,$6C64	; lookup_table
-	dc.w $2063,$6F6E,$7472,$6F6C,$0D74,$6861,$7420,$7269	; lookup_table
-	dc.w $6469,$6375,$6C6F,$7573,$206F,$7261,$6E67,$650D	; lookup_table
-	dc.w $6672,$6561,$6B2E,$0000,$01B0,$01B0,$496E,$7374	; lookup_table
-	dc.w $7275,$6374,$696F,$6E73,$3A0D,$6465,$6672,$6175	; lookup_table
-	dc.w $6420,$616C,$6C20,$6375,$7374,$6F6D,$6572,$730D	; lookup_table
-	dc.w $7769,$7468,$2069,$6C6C,$6567,$616C,$6C79,$2068	; lookup_table
-	dc.w $6967,$680D,$696E,$7465,$7265,$7374,$2072,$6174	; lookup_table
-	dc.w $6573,$2E00,$02D0,$01C0,$6D6F,$7265,$2074,$6173	; lookup_table
-	dc.w $7479,$2070,$726F,$6475,$6374,$2062,$790D,$502E	; lookup_table
-	dc.w $532E,$492E,$2069,$6E20,$7468,$6520,$6E6F,$7420	; lookup_table
-	dc.w $746F,$6F0D,$6469,$7374,$616E,$7420,$6675,$7475	; lookup_table
-	dc.w $7265,$2C20,$6C6F,$6F6B,$0D6F,$7574,$2066,$6F72	; lookup_table
-	dc.w $2069,$742E,$0000,$0390,$0210,$6D75,$7461,$6E74	; lookup_table
-	dc.w $2069,$6365,$2063,$7265,$6174,$7572,$650D,$7365	; lookup_table
-	dc.w $656D,$7320,$746F,$2062,$6520,$7365,$6E73,$6974	; lookup_table
-	dc.w $6976,$650D,$746F,$2073,$6F75,$6E64,$2077,$6176	; lookup_table
-	dc.w $6573,$2E00,$0450,$01C0,$5061,$6E64,$6F72,$6120	; lookup_table
-	dc.w $7368,$6970,$2072,$616E,$6B69,$6E67,$3A0D,$312E	; lookup_table
-	dc.w $2043,$6170,$7461,$696E,$0D32,$2E20,$436F,$6D6D	; lookup_table
-	dc.w $616E,$6465,$720D,$332E,$204C,$742E,$2043,$6F6D	; lookup_table
-	dc.w $6D61,$6E64,$6572,$0D34,$2E20,$456E,$6769,$6E65	; lookup_table
-	dc.w $6572,$0000,$0510,$01F0,$4168,$2C20,$6120,$6D61	; lookup_table
-	dc.w $7267,$696E,$7320,$7374,$6169,$6E2E,$0000,$02A0	; lookup_table
-	dc.w $02E0,$4D79,$2073,$6F6E,$6963,$6472,$6976,$6572	; lookup_table
-	dc.w $2073,$7572,$6520,$6973,$0D61,$2066,$6C65,$7869	; lookup_table
-	dc.w $626C,$6520,$746F,$6F6C,$2E00,$02A0,$03D0,$4361	; lookup_table
-	dc.w $7074,$6169,$6E27,$7320,$6C6F,$673A,$0D49,$2062	; lookup_table
-	dc.w $656C,$6965,$7665,$2049,$2068,$6176,$6520,$6C6F	; lookup_table
-	dc.w $7374,$0D63,$6F6E,$7472,$6F6C,$206F,$6620,$7468	; lookup_table
-	dc.w $6973,$2073,$6869,$702E,$0D6D,$7573,$7420,$6465	; lookup_table
-	dc.w $7374,$726F,$7920,$7061,$6E64,$6F72,$612E,$2E00	; lookup_table
-	dc.w $03C0,$0700,$4920,$6861,$7665,$2064,$6973,$636F	; lookup_table
-	dc.w $7665,$7265,$6420,$7468,$6174,$0D49,$2061,$6C6F	; lookup_table
-	dc.w $6E65,$2068,$6176,$6520,$7468,$6520,$6D65,$616E	; lookup_table
-	dc.w $730D,$746F,$2065,$7363,$6170,$6520,$6672,$6F6D	; lookup_table
-	dc.w $2050,$616E,$646F,$7261,$0000,$6100,$0226,$6100	; lookup_table
-	dc.w $D730,$6100,$94B2,$222E,$01D4,$202E,$01D8,$2D40	; lookup_table
-	dc.w $01D4,$2D41,$01D8,$2D40,$01DC,$6100,$00B4,$4EB9	; lookup_table
-	dc.w $0001,$07F0,$66F8,$08AE,$0005,$027B,$082E,$0005	; lookup_table
-	dc.w $027B,$67F8,$6100,$9CFC,$4EB9,$0001,$07F0,$6100	; lookup_table
-	dc.w $96B4,$6100,$9898,$6100,$0A08,$6100,$9D16,$4EB9	; lookup_table
-	dc.w $0001,$2FD8,$0839,$0001,$0005,$C36A,$670C,$532E	; lookup_table
-	dc.w $02CC,$6606,$4EF9,$0001,$0456,$41F9,$0000,$397C	; lookup_table
-	dc.w $4A28,$0056,$6706,$4EF9,$0001,$0456,$6100,$003C	; lookup_table
-	dc.w $082E,$0002,$022E,$669E,$4EB9,$0001,$07F0,$6796	; lookup_table
-	dc.w $4EB9,$0001,$07F0,$66F8,$426E,$0296,$426E,$0298	; lookup_table
-	dc.w $08EE,$0004,$027B,$1D7C,$0002,$0289,$6100,$0174	; lookup_table
-	dc.w $2D7C,$0000,$4000,$01BE,$4E75,$1039,$0005,$C368	; lookup_table
-	dc.w $B02E,$031A,$6708,$1D40,$031A,$6100,$0004,$4E75	; lookup_table
-	dc.w $7002,$3200,$6100,$D03A,$3E3C,$017F,$7000,$2248	; lookup_table
-	dc.w $4299,$4299,$4299,$4299,$4299,$4299,$4299,$4259	; lookup_table
-	dc.w $41E8,$0028,$51CF,$FFE8,$7000,$1039,$0005,$C368	; lookup_table
-	dc.w $1D40,$031A,$0400,$0030,$B03C,$0008,$6400,$00E6	; lookup_table
-	dc.w $3F00,$1D7C,$000E,$022D,$7003,$3200,$6100,$CFF2	; lookup_table
-	dc.w $47FA,$FBB2,$6100,$CF38,$7003,$7205,$6100,$CFE2	; lookup_table
-	dc.w $47FA,$FBAD,$6100,$CF28,$7003,$7207,$6100,$CFD2	; lookup_table
-	dc.w $47FA,$FBA8,$6100,$CF18,$41FA,$FB5E,$49F9,$0005	; lookup_table
-	dc.w $C322,$302C,$0030,$322C,$0032,$78FF,$2450,$2A18	; lookup_table
-	dc.w $6720,$2245,$3419,$3619,$9440,$6A02,$4442,$9641	; lookup_table
-	dc.w $6A02,$4443,$D642,$B644,$6404,$3803,$2449,$60DE	; lookup_table
-	dc.w $301F,$7003,$7209,$6100,$CF88,$1D7C,$000A,$022D	; lookup_table
-	dc.w $264A,$6100,$CECA,$301F,$E548,$267B,$0038,$700E	; lookup_table
-	dc.w $7203,$6100,$CF6C,$1D7C,$0007,$022D,$6100,$CEB0	; lookup_table
-	dc.w $700E,$7205,$6100,$CF5A,$1039,$0005,$C368,$6100	; lookup_table
-	dc.w $99C6,$2648,$6100,$CE98,$303C,$0110,$4EB9,$0005	; lookup_table
-	dc.w $D330,$4E75,$0001,$8D01,$0001,$8CFB,$0001,$8CEF	; lookup_table
-	dc.w $0001,$8CFB,$0001,$8CE9,$0001,$8CF5,$0001,$8CE9	; lookup_table
-	dc.w $0001,$8CE9,$700A,$7205,$6100,$CF16,$1D7C,$0005	; lookup_table
-	dc.w $022D,$47FA,$FB3A,$6100,$CE56,$700A,$7207,$6100	; lookup_table
-	dc.w $CF00,$6100,$CE4A,$303C,$0216,$4EB9,$0005,$D330	; lookup_table
-	dc.w $4E75	; lookup_table
+	dc.w $0002,$DBA8,$0002,$DCA8	; lookup_table
+terminal_proximity_object_ptrs:
+	dc.l $00018D54,$00018DA6,$00018DE0,$00018E2C	; terminal_proximity_object_pointer_table
+	dc.l $00018E7E,$00018EBC,$00018F0C,$00018F26	; terminal_proximity_object_pointer_table
+	dc.l $00018F52,$00018FA8	; terminal_proximity_object_pointer_table
+	dc.b $00,$00,$00,$00
+abs_0_00018CCC:
+	dc.b "CLEARANCE:",$00
+abs_0_00018CD7:
+	dc.b "CARD NAME:",$00
+abs_0_00018CE2:
+	dc.b "ENTRY:",$00
+abs_0_00018CE9:
+	dc.b "None ",$00
+abs_0_00018CEF:
+	dc.b "Alpha",$00
+abs_0_00018CF5:
+	dc.b "Delta",$00
+abs_0_00018CFB:
+	dc.b "Pi   ",$00
+abs_0_00018D01:
+	dc.b "Omega",$00
+	dcb.b $20,$20
+	dc.b $00
+	dc.b "Terminal mode",$00
+abs_0_00018D36:
+	dc.b "ACCESS DENIED...",$00
+	dc.b "ID REQUIRED",$00
+	dc.b $00,$00,$F0,$00,$D0,$63,$6F,$6D,$70,$75,$74,$65,$72,$20,$70,$6C
+	dc.b $61,$6E,$73,$20,$74,$6F,$20,$64,$72,$6F,$70,$0D,$67,$65,$6E,$65
+	dc.b $74,$69,$63,$20,$70,$6F,$64,$73,$20,$68,$6F,$6C,$64,$69,$6E,$67
+	dc.b $0D,$69,$6E,$76,$61,$73,$69,$6F,$6E,$20,$66,$6F,$72,$63,$65,$2E
+	dc.b $20,$6D,$75,$73,$74,$0D
+	dc.b "warn earth.",$00
+	dc.b $00,$01,$B0,$00,$D0,$73,$6F,$6D,$65,$6F,$6E,$65,$20,$73,$68,$6F
+	dc.b $75,$6C,$64,$20,$63,$6F,$6E,$74,$72,$6F,$6C,$0D,$74,$68,$61,$74
+	dc.b $20,$72,$69,$64,$69,$63,$75,$6C,$6F,$75,$73,$20,$6F,$72,$61,$6E
+	dc.b $67,$65,$0D,$66,$72,$65,$61,$6B,$2E,$00,$00,$01,$B0,$01,$B0,$49
+	dc.b $6E,$73,$74,$72,$75,$63,$74,$69,$6F,$6E,$73,$3A,$0D,$64,$65,$66
+	dc.b $72,$61,$75,$64,$20,$61,$6C,$6C,$20,$63,$75,$73,$74,$6F,$6D,$65
+	dc.b $72,$73,$0D,$77,$69,$74,$68,$20,$69,$6C,$6C,$65,$67,$61,$6C,$6C
+	dc.b $79,$20,$68,$69,$67,$68,$0D
+	dc.b "interest rates.",$00
+	dc.b $02,$D0,$01,$C0,$6D,$6F,$72,$65,$20,$74,$61,$73,$74,$79,$20,$70
+	dc.b $72,$6F,$64,$75,$63,$74,$20,$62,$79,$0D,$50,$2E,$53,$2E,$49,$2E
+	dc.b $20,$69,$6E,$20,$74,$68,$65,$20,$6E,$6F,$74,$20,$74,$6F,$6F,$0D
+	dc.b $64,$69,$73,$74,$61,$6E,$74,$20,$66,$75,$74,$75,$72,$65,$2C,$20
+	dc.b $6C,$6F,$6F,$6B,$0D
+	dc.b "out for it.",$00
+	dc.b $00,$03,$90,$02,$10,$6D,$75,$74,$61,$6E,$74,$20,$69,$63,$65,$20
+	dc.b $63,$72,$65,$61,$74,$75,$72,$65,$0D,$73,$65,$65,$6D,$73,$20,$74
+	dc.b $6F,$20,$62,$65,$20,$73,$65,$6E,$73,$69,$74,$69,$76,$65,$0D
+	dc.b "to sound waves.",$00
+	dc.b $04,$50,$01,$C0,$50,$61,$6E,$64,$6F,$72,$61,$20,$73,$68,$69,$70
+	dc.b $20,$72,$61,$6E,$6B,$69,$6E,$67,$3A,$0D,$31,$2E,$20,$43,$61,$70
+	dc.b $74,$61,$69,$6E,$0D,$32,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64,$65
+	dc.b $72,$0D,$33,$2E,$20,$4C,$74,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64
+	dc.b $65,$72,$0D
+	dc.b "4. Engineer",$00
+	dc.b $00,$05,$10,$01,$F0
+	dc.b "Ah, a margins stain.",$00
+	dc.b $00,$02,$A0,$02,$E0,$4D,$79,$20,$73,$6F,$6E,$69,$63,$64,$72,$69
+	dc.b $76,$65,$72,$20,$73,$75,$72,$65,$20,$69,$73,$0D
+	dc.b "a flexible tool.",$00
+	dc.b $02,$A0,$03,$D0,$43,$61,$70,$74,$61,$69,$6E,$27,$73,$20,$6C,$6F
+	dc.b $67,$3A,$0D,$49,$20,$62,$65,$6C,$69,$65,$76,$65,$20,$49,$20,$68
+	dc.b $61,$76,$65,$20,$6C,$6F,$73,$74,$0D,$63,$6F,$6E,$74,$72,$6F,$6C
+	dc.b $20,$6F,$66,$20,$74,$68,$69,$73,$20,$73,$68,$69,$70,$2E,$0D
+	dc.b "must destroy pandora..",$00
+	dc.b $03,$C0,$07,$00,$49,$20,$68,$61,$76,$65,$20,$64,$69,$73,$63,$6F
+	dc.b $76,$65,$72,$65,$64,$20,$74,$68,$61,$74,$0D,$49,$20,$61,$6C,$6F
+	dc.b $6E,$65,$20,$68,$61,$76,$65,$20,$74,$68,$65,$20,$6D,$65,$61,$6E
+	dc.b $73,$0D
+	dc.b "to escape from Pandora",$00
+	dc.b $00,$61,$00,$02,$26,$61,$00,$D7,$30,$61,$00,$94,$B2,$22,$2E,$01
+	dc.b $D4,$20,$2E,$01,$D8,$2D,$40,$01,$D4,$2D,$41,$01,$D8,$2D,$40,$01
+	dc.b $DC,$61,$00,$00,$B4,$4E,$B9,$00,$01,$07,$F0,$66,$F8,$08,$AE,$00
+	dc.b $05,$02,$7B,$08,$2E,$00,$05,$02,$7B,$67,$F8,$61,$00,$9C,$FC,$4E
+	dc.b $B9,$00,$01,$07,$F0,$61,$00,$96,$B4,$61,$00,$98,$98,$61,$00,$0A
+	dc.b $08,$61,$00,$9D,$16,$4E,$B9,$00,$01,$2F,$D8,$08,$39,$00,$01,$00
+	dc.b $05,$C3,$6A,$67,$0C,$53,$2E,$02,$CC,$66,$06,$4E,$F9,$00,$01,$04
+	dc.b $56,$41,$F9,$00,$00,$39,$7C,$4A,$28,$00,$56,$67,$06,$4E,$F9,$00
+	dc.b $01,$04,$56,$61,$00,$00,$3C,$08,$2E,$00,$02,$02,$2E,$66,$9E,$4E
+	dc.b $B9,$00,$01,$07,$F0,$67,$96,$4E,$B9,$00,$01,$07,$F0,$66,$F8,$42
+	dc.b $6E,$02,$96,$42,$6E,$02,$98,$08,$EE,$00,$04,$02,$7B,$1D,$7C,$00
+	dc.b $02,$02,$89,$61,$00,$01,$74,$2D,$7C,$00,$00,$40,$00,$01,$BE,$4E
+	dc.b $75
+update_terminal_selected_item:
+	move.b player_world_object_selected_item_id.l,d0
+	cmp.b app_031A(a6),d0
+	beq.b abs_0_000190C6
+	move.b d0,app_031A(a6)
+	bsr.w redraw_terminal_selected_item
+abs_0_000190C6:
+	rts
+redraw_terminal_selected_item:
+	moveq.l #2,d0
+	move.w d0,d1
+	bsr.w abs_0_00016108
+	move.w #$17F,d7
+	moveq.l #0,d0
+abs_0_000190D6:
+	movea.l a0,a1
+	clr.l (a1)+
+	clr.l (a1)+
+	clr.l (a1)+
+	clr.l (a1)+
+	clr.l (a1)+
+	clr.l (a1)+
+	clr.l (a1)+
+	clr.w (a1)+
+	lea.l $0028(a0),a0
+	dbf.w d7,abs_0_000190D6
+	moveq.l #0,d0
+	move.b player_world_object_selected_item_id.l,d0
+	move.b d0,app_031A(a6)
+	subi.b #48,d0
+	cmp.b #$8,d0
+	bcc.w abs_0_000191EC
+	move.w d0,-(a7)
+	move.b #$E,app_022D(a6)
+	moveq.l #3,d0
+	move.w d0,d1
+	bsr.w abs_0_00016108
+	lea.l abs_0_00018CCC(pc),a3
+	bsr.w abs_0_00016056
+	moveq.l #3,d0
+	moveq.l #5,d1
+	bsr.w abs_0_00016108
+	lea.l abs_0_00018CD7(pc),a3
+	bsr.w abs_0_00016056
+	moveq.l #3,d0
+	moveq.l #7,d1
+	bsr.w abs_0_00016108
+	lea.l abs_0_00018CE2(pc),a3
+	bsr.w abs_0_00016056
+	lea.l terminal_proximity_object_ptrs(pc),a0
+	lea.l player_world_object.l,a4
+	move.w $0030(a4),d0
+	move.w $0032(a4),d1
+	moveq.l #-1,d4
+	movea.l (a0),a2
+abs_0_00019156:
+	move.l (a0)+,d5
+	beq.b abs_0_0001917A
+	movea.l d5,a1
+	move.w (a1)+,d2
+	move.w (a1)+,d3
+	sub.w d0,d2
+	bpl.b abs_0_00019166
+	neg.w d2
+abs_0_00019166:
+	sub.w d1,d3
+	bpl.b abs_0_0001916C
+	neg.w d3
+abs_0_0001916C:
+	add.w d2,d3
+	cmp.w d4,d3
+	bcc.b abs_0_00019176
+	move.w d3,d4
+	movea.l a1,a2
+abs_0_00019176:
+	bra.b abs_0_00019156
+	dc.b $30,$1F
+abs_0_0001917A:
+	moveq.l #3,d0
+	moveq.l #9,d1
+	bsr.w abs_0_00016108
+	move.b #$A,app_022D(a6)
+	movea.l a2,a3
+	bsr.w abs_0_00016056
+	move.w (a7)+,d0
+	lsl.w #2,d0
+	movea.l abs_0_000191CC(pc,d0.w),a3
+	moveq.l #14,d0
+	moveq.l #3,d1
+	bsr.w abs_0_00016108
+	move.b #$7,app_022D(a6)
+	bsr.w abs_0_00016056
+	moveq.l #14,d0
+	moveq.l #5,d1
+	bsr.w abs_0_00016108
+	move.b player_world_object_selected_item_id.l,d0
+	bsr.w resolve_item_name
+	movea.l a0,a3
+	bsr.w abs_0_00016056
+	move.w #$110,d0
+	jsr start_feedback_audio_sequence.l
+	rts
+abs_0_000191CC:
+	dc.l $00018D01,$00018CFB,$00018CEF,$00018CFB	; lookup_table
+	dc.l $00018CE9,$00018CF5,$00018CE9,$00018CE9	; lookup_table
+abs_0_000191EC:
+	moveq.l #10,d0
+	moveq.l #5,d1
+	bsr.w abs_0_00016108
+	move.b #$5,app_022D(a6)
+	lea.l abs_0_00018D36(pc),a3
+	bsr.w abs_0_00016056
+	moveq.l #10,d0
+	moveq.l #7,d1
+	bsr.w abs_0_00016108
+	bsr.w abs_0_00016056
+	move.w #$216,d0
+	jsr start_feedback_audio_sequence.l
+	rts
 swap_tilemap_context:
 	lea.l abs_0_00018A18(pc),a0
 	move.w app_tilemap_width(a6),d0

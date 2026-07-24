@@ -568,6 +568,16 @@ the player object) into the first empty byte of the terminal's item storage at
 feedback audio sequence `$106`. Its terminal `RTS` at `$00018A16` is the code
 boundary immediately before the following data region.
 
+`update_terminal_selected_item` at `$000190B2` caches the player's selected
+item ID in `app_031A` and redraws the terminal only when it changes.
+`redraw_terminal_selected_item` at `$000190C8` clears the terminal display
+buffer, renders the ID-card clearance/card-name/entry fields for IDs
+`$30..$37`, chooses the closest member of the ten-entry, null-terminated
+`terminal_proximity_object_ptrs` table at `$00018CA0`, and displays the
+selected item's name. Non-ID selections show the terminal's `ACCESS DENIED...`
+and `ID REQUIRED` feedback. The table's 10 long entries are a single bounded
+pointer array; the final zero is its sentinel.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
