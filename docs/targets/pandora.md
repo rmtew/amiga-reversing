@@ -633,9 +633,10 @@ The `$4e75` instruction is treated as a code indicator when recovering an
 otherwise raw island: it is an `RTS` boundary, not generic byte data. The two
 independent palette routines at `$000171AC` and `$0001721E` are consequently
 recovered as code. The latter, `fade_out_work_buffer_palette`, initializes the
-palette-fade state and performs sixteen delayed subtractive RGB12 palette
-steps before its terminal `RTS` at `$00017242`. Its predecessor performs the
-corresponding clear-and-add sequence. The surrounding pointer-walk at
+RGB12 component workspace by unpacking the source palette, then performs
+sixteen delayed subtractive RGB12 palette steps before its terminal `RTS` at
+`$00017242`. Its predecessor performs the corresponding clear-and-add
+sequence. The surrounding pointer-walk at
 `$00017202` is a distinct non-returning loop, so its fall-through bytes are a
 separate function rather than an extension of that loop.
 

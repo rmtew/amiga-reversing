@@ -5362,9 +5362,9 @@ abs_0_00017206:
 	andi.b #254,d0
 	movea.l d0,a0
 	bra.b abs_0_00017202
-	dc.b $61,$00,$FF,$78,$4E,$B9,$00,$01
 fade_out_work_buffer_palette:
-	move.l (a4),d3
+	bsr.w prepare_work_buffer_arguments
+	jsr unpack_rgb12_palette_components.l
 	bsr.b return_work_buffer_argument
 	moveq.l #15,d7
 abs_0_00017224:
