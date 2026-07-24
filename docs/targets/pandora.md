@@ -176,7 +176,10 @@ That bounded 114-word lookup table ends exactly at `$0001A7C0`; every entry is
 an offset into the NUL-terminated `item_name_string_table` beginning at
 `$0001A25C`.  Inventory refresh uses the same two-table calculation for each
 carried and pocket item, while `initialize_world_state` uses it to populate
-each world object's `item_name_ptr`.
+each world object's `item_name_ptr`.  Its durable layout is one `word`
+`item_name_offset_lookup` range; an earlier duplicate-create/remove sequence
+was reconciled so the review projection now reflects the one effective table
+rather than retaining a stale overlap blocker.
 
 ### Confirmed interaction helpers
 

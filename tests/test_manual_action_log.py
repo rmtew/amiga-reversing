@@ -1556,6 +1556,41 @@ def test_manual_action_log_flags_overlapping_data_block_layout_without_replace(t
     assert projection.review_items[0]["conflicting_layout_id"] == "first"
 
 
+def test_manual_action_log_removing_rejected_overlapping_layout_clears_conflict_review(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={"layout_id": "first", "hunk": 0, "source_start": 0x100, "source_end": 0x120},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_data_block_layout",
+                data_block_layout={"layout_id": "second", "hunk": 0, "source_start": 0x110, "source_end": 0x130},
+            ),
+            _action(
+                "a3",
+                3,
+                "remove_manual_data_block_layout",
+                data_block_layout={"layout_id": "second", "hunk": 0, "source_start": 0x110, "source_end": 0x130},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert [layout["layout_id"] for layout in projection.data_block_layouts] == ["first"]
+    assert projection.review_items == ()
+    assert projection.review_state is ReviewState.CLEAR
+
+
 def test_manual_action_log_replaces_overlapping_data_block_layout_when_explicit(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

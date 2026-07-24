@@ -1136,6 +1136,17 @@ def _data_block_layout_conflict_item(layout: dict[str, object], existing: dict[s
     }
 
 
+def _discard_data_block_layout_conflicts(review_items: list[dict[str, object]], layout_id: str) -> None:
+    review_items[:] = [
+        item
+        for item in review_items
+        if not (
+            item.get("kind") is ReviewItemKind.MANUAL_DATA_BLOCK_LAYOUT_CONFLICT
+            and (item.get("layout_id") == layout_id or item.get("conflicting_layout_id") == layout_id)
+        )
+    ]
+
+
 def _replace_data_block_overlaps(
     layouts: dict[str, dict[str, object]],
     elements: dict[tuple[str, int], dict[str, object]],
@@ -1879,6 +1890,7 @@ def _project_actions(
             removed = dict(existing or layout)
             removed["cleanup_action_id"] = action.action_id
             removed_data_block_layouts[layout_id] = removed
+            _discard_data_block_layout_conflicts(review_items, layout_id)
             for element_key in list(data_block_elements):
                 if element_key[0] == layout_id:
                     element = data_block_elements.pop(element_key)
