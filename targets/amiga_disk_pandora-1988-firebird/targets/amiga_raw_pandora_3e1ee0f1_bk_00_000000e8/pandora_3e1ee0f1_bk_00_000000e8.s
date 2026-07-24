@@ -26467,134 +26467,222 @@ world_position_state_records:
 world_position_state_records_state_node_ptr_0:	; STRUCT world_position_state_record
 	dc.l $00058FDC	; long state_node_ptr
 world_position_state_records_gap_C_0:
-	dc.b $00,$00,$00,$00,$00,$05,$8B,$F8,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_0:	; STRUCT world_position_state_record
+	dc.b $05,$8B,$F8,$00	; long position_descriptor_ptr
+world_position_state_records_gap_15_0:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_1A_1:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_1:	; STRUCT world_position_state_record
 	dc.b $00,$05,$8F,$EE	; long state_node_ptr
 world_position_state_records_gap_26_1:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$04,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_1:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$04,$00	; long position_descriptor_ptr
+world_position_state_records_gap_2F_1:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_34_2:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_2:	; STRUCT world_position_state_record
 	dc.l $00059000	; long state_node_ptr
 world_position_state_records_gap_40_2:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$10,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_2:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$10,$00	; long position_descriptor_ptr
+world_position_state_records_gap_49_2:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_4E_3:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_3:	; STRUCT world_position_state_record
 	dc.b $00,$05,$90,$12	; long state_node_ptr
 world_position_state_records_gap_5A_3:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$1C,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_3:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$1C,$00	; long position_descriptor_ptr
+world_position_state_records_gap_63_3:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_68_4:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_4:	; STRUCT world_position_state_record
 	dc.l $00059024	; long state_node_ptr
 world_position_state_records_gap_74_4:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$28,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_4:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$28,$00	; long position_descriptor_ptr
+world_position_state_records_gap_7D_4:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_82_5:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_5:	; STRUCT world_position_state_record
 	dc.b $00,$05,$90,$36	; long state_node_ptr
 world_position_state_records_gap_8E_5:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$34,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_5:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$34,$00	; long position_descriptor_ptr
+world_position_state_records_gap_97_5:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_9C_6:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_6:	; STRUCT world_position_state_record
 	dc.l $00059048	; long state_node_ptr
 world_position_state_records_gap_A8_6:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$40,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_6:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$40,$00	; long position_descriptor_ptr
+world_position_state_records_gap_B1_6:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_B6_7:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_7:	; STRUCT world_position_state_record
 	dc.b $00,$05,$90,$5A	; long state_node_ptr
 world_position_state_records_gap_C2_7:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$4C,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_7:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$4C,$00	; long position_descriptor_ptr
+world_position_state_records_gap_CB_7:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_D0_8:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_8:	; STRUCT world_position_state_record
 	dc.l $0005906C	; long state_node_ptr
 world_position_state_records_gap_DC_8:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$58,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_8:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$58,$00	; long position_descriptor_ptr
+world_position_state_records_gap_E5_8:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_EA_9:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_9:	; STRUCT world_position_state_record
 	dc.b $00,$05,$90,$7E	; long state_node_ptr
 world_position_state_records_gap_F6_9:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$64,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_9:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$64,$00	; long position_descriptor_ptr
+world_position_state_records_gap_FF_9:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_104_10:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_10:	; STRUCT world_position_state_record
 	dc.l $00059090	; long state_node_ptr
 world_position_state_records_gap_110_10:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$70,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_10:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$70,$00	; long position_descriptor_ptr
+world_position_state_records_gap_119_10:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_11E_11:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_11:	; STRUCT world_position_state_record
 	dc.b $00,$05,$90,$A2	; long state_node_ptr
 world_position_state_records_gap_12A_11:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$7C,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_11:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$7C,$00	; long position_descriptor_ptr
+world_position_state_records_gap_133_11:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_138_12:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_12:	; STRUCT world_position_state_record
 	dc.l $000590B4	; long state_node_ptr
 world_position_state_records_gap_144_12:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$88,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_12:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$88,$00	; long position_descriptor_ptr
+world_position_state_records_gap_14D_12:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_152_13:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_13:	; STRUCT world_position_state_record
 	dc.b $00,$05,$90,$C6	; long state_node_ptr
 world_position_state_records_gap_15E_13:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$94,$00,$00,$00,$00,$00,$01	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_13:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$94,$00	; long position_descriptor_ptr
+world_position_state_records_gap_167_13:
+	dc.b $00,$00,$00,$00,$01	; typed data block gap
 world_position_state_records_gap_16C_14:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_14:	; STRUCT world_position_state_record
 	dc.l $000590D8	; long state_node_ptr
 world_position_state_records_gap_178_14:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$A0,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_14:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$A0,$00	; long position_descriptor_ptr
+world_position_state_records_gap_181_14:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_186_15:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_15:	; STRUCT world_position_state_record
 	dc.b $00,$05,$90,$EA	; long state_node_ptr
 world_position_state_records_gap_192_15:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$AC,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_15:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$AC,$00	; long position_descriptor_ptr
+world_position_state_records_gap_19B_15:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_1A0_16:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_16:	; STRUCT world_position_state_record
 	dc.l $000590FC	; long state_node_ptr
 world_position_state_records_gap_1AC_16:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$B8,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_16:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$B8,$00	; long position_descriptor_ptr
+world_position_state_records_gap_1B5_16:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_1BA_17:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_17:	; STRUCT world_position_state_record
 	dc.b $00,$05,$91,$0E	; long state_node_ptr
 world_position_state_records_gap_1C6_17:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$C4,$00,$00,$00,$00,$00,$21	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_17:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$C4,$00	; long position_descriptor_ptr
+world_position_state_records_gap_1CF_17:
+	dc.b $00,$00,$00,$00,$21	; typed data block gap
 world_position_state_records_gap_1D4_18:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_18:	; STRUCT world_position_state_record
 	dc.l $00058F70	; long state_node_ptr
 world_position_state_records_gap_1E0_18:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$D0,$00,$00,$00,$00,$00,$10	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_18:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$D0,$00	; long position_descriptor_ptr
+world_position_state_records_gap_1E9_18:
+	dc.b $00,$00,$00,$00,$10	; typed data block gap
 world_position_state_records_gap_1EE_19:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_19:	; STRUCT world_position_state_record
 	dc.b $00,$05,$8F,$82	; long state_node_ptr
 world_position_state_records_gap_1FA_19:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$DC,$00,$00,$00,$00,$00,$10	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_19:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$DC,$00	; long position_descriptor_ptr
+world_position_state_records_gap_203_19:
+	dc.b $00,$00,$00,$00,$10	; typed data block gap
 world_position_state_records_gap_208_20:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_20:	; STRUCT world_position_state_record
 	dc.l $00058F94	; long state_node_ptr
 world_position_state_records_gap_214_20:
 	dc.w $0000
-	dc.b $00,$00,$00,$05,$8C,$E8,$00,$05,$8F,$3C,$00,$10
+	dc.b $00,$00,$00
+world_position_state_records_position_descriptor_ptr_20:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$E8,$00	; long position_descriptor_ptr
+world_position_state_records_gap_21D_20:
+	dc.b $05,$8F,$3C,$00,$10	; typed data block gap
 world_position_state_records_gap_222_21:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_21:	; STRUCT world_position_state_record
 	dc.b $00,$05,$8F,$A6	; long state_node_ptr
 world_position_state_records_gap_22E_21:
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$F4,$00,$05,$8F,$56,$00,$10	; typed data block gap
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_records_position_descriptor_ptr_21:	; STRUCT world_position_state_record
+	dc.b $05,$8C,$F4,$00	; long position_descriptor_ptr
+world_position_state_records_gap_237_21:
+	dc.b $05,$8F,$56,$00,$10	; typed data block gap
 	dcb.b $9,$00
 	dc.b $05,$8F,$B8,$00,$00,$00,$20,$00,$05,$8C,$E8,$00,$00,$00,$00,$00
 	dc.b $10
