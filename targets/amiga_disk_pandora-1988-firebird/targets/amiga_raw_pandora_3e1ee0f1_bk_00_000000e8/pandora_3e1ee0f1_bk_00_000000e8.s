@@ -1991,7 +1991,7 @@ abs_0_00012794:
 	cmp.b (a1)+,d0
 	beq.b abs_0_000127A8
 	dbf.w d7,abs_0_00012794
-	cmp.b selected_item_id.l,d0
+	cmp.b player_world_object_selected_item_id.l,d0
 	bne.b abs_0_000127AE
 abs_0_000127A8:
 	bset.b #1,app_033C(a6)
@@ -2065,7 +2065,7 @@ reset_inventory_panel_state:
 update_inventory_panel_player_palette:
 	move.l a0,-(a7)
 	lea.l abs_0_000134C2(pc),a0
-	move.b selected_item_id.l,d0
+	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$2,d0
 	bcc.b abs_0_000128BC
 	move.w #$F00,d0
@@ -2154,14 +2154,14 @@ finalize_inventory_selection:
 	bset.b #5,app_022E(a6)
 	bsr.w refresh_selected_item_name_display
 	moveq.l #0,d0
-	move.b selected_item_id.l,d0
+	move.b player_world_object_selected_item_id.l,d0
 	rts
 refresh_selected_item_name_display:
 	btst.b #2,app_022E(a6)
 	bne.b abs_0_000129E8
 	move.l a5,-(a7)
 	moveq.l #0,d0
-	move.b selected_item_id.l,d0
+	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$2,d0
 	bcc.b abs_0_000129D6
 	moveq.l #1,d0
@@ -2593,7 +2593,7 @@ abs_0_00012F44:
 abs_0_00012F56:
 	tst.b app_022F(a6)
 	beq.b abs_0_00012F16
-	move.b selected_item_id.l,d6
+	move.b player_world_object_selected_item_id.l,d6
 	move.b $0046(a5),d5
 	movea.l $0014(a5),a0
 	moveq.l #3,d7
@@ -2603,7 +2603,7 @@ abs_0_00012F6C:
 	addq.l #2,a0
 	dbf.w d7,abs_0_00012F6C
 abs_0_00012F76:
-	move.b d5,selected_item_id.l
+	move.b d5,player_world_object_selected_item_id.l
 	move.b d6,(a0)
 	movea.l $0018(a5),a1
 	moveq.l #3,d7
@@ -6473,7 +6473,7 @@ abs_0_000187DC:
 	dc.b $04,$03,$01,$03,$00,$02	; lookup_table
 abs_0_000187E2:
 	moveq.l #0,d0
-	move.b selected_item_id.l,d0
+	move.b player_world_object_selected_item_id.l,d0
 	subi.b #48,d0
 	cmp.b #$6,d0
 	bcc.b abs_0_00018802
@@ -7393,7 +7393,7 @@ abs_0_00019FC4:
 	moveq.l #0,d0
 	move.l d0,app_carried_item_ids(a6)
 	move.l d0,app_pocket_item_ids(a6)
-	clr.b selected_item_id.l
+	clr.b player_world_object_selected_item_id.l
 	lea.l abs_0_00013416.l,a0
 	lea.l abs_0_00013442.l,a1
 	moveq.l #3,d7
@@ -26377,20 +26377,35 @@ player_world_object_world_x:	; STRUCT world_object_shared_prefix
 player_world_object_world_y:	; STRUCT world_object_shared_prefix
 	dc.w $0000	; word world_y
 player_world_object_gap_34:
-	dcb.b $9,$00
+	dcb.b $8,$00	; typed data block gap
+player_world_object_interaction_timer:	; STRUCT world_object_shared_prefix
+	dc.b $00
 abs_0_0005C35F:
-	dc.b $5F,$00,$5F,$00,$64
+	dc.b $5F
+player_world_object_gap_3E:
+	dc.l $005F0064	; typed data block gap
 player_world_object_proximity_distance:	; STRUCT world_object_shared_prefix
 	dc.w $0000	; word proximity_distance
 player_world_object_gap_44:
-	dc.w $0000
-selected_item_id:
-	dc.b $00	; world_object_record
-	dc.b $00
+	dc.w $0000	; typed data block gap
+player_world_object_selected_item_id:	; STRUCT world_object_shared_prefix
+	dc.b $00	; byte selected_item_id
+player_world_object_initial_selected_item_id:	; STRUCT world_object_shared_prefix
+	dc.b $00	; byte initial_selected_item_id
 player_world_object_world_object_flags:	; STRUCT world_object_shared_prefix
 	dc.b $00	; byte world_object_flags
-player_world_object_gap_49:
-	dcb.b $9,$00	; typed data block gap
+player_world_object_initial_world_object_flags:	; STRUCT world_object_shared_prefix
+	dc.b $00	; byte initial_world_object_flags
+player_world_object_item_definition_id:	; STRUCT world_object_shared_prefix
+	dc.b $00	; byte item_definition_id
+player_world_object_gap_4B:
+	dc.b $00	; typed data block gap
+player_world_object_item_state:	; STRUCT world_object_shared_prefix
+	dc.b $00	; byte item_state
+player_world_object_initial_item_state:	; STRUCT world_object_shared_prefix
+	dc.b $00	; byte initial_item_state
+player_world_object_gap_4E:
+	dc.l $00000000	; typed data block gap
 player_world_object_context_prompt_cooldown:	; STRUCT world_object_shared_prefix
 	dc.w $0000	; word context_prompt_cooldown
 	dc.b $00,$03,$15,$28,$00,$07,$DB,$00,$00,$02,$00,$1E,$00,$0E,$00,$07
@@ -26553,7 +26568,7 @@ abs_0_0005C9FE:
 	dbf.w d7,abs_0_0005C9F0
 	btst.b #3,app_033C(a6)
 	bne.b abs_0_0005CA18
-	bset.b #1,selected_item_id.l
+	bset.b #1,player_world_object_selected_item_id.l
 	lea.l abs_0_0005CBCB(pc),a0
 	bra.b abs_0_0005CA2A
 abs_0_0005CA18:

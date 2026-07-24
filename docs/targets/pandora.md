@@ -138,6 +138,12 @@ initializes tilemap/player/UI state, installs the static active-table pointer
 and count, then iterates every `world_object_ptr_table` entry to reset per-object
 state and resolve item names.
 
+That initialization loop proves the shared prefix's current/initial pairs:
+`selected_item_id`/`initial_selected_item_id`,
+`world_object_flags`/`initial_world_object_flags`, and
+`item_state`/`initial_item_state`.  It also resets `interaction_timer` and
+uses `item_definition_id` to resolve each object's item-name pointer.
+
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
 field facts come from the common scan loop rather than the player instance:
 `interaction_callback` (`+0x04`), `context_callback` (`+0x0c`),
