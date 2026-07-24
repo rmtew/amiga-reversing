@@ -138,6 +138,11 @@ links, swaps the front/back/display bitplane pointers, waits for the display
 phase, then services inventory, scrolling-message, and panel input before
 continuing the frame state machine.
 
+`swap_tilemap_context` at `$0001921A` exchanges the current tilemap width,
+height, column, row, and base pointer with the saved context at `$00018A18`.
+The gameplay loop uses it on both sides of its mode transitions, preserving
+the map-view state while a panel or other alternate context is active.
+
 The loop calls `process_self_destruct_card_input` at `$00019CBE` when the
 self-destruct panel is active. That routine accepts the permitted selected item
 ids, records up to three resolved item-name pointers, starts feedback audio,

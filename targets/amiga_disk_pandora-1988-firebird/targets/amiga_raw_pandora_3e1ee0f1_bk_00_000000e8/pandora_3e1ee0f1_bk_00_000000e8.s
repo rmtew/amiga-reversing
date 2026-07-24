@@ -7147,7 +7147,7 @@ abs_0_00018A18:
 	dc.w $022D,$47FA,$FB3A,$6100,$CE56,$700A,$7207,$6100	; lookup_table
 	dc.w $CF00,$6100,$CE4A,$303C,$0216,$4EB9,$0005,$D330	; lookup_table
 	dc.w $4E75	; lookup_table
-abs_0_0001921A:
+swap_tilemap_context:
 	lea.l abs_0_00018A18(pc),a0
 	move.w app_tilemap_width(a6),d0
 	move.w app_tilemap_height(a6),d1
@@ -7641,7 +7641,7 @@ abs_0_00019BB8:
 	dc.b $4E,$49,$54,$49,$41,$54,$45,$44,$2E,$0D,$0D
 	dc.b "HAVE A NICE DAY, CAPTAIN.",$00
 run_gameplay_update_loop:
-	bsr.w abs_0_0001921A
+	bsr.w swap_tilemap_context
 	bsr.w abs_0_00016728
 	bsr.w snapshot_active_world_object_links
 	move.l app_front_bitplane_base(a6),d1
@@ -7686,7 +7686,7 @@ abs_0_00019C88:
 	clr.w app_0298(a6)
 	bset.b #4,app_027B(a6)
 	move.b #$2,app_0289(a6)
-	bsr.w abs_0_0001921A
+	bsr.w swap_tilemap_context
 	move.l #$4000,app_tilemap_base(a6)
 	rts
 process_self_destruct_card_input:
