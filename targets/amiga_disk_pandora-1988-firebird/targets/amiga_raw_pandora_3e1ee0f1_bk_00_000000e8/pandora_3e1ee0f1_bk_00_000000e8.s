@@ -193,6 +193,18 @@ app_07EF RS.B 1
     RSSET $07F0
 app_SIZEOF EQU __RS
 
+ITEM_ID_LASER_RIFLE	EQU	$12
+ITEM_ID_BOTTLE_OF_GIN	EQU	$27
+ITEM_ID_INSULIN	EQU	$28
+ITEM_ID_HYPODERMIC	EQU	$29
+ITEM_ID_INSECTICIDE	EQU	$2A
+ITEM_ID_SHAKESPEARE	EQU	$2B
+ITEM_ID_BIBLE	EQU	$2C
+ITEM_ID_LIGHT_BOX	EQU	$2D
+ITEM_ID_GLOBE	EQU	$2E
+ITEM_ID_SQUASH_BALL	EQU	$2F
+ITEM_ID_BENT_COIN	EQU	$64
+ITEM_ID_MEGABIO_FEED	EQU	$67
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 active_world_object_ptr_table	EQU	$1309A
 sample_ptr	EQU	0
@@ -26910,7 +26922,7 @@ interact_with_musician:
 	jsr is_player_within_world_object_interaction_range.l
 	bcc.b abs_0_0005D39E
 	move.b $0046(a4),d0
-	cmp.b #$27,d0
+	cmp.b #ITEM_ID_BOTTLE_OF_GIN,d0
 	bne.b abs_0_0005D39E
 	bset.b #1,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D39E
@@ -26927,14 +26939,14 @@ interact_with_hooligan_or_robomechanic:
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_sec_officer:
 	move.b player_world_object_selected_item_id.l,d0
-	cmp.b #$12,d0
+	cmp.b #ITEM_ID_LASER_RIFLE,d0
 	beq.b interact_with_hooligan_or_robomechanic
 	move.w d0,d0
 	rts
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_chemist:
 	move.b player_world_object_selected_item_id.l,d0
-	cmp.b #$2C,d0
+	cmp.b #ITEM_ID_BIBLE,d0
 	bne.b abs_0_0005D3DC
 	bset.b #7,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D3DC
@@ -26942,7 +26954,7 @@ interact_with_chemist:
 	bra.b interact_with_hooligan_or_robomechanic
 abs_0_0005D3DC:
 	move.b selected_item_id(a5),d0
-	cmp.b #$2B,d0
+	cmp.b #ITEM_ID_SHAKESPEARE,d0
 	bne.b abs_0_0005D3F8
 	jsr abs_0_00012FD8.l
 	andi.w #12,d0
@@ -26955,7 +26967,7 @@ abs_0_0005D3F8:
 interact_with_bank_manager:
 	lea.l abs_0_0005D24B(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
-	cmp.b #$64,d0
+	cmp.b #ITEM_ID_BENT_COIN,d0
 	beq.b abs_0_0005D410
 	lea.l abs_0_0005D275(pc),a0
 abs_0_0005D410:
@@ -26972,7 +26984,7 @@ interact_with_priest:
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_technician:
 	move.b selected_item_id(a5),d0
-	cmp.b #$2E,d0
+	cmp.b #ITEM_ID_GLOBE,d0
 	bne.b abs_0_0005D446
 	bset.b #2,app_world_interaction_flags(a6)
 	beq.w interact_with_hooligan_or_robomechanic
@@ -27042,7 +27054,7 @@ abs_0_0005D4E2:
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_squash_player:
 	move.b selected_item_id(a5),d0
-	cmp.b #$2F,d0
+	cmp.b #ITEM_ID_SQUASH_BALL,d0
 	bne.b abs_0_0005D534
 	bset.b #3,app_world_interaction_flags(a6)
 	beq.w interact_with_hooligan_or_robomechanic
@@ -27053,13 +27065,13 @@ abs_0_0005D534:
 interact_with_driffid:
 	move.b player_world_object_selected_item_id.l,d0
 	lea.l abs_0_0005D0DC(pc),a0
-	cmp.b #$2A,d0
+	cmp.b #ITEM_ID_INSECTICIDE,d0
 	beq.b abs_0_0005D560
 	lea.l abs_0_0005D104(pc),a0
-	cmp.b #$2D,d0
+	cmp.b #ITEM_ID_LIGHT_BOX,d0
 	beq.b abs_0_0005D560
 	lea.l abs_0_0005D11D(pc),a0
-	cmp.b #$67,d0
+	cmp.b #ITEM_ID_MEGABIO_FEED,d0
 	beq.b abs_0_0005D560
 	move.w d0,d0
 	rts
@@ -27071,11 +27083,11 @@ interact_with_diabetic:
 	btst.b #4,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D592
 	move.b selected_item_id(a5),d0
-	cmp.b #$29,d0
+	cmp.b #ITEM_ID_HYPODERMIC,d0
 	beq.b abs_0_0005D596
 	lea.l abs_0_0005CFB4(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
-	cmp.b #$28,d0
+	cmp.b #ITEM_ID_INSULIN,d0
 	bne.b abs_0_0005D592
 	move.l a0,interaction_data_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
@@ -27083,7 +27095,7 @@ abs_0_0005D592:
 	move.w d0,d0
 	rts
 abs_0_0005D596:
-	moveq.l #40,d0
+	moveq.l #ITEM_ID_INSULIN,d0
 	cmp.b player_world_object_selected_item_id.l,d0
 	beq.b abs_0_0005D5BA
 	moveq.l #3,d7

@@ -419,6 +419,14 @@ def listing_element_action_catalog(
                     context,
                     {"representation": "character"},
                 ),
+                _context_log_action(
+                    "representation.symbol",
+                    "Use symbol",
+                    "set_representation",
+                    context,
+                    {"representation": "symbol"},
+                    _symbol_representation_parameter_schema(),
+                ),
             ]
         )
     if element_kind == "immediate":
@@ -3491,6 +3499,14 @@ def _target_equate_parameter_schema() -> dict[str, object]:
     }
 
 
+def _symbol_representation_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"symbol": {"type": "string"}},
+        "required": ["symbol"],
+    }
+
+
 def _target_equate_identity_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -4701,8 +4717,8 @@ def _representation_payload(
     params: Mapping[str, object],
 ) -> dict[str, object]:
     style = params.get("representation")
-    if style not in {"hex", "binary", "character", "string"}:
-        raise ValueError("representation must be hex, binary, character, or string")
+    if style not in {"hex", "binary", "character", "string", "symbol"}:
+        raise ValueError("representation must be hex, binary, character, string, or symbol")
     addr = _int_field(row, "start_offset", fallback="addr")
     element_kind = str((element_context or {}).get("element_kind") or "")
     representation: dict[str, object] = {
@@ -4715,6 +4731,11 @@ def _representation_payload(
     end = _optional_int(row.get("end_offset"))
     if end is not None and end > addr:
         representation["end"] = end
+    if style == "symbol":
+        symbol = params.get("symbol")
+        if not isinstance(symbol, str) or not symbol.strip():
+            raise ValueError("symbol representation requires parameter symbol")
+        representation["symbol"] = symbol.strip()
     row_index = _optional_int(row.get("row_index"))
     if row_index is not None:
         representation["row_index"] = row_index

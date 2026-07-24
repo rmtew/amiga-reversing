@@ -220,10 +220,17 @@ the analyzer.
 
 Several callbacks compare `player_world_object_selected_item_id` with a
 specific item id, and the Priest callback branches to the shared
-Hooligan/Robomechanic routine when its state guard is already set. The next
-pass should recover those item constants and the repeated flag/timer updates
-as named interaction-state fields rather than treating each callback in
-isolation.
+Hooligan/Robomechanic routine when its state guard is already set.  The
+item-name lookup table proves the following item requirements: Musician—Bottle
+of gin (`$27`); Sec officer—Laser rifle (`$12`); Chemist—Bible (`$2c`) or
+Shakespeare (`$2b`); Bank manager—Bent coin (`$64`); Technician—Globe
+(`$2e`); Squash player—Squash ball (`$2f`); Driffid—Insecticide (`$2a`), Light
+box (`$2d`), or Megabio Feed (`$67`); and Diabetic—Hypodermic (`$29`) or
+Insulin (`$28`).  These are rendered as `ITEM_ID_*` equates at each operand.
+The general `representation.symbol` command was added for this work: it
+durably binds a target equate name to one immediate operand, instead of relying
+on a target-specific renderer change.  The repeated flag/timer updates remain
+the next connected interaction-state recovery task.
 
 The callback family also establishes two one-byte A6-relative state regions:
 `app_world_interaction_flags` at `+0x033d` and

@@ -2091,6 +2091,8 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert representation_choice["interaction_schema"]["primary_rank"] == 20
     assert representation_choice["interaction_schema"]["options"][0]["value"] == "hex"
     assert any(action["action_id"] == "representation.hex" for action in element_actions)
+    representation_symbol = next(action for action in element_actions if action["action_id"] == "representation.symbol")
+    assert representation_symbol["parameter_schema"]["required"] == ["symbol"]
     element_named = next(action for action in element_actions if action["action_id"] == "element.seed.data.named")
     assert element_named["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
     assert element_named["parameter_schema"]["required"] == ["name"]

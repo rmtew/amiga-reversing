@@ -27,6 +27,40 @@ def test_range_data_block_layout_create_rejects_an_exact_existing_layout() -> No
     assert action["range_availability"] == "unavailable"
 
 
+def test_immediate_symbol_representation_preserves_target_equate_name() -> None:
+    row = {
+        "section_index": 0,
+        "start_offset": 0x4D3B2,
+        "end_offset": 0x4D3B6,
+        "kind": "instruction",
+        "operand_parts": [{"kind": "immediate", "operand_index": 0, "value": 0x12, "width_bytes": 1}],
+    }
+    selector = {"element_kind": "immediate", "operand_index": 0}
+
+    actions = listing_element_action_catalog(row, selector)
+    symbol_action = next(action for action in actions if action["action_id"] == "representation.symbol")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "representation.symbol",
+        element_context=selector,
+        parameters={"symbol": "ITEM_ID_LASER_RIFLE"},
+    )
+
+    assert symbol_action["parameters"] == {"representation": "symbol"}
+    assert symbol_action["parameter_schema"]["required"] == ["symbol"]
+    assert kind == "create_manual_representation"
+    assert payload["representation"] == {
+        "representation_id": payload["representation"]["representation_id"],
+        "hunk": 0,
+        "addr": 0x4D3B2,
+        "end": 0x4D3B6,
+        "style": "symbol",
+        "element_kind": "immediate",
+        "operand_index": 0,
+        "symbol": "ITEM_ID_LASER_RIFLE",
+    }
+
+
 @pytest.mark.parametrize("element_kind", ["struct", "platform_struct"])
 def test_data_block_type_binding_accepts_struct_kinds_exposed_by_its_schema(element_kind: str) -> None:
     row = {
