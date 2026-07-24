@@ -1852,9 +1852,21 @@ abs_0_00012476:
 	dbf.w d7,abs_0_00012476
 abs_0_00012488:
 	rts
-	dc.b $20,$2E,$02,$A8,$67,$1C,$22,$40,$3E,$2E,$02,$AC,$67,$F0,$53,$47
-	dc.b $20,$59,$48,$E7,$01,$40,$61,$00,$49,$5C,$4C,$DF,$02,$80,$51,$CF
-	dc.b $FF,$F0,$4E,$75
+update_active_world_object_tile_regions:
+	move.l app_active_world_object_ptr_table(a6),d0
+	beq.b abs_0_000124AC
+	movea.l d0,a1
+	move.w active_world_object_count(a6),d7
+	beq.b abs_0_00012488
+	subq.w #1,d7
+abs_0_0001249A:
+	movea.l (a1)+,a0
+	movem.l d7/a1,-(a7)
+	bsr.w abs_0_00016DFE
+	movem.l (a7)+,d7/a1
+	dbf.w d7,abs_0_0001249A
+abs_0_000124AC:
+	rts
 abs_0_000124AE:
 	move.l app_active_world_object_ptr_table(a6),d0
 	beq.b abs_0_000124DE
@@ -4352,9 +4364,19 @@ abs_0_000167AC:
 	dc.b $2F,$0D,$4B,$F9,$00,$DF,$F0,$00,$30,$2D,$00,$1E,$08,$00,$00,$06
 	dc.b $67,$F6,$3B,$7C,$00,$40,$00,$9C,$2B,$48,$00,$50,$2B,$49,$00,$54
 	dc.b $42,$6D,$00,$64,$3B,$7C,$00,$26,$00,$66,$3B,$7C,$09,$F0,$00,$40
-	dc.b $3B,$7C,$04,$01,$00,$58,$2A,$5F,$4E,$75,$48,$E7,$C0,$00,$E8,$48
-	dc.b $E8,$49,$C2,$EE,$01,$C2,$D2,$40,$D2,$81,$D2,$81,$20,$6E,$01,$BE
-	dc.b $D1,$C1,$4C,$DF,$00,$03,$4E,$75
+	dc.b $3B,$7C,$04,$01,$00,$58,$2A,$5F,$4E,$75
+abs_0_000167EC:
+	movem.l d0-d1,-(a7)
+	lsr.w #4,d0
+	lsr.w #4,d1
+	mulu.w app_tilemap_width(a6),d1
+	add.w d0,d1
+	add.l d1,d1
+	add.l d1,d1
+	movea.l app_tilemap_base(a6),a0
+	adda.l d1,a0
+	movem.l (a7)+,d0-d1
+	rts
 abs_0_0001680A:
 	move.w app_tilemap_scroll_x(a6),d0
 	addi.w #320,d0
@@ -4411,14 +4433,48 @@ abs_0_00016898:
 abs_0_0001689A:
 	movem.l (a7)+,d0-d3
 	rts
-	dc.b $48,$E7,$3C,$00,$28,$3C,$00,$DF,$F0,$00,$76,$00,$16,$3C,$00,$98
-	dc.b $53,$40,$53,$41,$24,$48,$28,$49,$24,$00,$26,$4A,$2A,$4C,$20,$5B
-	dc.b $22,$4D,$C9,$8D,$3A,$2D,$00,$1E,$08,$05,$00,$06,$67,$F6,$3B,$7C
-	dc.b $00,$40,$00,$9C,$3B,$7C,$FF,$FF,$00,$46,$2B,$48,$00,$50,$2B,$49
-	dc.b $00,$54,$42,$6D,$00,$64,$3B,$7C,$00,$26,$00,$66,$3B,$7C,$09,$F0
-	dc.b $00,$40,$3B,$7C,$10,$01,$00,$58,$C9,$8D,$54,$8D,$51,$CA,$FF,$C0
-	dc.b $D5,$EE,$02,$A2,$B5,$EE,$02,$9E,$65,$06,$24,$2E,$02,$9A,$95,$C2
-	dc.b $49,$EC,$0A,$00,$51,$C9,$FF,$A2,$4C,$DF,$00,$3C,$4E,$75
+abs_0_000168A0:
+	movem.l d2-d5,-(a7)
+	move.l #$DFF000,d4
+	moveq.l #0,d3
+	move.b #$98,d3
+	subq.w #1,d0
+	subq.w #1,d1
+	movea.l a0,a2
+	movea.l a1,a4
+abs_0_000168B8:
+	move.l d0,d2
+	movea.l a2,a3
+	movea.l a4,a5
+abs_0_000168BE:
+	movea.l (a3)+,a0
+	movea.l a5,a1
+	exg d4,a5
+abs_0_000168C4:
+	move.w $001E(a5),d5
+	btst #6,d5
+	beq.b abs_0_000168C4
+	move.w #$40,$009C(a5)
+	move.w #$FFFF,$0046(a5)
+	move.l a0,$0050(a5)
+	move.l a1,$0054(a5)
+	clr.w $0064(a5)
+	move.w #$26,$0066(a5)
+	move.w #$9F0,$0040(a5)
+	move.w #$1001,$0058(a5)
+	exg d4,a5
+	addq.l #2,a5
+	dbf.w d2,abs_0_000168BE
+	adda.l app_02A2(a6),a2
+	cmpa.l app_029E(a6),a2
+	bcs.b abs_0_00016910
+	move.l app_029A(a6),d2
+	suba.l d2,a2
+abs_0_00016910:
+	lea.l $0A00(a4),a4
+	dbf.w d1,abs_0_000168B8
+	movem.l (a7)+,d2-d5
+	rts
 abs_0_0001691E:
 	moveq.l #0,d6
 	movem.l a0-a2/a5,-(a7)
@@ -4765,33 +4821,180 @@ abs_0_00016DA4:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a3/a5
 	rts
-	dc.b $48,$E7,$E0,$00,$E6,$48,$08,$80,$00,$00,$D2,$41,$D0,$76,$10,$00
-	dc.b $22,$6E,$01,$D8,$D2,$C0,$4C,$DF,$00,$07,$4E,$75,$2F,$01,$34,$00
-	dc.b $E6,$4A,$02,$02,$00,$FE,$D2,$41,$D4,$76,$10,$00,$22,$1F,$4E,$75
-	dc.b $20,$6D,$00,$2C,$21,$6D,$00,$30,$00,$04,$4E,$75,$20,$6D,$00,$2C
-	dc.b $21,$6D,$00,$36,$00,$04,$4E,$75,$2B,$6D,$00,$30,$00,$36,$4E,$75
-	dc.b $20,$28,$00,$00,$67,$56,$28,$40,$4A,$AC,$00,$04,$66,$06,$20,$2C
-	dc.b $00,$14,$60,$F0,$30,$28,$00,$08,$32,$28,$00,$0A,$61,$40,$61,$54
-	dc.b $24,$04,$26,$05,$2C,$2C,$00,$14,$67,$00,$00,$74,$28,$46,$61,$2E
-	dc.b $B8,$42,$64,$02,$34,$04,$BA,$43,$64,$02,$36,$05,$61,$36,$48,$42
-	dc.b $48,$44,$B8,$42,$63,$02,$34,$04,$48,$42,$48,$44,$48,$43,$48,$45
-	dc.b $BA,$43,$63,$02,$36,$05,$48,$43,$48,$45,$60,$C8,$4E,$75,$26,$6C
-	dc.b $00,$04,$38,$2C,$00,$0C,$3A,$2C,$00,$0E,$D8,$40,$DA,$41,$DA,$6B
-	dc.b $00,$10,$4E,$75,$26,$6C,$00,$04,$48,$44,$48,$45,$38,$2C,$00,$0C
-	dc.b $3A,$2C,$00,$0E,$D8,$40,$DA,$41,$D8,$6B,$00,$0E,$DA,$6B,$00,$10
-	dc.b $D8,$6B,$00,$0C,$DA,$6B,$00,$0A,$48,$44,$48,$45,$4E,$75,$2F,$08
-	dc.b $2A,$02,$2C,$03,$70,$F0,$C4,$40,$C6,$40,$48,$42,$48,$43,$70,$0F
-	dc.b $84,$40,$86,$40,$3C,$03,$3A,$02,$48,$42,$48,$43,$61,$00,$F9,$8E
-	dc.b $B8,$3C,$00,$0F,$67,$00,$00,$94,$52,$45,$52,$46,$9A,$42,$9C,$43
-	dc.b $E8,$4D,$E8,$4E,$C1,$42,$C3,$43,$61,$00,$F9,$14,$4A,$04,$67,$00
-	dc.b $00,$6A,$08,$04,$00,$02,$67,$14,$3E,$02,$9E,$40,$D0,$47,$E8,$4F
-	dc.b $9A,$47,$DE,$47,$DE,$47,$D0,$C7,$60,$00,$00,$1A,$08,$04,$00,$03
-	dc.b $67,$12,$48,$40,$3E,$00,$48,$40,$48,$42,$52,$47,$9E,$42,$E8,$4F
-	dc.b $9A,$47,$48,$42,$08,$04,$00,$00,$67,$18,$3E,$03,$9E,$41,$32,$03
-	dc.b $E8,$4F,$9C,$47,$CE,$EE,$01,$C2,$DE,$47,$DE,$47,$D0,$C7,$60,$00
-	dc.b $00,$1A,$08,$04,$00,$01,$67,$12,$48,$41,$3E,$01,$48,$41,$48,$43
-	dc.b $52,$47,$9E,$43,$E8,$4F,$9C,$47,$48,$43,$92,$43,$90,$42,$61,$00
-	dc.b $FE,$60,$30,$05,$32,$06,$61,$00,$F9,$4A,$20,$5F,$4E,$75
+abs_0_00016DAE:
+	movem.l d0-d2,-(a7)
+	lsr.w #3,d0
+	bclr #0,d0
+	add.w d1,d1
+	add.w $0(a6,d1.w),d0
+	movea.l app_back_bitplane_base(a6),a1
+	adda.w d0,a1
+	movem.l (a7)+,d0-d2
+	rts
+	dc.b $2F,$01,$34,$00,$E6,$4A,$02,$02,$00,$FE,$D2,$41,$D4,$76,$10,$00
+	dc.b $22,$1F,$4E,$75,$20,$6D,$00,$2C,$21,$6D,$00,$30,$00,$04,$4E,$75
+	dc.b $20,$6D,$00,$2C,$21,$6D,$00,$36,$00,$04,$4E,$75,$2B,$6D,$00,$30
+	dc.b $00,$36,$4E,$75
+abs_0_00016DFE:
+	move.l $0000(a0),d0
+abs_0_00016E02:
+	beq.b abs_0_00016E5A
+	movea.l d0,a4
+	tst.l $0004(a4)
+	bne.b abs_0_00016E12
+	move.l $0014(a4),d0
+	bra.b abs_0_00016E02
+abs_0_00016E12:
+	move.w $0008(a0),d0
+	move.w $000A(a0),d1
+	bsr.b abs_0_00016E5C
+	bsr.b abs_0_00016E72
+	move.l d4,d2
+	move.l d5,d3
+abs_0_00016E22:
+	move.l $0014(a4),d6
+	beq.w abs_0_00016E9C
+	movea.l d6,a4
+	bsr.b abs_0_00016E5C
+	cmp.w d2,d4
+	bcc.b abs_0_00016E34
+	move.w d4,d2
+abs_0_00016E34:
+	cmp.w d3,d5
+	bcc.b abs_0_00016E3A
+	move.w d5,d3
+abs_0_00016E3A:
+	bsr.b abs_0_00016E72
+	swap.w d2
+	swap.w d4
+	cmp.w d2,d4
+	bls.b abs_0_00016E46
+	move.w d4,d2
+abs_0_00016E46:
+	swap.w d2
+	swap.w d4
+	swap.w d3
+	swap.w d5
+	cmp.w d3,d5
+	bls.b abs_0_00016E54
+	move.w d5,d3
+abs_0_00016E54:
+	swap.w d3
+	swap.w d5
+	bra.b abs_0_00016E22
+abs_0_00016E5A:
+	rts
+abs_0_00016E5C:
+	movea.l $0004(a4),a3
+	move.w $000C(a4),d4
+	move.w $000E(a4),d5
+	add.w d0,d4
+	add.w d1,d5
+	add.w $0010(a3),d5
+	rts
+abs_0_00016E72:
+	movea.l $0004(a4),a3
+	swap.w d4
+	swap.w d5
+	move.w $000C(a4),d4
+	move.w $000E(a4),d5
+	add.w d0,d4
+	add.w d1,d5
+	add.w $000E(a3),d4
+	add.w $0010(a3),d5
+	add.w $000C(a3),d4
+	add.w $000A(a3),d5
+	swap.w d4
+	swap.w d5
+	rts
+abs_0_00016E9C:
+	move.l a0,-(a7)
+	move.l d2,d5
+	move.l d3,d6
+	moveq.l #-16,d0
+	and.w d0,d2
+	and.w d0,d3
+	swap.w d2
+	swap.w d3
+	moveq.l #15,d0
+	or.w d0,d2
+	or.w d0,d3
+	move.w d3,d6
+	move.w d2,d5
+	swap.w d2
+	swap.w d3
+	bsr.w abs_0_0001684A
+	cmp.b #$F,d4
+	beq.w abs_0_00016F58
+	addq.w #1,d5
+	addq.w #1,d6
+	sub.w d2,d5
+	sub.w d3,d6
+	lsr.w #4,d5
+	lsr.w #4,d6
+	exg d0,d2
+	exg d1,d3
+	bsr.w abs_0_000167EC
+	tst.b d4
+	beq.w abs_0_00016F48
+	btst #2,d4
+	beq.b abs_0_00016EFA
+	move.w d2,d7
+	sub.w d0,d7
+	add.w d7,d0
+	lsr.w #4,d7
+	sub.w d7,d5
+	add.w d7,d7
+	add.w d7,d7
+	adda.w d7,a0
+	bra.w abs_0_00016F12
+abs_0_00016EFA:
+	btst #3,d4
+	beq.b abs_0_00016F12
+	swap.w d0
+	move.w d0,d7
+	swap.w d0
+	swap.w d2
+	addq.w #1,d7
+	sub.w d2,d7
+	lsr.w #4,d7
+	sub.w d7,d5
+	swap.w d2
+abs_0_00016F12:
+	btst #0,d4
+	beq.b abs_0_00016F30
+	move.w d3,d7
+	sub.w d1,d7
+	move.w d3,d1
+	lsr.w #4,d7
+	sub.w d7,d6
+	mulu.w app_tilemap_width(a6),d7
+	add.w d7,d7
+	add.w d7,d7
+	adda.w d7,a0
+	bra.w abs_0_00016F48
+abs_0_00016F30:
+	btst #1,d4
+	beq.b abs_0_00016F48
+	swap.w d1
+	move.w d1,d7
+	swap.w d1
+	swap.w d3
+	addq.w #1,d7
+	sub.w d3,d7
+	lsr.w #4,d7
+	sub.w d7,d6
+	swap.w d3
+abs_0_00016F48:
+	sub.w d3,d1
+	sub.w d2,d0
+	bsr.w abs_0_00016DAE
+	move.w d5,d0
+	move.w d6,d1
+	bsr.w abs_0_000168A0
+abs_0_00016F58:
+	movea.l (a7)+,a0
+	rts
 abs_0_00016F5C:
 	movea.l $0000(a0),a0
 abs_0_00016F60:

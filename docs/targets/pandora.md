@@ -136,6 +136,13 @@ the byte at `+0x3d`, the byte at `+0x46`, the word at `+0x3c`, the pointer at
 `+0x4e`, and the two-byte context-prompt cooldown at `+0x52`; their roles need
 further cross-object comparison before becoming shared record fields.
 
+`update_active_world_object_tile_regions` at `$0001248A` iterates the active
+world-object pointer table and invokes the geometry/tilemap update path for
+each entry. Its callee follows the linked geometry records, computes extrema,
+clips the resulting region against the tilemap, and submits the corresponding
+blitter update. This formerly raw RTS-bounded loop is therefore an active
+world-object tile-region update pass.
+
 `world_object_ptr_table` occupies `$0001300A` through `$00013099`: its 36
 longwords are the player pointer, 34 static-object pointers, and the null
 terminator.  The preceding word at `$00013008` is `$4e75` (`RTS`), which is a
