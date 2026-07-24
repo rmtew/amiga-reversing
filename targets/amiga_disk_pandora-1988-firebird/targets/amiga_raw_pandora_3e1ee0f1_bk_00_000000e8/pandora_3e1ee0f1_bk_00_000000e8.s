@@ -205,6 +205,15 @@ ITEM_ID_GLOBE	EQU	$2E
 ITEM_ID_SQUASH_BALL	EQU	$2F
 ITEM_ID_BENT_COIN	EQU	$64
 ITEM_ID_MEGABIO_FEED	EQU	$67
+INTERACTION_FLAG_PROXIMITY_AUDIO_ACTIVE	EQU	0
+INTERACTION_FLAG_MUSICIAN_COMPLETED	EQU	1
+INTERACTION_FLAG_TECHNICIAN_COMPLETED	EQU	2
+INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED	EQU	3
+INTERACTION_FLAG_DIABETIC_TREATED	EQU	4
+INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING	EQU	5
+INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED	EQU	7
+INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
+INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 active_world_object_ptr_table	EQU	$1309A
 sample_ptr	EQU	0
@@ -26924,7 +26933,7 @@ interact_with_musician:
 	move.b $0046(a4),d0
 	cmp.b #ITEM_ID_BOTTLE_OF_GIN,d0
 	bne.b abs_0_0005D39E
-	bset.b #1,app_world_interaction_flags(a6)
+	bset.b #INTERACTION_FLAG_MUSICIAN_COMPLETED,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D39E
 	move #$1,ccr
 	rts
@@ -26948,7 +26957,7 @@ interact_with_chemist:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_BIBLE,d0
 	bne.b abs_0_0005D3DC
-	bset.b #7,app_world_interaction_flags(a6)
+	bset.b #INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D3DC
 	move.l #$5CF4C,interaction_data_ptr(a5)
 	bra.b interact_with_hooligan_or_robomechanic
@@ -26986,7 +26995,7 @@ interact_with_technician:
 	move.b selected_item_id(a5),d0
 	cmp.b #ITEM_ID_GLOBE,d0
 	bne.b abs_0_0005D446
-	bset.b #2,app_world_interaction_flags(a6)
+	bset.b #INTERACTION_FLAG_TECHNICIAN_COMPLETED,app_world_interaction_flags(a6)
 	beq.w interact_with_hooligan_or_robomechanic
 abs_0_0005D446:
 	move.w d0,d0
@@ -26995,7 +27004,7 @@ abs_0_0005D446:
 interact_with_wackobrain:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D460
-	bset.b #5,app_world_interaction_flags(a6)
+	bset.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D464
 	moveq.l #8,d0
 	bsr.w start_feedback_audio_sequence
@@ -27014,13 +27023,13 @@ abs_0_0005D464:
 	cmpa.l #$5965C,a0
 	bne.b abs_0_0005D460
 abs_0_0005D48E:
-	bclr.b #5,app_world_interaction_flags(a6)
+	bclr.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
 	bra.b interact_with_wackobrain
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_menial_droid:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D4B0
-	bset.b #1,app_world_interaction_audio_flags(a6)
+	bset.b #INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bne.b abs_0_0005D4B4
 	move.w #$213,d0
 	jsr start_feedback_audio_sequence.l
@@ -27030,13 +27039,13 @@ abs_0_0005D4B0:
 abs_0_0005D4B4:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
 	bne.b abs_0_0005D4B0
-	bclr.b #1,app_world_interaction_audio_flags(a6)
+	bclr.b #INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_menial_droid
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_gardener:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D4DE
-	bset.b #2,app_world_interaction_audio_flags(a6)
+	bset.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bne.b abs_0_0005D4E2
 	move.w #$217,d0
 	jsr start_feedback_audio_sequence.l
@@ -27046,7 +27055,7 @@ abs_0_0005D4DE:
 abs_0_0005D4E2:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
 	bne.b abs_0_0005D4DE
-	bclr.b #2,app_world_interaction_audio_flags(a6)
+	bclr.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_gardener
 	dc.b $08,$2E,$00,$01,$02,$2E,$66,$12,$08,$EE,$00,$03,$03,$3E,$66,$0E
 	dc.b $30,$3C,$02,$14,$4E,$B9,$00,$05,$D3,$30,$30,$00,$4E,$75,$4A,$39
@@ -27056,7 +27065,7 @@ interact_with_squash_player:
 	move.b selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SQUASH_BALL,d0
 	bne.b abs_0_0005D534
-	bset.b #3,app_world_interaction_flags(a6)
+	bset.b #INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED,app_world_interaction_flags(a6)
 	beq.w interact_with_hooligan_or_robomechanic
 abs_0_0005D534:
 	move.w d0,d0
@@ -27080,7 +27089,7 @@ abs_0_0005D560:
 	bra.w interact_with_hooligan_or_robomechanic
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_diabetic:
-	btst.b #4,app_world_interaction_flags(a6)
+	btst.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D592
 	move.b selected_item_id(a5),d0
 	cmp.b #ITEM_ID_HYPODERMIC,d0
@@ -27110,7 +27119,7 @@ abs_0_0005D5A6:
 abs_0_0005D5BA:
 	jsr is_player_within_world_object_interaction_range.l
 	bcc.b abs_0_0005D592
-	bset.b #4,app_world_interaction_flags(a6)
+	bset.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)
 	lea.l abs_0_0005CFE0(pc),a0
 	jsr enqueue_status_message.l
 	lea.l abs_0_0005D011(pc),a0

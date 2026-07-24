@@ -234,12 +234,17 @@ the next connected interaction-state recovery task.
 
 The callback family also establishes two one-byte A6-relative state regions:
 `app_world_interaction_flags` at `+0x033d` and
-`app_world_interaction_audio_flags` at `+0x033e`. The first holds independent
-one-shot guards for the Musician, Chemist, Technician, Wackobrain, Squash
-player, and Diabetic paths. The second contains audio-pending gates: the
-Menial droid and Gardener callbacks set bits 1 and 2 before starting their
-feedback sequence, then clear them only after channel 2's playback-tick
-counter reaches zero. Both bytes are reset by `initialize_world_state`.
+`app_world_interaction_audio_flags` at `+0x033e`.  The first combines a
+proximity-audio active latch (bit 0, maintained by
+`update_player_proximity_audio`) with independent callback state: Musician
+completion (1), Technician completion (2), Squash-player completion (3),
+Diabetic treatment (4), Wackobrain feedback pending (5), and Chemist Bible
+completion (7).  The second contains audio-pending gates: the Menial droid and
+Gardener callbacks set bits 1 and 2 before starting their feedback sequence,
+then clear them only after channel 2's playback-tick counter reaches zero.
+Both bytes are reset by `initialize_world_state`.  The audio byte's bit 0 is
+also used by the broader audio-player update path, so it remains intentionally
+unnamed until that subsystem is recovered.
 
 `is_player_within_world_object_interaction_range` at `$00012664` compares the
 player and selected object's coordinates and returns the condition code used by
