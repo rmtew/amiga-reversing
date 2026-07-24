@@ -26183,6 +26183,195 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_propagates_static_struct_pointer_chain(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  const M68kSectionAnalysisIR *analysis_section;
+  const M68kRecoveredPlatformTypedAccessIR *typed = NULL;
+  char *source = NULL;
+  size_t index;
+  uint8_t bytes[80] = {
+    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x20u,
+    0x20u, 0x6cu, 0x00u, 0x00u,
+    0x22u, 0x68u, 0x00u, 0x00u,
+    0x24u, 0x69u, 0x00u, 0x00u,
+    0x30u, 0x2au, 0x00u, 0x04u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x00010000U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x00010000U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(4U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = 4U;
+  policy.custom_struct_capacity = 4U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "world_object_shared_prefix");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].size = 4U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name),
+    "position_descriptor_ptr");
+  snprintf(custom_structs[0].fields[0].pointer_struct, sizeof(custom_structs[0].fields[0].pointer_struct),
+    "world_position_descriptor_prefix");
+  snprintf(custom_structs[1].name, sizeof(custom_structs[1].name), "world_position_descriptor_prefix");
+  custom_structs[1].size = 4U;
+  custom_structs[1].field_count = 1U;
+  custom_structs[1].fields[0].size = 4U;
+  snprintf(custom_structs[1].fields[0].name, sizeof(custom_structs[1].fields[0].name), "position_state_ptr");
+  snprintf(custom_structs[1].fields[0].pointer_struct, sizeof(custom_structs[1].fields[0].pointer_struct),
+    "world_position_state_record");
+  snprintf(custom_structs[2].name, sizeof(custom_structs[2].name), "world_position_state_record");
+  custom_structs[2].size = 4U;
+  custom_structs[2].field_count = 1U;
+  custom_structs[2].fields[0].size = 4U;
+  snprintf(custom_structs[2].fields[0].name, sizeof(custom_structs[2].fields[0].name), "collision_bounds_ptr");
+  snprintf(custom_structs[2].fields[0].pointer_struct, sizeof(custom_structs[2].fields[0].pointer_struct),
+    "world_position_collision_bounds");
+  snprintf(custom_structs[3].name, sizeof(custom_structs[3].name), "world_position_collision_bounds");
+  custom_structs[3].size = 6U;
+  custom_structs[3].field_count = 1U;
+  custom_structs[3].fields[0].offset = 4U;
+  custom_structs[3].fields[0].size = 2U;
+  snprintf(custom_structs[3].fields[0].name, sizeof(custom_structs[3].fields[0].name), "world_x_origin_offset");
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 32U;
+  policy.structured_data_items[0].size = 4U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
+    "world_object_shared_prefix");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  analysis_section = &analysis.sections[0];
+  for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *candidate =
+      &analysis_section->recovered_platform_typed_accesses[index];
+    if (candidate->offset == 18U && candidate->operand_index == 0U && candidate->base_reg == 2U &&
+        candidate->displacement == 4) {
+      typed = candidate;
+      break;
+    }
+  }
+  M68K_C_ASSERT(typed != NULL);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_FIELD_POINTER, typed->type_provenance_kind);
+  m68k_ir_source_analysis_destroy(&analysis);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l world_object_shared_prefix_position_descriptor_ptr(a4),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmovea.l world_position_descriptor_prefix_position_state_ptr(a0),a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmovea.l world_position_state_record_collision_bounds_ptr(a1),a2\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w world_position_collision_bounds_world_x_origin_offset(a2),d0\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_render_asm_source_rejects_conflicting_static_struct_types(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  char *source = NULL;
+  uint8_t bytes[68] = {
+    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x10u,
+    0x30u, 0x2cu, 0x00u, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x00010000U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x00010000U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(2U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = 2U;
+  policy.custom_struct_capacity = 2U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "first_singleton");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "first_value");
+  snprintf(custom_structs[1].name, sizeof(custom_structs[1].name), "second_singleton");
+  custom_structs[1].size = 4U;
+  custom_structs[1].field_count = 1U;
+  custom_structs[1].fields[0].size = 2U;
+  snprintf(custom_structs[1].fields[0].name, sizeof(custom_structs[1].fields[0].name), "second_value");
+  policy.structured_data_item_count = 2U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 16U;
+  policy.structured_data_items[0].size = 4U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
+    "first_singleton");
+  policy.structured_data_items[1] = policy.structured_data_items[0];
+  snprintf(policy.structured_data_items[1].struct_name, sizeof(policy.structured_data_items[1].struct_name),
+    "second_singleton");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w $0000(a4),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "first_singleton_first_value(a4)") == NULL);
+  M68K_C_ASSERT(strstr(source, "second_singleton_second_value(a4)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_hardware_field_absolute_slot_does_not_propagate_type(void) {
   M68kObject object;
   M68kSection section;
@@ -32558,6 +32747,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_propagates_custom_field_pointer_type},
     {"facts_v2_render_asm_source_propagates_static_struct_data_type",
       test_facts_v2_render_asm_source_propagates_static_struct_data_type},
+    {"facts_v2_render_asm_source_propagates_static_struct_pointer_chain",
+      test_facts_v2_render_asm_source_propagates_static_struct_pointer_chain},
+    {"facts_v2_render_asm_source_rejects_conflicting_static_struct_types",
+      test_facts_v2_render_asm_source_rejects_conflicting_static_struct_types},
     {"facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot",
       test_facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot},
     {"facts_v2_analysis_propagates_api_output_type_through_stack_slot",
