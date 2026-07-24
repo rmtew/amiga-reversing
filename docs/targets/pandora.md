@@ -122,6 +122,14 @@ verified packed payload sizes are `$13EE`, `$0C4C`, `$121A`, `$157C`, `$14B4`,
 - Name the update helper blocks within `update_audio_channels` only after the
   repeated record fields and timer/envelope behavior are proven.
 
+## Work-buffer helper
+
+`prepare_work_buffer_arguments` at `$00017190` is a compact RTS-bounded code
+entry following two null-terminated resource-name strings. It returns three
+fixed work-buffer pointers in `a0`, `a1`, and `a2`, together with a count of 15
+in `d7`. No direct caller has yet been recovered, so the name records the
+observed register contract rather than assigning those buffers to a subsystem.
+
 ## World-object subsystem
 
 ### Confirmed player entry
