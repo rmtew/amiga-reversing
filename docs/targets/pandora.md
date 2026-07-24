@@ -242,6 +242,16 @@ at `$0005D330` preserves the caller register set around `start_audio_sequence`
 and updates the interaction-audio state; its callers include the object
 callbacks and inventory-panel feedback.
 
+The callback implementation pass records `world_object_shared_prefix` as the
+A5 entry type at all 13 callback entries.  Their rendered accesses now use the
+shared field names (for example, `context_prompt_cooldown(a5)`), rather than
+anonymous numeric displacements.  This uncovered and fixed a general renderer
+contract: custom-structure field symbols are emitted as source-header `EQU`
+definitions, so typed operands remain independently assemblable.  The command
+surface now has a durable `target.code.register_seed.add` action for this
+entry-specific type fact; the renderer deliberately applies such seeds only
+at the exact function entry, not to unrelated preceding code.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

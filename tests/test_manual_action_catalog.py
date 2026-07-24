@@ -160,6 +160,38 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
         }
     }
 
+    kind, payload = target_catalog_manual_payload(
+        "target.code.register_seed.add",
+        {
+            "hunk": 0,
+            "addr": 0x4D37E,
+            "register": "a5",
+            "struct_name": "world_object_shared_prefix",
+            "context_name": "world_object_interaction_callback",
+        },
+    )
+    assert kind == "create_manual_register_seed"
+    assert payload == {
+        "register_seed": {
+            "register_seed_id": "catalog-code-register-seed-h0-0004D37E-A5",
+            "hunk": 0,
+            "entry_offset": 0x4D37E,
+            "register": "A5",
+            "kind": "struct_ptr",
+            "library_name": None,
+            "struct_name": "world_object_shared_prefix",
+            "context_name": "world_object_interaction_callback",
+            "note": "Target code-entry register seed",
+        }
+    }
+
+    kind, payload = target_catalog_manual_payload(
+        "target.code.register_seed.remove",
+        {"register_seed_id": "catalog-code-register-seed-h0-0004D37E-A5"},
+    )
+    assert kind == "remove_manual_register_seed"
+    assert payload == {"register_seed_id": "catalog-code-register-seed-h0-0004D37E-A5"}
+
 
 def test_provenance_source_evidence_id_includes_all_parent_evidence_ids() -> None:
     subject = {

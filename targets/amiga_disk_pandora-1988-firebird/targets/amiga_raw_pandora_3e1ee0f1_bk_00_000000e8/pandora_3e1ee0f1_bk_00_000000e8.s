@@ -195,6 +195,52 @@ app_SIZEOF EQU __RS
 
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 active_world_object_ptr_table	EQU	$1309A
+sample_ptr	EQU	0
+sample_length	EQU	4
+sample_period	EQU	6
+sample_volume	EQU	8
+enabled	EQU	10
+start_pending	EQU	11
+period_delta	EQU	0
+period_reset_value	EQU	2
+period_delta_step	EQU	4
+current_period	EQU	8
+sample_address_offset	EQU	10
+period_reset_interval	EQU	14
+period_delta_interval	EQU	15
+period_delta_select	EQU	16
+sample_address_offset_select	EQU	17
+playback_ticks_remaining	EQU	18
+sequence_interval	EQU	19
+sequence_index	EQU	20
+update_disabled	EQU	21
+period_reset_countdown	EQU	22
+period_delta_countdown	EQU	23
+active	EQU	24
+sequence_countdown	EQU	25
+sequence_ptr	EQU	26
+item_name_ptr	EQU	0
+interaction_callback	EQU	4
+context_callback	EQU	12
+interaction_data_ptr	EQU	16
+position_descriptor_ptr	EQU	44
+world_x	EQU	48
+world_y	EQU	50
+interaction_timer	EQU	60
+proximity_distance	EQU	66
+selected_item_id	EQU	70
+initial_selected_item_id	EQU	71
+world_object_flags	EQU	72
+initial_world_object_flags	EQU	73
+item_definition_id	EQU	74
+item_state	EQU	76
+initial_item_state	EQU	77
+context_prompt_cooldown	EQU	82
+inventory_slots_ptr	EQU	20
+trade_offer_table_ptr	EQU	24
+initial_inventory_slots_ptr	EQU	28
+initial_trade_offer_table_ptr	EQU	32
+position_state_ptr	EQU	0
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -26859,6 +26905,7 @@ abs_0_0005D368:
 	jsr reset_audio_channels.l
 	movem.l (a7)+,d1-d7/a1-a6
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_musician:
 	jsr is_player_within_world_object_interaction_range.l
 	bcc.b abs_0_0005D39E
@@ -26872,26 +26919,29 @@ interact_with_musician:
 abs_0_0005D39E:
 	move.w d0,d0
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_hooligan_or_robomechanic:
-	move.w #$FA,$0052(a5)
+	move.w #$FA,context_prompt_cooldown(a5)
 	move #$1,ccr
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_sec_officer:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$12,d0
 	beq.b interact_with_hooligan_or_robomechanic
 	move.w d0,d0
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_chemist:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$2C,d0
 	bne.b abs_0_0005D3DC
 	bset.b #7,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D3DC
-	move.l #$5CF4C,$0010(a5)
+	move.l #$5CF4C,interaction_data_ptr(a5)
 	bra.b interact_with_hooligan_or_robomechanic
 abs_0_0005D3DC:
-	move.b $0046(a5),d0
+	move.b selected_item_id(a5),d0
 	cmp.b #$2B,d0
 	bne.b abs_0_0005D3F8
 	jsr abs_0_00012FD8.l
@@ -26901,6 +26951,7 @@ abs_0_0005D3DC:
 abs_0_0005D3F8:
 	move.w d0,d0
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_bank_manager:
 	lea.l abs_0_0005D24B(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
@@ -26908,17 +26959,19 @@ interact_with_bank_manager:
 	beq.b abs_0_0005D410
 	lea.l abs_0_0005D275(pc),a0
 abs_0_0005D410:
-	move.l a0,$0010(a5)
+	move.l a0,interaction_data_ptr(a5)
 	bra.b interact_with_hooligan_or_robomechanic
 abs_0_0005D416:
 	dc.l $0005CEB3,$0005CEDC,$0005CEFC,$0005CF27	; lookup_table
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_priest:
 	tst.b app_0327(a6)
 	bne.w interact_with_hooligan_or_robomechanic
 	move.w d0,d0
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_technician:
-	move.b $0046(a5),d0
+	move.b selected_item_id(a5),d0
 	cmp.b #$2E,d0
 	bne.b abs_0_0005D446
 	bset.b #2,app_world_interaction_flags(a6)
@@ -26926,6 +26979,7 @@ interact_with_technician:
 abs_0_0005D446:
 	move.w d0,d0
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_wackobrain:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D460
@@ -26950,6 +27004,7 @@ abs_0_0005D464:
 abs_0_0005D48E:
 	bclr.b #5,app_world_interaction_flags(a6)
 	bra.b interact_with_wackobrain
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_menial_droid:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D4B0
@@ -26965,6 +27020,7 @@ abs_0_0005D4B4:
 	bne.b abs_0_0005D4B0
 	bclr.b #1,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_menial_droid
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_gardener:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D4DE
@@ -26983,8 +27039,9 @@ abs_0_0005D4E2:
 	dc.b $08,$2E,$00,$01,$02,$2E,$66,$12,$08,$EE,$00,$03,$03,$3E,$66,$0E
 	dc.b $30,$3C,$02,$14,$4E,$B9,$00,$05,$D3,$30,$30,$00,$4E,$75,$4A,$39
 	dc.b $00,$05,$E6,$54,$66,$F4,$08,$AE,$00,$03,$03,$3E,$60,$D2
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_squash_player:
-	move.b $0046(a5),d0
+	move.b selected_item_id(a5),d0
 	cmp.b #$2F,d0
 	bne.b abs_0_0005D534
 	bset.b #3,app_world_interaction_flags(a6)
@@ -26992,6 +27049,7 @@ interact_with_squash_player:
 abs_0_0005D534:
 	move.w d0,d0
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_driffid:
 	move.b player_world_object_selected_item_id.l,d0
 	lea.l abs_0_0005D0DC(pc),a0
@@ -27006,19 +27064,20 @@ interact_with_driffid:
 	move.w d0,d0
 	rts
 abs_0_0005D560:
-	move.l a0,$0010(a5)
+	move.l a0,interaction_data_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_diabetic:
 	btst.b #4,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D592
-	move.b $0046(a5),d0
+	move.b selected_item_id(a5),d0
 	cmp.b #$29,d0
 	beq.b abs_0_0005D596
 	lea.l abs_0_0005CFB4(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$28,d0
 	bne.b abs_0_0005D592
-	move.l a0,$0010(a5)
+	move.l a0,interaction_data_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
 abs_0_0005D592:
 	move.w d0,d0
@@ -27034,7 +27093,7 @@ abs_0_0005D5A6:
 	beq.b abs_0_0005D592
 	dbf.w d7,abs_0_0005D5A6
 	lea.l abs_0_0005CF8E(pc),a0
-	move.l a0,$0010(a5)
+	move.l a0,interaction_data_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
 abs_0_0005D5BA:
 	jsr is_player_within_world_object_interaction_range.l

@@ -1712,6 +1712,30 @@ static int resolve_amiga_struct_field_symbol_name(const char *type_name, int16_t
   return 0;
 }
 
+static int resolve_amiga_policy_custom_struct_field_symbol_name(const M68kAnalysisPolicy *policy,
+    const char *type_name, int16_t displacement, char *buf, size_t buf_size) {
+  uint16_t struct_index;
+  if (policy == NULL || type_name == NULL || type_name[0] == '\0' || buf == NULL || buf_size == 0U ||
+      policy->custom_structs == NULL) {
+    return 0;
+  }
+  for (struct_index = 0U; struct_index < policy->custom_struct_count &&
+       struct_index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++struct_index) {
+    const M68kAnalysisCustomStruct *custom_struct = &policy->custom_structs[struct_index];
+    uint16_t field_index;
+    if (strcmp(custom_struct->name, type_name) != 0) continue;
+    for (field_index = 0U; field_index < custom_struct->field_count &&
+         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
+      if (field->offset != (uint32_t)(uint16_t)displacement || field->size == 0U || field->name[0] == '\0') continue;
+      snprintf(buf, buf_size, "%s", field->name);
+      return 1;
+    }
+    return 0;
+  }
+  return 0;
+}
+
 static const char *resolve_amiga_struct_field_nested_type_name(const char *type_name, int16_t displacement) {
   const AmigaOsStructFieldInfo *field;
   uint16_t struct_id;
@@ -1964,7 +1988,10 @@ static int resolve_amiga_policy_seed_struct_field_symbol_name(const SectionAnaly
   }
   type_name = amiga_register_seed_struct_type_name(best_seed);
   if (type_name == NULL || type_name[0] == '\0') return 0;
-  if (!resolve_amiga_struct_field_symbol_name(type_name, displacement, buf, buf_size)) return 0;
+  if (!resolve_amiga_policy_custom_struct_field_symbol_name(policy, type_name, displacement, buf, buf_size) &&
+      !resolve_amiga_struct_field_symbol_name(type_name, displacement, buf, buf_size)) {
+    return 0;
+  }
   if (out_type_name != NULL) *out_type_name = type_name;
   return 1;
 }

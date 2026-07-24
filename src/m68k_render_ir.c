@@ -862,6 +862,30 @@ static int render_asm_declare_target_equates(M68kRenderIRPreview *preview, const
   return 1;
 }
 
+/*
+ * Custom-structure field expressions are rendered as bare displacement
+ * symbols (for example, item_definition_id(a5)).  Emit their equates in the
+ * source header so that those expressions remain valid standalone vasm
+ * source, just like target-provided equates and platform field symbols.
+ */
+static int render_asm_declare_custom_struct_field_equates(M68kRenderIRPreview *preview,
+    const M68kAnalysisPolicy *policy) {
+  uint16_t struct_index;
+  if (preview == NULL || policy == NULL || policy->custom_structs == NULL) return 1;
+  for (struct_index = 0U; struct_index < policy->custom_struct_count &&
+       struct_index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++struct_index) {
+    const M68kAnalysisCustomStruct *custom_struct = &policy->custom_structs[struct_index];
+    uint16_t field_index;
+    for (field_index = 0U; field_index < custom_struct->field_count &&
+         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
+      if (field->name[0] == '\0' || field->size == 0U || field->offset > (uint32_t)INT32_MAX) continue;
+      if (!render_asm_declare_symbol_once(preview, field->name, (int32_t)field->offset)) return 0;
+    }
+  }
+  return 1;
+}
+
 static int render_asm_include_for_symbol_expr(M68kRenderIRPreview *preview, const char *expr);
 
 static int render_asm_define_amiga_hardware_instance_alias_once(M68kRenderIRPreview *preview,
@@ -9709,7 +9733,8 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RSSET, 0U);
     render_asm_base_layout_rs(out_preview, lookup, decode);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
-    if (!render_asm_declare_target_equates(out_preview, policy)) goto cleanup;
+    if (!render_asm_declare_target_equates(out_preview, policy) ||
+        !render_asm_declare_custom_struct_field_equates(out_preview, policy)) goto cleanup;
     out_preview->asm_source_body_start_byte = out_preview->asm_source_bytes;
   }
   phase_end = clock();

@@ -1768,6 +1768,14 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     code_label_action = next(action for action in actions if action["action_id"] == "target.code_label.add")
     assert code_label_action["action"] == "create_manual_label"
     assert code_label_action["parameter_schema"]["required"] == ["hunk", "addr", "name"]
+    code_register_seed_action = next(action for action in actions if action["action_id"] == "target.code.register_seed.add")
+    assert code_register_seed_action["action"] == "create_manual_register_seed"
+    assert code_register_seed_action["parameter_schema"]["required"] == ["hunk", "addr", "register", "struct_name"]
+    code_register_seed_remove_action = next(
+        action for action in actions if action["action_id"] == "target.code.register_seed.remove"
+    )
+    assert code_register_seed_remove_action["action"] == "remove_manual_register_seed"
+    assert code_register_seed_remove_action["parameter_schema"]["required"] == ["register_seed_id"]
     execution_view_action = next(action for action in actions if action["action_id"] == "target.execution_view.add")
     assert execution_view_action["category"] == "target_metadata"
     assert execution_view_action["appends_to_manual_action_log"] is True
@@ -2738,6 +2746,41 @@ def test_command_manual_action_execute_appends_code_label(
         "address_domain": "source",
         "hunk": 0,
         "addr": 0x4D37E,
+    }
+    assert appended_actions == [action]
+
+
+def test_command_manual_action_execute_appends_code_entry_register_seed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="target.code.register_seed.add",
+        context={"kind": "target"},
+        parameters={
+            "hunk": 0,
+            "addr": 0x4D37E,
+            "register": "a5",
+            "struct_name": "world_object_shared_prefix",
+            "context_name": "world_object_interaction_callback",
+        },
+    )
+    action = cast(dict[str, object], payload["action"])
+    register_seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["register_seed"])
+
+    assert action["kind"] == "create_manual_register_seed"
+    assert register_seed == {
+        "register_seed_id": "catalog-code-register-seed-h0-0004D37E-A5",
+        "hunk": 0,
+        "entry_offset": 0x4D37E,
+        "register": "A5",
+        "kind": "struct_ptr",
+        "library_name": None,
+        "struct_name": "world_object_shared_prefix",
+        "context_name": "world_object_interaction_callback",
+        "note": "Target code-entry register seed",
     }
     assert appended_actions == [action]
 

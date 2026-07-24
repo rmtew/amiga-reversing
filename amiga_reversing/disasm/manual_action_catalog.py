@@ -117,6 +117,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_code_seed_remove_action(),
         _target_code_label_action(),
         _target_code_label_remove_action(),
+        _target_code_register_seed_action(),
+        _target_code_register_seed_remove_action(),
         _target_data_block_layout_action(),
         _target_data_block_element_action(),
         _target_custom_struct_action(),
@@ -171,6 +173,10 @@ def target_catalog_manual_payload(
         return "create_manual_label", {"label": _target_code_label_payload(params)}
     if action.get("action") == "remove_manual_label":
         return "remove_manual_label", {"label_id": str(params["label_id"])}
+    if action.get("action") == "create_manual_register_seed":
+        return "create_manual_register_seed", {"register_seed": _target_code_register_seed_payload(params)}
+    if action.get("action") == "remove_manual_register_seed":
+        return "remove_manual_register_seed", {"register_seed_id": str(params["register_seed_id"])}
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
     if action.get("action") == "set_manual_data_block_element":
@@ -5479,6 +5485,38 @@ def _target_code_label_remove_action() -> dict[str, object]:
     )
 
 
+def _target_code_register_seed_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code.register_seed.add",
+        "Add code-entry register seed",
+        "create_manual_register_seed",
+        {
+            "type": "object",
+            "properties": {
+                "hunk": {"type": "integer", "minimum": 0},
+                "addr": {"type": "integer", "minimum": 0},
+                "register": {"type": "string"},
+                "struct_name": {"type": "string"},
+                "context_name": {"type": "string"},
+            },
+            "required": ["hunk", "addr", "register", "struct_name"],
+        },
+    )
+
+
+def _target_code_register_seed_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code.register_seed.remove",
+        "Remove code-entry register seed",
+        "remove_manual_register_seed",
+        {
+            "type": "object",
+            "properties": {"register_seed_id": {"type": "string"}},
+            "required": ["register_seed_id"],
+        },
+    )
+
+
 def _target_code_seed_payload(params: Mapping[str, object]) -> dict[str, object]:
     hunk = _optional_int(params.get("hunk"))
     addr = _optional_int(params.get("addr"))
@@ -5513,6 +5551,38 @@ def _target_code_label_payload(params: Mapping[str, object]) -> dict[str, object
         "hunk": hunk,
         "addr": addr,
     }
+
+
+def _target_code_register_seed_payload(params: Mapping[str, object]) -> dict[str, object]:
+    hunk = _optional_int(params.get("hunk"))
+    addr = _optional_int(params.get("addr"))
+    register = params.get("register")
+    struct_name = params.get("struct_name")
+    if (
+        hunk is None
+        or addr is None
+        or not isinstance(register, str)
+        or not register.strip()
+        or not isinstance(struct_name, str)
+        or not struct_name.strip()
+    ):
+        raise ValueError("target.code.register_seed.add requires hunk, addr, register, and struct_name")
+    normalized_register = register.strip().upper()
+    seed: dict[str, object] = {
+        "register_seed_id": f"catalog-code-register-seed-h{hunk}-{addr:08X}-{normalized_register}",
+        "hunk": hunk,
+        "entry_offset": addr,
+        "register": normalized_register,
+        "kind": "struct_ptr",
+        "library_name": None,
+        "struct_name": struct_name.strip(),
+        "context_name": "",
+        "note": "Target code-entry register seed",
+    }
+    context_name = params.get("context_name")
+    if isinstance(context_name, str) and context_name.strip():
+        seed["context_name"] = context_name.strip()
+    return seed
 
 
 def _target_data_block_element_action() -> dict[str, object]:
