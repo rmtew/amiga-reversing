@@ -390,7 +390,7 @@ abs_0_000105C2:
 	bsr.w abs_0_0001253C
 	bsr.w update_nearby_object_detection
 	jsr abs_0_00018814.l
-	jsr abs_0_00019250.l
+	jsr update_active_world_object_positions.l
 	bsr.w update_world_object_interactions
 	jsr abs_0_00018984.l
 	bsr.w abs_0_00012D2A
@@ -6775,7 +6775,7 @@ abs_0_0001924C:
 	dc.b $05,$01
 abs_0_0001924E:
 	dc.w $0000
-abs_0_00019250:
+update_active_world_object_positions:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.w abs_0_000193D8
 	tst.w app_0320(a6)

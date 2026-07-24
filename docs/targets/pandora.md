@@ -123,6 +123,11 @@ All 35 non-null world-object entries use the same observed eight-byte prefix:
 `position_state_ptr`, `world_x`, and `world_y`; the rest of each descriptor is
 still raw pending record-specific evidence.
 
+`update_active_world_object_positions` at `$00019250` runs in the main update
+after nearby-object detection.  It derives the player-relative tile position,
+then walks the active position-descriptor table while applying the current
+object-position updates.
+
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
 field facts come from the common scan loop rather than the player instance:
 `interaction_callback` (`+0x04`), `context_callback` (`+0x0c`),
