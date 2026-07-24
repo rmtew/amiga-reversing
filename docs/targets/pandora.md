@@ -366,7 +366,10 @@ checkpoint response, drives the RGB12 alert color stored at `$00010772`, and
 performs the player/object position transition when the response completes.
 `begin_security_checkpoint_response` saves the current color, starts the
 response, and displays the nearby object's item; `clear_security_checkpoint_state`
-clears the response state. The indexed 32-word
+clears the response state. Its direct helper,
+`clear_security_checkpoint_audio_state` at `$0005D368`, clears the related
+audio-state flag and calls `reset_audio_channels` with all caller-visible
+registers preserved. The indexed 32-word
 `security_checkpoint_rgb12_palette_sequence` at `$00018920` is now an explicit
 word array rather than three anonymous lookup-table fragments.
 
