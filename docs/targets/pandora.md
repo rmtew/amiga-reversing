@@ -604,6 +604,18 @@ first two word pairs of each `world_runtime_setup_records` entry. That table at
 the bounds and stride, while the individual record words remain raw until
 their consumers establish field semantics.
 
+`build_world_tilemap_pointer_grid` at `$0001A198` expands the world layout
+into a 43-by-30 pointer grid. For each row it consumes one word from
+`row_selector_ids`, uses that selector times `$12` to fetch tile-definition
+offsets, rebases the offsets from `$0001D0A8`, and stores the resulting tile
+pointers in the runtime grid. It then derives the longword tilemap row stride
+and total tilemap byte size from the configured dimensions.
+
+`row_selector_ids` at `$00013502` is the exactly 43-word prefix consumed both
+by that grid builder and by the player/world coordinate lookup. The contiguous
+data after this prefix has not been included in the table because neither
+consumer proves its separate bounds or format.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
