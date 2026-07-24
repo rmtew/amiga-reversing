@@ -49,6 +49,12 @@ the corresponding three packed-nibble deltas and repack the result; and
 `clear_rgb12_palette_components` clears the component buffer. These are
 separate code routines, not palette data, each bounded by an RTS.
 
+The immediately following `set_copper_interrupt_callback_atomic` at
+`$00012656` preserves the status register, raises the interrupt mask, stores
+`a0` in `app_copper_interrupt_callback`, and restores the status register.
+It is therefore the atomic installer for the copper interrupt callback rather
+than an inline palette-data tail.
+
 ## Audio shared data
 
 | Address | Symbol | Current interpretation |

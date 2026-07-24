@@ -2038,7 +2038,12 @@ abs_0_00012644:
 	dbf.w d7,abs_0_00012644
 	movem.l (a7)+,d7/a0-a2
 	rts
-	dc.b $40,$E7,$46,$FC,$27,$00,$2D,$48,$03,$60,$46,$DF,$4E,$75
+set_copper_interrupt_callback_atomic:
+	move sr,-(a7)
+	move #$2700,sr
+	move.l a0,app_copper_interrupt_callback(a6)
+	move (a7)+,sr
+	rts
 is_player_within_world_object_interaction_range:
 	lea.l player_world_object.l,a4
 	move.w $0032(a4),d0
