@@ -719,6 +719,12 @@ is recovered at `$00059120..$000591DC`; the individual sequence entry points
 remain preserved by their direct code references.  The word at `+0x04` remains
 raw pending a consumer that establishes its shared semantics.
 
+Those sequence entries select the exact 22-record
+`world_position_animation_frames` table at `$00058A6C..$00058BF8`, also with
+an 18-byte stride.  Its two leading address-valued fields are represented as
+`primary_data_ptr` and `secondary_data_ptr`; its remaining frame metadata is
+left as typed gaps until rendering consumers establish the field meanings.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

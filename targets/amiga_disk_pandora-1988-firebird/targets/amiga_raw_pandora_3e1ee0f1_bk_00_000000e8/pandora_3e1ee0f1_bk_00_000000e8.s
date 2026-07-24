@@ -322,6 +322,8 @@ state_node_ptr	EQU	8
 active_flag	EQU	10
 position_descriptor_sequence_index	EQU	16
 position_descriptor_sequence_ptr	EQU	6
+primary_data_ptr	EQU	0
+secondary_data_ptr	EQU	4
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -26285,31 +26287,139 @@ abs_0_000588AA:
 	dc.b $04,$00,$05,$C8,$04,$00,$00,$00,$00,$00,$04,$00,$04,$00,$05,$88
 	dc.b $9E,$00,$00,$00,$00,$00,$04
 	dcb.b $8,$00
-	dc.b $12,$00,$00,$03,$32,$78,$00,$07,$E2,$54,$00,$02,$00,$20,$00,$20
-	dc.b $00,$00,$00,$00,$00,$03,$34,$78,$00,$07,$E2,$D4,$00,$02,$00,$20
-	dc.b $00,$20,$00,$00,$00,$00,$00,$03,$36,$78,$00,$07,$E3,$54,$00,$02
-	dc.b $00,$20,$00,$20,$00,$00,$00,$00,$00,$03,$38,$78,$00,$07,$E3,$D4
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$03,$3A,$78,$00,$07
-	dc.b $E4,$54,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$03,$3C,$78
-	dc.b $00,$07,$E4,$D4,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$03
-	dc.b $3E,$78,$00,$07,$E5,$54,$00,$01,$00,$20,$00,$10,$00,$00,$00,$00
-	dc.b $00,$03,$3F,$78,$00,$07,$E5,$94,$00,$01,$00,$20,$00,$10,$00,$00
-	dc.b $00,$00,$00,$03,$40,$78,$00,$07,$E5,$D4,$00,$01,$00,$20,$00,$10
-	dc.b $00,$00,$00,$00,$00,$03,$41,$78,$00,$07,$E6,$14,$00,$01,$00,$20
-	dc.b $00,$10,$00,$00,$00,$00,$00,$03,$42,$78,$00,$07,$E6,$54,$00,$01
-	dc.b $00,$20,$00,$10,$00,$00,$00,$00,$00,$03,$43,$78,$00,$07,$E6,$94
-	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00,$00,$03,$44,$78,$00,$07
-	dc.b $E6,$D4,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$03,$46,$78
-	dc.b $00,$07,$E7,$54,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$03
-	dc.b $48,$78,$00,$07,$E7,$D4,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00
-	dc.b $00,$03,$4A,$78,$00,$07,$E8,$54,$00,$02,$00,$20,$00,$20,$00,$00
-	dc.b $00,$00,$00,$03,$4C,$78,$00,$07,$E8,$D4,$00,$02,$00,$20,$00,$20
-	dc.b $00,$00,$00,$00,$00,$03,$4E,$78,$00,$07,$E9,$54,$00,$02,$00,$20
-	dc.b $00,$20,$00,$00,$00,$00,$00,$04,$EF,$A8,$00,$06,$7F,$E4,$00,$02
-	dc.b $00,$20,$00,$20,$00,$00,$00,$00,$00,$04,$F1,$A8,$00,$06,$80,$64
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$04,$F3,$A8,$00,$06
-	dc.b $80,$E4,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$04,$F5,$A8
-	dc.b $00,$06,$81,$64,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00
+	dc.b $12,$00
+world_position_animation_frames:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00033278	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_0:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E254	; long secondary_data_ptr
+world_position_animation_frames_gap_8_0:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$34,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E2,$D4	; long secondary_data_ptr
+world_position_animation_frames_gap_1A_1:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00033678	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E354	; long secondary_data_ptr
+world_position_animation_frames_gap_2C_2:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$38,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E3,$D4	; long secondary_data_ptr
+world_position_animation_frames_gap_3E_3:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00033A78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E454	; long secondary_data_ptr
+world_position_animation_frames_gap_50_4:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$3C,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E4,$D4	; long secondary_data_ptr
+world_position_animation_frames_gap_62_5:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00033E78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E554	; long secondary_data_ptr
+world_position_animation_frames_gap_74_6:
+	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$3F,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E5,$94	; long secondary_data_ptr
+world_position_animation_frames_gap_86_7:
+	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034078	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E5D4	; long secondary_data_ptr
+world_position_animation_frames_gap_98_8:
+	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$41,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E6,$14	; long secondary_data_ptr
+world_position_animation_frames_gap_AA_9:
+	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034278	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E654	; long secondary_data_ptr
+world_position_animation_frames_gap_BC_10:
+	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$43,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E6,$94	; long secondary_data_ptr
+world_position_animation_frames_gap_CE_11:
+	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034478	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E6D4	; long secondary_data_ptr
+world_position_animation_frames_gap_E0_12:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$46,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E7,$54	; long secondary_data_ptr
+world_position_animation_frames_gap_F2_13:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034878	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E7D4	; long secondary_data_ptr
+world_position_animation_frames_gap_104_14:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$4A,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E8,$54	; long secondary_data_ptr
+world_position_animation_frames_gap_116_15:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034C78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E8D4	; long secondary_data_ptr
+world_position_animation_frames_gap_128_16:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$4E,$78	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E9,$54	; long secondary_data_ptr
+world_position_animation_frames_gap_13A_17:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0004EFA8	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00067FE4	; long secondary_data_ptr
+world_position_animation_frames_gap_14C_18:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$04,$F1,$A8	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$06,$80,$64	; long secondary_data_ptr
+world_position_animation_frames_gap_15E_19:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0004F3A8	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
+	dc.l $000680E4	; long secondary_data_ptr
+world_position_animation_frames_gap_170_20:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+world_position_animation_frames_primary_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$04,$F5,$A8	; long primary_data_ptr
+world_position_animation_frames_secondary_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$06,$81,$64	; long secondary_data_ptr
+world_position_animation_frames_gap_182_21:
+	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
 world_position_descriptors:	; STRUCT world_position_descriptor_prefix
 	dc.l $00058D00	; long position_state_ptr
 world_position_descriptors_world_x_0:	; STRUCT world_position_descriptor_prefix
