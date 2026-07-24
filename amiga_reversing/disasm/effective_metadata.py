@@ -1220,7 +1220,10 @@ def _data_block_bound_struct_entities(
         return ()
     if (array_count - 1) * stride + struct.size > element.width:
         return ()
-    base_label = element.name or (layout.name if element.offset == 0 else None)
+    # The start of a typed layout is the object's public identity.  Element
+    # names such as "fields" or "shared_fields" describe only the projection
+    # plumbing and must not hide that identity in generated field labels.
+    base_label = layout.name if element.offset == 0 and layout.name else element.name
     entities: list[SeededEntityMetadata] = []
     for index in range(array_count):
         instance_offset = index * stride

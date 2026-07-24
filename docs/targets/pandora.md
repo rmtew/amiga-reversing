@@ -119,6 +119,9 @@ longwords belong to a different table.
 `player_position_descriptor` at `$0005C71E` is the object referenced by the
 player prefix at `+0x2c`.  Proximity scanning stores `world_x` and `world_y`
 at its `+0x04` and `+0x06` words, while reset code restores its leading pointer.
+All 35 non-null world-object entries use the same observed eight-byte prefix:
+`position_state_ptr`, `world_x`, and `world_y`; the rest of each descriptor is
+still raw pending record-specific evidence.
 
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
 field facts come from the common scan loop rather than the player instance:

@@ -1744,6 +1744,7 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
                     "hunk": 0,
                     "source_start": 0x100,
                     "source_end": 0x106,
+                    "name": "player_descriptor",
                     "default_unit": "byte",
                 },
             ),
@@ -1757,6 +1758,7 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
                     "offset": 0,
                     "width": 6,
                     "kind": "struct",
+                    "name": "shared_fields",
                     "type_binding": {
                         "type_binding_id": "header:0:6:custom_struct:DataHeader",
                         "layout_id": "header",
@@ -1783,6 +1785,10 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
     assert [(entity["field_name"], entity["owner_action_id"]) for entity in typed_entities] == [
         ("magic", "a3"),
         ("next_offset", "a3"),
+    ]
+    assert [entity["name"] for entity in typed_entities] == [
+        "player_descriptor_magic",
+        "player_descriptor_next_offset",
     ]
     assert {entity["source_evidence_id"] for entity in typed_entities} == {"prov-header-base"}
     assert {tuple(entity["parent_evidence_ids"]) for entity in typed_entities} == {("prov-root",)}
