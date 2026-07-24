@@ -116,6 +116,10 @@ by its null terminator.  `scan_world_objects_for_proximity` advances through
 that exact range and branches to context handling at the terminator; subsequent
 longwords belong to a different table.
 
+`player_position_descriptor` at `$0005C71E` is the object referenced by the
+player prefix at `+0x2c`.  Proximity scanning stores `world_x` and `world_y`
+at its `+0x04` and `+0x06` words, while reset code restores its leading pointer.
+
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
 field facts come from the common scan loop rather than the player instance:
 `interaction_callback` (`+0x04`), `context_callback` (`+0x0c`),

@@ -2733,7 +2733,7 @@ abs_0_0001310E:
 	dc.l abs_0_0005C96E
 	dc.l abs_0_00059AA8
 	dc.l abs_0_00059CB8
-	dc.l abs_0_0005C71E
+	dc.l player_position_descriptor
 	dc.l abs_0_00058BF8
 	dc.l abs_0_00059F24
 	dc.l abs_0_0005A636
@@ -6843,7 +6843,7 @@ abs_0_00019320:
 	move.l (a0)+,d4
 	beq.b abs_0_000192DE
 	movea.l d4,a1
-	cmpa.l #abs_0_0005C71E,a1
+	cmpa.l #player_position_descriptor,a1
 	beq.b abs_0_00019320
 	cmpa.l #abs_0_0005859A,a1
 	beq.b abs_0_00019320
@@ -7459,7 +7459,7 @@ abs_0_0001A10A:
 	clr.w $0044(a5)
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
-	move.l #$5C72A,abs_0_0005C71E.l
+	move.l #$5C72A,player_position_descriptor.l
 	clr.b app_nearby_object_prompt_countdown(a6)
 	bset.b #4,app_02A6(a6)
 	movea.l (a7)+,a5
@@ -26460,7 +26460,7 @@ abs_0_0005C6BA:
 	dc.b $05,$C6,$06,$00,$05,$C6,$18,$00,$05,$C6,$2A,$00,$05,$C6,$3C,$00
 	dc.b $05,$C6,$4E,$00,$05,$C6,$60,$00,$05,$C6,$72,$00,$05,$C6,$84,$00
 	dc.b $05,$C6,$96,$00,$05,$C6,$A8
-abs_0_0005C71E:
+player_position_descriptor:
 	dc.b $00,$05,$C7,$2A
 	dcb.b $10,$00
 abs_0_0005C732:
