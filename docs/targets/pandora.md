@@ -143,6 +143,11 @@ height, column, row, and base pointer with the saved context at `$00018A18`.
 The gameplay loop uses it on both sides of its mode transitions, preserving
 the map-view state while a panel or other alternate context is active.
 
+`render_tilemap_view_to_back_buffer` at `$00016728` draws the current tilemap
+view into the back bitplane with the custom-chip blitter. It begins at the
+configured tile row/column, performs 20 tile blits per display row across eight
+rows, and wraps tilemap addressing at the current map boundary.
+
 The loop calls `process_self_destruct_card_input` at `$00019CBE` when the
 self-destruct panel is active. That routine accepts the permitted selected item
 ids, records up to three resolved item-name pointers, starts feedback audio,
@@ -189,6 +194,13 @@ The other three are exact field-copy helpers: they copy the A5-relative
 `+0x30` or `+0x36` value into the indirect record's `+4` slot, or copy `+0x30`
 to `+0x36`. Their record fields remain intentionally descriptive rather than
 speculative until the common layout is recovered.
+
+The corresponding tilemap-render family is now named through the clipping
+boundary: `get_tilemap_cell_pointer` converts pixel coordinates to the current
+tilemap cell, `get_tilemap_view_bounds` prepares the scroll-relative view
+limits, `clip_tile_region_to_view` derives the visible region and clip flags,
+and `render_tilemap_view_to_back_buffer` submits the 20-by-8 tile view through
+the blitter.
 
 `world_object_ptr_table` occupies `$0001300A` through `$00013099`: its 36
 longwords are the player pointer, 34 static-object pointers, and the null

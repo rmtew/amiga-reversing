@@ -453,9 +453,9 @@ abs_0_00010498:
 	bsr.w abs_0_000166D6
 	move.l #$78000,app_display_bitplane_base(a6)
 	move.l #$78000,app_back_bitplane_base(a6)
-	bsr.w abs_0_00016728
+	bsr.w render_tilemap_view_to_back_buffer
 	move.l #$70000,app_back_bitplane_base(a6)
-	bsr.w abs_0_00016728
+	bsr.w render_tilemap_view_to_back_buffer
 	move.l #$78000,app_front_bitplane_base(a6)
 	bsr.w abs_0_0001079E
 	jsr abs_0_0005AFFA.l
@@ -4318,7 +4318,7 @@ abs_0_000166E6:
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w #(656<<6)|40,bltsize(a5)	; blitter size 656 rows x 40 words (80 bytes/row)
 	rts
-abs_0_00016728:
+render_tilemap_view_to_back_buffer:
 	lea.l _custom.l,a5
 	move.w #$1001,d6
 	move.w #$FFFF,bltalwm(a5)
@@ -4367,7 +4367,7 @@ abs_0_000167AC:
 	dc.b $67,$F6,$3B,$7C,$00,$40,$00,$9C,$2B,$48,$00,$50,$2B,$49,$00,$54
 	dc.b $42,$6D,$00,$64,$3B,$7C,$00,$26,$00,$66,$3B,$7C,$09,$F0,$00,$40
 	dc.b $3B,$7C,$04,$01,$00,$58,$2A,$5F,$4E,$75
-abs_0_000167EC:
+get_tilemap_cell_pointer:
 	movem.l d0-d1,-(a7)
 	lsr.w #4,d0
 	lsr.w #4,d1
@@ -4379,7 +4379,7 @@ abs_0_000167EC:
 	adda.l d1,a0
 	movem.l (a7)+,d0-d1
 	rts
-abs_0_0001680A:
+get_tilemap_view_bounds:
 	move.w app_tilemap_scroll_x(a6),d0
 	addi.w #320,d0
 	swap.w d0
@@ -4392,8 +4392,8 @@ abs_0_0001680A:
 	dc.b $38,$3C,$FF,$FF,$61,$DC,$B4,$40,$65,$16,$48,$40,$B4,$40,$48,$40
 	dc.b $64,$0E,$B6,$41,$65,$0A,$48,$41,$B6,$41,$48,$41,$64,$02,$78,$00
 	dc.b $4E,$75
-abs_0_0001684A:
-	bsr.b abs_0_0001680A
+clip_tile_region_to_view:
+	bsr.b get_tilemap_view_bounds
 	movem.l d0-d3,-(a7)
 	moveq.l #0,d4
 	swap.w d0
@@ -4941,7 +4941,7 @@ abs_0_00016E9C:
 	move.w d2,d5
 	swap.w d2
 	swap.w d3
-	bsr.w abs_0_0001684A
+	bsr.w clip_tile_region_to_view
 	cmp.b #$F,d4
 	beq.w abs_0_00016F58
 	addq.w #1,d5
@@ -4952,7 +4952,7 @@ abs_0_00016E9C:
 	lsr.w #4,d6
 	exg d0,d2
 	exg d1,d3
-	bsr.w abs_0_000167EC
+	bsr.w get_tilemap_cell_pointer
 	tst.b d4
 	beq.w abs_0_00016F48
 	btst #2,d4
@@ -5045,7 +5045,7 @@ render_world_object_geometry_node:
 	add.w $000A(a2),d3
 	swap.w d3
 	move.w d1,d3
-	bsr.w abs_0_0001684A
+	bsr.w clip_tile_region_to_view
 	cmp.b #$F,d4
 	beq.w abs_0_0001716C
 	bclr.b #0,$0018(a0)
@@ -6040,7 +6040,7 @@ abs_0_00017D80:
 	lsr.w #4,d0
 	move.w d0,app_tile_column(a6)
 abs_0_00017D9C:
-	bsr.w abs_0_00016728
+	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w abs_0_0001A152
 	rts
 abs_0_00017DA6:
@@ -7642,7 +7642,7 @@ abs_0_00019BB8:
 	dc.b "HAVE A NICE DAY, CAPTAIN.",$00
 run_gameplay_update_loop:
 	bsr.w swap_tilemap_context
-	bsr.w abs_0_00016728
+	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w snapshot_active_world_object_links
 	move.l app_front_bitplane_base(a6),d1
 	move.l app_back_bitplane_base(a6),d0
