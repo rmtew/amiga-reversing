@@ -26009,7 +26009,9 @@ static int test_facts_v2_render_asm_source_renders_custom_struct_field_from_entr
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "item_definition_id\tEQU\t70\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    RSRESET\n    RS.B 70\nworld_object_shared_prefix_item_definition_id RS.B 1\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "item_definition_id\tEQU\tworld_object_shared_prefix_item_definition_id\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.b item_definition_id(a5)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
