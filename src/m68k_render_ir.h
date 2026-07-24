@@ -16,6 +16,7 @@
 #define M68K_RENDER_ASM_SYMBOL_NAME_SIZE 64U
 
 typedef struct Arena Arena;
+typedef struct M68kAnalysisPolicy M68kAnalysisPolicy;
 typedef struct M68kRenderEvidenceIR M68kRenderEvidenceIR;
 typedef struct M68kSourceAnalysisIR M68kSourceAnalysisIR;
 
@@ -68,6 +69,7 @@ typedef struct M68kRenderIRPreview {
   uint16_t asm_source_include_count;
   uint16_t asm_source_declaration_count;
   uint8_t platform_backend_kind;
+  const M68kAnalysisPolicy *analysis_policy;
   uint8_t collect_asm_source_text;
   uint8_t collect_asm_source_hash;
   uint8_t asm_source_allocation_failed;

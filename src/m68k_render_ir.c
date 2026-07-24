@@ -863,12 +863,12 @@ static int render_asm_declare_target_equates(M68kRenderIRPreview *preview, const
 }
 
 /*
- * Custom-structure field expressions are rendered as bare displacement
- * symbols (for example, item_definition_id(a5)).  Emit their equates in the
- * source header so that those expressions remain valid standalone vasm
- * source, just like target-provided equates and platform field symbols.
+ * Custom layouts are source declarations, not a sequence of unrelated data
+ * labels.  RSRESET keeps each layout independent from the app/base RSSET
+ * space emitted immediately above it, while the qualified field names are the
+ * same expressions used by typed address-register accesses.
  */
-static int render_asm_declare_custom_struct_field_equates(M68kRenderIRPreview *preview,
+static int render_asm_declare_custom_struct_layouts(M68kRenderIRPreview *preview,
     const M68kAnalysisPolicy *policy) {
   uint16_t struct_index;
   if (preview == NULL || policy == NULL || policy->custom_structs == NULL) return 1;
@@ -876,12 +876,47 @@ static int render_asm_declare_custom_struct_field_equates(M68kRenderIRPreview *p
        struct_index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++struct_index) {
     const M68kAnalysisCustomStruct *custom_struct = &policy->custom_structs[struct_index];
     uint16_t field_index;
+    uint32_t cursor = 0U;
+    char line[192];
+    if (custom_struct->name[0] == '\0' || custom_struct->size == 0U) continue;
+    hash_asm_text(preview, "; STRUCT ");
+    hash_asm_text(preview, custom_struct->name);
+    hash_asm_text(preview, "\n    RSRESET\n");
+    preview->asm_source_lines += 2U;
     for (field_index = 0U; field_index < custom_struct->field_count &&
          field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
       const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
-      if (field->name[0] == '\0' || field->size == 0U || field->offset > (uint32_t)INT32_MAX) continue;
-      if (!render_asm_declare_symbol_once(preview, field->name, (int32_t)field->offset)) return 0;
+      const char *directive;
+      if (field->name[0] == '\0' || field->size == 0U || field->offset < cursor ||
+          field->offset > custom_struct->size || field->size > custom_struct->size - field->offset) {
+        continue;
+      }
+      if (field->offset > cursor) {
+        snprintf(line, sizeof(line), "    RS.B %u\n", (unsigned)(field->offset - cursor));
+        hash_asm_text(preview, line);
+        ++preview->asm_source_lines;
+      }
+      directive = field->size == 4U ? "RS.L" : field->size == 2U ? "RS.W" : "RS.B";
+      snprintf(line, sizeof(line), "%s_%s %s %u\n", custom_struct->name, field->name, directive,
+        (unsigned)(field->size == 4U || field->size == 2U ? 1U : field->size));
+      hash_asm_text(preview, line);
+      ++preview->asm_source_lines;
+      /* Keep the established bare field-expression contract for existing
+       * typed-access facts.  The RS declaration remains structure-qualified;
+       * this compatibility alias is emitted once, matching the old EQU
+       * behaviour until the analysis schema carries qualified expressions. */
+      snprintf(line, sizeof(line), "%s_%s", custom_struct->name, field->name);
+      if (!render_asm_declare_symbol_expr_once(preview, field->name, line)) return 0;
+      cursor = field->offset + field->size;
     }
+    if (custom_struct->size > cursor) {
+      snprintf(line, sizeof(line), "    RS.B %u\n", (unsigned)(custom_struct->size - cursor));
+      hash_asm_text(preview, line);
+      ++preview->asm_source_lines;
+    }
+    snprintf(line, sizeof(line), "%s_SIZEOF EQU __RS\n\n", custom_struct->name);
+    hash_asm_text(preview, line);
+    preview->asm_source_lines += 2U;
   }
   return 1;
 }
@@ -956,6 +991,65 @@ static int record_rendered_data_equate_symbol_access(M68kRenderIRPreview *previe
 static int record_rendered_data_label_target_access(M68kRenderIRPreview *preview,
   const M68kRenderLookup *lookup, size_t source_section_index, uint32_t source_offset,
   size_t target_section_index, uint32_t target_offset);
+static int lookup_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
+  uint32_t offset);
+
+static int policy_has_custom_struct_named(const M68kAnalysisPolicy *policy, const char *struct_name) {
+  uint16_t index;
+  if (policy == NULL || policy->custom_structs == NULL || struct_name == NULL || struct_name[0] == '\0') return 0;
+  for (index = 0U; index < policy->custom_struct_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++index) {
+    if (strcmp(policy->custom_structs[index].name, struct_name) == 0) return 1;
+  }
+  return 0;
+}
+
+/* Data-block expansion gives internal array fields generated labels such as
+ * table_flags_3.  They are not symbols in the original program: the sole
+ * table/instance label plus its RS layout is sufficient. */
+static int structured_item_has_generated_custom_field_label(const M68kAnalysisStructuredDataItem *item) {
+  const char *suffix;
+  const char *digits;
+  size_t label_len;
+  size_t suffix_len;
+  if (item == NULL || item->label[0] == '\0' || item->field_name[0] == '\0') return 0;
+  suffix = strstr(item->label, item->field_name);
+  if (suffix == NULL || suffix == item->label || suffix[-1] != '_') return 0;
+  suffix += strlen(item->field_name);
+  if (*suffix == '\0') return 1;
+  if (*suffix != '_') return 0;
+  digits = suffix + 1;
+  if (*digits == '\0') return 0;
+  while (*digits >= '0' && *digits <= '9') ++digits;
+  label_len = strlen(item->label);
+  suffix_len = (size_t)(digits - item->label);
+  return *digits == '\0' && suffix_len == label_len;
+}
+
+static int policy_structured_item_targets_offset(const M68kAnalysisPolicy *policy, size_t section_index,
+    uint32_t offset) {
+  uint16_t index;
+  if (policy == NULL) return 0;
+  for (index = 0U; index < policy->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+    if (item->has_target != 0U && item->target_section == section_index && item->target_offset == offset) return 1;
+  }
+  return 0;
+}
+
+static int render_asm_should_emit_label_statement(const M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    size_t section_index, uint32_t offset) {
+  const M68kAnalysisStructuredDataItem *item;
+  if (!lookup_should_emit_label_statement(lookup, section, accepted_start, section_index, offset)) return 0;
+  item = lookup_structured_data_item_at_offset(lookup, section_index, offset);
+  if (item == NULL || !policy_has_custom_struct_named(preview != NULL ? preview->analysis_policy : NULL,
+      item->struct_name) || !structured_item_has_generated_custom_field_label(item)) {
+    return 1;
+  }
+  return lookup_label_has_inbound_target_ref(lookup, section_index, offset) ||
+    lookup_label_has_statement_ref(lookup, section_index, offset);
+}
 
 static int record_rendered_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
     const M68kRenderedSymbolAccessIR *access) {
@@ -1023,6 +1117,14 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
   int has_runtime_address;
   int needs_storage_label;
   if (!lookup_has_renderable_label(lookup, section_index, offset)) return;
+  if (item != NULL && policy_has_custom_struct_named(preview != NULL ? preview->analysis_policy : NULL,
+      item->struct_name) && structured_item_has_generated_custom_field_label(item) &&
+      !lookup_label_has_inbound_target_ref(lookup, section_index, offset) &&
+      !lookup_label_has_statement_ref(lookup, section_index, offset) &&
+      !policy_structured_item_targets_offset(preview != NULL ? preview->analysis_policy : NULL,
+        section_index, offset)) {
+    return;
+  }
   if (!render_asm_includes_for_structured_data_item(preview, item)) return;
   has_runtime_address = lookup_source_should_render_runtime_label(lookup, section_index, offset, &runtime_address);
   needs_storage_label = has_runtime_address && runtime_address != offset &&
@@ -1058,7 +1160,8 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
   if (preview->asm_source_row_builder.active)
     m68k_render_plan_row_builder_mark_current_line_label(&preview->asm_source_row_builder, offset,
       has_runtime_address ? 1U : 0U, runtime_address);
-  if (item != NULL && item->struct_name[0] != '\0') {
+  if (item != NULL && item->struct_name[0] != '\0' &&
+      !policy_has_custom_struct_named(preview != NULL ? preview->analysis_policy : NULL, item->struct_name)) {
     snprintf(line, sizeof(line), "%s:\t; STRUCT %s\n", name, item->struct_name);
   } else {
     snprintf(line, sizeof(line), "%s:\n", name);
@@ -4972,12 +5075,8 @@ int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, cha
   if (item == NULL) return 0;
   field_name = item->field_name[0] != '\0' ? item->field_name : item->label;
   if (item->struct_name[0] != '\0' && field_name != NULL && field_name[0] != '\0') {
-    type_name = item->field_type[0] != '\0' ? item->field_type : item->c_type;
-    if (type_name != NULL && type_name[0] != '\0') {
-      snprintf(comment, comment_size, "%s %s", type_name, field_name);
-    } else {
-      snprintf(comment, comment_size, "FIELD: %s.%s", item->struct_name, field_name);
-    }
+    (void)type_name;
+    snprintf(comment, comment_size, "%s.%s", item->struct_name, field_name);
     return 1;
   }
   if (item->comment[0] != '\0') {
@@ -5516,6 +5615,19 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
         render_lookup_set_label(lookup, item_section_index, target_offset);
         render_lookup_mark_label_target_ref(lookup, item_section_index, target_offset);
       }
+    }
+  }
+  /* Custom-structure pointer fields are individual structured items rather
+   * than table-owned ranges.  Materialize their destinations before source
+   * emission so a later declaration cleanup never removes a label that an
+   * in-image pointer expression needs. */
+  if (lookup->policy != NULL) {
+    uint16_t item_index;
+    for (item_index = 0U; item_index < lookup->policy->structured_data_item_count &&
+         item_index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++item_index) {
+      const M68kAnalysisStructuredDataItem *item = &lookup->policy->structured_data_items[item_index];
+      if (!structured_data_item_is_pointer_table(item) || item->section_index >= decode->section_count) continue;
+      render_lookup_materialize_long_table_targets(lookup, &decode->sections[item->section_index], item);
     }
   }
   render_lookup_mark_materialized_runtime_code_operand_patch_labels(lookup, decode, accepted_start);
@@ -9732,6 +9844,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   if (render_asm_source && out_preview->render_evidence == NULL) return -1;
   memset(&platform_state, 0, sizeof(platform_state));
   out_preview->platform_backend_kind = object->platform_backend_kind;
+  out_preview->analysis_policy = policy;
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();
@@ -9745,8 +9858,13 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RSSET, 0U);
     render_asm_base_layout_rs(out_preview, lookup, decode);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
-    if (!render_asm_declare_target_equates(out_preview, policy) ||
-        !render_asm_declare_custom_struct_field_equates(out_preview, policy)) goto cleanup;
+    if (!render_asm_declare_target_equates(out_preview, policy)) goto cleanup;
+    begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RSSET, 0U);
+    if (!render_asm_declare_custom_struct_layouts(out_preview, policy)) {
+      cancel_asm_source_plan_row(out_preview);
+      goto cleanup;
+    }
+    finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     out_preview->asm_source_body_start_byte = out_preview->asm_source_bytes;
   }
   phase_end = clock();
@@ -9775,7 +9893,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
         render_asm_policy_register_seed_comment(out_preview, policy, section->section_index, offset);
         finish_asm_source_plan_row(out_preview, section->section_index, offset, 0U, 1);
       }
-      if (lookup_should_emit_label_statement(lookup, section, accepted_start[section_index],
+      if (render_asm_should_emit_label_statement(out_preview, lookup, section, accepted_start[section_index],
           section->section_index, offset)) {
         ++out_preview->statement_count;
         ++out_preview->label_statement_count;

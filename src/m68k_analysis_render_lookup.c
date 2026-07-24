@@ -332,9 +332,58 @@ static int lookup_label_has_target_ref(const M68kRenderLookup *lookup, size_t se
   return lookup->label_target_refs[section_index][offset] != 0U;
 }
 
+static int lookup_policy_has_custom_struct_named(const M68kRenderLookup *lookup, const char *struct_name) {
+  uint16_t index;
+  if (lookup == NULL || lookup->policy == NULL || lookup->policy->custom_structs == NULL ||
+      struct_name == NULL || struct_name[0] == '\0') {
+    return 0;
+  }
+  for (index = 0U; index < lookup->policy->custom_struct_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT;
+       ++index) {
+    if (strcmp(lookup->policy->custom_structs[index].name, struct_name) == 0) return 1;
+  }
+  return 0;
+}
+
+static int lookup_structured_item_has_generated_custom_field_label(const M68kAnalysisStructuredDataItem *item) {
+  const char *field;
+  const char *digits;
+  if (item == NULL || item->label[0] == '\0' || item->field_name[0] == '\0') return 0;
+  field = strstr(item->label, item->field_name);
+  if (field == NULL || field == item->label || field[-1] != '_') return 0;
+  field += strlen(item->field_name);
+  if (*field == '\0') return 1;
+  if (*field != '_') return 0;
+  digits = field + 1;
+  if (*digits == '\0') return 0;
+  while (*digits >= '0' && *digits <= '9') ++digits;
+  return *digits == '\0';
+}
+
+static int lookup_policy_structured_item_targets_offset(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset) {
+  uint16_t index;
+  if (lookup == NULL || lookup->policy == NULL) return 0;
+  for (index = 0U; index < lookup->policy->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &lookup->policy->structured_data_items[index];
+    if (item->has_target != 0U && item->target_section == section_index && item->target_offset == offset) return 1;
+  }
+  return 0;
+}
+
 int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, size_t section_index, uint32_t offset) {
+  const M68kAnalysisStructuredDataItem *item;
   if (!lookup_has_renderable_label(lookup, section_index, offset)) return 0;
+  item = lookup_structured_data_item_at_offset(lookup, section_index, offset);
+  if (item != NULL && lookup_policy_has_custom_struct_named(lookup, item->struct_name) &&
+      lookup_structured_item_has_generated_custom_field_label(item) &&
+      !lookup_label_has_target_ref(lookup, section_index, offset) &&
+      !lookup_label_has_statement_ref(lookup, section_index, offset) &&
+      !lookup_policy_structured_item_targets_offset(lookup, section_index, offset)) {
+    return 0;
+  }
   if (lookup_label_has_explicit_name(lookup, section_index, offset)) return 1;
   if (accepted_start_at(section, accepted_start, offset)) return 1;
   if (lookup_structured_data_item_at_offset(lookup, section_index, offset) != NULL) return 1;

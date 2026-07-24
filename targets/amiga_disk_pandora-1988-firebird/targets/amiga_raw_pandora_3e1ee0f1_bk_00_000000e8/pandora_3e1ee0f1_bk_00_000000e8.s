@@ -206,6 +206,175 @@ app_07EF RS.B 1
     RSSET $07F0
 app_SIZEOF EQU __RS
 
+; STRUCT audio_channel_dma_configuration
+    RSRESET
+audio_channel_dma_configuration_sample_ptr RS.L 1
+audio_channel_dma_configuration_sample_length RS.W 1
+audio_channel_dma_configuration_sample_period RS.W 1
+audio_channel_dma_configuration_sample_volume RS.W 1
+audio_channel_dma_configuration_enabled RS.B 1
+audio_channel_dma_configuration_start_pending RS.B 1
+audio_channel_dma_configuration_SIZEOF EQU __RS
+
+; STRUCT audio_channel_playback_state
+    RSRESET
+audio_channel_playback_state_period_delta RS.W 1
+audio_channel_playback_state_period_reset_value RS.W 1
+audio_channel_playback_state_period_delta_step RS.L 1
+audio_channel_playback_state_current_period RS.W 1
+audio_channel_playback_state_sample_address_offset RS.L 1
+audio_channel_playback_state_period_reset_interval RS.B 1
+audio_channel_playback_state_period_delta_interval RS.B 1
+audio_channel_playback_state_period_delta_select RS.B 1
+audio_channel_playback_state_sample_address_offset_select RS.B 1
+audio_channel_playback_state_playback_ticks_remaining RS.B 1
+audio_channel_playback_state_sequence_interval RS.B 1
+audio_channel_playback_state_sequence_index RS.B 1
+audio_channel_playback_state_update_disabled RS.B 1
+audio_channel_playback_state_period_reset_countdown RS.B 1
+audio_channel_playback_state_period_delta_countdown RS.B 1
+audio_channel_playback_state_active RS.B 1
+audio_channel_playback_state_sequence_countdown RS.B 1
+audio_channel_playback_state_sequence_ptr RS.L 1
+    RS.B 8
+audio_channel_playback_state_SIZEOF EQU __RS
+
+; STRUCT audio_sample_metadata
+    RSRESET
+audio_sample_metadata_sample_ptr RS.L 1
+    RS.B 4
+audio_sample_metadata_sample_length RS.W 1
+audio_sample_metadata_sample_period RS.W 1
+audio_sample_metadata_SIZEOF EQU __RS
+
+; STRUCT audio_sequence_channel_configuration
+    RSRESET
+audio_sequence_channel_configuration_period_delta RS.W 1
+audio_sequence_channel_configuration_period_reset_value RS.W 1
+audio_sequence_channel_configuration_period_delta_step RS.L 1
+audio_sequence_channel_configuration_current_period RS.W 1
+audio_sequence_channel_configuration_sample_address_offset RS.L 1
+audio_sequence_channel_configuration_period_reset_interval RS.B 1
+audio_sequence_channel_configuration_period_delta_interval RS.B 1
+audio_sequence_channel_configuration_period_delta_select RS.B 1
+audio_sequence_channel_configuration_sample_address_offset_select RS.B 1
+audio_sequence_channel_configuration_playback_ticks_remaining RS.B 1
+audio_sequence_channel_configuration_sequence_interval RS.B 1
+audio_sequence_channel_configuration_sequence_index RS.B 1
+audio_sequence_channel_configuration_update_disabled RS.B 1
+audio_sequence_channel_configuration_SIZEOF EQU __RS
+
+; STRUCT world_object_shared_prefix
+    RSRESET
+world_object_shared_prefix_item_name_ptr RS.L 1
+world_object_shared_prefix_interaction_callback RS.L 1
+    RS.B 4
+world_object_shared_prefix_context_callback RS.L 1
+world_object_shared_prefix_interaction_data_ptr RS.L 1
+    RS.B 24
+world_object_shared_prefix_position_descriptor_ptr RS.L 1
+world_object_shared_prefix_world_x RS.W 1
+world_object_shared_prefix_world_y RS.W 1
+    RS.B 8
+world_object_shared_prefix_interaction_timer RS.W 1
+    RS.B 4
+world_object_shared_prefix_proximity_distance RS.W 1
+    RS.B 2
+world_object_shared_prefix_selected_item_id RS.B 1
+world_object_shared_prefix_initial_selected_item_id RS.B 1
+world_object_shared_prefix_world_object_flags RS.B 1
+world_object_shared_prefix_initial_world_object_flags RS.B 1
+world_object_shared_prefix_item_definition_id RS.B 1
+    RS.B 1
+world_object_shared_prefix_item_state RS.B 1
+world_object_shared_prefix_initial_item_state RS.B 1
+    RS.B 4
+world_object_shared_prefix_context_prompt_cooldown RS.W 1
+world_object_shared_prefix_SIZEOF EQU __RS
+
+; STRUCT world_position_descriptor_prefix
+    RSRESET
+world_position_descriptor_prefix_position_state_ptr RS.L 1
+world_position_descriptor_prefix_world_x RS.W 1
+world_position_descriptor_prefix_world_y RS.W 1
+world_position_descriptor_prefix_SIZEOF EQU __RS
+
+; STRUCT audio_channel_runtime_state
+    RSRESET
+audio_channel_runtime_state_channel_flags RS.B 1
+audio_channel_runtime_state_pitch_modulation_flags RS.B 1
+audio_channel_runtime_state_current_note RS.B 1
+audio_channel_runtime_state_note_offset RS.B 1
+audio_channel_runtime_state_program_ptr RS.L 1
+audio_channel_runtime_state_channel_configuration_offset RS.W 1
+    RS.B 2
+audio_channel_runtime_state_pitch_sequence_start_ptr RS.L 1
+audio_channel_runtime_state_pitch_sequence_cursor RS.L 1
+audio_channel_runtime_state_pitch_delta_step RS.B 1
+audio_channel_runtime_state_pitch_delta_countdown RS.B 1
+audio_channel_runtime_state_sample_start_pending RS.B 1
+    RS.B 1
+audio_channel_runtime_state_sample_metadata_ptr RS.L 1
+audio_channel_runtime_state_update_reload_countdown RS.W 1
+audio_channel_runtime_state_update_countdown RS.W 1
+audio_channel_runtime_state_pitch_delta_accumulator RS.W 1
+audio_channel_runtime_state_volume_sequence_ptr RS.L 1
+audio_channel_runtime_state_volume_sequence_cursor RS.L 1
+audio_channel_runtime_state_volume_sequence_interval RS.B 1
+audio_channel_runtime_state_volume_sequence_countdown RS.B 1
+audio_channel_runtime_state_pitch_modulation_step RS.B 1
+audio_channel_runtime_state_pitch_modulation_value RS.B 1
+audio_channel_runtime_state_pitch_modulation_limit RS.B 1
+    RS.B 1
+audio_channel_runtime_state_SIZEOF EQU __RS
+
+; STRUCT audio_player_initialization_preset
+    RSRESET
+    RS.B 2
+audio_player_initialization_preset_channel_0_program_offset RS.W 1
+audio_player_initialization_preset_channel_1_program_offset RS.W 1
+audio_player_initialization_preset_channel_2_program_offset RS.W 1
+audio_player_initialization_preset_channel_3_program_offset RS.W 1
+audio_player_initialization_preset_SIZEOF EQU __RS
+
+; STRUCT world_position_state_record
+    RSRESET
+    RS.B 8
+world_position_state_record_state_node_ptr RS.L 1
+world_position_state_record_world_x_offset RS.W 1
+world_position_state_record_world_y_offset RS.W 1
+world_position_state_record_position_descriptor_ptr RS.L 1
+world_position_state_record_attachment_state_ptr RS.L 1
+world_position_state_record_interaction_flags RS.B 1
+world_position_state_record_world_object_flags RS.B 1
+world_position_state_record_SIZEOF EQU __RS
+
+; STRUCT WorldPositionStateNode
+    RSRESET
+WorldPositionStateNode_position_descriptor_ptr RS.L 1
+    RS.B 2
+WorldPositionStateNode_position_descriptor_sequence_ptr RS.L 1
+WorldPositionStateNode_active_flag RS.B 1
+    RS.B 5
+WorldPositionStateNode_position_descriptor_sequence_index RS.W 1
+WorldPositionStateNode_SIZEOF EQU __RS
+
+; STRUCT WorldPositionDescriptorPointer
+    RSRESET
+WorldPositionDescriptorPointer_position_descriptor_ptr RS.L 1
+WorldPositionDescriptorPointer_SIZEOF EQU __RS
+
+; STRUCT WorldPositionAnimationFrame
+    RSRESET
+WorldPositionAnimationFrame_bitplane_data_ptr RS.L 1
+WorldPositionAnimationFrame_mask_data_ptr RS.L 1
+WorldPositionAnimationFrame_row_stride_words RS.W 1
+WorldPositionAnimationFrame_frame_height RS.W 1
+WorldPositionAnimationFrame_frame_width RS.W 1
+WorldPositionAnimationFrame_x_offset RS.W 1
+WorldPositionAnimationFrame_y_offset RS.W 1
+WorldPositionAnimationFrame_SIZEOF EQU __RS
+
 ITEM_ID_LASER_RIFLE	EQU	$12
 ITEM_ID_BOTTLE_OF_GIN	EQU	$27
 ITEM_ID_INSULIN	EQU	$28
@@ -246,93 +415,89 @@ dblk_ref_h0_00010CF0	EQU	$10CF0
 dblk_ref_h0_00010CFC	EQU	$10CFC
 dblk_ref_h0_00010D08	EQU	$10D08
 dblk_ref_h0_00010D14	EQU	$10D14
-sample_ptr	EQU	0
-sample_length	EQU	4
-sample_period	EQU	6
-sample_volume	EQU	8
-enabled	EQU	10
-start_pending	EQU	11
-period_delta	EQU	0
-period_reset_value	EQU	2
-period_delta_step	EQU	4
-current_period	EQU	8
-sample_address_offset	EQU	10
-period_reset_interval	EQU	14
-period_delta_interval	EQU	15
-period_delta_select	EQU	16
-sample_address_offset_select	EQU	17
-playback_ticks_remaining	EQU	18
-sequence_interval	EQU	19
-sequence_index	EQU	20
-update_disabled	EQU	21
-period_reset_countdown	EQU	22
-period_delta_countdown	EQU	23
-active	EQU	24
-sequence_countdown	EQU	25
-sequence_ptr	EQU	26
-item_name_ptr	EQU	0
-interaction_callback	EQU	4
-context_callback	EQU	12
-interaction_data_ptr	EQU	16
-position_descriptor_ptr	EQU	44
-world_x	EQU	48
-world_y	EQU	50
-interaction_timer	EQU	60
-proximity_distance	EQU	66
-selected_item_id	EQU	70
-initial_selected_item_id	EQU	71
-world_object_flags	EQU	72
-initial_world_object_flags	EQU	73
-item_definition_id	EQU	74
-item_state	EQU	76
-initial_item_state	EQU	77
-context_prompt_cooldown	EQU	82
-inventory_slots_ptr	EQU	20
-trade_offer_table_ptr	EQU	24
-initial_inventory_slots_ptr	EQU	28
-initial_trade_offer_table_ptr	EQU	32
-position_state_ptr	EQU	0
-channel_flags	EQU	0
-pitch_modulation_flags	EQU	1
-current_note	EQU	2
-note_offset	EQU	3
-program_ptr	EQU	4
-channel_configuration_offset	EQU	8
-pitch_sequence_start_ptr	EQU	12
-pitch_sequence_cursor	EQU	16
-pitch_delta_step	EQU	20
-pitch_delta_countdown	EQU	21
-sample_start_pending	EQU	22
-sample_metadata_ptr	EQU	24
-update_reload_countdown	EQU	28
-update_countdown	EQU	30
-pitch_delta_accumulator	EQU	32
-volume_sequence_ptr	EQU	34
-volume_sequence_cursor	EQU	38
-volume_sequence_interval	EQU	42
-volume_sequence_countdown	EQU	43
-pitch_modulation_step	EQU	44
-pitch_modulation_value	EQU	45
-pitch_modulation_limit	EQU	46
-channel_0_program_offset	EQU	2
-channel_1_program_offset	EQU	4
-channel_2_program_offset	EQU	6
-channel_3_program_offset	EQU	8
-state_node_ptr	EQU	8
-world_x_offset	EQU	12
-world_y_offset	EQU	14
-attachment_state_ptr	EQU	20
-interaction_flags	EQU	24
-position_descriptor_sequence_ptr	EQU	6
-active_flag	EQU	10
-position_descriptor_sequence_index	EQU	16
-bitplane_data_ptr	EQU	0
-mask_data_ptr	EQU	4
-row_stride_words	EQU	8
-frame_height	EQU	10
-frame_width	EQU	12
-x_offset	EQU	14
-y_offset	EQU	16
+sample_ptr	EQU	audio_channel_dma_configuration_sample_ptr
+sample_length	EQU	audio_channel_dma_configuration_sample_length
+sample_period	EQU	audio_channel_dma_configuration_sample_period
+sample_volume	EQU	audio_channel_dma_configuration_sample_volume
+enabled	EQU	audio_channel_dma_configuration_enabled
+start_pending	EQU	audio_channel_dma_configuration_start_pending
+period_delta	EQU	audio_channel_playback_state_period_delta
+period_reset_value	EQU	audio_channel_playback_state_period_reset_value
+period_delta_step	EQU	audio_channel_playback_state_period_delta_step
+current_period	EQU	audio_channel_playback_state_current_period
+sample_address_offset	EQU	audio_channel_playback_state_sample_address_offset
+period_reset_interval	EQU	audio_channel_playback_state_period_reset_interval
+period_delta_interval	EQU	audio_channel_playback_state_period_delta_interval
+period_delta_select	EQU	audio_channel_playback_state_period_delta_select
+sample_address_offset_select	EQU	audio_channel_playback_state_sample_address_offset_select
+playback_ticks_remaining	EQU	audio_channel_playback_state_playback_ticks_remaining
+sequence_interval	EQU	audio_channel_playback_state_sequence_interval
+sequence_index	EQU	audio_channel_playback_state_sequence_index
+update_disabled	EQU	audio_channel_playback_state_update_disabled
+period_reset_countdown	EQU	audio_channel_playback_state_period_reset_countdown
+period_delta_countdown	EQU	audio_channel_playback_state_period_delta_countdown
+active	EQU	audio_channel_playback_state_active
+sequence_countdown	EQU	audio_channel_playback_state_sequence_countdown
+sequence_ptr	EQU	audio_channel_playback_state_sequence_ptr
+item_name_ptr	EQU	world_object_shared_prefix_item_name_ptr
+interaction_callback	EQU	world_object_shared_prefix_interaction_callback
+context_callback	EQU	world_object_shared_prefix_context_callback
+interaction_data_ptr	EQU	world_object_shared_prefix_interaction_data_ptr
+position_descriptor_ptr	EQU	world_object_shared_prefix_position_descriptor_ptr
+world_x	EQU	world_object_shared_prefix_world_x
+world_y	EQU	world_object_shared_prefix_world_y
+interaction_timer	EQU	world_object_shared_prefix_interaction_timer
+proximity_distance	EQU	world_object_shared_prefix_proximity_distance
+selected_item_id	EQU	world_object_shared_prefix_selected_item_id
+initial_selected_item_id	EQU	world_object_shared_prefix_initial_selected_item_id
+world_object_flags	EQU	world_object_shared_prefix_world_object_flags
+initial_world_object_flags	EQU	world_object_shared_prefix_initial_world_object_flags
+item_definition_id	EQU	world_object_shared_prefix_item_definition_id
+item_state	EQU	world_object_shared_prefix_item_state
+initial_item_state	EQU	world_object_shared_prefix_initial_item_state
+context_prompt_cooldown	EQU	world_object_shared_prefix_context_prompt_cooldown
+position_state_ptr	EQU	world_position_descriptor_prefix_position_state_ptr
+channel_flags	EQU	audio_channel_runtime_state_channel_flags
+pitch_modulation_flags	EQU	audio_channel_runtime_state_pitch_modulation_flags
+current_note	EQU	audio_channel_runtime_state_current_note
+note_offset	EQU	audio_channel_runtime_state_note_offset
+program_ptr	EQU	audio_channel_runtime_state_program_ptr
+channel_configuration_offset	EQU	audio_channel_runtime_state_channel_configuration_offset
+pitch_sequence_start_ptr	EQU	audio_channel_runtime_state_pitch_sequence_start_ptr
+pitch_sequence_cursor	EQU	audio_channel_runtime_state_pitch_sequence_cursor
+pitch_delta_step	EQU	audio_channel_runtime_state_pitch_delta_step
+pitch_delta_countdown	EQU	audio_channel_runtime_state_pitch_delta_countdown
+sample_start_pending	EQU	audio_channel_runtime_state_sample_start_pending
+sample_metadata_ptr	EQU	audio_channel_runtime_state_sample_metadata_ptr
+update_reload_countdown	EQU	audio_channel_runtime_state_update_reload_countdown
+update_countdown	EQU	audio_channel_runtime_state_update_countdown
+pitch_delta_accumulator	EQU	audio_channel_runtime_state_pitch_delta_accumulator
+volume_sequence_ptr	EQU	audio_channel_runtime_state_volume_sequence_ptr
+volume_sequence_cursor	EQU	audio_channel_runtime_state_volume_sequence_cursor
+volume_sequence_interval	EQU	audio_channel_runtime_state_volume_sequence_interval
+volume_sequence_countdown	EQU	audio_channel_runtime_state_volume_sequence_countdown
+pitch_modulation_step	EQU	audio_channel_runtime_state_pitch_modulation_step
+pitch_modulation_value	EQU	audio_channel_runtime_state_pitch_modulation_value
+pitch_modulation_limit	EQU	audio_channel_runtime_state_pitch_modulation_limit
+channel_0_program_offset	EQU	audio_player_initialization_preset_channel_0_program_offset
+channel_1_program_offset	EQU	audio_player_initialization_preset_channel_1_program_offset
+channel_2_program_offset	EQU	audio_player_initialization_preset_channel_2_program_offset
+channel_3_program_offset	EQU	audio_player_initialization_preset_channel_3_program_offset
+state_node_ptr	EQU	world_position_state_record_state_node_ptr
+world_x_offset	EQU	world_position_state_record_world_x_offset
+world_y_offset	EQU	world_position_state_record_world_y_offset
+attachment_state_ptr	EQU	world_position_state_record_attachment_state_ptr
+interaction_flags	EQU	world_position_state_record_interaction_flags
+position_descriptor_sequence_ptr	EQU	WorldPositionStateNode_position_descriptor_sequence_ptr
+active_flag	EQU	WorldPositionStateNode_active_flag
+position_descriptor_sequence_index	EQU	WorldPositionStateNode_position_descriptor_sequence_index
+bitplane_data_ptr	EQU	WorldPositionAnimationFrame_bitplane_data_ptr
+mask_data_ptr	EQU	WorldPositionAnimationFrame_mask_data_ptr
+row_stride_words	EQU	WorldPositionAnimationFrame_row_stride_words
+frame_height	EQU	WorldPositionAnimationFrame_frame_height
+frame_width	EQU	WorldPositionAnimationFrame_frame_width
+x_offset	EQU	WorldPositionAnimationFrame_x_offset
+y_offset	EQU	WorldPositionAnimationFrame_y_offset
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -26297,821 +26462,493 @@ abs_0_000588AA:
 	dc.b $9E,$00,$00,$00,$00,$00,$04
 	dcb.b $8,$00
 	dc.b $12,$00
-world_position_animation_frames:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033278	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_0:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E254	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_0:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_0:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_0:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_0:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_0:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$34,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E2,$D4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_1:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_1:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_1:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_1:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_1:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033678	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E354	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_2:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_2:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_2:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_2:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_2:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$38,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E3,$D4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_3:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_3:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_3:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_3:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_3:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033A78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E454	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_4:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_4:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_4:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_4:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_4:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$3C,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E4,$D4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_5:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_5:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_5:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_5:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_5:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033E78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E554	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_6:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0001	; word row_stride_words
-world_position_animation_frames_frame_height_6:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_6:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0010	; word frame_width
-world_position_animation_frames_x_offset_6:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_6:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$3F,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E5,$94	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_7:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0001	; word row_stride_words
-world_position_animation_frames_frame_height_7:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_7:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0010	; word frame_width
-world_position_animation_frames_x_offset_7:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_7:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034078	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E5D4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_8:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0001	; word row_stride_words
-world_position_animation_frames_frame_height_8:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_8:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0010	; word frame_width
-world_position_animation_frames_x_offset_8:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_8:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$41,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E6,$14	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_9:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0001	; word row_stride_words
-world_position_animation_frames_frame_height_9:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_9:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0010	; word frame_width
-world_position_animation_frames_x_offset_9:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_9:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034278	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E654	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_10:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0001	; word row_stride_words
-world_position_animation_frames_frame_height_10:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_10:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0010	; word frame_width
-world_position_animation_frames_x_offset_10:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_10:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$43,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E6,$94	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_11:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0001	; word row_stride_words
-world_position_animation_frames_frame_height_11:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_11:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0010	; word frame_width
-world_position_animation_frames_x_offset_11:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_11:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034478	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E6D4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_12:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_12:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_12:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_12:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_12:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$46,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E7,$54	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_13:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_13:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_13:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_13:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_13:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034878	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E7D4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_14:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_14:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_14:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_14:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_14:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$4A,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E8,$54	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_15:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_15:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_15:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_15:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_15:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034C78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E8D4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_16:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_16:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_16:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_16:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_16:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$4E,$78	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E9,$54	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_17:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_17:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_17:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_17:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_17:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0004EFA8	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00067FE4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_18:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_18:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_18:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_18:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_18:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$04,$F1,$A8	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$06,$80,$64	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_19:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_19:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_19:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_19:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_19:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0004F3A8	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
-	dc.l $000680E4	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_20:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_20:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_20:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_20:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_20:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_animation_frames_bitplane_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$04,$F5,$A8	; long bitplane_data_ptr
-world_position_animation_frames_mask_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$06,$81,$64	; long mask_data_ptr
-world_position_animation_frames_row_stride_words_21:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0002	; word row_stride_words
-world_position_animation_frames_frame_height_21:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_height
-world_position_animation_frames_frame_width_21:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0020	; word frame_width
-world_position_animation_frames_x_offset_21:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word x_offset
-world_position_animation_frames_y_offset_21:	; STRUCT WorldPositionAnimationFrame
-	dc.w $0000	; word y_offset
-world_position_descriptors:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records	; long position_state_ptr
-world_position_descriptors_world_x_0:	; STRUCT world_position_descriptor_prefix
-	dc.w $0180	; word world_x
-world_position_descriptors_world_y_0:	; STRUCT world_position_descriptor_prefix
-	dc.w $0090	; word world_y
+world_position_animation_frames:
+	dc.l $00033278	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E254	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_1:
+	dc.b $00,$03,$34,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E2,$D4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_2:
+	dc.l $00033678	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E354	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_3:
+	dc.b $00,$03,$38,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E3,$D4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_4:
+	dc.l $00033A78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E454	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_5:
+	dc.b $00,$03,$3C,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E4,$D4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_6:
+	dc.l $00033E78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E554	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0001	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0010	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_7:
+	dc.b $00,$03,$3F,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E5,$94	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0001	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0010	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_8:
+	dc.l $00034078	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E5D4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0001	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0010	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_9:
+	dc.b $00,$03,$41,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E6,$14	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0001	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0010	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_10:
+	dc.l $00034278	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E654	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0001	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0010	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_11:
+	dc.b $00,$03,$43,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E6,$94	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0001	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0010	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_12:
+	dc.l $00034478	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E6D4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_13:
+	dc.b $00,$03,$46,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E7,$54	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_14:
+	dc.l $00034878	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E7D4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_15:
+	dc.b $00,$03,$4A,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E8,$54	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_16:
+	dc.l $00034C78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $0007E8D4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_17:
+	dc.b $00,$03,$4E,$78	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$07,$E9,$54	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_18:
+	dc.l $0004EFA8	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $00067FE4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_19:
+	dc.b $00,$04,$F1,$A8	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$06,$80,$64	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_20:
+	dc.l $0004F3A8	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.l $000680E4	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_animation_frames_bitplane_data_ptr_21:
+	dc.b $00,$04,$F5,$A8	; WorldPositionAnimationFrame.bitplane_data_ptr
+	dc.b $00,$06,$81,$64	; WorldPositionAnimationFrame.mask_data_ptr
+	dc.w $0002	; WorldPositionAnimationFrame.row_stride_words
+	dc.w $0020	; WorldPositionAnimationFrame.frame_height
+	dc.w $0020	; WorldPositionAnimationFrame.frame_width
+	dc.w $0000	; WorldPositionAnimationFrame.x_offset
+	dc.w $0000	; WorldPositionAnimationFrame.y_offset
+world_position_descriptors:
+	dc.l world_position_state_records	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0180	; world_position_descriptor_prefix.world_x
+	dc.w $0090	; world_position_descriptor_prefix.world_y
 	dc.b $01,$80,$00,$90
-world_position_descriptors_position_state_ptr_1:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_1A_1	; long position_state_ptr
-world_position_descriptors_world_x_1:	; STRUCT world_position_descriptor_prefix
-	dc.w $00D0	; word world_x
-world_position_descriptors_world_y_1:	; STRUCT world_position_descriptor_prefix
-	dc.w $01C0	; word world_y
+world_position_descriptors_position_state_ptr_1:
+	dc.l world_position_state_records_gap_1A_1	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $00D0	; world_position_descriptor_prefix.world_x
+	dc.w $01C0	; world_position_descriptor_prefix.world_y
 	dc.b $00,$D0,$01,$C0
-world_position_descriptors_position_state_ptr_2:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_34_2	; long position_state_ptr
-world_position_descriptors_world_x_2:	; STRUCT world_position_descriptor_prefix
-	dc.w $01D0	; word world_x
-world_position_descriptors_world_y_2:	; STRUCT world_position_descriptor_prefix
-	dc.w $0170	; word world_y
+world_position_descriptors_position_state_ptr_2:
+	dc.l world_position_state_records_gap_34_2	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $01D0	; world_position_descriptor_prefix.world_x
+	dc.w $0170	; world_position_descriptor_prefix.world_y
 	dc.b $01,$D0,$01,$70
-world_position_descriptors_position_state_ptr_3:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_4E_3	; long position_state_ptr
-world_position_descriptors_world_x_3:	; STRUCT world_position_descriptor_prefix
-	dc.w $02A0	; word world_x
-world_position_descriptors_world_y_3:	; STRUCT world_position_descriptor_prefix
-	dc.w $01F0	; word world_y
+world_position_descriptors_position_state_ptr_3:
+	dc.l world_position_state_records_gap_4E_3	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $02A0	; world_position_descriptor_prefix.world_x
+	dc.w $01F0	; world_position_descriptor_prefix.world_y
 	dc.b $02,$A0,$01,$F0
-world_position_descriptors_position_state_ptr_4:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_68_4	; long position_state_ptr
-world_position_descriptors_world_x_4:	; STRUCT world_position_descriptor_prefix
-	dc.w $03B0	; word world_x
-world_position_descriptors_world_y_4:	; STRUCT world_position_descriptor_prefix
-	dc.w $01D0	; word world_y
+world_position_descriptors_position_state_ptr_4:
+	dc.l world_position_state_records_gap_68_4	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $03B0	; world_position_descriptor_prefix.world_x
+	dc.w $01D0	; world_position_descriptor_prefix.world_y
 	dc.b $03,$B0,$01,$D0
-world_position_descriptors_position_state_ptr_5:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_82_5	; long position_state_ptr
-world_position_descriptors_world_x_5:	; STRUCT world_position_descriptor_prefix
-	dc.w $0420	; word world_x
-world_position_descriptors_world_y_5:	; STRUCT world_position_descriptor_prefix
-	dc.w $01F0	; word world_y
+world_position_descriptors_position_state_ptr_5:
+	dc.l world_position_state_records_gap_82_5	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0420	; world_position_descriptor_prefix.world_x
+	dc.w $01F0	; world_position_descriptor_prefix.world_y
 	dc.b $04,$20,$01,$F0
-world_position_descriptors_position_state_ptr_6:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_9C_6	; long position_state_ptr
-world_position_descriptors_world_x_6:	; STRUCT world_position_descriptor_prefix
-	dc.w $04F0	; word world_x
-world_position_descriptors_world_y_6:	; STRUCT world_position_descriptor_prefix
-	dc.w $01B0	; word world_y
+world_position_descriptors_position_state_ptr_6:
+	dc.l world_position_state_records_gap_9C_6	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $04F0	; world_position_descriptor_prefix.world_x
+	dc.w $01B0	; world_position_descriptor_prefix.world_y
 	dc.b $04,$F0,$01,$B0
-world_position_descriptors_position_state_ptr_7:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_B6_7	; long position_state_ptr
-world_position_descriptors_world_x_7:	; STRUCT world_position_descriptor_prefix
-	dc.w $0240	; word world_x
-world_position_descriptors_world_y_7:	; STRUCT world_position_descriptor_prefix
-	dc.w $02C0	; word world_y
+world_position_descriptors_position_state_ptr_7:
+	dc.l world_position_state_records_gap_B6_7	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0240	; world_position_descriptor_prefix.world_x
+	dc.w $02C0	; world_position_descriptor_prefix.world_y
 	dc.b $02,$40,$02,$C0
-world_position_descriptors_position_state_ptr_8:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_D0_8	; long position_state_ptr
-world_position_descriptors_world_x_8:	; STRUCT world_position_descriptor_prefix
-	dc.w $03A0	; word world_x
-world_position_descriptors_world_y_8:	; STRUCT world_position_descriptor_prefix
-	dc.w $0300	; word world_y
+world_position_descriptors_position_state_ptr_8:
+	dc.l world_position_state_records_gap_D0_8	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $03A0	; world_position_descriptor_prefix.world_x
+	dc.w $0300	; world_position_descriptor_prefix.world_y
 	dc.b $03,$A0,$03,$00
-world_position_descriptors_position_state_ptr_9:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_EA_9	; long position_state_ptr
-world_position_descriptors_world_x_9:	; STRUCT world_position_descriptor_prefix
-	dc.w $0200	; word world_x
-world_position_descriptors_world_y_9:	; STRUCT world_position_descriptor_prefix
-	dc.w $0500	; word world_y
+world_position_descriptors_position_state_ptr_9:
+	dc.l world_position_state_records_gap_EA_9	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0200	; world_position_descriptor_prefix.world_x
+	dc.w $0500	; world_position_descriptor_prefix.world_y
 	dc.b $02,$00,$05,$00
-world_position_descriptors_position_state_ptr_10:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_104_10	; long position_state_ptr
-world_position_descriptors_world_x_10:	; STRUCT world_position_descriptor_prefix
-	dc.w $01B0	; word world_x
-world_position_descriptors_world_y_10:	; STRUCT world_position_descriptor_prefix
-	dc.w $05B0	; word world_y
+world_position_descriptors_position_state_ptr_10:
+	dc.l world_position_state_records_gap_104_10	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $01B0	; world_position_descriptor_prefix.world_x
+	dc.w $05B0	; world_position_descriptor_prefix.world_y
 	dc.b $01,$B0,$05,$B0
-world_position_descriptors_position_state_ptr_11:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_11E_11	; long position_state_ptr
-world_position_descriptors_world_x_11:	; STRUCT world_position_descriptor_prefix
-	dc.w $02B0	; word world_x
-world_position_descriptors_world_y_11:	; STRUCT world_position_descriptor_prefix
-	dc.w $05D0	; word world_y
+world_position_descriptors_position_state_ptr_11:
+	dc.l world_position_state_records_gap_11E_11	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $02B0	; world_position_descriptor_prefix.world_x
+	dc.w $05D0	; world_position_descriptor_prefix.world_y
 	dc.b $02,$B0,$05,$D0
-world_position_descriptors_position_state_ptr_12:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_138_12	; long position_state_ptr
-world_position_descriptors_world_x_12:	; STRUCT world_position_descriptor_prefix
-	dc.w $0390	; word world_x
-world_position_descriptors_world_y_12:	; STRUCT world_position_descriptor_prefix
-	dc.w $06F0	; word world_y
+world_position_descriptors_position_state_ptr_12:
+	dc.l world_position_state_records_gap_138_12	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0390	; world_position_descriptor_prefix.world_x
+	dc.w $06F0	; world_position_descriptor_prefix.world_y
 	dc.b $03,$90,$06,$F0
-world_position_descriptors_position_state_ptr_13:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_152_13	; long position_state_ptr
-world_position_descriptors_world_x_13:	; STRUCT world_position_descriptor_prefix
-	dc.w $0390	; word world_x
-world_position_descriptors_world_y_13:	; STRUCT world_position_descriptor_prefix
-	dc.w $0580	; word world_y
+world_position_descriptors_position_state_ptr_13:
+	dc.l world_position_state_records_gap_152_13	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0390	; world_position_descriptor_prefix.world_x
+	dc.w $0580	; world_position_descriptor_prefix.world_y
 	dc.b $03,$90,$05,$80
-world_position_descriptors_position_state_ptr_14:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_16C_14	; long position_state_ptr
-world_position_descriptors_world_x_14:	; STRUCT world_position_descriptor_prefix
-	dc.w $0420	; word world_x
-world_position_descriptors_world_y_14:	; STRUCT world_position_descriptor_prefix
-	dc.w $0080	; word world_y
+world_position_descriptors_position_state_ptr_14:
+	dc.l world_position_state_records_gap_16C_14	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0420	; world_position_descriptor_prefix.world_x
+	dc.w $0080	; world_position_descriptor_prefix.world_y
 	dc.b $04,$20,$00,$80
-world_position_descriptors_position_state_ptr_15:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_186_15	; long position_state_ptr
-world_position_descriptors_world_x_15:	; STRUCT world_position_descriptor_prefix
-	dc.w $01C0	; word world_x
-world_position_descriptors_world_y_15:	; STRUCT world_position_descriptor_prefix
-	dc.w $06F0	; word world_y
+world_position_descriptors_position_state_ptr_15:
+	dc.l world_position_state_records_gap_186_15	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $01C0	; world_position_descriptor_prefix.world_x
+	dc.w $06F0	; world_position_descriptor_prefix.world_y
 	dc.b $01,$C0,$06,$F0
-world_position_descriptors_position_state_ptr_16:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_1A0_16	; long position_state_ptr
-world_position_descriptors_world_x_16:	; STRUCT world_position_descriptor_prefix
-	dc.w $0490	; word world_x
-world_position_descriptors_world_y_16:	; STRUCT world_position_descriptor_prefix
-	dc.w $0330	; word world_y
+world_position_descriptors_position_state_ptr_16:
+	dc.l world_position_state_records_gap_1A0_16	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0490	; world_position_descriptor_prefix.world_x
+	dc.w $0330	; world_position_descriptor_prefix.world_y
 	dc.b $04,$90,$03,$30
-world_position_descriptors_position_state_ptr_17:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_1BA_17	; long position_state_ptr
-world_position_descriptors_world_x_17:	; STRUCT world_position_descriptor_prefix
-	dc.w $0490	; word world_x
-world_position_descriptors_world_y_17:	; STRUCT world_position_descriptor_prefix
-	dc.w $0370	; word world_y
+world_position_descriptors_position_state_ptr_17:
+	dc.l world_position_state_records_gap_1BA_17	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0490	; world_position_descriptor_prefix.world_x
+	dc.w $0370	; world_position_descriptor_prefix.world_y
 	dc.b $04,$90,$03,$70
-world_position_descriptors_position_state_ptr_18:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_1D4_18	; long position_state_ptr
-world_position_descriptors_world_x_18:	; STRUCT world_position_descriptor_prefix
-	dc.w $0234	; word world_x
-world_position_descriptors_world_y_18:	; STRUCT world_position_descriptor_prefix
-	dc.w $03C0	; word world_y
+world_position_descriptors_position_state_ptr_18:
+	dc.l world_position_state_records_gap_1D4_18	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0234	; world_position_descriptor_prefix.world_x
+	dc.w $03C0	; world_position_descriptor_prefix.world_y
 	dc.b $02,$34,$03,$C0
-world_position_descriptors_position_state_ptr_19:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_1EE_19	; long position_state_ptr
-world_position_descriptors_world_x_19:	; STRUCT world_position_descriptor_prefix
-	dc.w $0084	; word world_x
-world_position_descriptors_world_y_19:	; STRUCT world_position_descriptor_prefix
-	dc.w $00D0	; word world_y
+world_position_descriptors_position_state_ptr_19:
+	dc.l world_position_state_records_gap_1EE_19	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0084	; world_position_descriptor_prefix.world_x
+	dc.w $00D0	; world_position_descriptor_prefix.world_y
 	dc.b $00,$84,$00,$D0
-world_position_descriptors_position_state_ptr_20:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_208_20	; long position_state_ptr
-world_position_descriptors_world_x_20:	; STRUCT world_position_descriptor_prefix
-	dc.w $04F4	; word world_x
-world_position_descriptors_world_y_20:	; STRUCT world_position_descriptor_prefix
-	dc.w $06E0	; word world_y
+world_position_descriptors_position_state_ptr_20:
+	dc.l world_position_state_records_gap_208_20	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $04F4	; world_position_descriptor_prefix.world_x
+	dc.w $06E0	; world_position_descriptor_prefix.world_y
 	dc.b $04,$F4,$06,$E0
-world_position_descriptors_position_state_ptr_21:	; STRUCT world_position_descriptor_prefix
-	dc.l world_position_state_records_gap_222_21	; long position_state_ptr
-world_position_descriptors_world_x_21:	; STRUCT world_position_descriptor_prefix
-	dc.w $00A0	; word world_x
-world_position_descriptors_world_y_21:	; STRUCT world_position_descriptor_prefix
-	dc.w $0320	; word world_y
+world_position_descriptors_position_state_ptr_21:
+	dc.l world_position_state_records_gap_222_21	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $00A0	; world_position_descriptor_prefix.world_x
+	dc.w $0320	; world_position_descriptor_prefix.world_y
 world_position_descriptors_gap_104:
 	dc.l $00A00320	; typed data block gap
 world_position_state_records:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_0:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_6	; long state_node_ptr
-world_position_state_records_world_x_offset_0:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_0:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_0:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_0:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_0:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_0:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_6	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_1A_1:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_1:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_7	; long state_node_ptr
-world_position_state_records_world_x_offset_1:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_1:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_1:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_1	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_1:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_1:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_1:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_7	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_1	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_34_2:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_2:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_8	; long state_node_ptr
-world_position_state_records_world_x_offset_2:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_2:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_2:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_2	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_2:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_2:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_2:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_8	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_2	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_4E_3:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_3:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_9	; long state_node_ptr
-world_position_state_records_world_x_offset_3:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_3:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_3:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_3	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_3:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_3:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_3:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_9	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_3	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_68_4:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_4:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_10	; long state_node_ptr
-world_position_state_records_world_x_offset_4:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_4:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_4:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_4	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_4:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_4:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_4:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_10	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_4	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_82_5:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_5:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_11	; long state_node_ptr
-world_position_state_records_world_x_offset_5:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_5:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_5:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_5	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_5:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_5:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_5:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_11	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_5	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_9C_6:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_6:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_12	; long state_node_ptr
-world_position_state_records_world_x_offset_6:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_6:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_6:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_6	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_6:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_6:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_6:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_12	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_6	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_B6_7:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_7:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_13	; long state_node_ptr
-world_position_state_records_world_x_offset_7:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_7:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_7:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_7	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_7:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_7:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_7:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_13	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_7	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_D0_8:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_8:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_14	; long state_node_ptr
-world_position_state_records_world_x_offset_8:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_8:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_8:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_8	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_8:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_8:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_8:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_14	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_8	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_EA_9:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_9:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_15	; long state_node_ptr
-world_position_state_records_world_x_offset_9:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_9:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_9:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_9	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_9:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_9:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_9:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_15	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_9	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_104_10:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_10:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_16	; long state_node_ptr
-world_position_state_records_world_x_offset_10:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_10:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_10:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_10	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_10:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_10:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_10:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+world_position_state_records_state_node_ptr_10:
+	dc.l world_position_state_nodes_position_descriptor_ptr_16	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_10	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_11E_11:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_11:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_17	; long state_node_ptr
-world_position_state_records_world_x_offset_11:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_11:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_11:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_11	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_11:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_11:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_11:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_17	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_11	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_138_12:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_12:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_18	; long state_node_ptr
-world_position_state_records_world_x_offset_12:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_12:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_12:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_12	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_12:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_12:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_12:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_18	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_12	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_152_13:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_13:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_19	; long state_node_ptr
-world_position_state_records_world_x_offset_13:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_13:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_13:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_13	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_13:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_13:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_13:	; STRUCT world_position_state_record
-	dc.b $01	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_19	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_13	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $01	; world_position_state_record.world_object_flags
 world_position_state_records_gap_16C_14:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_14:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_20	; long state_node_ptr
-world_position_state_records_world_x_offset_14:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_14:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_14:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_14	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_14:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_14:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_14:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_20	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_14	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_186_15:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_15:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_21	; long state_node_ptr
-world_position_state_records_world_x_offset_15:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_15:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_15:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_15	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_15:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_15:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_15:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_21	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_15	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_1A0_16:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_16:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_22	; long state_node_ptr
-world_position_state_records_world_x_offset_16:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_16:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_16:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_16	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_16:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_16:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_16:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_22	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_16	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_1BA_17:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_17:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_23	; long state_node_ptr
-world_position_state_records_world_x_offset_17:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_17:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_17:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_17	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_17:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_17:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_17:	; STRUCT world_position_state_record
-	dc.b $21	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_23	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_17	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $21	; world_position_state_record.world_object_flags
 world_position_state_records_gap_1D4_18:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_18:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes	; long state_node_ptr
-world_position_state_records_world_x_offset_18:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_18:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_18:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_18	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_18:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_18:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_18:	; STRUCT world_position_state_record
-	dc.b $10	; byte world_object_flags
+	dc.l world_position_state_nodes	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_18	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $10	; world_position_state_record.world_object_flags
 world_position_state_records_gap_1EE_19:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_19:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_1	; long state_node_ptr
-world_position_state_records_world_x_offset_19:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_19:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_19:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_19	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_19:	; STRUCT world_position_state_record
-	dc.l $00000000	; long attachment_state_ptr
-world_position_state_records_interaction_flags_19:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_19:	; STRUCT world_position_state_record
-	dc.b $10	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_1	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_19	; world_position_state_record.position_descriptor_ptr
+	dc.l $00000000	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $10	; world_position_state_record.world_object_flags
 world_position_state_records_gap_208_20:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_20:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_2	; long state_node_ptr
-world_position_state_records_world_x_offset_20:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_20:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_20:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_20	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_20:	; STRUCT world_position_state_record
-	dc.l abs_0_00058F3C	; long attachment_state_ptr
-world_position_state_records_interaction_flags_20:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_20:	; STRUCT world_position_state_record
-	dc.b $10	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_2	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+world_position_state_records_world_y_offset_20:
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_20	; world_position_state_record.position_descriptor_ptr
+	dc.l abs_0_00058F3C	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $10	; world_position_state_record.world_object_flags
 world_position_state_records_gap_222_21:
 	dcb.b $8,$00	; typed data block gap
-world_position_state_records_state_node_ptr_21:	; STRUCT world_position_state_record
-	dc.l world_position_state_nodes_position_descriptor_ptr_3	; long state_node_ptr
-world_position_state_records_world_x_offset_21:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_x_offset
-world_position_state_records_world_y_offset_21:	; STRUCT world_position_state_record
-	dc.w $0000	; word world_y_offset
-world_position_state_records_position_descriptor_ptr_21:	; STRUCT world_position_state_record
-	dc.l world_position_descriptors_position_state_ptr_21	; long position_descriptor_ptr
-world_position_state_records_attachment_state_ptr_21:	; STRUCT world_position_state_record
-	dc.l abs_0_00058F56	; long attachment_state_ptr
-world_position_state_records_interaction_flags_21:	; STRUCT world_position_state_record
-	dc.b $00	; byte interaction_flags
-world_position_state_records_world_object_flags_21:	; STRUCT world_position_state_record
-	dc.b $10	; byte world_object_flags
+	dc.l world_position_state_nodes_position_descriptor_ptr_3	; world_position_state_record.state_node_ptr
+	dc.w $0000	; world_position_state_record.world_x_offset
+	dc.w $0000	; world_position_state_record.world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_21	; world_position_state_record.position_descriptor_ptr
+	dc.l abs_0_00058F56	; world_position_state_record.attachment_state_ptr
+	dc.b $00	; world_position_state_record.interaction_flags
+	dc.b $10	; world_position_state_record.world_object_flags
 abs_0_00058F3C:
 	dcb.b $9,$00
 	dc.b $05,$8F,$B8,$00,$00,$00,$20,$00,$05,$8C,$E8,$00,$00,$00,$00,$00
@@ -27120,334 +26957,274 @@ abs_0_00058F56:
 	dcb.b $9,$00
 	dc.b $05,$8F,$CA,$00,$00,$00,$20,$00,$05,$8C,$F4,$00,$00,$00,$00,$00
 	dc.b $10
-world_position_state_nodes:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_18	; long position_descriptor_ptr
+world_position_state_nodes:
+	dc.l world_position_descriptors_position_state_ptr_18	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_4_0:
 	dc.w $0440	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_0:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$20	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_0:	; STRUCT WorldPositionStateNode
-	dc.b $00	; byte active_flag
+	dc.b $00,$05,$91,$20	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $00	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_B_0:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_0:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_1:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_19	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_1:
+	dc.l world_position_descriptors_position_state_ptr_19	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_16_1:
 	dc.w $0440	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_1:	; STRUCT WorldPositionStateNode
-	dc.l $00059120	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_1:	; STRUCT WorldPositionStateNode
-	dc.b $00	; byte active_flag
+	dc.l $00059120	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $00	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_1D_1:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_1:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_2:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_20	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_2:
+	dc.l world_position_descriptors_position_state_ptr_20	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_28_2:
 	dc.w $0440	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_2:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$20	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_2:	; STRUCT WorldPositionStateNode
-	dc.b $00	; byte active_flag
+	dc.b $00,$05,$91,$20	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $00	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_2F_2:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_2:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_3:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_21	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_3:
+	dc.l world_position_descriptors_position_state_ptr_21	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_3A_3:
 	dc.w $0440	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_3:	; STRUCT WorldPositionStateNode
-	dc.l $00059120	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_3:	; STRUCT WorldPositionStateNode
-	dc.b $00	; byte active_flag
+	dc.l $00059120	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $00	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_41_3:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_3:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_4:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_20	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+	dc.l world_position_descriptors_position_state_ptr_20	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_4C_4:
 	dc.w $0440	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_4:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$20	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_4:	; STRUCT WorldPositionStateNode
-	dc.b $00	; byte active_flag
+	dc.b $00,$05,$91,$20	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $00	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_53_4:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_4:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_5:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_21	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+	dc.l world_position_descriptors_position_state_ptr_21	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_5E_5:
 	dc.w $0440	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_5:	; STRUCT WorldPositionStateNode
-	dc.l $00059120	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_5:	; STRUCT WorldPositionStateNode
-	dc.b $00	; byte active_flag
+	dc.l $00059120	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $00	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_65_5:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_5:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_6:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_6:
+	dc.l world_position_descriptors	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_70_6:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_6:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$88	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_6:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$88	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_77_6:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_6:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_7:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_1	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_7:
+	dc.l world_position_descriptors_position_state_ptr_1	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_82_7:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_7:	; STRUCT WorldPositionStateNode
-	dc.l $00059150	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_7:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059150	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_89_7:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_7:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_8:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_2	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_8:
+	dc.l world_position_descriptors_position_state_ptr_2	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_94_8:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_8:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$88	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_8:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$88	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_9B_8:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_8:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_9:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_3	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_9:
+	dc.l world_position_descriptors_position_state_ptr_3	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_A6_9:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_9:	; STRUCT WorldPositionStateNode
-	dc.l $00059150	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_9:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059150	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_AD_9:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_index_9:	; STRUCT WorldPositionStateNode
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_10:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_4	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_10:
+	dc.l world_position_descriptors_position_state_ptr_4	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_B8_10:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_10:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$88	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_10:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$88	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_BF_10:
 	dc.b $00,$00,$00
 	dc.w $0000
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_11:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_5	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_11:
+	dc.l world_position_descriptors_position_state_ptr_5	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_CA_11:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_11:	; STRUCT WorldPositionStateNode
-	dc.l $00059150	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_11:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059150	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_D1_11:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_12:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_6	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_12:
+	dc.l world_position_descriptors_position_state_ptr_6	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_DC_12:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_12:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$88	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_12:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$88	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_E3_12:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_13:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_7	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_13:
+	dc.l world_position_descriptors_position_state_ptr_7	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_EE_13:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_13:	; STRUCT WorldPositionStateNode
-	dc.l $00059188	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_13:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059188	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_F5_13:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_14:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_8	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_14:
+	dc.l world_position_descriptors_position_state_ptr_8	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_100_14:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_14:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$50	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_14:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$50	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_107_14:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_15:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_9	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_15:
+	dc.l world_position_descriptors_position_state_ptr_9	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_112_15:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_15:	; STRUCT WorldPositionStateNode
-	dc.l $00059188	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_15:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059188	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_119_15:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_16:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_10	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_16:
+	dc.l world_position_descriptors_position_state_ptr_10	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_124_16:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_16:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$50	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_16:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$50	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_12B_16:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_17:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_11	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_17:
+	dc.l world_position_descriptors_position_state_ptr_11	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_136_17:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_17:	; STRUCT WorldPositionStateNode
-	dc.l $00059188	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_17:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059188	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_13D_17:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_18:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_12	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_18:
+	dc.l world_position_descriptors_position_state_ptr_12	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_148_18:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_18:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$88	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_18:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$88	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_14F_18:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_19:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_13	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_19:
+	dc.l world_position_descriptors_position_state_ptr_13	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_15A_19:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_19:	; STRUCT WorldPositionStateNode
-	dc.l $00059150	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_19:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059150	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_161_19:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_20:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_14	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_20:
+	dc.l world_position_descriptors_position_state_ptr_14	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_16C_20:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_20:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$88	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_20:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$88	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_173_20:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_21:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_15	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_21:
+	dc.l world_position_descriptors_position_state_ptr_15	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_17E_21:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_21:	; STRUCT WorldPositionStateNode
-	dc.l $00059188	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_21:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059188	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_185_21:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_22:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_16	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_22:
+	dc.l world_position_descriptors_position_state_ptr_16	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_190_22:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_22:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$91,$88	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_22:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.b $00,$05,$91,$88	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_197_22:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_state_nodes_position_descriptor_ptr_23:	; STRUCT WorldPositionStateNode
-	dc.l world_position_descriptors_position_state_ptr_17	; long position_descriptor_ptr
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_state_nodes_position_descriptor_ptr_23:
+	dc.l world_position_descriptors_position_state_ptr_17	; WorldPositionStateNode.position_descriptor_ptr
 world_position_state_nodes_gap_1A2_23:
 	dc.w $0640	; typed data block gap
-world_position_state_nodes_position_descriptor_sequence_ptr_23:	; STRUCT WorldPositionStateNode
-	dc.l $00059188	; long position_descriptor_sequence_ptr
-world_position_state_nodes_active_flag_23:	; STRUCT WorldPositionStateNode
-	dc.b $01	; byte active_flag
+	dc.l $00059188	; WorldPositionStateNode.position_descriptor_sequence_ptr
+	dc.b $01	; WorldPositionStateNode.active_flag
 world_position_state_nodes_gap_1A9_23:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; word position_descriptor_sequence_index
-world_position_descriptor_sequence_ptrs:	; STRUCT WorldPositionDescriptorPointer
-	dc.l $00000000	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_18	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_19	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_20	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_21	; long position_descriptor_ptr
-abs_0_00059134:	; STRUCT WorldPositionDescriptorPointer
+	dc.w $0000	; WorldPositionStateNode.position_descriptor_sequence_index
+world_position_descriptor_sequence_ptrs:
+	dc.l $00000000	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_18	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_19	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_20	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_21	; WorldPositionDescriptorPointer.position_descriptor_ptr
+abs_0_00059134:
 	dc.b $00,$05
 	dc.b $8A,$C6
-	dc.l world_position_animation_frames	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_1	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_2	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_3	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_4	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_5	; long position_descriptor_ptr
-abs_0_00059150:	; STRUCT WorldPositionDescriptorPointer
-	dc.l world_position_animation_frames	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_5	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_4	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_3	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_2	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_1	; long position_descriptor_ptr
-	dc.l world_position_animation_frames	; long position_descriptor_ptr
-abs_0_0005916C:	; STRUCT WorldPositionDescriptorPointer
-	dc.l world_position_animation_frames_bitplane_data_ptr_11	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_6	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_7	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_8	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_9	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_10	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_11	; long position_descriptor_ptr
-abs_0_00059188:	; STRUCT WorldPositionDescriptorPointer
-	dc.l world_position_animation_frames_bitplane_data_ptr_6	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_11	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_10	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_9	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_8	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_7	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_6	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_17	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_12	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_13	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_14	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_15	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_16	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_17	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_12	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_17	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_16	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_15	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_14	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_13	; long position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_12	; long position_descriptor_ptr
+	dc.l world_position_animation_frames	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_1	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_2	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_3	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_4	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_5	; WorldPositionDescriptorPointer.position_descriptor_ptr
+abs_0_00059150:
+	dc.l world_position_animation_frames	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_5	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_4	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_3	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_2	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_1	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames	; WorldPositionDescriptorPointer.position_descriptor_ptr
+abs_0_0005916C:
+	dc.l world_position_animation_frames_bitplane_data_ptr_11	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_6	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_7	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_8	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_9	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_10	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_11	; WorldPositionDescriptorPointer.position_descriptor_ptr
+abs_0_00059188:
+	dc.l world_position_animation_frames_bitplane_data_ptr_6	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_11	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_10	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_9	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_8	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_7	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_6	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_17	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_12	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_13	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_14	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_15	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_16	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_17	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_12	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_17	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_16	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_15	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_14	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_13	; WorldPositionDescriptorPointer.position_descriptor_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_12	; WorldPositionDescriptorPointer.position_descriptor_ptr
 	dc.b $00,$05,$0E,$08,$00,$06,$85,$FC,$00,$02,$00,$20,$00,$20,$00,$00
 	dc.b $00,$00
 abs_0_000591EE:
@@ -28599,64 +28376,47 @@ abs_0_0005C2BE:
 	dc.b $E2,$00,$05
 abs_0_0005C31A:
 	dc.b $00,$01,$00,$14,$00,$05,$C3,$12
-player_world_object:	; STRUCT world_object_shared_prefix
-	dc.b $00,$00,$00,$00	; long item_name_ptr
-player_world_object_interaction_callback:	; STRUCT world_object_shared_prefix
-	dc.b $00,$00,$00,$00	; long interaction_callback
+player_world_object:
+	dc.b $00,$00,$00,$00	; world_object_shared_prefix.item_name_ptr
+	dc.b $00,$00,$00,$00	; world_object_shared_prefix.interaction_callback
 player_world_object_gap_8:
 	dc.b $00,$00,$00,$00	; typed data block gap
-player_world_object_context_callback:	; STRUCT world_object_shared_prefix
-	dc.b $00,$00,$00,$00	; long context_callback
-player_world_object_interaction_data_ptr:	; STRUCT world_object_shared_prefix
-	dc.b $00,$00,$00,$00	; long interaction_data_ptr
-player_world_object_inventory_slots_ptr:	; STRUCT world_object_shared_prefix
-	dc.b $00,$01,$B3,$A0	; long inventory_slots_ptr
-player_world_object_trade_offer_table_ptr:	; STRUCT world_object_shared_prefix
-	dc.b $00,$01,$B3,$A0	; long trade_offer_table_ptr
-player_world_object_initial_inventory_slots_ptr:	; STRUCT world_object_shared_prefix
-	dc.b $00,$01,$B3,$A0	; long initial_inventory_slots_ptr
-player_world_object_initial_trade_offer_table_ptr:	; STRUCT world_object_shared_prefix
-	dc.b $00,$01,$B3,$A0	; long initial_trade_offer_table_ptr
+	dc.b $00,$00,$00,$00	; world_object_shared_prefix.context_callback
+	dc.b $00,$00,$00,$00	; world_object_shared_prefix.interaction_data_ptr
+	dc.b $00,$01,$B3,$A0	; world_object_shared_prefix.inventory_slots_ptr
+	dc.b $00,$01,$B3,$A0	; world_object_shared_prefix.trade_offer_table_ptr
+	dc.b $00,$01,$B3,$A0	; world_object_shared_prefix.initial_inventory_slots_ptr
+	dc.b $00,$01,$B3,$A0	; world_object_shared_prefix.initial_trade_offer_table_ptr
 player_world_object_gap_24:
 	dc.b $00,$05,$C3,$12,$00,$05,$C3,$12	; typed data block gap
-player_world_object_position_descriptor_ptr:	; STRUCT world_object_shared_prefix
-	dc.l player_position_descriptor	; long position_descriptor_ptr
-player_world_object_world_x:	; STRUCT world_object_shared_prefix
-	dc.w $0000	; word world_x
-player_world_object_world_y:	; STRUCT world_object_shared_prefix
-	dc.w $0000	; word world_y
+	dc.l player_position_descriptor	; world_object_shared_prefix.position_descriptor_ptr
+player_world_object_world_x:
+	dc.w $0000	; world_object_shared_prefix.world_x
+	dc.w $0000	; world_object_shared_prefix.world_y
 player_world_object_gap_34:
 	dcb.b $8,$00	; typed data block gap
-player_world_object_interaction_timer:	; STRUCT world_object_shared_prefix
 	dc.b $00
 abs_0_0005C35F:
 	dc.b $5F
 player_world_object_gap_3E:
 	dc.l $005F0064	; typed data block gap
-player_world_object_proximity_distance:	; STRUCT world_object_shared_prefix
-	dc.w $0000	; word proximity_distance
+	dc.w $0000	; world_object_shared_prefix.proximity_distance
 player_world_object_gap_44:
 	dc.w $0000	; typed data block gap
-player_world_object_selected_item_id:	; STRUCT world_object_shared_prefix
-	dc.b $00	; byte selected_item_id
-player_world_object_initial_selected_item_id:	; STRUCT world_object_shared_prefix
-	dc.b $00	; byte initial_selected_item_id
-player_world_object_world_object_flags:	; STRUCT world_object_shared_prefix
-	dc.b $00	; byte world_object_flags
-player_world_object_initial_world_object_flags:	; STRUCT world_object_shared_prefix
-	dc.b $00	; byte initial_world_object_flags
-player_world_object_item_definition_id:	; STRUCT world_object_shared_prefix
-	dc.b $00	; byte item_definition_id
+player_world_object_selected_item_id:
+	dc.b $00	; world_object_shared_prefix.selected_item_id
+	dc.b $00	; world_object_shared_prefix.initial_selected_item_id
+player_world_object_world_object_flags:
+	dc.b $00	; world_object_shared_prefix.world_object_flags
+	dc.b $00	; world_object_shared_prefix.initial_world_object_flags
+	dc.b $00	; world_object_shared_prefix.item_definition_id
 player_world_object_gap_4B:
 	dc.b $00	; typed data block gap
-player_world_object_item_state:	; STRUCT world_object_shared_prefix
-	dc.b $00	; byte item_state
-player_world_object_initial_item_state:	; STRUCT world_object_shared_prefix
-	dc.b $00	; byte initial_item_state
+	dc.b $00	; world_object_shared_prefix.item_state
+	dc.b $00	; world_object_shared_prefix.initial_item_state
 player_world_object_gap_4E:
 	dc.l $00000000	; typed data block gap
-player_world_object_context_prompt_cooldown:	; STRUCT world_object_shared_prefix
-	dc.w $0000	; word context_prompt_cooldown
+	dc.w $0000	; world_object_shared_prefix.context_prompt_cooldown
 	dc.b $00,$03,$15,$28,$00,$07,$DB,$00,$00,$02,$00,$1E,$00,$0E,$00,$07
 	dc.b $00,$00,$00,$03,$03,$28,$00,$07,$D6,$80,$00,$02,$00,$1E,$00,$18
 	dc.b $00,$02,$00,$00,$00,$03,$05,$28,$00,$07,$D7,$00,$00,$02,$00,$1D
@@ -28724,12 +28484,10 @@ abs_0_0005C6BA:
 	dc.b $05,$C6,$06,$00,$05,$C6,$18,$00,$05,$C6,$2A,$00,$05,$C6,$3C,$00
 	dc.b $05,$C6,$4E,$00,$05,$C6,$60,$00,$05,$C6,$72,$00,$05,$C6,$84,$00
 	dc.b $05,$C6,$96,$00,$05,$C6,$A8
-player_position_descriptor:	; STRUCT world_position_descriptor_prefix
-	dc.l abs_0_0005C72A	; long position_state_ptr
-player_position_descriptor_world_x:	; STRUCT world_position_descriptor_prefix
-	dc.w $0000	; word world_x
-player_position_descriptor_world_y:	; STRUCT world_position_descriptor_prefix
-	dc.w $0000	; word world_y
+player_position_descriptor:
+	dc.l abs_0_0005C72A	; world_position_descriptor_prefix.position_state_ptr
+	dc.w $0000	; world_position_descriptor_prefix.world_x
+	dc.w $0000	; world_position_descriptor_prefix.world_y
 	dc.b $00,$00,$00,$00
 abs_0_0005C72A:
 	dcb.b $8,$00
@@ -29708,204 +29466,117 @@ audio_silence_sample_ptr:
 	dc.w $0000
 audio_sample_visualization_offset:
 	dc.w $0000	; lookup_table
-audio_channel_state_records:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte channel_flags
-audio_channel_state_records_pitch_modulation_flags_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_flags
-audio_channel_state_records_current_note_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte current_note
-audio_channel_state_records_note_offset_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte note_offset
-audio_channel_state_records_program_ptr_0:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long program_ptr
-audio_channel_state_records_channel_configuration_offset_0:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word channel_configuration_offset
+audio_channel_state_records:
+	dc.b $00	; audio_channel_runtime_state.channel_flags
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_flags
+	dc.b $00	; audio_channel_runtime_state.current_note
+	dc.b $00	; audio_channel_runtime_state.note_offset
+	dc.l $00000000	; audio_channel_runtime_state.program_ptr
+	dc.w $0000	; audio_channel_runtime_state.channel_configuration_offset
 audio_channel_state_records_gap_A_0:
 	dc.w $0000	; typed data block gap
-audio_channel_state_records_pitch_sequence_start_ptr_0:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_start_ptr
-audio_channel_state_records_pitch_sequence_cursor_0:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_cursor
-audio_channel_state_records_pitch_delta_step_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_step
-audio_channel_state_records_pitch_delta_countdown_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_countdown
-audio_channel_state_records_sample_start_pending_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte sample_start_pending
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_start_ptr
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_step
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_countdown
+	dc.b $00	; audio_channel_runtime_state.sample_start_pending
 audio_channel_state_records_gap_17_0:
 	dc.b $00	; typed data block gap
-audio_channel_state_records_sample_metadata_ptr_0:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long sample_metadata_ptr
-audio_channel_state_records_update_reload_countdown_0:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_reload_countdown
-audio_channel_state_records_update_countdown_0:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_countdown
-audio_channel_state_records_pitch_delta_accumulator_0:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word pitch_delta_accumulator
-audio_channel_state_records_volume_sequence_ptr_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
-audio_channel_state_records_volume_sequence_cursor_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
-audio_channel_state_records_volume_sequence_interval_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_interval
-audio_channel_state_records_volume_sequence_countdown_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_countdown
-audio_channel_state_records_pitch_modulation_step_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_step
-audio_channel_state_records_pitch_modulation_value_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_value
-audio_channel_state_records_pitch_modulation_limit_0:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_limit
+	dc.l $00000000	; audio_channel_runtime_state.sample_metadata_ptr
+	dc.w $0000	; audio_channel_runtime_state.update_reload_countdown
+	dc.w $0000	; audio_channel_runtime_state.update_countdown
+	dc.w $0000	; audio_channel_runtime_state.pitch_delta_accumulator
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_interval
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_countdown
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_step
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_value
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_limit
 audio_channel_state_records_gap_2F_0:
 	dc.b $00	; typed data block gap
-audio_channel_state_records_channel_flags_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte channel_flags
-audio_channel_state_records_pitch_modulation_flags_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_flags
-audio_channel_state_records_current_note_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte current_note
-audio_channel_state_records_note_offset_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte note_offset
-audio_channel_state_records_program_ptr_1:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long program_ptr
-audio_channel_state_records_channel_configuration_offset_1:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word channel_configuration_offset
+	dc.b $00	; audio_channel_runtime_state.channel_flags
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_flags
+	dc.b $00	; audio_channel_runtime_state.current_note
+	dc.b $00	; audio_channel_runtime_state.note_offset
+	dc.l $00000000	; audio_channel_runtime_state.program_ptr
+	dc.w $0000	; audio_channel_runtime_state.channel_configuration_offset
 audio_channel_state_records_gap_3A_1:
 	dc.w $0000	; typed data block gap
-audio_channel_state_records_pitch_sequence_start_ptr_1:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_start_ptr
-audio_channel_state_records_pitch_sequence_cursor_1:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_cursor
-audio_channel_state_records_pitch_delta_step_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_step
-audio_channel_state_records_pitch_delta_countdown_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_countdown
-audio_channel_state_records_sample_start_pending_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte sample_start_pending
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_start_ptr
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_step
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_countdown
+	dc.b $00	; audio_channel_runtime_state.sample_start_pending
 audio_channel_state_records_gap_47_1:
 	dc.b $00	; typed data block gap
-audio_channel_state_records_sample_metadata_ptr_1:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long sample_metadata_ptr
-audio_channel_state_records_update_reload_countdown_1:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_reload_countdown
-audio_channel_state_records_update_countdown_1:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_countdown
-audio_channel_state_records_pitch_delta_accumulator_1:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word pitch_delta_accumulator
-audio_channel_state_records_volume_sequence_ptr_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
-audio_channel_state_records_volume_sequence_cursor_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
-audio_channel_state_records_volume_sequence_interval_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_interval
-audio_channel_state_records_volume_sequence_countdown_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_countdown
-audio_channel_state_records_pitch_modulation_step_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_step
-audio_channel_state_records_pitch_modulation_value_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_value
-audio_channel_state_records_pitch_modulation_limit_1:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_limit
+	dc.l $00000000	; audio_channel_runtime_state.sample_metadata_ptr
+	dc.w $0000	; audio_channel_runtime_state.update_reload_countdown
+	dc.w $0000	; audio_channel_runtime_state.update_countdown
+	dc.w $0000	; audio_channel_runtime_state.pitch_delta_accumulator
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_interval
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_countdown
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_step
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_value
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_limit
 audio_channel_state_records_gap_5F_1:
 	dc.b $00	; typed data block gap
-audio_channel_state_records_channel_flags_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte channel_flags
-audio_channel_state_records_pitch_modulation_flags_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_flags
-audio_channel_state_records_current_note_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte current_note
-audio_channel_state_records_note_offset_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte note_offset
-audio_channel_state_records_program_ptr_2:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long program_ptr
-audio_channel_state_records_channel_configuration_offset_2:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word channel_configuration_offset
+	dc.b $00	; audio_channel_runtime_state.channel_flags
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_flags
+	dc.b $00	; audio_channel_runtime_state.current_note
+	dc.b $00	; audio_channel_runtime_state.note_offset
+	dc.l $00000000	; audio_channel_runtime_state.program_ptr
+	dc.w $0000	; audio_channel_runtime_state.channel_configuration_offset
 audio_channel_state_records_gap_6A_2:
 	dc.w $0000	; typed data block gap
-audio_channel_state_records_pitch_sequence_start_ptr_2:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_start_ptr
-audio_channel_state_records_pitch_sequence_cursor_2:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_cursor
-audio_channel_state_records_pitch_delta_step_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_step
-audio_channel_state_records_pitch_delta_countdown_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_countdown
-audio_channel_state_records_sample_start_pending_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte sample_start_pending
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_start_ptr
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_step
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_countdown
+	dc.b $00	; audio_channel_runtime_state.sample_start_pending
 audio_channel_state_records_gap_77_2:
 	dc.b $00	; typed data block gap
-audio_channel_state_records_sample_metadata_ptr_2:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long sample_metadata_ptr
-audio_channel_state_records_update_reload_countdown_2:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_reload_countdown
-audio_channel_state_records_update_countdown_2:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_countdown
-audio_channel_state_records_pitch_delta_accumulator_2:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word pitch_delta_accumulator
-audio_channel_state_records_volume_sequence_ptr_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
-audio_channel_state_records_volume_sequence_cursor_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
-audio_channel_state_records_volume_sequence_interval_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_interval
-audio_channel_state_records_volume_sequence_countdown_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_countdown
-audio_channel_state_records_pitch_modulation_step_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_step
-audio_channel_state_records_pitch_modulation_value_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_value
-audio_channel_state_records_pitch_modulation_limit_2:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_limit
+	dc.l $00000000	; audio_channel_runtime_state.sample_metadata_ptr
+	dc.w $0000	; audio_channel_runtime_state.update_reload_countdown
+	dc.w $0000	; audio_channel_runtime_state.update_countdown
+	dc.w $0000	; audio_channel_runtime_state.pitch_delta_accumulator
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_interval
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_countdown
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_step
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_value
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_limit
 audio_channel_state_records_gap_8F_2:
 	dc.b $00	; typed data block gap
-audio_channel_state_records_channel_flags_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte channel_flags
-audio_channel_state_records_pitch_modulation_flags_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_flags
-audio_channel_state_records_current_note_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte current_note
-audio_channel_state_records_note_offset_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte note_offset
-audio_channel_state_records_program_ptr_3:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long program_ptr
-audio_channel_state_records_channel_configuration_offset_3:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word channel_configuration_offset
+	dc.b $00	; audio_channel_runtime_state.channel_flags
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_flags
+	dc.b $00	; audio_channel_runtime_state.current_note
+	dc.b $00	; audio_channel_runtime_state.note_offset
+	dc.l $00000000	; audio_channel_runtime_state.program_ptr
+	dc.w $0000	; audio_channel_runtime_state.channel_configuration_offset
 audio_channel_state_records_gap_9A_3:
 	dc.w $0000	; typed data block gap
-audio_channel_state_records_pitch_sequence_start_ptr_3:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_start_ptr
-audio_channel_state_records_pitch_sequence_cursor_3:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long pitch_sequence_cursor
-audio_channel_state_records_pitch_delta_step_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_step
-audio_channel_state_records_pitch_delta_countdown_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_delta_countdown
-audio_channel_state_records_sample_start_pending_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte sample_start_pending
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_start_ptr
+	dc.l $00000000	; audio_channel_runtime_state.pitch_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_step
+	dc.b $00	; audio_channel_runtime_state.pitch_delta_countdown
+	dc.b $00	; audio_channel_runtime_state.sample_start_pending
 audio_channel_state_records_gap_A7_3:
 	dc.b $00	; typed data block gap
-audio_channel_state_records_sample_metadata_ptr_3:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long sample_metadata_ptr
-audio_channel_state_records_update_reload_countdown_3:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_reload_countdown
-audio_channel_state_records_update_countdown_3:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word update_countdown
-audio_channel_state_records_pitch_delta_accumulator_3:	; STRUCT audio_channel_runtime_state
-	dc.w $0000	; word pitch_delta_accumulator
-audio_channel_state_records_volume_sequence_ptr_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
-audio_channel_state_records_volume_sequence_cursor_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
-audio_channel_state_records_volume_sequence_interval_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_interval
-audio_channel_state_records_volume_sequence_countdown_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte volume_sequence_countdown
-audio_channel_state_records_pitch_modulation_step_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_step
-audio_channel_state_records_pitch_modulation_value_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_value
-audio_channel_state_records_pitch_modulation_limit_3:	; STRUCT audio_channel_runtime_state
-	dc.b $00	; byte pitch_modulation_limit
+	dc.l $00000000	; audio_channel_runtime_state.sample_metadata_ptr
+	dc.w $0000	; audio_channel_runtime_state.update_reload_countdown
+	dc.w $0000	; audio_channel_runtime_state.update_countdown
+	dc.w $0000	; audio_channel_runtime_state.pitch_delta_accumulator
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; audio_channel_runtime_state.volume_sequence_cursor
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_interval
+	dc.b $00	; audio_channel_runtime_state.volume_sequence_countdown
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_step
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_value
+	dc.b $00	; audio_channel_runtime_state.pitch_modulation_limit
 audio_channel_state_records_gap_BF_3:
 	dc.b $00	; typed data block gap
 audio_pitch_scalars:
@@ -29989,125 +29660,82 @@ default_audio_pitch_sequence_stream:
 	dc.b $0C,$00,$00,$00,$00,$00,$00,$80,$0C,$00,$00,$00,$00,$00,$80,$0C
 	dc.b $00,$00,$00,$00,$80,$00,$83,$00,$84,$00,$85,$18,$00,$00,$00,$00
 	dc.b $00,$80
-audio_sample_metadata:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+audio_sample_metadata:
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_4_0:
 	dc.l $00000000	; typed data block gap
-audio_sample_metadata_sample_length_0:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_0:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_1:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_10_1:
 	dc.l $00000000	; typed data block gap
-audio_sample_metadata_sample_length_1:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_1:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_2:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_1C_2:
 	dc.l $FFFFFFFF	; typed data block gap
-audio_sample_metadata_sample_length_2:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_2:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_3:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_28_3:
 	dc.l $FFFFFFFF	; typed data block gap
-audio_sample_metadata_sample_length_3:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_3:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_4:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_34_4:
 	dc.l $FFFFFFFF	; typed data block gap
-audio_sample_metadata_sample_length_4:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_4:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_5:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_40_5:
 	dc.l $FFFFFFFF	; typed data block gap
-audio_sample_metadata_sample_length_5:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_5:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_6:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_4C_6:
 	dc.l $00000000	; typed data block gap
-audio_sample_metadata_sample_length_6:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_6:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_7:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+audio_sample_metadata_sample_ptr_7:
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_58_7:
 	dc.l $00000000	; typed data block gap
-audio_sample_metadata_sample_length_7:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_7:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_8:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_64_8:
 	dc.l $00000000	; typed data block gap
-audio_sample_metadata_sample_length_8:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_8:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_9:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_70_9:
 	dc.l $00000000	; typed data block gap
-audio_sample_metadata_sample_length_9:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_9:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
-audio_sample_metadata_sample_ptr_10:	; STRUCT audio_sample_metadata
-	dc.l $00000000	; long sample_ptr
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
+	dc.l $00000000	; audio_sample_metadata.sample_ptr
 audio_sample_metadata_gap_7C_10:
 	dc.l $00000000	; typed data block gap
-audio_sample_metadata_sample_length_10:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_length
-audio_sample_metadata_sample_period_10:	; STRUCT audio_sample_metadata
-	dc.w $0000	; word sample_period
+	dc.w $0000	; audio_sample_metadata.sample_length
+	dc.w $0000	; audio_sample_metadata.sample_period
 audio_player_initialization_presets:
 	dc.w $0304	; typed data block gap
-audio_player_initialization_presets_channel_0_program_offset_0:	; STRUCT audio_player_initialization_preset
 	dc.b $07
 	dc.b $8E
-audio_player_initialization_presets_channel_1_program_offset_0:	; STRUCT audio_player_initialization_preset
-	dc.w $0774	; word channel_1_program_offset
-audio_player_initialization_presets_channel_2_program_offset_0:	; STRUCT audio_player_initialization_preset
-	dc.w $079A	; word channel_2_program_offset
-audio_player_initialization_presets_channel_3_program_offset_0:	; STRUCT audio_player_initialization_preset
-	dc.w $07A4	; word channel_3_program_offset
+	dc.w $0774	; audio_player_initialization_preset.channel_1_program_offset
+	dc.w $079A	; audio_player_initialization_preset.channel_2_program_offset
+	dc.w $07A4	; audio_player_initialization_preset.channel_3_program_offset
 audio_player_initialization_presets_gap_A_1:
 	dc.b $03
 	dc.b $05
-audio_player_initialization_presets_channel_0_program_offset_1:	; STRUCT audio_player_initialization_preset
-	dc.w $0954	; word channel_0_program_offset
-audio_player_initialization_presets_channel_1_program_offset_1:	; STRUCT audio_player_initialization_preset
-	dc.w $094A	; word channel_1_program_offset
-audio_player_initialization_presets_channel_2_program_offset_1:	; STRUCT audio_player_initialization_preset
-	dc.w $095A	; word channel_2_program_offset
-audio_player_initialization_presets_channel_3_program_offset_1:	; STRUCT audio_player_initialization_preset
-	dc.w $0960	; word channel_3_program_offset
+	dc.w $0954	; audio_player_initialization_preset.channel_0_program_offset
+	dc.w $094A	; audio_player_initialization_preset.channel_1_program_offset
+	dc.w $095A	; audio_player_initialization_preset.channel_2_program_offset
+	dc.w $0960	; audio_player_initialization_preset.channel_3_program_offset
 audio_player_initialization_presets_gap_14_2:
 	dc.w $0505	; typed data block gap
-audio_player_initialization_presets_channel_0_program_offset_2:	; STRUCT audio_player_initialization_preset
-	dc.w $0A7E	; word channel_0_program_offset
-audio_player_initialization_presets_channel_1_program_offset_2:	; STRUCT audio_player_initialization_preset
-	dc.w $0A7A	; word channel_1_program_offset
-audio_player_initialization_presets_channel_2_program_offset_2:	; STRUCT audio_player_initialization_preset
-	dc.w $0A82	; word channel_2_program_offset
-audio_player_initialization_presets_channel_3_program_offset_2:	; STRUCT audio_player_initialization_preset
+	dc.w $0A7E	; audio_player_initialization_preset.channel_0_program_offset
+	dc.w $0A7A	; audio_player_initialization_preset.channel_1_program_offset
+	dc.w $0A82	; audio_player_initialization_preset.channel_2_program_offset
 	dc.b $0A
 	dc.b $8C,$07,$A8,$07,$A8,$07,$EF,$07,$EF
 	dc.b $08,$18,$08,$18,$08,$18,$08,$18,$08,$16,$08
@@ -30407,905 +30035,505 @@ abs_0_0005E5DC:
 	ori.w #33280,d2
 	move.w d2,_custom+dmacon.l
 	rts
-audio_channel_playback_states:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_delta
-audio_channel_playback_states_period_reset_value_0:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_reset_value
-audio_channel_playback_states_period_delta_step_0:	; STRUCT audio_channel_playback_state
-	dc.b $00,$00,$00,$00	; long period_delta_step
-audio_channel_playback_states_current_period_0:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word current_period
-audio_channel_playback_states_sample_address_offset_0:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sample_address_offset
-audio_channel_playback_states_period_reset_interval_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_interval
-audio_channel_playback_states_period_delta_interval_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_interval
-audio_channel_playback_states_period_delta_select_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_select
-audio_channel_playback_states_sample_address_offset_select_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sample_address_offset_select
-audio_channel_playback_states_playback_ticks_remaining_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte playback_ticks_remaining
-audio_channel_playback_states_sequence_interval_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_interval
-audio_channel_playback_states_sequence_index_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_index
-audio_channel_playback_states_update_disabled_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte update_disabled
-audio_channel_playback_states_period_reset_countdown_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_countdown
-audio_channel_playback_states_period_delta_countdown_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_countdown
-audio_channel_playback_states_active_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte active
-audio_channel_playback_states_sequence_countdown_0:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_countdown
-audio_channel_playback_states_sequence_ptr_0:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sequence_ptr
+audio_channel_playback_states:
+	dc.w $0000	; audio_channel_playback_state.period_delta
+	dc.w $0000	; audio_channel_playback_state.period_reset_value
+	dc.b $00,$00,$00,$00	; audio_channel_playback_state.period_delta_step
+	dc.w $0000	; audio_channel_playback_state.current_period
+	dc.l $00000000	; audio_channel_playback_state.sample_address_offset
+	dc.b $00	; audio_channel_playback_state.period_reset_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_select
+	dc.b $00	; audio_channel_playback_state.sample_address_offset_select
+	dc.b $00	; audio_channel_playback_state.playback_ticks_remaining
+	dc.b $00	; audio_channel_playback_state.sequence_interval
+	dc.b $00	; audio_channel_playback_state.sequence_index
+	dc.b $00	; audio_channel_playback_state.update_disabled
+	dc.b $00	; audio_channel_playback_state.period_reset_countdown
+	dc.b $00	; audio_channel_playback_state.period_delta_countdown
+	dc.b $00	; audio_channel_playback_state.active
+	dc.b $00	; audio_channel_playback_state.sequence_countdown
+	dc.l $00000000	; audio_channel_playback_state.sequence_ptr
 audio_channel_playback_states_gap_1E_0:
 	dcb.b $8,$00	; typed data block gap
-audio_channel_playback_states_period_delta_1:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_delta
-audio_channel_playback_states_period_reset_value_1:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_reset_value
-audio_channel_playback_states_period_delta_step_1:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long period_delta_step
-audio_channel_playback_states_current_period_1:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word current_period
-audio_channel_playback_states_sample_address_offset_1:	; STRUCT audio_channel_playback_state
-	dc.b $00,$00,$00,$00	; long sample_address_offset
-audio_channel_playback_states_period_reset_interval_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_interval
-audio_channel_playback_states_period_delta_interval_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_interval
-audio_channel_playback_states_period_delta_select_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_select
-audio_channel_playback_states_sample_address_offset_select_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sample_address_offset_select
-audio_channel_playback_states_playback_ticks_remaining_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte playback_ticks_remaining
-audio_channel_playback_states_sequence_interval_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_interval
-audio_channel_playback_states_sequence_index_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_index
-audio_channel_playback_states_update_disabled_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte update_disabled
-audio_channel_playback_states_period_reset_countdown_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_countdown
-audio_channel_playback_states_period_delta_countdown_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_countdown
-audio_channel_playback_states_active_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte active
-audio_channel_playback_states_sequence_countdown_1:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_countdown
-audio_channel_playback_states_sequence_ptr_1:	; STRUCT audio_channel_playback_state
-	dc.b $00,$00,$00,$00	; long sequence_ptr
+audio_channel_playback_states_period_delta_1:
+	dc.w $0000	; audio_channel_playback_state.period_delta
+	dc.w $0000	; audio_channel_playback_state.period_reset_value
+	dc.l $00000000	; audio_channel_playback_state.period_delta_step
+	dc.w $0000	; audio_channel_playback_state.current_period
+	dc.b $00,$00,$00,$00	; audio_channel_playback_state.sample_address_offset
+	dc.b $00	; audio_channel_playback_state.period_reset_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_select
+	dc.b $00	; audio_channel_playback_state.sample_address_offset_select
+	dc.b $00	; audio_channel_playback_state.playback_ticks_remaining
+	dc.b $00	; audio_channel_playback_state.sequence_interval
+	dc.b $00	; audio_channel_playback_state.sequence_index
+	dc.b $00	; audio_channel_playback_state.update_disabled
+	dc.b $00	; audio_channel_playback_state.period_reset_countdown
+	dc.b $00	; audio_channel_playback_state.period_delta_countdown
+	dc.b $00	; audio_channel_playback_state.active
+	dc.b $00	; audio_channel_playback_state.sequence_countdown
+	dc.b $00,$00,$00,$00	; audio_channel_playback_state.sequence_ptr
 audio_channel_playback_states_gap_44_1:
 	dc.w $0000
 	dc.b $00,$00,$00,$00,$00,$00
-audio_channel_playback_states_period_delta_2:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_delta
-audio_channel_playback_states_period_reset_value_2:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_reset_value
-audio_channel_playback_states_period_delta_step_2:	; STRUCT audio_channel_playback_state
-	dc.b $00,$00,$00,$00	; long period_delta_step
-audio_channel_playback_states_current_period_2:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word current_period
-audio_channel_playback_states_sample_address_offset_2:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sample_address_offset
-audio_channel_playback_states_period_reset_interval_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_interval
-audio_channel_playback_states_period_delta_interval_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_interval
-audio_channel_playback_states_period_delta_select_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_select
-audio_channel_playback_states_sample_address_offset_select_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sample_address_offset_select
-audio_channel_playback_states_playback_ticks_remaining_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte playback_ticks_remaining
-audio_channel_playback_states_sequence_interval_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_interval
-audio_channel_playback_states_sequence_index_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_index
-audio_channel_playback_states_update_disabled_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte update_disabled
-audio_channel_playback_states_period_reset_countdown_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_countdown
-audio_channel_playback_states_period_delta_countdown_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_countdown
-audio_channel_playback_states_active_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte active
-audio_channel_playback_states_sequence_countdown_2:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_countdown
-audio_channel_playback_states_sequence_ptr_2:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sequence_ptr
+audio_channel_playback_states_period_delta_2:
+	dc.w $0000	; audio_channel_playback_state.period_delta
+	dc.w $0000	; audio_channel_playback_state.period_reset_value
+	dc.b $00,$00,$00,$00	; audio_channel_playback_state.period_delta_step
+	dc.w $0000	; audio_channel_playback_state.current_period
+	dc.l $00000000	; audio_channel_playback_state.sample_address_offset
+	dc.b $00	; audio_channel_playback_state.period_reset_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_select
+	dc.b $00	; audio_channel_playback_state.sample_address_offset_select
+audio_channel_playback_states_playback_ticks_remaining_2:
+	dc.b $00	; audio_channel_playback_state.playback_ticks_remaining
+	dc.b $00	; audio_channel_playback_state.sequence_interval
+	dc.b $00	; audio_channel_playback_state.sequence_index
+	dc.b $00	; audio_channel_playback_state.update_disabled
+	dc.b $00	; audio_channel_playback_state.period_reset_countdown
+	dc.b $00	; audio_channel_playback_state.period_delta_countdown
+	dc.b $00	; audio_channel_playback_state.active
+	dc.b $00	; audio_channel_playback_state.sequence_countdown
+	dc.l $00000000	; audio_channel_playback_state.sequence_ptr
 audio_channel_playback_states_gap_6A_2:
 	dcb.b $8,$00	; typed data block gap
-audio_channel_playback_states_period_delta_3:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_delta
-audio_channel_playback_states_period_reset_value_3:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word period_reset_value
-audio_channel_playback_states_period_delta_step_3:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long period_delta_step
-audio_channel_playback_states_current_period_3:	; STRUCT audio_channel_playback_state
-	dc.w $0000	; word current_period
-audio_channel_playback_states_sample_address_offset_3:	; STRUCT audio_channel_playback_state
-	dc.b $00,$00,$00,$00	; long sample_address_offset
-audio_channel_playback_states_period_reset_interval_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_interval
-audio_channel_playback_states_period_delta_interval_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_interval
-audio_channel_playback_states_period_delta_select_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_select
-audio_channel_playback_states_sample_address_offset_select_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sample_address_offset_select
-audio_channel_playback_states_playback_ticks_remaining_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte playback_ticks_remaining
-audio_channel_playback_states_sequence_interval_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_interval
-audio_channel_playback_states_sequence_index_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_index
-audio_channel_playback_states_update_disabled_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte update_disabled
-audio_channel_playback_states_period_reset_countdown_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_reset_countdown
-audio_channel_playback_states_period_delta_countdown_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte period_delta_countdown
-audio_channel_playback_states_active_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte active
-audio_channel_playback_states_sequence_countdown_3:	; STRUCT audio_channel_playback_state
-	dc.b $00	; byte sequence_countdown
-audio_channel_playback_states_sequence_ptr_3:	; STRUCT audio_channel_playback_state
-	dc.b $00,$00,$00,$00	; long sequence_ptr
+audio_channel_playback_states_period_delta_3:
+	dc.w $0000	; audio_channel_playback_state.period_delta
+	dc.w $0000	; audio_channel_playback_state.period_reset_value
+	dc.l $00000000	; audio_channel_playback_state.period_delta_step
+	dc.w $0000	; audio_channel_playback_state.current_period
+	dc.b $00,$00,$00,$00	; audio_channel_playback_state.sample_address_offset
+	dc.b $00	; audio_channel_playback_state.period_reset_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_interval
+	dc.b $00	; audio_channel_playback_state.period_delta_select
+	dc.b $00	; audio_channel_playback_state.sample_address_offset_select
+	dc.b $00	; audio_channel_playback_state.playback_ticks_remaining
+	dc.b $00	; audio_channel_playback_state.sequence_interval
+	dc.b $00	; audio_channel_playback_state.sequence_index
+	dc.b $00	; audio_channel_playback_state.update_disabled
+	dc.b $00	; audio_channel_playback_state.period_reset_countdown
+	dc.b $00	; audio_channel_playback_state.period_delta_countdown
+	dc.b $00	; audio_channel_playback_state.active
+	dc.b $00	; audio_channel_playback_state.sequence_countdown
+	dc.b $00,$00,$00,$00	; audio_channel_playback_state.sequence_ptr
 audio_channel_playback_states_gap_90_3:
 	dcb.b $8,$00	; typed data block gap
 abs_0_0005E68E:
 	dc.b $00,$00	; lookup_table
-audio_channel_dma_configurations:	; STRUCT audio_channel_dma_configuration
-	dc.l $00000000	; long sample_ptr
-audio_channel_dma_configurations_sample_length_0:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_length
-audio_channel_dma_configurations_sample_period_0:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_period
-audio_channel_dma_configurations_sample_volume_0:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_volume
-audio_channel_dma_configurations_enabled_0:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte enabled
-audio_channel_dma_configurations_start_pending_0:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte start_pending
-audio_channel_dma_configurations_sample_ptr_1:	; STRUCT audio_channel_dma_configuration
-	dc.l $00000000	; long sample_ptr
-audio_channel_dma_configurations_sample_length_1:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_length
-audio_channel_dma_configurations_sample_period_1:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_period
-audio_channel_dma_configurations_sample_volume_1:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_volume
-audio_channel_dma_configurations_enabled_1:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte enabled
-audio_channel_dma_configurations_start_pending_1:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte start_pending
-audio_channel_dma_configurations_sample_ptr_2:	; STRUCT audio_channel_dma_configuration
-	dc.l $00000000	; long sample_ptr
-audio_channel_dma_configurations_sample_length_2:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_length
-audio_channel_dma_configurations_sample_period_2:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_period
-audio_channel_dma_configurations_sample_volume_2:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_volume
-audio_channel_dma_configurations_enabled_2:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte enabled
-audio_channel_dma_configurations_start_pending_2:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte start_pending
-audio_channel_dma_configurations_sample_ptr_3:	; STRUCT audio_channel_dma_configuration
-	dc.l $00000000	; long sample_ptr
-audio_channel_dma_configurations_sample_length_3:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_length
-audio_channel_dma_configurations_sample_period_3:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_period
-audio_channel_dma_configurations_sample_volume_3:	; STRUCT audio_channel_dma_configuration
-	dc.w $0000	; word sample_volume
-audio_channel_dma_configurations_enabled_3:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte enabled
-audio_channel_dma_configurations_start_pending_3:	; STRUCT audio_channel_dma_configuration
-	dc.b $00	; byte start_pending
-audio_sequence_channel_configurations:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0001	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_0:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0AF0	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_0:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFFF	; long period_delta_step
-audio_sequence_channel_configurations_current_period_0:	; STRUCT audio_sequence_channel_configuration
-	dc.w $07D0	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_0:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_0:	; STRUCT audio_sequence_channel_configuration
-	dc.b $07	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_0:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_0:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $1E	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_0:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_0:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_0:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_1:	; STRUCT audio_sequence_channel_configuration
-	dc.w $000C	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_1:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0D48	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_1:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$64,$FF,$F1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_1:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0960	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_1:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_1:	; STRUCT audio_sequence_channel_configuration
-	dc.b $07	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_1:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_1:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $32	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_1:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_1:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_1:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_2:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0004	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_2:	; STRUCT audio_sequence_channel_configuration
-	dc.w $076C	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_2:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0078FFF1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_2:	; STRUCT audio_sequence_channel_configuration
-	dc.w $06A4	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_2:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_2:	; STRUCT audio_sequence_channel_configuration
-	dc.b $09	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_2:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_2:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $32	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_2:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_2:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_2:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_3:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0004	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_3:	; STRUCT audio_sequence_channel_configuration
-	dc.w $012C	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_3:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$64,$FF,$F1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_3:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00C8	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_3:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_3:	; STRUCT audio_sequence_channel_configuration
-	dc.b $08	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_3:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_3:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $0F	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_3:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_3:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_3:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_4:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFD8	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_4:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0AF0	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_4:	; STRUCT audio_sequence_channel_configuration
-	dc.l $000FFFF1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_4:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0834	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_4:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02,$00,$01,$80	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_4:	; STRUCT audio_sequence_channel_configuration
-	dc.b $03	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_4:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_4:	; STRUCT audio_sequence_channel_configuration
-	dc.b $92	; byte period_delta_select
-	dc.b $AA	; byte sample_address_offset_select
-	dc.b $0F	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_4:	; STRUCT audio_sequence_channel_configuration
-	dc.b $05	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_4:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_4:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_5:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0004	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_5:	; STRUCT audio_sequence_channel_configuration
-	dc.w $1770	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_5:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$0F,$FF,$F1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_5:	; STRUCT audio_sequence_channel_configuration
-	dc.w $1388	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_5:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_5:	; STRUCT audio_sequence_channel_configuration
-	dc.b $08	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_5:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_5:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $14	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_5:	; STRUCT audio_sequence_channel_configuration
-	dc.b $04	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_5:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_5:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_6:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0037	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_6:	; STRUCT audio_sequence_channel_configuration
-	dc.w $01A4	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_6:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0046FFB9	; long period_delta_step
-audio_sequence_channel_configurations_current_period_6:	; STRUCT audio_sequence_channel_configuration
-	dc.w $024E	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_6:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01,$80,$02,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_6:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_6:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_6:	; STRUCT audio_sequence_channel_configuration
-	dc.b $AA	; byte period_delta_select
-	dc.b $8C	; byte sample_address_offset_select
-	dc.b $10	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_6:	; STRUCT audio_sequence_channel_configuration
-	dc.b $04	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_6:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_6:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_7:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFF9	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_7:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0BB8	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_7:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$0A,$FF,$F5	; long period_delta_step
-audio_sequence_channel_configurations_current_period_7:	; STRUCT audio_sequence_channel_configuration
-	dc.w $07D0	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_7:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01800000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_7:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_7:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_7:	; STRUCT audio_sequence_channel_configuration
-	dc.b $AA	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $37	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_7:	; STRUCT audio_sequence_channel_configuration
-	dc.b $0A	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_7:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_7:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_8:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFF8	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_8:	; STRUCT audio_sequence_channel_configuration
-	dc.w $05B4	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_8:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0004FFF8	; long period_delta_step
-audio_sequence_channel_configurations_current_period_8:	; STRUCT audio_sequence_channel_configuration
-	dc.w $05AA	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_8:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_8:	; STRUCT audio_sequence_channel_configuration
-	dc.b $32	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_8:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_8:	; STRUCT audio_sequence_channel_configuration
-	dc.b $AA	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $32	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_8:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_8:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_8:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_9:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFFF	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_9:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0294	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_9:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$14,$FF,$EC	; long period_delta_step
-audio_sequence_channel_configurations_current_period_9:	; STRUCT audio_sequence_channel_configuration
-	dc.w $028A	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_9:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00800200	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_9:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_9:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_9:	; STRUCT audio_sequence_channel_configuration
-	dc.b $AA	; byte period_delta_select
-	dc.b $AA	; byte sample_address_offset_select
-	dc.b $96	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_9:	; STRUCT audio_sequence_channel_configuration
-	dc.b $19	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_9:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_9:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_10:	; STRUCT audio_sequence_channel_configuration
-	dc.w $000C	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_10:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0AF0	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_10:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFF1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_10:	; STRUCT audio_sequence_channel_configuration
-	dc.w $07D0	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_10:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_10:	; STRUCT audio_sequence_channel_configuration
-	dc.b $07	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_10:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_10:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $1E	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_10:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_10:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_10:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_11:	; STRUCT audio_sequence_channel_configuration
-	dc.w $000C	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_11:	; STRUCT audio_sequence_channel_configuration
-	dc.w $1130	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_11:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$64,$FF,$F1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_11:	; STRUCT audio_sequence_channel_configuration
-	dc.w $06A4	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_11:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_11:	; STRUCT audio_sequence_channel_configuration
-	dc.b $08	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_11:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_11:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $64	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_11:	; STRUCT audio_sequence_channel_configuration
-	dc.b $03	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_11:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_11:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_12:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0004	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_12:	; STRUCT audio_sequence_channel_configuration
-	dc.w $02BC	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_12:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFF1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_12:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0258	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_12:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01,$00,$00,$80	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_12:	; STRUCT audio_sequence_channel_configuration
-	dc.b $06	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_12:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_12:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $FF	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_12:	; STRUCT audio_sequence_channel_configuration
-	dc.b $FF	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_12:	; STRUCT audio_sequence_channel_configuration
-	dc.b $05	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_12:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_13:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0004	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_13:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00C8	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_13:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$64,$FF,$F1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_13:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00C8	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_13:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01000080	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_13:	; STRUCT audio_sequence_channel_configuration
-	dc.b $08	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_13:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_13:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $FF	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_13:	; STRUCT audio_sequence_channel_configuration
-	dc.b $FF	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_13:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_13:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_14:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0001	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_14:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0384	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_14:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFFF	; long period_delta_step
-audio_sequence_channel_configurations_current_period_14:	; STRUCT audio_sequence_channel_configuration
-	dc.w $044C	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_14:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01,$00,$00,$80	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_14:	; STRUCT audio_sequence_channel_configuration
-	dc.b $0B	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_14:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_14:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $FF	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_14:	; STRUCT audio_sequence_channel_configuration
-	dc.b $FF	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_14:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_14:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_15:	; STRUCT audio_sequence_channel_configuration
-	dc.w $000C	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_15:	; STRUCT audio_sequence_channel_configuration
-	dc.w $12C0	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_15:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$64,$FF,$F1	; long period_delta_step
-audio_sequence_channel_configurations_current_period_15:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0FA0	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_15:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000200	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_15:	; STRUCT audio_sequence_channel_configuration
-	dc.b $07	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_15:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_15:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $14	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_15:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_15:	; STRUCT audio_sequence_channel_configuration
-	dc.b $03	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_15:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_16:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0000	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_16:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0000	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_16:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000000	; long period_delta_step
-audio_sequence_channel_configurations_current_period_16:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00C8	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_16:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_16:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_16:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_16:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $0A	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_16:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_16:	; STRUCT audio_sequence_channel_configuration
-	dc.b $04	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_16:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_17:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0000	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_17:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0000	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_17:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$00,$00,$00	; long period_delta_step
-audio_sequence_channel_configurations_current_period_17:	; STRUCT audio_sequence_channel_configuration
-	dc.w $007E	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_17:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_17:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_17:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_17:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $0A	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_17:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_17:	; STRUCT audio_sequence_channel_configuration
-	dc.b $04	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_17:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_18:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0001	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_18:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00C8	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_18:	; STRUCT audio_sequence_channel_configuration
-	dc.l $FFFAFFEE	; long period_delta_step
-audio_sequence_channel_configurations_current_period_18:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00C8	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_18:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_18:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_18:	; STRUCT audio_sequence_channel_configuration
-	dc.b $06	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_18:	; STRUCT audio_sequence_channel_configuration
-	dc.b $0F	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $30	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_18:	; STRUCT audio_sequence_channel_configuration
-	dc.b $04	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_18:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_18:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_19:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFF4	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_19:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0168	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_19:	; STRUCT audio_sequence_channel_configuration
-	dc.b $FF,$FE,$00,$02	; long period_delta_step
-audio_sequence_channel_configurations_current_period_19:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0168	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_19:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01800000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_19:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_19:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_19:	; STRUCT audio_sequence_channel_configuration
-	dc.b $55	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $14	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_19:	; STRUCT audio_sequence_channel_configuration
-	dc.b $0C	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_19:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_19:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_20:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0000	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_20:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0168	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_20:	; STRUCT audio_sequence_channel_configuration
-	dc.l $FFE20032	; long period_delta_step
-audio_sequence_channel_configurations_current_period_20:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00B4	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_20:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01,$80,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_20:	; STRUCT audio_sequence_channel_configuration
-	dc.b $08	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_20:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_20:	; STRUCT audio_sequence_channel_configuration
-	dc.b $3F	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $0E	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_20:	; STRUCT audio_sequence_channel_configuration
-	dc.b $10	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_20:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_20:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_21:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFF2	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_21:	; STRUCT audio_sequence_channel_configuration
-	dc.w $01B8	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_21:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$0C,$FF,$F6	; long period_delta_step
-audio_sequence_channel_configurations_current_period_21:	; STRUCT audio_sequence_channel_configuration
-	dc.w $01B8	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_21:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_21:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_21:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_21:	; STRUCT audio_sequence_channel_configuration
-	dc.b $55	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $18	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_21:	; STRUCT audio_sequence_channel_configuration
-	dc.b $07	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_21:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_21:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_22:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0000	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_22:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0140	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_22:	; STRUCT audio_sequence_channel_configuration
-	dc.l $FFF6000A	; long period_delta_step
-audio_sequence_channel_configurations_current_period_22:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00F0	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_22:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01,$80,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_22:	; STRUCT audio_sequence_channel_configuration
-	dc.b $06	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_22:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_22:	; STRUCT audio_sequence_channel_configuration
-	dc.b $55	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $0C	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_22:	; STRUCT audio_sequence_channel_configuration
-	dc.b $0B	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_22:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_22:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_23:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFFC	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_23:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0168	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_23:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$2E,$FF,$BE	; long period_delta_step
-audio_sequence_channel_configurations_current_period_23:	; STRUCT audio_sequence_channel_configuration
-	dc.w $012C	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_23:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01800000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_23:	; STRUCT audio_sequence_channel_configuration
-	dc.b $0F	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_23:	; STRUCT audio_sequence_channel_configuration
-	dc.b $03	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_23:	; STRUCT audio_sequence_channel_configuration
-	dc.b $55	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $1E	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_23:	; STRUCT audio_sequence_channel_configuration
-	dc.b $05	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_23:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_23:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_24:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0000	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_24:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0BB8	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_24:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FF9C	; long period_delta_step
-audio_sequence_channel_configurations_current_period_24:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0BB8	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_24:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_24:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_24:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_24:	; STRUCT audio_sequence_channel_configuration
-	dc.b $55	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $19	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_24:	; STRUCT audio_sequence_channel_configuration
-	dc.b $40	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_24:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_24:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_25:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFFA	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_25:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00F0	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_25:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$02,$FF,$FE	; long period_delta_step
-audio_sequence_channel_configurations_current_period_25:	; STRUCT audio_sequence_channel_configuration
-	dc.w $00F0	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_25:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_25:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_25:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_25:	; STRUCT audio_sequence_channel_configuration
-	dc.b $AA	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $0C	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_25:	; STRUCT audio_sequence_channel_configuration
-	dc.b $0A	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_25:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_25:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_26:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FFF8	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_26:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0258	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_26:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0050FFB0	; long period_delta_step
-audio_sequence_channel_configurations_current_period_26:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0258	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_26:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00,$00,$01,$80	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_26:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_26:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_26:	; STRUCT audio_sequence_channel_configuration
-	dc.b $A5	; byte period_delta_select
-	dc.b $AA	; byte sample_address_offset_select
-	dc.b $3C	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_26:	; STRUCT audio_sequence_channel_configuration
-	dc.b $03	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_26:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_26:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_27:	; STRUCT audio_sequence_channel_configuration
-	dc.w $012C	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_27:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0258	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_27:	; STRUCT audio_sequence_channel_configuration
-	dc.b $FF,$88,$FF,$9C	; long period_delta_step
-audio_sequence_channel_configurations_current_period_27:	; STRUCT audio_sequence_channel_configuration
-	dc.w $0258	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_27:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_27:	; STRUCT audio_sequence_channel_configuration
-	dc.b $08	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_27:	; STRUCT audio_sequence_channel_configuration
-	dc.b $03	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_27:	; STRUCT audio_sequence_channel_configuration
-	dc.b $A5	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $26	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_27:	; STRUCT audio_sequence_channel_configuration
-	dc.b $06	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_27:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_27:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
-audio_sequence_channel_configurations_period_delta_28:	; STRUCT audio_sequence_channel_configuration
-	dc.w $FF9C	; word period_delta
-audio_sequence_channel_configurations_period_reset_value_28:	; STRUCT audio_sequence_channel_configuration
-	dc.w $1388	; word period_reset_value
-audio_sequence_channel_configurations_period_delta_step_28:	; STRUCT audio_sequence_channel_configuration
-	dc.l $FFCE000F	; long period_delta_step
-audio_sequence_channel_configurations_current_period_28:	; STRUCT audio_sequence_channel_configuration
-	dc.w $1388	; word current_period
-audio_sequence_channel_configurations_sample_address_offset_28:	; STRUCT audio_sequence_channel_configuration
-	dc.b $02,$00,$00,$00	; long sample_address_offset
-audio_sequence_channel_configurations_period_reset_interval_28:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte period_reset_interval
-audio_sequence_channel_configurations_period_delta_interval_28:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_28:	; STRUCT audio_sequence_channel_configuration
-	dc.b $55	; byte period_delta_select
-	dc.b $00	; byte sample_address_offset_select
-	dc.b $1E	; byte playback_ticks_remaining
-audio_sequence_channel_configurations_sequence_interval_28:	; STRUCT audio_sequence_channel_configuration
-	dc.b $01	; byte sequence_interval
-audio_sequence_channel_configurations_sequence_index_28:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte sequence_index
-audio_sequence_channel_configurations_update_disabled_28:	; STRUCT audio_sequence_channel_configuration
-	dc.b $00	; byte update_disabled
+audio_channel_dma_configurations:
+	dc.l $00000000	; audio_channel_dma_configuration.sample_ptr
+	dc.w $0000	; audio_channel_dma_configuration.sample_length
+	dc.w $0000	; audio_channel_dma_configuration.sample_period
+	dc.w $0000	; audio_channel_dma_configuration.sample_volume
+	dc.b $00	; audio_channel_dma_configuration.enabled
+	dc.b $00	; audio_channel_dma_configuration.start_pending
+audio_channel_dma_configurations_sample_ptr_1:
+	dc.l $00000000	; audio_channel_dma_configuration.sample_ptr
+	dc.w $0000	; audio_channel_dma_configuration.sample_length
+	dc.w $0000	; audio_channel_dma_configuration.sample_period
+	dc.w $0000	; audio_channel_dma_configuration.sample_volume
+	dc.b $00	; audio_channel_dma_configuration.enabled
+	dc.b $00	; audio_channel_dma_configuration.start_pending
+audio_channel_dma_configurations_sample_ptr_2:
+	dc.l $00000000	; audio_channel_dma_configuration.sample_ptr
+	dc.w $0000	; audio_channel_dma_configuration.sample_length
+	dc.w $0000	; audio_channel_dma_configuration.sample_period
+audio_channel_dma_configurations_sample_volume_2:
+	dc.w $0000	; audio_channel_dma_configuration.sample_volume
+	dc.b $00	; audio_channel_dma_configuration.enabled
+	dc.b $00	; audio_channel_dma_configuration.start_pending
+audio_channel_dma_configurations_sample_ptr_3:
+	dc.l $00000000	; audio_channel_dma_configuration.sample_ptr
+	dc.w $0000	; audio_channel_dma_configuration.sample_length
+	dc.w $0000	; audio_channel_dma_configuration.sample_period
+	dc.w $0000	; audio_channel_dma_configuration.sample_volume
+	dc.b $00	; audio_channel_dma_configuration.enabled
+	dc.b $00	; audio_channel_dma_configuration.start_pending
+audio_sequence_channel_configurations:
+	dc.w $0001	; audio_sequence_channel_configuration.period_delta
+	dc.w $0AF0	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0064FFFF	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $07D0	; audio_sequence_channel_configuration.current_period
+	dc.b $02,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $07	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $1E	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $01	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $000C	; audio_sequence_channel_configuration.period_delta
+	dc.w $0D48	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$64,$FF,$F1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0960	; audio_sequence_channel_configuration.current_period
+	dc.l $02000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $07	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $32	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0004	; audio_sequence_channel_configuration.period_delta
+	dc.w $076C	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0078FFF1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $06A4	; audio_sequence_channel_configuration.current_period
+	dc.b $02,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $09	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $32	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0004	; audio_sequence_channel_configuration.period_delta
+	dc.w $012C	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$64,$FF,$F1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $00C8	; audio_sequence_channel_configuration.current_period
+	dc.l $02000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $08	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $0F	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFD8	; audio_sequence_channel_configuration.period_delta
+	dc.w $0AF0	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $000FFFF1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0834	; audio_sequence_channel_configuration.current_period
+	dc.b $02,$00,$01,$80	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $03	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+audio_sequence_channel_configurations_period_delta_select_4:
+	dc.b $92	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $AA	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $0F	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $05	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0004	; audio_sequence_channel_configuration.period_delta
+	dc.w $1770	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$0F,$FF,$F1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $1388	; audio_sequence_channel_configuration.current_period
+	dc.l $02000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $08	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $14	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $04	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0037	; audio_sequence_channel_configuration.period_delta
+	dc.w $01A4	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0046FFB9	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $024E	; audio_sequence_channel_configuration.current_period
+	dc.b $01,$80,$02,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $01	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $AA	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $8C	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $10	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $04	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFF9	; audio_sequence_channel_configuration.period_delta
+	dc.w $0BB8	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$0A,$FF,$F5	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $07D0	; audio_sequence_channel_configuration.current_period
+	dc.l $01800000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $AA	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $37	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $0A	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFF8	; audio_sequence_channel_configuration.period_delta
+	dc.w $05B4	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0004FFF8	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $05AA	; audio_sequence_channel_configuration.current_period
+	dc.b $02,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $32	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $AA	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $32	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFFF	; audio_sequence_channel_configuration.period_delta
+	dc.w $0294	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$14,$FF,$EC	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $028A	; audio_sequence_channel_configuration.current_period
+	dc.l $00800200	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $AA	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $AA	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $96	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $19	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $02	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $000C	; audio_sequence_channel_configuration.period_delta
+	dc.w $0AF0	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0064FFF1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $07D0	; audio_sequence_channel_configuration.current_period
+	dc.b $02,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $07	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+audio_sequence_channel_configurations_period_delta_select_10:
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $1E	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $01	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $000C	; audio_sequence_channel_configuration.period_delta
+	dc.w $1130	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$64,$FF,$F1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $06A4	; audio_sequence_channel_configuration.current_period
+	dc.l $02000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $08	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $64	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $03	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0004	; audio_sequence_channel_configuration.period_delta
+	dc.w $02BC	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0064FFF1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0258	; audio_sequence_channel_configuration.current_period
+	dc.b $01,$00,$00,$80	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $06	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $FF	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $FF	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $05	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0004	; audio_sequence_channel_configuration.period_delta
+	dc.w $00C8	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$64,$FF,$F1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $00C8	; audio_sequence_channel_configuration.current_period
+	dc.l $01000080	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $08	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $FF	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $FF	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $02	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0001	; audio_sequence_channel_configuration.period_delta
+	dc.w $0384	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0064FFFF	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $044C	; audio_sequence_channel_configuration.current_period
+	dc.b $01,$00,$00,$80	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $0B	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $FF	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $FF	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $02	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $000C	; audio_sequence_channel_configuration.period_delta
+	dc.w $12C0	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$64,$FF,$F1	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0FA0	; audio_sequence_channel_configuration.current_period
+	dc.l $02000200	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $07	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $14	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $03	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0000	; audio_sequence_channel_configuration.period_delta
+	dc.w $0000	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $00000000	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $00C8	; audio_sequence_channel_configuration.current_period
+	dc.b $00,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $0A	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+audio_sequence_channel_configurations_sequence_index_16:
+	dc.b $04	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0000	; audio_sequence_channel_configuration.period_delta
+	dc.w $0000	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$00,$00,$00	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $007E	; audio_sequence_channel_configuration.current_period
+	dc.l $00000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $00	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $0A	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $04	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0001	; audio_sequence_channel_configuration.period_delta
+	dc.w $00C8	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $FFFAFFEE	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $00C8	; audio_sequence_channel_configuration.current_period
+	dc.b $00,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $06	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $0F	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $30	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $04	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFF4	; audio_sequence_channel_configuration.period_delta
+	dc.w $0168	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $FF,$FE,$00,$02	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0168	; audio_sequence_channel_configuration.current_period
+	dc.l $01800000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $55	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $14	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $0C	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0000	; audio_sequence_channel_configuration.period_delta
+	dc.w $0168	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $FFE20032	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $00B4	; audio_sequence_channel_configuration.current_period
+	dc.b $01,$80,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $08	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $3F	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $0E	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $10	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFF2	; audio_sequence_channel_configuration.period_delta
+	dc.w $01B8	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$0C,$FF,$F6	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $01B8	; audio_sequence_channel_configuration.current_period
+	dc.l $00000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $55	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $18	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $07	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0000	; audio_sequence_channel_configuration.period_delta
+	dc.w $0140	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $FFF6000A	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $00F0	; audio_sequence_channel_configuration.current_period
+	dc.b $01,$80,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $06	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $55	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $0C	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $0B	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFFC	; audio_sequence_channel_configuration.period_delta
+	dc.w $0168	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$2E,$FF,$BE	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $012C	; audio_sequence_channel_configuration.current_period
+audio_sequence_channel_configurations_sample_address_offset_23:
+	dc.l $01800000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $0F	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $03	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $55	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $1E	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $05	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $0000	; audio_sequence_channel_configuration.period_delta
+	dc.w $0BB8	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0064FF9C	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0BB8	; audio_sequence_channel_configuration.current_period
+	dc.b $02,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $55	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $19	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $40	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFFA	; audio_sequence_channel_configuration.period_delta
+	dc.w $00F0	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $00,$02,$FF,$FE	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $00F0	; audio_sequence_channel_configuration.current_period
+	dc.l $00000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $AA	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $0C	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $0A	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FFF8	; audio_sequence_channel_configuration.period_delta
+	dc.w $0258	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $0050FFB0	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0258	; audio_sequence_channel_configuration.current_period
+	dc.b $00,$00,$01,$80	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $02	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $A5	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $AA	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $3C	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $03	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $012C	; audio_sequence_channel_configuration.period_delta
+	dc.w $0258	; audio_sequence_channel_configuration.period_reset_value
+	dc.b $FF,$88,$FF,$9C	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $0258	; audio_sequence_channel_configuration.current_period
+	dc.l $02000000	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $08	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $03	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $A5	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $26	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $06	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
+	dc.w $FF9C	; audio_sequence_channel_configuration.period_delta
+	dc.w $1388	; audio_sequence_channel_configuration.period_reset_value
+	dc.l $FFCE000F	; audio_sequence_channel_configuration.period_delta_step
+	dc.w $1388	; audio_sequence_channel_configuration.current_period
+	dc.b $02,$00,$00,$00	; audio_sequence_channel_configuration.sample_address_offset
+	dc.b $00	; audio_sequence_channel_configuration.period_reset_interval
+	dc.b $01	; audio_sequence_channel_configuration.period_delta_interval
+	dc.b $55	; audio_sequence_channel_configuration.period_delta_select
+	dc.b $00	; audio_sequence_channel_configuration.sample_address_offset_select
+	dc.b $1E	; audio_sequence_channel_configuration.playback_ticks_remaining
+	dc.b $01	; audio_sequence_channel_configuration.sequence_interval
+	dc.b $00	; audio_sequence_channel_configuration.sequence_index
+	dc.b $00	; audio_sequence_channel_configuration.update_disabled
 audio_sample_address_base:
 	dc.l $00000000	; lookup_table
 envelope_offsets:

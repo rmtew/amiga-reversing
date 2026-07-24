@@ -4157,8 +4157,10 @@ after_data:
         (2, 2, "magic", "UWORD"),
         (4, 4, "next_offset", "APTR"),
     ]
-    assert "UWORD magic" in rendered
-    assert "APTR next_offset" in rendered
+    assert "DataHeader.magic" in rendered
+    assert "DataHeader.next_offset" in rendered
+    assert "; STRUCT DataHeader\n    RSRESET\nDataHeader_magic RS.W 1\n" in rendered
+    assert "data_header_next_offset:" not in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,
@@ -4209,7 +4211,7 @@ after_data:
         assert metadata_path is not None
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
 
-    assert "long next_offset" in rendered
+    assert "OddStrideRecord.next_offset" in rendered
     # This Hunk stores non-relocated numeric longs.  Symbolizing them would
     # invent relocations, so pointer semantics must preserve the bytes here.
     assert "dc.l odd_stride_records_gap_6_1" not in rendered
