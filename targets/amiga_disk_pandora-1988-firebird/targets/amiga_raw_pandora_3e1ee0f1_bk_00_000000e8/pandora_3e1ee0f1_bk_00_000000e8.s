@@ -26367,8 +26367,15 @@ player_world_object_context_callback:	; STRUCT world_object_shared_prefix
 	dc.l $00000000	; long context_callback
 player_world_object_interaction_data_ptr:	; STRUCT world_object_shared_prefix
 	dc.l $00000000	; long interaction_data_ptr
-player_world_object_gap_14:
-	dc.b $00,$01,$B3,$A0,$00,$01,$B3,$A0,$00,$01,$B3,$A0,$00,$01,$B3,$A0	; typed data block gap
+player_world_object_inventory_slots_ptr:	; STRUCT world_object_shared_prefix
+	dc.l $0001B3A0	; long inventory_slots_ptr
+player_world_object_trade_offer_table_ptr:	; STRUCT world_object_shared_prefix
+	dc.l $0001B3A0	; long trade_offer_table_ptr
+player_world_object_initial_inventory_slots_ptr:	; STRUCT world_object_shared_prefix
+	dc.l $0001B3A0	; long initial_inventory_slots_ptr
+player_world_object_initial_trade_offer_table_ptr:	; STRUCT world_object_shared_prefix
+	dc.l $0001B3A0	; long initial_trade_offer_table_ptr
+player_world_object_gap_24:
 	dc.b $00,$05,$C3,$12,$00,$05,$C3,$12	; typed data block gap
 player_world_object_position_descriptor_ptr:	; STRUCT world_object_shared_prefix
 	dc.l $0005C71E	; long position_descriptor_ptr

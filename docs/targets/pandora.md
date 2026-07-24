@@ -154,6 +154,13 @@ is bound at the player entry; unclassified spans stay raw.  A complete
 `world_object_record` layout remains open rather than inferred from that
 minimum common prefix.
 
+The same prefix now records its inventory/trade state as resettable pointer
+pairs: `inventory_slots_ptr`/`initial_inventory_slots_ptr` at
+`+0x14`/`+0x1c`, and `trade_offer_table_ptr`/`initial_trade_offer_table_ptr` at
+`+0x18`/`+0x20`.  Inventory UI and NPC trade code each consume four two-byte
+entries from the current tables; `initialize_world_state` copies eight bytes
+from each corresponding initial table to restore the current state.
+
 ### Confirmed item-name lookup
 
 `resolve_item_name` at `$00012B7E` masks an item id to seven bits, doubles it,
