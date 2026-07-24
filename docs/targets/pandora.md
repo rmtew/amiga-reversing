@@ -46,7 +46,7 @@ entry rather than an inline helper.
 | `$0005DD00` | `audio_master_volume` | Default master-volume word, initialized to `$0040`; later used by proximity audio logic. |
 | `$0005E5F6` | `audio_channel_playback_states` | Four instances of the recovered 0x26-byte `audio_channel_playback_state` record.  The prior apparent second-record extension was listing fragmentation. |
 | `$0005E690` | `audio_channel_dma_configurations` | Four instances of the recovered 0x0c-byte `audio_channel_dma_configuration` record. |
-| `$0005DDD4` | `audio_pitch_scalars` | Bounded 110-word pitch-scalar lookup table used to scale sample periods. |
+| `$0005DDD4` | `audio_pitch_scalars` | Bounded 72-word pitch-scalar lookup table used to scale sample periods; it ends immediately before the pitch-command offset table. |
 | `$0005E6C0` | `audio_sequence_channel_configurations` | 29 instances of the recovered 0x16-byte sequence-channel configuration record. |
 | `$0005E93E` | `audio_sample_address_base` | Long address base used with a selected sample-address offset during channel service. |
 | `$0005E942` | `audio_sequence_envelopes.envelope_offsets` | Six signed word offsets from `initialize_audio_player`, selecting six high-bit-terminated envelope byte streams. |
