@@ -6889,16 +6889,51 @@ abs_0_000186B0:
 abs_0_000186C4:
 	movem.l (a7)+,d1/a0/a5
 	rts
-	dc.b $48,$E7,$FF,$FC,$72,$30,$74,$08,$10,$2C,$00,$46,$90,$01,$B0,$02
-	dc.b $65,$72,$7E,$03,$41,$EE,$01,$96,$10,$18,$90,$01,$B0,$02,$65,$64
-	dc.b $51,$CF,$FF,$F6,$7E,$03,$41,$EE,$01,$9A,$10,$18,$90,$01,$B0,$02
-	dc.b $65,$52,$51,$CF,$FF,$F6,$2A,$4C,$41,$F9,$00,$05,$C6,$BA,$2B,$48
-	dc.b $00,$4E,$43,$F9,$00,$05,$C5,$D0,$21,$49,$00,$00,$20,$68,$00,$08
-	dc.b $42,$68,$00,$10,$08,$A8,$00,$00,$00,$0A,$08,$ED,$00,$01,$00,$48
-	dc.b $61,$00,$FF,$52,$1D,$7C,$00,$46,$02,$CC,$42,$6D,$00,$3C,$49,$F9
-	dc.b $00,$01,$32,$D6,$61,$00,$FE,$04,$4E,$B9,$00,$05,$C9,$AE,$4E,$B9
-	dc.b $00,$05,$D3,$1A,$08,$AE,$00,$04,$02,$A6,$4C,$DF,$3F,$FF,$4E,$75
-abs_0_0001875A:
+enforce_id_card_requirement:
+	movem.l d0-d7/a0-a5,-(a7)
+	moveq.l #48,d1
+	moveq.l #8,d2
+	move.b $0046(a4),d0
+	sub.b d1,d0
+	cmp.b d2,d0
+	bcs.b abs_0_0001874E
+	moveq.l #3,d7
+	lea.l app_carried_item_ids(a6),a0
+abs_0_000186E2:
+	move.b (a0)+,d0
+	sub.b d1,d0
+	cmp.b d2,d0
+	bcs.b abs_0_0001874E
+	dbf.w d7,abs_0_000186E2
+	moveq.l #3,d7
+	lea.l app_pocket_item_ids(a6),a0
+abs_0_000186F4:
+	move.b (a0)+,d0
+	sub.b d1,d0
+	cmp.b d2,d0
+	bcs.b abs_0_0001874E
+	dbf.w d7,abs_0_000186F4
+	movea.l a4,a5
+	lea.l abs_0_0005C6BA.l,a0
+	move.l a0,$004E(a5)
+	lea.l abs_0_0005C5D0.l,a1
+	move.l a1,$0000(a0)
+	movea.l $0008(a0),a0
+	clr.w $0010(a0)
+	bclr.b #0,$000A(a0)
+	bset.b #1,$0048(a5)
+	bsr.w restore_world_object_position_state
+	move.b #$46,app_02CC(a6)
+	clr.w $003C(a5)
+	lea.l abs_0_000132D6.l,a4
+	bsr.w abs_0_00018544
+	jsr abs_0_0005C9AE.l
+	jsr abs_0_0005D31A.l
+abs_0_0001874E:
+	bclr.b #4,app_02A6(a6)
+	movem.l (a7)+,d0-d7/a0-a5
+	rts
+update_player_security_zone:
 	lea.l abs_0_00013502(pc),a0
 	lea.l player_world_object.l,a4
 	moveq.l #0,d0
@@ -6950,15 +6985,16 @@ abs_0_000187D4:
 abs_0_000187D6:
 	move.b d0,app_02CD(a6)
 	rts
-abs_0_000187DC:
-	dc.b $04,$03,$01,$03,$00,$02	; lookup_table
-abs_0_000187E2:
+clearance_tier:
+	dc.b $04	; lookup_table
+	dc.b $03,$01,$03,$00,$02
+check_selected_id_card_security_clearance:
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
 	subi.b #48,d0
 	cmp.b #$6,d0
 	bcc.b abs_0_00018802
-	move.b abs_0_000187DC(pc,d0.w),d0
+	move.b clearance_tier(pc,d0.w),d0
 	cmp.b app_02CD(a6),d0
 	bls.b abs_0_00018802
 	move.w d0,d0
@@ -6992,9 +7028,9 @@ abs_0_00018848:
 abs_0_0001884E:
 	rts
 abs_0_00018850:
-	bsr.w abs_0_0001875A
+	bsr.w update_player_security_zone
 	bmi.b abs_0_0001884E
-	bsr.b abs_0_000187E2
+	bsr.b check_selected_id_card_security_clearance
 	bcc.b abs_0_0001884E
 	tst.b app_02CF(a6)
 	bne.b abs_0_00018864

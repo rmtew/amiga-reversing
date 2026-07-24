@@ -349,6 +349,17 @@ each world object's `item_name_ptr`.  Its durable layout is one `word`
 was reconciled so the review projection now reflects the one effective table
 rather than retaining a stale overlap blocker.
 
+The adjacent ID-card gates are now recovered. `enforce_id_card_requirement` at
+`$000186CA` searches the active object plus all four carried and pocket slots
+for an item id in `$30..$37`, the eight named ID-card variants from Commander
+through AWOL officer. Without one, it performs the object's position/UI
+transition and clears the pending interaction latch. `update_player_security_zone`
+at `$0001875A` derives a four-level zone from the player tile-map position;
+`check_selected_id_card_security_clearance` compares the selected card with
+that zone. Its exact six-byte `id_card_clearance_by_variant` table at
+`$000187DC` is recorded as the `clearance_tier` byte array rather than anonymous
+lookup data.
+
 ### Confirmed interaction helpers
 
 `restore_world_object_position_state` at `$0001867E` clears the active
