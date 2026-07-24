@@ -122,7 +122,7 @@ app_029A RS.L 1
 app_029E RS.L 1
 app_02A2 RS.L 1
 app_02A6 RS.B 1
-app_02A7 RS.B 1
+app_nearby_object_prompt_countdown RS.B 1
 app_02A8 RS.L 1
 app_02AC RS.W 1
 app_02AE RS.W 1
@@ -171,7 +171,7 @@ app_033C RS.B 1
 app_033D RS.B 1
 app_033E RS.B 1
     RS.B 23
-app_0356 RS.W 1
+app_nearest_object_distance RS.W 1
 app_0358 RS.L 1
     RS.B 4
 app_copper_interrupt_callback RS.L 1
@@ -362,7 +362,7 @@ abs_0_00010498:
 	bsr.w abs_0_0001253C
 	bsr.w abs_0_000124F0
 	bsr.w abs_0_000124FE
-	bsr.w abs_0_000182F0
+	bsr.w update_nearby_object_detection
 	bsr.w abs_0_000124AE
 	bsr.w abs_0_0001078E
 	lea.l _custom.l,a5
@@ -386,7 +386,7 @@ abs_0_000105C2:
 	bsr.w abs_0_000124AE
 	bsr.w abs_0_000124FE
 	bsr.w abs_0_0001253C
-	bsr.w abs_0_000182F0
+	bsr.w update_nearby_object_detection
 	jsr abs_0_00018814.l
 	jsr abs_0_00019250.l
 	bsr.w update_world_object_interactions
@@ -1778,7 +1778,7 @@ abs_0_000124E0:
 abs_0_000124EE:
 	rts
 abs_0_000124F0:
-	lea.l abs_0_0001300A(pc),a1
+	lea.l world_object_ptr_table(pc),a1
 abs_0_000124F4:
 	move.l (a1)+,d0
 	beq.b abs_0_000124EE
@@ -1814,7 +1814,7 @@ abs_0_00012536:
 abs_0_0001253A:
 	rts
 abs_0_0001253C:
-	lea.l abs_0_0001300A(pc),a0
+	lea.l world_object_ptr_table(pc),a0
 abs_0_00012540:
 	move.l (a0)+,d0
 	beq.b abs_0_0001255C
@@ -2647,7 +2647,7 @@ abs_0_00012FE8:
 	move.l d1,d0
 	movem.l (a7)+,d2-d3
 	rts
-abs_0_0001300A:
+world_object_ptr_table:
 	dc.b $00,$05,$C3,$22
 abs_0_0001300E:
 	dc.b $00,$05,$BA,$66,$00,$05,$C1,$D2,$00,$05,$BA,$BA,$00,$05,$BB,$0E
@@ -5420,7 +5420,7 @@ display_current_item_name:
 	movea.l (a7)+,a5
 	rts
 clear_inventory_item_selection_flags:
-	lea.l abs_0_0001300A(pc),a0
+	lea.l world_object_ptr_table(pc),a0
 abs_0_00017BAA:
 	move.l (a0)+,d0
 	beq.b abs_0_00017BB8
@@ -6034,16 +6034,16 @@ abs_0_000182D4:
 	dc.b $00,$FE,$FE,$00
 abs_0_000182E8:
 	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF
-abs_0_000182F0:
-	lea.l abs_0_0001300A(pc),a1
+update_nearby_object_detection:
+	lea.l world_object_ptr_table(pc),a1
 	lea.l abs_0_0005C322.l,a4
 	move.w $0030(a4),d4
 	move.w $0032(a4),d5
 	move.w #$5A,d0
 	bset.b #2,app_02A6(a6)
-abs_0_0001830C:
+scan_world_objects_for_proximity:
 	move.l (a1)+,d2
-	beq.w abs_0_000183AE
+	beq.w update_nearby_object_context
 	movea.l d2,a5
 	movea.l $002C(a5),a0
 	move.w $0030(a5),d2
@@ -6067,7 +6067,7 @@ abs_0_0001833A:
 	bcc.b abs_0_000183AA
 	bclr.b #2,app_02A6(a6)
 	move.w d3,d0
-	move.w d0,app_0356(a6)
+	move.w d0,app_nearest_object_distance(a6)
 	bset.b #5,$0048(a5)
 	cmpa.l app_nearest_object_ptr(a6),a5
 	beq.b abs_0_000183AA
@@ -6084,34 +6084,34 @@ abs_0_00018376:
 	btst.b #1,$0048(a5)
 	bne.b abs_0_000183AA
 	tst.l $000C(a5)
-	beq.w abs_0_0001830C
+	beq.w scan_world_objects_for_proximity
 	movem.l a0-a3,-(a7)
 	move.w #$3C,$0052(a5)
 	movea.l $000C(a5),a0
 	bsr.w abs_0_000199DE
 	movem.l (a7)+,a0-a3
 abs_0_000183AA:
-	bra.w abs_0_0001830C
-abs_0_000183AE:
+	bra.w scan_world_objects_for_proximity
+update_nearby_object_context:
 	bsr.w abs_0_0001849A
 	bsr.w abs_0_00012466
 	btst.b #2,app_022E(a6)
 	bne.w abs_0_00018492
 	btst.b #1,app_02A6(a6)
-	bne.w abs_0_0001844C
+	bne.w show_nearby_object_context_prompt
 	btst.b #2,app_02A6(a6)
-	bne.b abs_0_00018416
+	bne.b clear_nearby_object_context_prompt
 	movea.l app_nearest_object_ptr(a6),a5
 	btst.b #1,abs_0_0005C36A.l
 	bne.b abs_0_0001840E
 	btst.b #1,$0048(a5)
 	bne.b abs_0_0001840E
 	move.w $0052(a5),d0
-	beq.b abs_0_000183F6
+	beq.b invoke_nearby_object_interaction
 	subq.w #1,d0
 	move.w d0,$0052(a5)
 	bra.b abs_0_0001840E
-abs_0_000183F6:
+invoke_nearby_object_interaction:
 	move.l $0004(a5),d0
 	beq.b abs_0_0001840E
 	movea.l d0,a0
@@ -6122,10 +6122,10 @@ abs_0_000183F6:
 	movea.l d0,a0
 	bsr.w abs_0_000199DE
 abs_0_0001840E:
-	tst.b app_02A7(a6)
+	tst.b app_nearby_object_prompt_countdown(a6)
 	bne.b abs_0_0001848E
 	bra.b abs_0_00018492
-abs_0_00018416:
+clear_nearby_object_context_prompt:
 	bset.b #3,app_02A6(a6)
 	bne.b abs_0_00018492
 	lea.l abs_0_00013386.l,a5
@@ -6134,16 +6134,16 @@ abs_0_00018416:
 	move.l a0,$000C(a5)
 	lea.l abs_0_000133B2.l,a5
 	move.l a0,$000C(a5)
-	bsr.b abs_0_00018494
+	bsr.b render_context_prompt
 	lea.l abs_0_00013386.l,a5
-	bsr.b abs_0_00018494
+	bsr.b render_context_prompt
 	clr.l app_nearest_object_ptr(a6)
-	clr.b app_02A7(a6)
+	clr.b app_nearby_object_prompt_countdown(a6)
 	bra.b abs_0_00018492
-abs_0_0001844C:
-	tst.b app_02A7(a6)
+show_nearby_object_context_prompt:
+	tst.b app_nearby_object_prompt_countdown(a6)
 	bne.b abs_0_0001848E
-	move.b #$3C,app_02A7(a6)
+	move.b #$3C,app_nearby_object_prompt_countdown(a6)
 	moveq.l #-11,d0
 	and.b d0,app_02A6(a6)
 	lea.l abs_0_00013386.l,a0
@@ -6155,14 +6155,14 @@ abs_0_0001844C:
 	bsr.w resolve_item_name
 	move.l a0,$000C(a1)
 	movea.l a1,a5
-	bsr.b abs_0_00018494
+	bsr.b render_context_prompt
 	lea.l abs_0_00013386.l,a5
-	bsr.b abs_0_00018494
+	bsr.b render_context_prompt
 abs_0_0001848E:
-	subq.b #1,app_02A7(a6)
+	subq.b #1,app_nearby_object_prompt_countdown(a6)
 abs_0_00018492:
 	rts
-abs_0_00018494:
+render_context_prompt:
 	moveq.l #0,d0
 	bra.w abs_0_00016632
 abs_0_0001849A:
@@ -7343,7 +7343,7 @@ abs_0_0001A056:
 	bsr.w abs_0_0001A152
 	move.l #$1309A,app_02A8(a6)
 	move.w #$43,app_02AC(a6)
-	lea.l abs_0_0001300A.l,a1
+	lea.l world_object_ptr_table.l,a1
 abs_0_0001A0B8:
 	move.l (a1)+,d0
 	beq.b abs_0_0001A12E
@@ -7384,7 +7384,7 @@ abs_0_0001A10A:
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
 	move.l #$5C72A,abs_0_0005C71E.l
-	clr.b app_02A7(a6)
+	clr.b app_nearby_object_prompt_countdown(a6)
 	bset.b #4,app_02A6(a6)
 	movea.l (a7)+,a5
 	rts
