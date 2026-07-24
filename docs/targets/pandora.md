@@ -39,7 +39,17 @@ the four Paula audio channels.  The caller at `$0005D330` preserves the
 general registers around this call, which supports treating it as a subsystem
 entry rather than an inline helper.
 
-### Confirmed shared data
+## RGB12 palette helpers
+
+The helper group at `$0001255E..$00012654` manipulates Amiga RGB12 colors as
+three independently stored component words. `unpack_rgb12_palette_components`
+splits each packed palette word into those component slots;
+`add_rgb12_palette_components` and `subtract_rgb12_palette_components` apply
+the corresponding three packed-nibble deltas and repack the result; and
+`clear_rgb12_palette_components` clears the component buffer. These are
+separate code routines, not palette data, each bounded by an RTS.
+
+## Audio shared data
 
 | Address | Symbol | Current interpretation |
 | --- | --- | --- |

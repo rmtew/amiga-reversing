@@ -1000,12 +1000,12 @@ abs_0_00010D20:
 	lea.l abs_0_00010B68(pc),a1
 	movea.l #abs_0_0001B3A8,a2
 	moveq.l #31,d7
-	jsr abs_0_00012640.l
+	jsr clear_rgb12_palette_components.l
 	moveq.l #7,d7
 	lea.l abs_0_00010AF8(pc),a2
 	lea.l abs_0_00010AC8(pc),a0
 	lea.l abs_0_00010AE8(pc),a1
-	jsr abs_0_00012640.l
+	jsr clear_rgb12_palette_components.l
 	lea.l abs_0_00010AC8(pc),a0
 	move.l a0,app_current_palette(a6)
 	move.w #$63,d7
@@ -1039,7 +1039,7 @@ abs_0_00010DAE:
 	lea.l abs_0_00010AF8(pc),a2
 	lea.l abs_0_00010AC8(pc),a0
 	lea.l abs_0_00010AE8(pc),a1
-	jsr abs_0_000125DE.l
+	jsr add_rgb12_palette_components.l
 	subq.b #1,app_0285(a6)
 	bne.b abs_0_00010DDE
 	bclr.b #2,app_027B(a6)
@@ -1224,7 +1224,7 @@ abs_0_00011052:
 	lea.l abs_0_00010B68(pc),a1
 	movea.l #abs_0_0001B3A8,a2
 	moveq.l #31,d7
-	bsr.w abs_0_000125DE
+	bsr.w add_rgb12_palette_components
 abs_0_00011070:
 	bsr.w abs_0_000107F0
 	tst.b app_022F(a6)
@@ -1926,7 +1926,7 @@ abs_0_00012540:
 	bra.b abs_0_00012540
 abs_0_0001255C:
 	rts
-abs_0_0001255E:
+add_rgb12_color_components:
 	movem.l d1-d6,-(a7)
 	move.w (a2)+,d4
 	move.w (a2)+,d3
@@ -1957,27 +1957,78 @@ abs_0_0001255E:
 	or.b d3,d0
 	movem.l (a7)+,d1-d6
 	rts
-	dc.b $48,$E7,$7E,$00,$38,$1A,$36,$1A,$34,$12,$7C,$0F,$3A,$01,$CA,$46
-	dc.b $94,$45,$34,$82,$E8,$4A,$3A,$01,$E8,$0D,$CA,$46,$96,$45,$35,$03
-	dc.b $E8,$4B,$3A,$01,$E0,$4D,$CA,$46,$98,$45,$35,$04,$E8,$4C,$70,$00
-	dc.b $30,$04,$E1,$48,$E9,$0B,$10,$02,$80,$03,$4C,$DF,$00,$7E,$4E,$75
-abs_0_000125DE:
+subtract_rgb12_color_components:
+	movem.l d1-d6,-(a7)
+	move.w (a2)+,d4
+	move.w (a2)+,d3
+	move.w (a2),d2
+	moveq.l #15,d6
+	move.w d1,d5
+	and.w d6,d5
+	sub.w d5,d2
+	move.w d2,(a2)
+	lsr.w #4,d2
+	move.w d1,d5
+	lsr.b #4,d5
+	and.w d6,d5
+	sub.w d5,d3
+	move.w d3,-(a2)
+	lsr.w #4,d3
+	move.w d1,d5
+	lsr.w #8,d5
+	and.w d6,d5
+	sub.w d5,d4
+	move.w d4,-(a2)
+	lsr.w #4,d4
+	moveq.l #0,d0
+	move.w d4,d0
+	lsl.w #8,d0
+	lsl.b #4,d3
+	move.b d2,d0
+	or.b d3,d0
+	movem.l (a7)+,d1-d6
+	rts
+add_rgb12_palette_components:
 	movem.l d0-d1/d7/a0-a2,-(a7)
 abs_0_000125E2:
 	move.w (a0)+,d0
 	move.w (a1)+,d1
-	bsr.w abs_0_0001255E
+	bsr.w add_rgb12_color_components
 	move.w d0,-$0002(a0)
 	addq.l #6,a2
 	dbf.w d7,abs_0_000125E2
 	movem.l (a7)+,d0-d1/d7/a0-a2
 	rts
-	dc.b $48,$E7,$C1,$E0,$30,$18,$32,$19,$61,$9A,$31,$40,$FF,$FE,$5C,$8A
-	dc.b $51,$CF,$FF,$F2,$4C,$DF,$07,$83,$4E,$75,$48,$E7,$21,$E0,$30,$19
-	dc.b $30,$C0,$32,$00,$02,$41,$0F,$00,$E8,$49,$34,$C1,$32,$00,$02,$41
-	dc.b $00,$F0,$34,$C1,$02,$40,$00,$0F,$E9,$48,$34,$C0,$51,$CF,$FF,$E0
-	dc.b $4C,$DF,$07,$84,$4E,$75
-abs_0_00012640:
+subtract_rgb12_palette_components:
+	movem.l d0-d1/d7/a0-a2,-(a7)
+abs_0_000125FE:
+	move.w (a0)+,d0
+	move.w (a1)+,d1
+	bsr.b subtract_rgb12_color_components
+	move.w d0,-$0002(a0)
+	addq.l #6,a2
+	dbf.w d7,abs_0_000125FE
+	movem.l (a7)+,d0-d1/d7/a0-a2
+	rts
+unpack_rgb12_palette_components:
+	movem.l d2/d7/a0-a2,-(a7)
+abs_0_00012618:
+	move.w (a1)+,d0
+	move.w d0,(a0)+
+	move.w d0,d1
+	andi.w #3840,d1
+	lsr.w #4,d1
+	move.w d1,(a2)+
+	move.w d0,d1
+	andi.w #240,d1
+	move.w d1,(a2)+
+	andi.w #15,d0
+	lsl.w #4,d0
+	move.w d0,(a2)+
+	dbf.w d7,abs_0_00012618
+	movem.l (a7)+,d2/d7/a0-a2
+	rts
+clear_rgb12_palette_components:
 	movem.l d7/a0-a2,-(a7)
 abs_0_00012644:
 	clr.w (a0)+
@@ -5771,7 +5822,7 @@ abs_0_00017DD6:
 	lea.l abs_0_000134E2.l,a1
 	lea.l abs_0_00013462.l,a2
 	moveq.l #15,d7
-	bsr.w abs_0_000125DE
+	bsr.w add_rgb12_palette_components
 abs_0_00017DEE:
 	rts
 update_world_object_interactions:
@@ -7485,7 +7536,7 @@ abs_0_00019FC4:
 	lea.l abs_0_000134E2.l,a1
 	lea.l abs_0_00013462.l,a2
 	moveq.l #15,d7
-	bsr.w abs_0_00012640
+	bsr.w clear_rgb12_palette_components
 	moveq.l #0,d0
 	move.l d0,app_carried_item_ids(a6)
 	move.l d0,app_pocket_item_ids(a6)
