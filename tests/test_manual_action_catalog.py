@@ -7,10 +7,24 @@ from amiga_reversing.disasm.manual_action_catalog import (
     _provenance_source_evidence_id,
     listing_catalog_manual_payload,
     listing_element_action_catalog,
+    listing_range_action_catalog,
     listing_range_catalog_manual_payload,
     listing_row_action_catalog,
     target_catalog_manual_payload,
 )
+
+
+def test_range_data_block_layout_create_rejects_an_exact_existing_layout() -> None:
+    layout = {"layout_id": "objects", "hunk": 0, "source_start": 0x100, "source_end": 0x108}
+    rows = [
+        {"hunk": 0, "addr": 0x100, "start_offset": 0x100, "end_offset": 0x104, "kind": "data", "active_data_block_layout": layout},
+        {"hunk": 0, "addr": 0x104, "start_offset": 0x104, "end_offset": 0x108, "kind": "data", "active_data_block_layout": layout},
+    ]
+
+    action = next(item for item in listing_range_action_catalog(rows) if item["action_id"] == "range.data_block.layout.create")
+
+    assert action["enabled"] is False
+    assert action["range_availability"] == "unavailable"
 
 
 @pytest.mark.parametrize("element_kind", ["struct", "platform_struct"])

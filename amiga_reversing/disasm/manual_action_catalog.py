@@ -1615,7 +1615,11 @@ def _range_data_block_layout_action(context: Mapping[str, object], rows: list[Ma
     # A layout describes bytes, not presentation rows.  Labels are zero-width
     # rows, so selected data rows on either side of one form a single record.
     subranges = _contiguous_data_layout_subranges(eligible)
-    if len(eligible) == len(rows):
+    if _range_is_existing_data_block_layout(eligible, subranges):
+        action["range_availability"] = "unavailable"
+        action["availability_reason"] = "Selected range already has this data-block layout; remove it before replacing it."
+        action["enabled"] = False
+    elif len(eligible) == len(rows):
         action["range_availability"] = "applicable"
         action["availability_reason"] = f"Applies to all {len(rows)} selected rows."
     elif eligible:
@@ -1628,6 +1632,21 @@ def _range_data_block_layout_action(context: Mapping[str, object], rows: list[Ma
     action["applicable_subranges"] = subranges
     action["row_reasons"] = _row_eligibility_reasons(rows, eligible)
     return action
+
+
+def _range_is_existing_data_block_layout(
+    rows: Sequence[Mapping[str, object]], subranges: Sequence[Mapping[str, object]]
+) -> bool:
+    if len(subranges) != 1 or not rows:
+        return False
+    layout = _active_data_block_layout(rows[0])
+    if layout is None or any(_active_data_block_layout(row) != layout for row in rows[1:]):
+        return False
+    start = _optional_int(layout.get("source_start"))
+    end = _optional_int(layout.get("source_end"))
+    if start is None or end is None:
+        return False
+    return start == _int_field(rows[0], "start_offset", fallback="addr") and end == _optional_int(rows[-1].get("end_offset"))
 
 
 def _contiguous_data_layout_subranges(rows: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
