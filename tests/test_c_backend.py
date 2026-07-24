@@ -4253,6 +4253,7 @@ after_data:
             ("width", 12), ("x_offset", 14), ("y_offset", 16),
         )
     ]
+    fields[0]["pointer_struct"] = "LargeFrame"
     records = [
         {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
         {"record": "manual_action", "action_id": "a1", "sequence": 1, "created_at": "2026-07-25T00:00:01+00:00", "kind": "create_manual_custom_struct", "custom_struct": {"name": "LargeFrame", "size": record_size, "fields": fields}},
@@ -4270,6 +4271,10 @@ after_data:
 
     assert policy["structured_data_item_count"] >= record_count * len(fields)
     assert policy["named_label_count"] >= record_count * len(fields)
+    assert any(
+        item["field_name"] == "primary_ptr" and item["is_pointer"]
+        for item in policy["structured_data_items"]
+    )
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk", rendered, project_root=PROJECT_ROOT
     )

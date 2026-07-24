@@ -6762,14 +6762,19 @@ static uint8_t metadata_seeded_entity_kind_from_ids_local(MetadataSeededEntitySu
 }
 
 static MetadataSeededEntityClassification metadata_seeded_entity_classify_local(const char *entity_type,
-    const char *subtype, const char *unit) {
+    const char *subtype, const char *unit, const char *pointer_struct) {
   MetadataSeededEntityClassification classification;
   classification.type_id = metadata_seeded_entity_type_id_from_text_local(entity_type);
   classification.subtype_id = metadata_seeded_entity_subtype_id_from_text_local(subtype);
   classification.unit_id = metadata_seeded_entity_unit_id_from_text_local(unit);
   classification.structured_kind =
     metadata_seeded_entity_kind_from_ids_local(classification.subtype_id, classification.unit_id);
-  classification.is_pointer = (uint8_t)(classification.subtype_id == METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE);
+  /* A target-defined structure field can carry a pointer target type even
+     when it is a single field rather than a pointer table.  Preserve that
+     fact for the renderer so the stored address receives normal data-pointer
+     treatment and can resolve to its target label. */
+  classification.is_pointer = (uint8_t)(classification.subtype_id == METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE ||
+    (pointer_struct != NULL && pointer_struct[0] != '\0'));
   classification.role_flags = metadata_seeded_entity_role_flags_from_subtype_id_local(classification.subtype_id);
   return classification;
 }
@@ -6830,7 +6835,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
     return 0;
   }
   if (!has_addr || !has_end || end <= addr) return 1;
-  classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit);
+  classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit, pointer_struct);
   if (classification.type_id != METADATA_SEEDED_ENTITY_TYPE_DATA) return 1;
   snprintf(policy_comment, sizeof(policy_comment), "%s", comment);
   item_index = policy->structured_data_item_count;

@@ -715,6 +715,9 @@ The latter was corrected from an earlier one-byte-late interpretation: the
 aligned bytes are `00 05 8B F8`, proving the pointer starts at `+0x10` rather
 than `+0x11`.  World-object interaction also follows `attachment_state_ptr` at
 `+0x14` and tests `interaction_flags`/`world_object_flags` at `+0x18/+0x19`.
+These target-defined pointer fields now retain their pointed-to custom type in
+the durable layout and render as symbolic data references when alignment and a
+target label permit, rather than as indistinguishable numeric longs.
 
 `world_position_state_nodes` is the exact 24-record table at
 `$00048F70..$00049120` (runtime `$00058F70..$00059120`), with an 18-byte

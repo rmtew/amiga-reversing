@@ -2705,7 +2705,8 @@ static int structured_data_item_is_palette(const M68kAnalysisStructuredDataItem 
 
 static int structured_data_item_is_pointer_table(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
-    (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U;
+    ((structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U ||
+      item->is_pointer != 0U);
 }
 
 static int structured_data_item_is_word_relative_lookup_table(const M68kAnalysisStructuredDataItem *item) {
