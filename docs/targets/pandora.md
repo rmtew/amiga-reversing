@@ -130,6 +130,21 @@ fixed work-buffer pointers in `a0`, `a1`, and `a2`, together with a count of 15
 in `d7`. No direct caller has yet been recovered, so the name records the
 observed register contract rather than assigning those buffers to a subsystem.
 
+## Gameplay update and self-destruct sequence
+
+`run_gameplay_update_loop` at `$00019C00` is the frame-level gameplay path
+following the self-destruct text resources. It snapshots active world-object
+links, swaps the front/back/display bitplane pointers, waits for the display
+phase, then services inventory, scrolling-message, and panel input before
+continuing the frame state machine.
+
+The loop calls `process_self_destruct_card_input` at `$00019CBE` when the
+self-destruct panel is active. That routine accepts the permitted selected item
+ids, records up to three resolved item-name pointers, starts feedback audio,
+and advances the card-sequence state. `render_self_destruct_card_sequence` at
+`$00019DC2` clears the sequence display buffer and renders the appropriate
+prompt, selected cards, invalid-sequence, or initiated self-destruct message.
+
 ## World-object subsystem
 
 ### Confirmed player entry
