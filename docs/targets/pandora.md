@@ -710,9 +710,14 @@ embedded data bytes.
 `world_position_state_nodes` is the exact 24-record table at
 `$00048F70..$00049120` (runtime `$00058F70..$00059120`), with an 18-byte
 stride.  Each node starts with `position_descriptor_ptr`; the position-state
-restore routine clears bit 0 of `active_flag` at `+0x0A` and clears
-`restore_word` at `+0x10`.  The surrounding words and handler pointer remain
-raw pending a consumer that establishes their shared semantics.
+restore routine clears bit 0 of `active_flag` at `+0x0A` and clears the
+`position_descriptor_sequence_index` at `+0x10`.  World-object interaction
+selects one of the descriptor sequences at `$00059120`, `$00059150`, or
+`$00059188`, writes its address to `position_descriptor_sequence_ptr` at
+`+0x06`, and resets that index.  The exact 47-entry descriptor-pointer stream
+is recovered at `$00059120..$000591DC`; the individual sequence entry points
+remain preserved by their direct code references.  The word at `+0x04` remains
+raw pending a consumer that establishes its shared semantics.
 
 ## Maintenance rule
 
