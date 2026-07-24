@@ -298,6 +298,14 @@ surface now has a durable `target.code.register_seed.add` action for this
 entry-specific type fact; the renderer deliberately applies such seeds only
 at the exact function entry, not to unrelated preceding code.
 
+### Blank sprite datum
+
+`blank_sprite_data` at `$0005D5DE` is a 512-byte zero-filled sprite datum.
+Both copper-list families load it into sprite pointers, and display setup also
+uses it as the blitter source for clearing.  Its fixed size and all-zero
+contents are therefore intentional asset data, not padding between the
+world-interaction callbacks and the audio-player code that follows.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

@@ -541,7 +541,7 @@ abs_0_000106D8:
 	bsr.w abs_0_0001639A
 abs_0_00010724:
 	move.w #$1,app_0286(a6)
-	lea.l abs_0_0005D5DE.l,a0
+	lea.l blank_sprite_data.l,a0
 	move.l a0,app_current_palette(a6)
 	st.b app_02D8(a6)
 	bset.b #1,player_world_object_world_object_flags.l
@@ -2559,9 +2559,9 @@ abs_0_00012DAE:
 	bsr.w abs_0_00016126
 	move.w app_0286(a6),d0
 	clr.b app_02C2(a6)
-	btst.b #2,app_ui_flags(a6)
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	beq.b abs_0_00012DDC
-	btst.b #4,app_ui_flags(a6)
+	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	beq.b abs_0_00012DDC
 	bset.b #3,app_02C2(a6)
 abs_0_00012DDC:
@@ -4017,7 +4017,7 @@ abs_0_00016478:
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w d3,bltamod(a5)
 	move.w d2,bltdmod(a5)
-	move.l #abs_0_0005D5DE,bltapt(a5)	; blitter_source pointer
+	move.l #blank_sprite_data,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w d1,bltsize(a5)
 	movea.l (a7)+,a5
@@ -7033,7 +7033,7 @@ abs_0_000194C0:
 	bset.b #0,app_020A(a6)
 	bne.b abs_0_000194E0
 	move.l a0,-(a7)
-	lea.l abs_0_0005D5DE.l,a0
+	lea.l blank_sprite_data.l,a0
 	move.l a0,app_020C(a6)
 	move.l a0,app_0210(a6)
 	move.w #$1A4,app_inventory_cursor_x(a6)
@@ -27140,7 +27140,7 @@ abs_0_0005D5BA:
 	lea.l abs_0_0005D011(pc),a0
 	jsr enqueue_status_message.l
 	bra.b abs_0_0005D592
-abs_0_0005D5DE:
+blank_sprite_data:
 	dcb.b $200,$00
 initialize_audio_player:
 	bset.b #CIAB_LED,_ciaa+ciapra.l
