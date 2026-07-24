@@ -258,6 +258,15 @@ Both bytes are reset by `initialize_world_state`.  The audio byte's bit 0 is
 also used by the broader audio-player update path, so it remains intentionally
 unnamed until that subsystem is recovered.
 
+`app_ui_flags` at `+0x022e` is the shared byte that gates the callback audio
+paths as well as inventory and message UI. Inventory-panel code proves bit 2
+(`UI_FLAG_INVENTORY_PANEL_ACTIVE`) means the panel is active (set on open and
+cleared on close), and bit 4 (`UI_FLAG_NEARBY_OBJECT_INVENTORY`) marks the
+nearby-object inventory variant. The remaining bits are retained as
+unnamed UI state: bit 1 suppresses callback feedback after a reset/modal path,
+bits 3 and 5 accompany inventory feedback/selection, bit 6 initializes the
+status-message queue, and bit 7 gates a main-loop UI update.
+
 ### Recovered orphan interaction-audio code
 
 Two code blocks immediately following `interact_with_gardener` were previously

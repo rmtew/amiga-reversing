@@ -96,7 +96,7 @@ app_inventory_cursor_y_step RS.W 1
 app_inventory_cursor_move_countdown RS.W 1
 app_inventory_selection_latched RS.B 1
 app_022D RS.B 1
-app_022E RS.B 1
+app_ui_flags RS.B 1
 app_022F RS.B 1
 app_0230 RS.W 1
 app_scrolling_message_queue_head RS.L 1
@@ -215,6 +215,8 @@ INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED	EQU	7
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING	EQU	$3
+UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
+UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 active_world_object_ptr_table	EQU	$1309A
 sample_ptr	EQU	0
@@ -524,7 +526,7 @@ abs_0_000106D8:
 	bset.b #5,app_033C(a6)
 	bne.b abs_0_0001074C
 	bsr.w abs_0_00017B6E
-	bclr.b #1,app_022E(a6)
+	bclr.b #1,app_ui_flags(a6)
 	beq.b abs_0_00010724
 	lea.l abs_0_0005C940.l,a0
 	lea.l abs_0_0005C97A.l,a1
@@ -740,7 +742,7 @@ handle_vertical_blank_frame_update:
 	move.w d1,(a0)+
 	move.l app_020C(a6),$0120(a5)
 	move.l app_0210(a6),$0124(a5)
-	btst.b #7,app_022E(a6)
+	btst.b #7,app_ui_flags(a6)
 	bne.b abs_0_000109CC
 	bsr.w update_scrolling_message_ticker
 abs_0_000109CC:
@@ -2011,22 +2013,22 @@ update_inventory_panel_availability:
 	lea.l player_world_object_item_name_ptr.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_00012712
-	move.b app_022E(a6),d0
+	move.b app_ui_flags(a6),d0
 	andi.b #3,d0
 	bne.b abs_0_00012712
 	tst.b absolute_slot_000039BC.l
 	bne.b toggle_inventory_panel
-	bclr.b #3,app_022E(a6)
+	bclr.b #3,app_ui_flags(a6)
 abs_0_00012712:
 	rts
 toggle_inventory_panel:
-	bset.b #3,app_022E(a6)
+	bset.b #3,app_ui_flags(a6)
 	bne.b abs_0_00012712
 	move.w #$311,d0
 	jsr start_feedback_audio_sequence.l
-	bset.b #2,app_022E(a6)
+	bset.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	bne.w close_inventory_panel
-	bclr.b #4,app_022E(a6)
+	bclr.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	tst.l app_nearest_object_ptr(a6)
 	beq.b abs_0_00012754
 	movea.l app_nearest_object_ptr(a6),a5
@@ -2064,8 +2066,8 @@ abs_0_00012794:
 abs_0_000127A8:
 	bset.b #1,app_033C(a6)
 abs_0_000127AE:
-	bclr.b #2,app_022E(a6)
-	btst.b #4,app_022E(a6)
+	bclr.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
+	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	beq.b abs_0_000127C4
 	lea.l abs_0_000133DE(pc),a5
 	bsr.w abs_0_0001639A
@@ -2081,7 +2083,7 @@ abs_0_000127C4:
 	bsr.w abs_0_00017CFE
 	rts
 open_nearby_object_inventory_panel:
-	bset.b #4,app_022E(a6)
+	bset.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	movea.l $0014(a5),a0
 	move.b (a0),app_inventory_display_item_ids(a6)
 	move.b $0002(a0),app_02BB(a6)
@@ -2151,7 +2153,7 @@ abs_0_000128CC:
 	movea.l (a7)+,a0
 	rts
 handle_inventory_panel_input:
-	btst.b #2,app_022E(a6)
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	beq.b abs_0_00012918
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_00012918
@@ -2180,7 +2182,7 @@ start_inventory_cursor_move:
 	add.w app_inventory_cursor_x(a6),d0
 	cmp.w #$C0,d0
 	bcc.b abs_0_0001296A
-	btst.b #4,app_022E(a6)
+	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	bne.b abs_0_00012948
 	cmp.w #$60,d0
 	bcc.b abs_0_0001296A
@@ -2219,13 +2221,13 @@ advance_inventory_cursor_move:
 	subq.w #1,app_inventory_cursor_move_countdown(a6)
 	bra.w abs_0_000194E2
 finalize_inventory_selection:
-	bset.b #5,app_022E(a6)
+	bset.b #5,app_ui_flags(a6)
 	bsr.w refresh_selected_item_name_display
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
 	rts
 refresh_selected_item_name_display:
-	btst.b #2,app_022E(a6)
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	bne.b abs_0_000129E8
 	move.l a5,-(a7)
 	moveq.l #0,d0
@@ -2379,7 +2381,7 @@ enqueue_scrolling_message:
 	move.l a0,(a1)+
 	move.l a1,app_scrolling_message_queue_tail(a6)
 	clr.l (a1)
-	bset.b #6,app_022E(a6)
+	bset.b #6,app_ui_flags(a6)
 	bne.b abs_0_00012BFC
 	move.b #$14,app_message_palette_flash_countdown(a6)
 abs_0_00012BFC:
@@ -2418,7 +2420,7 @@ abs_0_00012C48:
 	move.w d1,app_0230(a6)
 	move.b d0,app_message_palette_flash_countdown(a6)
 abs_0_00012C50:
-	btst.b #6,app_022E(a6)
+	btst.b #6,app_ui_flags(a6)
 	beq.w abs_0_00012CAE
 	bsr.w scroll_message_ticker_left
 	movea.l app_scrolling_message_queue_head(a6),a0
@@ -2450,7 +2452,7 @@ abs_0_00012CA8:
 	bsr.w dequeue_scrolling_message
 	bne.b abs_0_00012CA4
 abs_0_00012CAE:
-	bclr.b #6,app_022E(a6)
+	bclr.b #6,app_ui_flags(a6)
 	move #$1,ccr
 abs_0_00012CB8:
 	rts
@@ -2507,11 +2509,11 @@ abs_0_00012CC6:
 	rts
 abs_0_00012D2A:
 	lea.l absolute_slot_000039CC.l,a0
-	btst.b #0,app_022E(a6)
+	btst.b #0,app_ui_flags(a6)
 	bne.b abs_0_00012D58
 	tst.b (a0)
 	beq.b abs_0_00012D58
-	bset.b #7,app_022E(a6)
+	bset.b #7,app_ui_flags(a6)
 	bsr.b abs_0_00012D46
 	rts
 abs_0_00012D46:
@@ -2523,7 +2525,7 @@ abs_0_00012D4A:
 abs_0_00012D4E:
 	tst.b (a0)
 	bne.b abs_0_00012D4E
-	bclr.b #7,app_022E(a6)
+	bclr.b #7,app_ui_flags(a6)
 abs_0_00012D58:
 	rts
 abs_0_00012D5A:
@@ -2542,7 +2544,7 @@ abs_0_00012D5A:
 	sbcd d1,d0
 	bcs.w abs_0_00012E10
 	move.b d0,app_0286(a6)
-	btst.b #1,app_022E(a6)
+	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_00012DF8
 	lea.l abs_0_0001332E(pc),a0
 	move.b $0005(a0),app_022D(a6)
@@ -2557,9 +2559,9 @@ abs_0_00012DAE:
 	bsr.w abs_0_00016126
 	move.w app_0286(a6),d0
 	clr.b app_02C2(a6)
-	btst.b #2,app_022E(a6)
+	btst.b #2,app_ui_flags(a6)
 	beq.b abs_0_00012DDC
-	btst.b #4,app_022E(a6)
+	btst.b #4,app_ui_flags(a6)
 	beq.b abs_0_00012DDC
 	bset.b #3,app_02C2(a6)
 abs_0_00012DDC:
@@ -2626,7 +2628,7 @@ abs_0_00012EE0:
 abs_0_00012EE6:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_00012F16
-	btst.b #1,app_022E(a6)
+	btst.b #1,app_ui_flags(a6)
 	bne.w abs_0_000178CC
 	move.l app_nearest_object_ptr(a6),d0
 	beq.b abs_0_00012F16
@@ -5278,11 +5280,11 @@ abs_0_0001778A:
 	move.l (a7)+,d7
 	rts
 abs_0_00017792:
-	btst.b #2,app_022E(a6)
+	btst.b #2,app_ui_flags(a6)
 	beq.b abs_0_0001779E
 	bsr.w close_inventory_panel
 abs_0_0001779E:
-	bset.b #1,app_022E(a6)
+	bset.b #1,app_ui_flags(a6)
 	lea.l abs_0_00013302.l,a5
 	bsr.w abs_0_000166A0
 	lea.l abs_0_0001335A.l,a5
@@ -5458,7 +5460,7 @@ abs_0_000179EC:
 abs_0_00017A06:
 	bsr.w restore_world_object_position_state
 	bset.b #1,$0048(a5)
-	bclr.b #1,app_022E(a6)
+	bclr.b #1,app_ui_flags(a6)
 	lea.l abs_0_0005C97A.l,a0
 	clr.l (a0)
 	move.w #$2710,d2
@@ -6239,7 +6241,7 @@ abs_0_000183AA:
 update_nearby_object_context:
 	bsr.w abs_0_0001849A
 	bsr.w abs_0_00012466
-	btst.b #2,app_022E(a6)
+	btst.b #2,app_ui_flags(a6)
 	bne.w abs_0_00018492
 	btst.b #1,app_02A6(a6)
 	bne.w show_nearby_object_context_prompt
@@ -6564,7 +6566,7 @@ abs_0_00018814:
 	bne.b abs_0_0001884E
 	tst.b app_02CE(a6)
 	bne.b abs_0_00018896
-	btst.b #1,app_022E(a6)
+	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_0001884E
 	move.l app_nearest_object_ptr(a6),d0
 	beq.b abs_0_00018848
@@ -6655,7 +6657,7 @@ abs_0_00018982:
 abs_0_00018984:
 	tst.b app_022F(a6)
 	beq.w abs_0_00018A16
-	move.b app_022E(a6),d0
+	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
 	bne.w abs_0_00018A16
 	lea.l abs_0_000591EE.l,a0
@@ -6852,7 +6854,7 @@ update_active_world_object_positions:
 	bne.b abs_0_0001926E
 	clr.l abs_0_000585BA.l
 abs_0_0001926E:
-	move.b app_022E(a6),d0
+	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
 	bne.w abs_0_000193D8
 	tst.b app_022F(a6)
@@ -7206,7 +7208,7 @@ abs_0_000199D8:
 	movea.l (a7)+,a0
 	rts
 enqueue_status_message:
-	bclr.b #6,app_022E(a6)
+	bclr.b #6,app_ui_flags(a6)
 	beq.b abs_0_000199F2
 	lea.l app_scrolling_message_queue_head(a6),a1
 	move.l a1,app_scrolling_message_queue_tail(a6)
@@ -7472,7 +7474,7 @@ abs_0_0001A056:
 	lea.l abs_0_000132B6.l,a0
 	move.l d0,(a0)
 	move.w #$EEE,app_0230(a6)
-	clr.b app_022E(a6)
+	clr.b app_ui_flags(a6)
 	clr.b app_027B(a6)
 	clr.b app_02A6(a6)
 	clr.b app_033C(a6)
@@ -27003,7 +27005,7 @@ abs_0_0005D446:
 	rts
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_wackobrain:
-	btst.b #1,app_022E(a6)
+	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_0005D460
 	bset.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D464
@@ -27028,7 +27030,7 @@ abs_0_0005D48E:
 	bra.b interact_with_wackobrain
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_menial_droid:
-	btst.b #1,app_022E(a6)
+	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_0005D4B0
 	bset.b #INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bne.b abs_0_0005D4B4
@@ -27044,7 +27046,7 @@ abs_0_0005D4B4:
 	bra.b interact_with_menial_droid
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_gardener:
-	btst.b #1,app_022E(a6)
+	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_0005D4DE
 	bset.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bne.b update_gardener_feedback_audio
@@ -27059,7 +27061,7 @@ update_gardener_feedback_audio:
 	bclr.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_gardener
 update_interaction_audio_sequence_214:
-	btst.b #1,app_022E(a6)
+	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_0005D50C
 	bset.b #3,app_world_interaction_audio_flags(a6)
 	bne.b abs_0_0005D510
