@@ -665,6 +665,13 @@ which is then persisted by the dispatch loop. The runtime fields and object
 flags used by the attachment commands remain unnamed until their wider
 consumers establish a shared layout.
 
+`partition_world_object_update_ptrs` at `$0001849A` consumes the exact
+32-pointer `world_object_sort_source_ptrs` subtable at `$0001310E`, which is
+now represented within the enclosing active-world-object pointer layout. It
+partitions those pointers according to bits 6 and 7 of the pointed-to object's
+flag byte at `+0x19`, producing the ordering consumed by the update pass. Its
+mutable partition buffers remain unnamed pending their other consumers.
+
 ### Player world movement
 
 `update_player_world_movement` at `$000195E2` is a formerly raw, `$4e75`-

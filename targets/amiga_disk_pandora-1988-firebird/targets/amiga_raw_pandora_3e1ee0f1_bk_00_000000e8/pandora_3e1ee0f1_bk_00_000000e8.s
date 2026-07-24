@@ -2915,8 +2915,8 @@ active_world_object_static_ptr_table:
 	dc.l abs_0_000591EE
 	dc.l abs_0_0005AF90
 	dc.l abs_0_0005B49C
-abs_0_0001310E:
-	dc.l abs_0_00058C70	; mode=required, data_role=pointer_table, unit=pointer
+world_object_sort_source_ptrs:
+	dc.l abs_0_00058C70	; pointer_table
 	dc.l abs_0_00058C94
 	dc.l abs_0_0005A2BC
 	dc.l abs_0_0005BE7A
@@ -6696,7 +6696,7 @@ abs_0_00018376:
 abs_0_000183AA:
 	bra.w scan_world_objects_for_proximity
 update_nearby_object_context:
-	bsr.w abs_0_0001849A
+	bsr.w partition_world_object_update_ptrs
 	bsr.w process_active_world_object_chains
 	btst.b #2,app_ui_flags(a6)
 	bne.w abs_0_00018492
@@ -6768,8 +6768,8 @@ abs_0_00018492:
 render_context_prompt:
 	moveq.l #0,d0
 	bra.w abs_0_00016632
-abs_0_0001849A:
-	lea.l abs_0_0001310E(pc),a0
+partition_world_object_update_ptrs:
+	lea.l world_object_sort_source_ptrs(pc),a0
 	movea.l a0,a2
 	lea.l abs_0_0001318E(pc),a1
 	moveq.l #31,d7
