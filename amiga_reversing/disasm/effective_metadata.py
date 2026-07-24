@@ -902,6 +902,18 @@ def _data_block_unit_from_width(width: int) -> str:
     return "byte"
 
 
+def _data_block_unit_for_address(addr: int, width: int) -> str:
+    """Return a directive unit that is valid at the emitted source address.
+
+    Structured records need not have a stride aligned to every field width.
+    In that case preserve the typed-field metadata but render its bytes using
+    byte directives, rather than seeding an invalid word/long entity.
+    """
+    unit = _data_block_unit_from_width(width)
+    alignment = {"word": 2, "long": 4}.get(unit, 1)
+    return unit if addr % alignment == 0 else "byte"
+
+
 def _data_block_bound_custom_struct(
     element: DataBlockElementMetadata,
     custom_structs: Mapping[str, CustomStructMetadata],
@@ -1167,7 +1179,7 @@ def _data_block_custom_struct_field_entity(
         hunk=layout.hunk,
         name=name,
         type="data",
-        unit=_data_block_unit_from_width(field.size),
+        unit=_data_block_unit_for_address(addr, field.size),
         struct_name=struct.name,
         field_name=field.name,
         field_type=field.type,
@@ -1207,7 +1219,7 @@ def _data_block_custom_struct_gap_entity(
         name=_data_block_typed_gap_label(base_label, offset, instance_index),
         comment="typed data block gap",
         type="data",
-        unit=_data_block_unit_from_width(width),
+        unit=_data_block_unit_for_address(addr, width),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,

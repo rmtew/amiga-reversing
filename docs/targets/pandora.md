@@ -282,6 +282,15 @@ interpreted pointer references into that table; this preserves their
 bidirectional xrefs and makes the update and interaction comparisons render
 against the shared descriptor fields.
 
+Each descriptor's `position_state_ptr` selects one of the 22 contiguous
+`world_position_state_records` at `$00058D00..$00058F3B`.  Their exact stride
+is 26 bytes.  The established `state_node_ptr` is the longword at `+0x08`,
+used by `restore_world_object_position_state` to clear the node flag and splice
+the restored state back into the world-object prefix.  The remaining bytes,
+including the observed unaligned descriptor back-reference at `+0x11`, remain
+explicit typed gaps until a field representation can preserve that unaligned
+longword without overstating its semantics.
+
 `update_active_world_object_positions` at `$00019250` runs in the main update
 after nearby-object detection.  It derives the player-relative tile position,
 then walks the active position-descriptor table while applying the current

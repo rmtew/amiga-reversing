@@ -1341,14 +1341,19 @@ int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, co
   uint16_t index;
   uint16_t structured_count;
   int copied_source_policy = 0;
-  M68kAnalysisPolicy policy_copy;
+  M68kAnalysisPolicy *policy_copy = NULL;
   const M68kAnalysisPolicy *source_policy;
   if (source_analysis == NULL || policy == NULL) return -1;
   source_policy = policy;
   if (policy == &source_analysis->policy) {
-    m68k_analysis_policy_init_default(&policy_copy);
-    if (m68k_analysis_policy_copy(&policy_copy, policy) != 0) return -1;
-    source_policy = &policy_copy;
+    policy_copy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*policy_copy));
+    if (policy_copy == NULL) return -1;
+    m68k_analysis_policy_init_default(policy_copy);
+    if (m68k_analysis_policy_copy(policy_copy, policy) != 0) {
+      free(policy_copy);
+      return -1;
+    }
+    source_policy = policy_copy;
     copied_source_policy = 1;
   }
   m68k_analysis_policy_destroy(&source_analysis->policy);
@@ -1356,7 +1361,10 @@ int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, co
   source_analysis->structured_data_item_count = 0U;
   source_analysis->structured_data_item_capacity = 0U;
   if (m68k_analysis_policy_copy(&source_analysis->policy, source_policy) != 0) {
-    if (copied_source_policy) m68k_analysis_policy_destroy(&policy_copy);
+    if (copied_source_policy) {
+      m68k_analysis_policy_destroy(policy_copy);
+      free(policy_copy);
+    }
     return -1;
   }
   structured_count = source_analysis->policy.structured_data_item_count;
@@ -1364,11 +1372,17 @@ int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, co
   for (index = 0U; index < structured_count && index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     if (m68k_ir_source_analysis_append_structured_data_item(source_analysis,
         &source_policy->structured_data_items[index]) != 0) {
-      if (copied_source_policy) m68k_analysis_policy_destroy(&policy_copy);
+      if (copied_source_policy) {
+        m68k_analysis_policy_destroy(policy_copy);
+        free(policy_copy);
+      }
       return -1;
     }
   }
-  if (copied_source_policy) m68k_analysis_policy_destroy(&policy_copy);
+  if (copied_source_policy) {
+    m68k_analysis_policy_destroy(policy_copy);
+    free(policy_copy);
+  }
   return 0;
 }
 

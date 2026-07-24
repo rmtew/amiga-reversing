@@ -318,6 +318,7 @@ channel_0_program_offset	EQU	2
 channel_1_program_offset	EQU	4
 channel_2_program_offset	EQU	6
 channel_3_program_offset	EQU	8
+state_node_ptr	EQU	8
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -26461,72 +26462,139 @@ world_position_descriptors_world_y_21:	; STRUCT world_position_descriptor_prefix
 	dc.w $0320	; word world_y
 world_position_descriptors_gap_104:
 	dc.l $00A00320	; typed data block gap
-	dcb.b $9,$00
-	dc.b $05,$8F,$DC,$00,$00,$00,$00,$00,$05,$8B,$F8,$00,$00,$00,$00,$00
-	dc.b $01
-	dcb.b $9,$00
-	dc.b $05,$8F,$EE,$00,$00,$00,$00,$00,$05,$8C,$04,$00,$00,$00,$00,$00
-	dc.b $01
-	dcb.b $9,$00
-	dc.b $05,$90,$00,$00,$00,$00,$00,$00,$05,$8C,$10,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$90,$12,$00,$00,$00,$00,$00,$05,$8C,$1C,$00,$00,$00,$00,$00
-	dc.b $01
-	dcb.b $9,$00
-	dc.b $05,$90,$24,$00,$00,$00,$00,$00,$05,$8C,$28,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$90,$36,$00,$00,$00,$00,$00,$05,$8C,$34,$00,$00,$00,$00,$00
-	dc.b $01
-	dcb.b $9,$00
-	dc.b $05,$90,$48,$00,$00,$00,$00,$00,$05,$8C,$40,$00,$00,$00,$00,$00
-	dc.b $01
-	dcb.b $9,$00
-	dc.b $05,$90,$5A,$00,$00,$00,$00,$00,$05,$8C,$4C,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$90,$6C,$00,$00,$00,$00,$00,$05,$8C,$58,$00,$00,$00,$00,$00
-	dc.b $01
-	dcb.b $9,$00
-	dc.b $05,$90,$7E,$00,$00,$00,$00,$00,$05,$8C,$64,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $8,$00
-	dc.b $00,$05,$90,$90,$00,$00,$00,$00,$00,$05,$8C,$70,$00,$00,$00,$00
-	dc.b $00,$01
-	dcb.b $9,$00
-	dc.b $05,$90,$A2,$00,$00,$00,$00,$00,$05,$8C,$7C,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$90,$B4,$00,$00,$00,$00,$00,$05,$8C,$88,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$90,$C6,$00,$00,$00,$00,$00,$05,$8C,$94,$00,$00,$00,$00,$00
-	dc.b $01
-	dcb.b $9,$00
-	dc.b $05,$90,$D8,$00,$00,$00,$00,$00,$05,$8C,$A0,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$90,$EA,$00,$00,$00,$00,$00,$05,$8C,$AC,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$90,$FC,$00,$00,$00,$00,$00,$05,$8C,$B8,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$91,$0E,$00,$00,$00,$00,$00,$05,$8C,$C4,$00,$00,$00,$00,$00
-	dc.b $21
-	dcb.b $9,$00
-	dc.b $05,$8F,$70,$00,$00,$00,$00,$00,$05,$8C,$D0,$00,$00,$00,$00,$00
-	dc.b $10
-	dcb.b $9,$00
-	dc.b $05,$8F,$82,$00,$00,$00,$00,$00,$05,$8C,$DC,$00,$00,$00,$00,$00
-	dc.b $10
-	dcb.b $9,$00
-	dc.b $05,$8F,$94,$00,$00
+world_position_state_records:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_0:	; STRUCT world_position_state_record
+	dc.l $00058FDC	; long state_node_ptr
+world_position_state_records_gap_C_0:
+	dc.b $00,$00,$00,$00,$00,$05,$8B,$F8,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_1A_1:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_1:	; STRUCT world_position_state_record
+	dc.b $00,$05,$8F,$EE	; long state_node_ptr
+world_position_state_records_gap_26_1:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$04,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_34_2:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_2:	; STRUCT world_position_state_record
+	dc.l $00059000	; long state_node_ptr
+world_position_state_records_gap_40_2:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$10,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_4E_3:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_3:	; STRUCT world_position_state_record
+	dc.b $00,$05,$90,$12	; long state_node_ptr
+world_position_state_records_gap_5A_3:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$1C,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_68_4:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_4:	; STRUCT world_position_state_record
+	dc.l $00059024	; long state_node_ptr
+world_position_state_records_gap_74_4:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$28,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_82_5:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_5:	; STRUCT world_position_state_record
+	dc.b $00,$05,$90,$36	; long state_node_ptr
+world_position_state_records_gap_8E_5:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$34,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_9C_6:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_6:	; STRUCT world_position_state_record
+	dc.l $00059048	; long state_node_ptr
+world_position_state_records_gap_A8_6:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$40,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_B6_7:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_7:	; STRUCT world_position_state_record
+	dc.b $00,$05,$90,$5A	; long state_node_ptr
+world_position_state_records_gap_C2_7:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$4C,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_D0_8:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_8:	; STRUCT world_position_state_record
+	dc.l $0005906C	; long state_node_ptr
+world_position_state_records_gap_DC_8:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$58,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_EA_9:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_9:	; STRUCT world_position_state_record
+	dc.b $00,$05,$90,$7E	; long state_node_ptr
+world_position_state_records_gap_F6_9:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$64,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_104_10:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_10:	; STRUCT world_position_state_record
+	dc.l $00059090	; long state_node_ptr
+world_position_state_records_gap_110_10:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$70,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_11E_11:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_11:	; STRUCT world_position_state_record
+	dc.b $00,$05,$90,$A2	; long state_node_ptr
+world_position_state_records_gap_12A_11:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$7C,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_138_12:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_12:	; STRUCT world_position_state_record
+	dc.l $000590B4	; long state_node_ptr
+world_position_state_records_gap_144_12:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$88,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_152_13:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_13:	; STRUCT world_position_state_record
+	dc.b $00,$05,$90,$C6	; long state_node_ptr
+world_position_state_records_gap_15E_13:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$94,$00,$00,$00,$00,$00,$01	; typed data block gap
+world_position_state_records_gap_16C_14:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_14:	; STRUCT world_position_state_record
+	dc.l $000590D8	; long state_node_ptr
+world_position_state_records_gap_178_14:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$A0,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_186_15:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_15:	; STRUCT world_position_state_record
+	dc.b $00,$05,$90,$EA	; long state_node_ptr
+world_position_state_records_gap_192_15:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$AC,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_1A0_16:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_16:	; STRUCT world_position_state_record
+	dc.l $000590FC	; long state_node_ptr
+world_position_state_records_gap_1AC_16:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$B8,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_1BA_17:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_17:	; STRUCT world_position_state_record
+	dc.b $00,$05,$91,$0E	; long state_node_ptr
+world_position_state_records_gap_1C6_17:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$C4,$00,$00,$00,$00,$00,$21	; typed data block gap
+world_position_state_records_gap_1D4_18:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_18:	; STRUCT world_position_state_record
+	dc.l $00058F70	; long state_node_ptr
+world_position_state_records_gap_1E0_18:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$D0,$00,$00,$00,$00,$00,$10	; typed data block gap
+world_position_state_records_gap_1EE_19:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_19:	; STRUCT world_position_state_record
+	dc.b $00,$05,$8F,$82	; long state_node_ptr
+world_position_state_records_gap_1FA_19:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$DC,$00,$00,$00,$00,$00,$10	; typed data block gap
+world_position_state_records_gap_208_20:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_20:	; STRUCT world_position_state_record
+	dc.l $00058F94	; long state_node_ptr
+world_position_state_records_gap_214_20:
+	dc.w $0000
 	dc.b $00,$00,$00,$05,$8C,$E8,$00,$05,$8F,$3C,$00,$10
-	dcb.b $9,$00
-	dc.b $05,$8F,$A6,$00,$00,$00,$00,$00,$05,$8C,$F4,$00,$05,$8F,$56,$00
-	dc.b $10
+world_position_state_records_gap_222_21:
+	dcb.b $8,$00	; typed data block gap
+world_position_state_records_state_node_ptr_21:	; STRUCT world_position_state_record
+	dc.b $00,$05,$8F,$A6	; long state_node_ptr
+world_position_state_records_gap_22E_21:
+	dc.b $00,$00,$00,$00,$00,$05,$8C,$F4,$00,$05,$8F,$56,$00,$10	; typed data block gap
 	dcb.b $9,$00
 	dc.b $05,$8F,$B8,$00,$00,$00,$20,$00,$05,$8C,$E8,$00,$00,$00,$00,$00
 	dc.b $10
@@ -27748,27 +27816,27 @@ abs_0_0005C2BE:
 abs_0_0005C31A:
 	dc.b $00,$01,$00,$14,$00,$05,$C3,$12
 player_world_object:	; STRUCT world_object_shared_prefix
-	dc.l $00000000	; long item_name_ptr
+	dc.b $00,$00,$00,$00	; long item_name_ptr
 player_world_object_interaction_callback:	; STRUCT world_object_shared_prefix
-	dc.l $00000000	; long interaction_callback
+	dc.b $00,$00,$00,$00	; long interaction_callback
 player_world_object_gap_8:
-	dc.l $00000000	; typed data block gap
+	dc.b $00,$00,$00,$00	; typed data block gap
 player_world_object_context_callback:	; STRUCT world_object_shared_prefix
-	dc.l $00000000	; long context_callback
+	dc.b $00,$00,$00,$00	; long context_callback
 player_world_object_interaction_data_ptr:	; STRUCT world_object_shared_prefix
-	dc.l $00000000	; long interaction_data_ptr
+	dc.b $00,$00,$00,$00	; long interaction_data_ptr
 player_world_object_inventory_slots_ptr:	; STRUCT world_object_shared_prefix
-	dc.l $0001B3A0	; long inventory_slots_ptr
+	dc.b $00,$01,$B3,$A0	; long inventory_slots_ptr
 player_world_object_trade_offer_table_ptr:	; STRUCT world_object_shared_prefix
-	dc.l $0001B3A0	; long trade_offer_table_ptr
+	dc.b $00,$01,$B3,$A0	; long trade_offer_table_ptr
 player_world_object_initial_inventory_slots_ptr:	; STRUCT world_object_shared_prefix
-	dc.l $0001B3A0	; long initial_inventory_slots_ptr
+	dc.b $00,$01,$B3,$A0	; long initial_inventory_slots_ptr
 player_world_object_initial_trade_offer_table_ptr:	; STRUCT world_object_shared_prefix
-	dc.l $0001B3A0	; long initial_trade_offer_table_ptr
+	dc.b $00,$01,$B3,$A0	; long initial_trade_offer_table_ptr
 player_world_object_gap_24:
 	dc.b $00,$05,$C3,$12,$00,$05,$C3,$12	; typed data block gap
 player_world_object_position_descriptor_ptr:	; STRUCT world_object_shared_prefix
-	dc.l $0005C71E	; long position_descriptor_ptr
+	dc.b $00,$05,$C7,$1E	; long position_descriptor_ptr
 player_world_object_world_x:	; STRUCT world_object_shared_prefix
 	dc.w $0000	; word world_x
 player_world_object_world_y:	; STRUCT world_object_shared_prefix
@@ -27873,7 +27941,7 @@ abs_0_0005C6BA:
 	dc.b $05,$C6,$4E,$00,$05,$C6,$60,$00,$05,$C6,$72,$00,$05,$C6,$84,$00
 	dc.b $05,$C6,$96,$00,$05,$C6,$A8
 player_position_descriptor:	; STRUCT world_position_descriptor_prefix
-	dc.l $0005C72A	; long position_state_ptr
+	dc.b $00,$05,$C7,$2A	; long position_state_ptr
 player_position_descriptor_world_x:	; STRUCT world_position_descriptor_prefix
 	dc.w $0000	; word world_x
 player_position_descriptor_world_y:	; STRUCT world_position_descriptor_prefix
@@ -28891,9 +28959,9 @@ audio_channel_state_records_update_countdown_0:	; STRUCT audio_channel_runtime_s
 audio_channel_state_records_pitch_delta_accumulator_0:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word pitch_delta_accumulator
 audio_channel_state_records_volume_sequence_ptr_0:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
 audio_channel_state_records_volume_sequence_cursor_0:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_cursor
+	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
 audio_channel_state_records_volume_sequence_interval_0:	; STRUCT audio_channel_runtime_state
 	dc.b $00	; byte volume_sequence_interval
 audio_channel_state_records_volume_sequence_countdown_0:	; STRUCT audio_channel_runtime_state
@@ -28941,9 +29009,9 @@ audio_channel_state_records_update_countdown_1:	; STRUCT audio_channel_runtime_s
 audio_channel_state_records_pitch_delta_accumulator_1:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word pitch_delta_accumulator
 audio_channel_state_records_volume_sequence_ptr_1:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
 audio_channel_state_records_volume_sequence_cursor_1:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_cursor
+	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
 audio_channel_state_records_volume_sequence_interval_1:	; STRUCT audio_channel_runtime_state
 	dc.b $00	; byte volume_sequence_interval
 audio_channel_state_records_volume_sequence_countdown_1:	; STRUCT audio_channel_runtime_state
@@ -28991,9 +29059,9 @@ audio_channel_state_records_update_countdown_2:	; STRUCT audio_channel_runtime_s
 audio_channel_state_records_pitch_delta_accumulator_2:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word pitch_delta_accumulator
 audio_channel_state_records_volume_sequence_ptr_2:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
 audio_channel_state_records_volume_sequence_cursor_2:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_cursor
+	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
 audio_channel_state_records_volume_sequence_interval_2:	; STRUCT audio_channel_runtime_state
 	dc.b $00	; byte volume_sequence_interval
 audio_channel_state_records_volume_sequence_countdown_2:	; STRUCT audio_channel_runtime_state
@@ -29041,9 +29109,9 @@ audio_channel_state_records_update_countdown_3:	; STRUCT audio_channel_runtime_s
 audio_channel_state_records_pitch_delta_accumulator_3:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word pitch_delta_accumulator
 audio_channel_state_records_volume_sequence_ptr_3:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_ptr
+	dc.b $00,$00,$00,$00	; long volume_sequence_ptr
 audio_channel_state_records_volume_sequence_cursor_3:	; STRUCT audio_channel_runtime_state
-	dc.l $00000000	; long volume_sequence_cursor
+	dc.b $00,$00,$00,$00	; long volume_sequence_cursor
 audio_channel_state_records_volume_sequence_interval_3:	; STRUCT audio_channel_runtime_state
 	dc.b $00	; byte volume_sequence_interval
 audio_channel_state_records_volume_sequence_countdown_3:	; STRUCT audio_channel_runtime_state
@@ -29560,7 +29628,7 @@ audio_channel_playback_states:	; STRUCT audio_channel_playback_state
 audio_channel_playback_states_period_reset_value_0:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word period_reset_value
 audio_channel_playback_states_period_delta_step_0:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long period_delta_step
+	dc.b $00,$00,$00,$00	; long period_delta_step
 audio_channel_playback_states_current_period_0:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word current_period
 audio_channel_playback_states_sample_address_offset_0:	; STRUCT audio_channel_playback_state
@@ -29602,7 +29670,7 @@ audio_channel_playback_states_period_delta_step_1:	; STRUCT audio_channel_playba
 audio_channel_playback_states_current_period_1:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word current_period
 audio_channel_playback_states_sample_address_offset_1:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sample_address_offset
+	dc.b $00,$00,$00,$00	; long sample_address_offset
 audio_channel_playback_states_period_reset_interval_1:	; STRUCT audio_channel_playback_state
 	dc.b $00	; byte period_reset_interval
 audio_channel_playback_states_period_delta_interval_1:	; STRUCT audio_channel_playback_state
@@ -29628,7 +29696,7 @@ audio_channel_playback_states_active_1:	; STRUCT audio_channel_playback_state
 audio_channel_playback_states_sequence_countdown_1:	; STRUCT audio_channel_playback_state
 	dc.b $00	; byte sequence_countdown
 audio_channel_playback_states_sequence_ptr_1:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sequence_ptr
+	dc.b $00,$00,$00,$00	; long sequence_ptr
 audio_channel_playback_states_gap_44_1:
 	dc.w $0000
 	dc.b $00,$00,$00,$00,$00,$00
@@ -29637,7 +29705,7 @@ audio_channel_playback_states_period_delta_2:	; STRUCT audio_channel_playback_st
 audio_channel_playback_states_period_reset_value_2:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word period_reset_value
 audio_channel_playback_states_period_delta_step_2:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long period_delta_step
+	dc.b $00,$00,$00,$00	; long period_delta_step
 audio_channel_playback_states_current_period_2:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word current_period
 audio_channel_playback_states_sample_address_offset_2:	; STRUCT audio_channel_playback_state
@@ -29679,7 +29747,7 @@ audio_channel_playback_states_period_delta_step_3:	; STRUCT audio_channel_playba
 audio_channel_playback_states_current_period_3:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word current_period
 audio_channel_playback_states_sample_address_offset_3:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sample_address_offset
+	dc.b $00,$00,$00,$00	; long sample_address_offset
 audio_channel_playback_states_period_reset_interval_3:	; STRUCT audio_channel_playback_state
 	dc.b $00	; byte period_reset_interval
 audio_channel_playback_states_period_delta_interval_3:	; STRUCT audio_channel_playback_state
@@ -29705,7 +29773,7 @@ audio_channel_playback_states_active_3:	; STRUCT audio_channel_playback_state
 audio_channel_playback_states_sequence_countdown_3:	; STRUCT audio_channel_playback_state
 	dc.b $00	; byte sequence_countdown
 audio_channel_playback_states_sequence_ptr_3:	; STRUCT audio_channel_playback_state
-	dc.l $00000000	; long sequence_ptr
+	dc.b $00,$00,$00,$00	; long sequence_ptr
 audio_channel_playback_states_gap_90_3:
 	dcb.b $8,$00	; typed data block gap
 abs_0_0005E68E:
@@ -29767,7 +29835,7 @@ audio_sequence_channel_configurations_period_delta_step_0:	; STRUCT audio_sequen
 audio_sequence_channel_configurations_current_period_0:	; STRUCT audio_sequence_channel_configuration
 	dc.w $07D0	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_0:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
+	dc.b $02,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_0:	; STRUCT audio_sequence_channel_configuration
 	dc.b $07	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_0:	; STRUCT audio_sequence_channel_configuration
@@ -29787,7 +29855,7 @@ audio_sequence_channel_configurations_period_delta_1:	; STRUCT audio_sequence_ch
 audio_sequence_channel_configurations_period_reset_value_1:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0D48	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_1:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFF1	; long period_delta_step
+	dc.b $00,$64,$FF,$F1	; long period_delta_step
 audio_sequence_channel_configurations_current_period_1:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0960	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_1:	; STRUCT audio_sequence_channel_configuration
@@ -29815,7 +29883,7 @@ audio_sequence_channel_configurations_period_delta_step_2:	; STRUCT audio_sequen
 audio_sequence_channel_configurations_current_period_2:	; STRUCT audio_sequence_channel_configuration
 	dc.w $06A4	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_2:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
+	dc.b $02,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_2:	; STRUCT audio_sequence_channel_configuration
 	dc.b $09	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_2:	; STRUCT audio_sequence_channel_configuration
@@ -29835,7 +29903,7 @@ audio_sequence_channel_configurations_period_delta_3:	; STRUCT audio_sequence_ch
 audio_sequence_channel_configurations_period_reset_value_3:	; STRUCT audio_sequence_channel_configuration
 	dc.w $012C	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_3:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFF1	; long period_delta_step
+	dc.b $00,$64,$FF,$F1	; long period_delta_step
 audio_sequence_channel_configurations_current_period_3:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00C8	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_3:	; STRUCT audio_sequence_channel_configuration
@@ -29863,7 +29931,7 @@ audio_sequence_channel_configurations_period_delta_step_4:	; STRUCT audio_sequen
 audio_sequence_channel_configurations_current_period_4:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0834	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_4:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000180	; long sample_address_offset
+	dc.b $02,$00,$01,$80	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_4:	; STRUCT audio_sequence_channel_configuration
 	dc.b $03	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_4:	; STRUCT audio_sequence_channel_configuration
@@ -29883,7 +29951,7 @@ audio_sequence_channel_configurations_period_delta_5:	; STRUCT audio_sequence_ch
 audio_sequence_channel_configurations_period_reset_value_5:	; STRUCT audio_sequence_channel_configuration
 	dc.w $1770	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_5:	; STRUCT audio_sequence_channel_configuration
-	dc.l $000FFFF1	; long period_delta_step
+	dc.b $00,$0F,$FF,$F1	; long period_delta_step
 audio_sequence_channel_configurations_current_period_5:	; STRUCT audio_sequence_channel_configuration
 	dc.w $1388	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_5:	; STRUCT audio_sequence_channel_configuration
@@ -29911,7 +29979,7 @@ audio_sequence_channel_configurations_period_delta_step_6:	; STRUCT audio_sequen
 audio_sequence_channel_configurations_current_period_6:	; STRUCT audio_sequence_channel_configuration
 	dc.w $024E	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_6:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01800200	; long sample_address_offset
+	dc.b $01,$80,$02,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_6:	; STRUCT audio_sequence_channel_configuration
 	dc.b $01	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_6:	; STRUCT audio_sequence_channel_configuration
@@ -29931,7 +29999,7 @@ audio_sequence_channel_configurations_period_delta_7:	; STRUCT audio_sequence_ch
 audio_sequence_channel_configurations_period_reset_value_7:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0BB8	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_7:	; STRUCT audio_sequence_channel_configuration
-	dc.l $000AFFF5	; long period_delta_step
+	dc.b $00,$0A,$FF,$F5	; long period_delta_step
 audio_sequence_channel_configurations_current_period_7:	; STRUCT audio_sequence_channel_configuration
 	dc.w $07D0	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_7:	; STRUCT audio_sequence_channel_configuration
@@ -29959,7 +30027,7 @@ audio_sequence_channel_configurations_period_delta_step_8:	; STRUCT audio_sequen
 audio_sequence_channel_configurations_current_period_8:	; STRUCT audio_sequence_channel_configuration
 	dc.w $05AA	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_8:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
+	dc.b $02,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_8:	; STRUCT audio_sequence_channel_configuration
 	dc.b $32	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_8:	; STRUCT audio_sequence_channel_configuration
@@ -29979,7 +30047,7 @@ audio_sequence_channel_configurations_period_delta_9:	; STRUCT audio_sequence_ch
 audio_sequence_channel_configurations_period_reset_value_9:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0294	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_9:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0014FFEC	; long period_delta_step
+	dc.b $00,$14,$FF,$EC	; long period_delta_step
 audio_sequence_channel_configurations_current_period_9:	; STRUCT audio_sequence_channel_configuration
 	dc.w $028A	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_9:	; STRUCT audio_sequence_channel_configuration
@@ -30007,7 +30075,7 @@ audio_sequence_channel_configurations_period_delta_step_10:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_10:	; STRUCT audio_sequence_channel_configuration
 	dc.w $07D0	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_10:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
+	dc.b $02,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_10:	; STRUCT audio_sequence_channel_configuration
 	dc.b $07	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_10:	; STRUCT audio_sequence_channel_configuration
@@ -30027,7 +30095,7 @@ audio_sequence_channel_configurations_period_delta_11:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_11:	; STRUCT audio_sequence_channel_configuration
 	dc.w $1130	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_11:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFF1	; long period_delta_step
+	dc.b $00,$64,$FF,$F1	; long period_delta_step
 audio_sequence_channel_configurations_current_period_11:	; STRUCT audio_sequence_channel_configuration
 	dc.w $06A4	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_11:	; STRUCT audio_sequence_channel_configuration
@@ -30055,7 +30123,7 @@ audio_sequence_channel_configurations_period_delta_step_12:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_12:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0258	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_12:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01000080	; long sample_address_offset
+	dc.b $01,$00,$00,$80	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_12:	; STRUCT audio_sequence_channel_configuration
 	dc.b $06	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_12:	; STRUCT audio_sequence_channel_configuration
@@ -30075,7 +30143,7 @@ audio_sequence_channel_configurations_period_delta_13:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_13:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00C8	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_13:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFF1	; long period_delta_step
+	dc.b $00,$64,$FF,$F1	; long period_delta_step
 audio_sequence_channel_configurations_current_period_13:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00C8	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_13:	; STRUCT audio_sequence_channel_configuration
@@ -30103,7 +30171,7 @@ audio_sequence_channel_configurations_period_delta_step_14:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_14:	; STRUCT audio_sequence_channel_configuration
 	dc.w $044C	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_14:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01000080	; long sample_address_offset
+	dc.b $01,$00,$00,$80	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_14:	; STRUCT audio_sequence_channel_configuration
 	dc.b $0B	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_14:	; STRUCT audio_sequence_channel_configuration
@@ -30123,7 +30191,7 @@ audio_sequence_channel_configurations_period_delta_15:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_15:	; STRUCT audio_sequence_channel_configuration
 	dc.w $12C0	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_15:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0064FFF1	; long period_delta_step
+	dc.b $00,$64,$FF,$F1	; long period_delta_step
 audio_sequence_channel_configurations_current_period_15:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0FA0	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_15:	; STRUCT audio_sequence_channel_configuration
@@ -30151,7 +30219,7 @@ audio_sequence_channel_configurations_period_delta_step_16:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_16:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00C8	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_16:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000000	; long sample_address_offset
+	dc.b $00,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_16:	; STRUCT audio_sequence_channel_configuration
 	dc.b $00	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_16:	; STRUCT audio_sequence_channel_configuration
@@ -30171,7 +30239,7 @@ audio_sequence_channel_configurations_period_delta_17:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_17:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0000	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_17:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000000	; long period_delta_step
+	dc.b $00,$00,$00,$00	; long period_delta_step
 audio_sequence_channel_configurations_current_period_17:	; STRUCT audio_sequence_channel_configuration
 	dc.w $007E	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_17:	; STRUCT audio_sequence_channel_configuration
@@ -30199,7 +30267,7 @@ audio_sequence_channel_configurations_period_delta_step_18:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_18:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00C8	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_18:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000000	; long sample_address_offset
+	dc.b $00,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_18:	; STRUCT audio_sequence_channel_configuration
 	dc.b $00	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_18:	; STRUCT audio_sequence_channel_configuration
@@ -30219,7 +30287,7 @@ audio_sequence_channel_configurations_period_delta_19:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_19:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0168	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_19:	; STRUCT audio_sequence_channel_configuration
-	dc.l $FFFE0002	; long period_delta_step
+	dc.b $FF,$FE,$00,$02	; long period_delta_step
 audio_sequence_channel_configurations_current_period_19:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0168	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_19:	; STRUCT audio_sequence_channel_configuration
@@ -30247,7 +30315,7 @@ audio_sequence_channel_configurations_period_delta_step_20:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_20:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00B4	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_20:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01800000	; long sample_address_offset
+	dc.b $01,$80,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_20:	; STRUCT audio_sequence_channel_configuration
 	dc.b $08	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_20:	; STRUCT audio_sequence_channel_configuration
@@ -30267,7 +30335,7 @@ audio_sequence_channel_configurations_period_delta_21:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_21:	; STRUCT audio_sequence_channel_configuration
 	dc.w $01B8	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_21:	; STRUCT audio_sequence_channel_configuration
-	dc.l $000CFFF6	; long period_delta_step
+	dc.b $00,$0C,$FF,$F6	; long period_delta_step
 audio_sequence_channel_configurations_current_period_21:	; STRUCT audio_sequence_channel_configuration
 	dc.w $01B8	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_21:	; STRUCT audio_sequence_channel_configuration
@@ -30295,7 +30363,7 @@ audio_sequence_channel_configurations_period_delta_step_22:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_22:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00F0	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_22:	; STRUCT audio_sequence_channel_configuration
-	dc.l $01800000	; long sample_address_offset
+	dc.b $01,$80,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_22:	; STRUCT audio_sequence_channel_configuration
 	dc.b $06	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_22:	; STRUCT audio_sequence_channel_configuration
@@ -30315,7 +30383,7 @@ audio_sequence_channel_configurations_period_delta_23:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_23:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0168	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_23:	; STRUCT audio_sequence_channel_configuration
-	dc.l $002EFFBE	; long period_delta_step
+	dc.b $00,$2E,$FF,$BE	; long period_delta_step
 audio_sequence_channel_configurations_current_period_23:	; STRUCT audio_sequence_channel_configuration
 	dc.w $012C	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_23:	; STRUCT audio_sequence_channel_configuration
@@ -30343,7 +30411,7 @@ audio_sequence_channel_configurations_period_delta_step_24:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_24:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0BB8	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_24:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
+	dc.b $02,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_24:	; STRUCT audio_sequence_channel_configuration
 	dc.b $00	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_24:	; STRUCT audio_sequence_channel_configuration
@@ -30363,7 +30431,7 @@ audio_sequence_channel_configurations_period_delta_25:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_25:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00F0	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_25:	; STRUCT audio_sequence_channel_configuration
-	dc.l $0002FFFE	; long period_delta_step
+	dc.b $00,$02,$FF,$FE	; long period_delta_step
 audio_sequence_channel_configurations_current_period_25:	; STRUCT audio_sequence_channel_configuration
 	dc.w $00F0	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_25:	; STRUCT audio_sequence_channel_configuration
@@ -30391,7 +30459,7 @@ audio_sequence_channel_configurations_period_delta_step_26:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_26:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0258	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_26:	; STRUCT audio_sequence_channel_configuration
-	dc.l $00000180	; long sample_address_offset
+	dc.b $00,$00,$01,$80	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_26:	; STRUCT audio_sequence_channel_configuration
 	dc.b $00	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_26:	; STRUCT audio_sequence_channel_configuration
@@ -30411,7 +30479,7 @@ audio_sequence_channel_configurations_period_delta_27:	; STRUCT audio_sequence_c
 audio_sequence_channel_configurations_period_reset_value_27:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0258	; word period_reset_value
 audio_sequence_channel_configurations_period_delta_step_27:	; STRUCT audio_sequence_channel_configuration
-	dc.l $FF88FF9C	; long period_delta_step
+	dc.b $FF,$88,$FF,$9C	; long period_delta_step
 audio_sequence_channel_configurations_current_period_27:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0258	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_27:	; STRUCT audio_sequence_channel_configuration
@@ -30439,7 +30507,7 @@ audio_sequence_channel_configurations_period_delta_step_28:	; STRUCT audio_seque
 audio_sequence_channel_configurations_current_period_28:	; STRUCT audio_sequence_channel_configuration
 	dc.w $1388	; word current_period
 audio_sequence_channel_configurations_sample_address_offset_28:	; STRUCT audio_sequence_channel_configuration
-	dc.l $02000000	; long sample_address_offset
+	dc.b $02,$00,$00,$00	; long sample_address_offset
 audio_sequence_channel_configurations_period_reset_interval_28:	; STRUCT audio_sequence_channel_configuration
 	dc.b $00	; byte period_reset_interval
 audio_sequence_channel_configurations_period_delta_interval_28:	; STRUCT audio_sequence_channel_configuration

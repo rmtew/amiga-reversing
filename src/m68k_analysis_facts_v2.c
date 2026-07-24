@@ -10117,7 +10117,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kAcceptedCandidateIndex accepted_index;
   M68kRuntimeAddressSpace runtime_addresses;
   M68kFactsV2Workflow workflow;
-  M68kSourceAnalysisIR local_source_analysis;
+  M68kSourceAnalysisIR *local_source_analysis = NULL;
   M68kSourceAnalysisIR *source_analysis = out_source_analysis;
   M68kRenderIRPreview *render_preview = NULL;
   M68kRenderLookup render_lookup;
@@ -10142,7 +10142,6 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_decode_ir_init(&decode);
   m68k_fact_ir_init(&facts);
   memset(&workflow, 0, sizeof(workflow));
-  memset(&local_source_analysis, 0, sizeof(local_source_analysis));
   memset(&source_analysis_stats, 0, sizeof(source_analysis_stats));
   memset(&platform_analysis_stats, 0, sizeof(platform_analysis_stats));
   if (facts_v2_workflow_create(&workflow) != 0) {
@@ -10159,7 +10158,11 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   render_text_preview = preview_source_enabled_local();
   render_asm_source = force_asm_source || (allow_env_asm_source && asm_source_enabled_local());
   source_analysis_required = source_analysis != NULL || render_asm_source || mark_source_blockers;
-  if (source_analysis == NULL && source_analysis_required) source_analysis = &local_source_analysis;
+  if (source_analysis == NULL && source_analysis_required) {
+    local_source_analysis = (M68kSourceAnalysisIR *)calloc(1U, sizeof(*local_source_analysis));
+    if (local_source_analysis == NULL) goto fail;
+    source_analysis = local_source_analysis;
+  }
   max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
   if (source_analysis != NULL) {
     fail_stage = "source analysis initialization";
@@ -10677,6 +10680,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   runtime_address_space_destroy(&runtime_addresses);
   work_queue_destroy(&queue);
   if (source_analysis_live && !source_analysis_owned_by_caller) m68k_ir_source_analysis_destroy(source_analysis);
+  free(local_source_analysis);
   facts_v2_workflow_destroy(&workflow);
   m68k_fact_ir_destroy(&facts);
   m68k_decode_ir_destroy(&decode);
@@ -10687,6 +10691,7 @@ fail:
       "facts_v2 failed during %s", fail_stage);
   }
   if (source_analysis_live) m68k_ir_source_analysis_destroy(source_analysis);
+  free(local_source_analysis);
   accepted_candidate_index_destroy(&accepted_index);
   if (render_lookup_live) m68k_render_lookup_destroy(&render_lookup);
   free_section_maps(&decode, accepted_start, accepted_bytes);
