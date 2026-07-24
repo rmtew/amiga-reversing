@@ -2651,7 +2651,7 @@ abs_0_00012FE8:
 	rts
 world_object_ptr_table:
 	dc.l player_world_object_gap_0	; mode=required, data_role=pointer_table, unit=pointer
-abs_0_0001300E:
+active_world_object_static_ptr_table:
 	dc.l abs_0_0005BA66	; mode=required, data_role=pointer_table, unit=pointer
 	dc.l abs_0_0005C1D2
 	dc.l abs_0_0005BABA
@@ -6870,7 +6870,7 @@ abs_0_0001933A:
 	bcc.b abs_0_000193DA
 	cmp.w $000A(a3),d7
 	bcc.b abs_0_000193DA
-	lea.l abs_0_0001300E.l,a4
+	lea.l active_world_object_static_ptr_table.l,a4
 abs_0_00019386:
 	move.l (a4)+,d4
 	beq.w abs_0_0001941E

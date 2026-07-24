@@ -116,6 +116,11 @@ by its null terminator.  `scan_world_objects_for_proximity` advances through
 that exact range and branches to context handling at the terminator; subsequent
 longwords belong to a different table.
 
+`active_world_object_static_ptr_table` starts at the second pointer and has 35
+entries before the same terminator.  It intentionally excludes the player and
+is used by `update_active_world_object_positions`; the similarly named runtime
+equate is a separate active-table pointer slot.
+
 `player_position_descriptor` at `$0005C71E` is the object referenced by the
 player prefix at `+0x2c`.  Proximity scanning stores `world_x` and `world_y`
 at its `+0x04` and `+0x06` words, while reset code restores its leading pointer.
