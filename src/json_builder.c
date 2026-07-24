@@ -115,6 +115,11 @@ int json_builder_append(JsonBuilder *builder, const char *text) {
     return append_bytes(builder, text, strlen(text));
 }
 
+int json_builder_append_len(JsonBuilder *builder, const char *text, size_t length) {
+    if (text == NULL) return -1;
+    return append_bytes(builder, text, length);
+}
+
 int json_builder_append_builder(JsonBuilder *builder, const JsonBuilder *source) {
     const JsonBuilderChunk *chunk;
     if (builder == NULL || source == NULL || source->state == NULL) return -1;

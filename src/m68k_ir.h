@@ -456,7 +456,11 @@ typedef struct M68kAnalysisPolicy {
   uint16_t manual_runtime_address_ref_count;
   uint16_t custom_struct_count;
   uint16_t custom_struct_capacity;
+  uint16_t structured_data_item_capacity;
+  uint16_t named_label_capacity;
   uint8_t custom_struct_owner;
+  uint8_t structured_data_items_owner;
+  uint8_t named_labels_owner;
   uint8_t reserved1[1];
   uint32_t entry_offset;
   char source_context_kind[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
@@ -466,8 +470,12 @@ typedef struct M68kAnalysisPolicy {
   char source_context_parent_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
-  M68kAnalysisStructuredDataItem structured_data_items[M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT];
-  M68kAnalysisNamedLabel named_labels[M68K_ANALYSIS_NAMED_LABEL_LIMIT];
+  /* These collections may contain thousands of facts.  Keep policy values
+     cheap to pass through recursive analysis and own overflow storage here. */
+  M68kAnalysisStructuredDataItem structured_data_items_inline[4];
+  M68kAnalysisStructuredDataItem *structured_data_items;
+  M68kAnalysisNamedLabel named_labels_inline[4];
+  M68kAnalysisNamedLabel *named_labels;
   M68kAnalysisEntryComment entry_comments[M68K_ANALYSIS_ENTRY_COMMENT_LIMIT];
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
@@ -2112,6 +2120,8 @@ int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
+int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count);
+int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16_t required_count);
 int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy);
 int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *source_analysis,
   const M68kAnalysisStructuredDataItem *item);

@@ -5743,7 +5743,9 @@ static int append_analysis_json_with_decompression_profile(JsonBuilder *builder,
   memset(&decompression_timing, 0, sizeof(decompression_timing));
   base_len = strlen(base_json);
   if (base_len == 0U || base_json[base_len - 1U] != '}') return -1;
-  if (json_builder_appendf(builder, "%.*s", (int)(base_len - 1U), base_json) != 0)
+  /* The analysis document can be several MiB.  Append its prefix as bytes,
+     rather than forcing it through the printf formatter's temporary buffer. */
+  if (json_builder_append_len(builder, base_json, base_len - 1U) != 0)
     return -1;
   if (append_object_decompression_analysis_json(builder, object, analysis, &decompression_timing) != 0)
     return -1;
@@ -6202,15 +6204,27 @@ static int append_source_reference_records_json(JsonBuilder *builder, const char
 
 static int append_analysis_restored_source_model_json(JsonBuilder *builder, const char *backend_name,
     const M68kObject *object, const M68kRenderPlan *source_plan) {
-  RestoredSourceModel model;
+  RestoredSourceModel *model = NULL;
   RestoredSourceCoverageVerifier verifier;
-  int status = restored_source_model_build_for_object(backend_name, object, &model);
-  if (status != 0) return -1;
-  if (append_restored_source_model_json(builder, &model) != 0) return -1;
-  if (model.ownership_range_count == 0U) return 0;
-  restored_source_coverage_verify(&model, object, source_plan, &verifier);
-  if (append_restored_source_coverage_verifier_json(builder, &verifier) != 0) return -1;
-  return append_source_reference_records_json(builder, backend_name, object, source_plan, &model);
+  int rc = -1;
+  /* This is a fixed-capacity analysis work model (4,096 ownership records),
+     not request-frame state.  Heap ownership keeps JSON analysis independent
+     of the hosting thread's stack limit. */
+  model = (RestoredSourceModel *)calloc(1U, sizeof(*model));
+  if (model == NULL) goto cleanup;
+  if (restored_source_model_build_for_object(backend_name, object, model) != 0) goto cleanup;
+  if (append_restored_source_model_json(builder, model) != 0) goto cleanup;
+  if (model->ownership_range_count == 0U) {
+    rc = 0;
+    goto cleanup;
+  }
+  restored_source_coverage_verify(model, object, source_plan, &verifier);
+  if (append_restored_source_coverage_verifier_json(builder, &verifier) != 0) goto cleanup;
+  rc = append_source_reference_records_json(builder, backend_name, object, source_plan, model);
+
+cleanup:
+  free(model);
+  return rc;
 }
 
 static void make_policy_symbol_label_local(char *out, size_t out_size, const char *symbol) {
@@ -6290,6 +6304,8 @@ static int policy_add_named_label_domain_local(M68kAnalysisPolicy *policy, uint3
     if (!collision) break;
     snprintf(unique_name, sizeof(unique_name), "%s_%u", name, suffix);
   }
+  if (m68k_analysis_policy_reserve_named_labels(policy, (uint16_t)(policy->named_label_count + 1U)) != 0)
+    return 0;
   label = &policy->named_labels[policy->named_label_count++];
   memset(label, 0, sizeof(*label));
   label->has_section_index = 1U;
@@ -6555,6 +6571,9 @@ static int policy_add_structured_data_item_section_local(M68kAnalysisPolicy *pol
   M68kAnalysisStructuredDataItem *item;
   if (policy == NULL || size == 0U ||
       policy->structured_data_item_count >= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return 0;
+  if (m68k_analysis_policy_reserve_structured_data_items(policy,
+      (uint16_t)(policy->structured_data_item_count + 1U)) != 0)
+    return 0;
   item = &policy->structured_data_items[policy->structured_data_item_count++];
   memset(item, 0, sizeof(*item));
   item->has_section_index = has_section_index;

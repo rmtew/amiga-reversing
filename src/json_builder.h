@@ -15,6 +15,7 @@ typedef struct JsonBuilder {
 
 int json_builder_create(JsonBuilder *builder);
 int json_builder_append(JsonBuilder *builder, const char *text);
+int json_builder_append_len(JsonBuilder *builder, const char *text, size_t length);
 int json_builder_append_builder(JsonBuilder *builder, const JsonBuilder *source);
 int json_builder_appendf(JsonBuilder *builder, const char *fmt, ...);
 int json_builder_append_char(JsonBuilder *builder, char ch);

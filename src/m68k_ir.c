@@ -1172,6 +1172,9 @@ int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *so
   source_analysis->structured_data_items = grown;
   source_analysis->structured_data_items[source_analysis->structured_data_item_count++] = copy;
   if (source_analysis->policy.structured_data_item_count < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
+    if (m68k_analysis_policy_reserve_structured_data_items(&source_analysis->policy,
+        (uint16_t)(source_analysis->policy.structured_data_item_count + 1U)) != 0)
+      return -1;
     source_analysis->policy.structured_data_items[source_analysis->policy.structured_data_item_count++] = copy;
   }
   return 0;
@@ -1425,22 +1428,85 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
 
   memset(policy, 0, sizeof(*policy));
   policy->max_cpu = M68K_ASM_CPU_68060;
+  policy->structured_data_items = policy->structured_data_items_inline;
+  policy->structured_data_item_capacity = 4U;
+  policy->named_labels = policy->named_labels_inline;
+  policy->named_label_capacity = 4U;
 }
 
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   if (policy == NULL) return;
   if (policy->custom_struct_owner != 0U && policy->custom_structs != NULL) free(policy->custom_structs);
+  if (policy->structured_data_items_owner != 0U && policy->structured_data_items != NULL)
+    free(policy->structured_data_items);
+  if (policy->named_labels_owner != 0U && policy->named_labels != NULL) free(policy->named_labels);
   policy->custom_structs = NULL;
   policy->custom_struct_count = 0U;
   policy->custom_struct_capacity = 0U;
   policy->custom_struct_owner = 0U;
+  policy->structured_data_item_count = 0U;
+  policy->structured_data_items = policy->structured_data_items_inline;
+  policy->structured_data_item_capacity = 4U;
+  policy->structured_data_items_owner = 0U;
+  policy->named_label_count = 0U;
+  policy->named_labels = policy->named_labels_inline;
+  policy->named_label_capacity = 4U;
+  policy->named_labels_owner = 0U;
+}
+
+int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count) {
+  M68kAnalysisStructuredDataItem *grown;
+  uint16_t capacity;
+  if (policy == NULL || required_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return -1;
+  if (required_count <= policy->structured_data_item_capacity) return 0;
+  capacity = policy->structured_data_item_capacity < 4U ? 4U : policy->structured_data_item_capacity;
+  while (capacity < required_count) {
+    uint16_t next = (uint16_t)(capacity * 2U);
+    capacity = next > capacity && next <= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ? next :
+      M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT;
+  }
+  grown = (M68kAnalysisStructuredDataItem *)calloc(capacity, sizeof(*grown));
+  if (grown == NULL) return -1;
+  if (policy->structured_data_item_count != 0U && policy->structured_data_items != NULL)
+    memcpy(grown, policy->structured_data_items, (size_t)policy->structured_data_item_count * sizeof(*grown));
+  if (policy->structured_data_items_owner != 0U) free(policy->structured_data_items);
+  policy->structured_data_items = grown;
+  policy->structured_data_item_capacity = capacity;
+  policy->structured_data_items_owner = 1U;
+  return 0;
+}
+
+int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16_t required_count) {
+  M68kAnalysisNamedLabel *grown;
+  uint16_t capacity;
+  if (policy == NULL || required_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT) return -1;
+  if (required_count <= policy->named_label_capacity) return 0;
+  capacity = policy->named_label_capacity < 4U ? 4U : policy->named_label_capacity;
+  while (capacity < required_count) {
+    uint16_t next = (uint16_t)(capacity * 2U);
+    capacity = next > capacity && next <= M68K_ANALYSIS_NAMED_LABEL_LIMIT ? next : M68K_ANALYSIS_NAMED_LABEL_LIMIT;
+  }
+  grown = (M68kAnalysisNamedLabel *)calloc(capacity, sizeof(*grown));
+  if (grown == NULL) return -1;
+  if (policy->named_label_count != 0U && policy->named_labels != NULL)
+    memcpy(grown, policy->named_labels, (size_t)policy->named_label_count * sizeof(*grown));
+  if (policy->named_labels_owner != 0U) free(policy->named_labels);
+  policy->named_labels = grown;
+  policy->named_label_capacity = capacity;
+  policy->named_labels_owner = 1U;
+  return 0;
 }
 
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src) {
   uint16_t custom_struct_count;
+  uint16_t structured_data_item_count;
+  uint16_t named_label_count;
   uint16_t index;
   M68kAnalysisCustomStruct *custom_structs = NULL;
+  M68kAnalysisStructuredDataItem *structured_data_items = NULL;
+  M68kAnalysisNamedLabel *named_labels = NULL;
   if (dest == NULL || src == NULL) return -1;
+  if (dest == src) return 0;
   custom_struct_count = src->custom_struct_count;
   if (custom_struct_count != 0U) {
     if (src->custom_structs == NULL || custom_struct_count > M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT) return -1;
@@ -1448,15 +1514,60 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     if (custom_structs == NULL) return -1;
     memcpy(custom_structs, src->custom_structs, (size_t)custom_struct_count * sizeof(*custom_structs));
   }
+  structured_data_item_count = src->structured_data_item_count;
+  if (structured_data_item_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
+      (structured_data_item_count != 0U && src->structured_data_items == NULL)) goto oom;
+  if (structured_data_item_count > 4U) {
+    structured_data_items = (M68kAnalysisStructuredDataItem *)calloc(structured_data_item_count,
+      sizeof(*structured_data_items));
+    if (structured_data_items == NULL) goto oom;
+    memcpy(structured_data_items, src->structured_data_items,
+      (size_t)structured_data_item_count * sizeof(*structured_data_items));
+  }
+  named_label_count = src->named_label_count;
+  if (named_label_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT ||
+      (named_label_count != 0U && src->named_labels == NULL)) goto oom;
+  if (named_label_count > 4U) {
+    named_labels = (M68kAnalysisNamedLabel *)calloc(named_label_count, sizeof(*named_labels));
+    if (named_labels == NULL) goto oom;
+    memcpy(named_labels, src->named_labels, (size_t)named_label_count * sizeof(*named_labels));
+  }
   *dest = *src;
   dest->custom_structs = custom_structs;
   dest->custom_struct_capacity = custom_struct_count;
   dest->custom_struct_owner = custom_struct_count != 0U ? 1U : 0U;
+  dest->structured_data_items = dest->structured_data_items_inline;
+  dest->structured_data_item_capacity = 4U;
+  dest->structured_data_items_owner = 0U;
+  if (structured_data_item_count > 4U) {
+    dest->structured_data_items = structured_data_items;
+    dest->structured_data_item_capacity = structured_data_item_count;
+    dest->structured_data_items_owner = 1U;
+  } else if (structured_data_item_count != 0U) {
+    memcpy(dest->structured_data_items_inline, src->structured_data_items,
+      (size_t)structured_data_item_count * sizeof(dest->structured_data_items_inline[0]));
+  }
+  dest->named_labels = dest->named_labels_inline;
+  dest->named_label_capacity = 4U;
+  dest->named_labels_owner = 0U;
+  if (named_label_count > 4U) {
+    dest->named_labels = named_labels;
+    dest->named_label_capacity = named_label_count;
+    dest->named_labels_owner = 1U;
+  } else if (named_label_count != 0U) {
+    memcpy(dest->named_labels_inline, src->named_labels,
+      (size_t)named_label_count * sizeof(dest->named_labels_inline[0]));
+  }
   for (index = 0U; index < dest->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     m68k_analysis_structured_data_item_refresh_text_lengths(&dest->structured_data_items[index]);
   }
   return 0;
+oom:
+  free(custom_structs);
+  free(structured_data_items);
+  free(named_labels);
+  return -1;
 }
 
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings) {
