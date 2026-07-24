@@ -303,6 +303,16 @@ identical `$0005B10A` and `$0005B112` entrypoints each tail-call it with D0 =
 yet been recovered.
 The resulting long at prefix offset `+0x00` is represented as `item_name_ptr`.
 
+The surrounding state-record pointer fields also establish three indirectly
+reachable handlers. `initialize_position_state_link` at `$0005B0EA` installs
+the `$0005B814` state record through its `$0005B7CE` link and clears its timer
+and bit-0 state. `toggle_position_state_active_flag` at `$0005B100` toggles
+bit 0 of `$0005B81E`. `collect_world_object_item` at `$0005B11A` transfers the
+active object's item id to the player, marks that object processed, restores its
+position state, closes the inventory panel when open, and refreshes the item
+display. The wider state-record layouts remain raw because only these callback
+pointer fields—not every record field—are presently evidenced.
+
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
 field facts come from the common scan loop rather than the player instance:
 `interaction_callback` (`+0x04`), `context_callback` (`+0x0c`),
