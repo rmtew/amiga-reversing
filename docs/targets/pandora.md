@@ -188,6 +188,43 @@ paths return an object to its prior state.  `enqueue_status_message` at
 initializing the queue/timing when necessary; trade, receptacle, and contextual
 interaction paths all use this common entry.
 
+### Confirmed object-interaction callback dispatch
+
+`invoke_nearby_object_interaction` reads the shared-prefix long at `+0x04`,
+calls it indirectly when non-null, and treats carry set on return as
+"interaction handled". When the callback leaves carry clear, the caller uses
+the prefix long at `+0x10` as an optional status-message string and passes it
+to `enqueue_status_message`. This establishes `interaction_callback` as a
+code-pointer field, rather than merely an opaque longword.
+
+The world-object table references 13 distinct callback entrypoints. They are
+seeded as code and labelled through the target command surface; this was needed
+because an indirect pointer alone cannot safely create a control-flow entry in
+the analyzer.
+
+| Address | Callback | Referencing object/item |
+| --- | --- | --- |
+| `$0005D37E` | `interact_with_musician` | Musician (`$40`) |
+| `$0005D3A2` | `interact_with_hooligan_or_robomechanic` | Hooligan (`$4E`) and Robomechanic (`$41`) |
+| `$0005D3AE` | `interact_with_sec_officer` | Sec officer (`$43`) |
+| `$0005D3BE` | `interact_with_chemist` | Chemist (`$45`) |
+| `$0005D3FC` | `interact_with_bank_manager` | Bank manager (`$4F`) |
+| `$0005D426` | `interact_with_priest` | Priest (`$49`) |
+| `$0005D432` | `interact_with_technician` | Technician (`$4B`) |
+| `$0005D44A` | `interact_with_wackobrain` | Wackobrain (`$62`) |
+| `$0005D496` | `interact_with_menial_droid` | Menial droid (`$51`) |
+| `$0005D4C4` | `interact_with_gardener` | Gardener (`$47`) |
+| `$0005D520` | `interact_with_squash_player` | Squash player (`$4C`) |
+| `$0005D538` | `interact_with_driffid` | Driffid (`$4A`) |
+| `$0005D568` | `interact_with_diabetic` | Diabetic (`$46`) |
+
+Several callbacks compare `player_world_object_selected_item_id` with a
+specific item id, and the Priest callback branches to the shared
+Hooligan/Robomechanic routine when its state guard is already set. The next
+pass should recover those item constants and the repeated flag/timer updates
+as named interaction-state fields rather than treating each callback in
+isolation.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

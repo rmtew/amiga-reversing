@@ -79,6 +79,7 @@ def test_target_equate_catalog_payloads() -> None:
         }
     }
 
+
     kind, payload = target_catalog_manual_payload(
         "target.equate.rename",
         {"previous_name": "PLAYER_START_LIVES", "name": "PLAYER_INITIAL_LIVES"},
@@ -109,6 +110,53 @@ def test_target_equate_catalog_payloads() -> None:
             "name": "PLAYER_START_LIVES",
             "value": 3,
             "value_representation": "binary",
+        }
+    }
+
+
+def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.code.seed",
+        {
+            "hunk": 0,
+            "addr": 0x4D37E,
+            "name": "interact_with_musician",
+            "role": "world_object_interaction_callback",
+        },
+    )
+
+    assert kind == "create_manual_seed"
+    assert payload == {
+        "seed": {
+            "seed_id": "catalog-code-seed-h0-0004D37E",
+            "kind": "code",
+            "mode": "required",
+            "hunk": 0,
+            "addr": 0x4D37E,
+            "name": "interact_with_musician",
+            "role": "world_object_interaction_callback",
+        }
+    }
+
+    kind, payload = target_catalog_manual_payload(
+        "target.code.seed.remove", {"seed_id": "catalog-code-seed-h0-0004D37E"}
+    )
+    assert kind == "remove_manual_seed"
+    assert payload == {"seed_id": "catalog-code-seed-h0-0004D37E"}
+
+    kind, payload = target_catalog_manual_payload(
+        "target.code_label.add",
+        {"hunk": 0, "addr": 0x4D37E, "name": "interact_with_musician"},
+    )
+    assert kind == "create_manual_label"
+    assert payload == {
+        "label": {
+            "label_id": "catalog-code-label-h0-0004D37E",
+            "name": "interact_with_musician",
+            "scope": "global",
+            "address_domain": "source",
+            "hunk": 0,
+            "addr": 0x4D37E,
         }
     }
 

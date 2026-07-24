@@ -113,6 +113,10 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_remove_action(),
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
+        _target_code_seed_action(),
+        _target_code_seed_remove_action(),
+        _target_code_label_action(),
+        _target_code_label_remove_action(),
         _target_data_block_layout_action(),
         _target_data_block_element_action(),
         _target_custom_struct_action(),
@@ -159,6 +163,14 @@ def target_catalog_manual_payload(
         return "create_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_runtime_observation_view":
         return "remove_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_seed":
+        return "create_manual_seed", {"seed": _target_code_seed_payload(params)}
+    if action.get("action") == "remove_manual_seed":
+        return "remove_manual_seed", {"seed_id": str(params["seed_id"])}
+    if action.get("action") == "create_manual_label":
+        return "create_manual_label", {"label": _target_code_label_payload(params)}
+    if action.get("action") == "remove_manual_label":
+        return "remove_manual_label", {"label_id": str(params["label_id"])}
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
     if action.get("action") == "set_manual_data_block_element":
@@ -5412,6 +5424,95 @@ def _target_data_block_layout_action() -> dict[str, object]:
         "create_manual_data_block_layout",
         _target_data_block_layout_parameter_schema(),
     )
+
+
+def _target_code_seed_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code.seed",
+        "Seed code entrypoint at source address",
+        "create_manual_seed",
+        {
+            "type": "object",
+            "properties": {
+                "hunk": {"type": "integer", "minimum": 0},
+                "addr": {"type": "integer", "minimum": 0},
+                "name": {"type": "string"},
+                "role": {"type": "string"},
+            },
+            "required": ["hunk", "addr", "name"],
+        },
+    )
+
+
+def _target_code_seed_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code.seed.remove",
+        "Remove code entrypoint seed",
+        "remove_manual_seed",
+        {"type": "object", "properties": {"seed_id": {"type": "string"}}, "required": ["seed_id"]},
+    )
+
+
+def _target_code_label_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code_label.add",
+        "Add code label at source address",
+        "create_manual_label",
+        {
+            "type": "object",
+            "properties": {
+                "hunk": {"type": "integer", "minimum": 0},
+                "addr": {"type": "integer", "minimum": 0},
+                "name": {"type": "string"},
+            },
+            "required": ["hunk", "addr", "name"],
+        },
+    )
+
+
+def _target_code_label_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code_label.remove",
+        "Remove code label",
+        "remove_manual_label",
+        {"type": "object", "properties": {"label_id": {"type": "string"}}, "required": ["label_id"]},
+    )
+
+
+def _target_code_seed_payload(params: Mapping[str, object]) -> dict[str, object]:
+    hunk = _optional_int(params.get("hunk"))
+    addr = _optional_int(params.get("addr"))
+    name = params.get("name")
+    if hunk is None or addr is None or not isinstance(name, str) or not name.strip():
+        raise ValueError("target.code.seed requires hunk, addr, and name")
+    seed: dict[str, object] = {
+        "seed_id": f"catalog-code-seed-h{hunk}-{addr:08X}",
+        "kind": "code",
+        "mode": "required",
+        "hunk": hunk,
+        "addr": addr,
+        "name": name.strip(),
+    }
+    role = params.get("role")
+    if isinstance(role, str) and role.strip():
+        seed["role"] = role.strip()
+    return seed
+
+
+def _target_code_label_payload(params: Mapping[str, object]) -> dict[str, object]:
+    hunk = _optional_int(params.get("hunk"))
+    addr = _optional_int(params.get("addr"))
+    name = params.get("name")
+    if hunk is None or addr is None or not isinstance(name, str) or not name.strip():
+        raise ValueError("target.code_label.add requires hunk, addr, and name")
+    return {
+        "label_id": f"catalog-code-label-h{hunk}-{addr:08X}",
+        "name": name.strip(),
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": hunk,
+        "addr": addr,
+    }
 
 
 def _target_data_block_element_action() -> dict[str, object]:

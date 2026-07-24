@@ -26,7 +26,10 @@ from amiga_reversing.disasm.binary_source import (
     RawBinarySource,
 )
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
-from amiga_reversing.disasm.manual_action_catalog import listing_element_action_catalog, listing_range_action_catalog
+from amiga_reversing.disasm.manual_action_catalog import (
+    listing_element_action_catalog,
+    listing_range_action_catalog,
+)
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemState,
@@ -1754,6 +1757,17 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     equate_remove_action = next(action for action in actions if action["action_id"] == "target.equate.remove")
     assert equate_remove_action["action"] == "remove_manual_target_equate"
     assert equate_remove_action["parameter_schema"]["required"] == ["name"]
+    code_seed_action = next(action for action in actions if action["action_id"] == "target.code.seed")
+    assert code_seed_action["category"] == "target_metadata"
+    assert code_seed_action["appends_to_manual_action_log"] is True
+    assert code_seed_action["action"] == "create_manual_seed"
+    assert code_seed_action["parameter_schema"]["required"] == ["hunk", "addr", "name"]
+    code_seed_remove_action = next(action for action in actions if action["action_id"] == "target.code.seed.remove")
+    assert code_seed_remove_action["action"] == "remove_manual_seed"
+    assert code_seed_remove_action["parameter_schema"]["required"] == ["seed_id"]
+    code_label_action = next(action for action in actions if action["action_id"] == "target.code_label.add")
+    assert code_label_action["action"] == "create_manual_label"
+    assert code_label_action["parameter_schema"]["required"] == ["hunk", "addr", "name"]
     execution_view_action = next(action for action in actions if action["action_id"] == "target.execution_view.add")
     assert execution_view_action["category"] == "target_metadata"
     assert execution_view_action["appends_to_manual_action_log"] is True
@@ -2666,6 +2680,64 @@ def test_command_manual_action_execute_appends_exact_source_range_data_block_lay
         "name": "default_empty_item_slots",
         "role": "item_slot_table",
         "default_unit": "word",
+    }
+    assert appended_actions == [action]
+
+
+def test_command_manual_action_execute_appends_named_code_seed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="target.code.seed",
+        context={"kind": "target"},
+        parameters={
+            "hunk": 0,
+            "addr": 0x4D37E,
+            "name": "interact_with_musician",
+            "role": "world_object_interaction_callback",
+        },
+    )
+    action = cast(dict[str, object], payload["action"])
+    seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["seed"])
+
+    assert action["kind"] == "create_manual_seed"
+    assert seed == {
+        "seed_id": "catalog-code-seed-h0-0004D37E",
+        "kind": "code",
+        "mode": "required",
+        "hunk": 0,
+        "addr": 0x4D37E,
+        "name": "interact_with_musician",
+        "role": "world_object_interaction_callback",
+    }
+    assert appended_actions == [action]
+
+
+def test_command_manual_action_execute_appends_code_label(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="target.code_label.add",
+        context={"kind": "target"},
+        parameters={"hunk": 0, "addr": 0x4D37E, "name": "interact_with_musician"},
+    )
+    action = cast(dict[str, object], payload["action"])
+    label = cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
+
+    assert action["kind"] == "create_manual_label"
+    assert label == {
+        "label_id": "catalog-code-label-h0-0004D37E",
+        "name": "interact_with_musician",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 0x4D37E,
     }
     assert appended_actions == [action]
 
