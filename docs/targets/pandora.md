@@ -631,7 +631,7 @@ prefix belong to the same table.
 
 The `$4e75` instruction is treated as a code indicator when recovering an
 otherwise raw island: it is an `RTS` boundary, not generic byte data. The two
-independent palette routines at `$000171AC` and `$0001721E` are consequently
+independent palette routines at `$000171AC` and `$00017216` are consequently
 recovered as code. The latter, `fade_out_work_buffer_palette`, initializes the
 RGB12 component workspace by unpacking the source palette, then performs
 sixteen delayed subtractive RGB12 palette steps before its terminal `RTS` at
@@ -646,6 +646,24 @@ saved byte at `app_02C9` into the countdown byte `app_0289`. The following
 routine decrements that countdown and clears the same flag on expiry. This
 short helper is therefore code bounded by its `$4e75`, despite having no
 direct static call site currently recovered.
+
+### World-object handler dispatch
+
+The loop at `$00011412` reads a word from the current world object, rejects
+values `$21` and above, multiplies the remaining value by four, and calls the
+corresponding address through `world_object_handler_ptrs`. That establishes
+`world_object_handler_dispatch` at `$00011432` as exactly 33 longword handler
+pointers, ending at `$000114B6`. The following raw bytes are deliberately not
+claimed as the out-of-range handler: the guarded branch alone does not provide
+a bounded executable entry there.
+
+The recovered callbacks implement script commands for setting, loading, and
+adding the current object's x/y/z coordinates; conditional x/y comparisons;
+relative and absolute calls; repeat/skip control; and attachment selection or
+toggle operations. Each handler advances or replaces the `a4` script cursor,
+which is then persisted by the dispatch loop. The runtime fields and object
+flags used by the attachment commands remain unnamed until their wider
+consumers establish a shared layout.
 
 ### Player world movement
 

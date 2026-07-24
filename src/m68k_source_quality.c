@@ -1365,7 +1365,8 @@ static int section_label_has_durable_unreferenced_origin(const M68kSectionAnalys
   if (section == NULL || label == NULL) return 0;
   for (index = 0U; index < section->symbol_origin_count; ++index) {
     const M68kSymbolOriginIR *origin = &section->symbol_origins[index];
-    if (origin->origin_kind != M68K_SYMBOL_ORIGIN_STRUCTURED_DATA &&
+    if (origin->origin_kind != M68K_SYMBOL_ORIGIN_MANUAL_LABEL &&
+        origin->origin_kind != M68K_SYMBOL_ORIGIN_STRUCTURED_DATA &&
         origin->origin_kind != M68K_SYMBOL_ORIGIN_OBJECT_SYMBOL) continue;
     if (label->has_target) {
       if (label->target_section_index == section->section_index && label->target_offset == origin->offset)
