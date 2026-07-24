@@ -265,9 +265,28 @@ trade_offer_table_ptr	EQU	24
 initial_inventory_slots_ptr	EQU	28
 initial_trade_offer_table_ptr	EQU	32
 position_state_ptr	EQU	0
+channel_flags	EQU	0
+pitch_modulation_flags	EQU	1
+current_note	EQU	2
+note_offset	EQU	3
 program_ptr	EQU	4
 channel_configuration_offset	EQU	8
+pitch_sequence_start_ptr	EQU	12
+pitch_sequence_cursor	EQU	16
+pitch_delta_step	EQU	20
+pitch_delta_countdown	EQU	21
+sample_start_pending	EQU	22
+sample_metadata_ptr	EQU	24
+update_reload_countdown	EQU	28
 update_countdown	EQU	30
+pitch_delta_accumulator	EQU	32
+volume_sequence_ptr	EQU	34
+volume_sequence_cursor	EQU	38
+volume_sequence_interval	EQU	42
+volume_sequence_countdown	EQU	43
+pitch_modulation_step	EQU	44
+pitch_modulation_value	EQU	45
+pitch_modulation_limit	EQU	46
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -1966,7 +1985,7 @@ abs_0_00012644:
 	rts
 	dc.b $40,$E7,$46,$FC,$27,$00,$2D,$48,$03,$60,$46,$DF,$4E,$75
 is_player_within_world_object_interaction_range:
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	move.w $0032(a4),d0
 	sub.w $0032(a5),d0
 	bpl.b abs_0_00012676
@@ -1983,7 +2002,7 @@ abs_0_00012688:
 abs_0_0001268C:
 	rts
 abs_0_0001268E:
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	movem.l d0-d2/a0-a2,-(a7)
 	movea.l $002C(a5),a0
 	movea.l $0000(a0),a1
@@ -2013,7 +2032,7 @@ abs_0_000126E6:
 	movem.l (a7)+,d0-d2/a0-a2
 	rts
 update_inventory_panel_availability:
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_00012712
 	move.b app_ui_flags(a6),d0
@@ -2276,7 +2295,7 @@ handle_inventory_panel_selection:
 	bne.w abs_0_00012AB6
 	bsr.w clear_inventory_item_selection_flags
 	movea.l app_0358(a6),a5
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	move.w app_inventory_cursor_y(a6),d0
 	subi.w #139,d0
 	lsr.w #2,d0
@@ -2723,7 +2742,7 @@ abs_0_00012FE8:
 	movem.l (a7)+,d2-d3
 	rts
 world_object_ptr_table:
-	dc.l player_world_object_item_name_ptr	; mode=required, data_role=pointer_table, unit=pointer
+	dc.l player_world_object	; mode=required, data_role=pointer_table, unit=pointer
 active_world_object_static_ptr_table:
 	dc.l abs_0_0005BA66	; mode=required, data_role=pointer_table, unit=pointer
 	dc.l abs_0_0005C1D2
@@ -2806,7 +2825,7 @@ abs_0_0001310E:
 	dc.l abs_0_0005C96E
 	dc.l abs_0_00059AA8
 	dc.l abs_0_00059CB8
-	dc.l player_position_descriptor_position_state_ptr
+	dc.l player_position_descriptor
 	dc.l abs_0_00058BF8
 	dc.l abs_0_00059F24
 	dc.l abs_0_0005A636
@@ -5307,7 +5326,7 @@ abs_0_0001779E:
 	lsr.b #1,d1
 abs_0_000177EC:
 	move.b d1,app_02B6(a6)
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	move.l $0030(a5),-(a7)
 	add.w d2,$0030(a5)
 	bsr.w abs_0_0001864C
@@ -5315,7 +5334,7 @@ abs_0_000177EC:
 	move.b d0,app_02B3(a6)
 	move.b d1,app_02B7(a6)
 	movea.l app_interaction_object_ptr(a6),a5
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	move.b $004A(a5),d0
 	cmp.b #$42,d0
 	bne.b abs_0_00017856
@@ -5394,7 +5413,7 @@ abs_0_000178F4:
 	and.b d2,d1
 	cmp.b d0,d1
 	bcs.b abs_0_00017938
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	move.b $003D(a4),d0
 	sub.b app_02B6(a6),d0
 	beq.w abs_0_000179A8
@@ -5430,7 +5449,7 @@ abs_0_00017980:
 	movea.l app_interaction_object_ptr(a6),a5
 	bsr.w abs_0_00018544
 	lea.l abs_0_000132D6.l,a4
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	bsr.w abs_0_00018544
 	bsr.w abs_0_0001817A
 	bsr.w abs_0_00017B3C
@@ -5472,7 +5491,7 @@ abs_0_00017A06:
 	andi.b #240,d0
 	move.w d0,$0030(a5)
 	bsr.w abs_0_000124E0
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	btst.b #1,$0048(a5)
 	beq.b abs_0_00017A4E
 	movea.l app_interaction_object_ptr(a6),a5
@@ -5506,7 +5525,7 @@ abs_0_00017A94:
 	movea.l $0010(a2),a3
 	move.l a1,$0000(a2)
 	move.l a1,$0004(a2)
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	move.w $0030(a5),d0
 	subi.w #10000,d0
 	move.w d0,$0004(a3)
@@ -5584,7 +5603,7 @@ validate_npc_item_trade:
 	move.b $0046(a5),d0
 	bsr.w is_tradeable_item_id
 	bcs.b abs_0_00017C06
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	move.b $0046(a4),d0
 	bsr.w is_tradeable_item_id
 	bcs.w abs_0_00017BF2
@@ -5704,7 +5723,7 @@ abs_0_00017D48:
 	clr.w app_0298(a6)
 	bra.w abs_0_00017D9C
 abs_0_00017D60:
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	move.w app_tilemap_height(a6),d1
 	subq.w #8,d1
 	lsl.w #4,d1
@@ -5741,7 +5760,7 @@ abs_0_00017DA6:
 	bset.b #2,app_033C(a6)
 	bne.b abs_0_00017DD6
 	lea.l abs_0_000132D6.l,a4
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	bsr.w abs_0_00018544
 abs_0_00017DD6:
 	lea.l abs_0_000134C2.l,a0
@@ -5752,7 +5771,7 @@ abs_0_00017DD6:
 abs_0_00017DEE:
 	rts
 update_world_object_interactions:
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	movea.l app_active_world_object_ptr_table(a6),a0
 	move.w active_world_object_count(a6),d7
 	beq.w abs_0_00017F06
@@ -6185,7 +6204,7 @@ abs_0_000182E8:
 	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF
 update_nearby_object_detection:
 	lea.l world_object_ptr_table(pc),a1
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	move.w $0030(a4),d4
 	move.w $0032(a4),d5
 	move.w #$5A,d0
@@ -6492,7 +6511,7 @@ restore_world_object_position_state:
 	dc.b $3F,$FF,$4E,$75
 abs_0_0001875A:
 	lea.l abs_0_00013502(pc),a0
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	moveq.l #0,d0
 	moveq.l #0,d1
 	moveq.l #0,d2
@@ -6564,7 +6583,7 @@ abs_0_00018808:
 	jsr abs_0_0005D368.l
 	rts
 abs_0_00018814:
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_0001884E
 	tst.b app_02CE(a6)
@@ -6594,7 +6613,7 @@ abs_0_00018850:
 abs_0_00018864:
 	subq.w #1,app_02D0(a6)
 	bne.b abs_0_00018896
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	move.b $003D(a5),d0
 	subi.b #51,d0
 	bpl.b abs_0_0001887C
@@ -6606,7 +6625,7 @@ abs_0_0001887C:
 	move.b #$1F,app_02CE(a6)
 	move.w #$32,app_02D0(a6)
 abs_0_00018896:
-	lea.l player_world_object_item_name_ptr.l,a5
+	lea.l player_world_object.l,a5
 	move.w app_02D2(a6),d0
 	tst.b app_02CE(a6)
 	beq.b abs_0_00018918
@@ -6617,7 +6636,7 @@ abs_0_00018896:
 	bmi.b abs_0_000188BC
 	bne.b abs_0_0001884E
 abs_0_000188BC:
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	clr.w $003C(a4)
 	bset.b #1,$0048(a4)
 	move.b #$46,app_02CC(a6)
@@ -6664,7 +6683,7 @@ abs_0_00018984:
 	andi.b #6,d0
 	bne.w abs_0_00018A16
 	lea.l abs_0_000591EE.l,a0
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_00018A16
 	move.w $0004(a0),d0
@@ -6865,7 +6884,7 @@ abs_0_0001926E:
 	tst.b app_031B(a6)
 	bne.w abs_0_000193D8
 	addq.b #1,app_031B(a6)
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	clr.w d0
 	move.b $0046(a4),d0
 	subi.b #18,d0
@@ -6916,7 +6935,7 @@ abs_0_00019320:
 	move.l (a0)+,d4
 	beq.b abs_0_000192DE
 	movea.l d4,a1
-	cmpa.l #player_position_descriptor_position_state_ptr,a1
+	cmpa.l #player_position_descriptor,a1
 	beq.b abs_0_00019320
 	cmpa.l #abs_0_0005859A,a1
 	beq.b abs_0_00019320
@@ -7453,7 +7472,7 @@ abs_0_00019FC4:
 	move.w d0,app_tilemap_scroll_y(a6)
 	clr.w app_tile_column(a6)
 	clr.w app_tilemap_scroll_x(a6)
-	lea.l player_world_object_item_name_ptr.l,a4
+	lea.l player_world_object.l,a4
 	addi.w #50,d0
 	move.w d0,$0032(a4)
 	move.w #$F1,$0030(a4)
@@ -7532,7 +7551,7 @@ abs_0_0001A10A:
 	clr.w $0044(a5)
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
-	move.l #$5C72A,player_position_descriptor_position_state_ptr.l
+	move.l #$5C72A,player_position_descriptor.l
 	clr.b app_nearby_object_prompt_countdown(a6)
 	bset.b #4,app_02A6(a6)
 	movea.l (a7)+,a5
@@ -26465,7 +26484,7 @@ abs_0_0005C2BE:
 	dc.b $05,$C2,$52,$00,$05,$C2,$52,$00,$05,$C2,$64,$00,$05,$C2,$76,$00
 	dc.b $05,$C2,$88,$00,$05,$C2,$9A,$00,$05,$C2,$AC,$00,$07,$00,$01,$95
 	dc.b $E2,$00,$05,$00,$01,$00,$14,$00,$05,$C3,$12
-player_world_object_item_name_ptr:	; STRUCT world_object_shared_prefix
+player_world_object:	; STRUCT world_object_shared_prefix
 	dc.l $00000000	; long item_name_ptr
 player_world_object_interaction_callback:	; STRUCT world_object_shared_prefix
 	dc.l $00000000	; long interaction_callback
@@ -26590,7 +26609,7 @@ abs_0_0005C6BA:
 	dc.b $05,$C6,$06,$00,$05,$C6,$18,$00,$05,$C6,$2A,$00,$05,$C6,$3C,$00
 	dc.b $05,$C6,$4E,$00,$05,$C6,$60,$00,$05,$C6,$72,$00,$05,$C6,$84,$00
 	dc.b $05,$C6,$96,$00,$05,$C6,$A8
-player_position_descriptor_position_state_ptr:	; STRUCT world_position_descriptor_prefix
+player_position_descriptor:	; STRUCT world_position_descriptor_prefix
 	dc.l $0005C72A	; long position_state_ptr
 player_position_descriptor_world_x:	; STRUCT world_position_descriptor_prefix
 	dc.w $0000	; word world_x
@@ -27246,7 +27265,7 @@ abs_0_0005D950:
 abs_0_0005D966:
 	moveq.l #3,d7
 abs_0_0005D968:
-	lea.l audio_channel_dma_configurations_sample_ptr_0(pc),a4
+	lea.l audio_channel_dma_configurations(pc),a4
 	move.w d7,d0
 	mulu.w #$C,d0
 	adda.w d0,a4
@@ -27443,7 +27462,7 @@ abs_0_0005DBBE:
 	cmp.b #$C0,d0
 	blt.b abs_0_0005DBDA
 	subi.b #192,d0
-	lea.l audio_sample_metadata_sample_ptr_0(pc),a5
+	lea.l audio_sample_metadata(pc),a5
 	mulu.w #$C,d0
 	adda.w d0,a5
 	move.l a5,$0018(a0)
@@ -27503,54 +27522,206 @@ abs_0_0005DD0C:
 	dc.w $0000
 abs_0_0005DD12:
 	dc.w $0000	; lookup_table
-audio_channel_state_records:
-	dc.l $00000000	; typed data block gap
+audio_channel_state_records:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte channel_flags
+audio_channel_state_records_pitch_modulation_flags_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_flags
+audio_channel_state_records_current_note_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte current_note
+audio_channel_state_records_note_offset_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte note_offset
 audio_channel_state_records_program_ptr_0:	; STRUCT audio_channel_runtime_state
 	dc.l $00000000	; long program_ptr
 audio_channel_state_records_channel_configuration_offset_0:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word channel_configuration_offset
 audio_channel_state_records_gap_A_0:
-	dcb.b $14,$00	; typed data block gap
+	dc.w $0000	; typed data block gap
+audio_channel_state_records_pitch_sequence_start_ptr_0:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_start_ptr
+audio_channel_state_records_pitch_sequence_cursor_0:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_cursor
+audio_channel_state_records_pitch_delta_step_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_step
+audio_channel_state_records_pitch_delta_countdown_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_countdown
+audio_channel_state_records_sample_start_pending_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte sample_start_pending
+audio_channel_state_records_gap_17_0:
+	dc.b $00	; typed data block gap
+audio_channel_state_records_sample_metadata_ptr_0:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long sample_metadata_ptr
+audio_channel_state_records_update_reload_countdown_0:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_reload_countdown
 audio_channel_state_records_update_countdown_0:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word update_countdown
-audio_channel_state_records_gap_20_0:
-	dcb.b $10,$00	; typed data block gap
-audio_channel_state_records_gap_30_1:
-	dc.l $00000000	; typed data block gap
+audio_channel_state_records_pitch_delta_accumulator_0:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word pitch_delta_accumulator
+audio_channel_state_records_volume_sequence_ptr_0:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_ptr
+audio_channel_state_records_volume_sequence_cursor_0:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_cursor
+audio_channel_state_records_volume_sequence_interval_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_interval
+audio_channel_state_records_volume_sequence_countdown_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_countdown
+audio_channel_state_records_pitch_modulation_step_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_step
+audio_channel_state_records_pitch_modulation_value_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_value
+audio_channel_state_records_pitch_modulation_limit_0:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_limit
+audio_channel_state_records_gap_2F_0:
+	dc.b $00	; typed data block gap
+audio_channel_state_records_channel_flags_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte channel_flags
+audio_channel_state_records_pitch_modulation_flags_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_flags
+audio_channel_state_records_current_note_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte current_note
+audio_channel_state_records_note_offset_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte note_offset
 audio_channel_state_records_program_ptr_1:	; STRUCT audio_channel_runtime_state
 	dc.l $00000000	; long program_ptr
 audio_channel_state_records_channel_configuration_offset_1:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word channel_configuration_offset
 audio_channel_state_records_gap_3A_1:
-	dcb.b $14,$00	; typed data block gap
+	dc.w $0000	; typed data block gap
+audio_channel_state_records_pitch_sequence_start_ptr_1:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_start_ptr
+audio_channel_state_records_pitch_sequence_cursor_1:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_cursor
+audio_channel_state_records_pitch_delta_step_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_step
+audio_channel_state_records_pitch_delta_countdown_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_countdown
+audio_channel_state_records_sample_start_pending_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte sample_start_pending
+audio_channel_state_records_gap_47_1:
+	dc.b $00	; typed data block gap
+audio_channel_state_records_sample_metadata_ptr_1:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long sample_metadata_ptr
+audio_channel_state_records_update_reload_countdown_1:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_reload_countdown
 audio_channel_state_records_update_countdown_1:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word update_countdown
-audio_channel_state_records_gap_50_1:
-	dcb.b $10,$00	; typed data block gap
-audio_channel_state_records_gap_60_2:
-	dc.l $00000000	; typed data block gap
+audio_channel_state_records_pitch_delta_accumulator_1:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word pitch_delta_accumulator
+audio_channel_state_records_volume_sequence_ptr_1:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_ptr
+audio_channel_state_records_volume_sequence_cursor_1:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_cursor
+audio_channel_state_records_volume_sequence_interval_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_interval
+audio_channel_state_records_volume_sequence_countdown_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_countdown
+audio_channel_state_records_pitch_modulation_step_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_step
+audio_channel_state_records_pitch_modulation_value_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_value
+audio_channel_state_records_pitch_modulation_limit_1:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_limit
+audio_channel_state_records_gap_5F_1:
+	dc.b $00	; typed data block gap
+audio_channel_state_records_channel_flags_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte channel_flags
+audio_channel_state_records_pitch_modulation_flags_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_flags
+audio_channel_state_records_current_note_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte current_note
+audio_channel_state_records_note_offset_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte note_offset
 audio_channel_state_records_program_ptr_2:	; STRUCT audio_channel_runtime_state
 	dc.l $00000000	; long program_ptr
 audio_channel_state_records_channel_configuration_offset_2:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word channel_configuration_offset
 audio_channel_state_records_gap_6A_2:
-	dcb.b $14,$00	; typed data block gap
+	dc.w $0000	; typed data block gap
+audio_channel_state_records_pitch_sequence_start_ptr_2:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_start_ptr
+audio_channel_state_records_pitch_sequence_cursor_2:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_cursor
+audio_channel_state_records_pitch_delta_step_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_step
+audio_channel_state_records_pitch_delta_countdown_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_countdown
+audio_channel_state_records_sample_start_pending_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte sample_start_pending
+audio_channel_state_records_gap_77_2:
+	dc.b $00	; typed data block gap
+audio_channel_state_records_sample_metadata_ptr_2:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long sample_metadata_ptr
+audio_channel_state_records_update_reload_countdown_2:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_reload_countdown
 audio_channel_state_records_update_countdown_2:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word update_countdown
-audio_channel_state_records_gap_80_2:
-	dcb.b $10,$00	; typed data block gap
-audio_channel_state_records_gap_90_3:
-	dc.l $00000000	; typed data block gap
+audio_channel_state_records_pitch_delta_accumulator_2:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word pitch_delta_accumulator
+audio_channel_state_records_volume_sequence_ptr_2:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_ptr
+audio_channel_state_records_volume_sequence_cursor_2:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_cursor
+audio_channel_state_records_volume_sequence_interval_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_interval
+audio_channel_state_records_volume_sequence_countdown_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_countdown
+audio_channel_state_records_pitch_modulation_step_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_step
+audio_channel_state_records_pitch_modulation_value_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_value
+audio_channel_state_records_pitch_modulation_limit_2:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_limit
+audio_channel_state_records_gap_8F_2:
+	dc.b $00	; typed data block gap
+audio_channel_state_records_channel_flags_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte channel_flags
+audio_channel_state_records_pitch_modulation_flags_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_flags
+audio_channel_state_records_current_note_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte current_note
+audio_channel_state_records_note_offset_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte note_offset
 audio_channel_state_records_program_ptr_3:	; STRUCT audio_channel_runtime_state
 	dc.l $00000000	; long program_ptr
 audio_channel_state_records_channel_configuration_offset_3:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word channel_configuration_offset
 audio_channel_state_records_gap_9A_3:
-	dcb.b $14,$00	; typed data block gap
+	dc.w $0000	; typed data block gap
+audio_channel_state_records_pitch_sequence_start_ptr_3:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_start_ptr
+audio_channel_state_records_pitch_sequence_cursor_3:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long pitch_sequence_cursor
+audio_channel_state_records_pitch_delta_step_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_step
+audio_channel_state_records_pitch_delta_countdown_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_delta_countdown
+audio_channel_state_records_sample_start_pending_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte sample_start_pending
+audio_channel_state_records_gap_A7_3:
+	dc.b $00	; typed data block gap
+audio_channel_state_records_sample_metadata_ptr_3:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long sample_metadata_ptr
+audio_channel_state_records_update_reload_countdown_3:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_reload_countdown
 audio_channel_state_records_update_countdown_3:	; STRUCT audio_channel_runtime_state
 	dc.w $0000	; word update_countdown
-audio_channel_state_records_gap_B0_3:
-	dcb.b $10,$00	; typed data block gap
+audio_channel_state_records_pitch_delta_accumulator_3:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word pitch_delta_accumulator
+audio_channel_state_records_volume_sequence_ptr_3:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_ptr
+audio_channel_state_records_volume_sequence_cursor_3:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long volume_sequence_cursor
+audio_channel_state_records_volume_sequence_interval_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_interval
+audio_channel_state_records_volume_sequence_countdown_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte volume_sequence_countdown
+audio_channel_state_records_pitch_modulation_step_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_step
+audio_channel_state_records_pitch_modulation_value_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_value
+audio_channel_state_records_pitch_modulation_limit_3:	; STRUCT audio_channel_runtime_state
+	dc.b $00	; byte pitch_modulation_limit
+audio_channel_state_records_gap_BF_3:
+	dc.b $00	; typed data block gap
 audio_pitch_scalars:
 	dc.w $2000	; lookup_table
 	dc.w $1E30
@@ -27572,19 +27743,19 @@ audio_pitch_scalars:
 	dc.w $0BFC
 	dc.w $0B50
 	dc.w $0AAC
-	dc.w audio_sequence_channel_configurations_sample_address_offset_23-audio_sample_metadata_sample_ptr_0
-	dc.w audio_sequence_channel_configurations_sequence_index_16-audio_sample_metadata_sample_ptr_0
-	dc.w audio_sequence_channel_configurations_period_delta_select_10-audio_sample_metadata_sample_ptr_0
-	dc.w audio_sequence_channel_configurations_period_delta_select_4-audio_sample_metadata_sample_ptr_0
-	dc.w audio_channel_dma_configurations_sample_volume_2-audio_sample_metadata_sample_ptr_0
+	dc.w audio_sequence_channel_configurations_sample_address_offset_23-audio_sample_metadata
+	dc.w audio_sequence_channel_configurations_sequence_index_16-audio_sample_metadata
+	dc.w audio_sequence_channel_configurations_period_delta_select_10-audio_sample_metadata
+	dc.w audio_sequence_channel_configurations_period_delta_select_4-audio_sample_metadata
+	dc.w audio_channel_dma_configurations_sample_volume_2-audio_sample_metadata
 	dc.w $078C
 	dc.w $0720
-	dc.w abs_0_0005E56A-audio_sample_metadata_sample_ptr_0
-	dc.w abs_0_0005E50A-audio_sample_metadata_sample_ptr_0
-	dc.w dispatch_audio_channel_updates-audio_sample_metadata_sample_ptr_0
-	dc.w abs_0_0005E458-audio_sample_metadata_sample_ptr_0
+	dc.w abs_0_0005E56A-audio_sample_metadata
+	dc.w abs_0_0005E50A-audio_sample_metadata
+	dc.w dispatch_audio_channel_updates-audio_sample_metadata
+	dc.w abs_0_0005E458-audio_sample_metadata
 	dc.w $0556
-	dc.w abs_0_0005E3BA-audio_sample_metadata_sample_ptr_0
+	dc.w abs_0_0005E3BA-audio_sample_metadata
 	dc.w $04C2
 	dc.w $047E
 	dc.w $043C
@@ -27632,7 +27803,7 @@ abs_0_0005DE7E:
 	dc.b $0C,$00,$00,$00,$00,$00,$00,$80,$0C,$00,$00,$00,$00,$00,$80,$0C
 	dc.b $00,$00,$00,$00,$80,$00,$83,$00,$84,$00,$85,$18,$00,$00,$00,$00
 	dc.b $00,$80
-audio_sample_metadata_sample_ptr_0:	; STRUCT audio_sample_metadata
+audio_sample_metadata:	; STRUCT audio_sample_metadata
 	dc.l $00000000	; long sample_ptr
 audio_sample_metadata_gap_4_0:
 	dc.l $00000000	; typed data block gap
@@ -27820,7 +27991,7 @@ initialize_audio_sample_metadata:
 	tst.b $0528(a3)
 	bne.w abs_0_0005E3EA
 	lea.l packed_audio_sample_stream(pc),a0
-	lea.l audio_sample_metadata_sample_ptr_0(pc),a5
+	lea.l audio_sample_metadata(pc),a5
 	moveq.l #10,d1
 abs_0_0005E38A:
 	move.l (a0)+,d2
@@ -27860,13 +28031,13 @@ start_audio_sequence:
 	bsr.w initialize_audio_sample_metadata
 	move.w d0,$0EB0(a3)
 	moveq.l #0,d7
-	lea.l audio_channel_dma_configurations_sample_ptr_0(pc),a4
+	lea.l audio_channel_dma_configurations(pc),a4
 	move.b abs_0_0005E68E(pc),d7
 	mulu.w #$C,d7
 	st.b $B(a4,d7.w)
 	ext.w d0
 	mulu.w #$16,d0
-	lea.l audio_channel_playback_states_period_delta_0(pc),a1
+	lea.l audio_channel_playback_states(pc),a1
 	moveq.l #1,d2
 	lea.l _custom+aud0+ac_len.l,a0
 	move.b abs_0_0005E68E(pc),d1
@@ -27881,7 +28052,7 @@ abs_0_0005E440:
 	sf.b $0018(a1)
 	move.w d2,_custom+dmacon.l
 	move.w #$40,(a0)
-	lea.l audio_sequence_channel_configurations_period_delta_0(pc),a0
+	lea.l audio_sequence_channel_configurations(pc),a0
 	adda.w d0,a0
 	movea.l a1,a2
 	moveq.l #10,d0
@@ -27915,12 +28086,12 @@ abs_0_0005E4AA:
 	dc.b $6F,$80,$1B,$34	; lookup_table
 dispatch_audio_channel_updates:
 	bsr.b abs_0_0005E48E
-	lea.l audio_channel_playback_states_period_delta_0(pc),a1
+	lea.l audio_channel_playback_states(pc),a1
 	tst.b $0018(a1)
 	beq.b abs_0_0005E4C8
 	lea.l _custom.l,a0
 	moveq.l #1,d2
-	lea.l audio_channel_dma_configurations_sample_ptr_0(pc),a4
+	lea.l audio_channel_dma_configurations(pc),a4
 	bsr.b service_audio_channel_playback
 abs_0_0005E4C8:
 	lea.l audio_channel_playback_states_period_delta_1(pc),a1
@@ -28023,7 +28194,7 @@ abs_0_0005E5DC:
 	ori.w #33280,d2
 	move.w d2,_custom+dmacon.l
 	rts
-audio_channel_playback_states_period_delta_0:	; STRUCT audio_channel_playback_state
+audio_channel_playback_states:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word period_delta
 audio_channel_playback_states_period_reset_value_0:	; STRUCT audio_channel_playback_state
 	dc.w $0000	; word period_reset_value
@@ -28178,7 +28349,7 @@ audio_channel_playback_states_gap_90_3:
 	dcb.b $8,$00	; typed data block gap
 abs_0_0005E68E:
 	dc.b $00,$00	; lookup_table
-audio_channel_dma_configurations_sample_ptr_0:	; STRUCT audio_channel_dma_configuration
+audio_channel_dma_configurations:	; STRUCT audio_channel_dma_configuration
 	dc.l $00000000	; long sample_ptr
 audio_channel_dma_configurations_sample_length_0:	; STRUCT audio_channel_dma_configuration
 	dc.w $0000	; word sample_length
@@ -28226,7 +28397,7 @@ audio_channel_dma_configurations_enabled_3:	; STRUCT audio_channel_dma_configura
 	dc.b $00	; byte enabled
 audio_channel_dma_configurations_start_pending_3:	; STRUCT audio_channel_dma_configuration
 	dc.b $00	; byte start_pending
-audio_sequence_channel_configurations_period_delta_0:	; STRUCT audio_sequence_channel_configuration
+audio_sequence_channel_configurations:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0001	; word period_delta
 audio_sequence_channel_configurations_period_reset_value_0:	; STRUCT audio_sequence_channel_configuration
 	dc.w $0AF0	; word period_reset_value

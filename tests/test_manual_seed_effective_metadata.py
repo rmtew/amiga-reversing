@@ -1787,7 +1787,7 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
         ("next_offset", "a3"),
     ]
     assert [entity["name"] for entity in typed_entities] == [
-        "player_descriptor_magic",
+        "player_descriptor",
         "player_descriptor_next_offset",
     ]
     assert {entity["source_evidence_id"] for entity in typed_entities} == {"prov-header-base"}

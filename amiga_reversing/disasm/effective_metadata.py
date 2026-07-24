@@ -1153,11 +1153,19 @@ def _data_block_custom_struct_field_entity(
     end = addr + field.size
     if end > layout.source_end:
         return None
+    # The first physical directive carries the layout's public address.  Keep
+    # that name whether it is an explicit field or an unknown leading gap;
+    # otherwise code references are rewritten to an implementation-detail
+    # field label as soon as the structure gains a field at offset zero.
+    is_public_start = instance_offset + field.offset == 0 and instance_index in {None, 0}
+    name = base_label if is_public_start and base_label and len(base_label) < 64 else _data_block_typed_field_label(
+        base_label, field.name, instance_index
+    )
     return SeededEntityMetadata(
         addr=addr,
         end=end,
         hunk=layout.hunk,
-        name=_data_block_typed_field_label(base_label, field.name, instance_index),
+        name=name,
         type="data",
         unit=_data_block_unit_from_width(field.size),
         struct_name=struct.name,

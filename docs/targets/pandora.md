@@ -313,15 +313,20 @@ array for the four Paula audio channels. `initialize_audio_player` initializes
 four entries with a `$30`-byte stride, and `update_audio_channels` independently
 derives the same stride from its channel index before reading each entry's
 sample and playback state. It now renders as the shared
-`audio_channel_runtime_state` layout: the code proves its `program_ptr` at
-`+4`, `channel_configuration_offset` at `+8`, and per-update
-`update_countdown` at `+0x1e`; remaining bytes stay explicit typed gaps.
+`audio_channel_runtime_state` layout. The updater establishes command/note
+state (`+0..3`), a program pointer and configuration offset (`+4`, `+8`),
+looped pitch-sequence pointers (`+0x0c`, `+0x10`), sample-start and metadata
+state (`+0x16`, `+0x18`), reload/update counters (`+0x1c`, `+0x1e`), a pitch
+delta accumulator, and volume-sequence and pitch-modulation state through
+`+0x2e`. Only the intervening bytes whose role is not yet proved remain typed
+gaps.
 
 The layout revealed a renderer defect when a record begins with an unknown
 gap: generated references were changed to a synthetic `*_gap_0` label. The
-general projection now preserves the data-block's public name at a leading
-gap, with a regression test, so partially recovered structures do not erase
-their own semantic base identity.
+general projection now preserves the data-block's public name at its first
+directive, whether that directive is a leading gap or a recovered field, with
+regression coverage for both cases. Partially recovered structures therefore
+do not erase their own semantic base identity.
 
 `audio_player_initialization_presets` starts at `$0005DF34`. The initializer
 uses its mode argument times `$0a` as an index, so its first 30 bytes are three
