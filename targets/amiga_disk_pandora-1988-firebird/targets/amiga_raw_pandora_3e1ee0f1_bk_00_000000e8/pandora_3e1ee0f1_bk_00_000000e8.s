@@ -461,7 +461,7 @@ abs_0_00010498:
 	bsr.w abs_0_000124F0
 	bsr.w abs_0_000124FE
 	bsr.w update_nearby_object_detection
-	bsr.w abs_0_000124AE
+	bsr.w snapshot_active_world_object_links
 	bsr.w abs_0_0001078E
 	lea.l _custom.l,a5
 	move.w #DMAF_SETCLR|DMAF_RASTER|DMAF_SPRITE,dmacon(a5)
@@ -481,7 +481,7 @@ abs_0_000105C2:
 	bsr.w update_inventory_panel_availability
 	bsr.w abs_0_00017D48
 	bsr.w handle_inventory_panel_input
-	bsr.w abs_0_000124AE
+	bsr.w snapshot_active_world_object_links
 	bsr.w abs_0_000124FE
 	bsr.w abs_0_0001253C
 	bsr.w update_nearby_object_detection
@@ -1837,7 +1837,7 @@ abs_0_000114B6:
 	dc.b $00,$02,$00,$05,$00,$02,$00,$06,$00,$A8,$00,$A8,$FF,$F8,$00,$05
 	dc.b $00,$32,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06
 	dc.b $00,$A8,$00,$A8,$FF,$F8,$00,$05,$00,$4B,$00,$14,$00,$01,$24,$26
-abs_0_00012466:
+process_active_world_object_chains:
 	move.l app_active_world_object_ptr_table(a6),d0
 	beq.b abs_0_00012488
 	movea.l d0,a1
@@ -1867,7 +1867,7 @@ abs_0_0001249A:
 	dbf.w d7,abs_0_0001249A
 abs_0_000124AC:
 	rts
-abs_0_000124AE:
+snapshot_active_world_object_links:
 	move.l app_active_world_object_ptr_table(a6),d0
 	beq.b abs_0_000124DE
 	movea.l d0,a0
@@ -6533,7 +6533,7 @@ abs_0_000183AA:
 	bra.w scan_world_objects_for_proximity
 update_nearby_object_context:
 	bsr.w abs_0_0001849A
-	bsr.w abs_0_00012466
+	bsr.w process_active_world_object_chains
 	btst.b #2,app_ui_flags(a6)
 	bne.w abs_0_00018492
 	btst.b #1,app_02A6(a6)

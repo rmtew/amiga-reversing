@@ -143,6 +143,15 @@ clips the resulting region against the tilemap, and submits the corresponding
 blitter update. This formerly raw RTS-bounded loop is therefore an active
 world-object tile-region update pass.
 
+The adjacent table passes establish the linked-object lifecycle around that
+update. `process_active_world_object_chains` visits each active object and
+delegates to its linked-chain helper. `snapshot_active_world_object_links`
+copies each active object's current link field from `+4` to `+8`, then walks
+the child chain and copies each child's field at `+0` to `+4`. The fields
+remain structurally unnamed until the broader shared world-object layout is
+recovered, but these update-pass roles are directly supported by the copies
+and traversal.
+
 `world_object_ptr_table` occupies `$0001300A` through `$00013099`: its 36
 longwords are the player pointer, 34 static-object pointers, and the null
 terminator.  The preceding word at `$00013008` is `$4e75` (`RTS`), which is a
