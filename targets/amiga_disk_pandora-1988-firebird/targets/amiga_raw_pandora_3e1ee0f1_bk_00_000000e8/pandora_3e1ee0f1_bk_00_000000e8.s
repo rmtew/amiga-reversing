@@ -169,8 +169,8 @@ app_0338 RS.B 1
 app_0339 RS.B 1
     RS.B 2
 app_033C RS.B 1
-app_033D RS.B 1
-app_033E RS.B 1
+app_world_interaction_flags RS.B 1
+app_world_interaction_audio_flags RS.B 1
     RS.B 23
 app_nearest_object_distance RS.W 1
 app_0358 RS.L 1
@@ -417,7 +417,7 @@ abs_0_000105C2:
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	move.w #$310,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 abs_0_0001066C:
 	btst.b #1,player_world_object_world_object_flags.l
 	beq.b abs_0_00010688
@@ -1085,7 +1085,7 @@ abs_0_00010F88:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,dmacon(a5)
 abs_0_00010FD2:
 	bsr.w abs_0_00010D8A
-	btst.b #0,app_033E(a6)
+	btst.b #0,app_world_interaction_audio_flags(a6)
 	beq.b abs_0_00010FEC
 	movem.l d5/a6,-(a7)
 	jsr update_audio_channels.l
@@ -1112,7 +1112,7 @@ abs_0_00010FEC:
 	moveq.l #0,d0
 	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
-	bset.b #0,app_033E(a6)
+	bset.b #0,app_world_interaction_audio_flags(a6)
 	movea.l #abs_0_0001B3A8,a0
 	moveq.l #47,d7
 abs_0_00011044:
@@ -1136,7 +1136,7 @@ abs_0_00011070:
 	bset.b #1,app_027B(a6)
 	jsr reset_audio_channels.l
 	move.w #$107,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 	rts
 	dc.b $33,$EE,$01,$AC,$00,$DF,$F1,$80,$60,$F6
 string_0002109E:
@@ -1892,7 +1892,7 @@ abs_0_00012644:
 	movem.l (a7)+,d7/a0-a2
 	rts
 	dc.b $40,$E7,$46,$FC,$27,$00,$2D,$48,$03,$60,$46,$DF,$4E,$75
-abs_0_00012664:
+is_player_within_world_object_interaction_range:
 	lea.l player_world_object_item_name_ptr.l,a4
 	move.w $0032(a4),d0
 	sub.w $0032(a5),d0
@@ -1955,7 +1955,7 @@ toggle_inventory_panel:
 	bset.b #3,app_022E(a6)
 	bne.b abs_0_00012712
 	move.w #$311,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 	bset.b #2,app_022E(a6)
 	bne.w close_inventory_panel
 	bclr.b #4,app_022E(a6)
@@ -2266,7 +2266,7 @@ handle_item_too_large_for_pockets:
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	move.w #$216,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 abs_0_00012B32:
 	rts
 transfer_selected_item_to_pocket_inventory:
@@ -2508,7 +2508,7 @@ abs_0_00012DF8:
 	tst.b app_0287(a6)
 	bne.b abs_0_00012E0E
 	move.w #$306,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 abs_0_00012E0E:
 	rts
 abs_0_00012E10:
@@ -2567,7 +2567,7 @@ abs_0_00012EE6:
 	move.b $0048(a5),d0
 	andi.b #18,d0
 	bne.b abs_0_00012F16
-	bsr.w abs_0_00012664
+	bsr.w is_player_within_world_object_interaction_range
 	bcs.b abs_0_00012F18
 abs_0_00012F16:
 	rts
@@ -5611,7 +5611,7 @@ announce_item_trade:
 	lea.l objects_traded_message(pc),a0
 	bsr.w enqueue_status_message
 	move.w #$112,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 abs_0_00017CFE:
 	rts
 objects_traded_message:
@@ -5734,7 +5734,7 @@ abs_0_00017E90:
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
 	move.l a3,$0006(a5)
 	bclr.b #0,$000A(a5)
@@ -5754,7 +5754,7 @@ abs_0_00017ED6:
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
 	move.l a3,$0006(a5)
 	bclr.b #0,$000A(a5)
@@ -5832,7 +5832,7 @@ abs_0_00017FC2:
 	bne.b abs_0_00017FDE
 	movem.l a0-a3,-(a7)
 	move.w #$118,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 	movem.l (a7)+,a0-a3
 	addq.b #1,app_0338(a6)
 abs_0_00017FDE:
@@ -6627,7 +6627,7 @@ abs_0_000189FA:
 	bsr.w enqueue_blank_scrolling_message
 	bsr.w refresh_selected_item_name_display
 	move.w #$106,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 abs_0_00018A16:
 	rts
 	dc.b $00,$14,$00,$08,$00,$00,$00,$00,$00,$02,$CE,$A8,$00,$02,$CF,$28
@@ -6920,7 +6920,7 @@ abs_0_000193F6:
 	bset.b #1,$0048(a5)
 	addq.b #1,app_0327(a6)
 	move.w #$11B,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 	rts
 abs_0_00019410:
 	bsr.w abs_0_00019486
@@ -7408,8 +7408,8 @@ abs_0_0001A056:
 	clr.b app_027B(a6)
 	clr.b app_02A6(a6)
 	clr.b app_033C(a6)
-	clr.b app_033D(a6)
-	clr.b app_033E(a6)
+	clr.b app_world_interaction_flags(a6)
+	clr.b app_world_interaction_audio_flags(a6)
 	lea.l app_scrolling_message_queue_head(a6),a0
 	move.l a0,app_scrolling_message_queue_tail(a6)
 	clr.l app_scrolling_message_queue_head(a6)
@@ -26813,38 +26813,38 @@ abs_0_0005D275:
 	dc.b $00,$60,$38,$30,$3C,$02,$11,$60,$32
 abs_0_0005D2FE:
 	move.w #$11C,d0
-	bra.b abs_0_0005D330
+	bra.b start_feedback_audio_sequence
 abs_0_0005D304:
 	move.w #$300,d0
-	bra.b abs_0_0005D330
+	bra.b start_feedback_audio_sequence
 abs_0_0005D30A:
 	move.w #$201,d0
-	bra.b abs_0_0005D330
+	bra.b start_feedback_audio_sequence
 abs_0_0005D310:
 	moveq.l #14,d0
-	bsr.b abs_0_0005D330
+	bsr.b start_feedback_audio_sequence
 	move.w #$30C,d0
-	bra.b abs_0_0005D330
+	bra.b start_feedback_audio_sequence
 abs_0_0005D31A:
 	move.w #$102,d0
-	bra.b abs_0_0005D330
+	bra.b start_feedback_audio_sequence
 abs_0_0005D320:
 	move.w #$30F,d0
-	bra.b abs_0_0005D330
+	bra.b start_feedback_audio_sequence
 abs_0_0005D326:
 	move.w #$103,d0
-	bra.b abs_0_0005D330
+	bra.b start_feedback_audio_sequence
 abs_0_0005D32C:
 	move.w #$203,d0
-abs_0_0005D330:
-	bclr.b #0,app_033E(a6)
+start_feedback_audio_sequence:
+	bclr.b #0,app_world_interaction_audio_flags(a6)
 	movem.l d1-d7/a1-a6,-(a7)
 	jsr start_audio_sequence.l
 	movem.l (a7)+,d1-d7/a1-a6
 	bset.b #7,app_033C(a6)
 	rts
 abs_0_0005D34C:
-	bset.b #0,app_033D(a6)
+	bset.b #0,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D364
 	movem.l d1-d7/a1-a6,-(a7)
 	moveq.l #2,d0
@@ -26860,12 +26860,12 @@ abs_0_0005D368:
 	movem.l (a7)+,d1-d7/a1-a6
 	rts
 interact_with_musician:
-	jsr abs_0_00012664.l
+	jsr is_player_within_world_object_interaction_range.l
 	bcc.b abs_0_0005D39E
 	move.b $0046(a4),d0
 	cmp.b #$27,d0
 	bne.b abs_0_0005D39E
-	bset.b #1,app_033D(a6)
+	bset.b #1,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D39E
 	move #$1,ccr
 	rts
@@ -26886,7 +26886,7 @@ interact_with_chemist:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$2C,d0
 	bne.b abs_0_0005D3DC
-	bset.b #7,app_033D(a6)
+	bset.b #7,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D3DC
 	move.l #$5CF4C,$0010(a5)
 	bra.b interact_with_hooligan_or_robomechanic
@@ -26921,7 +26921,7 @@ interact_with_technician:
 	move.b $0046(a5),d0
 	cmp.b #$2E,d0
 	bne.b abs_0_0005D446
-	bset.b #2,app_033D(a6)
+	bset.b #2,app_world_interaction_flags(a6)
 	beq.w interact_with_hooligan_or_robomechanic
 abs_0_0005D446:
 	move.w d0,d0
@@ -26929,10 +26929,10 @@ abs_0_0005D446:
 interact_with_wackobrain:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D460
-	bset.b #5,app_033D(a6)
+	bset.b #5,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D464
 	moveq.l #8,d0
-	bsr.w abs_0_0005D330
+	bsr.w start_feedback_audio_sequence
 abs_0_0005D460:
 	move.w d0,d0
 	rts
@@ -26948,37 +26948,37 @@ abs_0_0005D464:
 	cmpa.l #$5965C,a0
 	bne.b abs_0_0005D460
 abs_0_0005D48E:
-	bclr.b #5,app_033D(a6)
+	bclr.b #5,app_world_interaction_flags(a6)
 	bra.b interact_with_wackobrain
 interact_with_menial_droid:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D4B0
-	bset.b #1,app_033E(a6)
+	bset.b #1,app_world_interaction_audio_flags(a6)
 	bne.b abs_0_0005D4B4
 	move.w #$213,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 abs_0_0005D4B0:
 	move.w d0,d0
 	rts
 abs_0_0005D4B4:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
 	bne.b abs_0_0005D4B0
-	bclr.b #1,app_033E(a6)
+	bclr.b #1,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_menial_droid
 interact_with_gardener:
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0005D4DE
-	bset.b #2,app_033E(a6)
+	bset.b #2,app_world_interaction_audio_flags(a6)
 	bne.b abs_0_0005D4E2
 	move.w #$217,d0
-	jsr abs_0_0005D330.l
+	jsr start_feedback_audio_sequence.l
 abs_0_0005D4DE:
 	move.w d0,d0
 	rts
 abs_0_0005D4E2:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
 	bne.b abs_0_0005D4DE
-	bclr.b #2,app_033E(a6)
+	bclr.b #2,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_gardener
 	dc.b $08,$2E,$00,$01,$02,$2E,$66,$12,$08,$EE,$00,$03,$03,$3E,$66,$0E
 	dc.b $30,$3C,$02,$14,$4E,$B9,$00,$05,$D3,$30,$30,$00,$4E,$75,$4A,$39
@@ -26987,7 +26987,7 @@ interact_with_squash_player:
 	move.b $0046(a5),d0
 	cmp.b #$2F,d0
 	bne.b abs_0_0005D534
-	bset.b #3,app_033D(a6)
+	bset.b #3,app_world_interaction_flags(a6)
 	beq.w interact_with_hooligan_or_robomechanic
 abs_0_0005D534:
 	move.w d0,d0
@@ -27009,7 +27009,7 @@ abs_0_0005D560:
 	move.l a0,$0010(a5)
 	bra.w interact_with_hooligan_or_robomechanic
 interact_with_diabetic:
-	btst.b #4,app_033D(a6)
+	btst.b #4,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D592
 	move.b $0046(a5),d0
 	cmp.b #$29,d0
@@ -27037,9 +27037,9 @@ abs_0_0005D5A6:
 	move.l a0,$0010(a5)
 	bra.w interact_with_hooligan_or_robomechanic
 abs_0_0005D5BA:
-	jsr abs_0_00012664.l
+	jsr is_player_within_world_object_interaction_range.l
 	bcc.b abs_0_0005D592
-	bset.b #4,app_033D(a6)
+	bset.b #4,app_world_interaction_flags(a6)
 	lea.l abs_0_0005CFE0(pc),a0
 	jsr enqueue_status_message.l
 	lea.l abs_0_0005D011(pc),a0
@@ -30475,7 +30475,7 @@ packed_audio_sample_stream:
 	dc.b $43,$FB,$4E,$71,$4E,$71,$00,$00,$03,$F2,$00,$00,$00,$00,$00,$05
 	dc.b $05,$A8,$05,$FF,$00,$02
 abs_0_000652DE:
-	bclr.b #0,app_033D(a6)
+	bclr.b #0,app_world_interaction_flags(a6)
 	beq.b abs_0_000652FC
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
@@ -30500,7 +30500,7 @@ abs_0_00065322:
 	add.w d0,d1
 	cmp.w #$100,d1
 	bcs.b abs_0_0006534A
-	bclr.b #0,app_033D(a6)
+	bclr.b #0,app_world_interaction_flags(a6)
 	beq.b abs_0_0006536E
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
@@ -30508,7 +30508,7 @@ abs_0_00065322:
 	movem.l (a7)+,d1-d7/a0-a6
 	bra.b abs_0_0006536E
 abs_0_0006534A:
-	bset.b #0,app_033D(a6)
+	bset.b #0,app_world_interaction_flags(a6)
 	bne.b abs_0_00065362
 	movem.l d0-d1/a6,-(a7)
 	moveq.l #2,d0

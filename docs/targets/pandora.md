@@ -225,6 +225,23 @@ pass should recover those item constants and the repeated flag/timer updates
 as named interaction-state fields rather than treating each callback in
 isolation.
 
+The callback family also establishes two one-byte A6-relative state regions:
+`app_world_interaction_flags` at `+0x033d` and
+`app_world_interaction_audio_flags` at `+0x033e`. The first holds independent
+one-shot guards for the Musician, Chemist, Technician, Wackobrain, Squash
+player, and Diabetic paths. The second contains audio-pending gates: the
+Menial droid and Gardener callbacks set bits 1 and 2 before starting their
+feedback sequence, then clear them only after channel 2's playback-tick
+counter reaches zero. Both bytes are reset by `initialize_world_state`.
+
+`is_player_within_world_object_interaction_range` at `$00012664` compares the
+player and selected object's coordinates and returns the condition code used by
+the Musician and Diabetic paths. Its current bounds are an absolute Y delta
+below 16 and an absolute X delta below 24. `start_feedback_audio_sequence`
+at `$0005D330` preserves the caller register set around `start_audio_sequence`
+and updates the interaction-audio state; its callers include the object
+callbacks and inventory-panel feedback.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
