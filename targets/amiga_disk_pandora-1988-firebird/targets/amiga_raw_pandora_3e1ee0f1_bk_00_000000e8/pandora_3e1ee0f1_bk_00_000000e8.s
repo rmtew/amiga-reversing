@@ -1847,7 +1847,7 @@ process_active_world_object_chains:
 abs_0_00012476:
 	movea.l (a1)+,a0
 	movem.l d7/a1,-(a7)
-	bsr.w abs_0_00016F5C
+	bsr.w render_world_object_geometry_chain
 	movem.l (a7)+,d7/a1
 	dbf.w d7,abs_0_00012476
 abs_0_00012488:
@@ -1862,7 +1862,7 @@ update_active_world_object_tile_regions:
 abs_0_0001249A:
 	movea.l (a1)+,a0
 	movem.l d7/a1,-(a7)
-	bsr.w abs_0_00016DFE
+	bsr.w update_world_object_tile_region
 	movem.l (a7)+,d7/a1
 	dbf.w d7,abs_0_0001249A
 abs_0_000124AC:
@@ -4851,7 +4851,7 @@ copy_world_object_field_36_to_indirect_slot_4:
 copy_world_object_field_30_to_field_36:
 	move.l $0030(a5),$0036(a5)
 	rts
-abs_0_00016DFE:
+update_world_object_tile_region:
 	move.l $0000(a0),d0
 abs_0_00016E02:
 	beq.b abs_0_00016E5A
@@ -5011,17 +5011,17 @@ abs_0_00016F48:
 abs_0_00016F58:
 	movea.l (a7)+,a0
 	rts
-abs_0_00016F5C:
+render_world_object_geometry_chain:
 	movea.l $0000(a0),a0
 abs_0_00016F60:
-	bsr.b abs_0_00016F6E
+	bsr.b render_world_object_geometry_node
 	move.l $0014(a0),d0
 	beq.b abs_0_00016F6C
 	movea.l d0,a0
 	bra.b abs_0_00016F60
 abs_0_00016F6C:
 	rts
-abs_0_00016F6E:
+render_world_object_geometry_node:
 	movem.l a0/a5,-(a7)
 	tst.l $0000(a0)
 	beq.w abs_0_00017166

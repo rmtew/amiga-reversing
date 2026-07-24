@@ -137,15 +137,17 @@ the byte at `+0x3d`, the byte at `+0x46`, the word at `+0x3c`, the pointer at
 further cross-object comparison before becoming shared record fields.
 
 `update_active_world_object_tile_regions` at `$0001248A` iterates the active
-world-object pointer table and invokes the geometry/tilemap update path for
-each entry. Its callee follows the linked geometry records, computes extrema,
-clips the resulting region against the tilemap, and submits the corresponding
-blitter update. This formerly raw RTS-bounded loop is therefore an active
-world-object tile-region update pass.
+world-object pointer table and invokes `update_world_object_tile_region` at
+`$00016DFE` for each entry. The callee follows the linked geometry records,
+computes extrema, clips the resulting region against the tilemap, and submits
+the corresponding blitter update. This formerly raw RTS-bounded loop is
+therefore an active world-object tile-region update pass.
 
 The adjacent table passes establish the linked-object lifecycle around that
 update. `process_active_world_object_chains` visits each active object and
-delegates to its linked-chain helper. `snapshot_active_world_object_links`
+delegates to `render_world_object_geometry_chain` at `$00016F5C`, which walks
+the `+0x14` geometry links and renders each node through
+`render_world_object_geometry_node` at `$00016F6E`. `snapshot_active_world_object_links`
 copies each active object's current link field from `+4` to `+8`, then walks
 the child chain and copies each child's field at `+0` to `+4`. The fields
 remain structurally unnamed until the broader shared world-object layout is
