@@ -198,6 +198,65 @@ def test_listing_projection_resolves_indexed_locator_from_normalized_window() ->
     assert resolved["row_key"] == "row-a"
 
 
+def test_listing_projection_recovers_projected_label_when_offset_lookup_returns_backing_data() -> None:
+    class Artifact:
+        def row_for_source_offset(self, *, section_index: int, offset: int) -> dict[str, object]:
+            assert (section_index, offset) == (0, 4)
+            return {
+                "row_key": "data-row",
+                "row_index": 11,
+                "kind": "data",
+                "section_index": 0,
+                "start_offset": 4,
+                "end_offset": 6,
+            }
+
+        def window_payload(self, *, start: int, count: int) -> tuple[dict[str, object], dict[str, object]]:
+            assert start == 0
+            assert count == 129
+            return (
+                {
+                    "rows": [
+                        {
+                            "row_key": "label-row",
+                            "row_index": 10,
+                            "kind": "label",
+                            "section_index": 0,
+                            "start_offset": 4,
+                            "end_offset": 4,
+                        },
+                        {
+                            "row_key": "data-row",
+                            "row_index": 11,
+                            "kind": "data",
+                            "section_index": 0,
+                            "start_offset": 4,
+                            "end_offset": 6,
+                        },
+                    ]
+                },
+                {},
+            )
+
+    service = ListingProjectionService()
+    resolved = service.resolve_locator_from_artifact(
+        target_id="demo",
+        projection_hash="hash-a",
+        artifact=Artifact(),
+        locator_payload={
+            "target_id": "demo",
+            "projection_hash": "hash-a",
+            "row_key": "label-row",
+            "kind": "label",
+            "section_index": 0,
+            "start_offset": 4,
+            "end_offset": 4,
+        },
+    )
+
+    assert resolved["row_key"] == "label-row"
+
+
 def test_listing_projection_index_rejects_ambiguous_stale_locator() -> None:
     service = ListingProjectionService()
     payload = {

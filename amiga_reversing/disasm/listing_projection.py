@@ -493,8 +493,38 @@ class ListingProjectionService:
             )
         normalized = self.normalize_row(target_id=target_id, projection_hash=projection_hash, row=dict(row))
         if locator.projection_hash == projection_hash:
-            return normalized if normalized.get("row_key") == locator.row_key else None
-        return normalized if _recovery_identity(normalized) == _locator_recovery_identity(locator) else None
+            if normalized.get("row_key") == locator.row_key:
+                return normalized
+        elif _recovery_identity(normalized) == _locator_recovery_identity(locator):
+            return normalized
+
+        # A source offset can have a projected label immediately before its
+        # backing data/instruction row.  C artifacts resolve the offset to the
+        # backing row, so a locator issued for that label cannot be recovered
+        # from the single-row lookup alone after its listing window has been
+        # evicted from the projection index.  Re-read a bounded neighborhood
+        # from the same artifact so public listing locators remain executable.
+        window_payload = getattr(artifact, "window_payload", None)
+        row_index = _optional_int(row.get("row_index"))
+        if not callable(window_payload) or row_index is None:
+            return None
+        payload, _profile = window_payload(start=max(0, row_index - 64), count=129)
+        window_rows = payload.get("rows") if isinstance(payload, dict) else None
+        if not isinstance(window_rows, list):
+            return None
+        materialized_rows = [
+            _artifact_row_dict(candidate, row_index=index)
+            for index, candidate in enumerate(window_rows, start=max(0, row_index - 64))
+        ]
+        try:
+            return self.resolve_locator(
+                target_id=target_id,
+                projection_hash=projection_hash,
+                rows=materialized_rows,
+                locator_payload=locator.to_dict(),
+            )
+        except ListingLocatorError:
+            return None
 
     def _single_row_artifact_locator_row(
         self,

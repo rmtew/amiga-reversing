@@ -2809,6 +2809,22 @@ static void render_lookup_materialize_relative_lookup_table_expr_labels(M68kRend
   }
 }
 
+/* A relative-table expression may only name labels the source renderer will
+ * actually emit.  In particular, a data lookup can legitimately point into
+ * an instruction payload; materializing that offset as a label is useful for
+ * analysis, but assembly source cannot define a label in the middle of the
+ * instruction. */
+static int relative_lookup_table_expr_label_is_emittable(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kAnalysisStructuredDataItem *item, uint32_t offset) {
+  if (lookup == NULL || item == NULL || item->target_section >= lookup->section_count) return 0;
+  if (section != NULL && item->target_section == section->section_index) {
+    return lookup_should_emit_label_statement(lookup, section, accepted_start,
+      section->section_index, offset);
+  }
+  return lookup_source_offset_is_block_start(lookup, item->target_section, offset);
+}
+
 static int format_keyed_long_relative_lookup_table_entry(M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kAnalysisStructuredDataItem *item, uint32_t raw_long, char *expr, size_t expr_size,
@@ -2844,7 +2860,11 @@ static int format_keyed_long_relative_lookup_table_entry(M68kRenderLookup *looku
   }
   render_lookup_materialize_relative_lookup_table_expr_labels(lookup, item, (uint32_t)target_offset);
   if (!lookup_has_renderable_label(lookup, item->target_section, item->target_offset) ||
-      !lookup_has_renderable_label(lookup, item->target_section, (uint32_t)target_offset)) {
+      !lookup_has_renderable_label(lookup, item->target_section, (uint32_t)target_offset) ||
+      !relative_lookup_table_expr_label_is_emittable(lookup, section, accepted_start, item,
+        item->target_offset) ||
+      !relative_lookup_table_expr_label_is_emittable(lookup, section, accepted_start, item,
+        (uint32_t)target_offset)) {
     return 0;
   }
   (void)format_rendered_asm_label_with_generation(lookup, base_name, sizeof(base_name),
@@ -2933,7 +2953,11 @@ static int format_word_relative_lookup_table_expr(M68kRenderLookup *lookup,
   }
   render_lookup_materialize_relative_lookup_table_expr_labels(lookup, item, (uint32_t)target_offset);
   if (!lookup_has_renderable_label(lookup, item->target_section, item->target_offset) ||
-      !lookup_has_renderable_label(lookup, item->target_section, (uint32_t)target_offset)) {
+      !lookup_has_renderable_label(lookup, item->target_section, (uint32_t)target_offset) ||
+      !relative_lookup_table_expr_label_is_emittable(lookup, section, accepted_start, item,
+        item->target_offset) ||
+      !relative_lookup_table_expr_label_is_emittable(lookup, section, accepted_start, item,
+        (uint32_t)target_offset)) {
     return 0;
   }
   (void)format_rendered_asm_label_with_generation(lookup, base_name, sizeof(base_name),

@@ -4007,7 +4007,7 @@ def _data_block_element_payload(rows: list[Mapping[str, object]], params: Mappin
     if width is None or width <= 0:
         raise ValueError("set_manual_data_block_element requires positive width")
     kind = str(params.get("kind") or "raw").strip() or "raw"
-    if kind not in {"scalar", "array", "padding", "gap", "raw"}:
+    if kind not in {"struct", "platform_struct", "scalar", "array", "padding", "gap", "raw"}:
         raise ValueError("set_manual_data_block_element kind is unsupported")
     element: dict[str, object] = {
         "data_block_element_id": f"{layout_id}:{offset:X}",

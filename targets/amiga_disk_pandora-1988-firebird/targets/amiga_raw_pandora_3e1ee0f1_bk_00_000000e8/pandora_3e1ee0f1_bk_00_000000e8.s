@@ -400,7 +400,7 @@ abs_0_000105C2:
 	bsr.w abs_0_00017DA6
 	bsr.w abs_0_00012D5A
 	jsr abs_0_00012FD8.l
-	jsr abs_0_000652FE.l
+	jsr update_player_proximity_audio.l
 	btst.b #5,app_033C(a6)
 	bne.b abs_0_00010676
 	btst.b #3,app_033C(a6)
@@ -1110,7 +1110,7 @@ abs_0_00010FEC:
 	move.l a0,app_0280(a6)
 	move.l a6,-(a7)
 	moveq.l #0,d0
-	jsr abs_0_0005D7DE.l
+	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
 	bset.b #0,app_033E(a6)
 	movea.l #abs_0_0001B3A8,a0
@@ -1134,7 +1134,7 @@ abs_0_00011070:
 	tst.b app_022F(a6)
 	beq.w abs_0_00010FD2
 	bset.b #1,app_027B(a6)
-	jsr abs_0_0005D872.l
+	jsr reset_audio_channels.l
 	move.w #$107,d0
 	jsr abs_0_0005D330.l
 	rts
@@ -26749,7 +26749,7 @@ abs_0_0005D32C:
 abs_0_0005D330:
 	bclr.b #0,app_033E(a6)
 	movem.l d1-d7/a1-a6,-(a7)
-	jsr abs_0_0005E3EC.l
+	jsr start_audio_sequence.l
 	movem.l (a7)+,d1-d7/a1-a6
 	bset.b #7,app_033C(a6)
 	rts
@@ -26758,7 +26758,7 @@ abs_0_0005D34C:
 	bne.b abs_0_0005D364
 	movem.l d1-d7/a1-a6,-(a7)
 	moveq.l #2,d0
-	jsr abs_0_0005D7DE.l
+	jsr initialize_audio_player.l
 	movem.l (a7)+,d1-d7/a1-a6
 abs_0_0005D364:
 	move.w d0,d0
@@ -26766,7 +26766,7 @@ abs_0_0005D364:
 abs_0_0005D368:
 	bclr.b #7,app_033C(a6)
 	movem.l d1-d7/a1-a6,-(a7)
-	jsr abs_0_0005D872.l
+	jsr reset_audio_channels.l
 	movem.l (a7)+,d1-d7/a1-a6
 	rts
 	dc.b $4E,$B9,$00,$01,$26,$64,$64,$18,$10,$2C,$00,$46,$B0,$3C,$00,$27
@@ -26809,11 +26809,11 @@ abs_0_0005D368:
 	dc.b $00,$01,$99,$DE,$41,$FA,$FA,$3D,$4E,$B9,$00,$01,$99,$DE,$60,$B4
 abs_0_0005D5DE:
 	dcb.b $200,$00
-abs_0_0005D7DE:
+initialize_audio_player:
 	bset.b #CIAB_LED,_ciaa+ciapra.l
-	lea.l abs_0_0005D7DE(pc),a3
-	bsr.w abs_0_0005D872
-	bsr.w abs_0_0005E378
+	lea.l initialize_audio_player(pc),a3
+	bsr.w reset_audio_channels
+	bsr.w initialize_audio_sample_metadata
 	sf.b $052A(a3)
 	lea.l abs_0_0005DD14(pc),a1
 	ext.w d0
@@ -26849,8 +26849,8 @@ abs_0_0005D81C:
 	st.b $0529(a3)
 	st.b $0527(a3)
 	rts
-abs_0_0005D872:
-	lea.l abs_0_0005D7DE(pc),a3
+reset_audio_channels:
+	lea.l initialize_audio_player(pc),a3
 	sf.b $0529(a3)
 	sf.b $0E30(a3)
 	sf.b $0E56(a3)
@@ -26871,11 +26871,11 @@ abs_0_0005D872:
 	dc.b $F0,$9E,$32,$3C,$82,$00,$7E,$03,$0F,$C1,$51,$CF,$FF,$FC,$33,$C1
 	dc.b $00,$DF,$F0,$96,$50,$EB,$05,$29,$4E,$75
 abs_0_0005D8F6:
-	bra.w abs_0_0005E4AE
+	bra.w dispatch_audio_channel_updates
 abs_0_0005D8FA:
 	rts
 update_audio_channels:
-	lea.l abs_0_0005D7DE(pc),a3
+	lea.l initialize_audio_player(pc),a3
 	tst.b $0529(a3)
 	beq.b abs_0_0005D8F6
 	move.b abs_0_0005DD02(pc),d0
@@ -26890,7 +26890,7 @@ update_audio_channels:
 	move.b #$6,$052B(a3)
 	bra.b abs_0_0005D8FA
 abs_0_0005D92A:
-	movea.l abs_0_0005DF04(pc),a0
+	movea.l entries_sample_ptr_7(pc),a0
 	move.w abs_0_0005DD12(pc),d0
 	tst.w $0532(a3)
 	bmi.b abs_0_0005D950
@@ -26910,7 +26910,7 @@ abs_0_0005D950:
 abs_0_0005D966:
 	moveq.l #3,d7
 abs_0_0005D968:
-	lea.l abs_0_0005E690(pc),a4
+	lea.l channels_sample_ptr_0(pc),a4
 	move.w d7,d0
 	mulu.w #$C,d0
 	adda.w d0,a4
@@ -26980,7 +26980,7 @@ abs_0_0005DA1A:
 	ext.w d1
 	move.l $0000(a5),$0000(a4)
 	move.w $0008(a5),$0004(a4)
-	move.w abs_0_0005DD00(pc),d2
+	move.w audio_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
 	move.w d1,$0008(a4)
@@ -27087,7 +27087,7 @@ abs_0_0005DB72:
 	move.l a2,$0026(a0)
 abs_0_0005DB8A:
 	andi.w #127,d1
-	move.w abs_0_0005DD00(pc),d2
+	move.w audio_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
 	move.w d1,$0008(a4)
@@ -27107,7 +27107,7 @@ abs_0_0005DBBE:
 	cmp.b #$C0,d0
 	blt.b abs_0_0005DBDA
 	subi.b #192,d0
-	lea.l abs_0_0005DEB0(pc),a5
+	lea.l entries_sample_ptr_0(pc),a5
 	mulu.w #$C,d0
 	adda.w d0,a5
 	move.l a5,$0018(a0)
@@ -27156,7 +27156,7 @@ abs_0_0005DCE8:
 	dc.b $04,$E4,$04,$EC,$04,$FE
 abs_0_0005DCFE:
 	dc.w $0000	; lookup_table
-abs_0_0005DD00:
+audio_master_volume:
 	dc.w $0040	; lookup_table
 abs_0_0005DD02:
 	dc.b $00,$00,$00,$00,$00,$00	; lookup_table
@@ -27170,15 +27170,78 @@ abs_0_0005DD12:
 abs_0_0005DD14:
 	dcb.b $C0,$00
 abs_0_0005DDD4:
-	dc.w $2000,$1E30,$1C80,$1AE8,$1968,$17F8,$16A0,$1558	; lookup_table
-	dc.w $1428,$1308,$11F8,$10F0,$1000,$0F18,$0E40,$0D74	; lookup_table
-	dc.w $0CB4,$0BFC,$0B50,$0AAC,$0A14,$0984,$08FC,$0878	; lookup_table
-	dc.w $0800,$078C,$0720,$06BA,$065A,$05FE,$05A8,$0556	; lookup_table
-	dc.w $050A,$04C2,$047E,$043C,$0400,$03C6,$0390,$035D	; lookup_table
-	dc.w $032D,$02FF,$02D4,$02AB,$0285,$0261,$023F,$021E	; lookup_table
-	dc.w $0200,$01E3,$01C8,$01AE,$0196,$017F,$016A,$0155	; lookup_table
-	dc.w $0142,$0130,$011F,$010F,$0100,$00F1,$00E4,$00D7	; lookup_table
-	dc.w $00CB,$00BF,$00B5,$00AA,$00A1,$0098,$008F,$0087	; lookup_table
+	dc.w $2000	; lookup_table
+	dc.w $1E30
+	dc.w $1C80
+	dc.w $1AE8
+	dc.w $1968
+	dc.w $17F8
+	dc.w $16A0
+	dc.w $1558
+	dc.w $1428
+	dc.w $1308
+	dc.w $11F8
+	dc.w $10F0
+	dc.w $1000
+	dc.w $0F18
+	dc.w $0E40
+	dc.w $0D74
+	dc.w $0CB4
+	dc.w $0BFC
+	dc.w $0B50
+	dc.w $0AAC
+	dc.w configurations_sample_address_offset_23-entries_sample_ptr_0
+	dc.w configurations_sequence_index_16-entries_sample_ptr_0
+	dc.w configurations_period_delta_select_10-entries_sample_ptr_0
+	dc.w configurations_period_delta_select_4-entries_sample_ptr_0
+	dc.w channels_sample_volume_2-entries_sample_ptr_0
+	dc.w $078C
+	dc.w $0720
+	dc.w abs_0_0005E56A-entries_sample_ptr_0
+	dc.w abs_0_0005E50A-entries_sample_ptr_0
+	dc.w dispatch_audio_channel_updates-entries_sample_ptr_0
+	dc.w abs_0_0005E458-entries_sample_ptr_0
+	dc.w $0556
+	dc.w abs_0_0005E3BA-entries_sample_ptr_0
+	dc.w $04C2
+	dc.w $047E
+	dc.w $043C
+	dc.w $0400
+	dc.w $03C6
+	dc.w $0390
+	dc.w $035D
+	dc.w $032D
+	dc.w $02FF
+	dc.w $02D4
+	dc.w $02AB
+	dc.w $0285
+	dc.w $0261
+	dc.w $023F
+	dc.w $021E
+	dc.w $0200
+	dc.w $01E3
+	dc.w $01C8
+	dc.w $01AE
+	dc.w $0196
+	dc.w $017F
+	dc.w $016A
+	dc.w $0155
+	dc.w $0142
+	dc.w $0130
+	dc.w $011F
+	dc.w $010F
+	dc.w $0100
+	dc.w $00F1
+	dc.w $00E4
+	dc.w $00D7
+	dc.w $00CB
+	dc.w $00BF
+	dc.w $00B5
+	dc.w $00AA
+	dc.w $00A1
+	dc.w $0098
+	dc.w $008F
+	dc.w $0087
 abs_0_0005DE64:
 	dc.b $06,$A0,$06,$A2,$06,$A5,$06,$A8,$06,$AB,$06,$AE,$06,$B0,$06,$B8
 	dc.b $06,$BF,$06,$C5,$06,$C7,$06,$C9,$06,$CB
@@ -27187,102 +27250,195 @@ abs_0_0005DE7E:
 	dc.b $0C,$00,$00,$00,$00,$00,$00,$80,$0C,$00,$00,$00,$00,$00,$80,$0C
 	dc.b $00,$00,$00,$00,$80,$00,$83,$00,$84,$00,$85,$18,$00,$00,$00,$00
 	dc.b $00,$80
-abs_0_0005DEB0:
-	dcb.b $1C,$00
-	dc.b $FF,$FF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF
-	dcb.b $10,$00
-abs_0_0005DF04:
-	dc.l $00000000,$00000000,$00000000,$00000000	; lookup_table
-	dc.l $00000000,$00000000,$00000000,$00000000	; lookup_table
-	dc.l $00000000,$00000000,$00000000,$00000000	; lookup_table
+entries_sample_ptr_0:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_4_0:
+	dc.l $00000000	; typed data block gap
+entries_sample_length_0:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_0:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_1:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_10_1:
+	dc.l $00000000	; typed data block gap
+entries_sample_length_1:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_1:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_2:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_1C_2:
+	dc.l $FFFFFFFF	; typed data block gap
+entries_sample_length_2:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_2:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_3:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_28_3:
+	dc.l $FFFFFFFF	; typed data block gap
+entries_sample_length_3:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_3:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_4:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_34_4:
+	dc.l $FFFFFFFF	; typed data block gap
+entries_sample_length_4:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_4:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_5:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_40_5:
+	dc.l $FFFFFFFF	; typed data block gap
+entries_sample_length_5:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_5:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_6:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_4C_6:
+	dc.l $00000000	; typed data block gap
+entries_sample_length_6:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_6:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_7:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_58_7:
+	dc.l $00000000	; typed data block gap
+entries_sample_length_7:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_7:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_8:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_64_8:
+	dc.l $00000000	; typed data block gap
+entries_sample_length_8:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_8:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_9:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_70_9:
+	dc.l $00000000	; typed data block gap
+entries_sample_length_9:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_9:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
+entries_sample_ptr_10:	; STRUCT audio_sample_metadata
+	dc.l $00000000	; long sample_ptr
+entries_gap_7C_10:
+	dc.l $00000000	; typed data block gap
+entries_sample_length_10:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_length
+entries_sample_period_10:	; STRUCT audio_sample_metadata
+	dc.w $0000	; word sample_period
 abs_0_0005DF34:
-	dc.b $03,$04,$07,$8E,$07,$74,$07,$9A,$07,$A4,$03,$05,$09,$54,$09,$4A
-	dc.b $09,$5A,$09,$60,$05,$05,$0A,$7E,$0A,$7A,$0A,$82,$0A,$8C,$07,$A8
-	dc.b $07,$A8,$07,$EF,$07,$EF,$08,$18,$08,$18,$08,$18,$08,$18,$08,$16
-	dc.b $08,$16,$08,$16,$08,$16,$00,$00,$08,$41,$08,$41,$08,$50,$08,$61
-	dc.b $08,$5F,$00,$00,$08,$7B,$08,$B9,$08,$DC,$08,$DA,$00,$00,$09,$29
-	dc.b $00,$00,$B2,$C7,$86,$04,$04,$E3
+	dc.b $03,$04,$07
+	dc.b $8E,$07,$74,$07,$9A,$07,$A4,$03
+	dc.b $05,$09,$54,$09,$4A,$09,$5A,$09,$60
+	dc.b $05,$05,$0A,$7E,$0A,$7A,$0A,$82,$0A
+	dc.b $8C,$07,$A8,$07,$A8,$07,$EF,$07,$EF
+	dc.b $08,$18,$08,$18,$08,$18,$08,$18,$08,$16,$08
+	dc.b $16,$08,$16,$08,$16,$00,$00,$08,$41,$08
+	dc.b $41,$08,$50,$08,$61,$08,$5F,$00,$00,$08,$7B,$08
+	dc.b $B9,$08,$DC,$08,$DA,$00,$00,$09,$29,$00,$00,$B2
+	dc.b $C7,$86,$04,$04,$E3
 	dcb.b $8,$18
 	dcb.b $8,$1B
-	dcb.b $8,$18
+	dc.b $18,$18,$18,$18,$18
+	dc.b $18,$18,$18
 	dcb.b $8,$16
-	dcb.b $8,$18
+	dc.b $18,$18,$18,$18
+	dc.b $18,$18,$18,$18
 	dcb.b $8,$1B
-	dcb.b $10,$1D
-	dc.b $80,$B2,$C7,$86,$04,$04,$E3
-	dcb.b $10,$18
-	dcb.b $10,$1D
-	dc.b $80,$88,$01,$B2,$C7,$86,$04,$04,$E3
-	dcb.b $10,$1A
-	dcb.b $10,$18
-	dc.b $88,$00,$80,$C7,$B7,$86,$06,$06,$FF,$24,$27,$24,$22,$24,$27,$29
-	dc.b $1D,$80,$C7,$B7,$86,$06,$06,$FF,$24,$24,$29,$29,$24,$24,$29,$1D
-	dc.b $80,$88,$01,$C0,$FF,$86,$01,$02,$BB,$32,$32,$30,$30,$32,$32,$30
-	dc.b $30,$B5,$26,$26,$24,$24,$32,$32,$30,$30,$88,$00,$80,$C7,$B7,$86
-	dc.b $03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86,$04
-	dc.b $04,$F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7,$86,$03,$03
-	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86,$02,$02,$F3
-	dc.b $33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80,$C2,$BE,$87,$F3,$24
-	dc.b $E3,$1F,$24,$29,$FB,$28,$E3,$1F,$FB,$21,$E3,$2B,$FF,$2D,$F3,$24
-	dc.b $E3,$1F,$24,$29,$FB,$28,$E3,$2B,$FF,$2D,$83,$80,$88,$01,$E3,$83
-	dc.b $C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B,$E7
-	dc.b $2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E7,$2B,$C1
-	dc.b $B3,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B,$E7,$2D
-	dc.b $E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E3,$2B,$BF,$FF
+	dc.b $1D,$1D,$1D
+	dcb.b $D,$1D
+	dc.b $80,$B2,$C7
+	dc.b $86,$04,$04,$E3
+	dcb.b $D,$18
+	dc.b $18,$18,$18
+	dcb.b $F,$1D
+	dc.b $1D,$80,$88,$01,$B2,$C7,$86,$04,$04,$E3
+	dcb.b $9,$1A
+	dc.b $1A,$1A,$1A,$1A,$1A,$1A,$1A
+	dcb.b $E,$18
+	dc.b $18,$18,$88,$00,$80,$C7,$B7,$86,$06,$06,$FF,$24,$27,$24,$22,$24
+	dc.b $27,$29,$1D,$80,$C7
+	dc.b $B7,$86,$06,$06,$FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80,$88,$01
+	dc.b $C0,$FF,$86,$01,$02,$BB,$32
+	dc.b $32,$30,$30,$32,$32,$30,$30,$B5,$26,$26,$24,$24,$32,$32,$30,$30
+	dc.b $88,$00,$80,$C7,$B7,$86,$03,$03
+	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86,$04,$04,$F3
+	dc.b $27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D
+	dc.b $C7,$86,$03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6
+	dc.b $86,$02,$02,$F3,$33,$E3,$2E,$33,$F1,$3A,$83
+	dc.b $FF,$83,$39,$80,$C2,$BE,$87,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3
+	dc.b $1F,$FB,$21,$E3,$2B,$FF,$2D,$F3,$24,$E3,$1F,$24,$29
+	dc.b $FB,$28,$E3,$2B,$FF,$2D,$83,$80,$88,$01,$E3,$83,$C0,$B5,$87,$E5
+	dc.b $2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5
+	dc.b $2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E7,$2B,$C1,$B3,$87
+	dc.b $E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2B
+	dc.b $32
+	dc.b $30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E3,$2B,$BF,$FF
 	dcb.b $8,$82
-	dc.b $88,$00,$80,$87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5
-	dc.b $24,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$20,$E2,$BD,$C5,$24,$E0,$BE
-	dc.b $C3,$24,$80,$00,$09,$86,$09,$86,$09,$9D,$09,$9D,$00,$00,$09,$AE
-	dc.b $09,$D2,$00,$00,$09,$FB,$0A,$22,$00,$00,$0B,$74,$0B,$7D,$0A,$4B
-	dc.b $0A,$4B,$0A,$4B,$0A,$4B,$0B,$77,$0B,$80,$0A,$4B,$0A,$4B,$0A,$4B
-	dc.b $0A,$4B,$0B,$7A,$0B,$83,$0A,$4B,$0A,$4B,$0A,$4B,$0A,$4B,$00,$00
-	dc.b $C7,$B3,$86,$02,$02,$E1
+	dc.b $88,$00,$80,$87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4
+	dc.b $24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$20,$E2,$BD,$C5
+	dc.b $24,$E0,$BE,$C3,$24,$80,$00,$09,$86,$09,$86,$09,$9D,$09,$9D,$00
+	dc.b $00,$09,$AE,$09
+	dc.b $D2,$00,$00,$09,$FB,$0A,$22,$00,$00,$0B,$74,$0B,$7D,$0A,$4B,$0A
+	dc.b $4B,$0A,$4B,$0A,$4B,$0B,$77,$0B,$80,$0A,$4B,$0A,$4B,$0A,$4B,$0A
+	dc.b $4B,$0B,$7A,$0B,$83,$0A
+	dc.b $4B,$0A,$4B,$0A,$4B,$0A,$4B,$00,$00,$C7,$B3,$86,$02,$02,$E1
 	dcb.b $10,$1F
 	dc.b $80
-	dcb.b $10,$1D
-	dc.b $80,$B5,$87,$C0,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$E5,$37,$EB,$37
-	dc.b $E3,$37,$E9,$37,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$E5,$35,$EB,$35
-	dc.b $E3,$35,$E9,$35,$80,$B5,$86,$02,$02,$C7,$E5,$2B,$EB,$2B,$E3,$2B
-	dc.b $E9,$2B,$C6,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C7,$E5,$29,$EB,$29
-	dc.b $E3,$29,$E9,$29,$C6,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$80,$B5,$87
-	dc.b $C0,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E,$E3,$2F
-	dc.b $E9,$2E,$C0,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C1,$E5,$2E,$EB,$2D
-	dc.b $E3,$2E,$E9,$30,$80,$B5,$86,$02,$02,$C7,$E5,$2F,$EB,$2E,$E3,$2F
-	dc.b $E9,$2E,$C6,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C7,$E5,$2E,$EB,$2D
-	dc.b $E3,$2E,$E9,$2D,$C6,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$80,$E1,$BE
-	dc.b $C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5
-	dc.b $24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24
-	dc.b $C3,$24,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$80,$0A,$90,$00
-	dc.b $00,$0A,$C2,$00,$00,$0B,$71,$0B,$0F,$0B,$6E,$0B,$0F,$00,$00,$0B
-	dc.b $5C,$00,$00,$C7,$B3,$86,$04,$04,$88,$03,$E1,$18,$24,$18,$24,$18
-	dc.b $24,$18,$24,$18,$24,$18,$24,$18,$E0,$18,$24,$17,$23,$16,$22,$E1
-	dc.b $15,$21,$15,$21,$15,$21,$15,$21,$15,$21,$15,$21,$15,$E0,$15,$21
-	dc.b $16,$22,$17,$23,$80,$C7,$88,$03,$B5,$86,$03,$03,$E1,$24,$E3,$28
-	dc.b $E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3
-	dc.b $28,$E1,$28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$C6,$E1
-	dc.b $24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28
-	dc.b $E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8
-	dc.b $2B,$80,$C7,$88,$03,$B5,$86,$03,$03,$E1,$28,$E3,$2B,$E1,$2B,$2D
-	dc.b $2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B
-	dc.b $2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$C6,$E1,$28,$E3,$2B
-	dc.b $E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3
-	dc.b $2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$80,$E1
-	dc.b $BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18,$A0
-	dc.b $80,$85,$FF,$80,$85,$00,$80,$85,$01,$80,$85,$02,$80,$85,$03,$80
-	dc.b $88,$FF,$80,$88,$FE,$80,$88,$FD,$80,$BF,$C0,$FF
-	dcb.b $10,$82
-	dc.b $80
-abs_0_0005E378:
+	dcb.b $9,$1D
+	dc.b $1D,$1D,$1D,$1D,$1D,$1D,$1D,$80,$B5,$87,$C0,$E5,$2B,$EB,$2B,$E3
+	dc.b $2B,$E9,$2B,$E5,$37,$EB,$37,$E3,$37,$E9,$37,$E5,$29,$EB,$29,$E3
+	dc.b $29,$E9,$29,$E5,$35,$EB,$35,$E3,$35,$E9,$35
+	dc.b $80,$B5,$86,$02,$02,$C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5
+	dc.b $2B,$EB,$2B,$E3,$2B,$E9,$2B,$C7,$E5,$29,$EB,$29,$E3,$29,$E9,$29
+	dc.b $C6,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$80,$B5,$87,$C0,$E5
+	dc.b $2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E
+	dc.b $C0,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C1,$E5,$2E,$EB,$2D,$E3,$2E
+	dc.b $E9,$30,$80,$B5,$86,$02,$02,$C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E
+	dc.b $C6,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C7,$E5,$2E,$EB,$2D,$E3,$2E
+	dc.b $E9,$2D,$C6,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$80,$E1,$BE,$C3,$24
+	dc.b $BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE
+	dc.b $C4,$24,$BD
+	dc.b $C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$C3,$24,$24,$BD,$C5
+	dc.b $24,$BE,$C4,$24,$BD,$C5,$24,$80,$0A,$90,$00,$00,$0A,$C2,$00,$00
+	dc.b $0B,$71,$0B,$0F,$0B,$6E,$0B,$0F,$00,$00,$0B,$5C,$00,$00,$C7,$B3
+	dc.b $86,$04,$04,$88,$03,$E1
+	dc.b $18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$E0,$18,$24
+	dc.b $17,$23,$16,$22,$E1,$15,$21,$15,$21,$15,$21,$15,$21,$15,$21,$15
+	dc.b $21,$15,$E0,$15,$21,$16,$22,$17,$23,$80,$C7,$88,$03,$B5,$86,$03
+	dc.b $03,$E1,$24,$E3,$28,$E1,$28,$28,$28,$24
+	dc.b $28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1,$28,$28,$28
+	dc.b $25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$C6,$E1,$24,$E3,$28,$E1,$28
+	dc.b $28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1
+	dc.b $28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8,$2B
+	dc.b $80,$C7,$88,$03,$B5,$86,$03,$03,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B
+	dc.b $28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B,$2D
+	dc.b $2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$C6,$E1,$28,$E3,$2B,$E1
+	dc.b $2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B
+	dc.b $E1,$2B
+	dc.b $2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$80,$E1,$BE,$C3,$24
+	dc.b $BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18,$A0,$80,$85,$FF
+	dc.b $80,$85,$00,$80,$85,$01,$80,$85,$02,$80,$85,$03,$80,$88,$FF,$80
+	dc.b $88,$FE,$80,$88,$FD,$80,$BF,$C0,$FF
+	dcb.b $B,$82
+	dc.b $82,$82,$82,$82,$82,$80
+initialize_audio_sample_metadata:
 	tst.b $0528(a3)
 	bne.w abs_0_0005E3EA
-	lea.l abs_0_0005EAD8(pc),a0
-	lea.l abs_0_0005DEB0(pc),a5
+	lea.l packed_audio_sample_stream(pc),a0
+	lea.l entries_sample_ptr_0(pc),a5
 	moveq.l #10,d1
 abs_0_0005E38A:
 	move.l (a0)+,d2
@@ -27299,8 +27455,9 @@ abs_0_0005E38A:
 	move.l a0,$052E(a3)
 	adda.w #$40,a0
 	move.l a0,$1160(a3)
+abs_0_0005E3BA:
 	st.b $0528(a3)
-	movea.l abs_0_0005DF04(pc),a0
+	movea.l entries_sample_ptr_7(pc),a0
 	move.w #$F,d1
 abs_0_0005E3C6:
 	move.w #$C0C0,(a0)+
@@ -27314,20 +27471,57 @@ abs_0_0005E3D2:
 	clr.w $0532(a3)
 abs_0_0005E3EA:
 	rts
-abs_0_0005E3EC:
-	dc.b $08,$F9,$00,$01,$00,$BF,$E0,$01,$33,$FC,$00,$FF,$00,$DF,$F0,$9E
-	dc.b $47,$FA,$F3,$E0,$61,$00,$FF,$76,$37,$40,$0E,$B0,$7E,$00,$49,$FA
-	dc.b $02,$84,$1E,$3A,$02,$7E,$CE,$FC,$00,$0C,$50,$F4,$70,$0B,$48,$80
-	dc.b $C0,$FC,$00,$16,$43,$FA,$01,$D4,$74,$01,$41,$F9,$00,$DF,$F0,$A4
-	dc.b $12,$3A,$02,$60,$53,$01,$6B,$0C,$D2,$FC,$00,$26,$D4,$42,$D0,$FC
-	dc.b $00,$10,$60,$F0,$51,$E9,$00,$18,$33,$C2,$00,$DF,$F0,$96,$30,$BC
-	dc.b $00,$40,$41,$FA,$02,$70,$D0,$C0,$24,$49,$70,$0A,$32,$D8,$51,$C8
-	dc.b $FF,$FC,$35,$6A,$00,$0E,$00,$16,$15,$7C,$00,$01,$00,$19,$10,$2A
-	dc.b $00,$14,$48,$80,$D0,$40,$41,$EB,$11,$64,$30,$70,$00,$00,$D1,$CB
-	dc.b $25,$48,$00,$1A,$30,$3C,$02,$00,$51,$C8,$FF,$FE,$50,$EA,$00,$18
-	dc.b $4E,$75
+start_audio_sequence:
+	bset.b #CIAB_LED,_ciaa+ciapra.l
+	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
+	lea.l initialize_audio_player(pc),a3
+	bsr.w initialize_audio_sample_metadata
+	move.w d0,$0EB0(a3)
+	moveq.l #0,d7
+	lea.l channels_sample_ptr_0(pc),a4
+	move.b abs_0_0005E68E(pc),d7
+	mulu.w #$C,d7
+	st.b $B(a4,d7.w)
+	ext.w d0
+	mulu.w #$16,d0
+	lea.l channels_period_delta_0(pc),a1
+	moveq.l #1,d2
+	lea.l _custom+aud0+ac_len.l,a0
+	move.b abs_0_0005E68E(pc),d1
+abs_0_0005E430:
+	subq.b #1,d1
+	bmi.b abs_0_0005E440
+	adda.w #$26,a1
+	add.w d2,d2
+	adda.w #$10,a0
+	bra.b abs_0_0005E430
+abs_0_0005E440:
+	sf.b $0018(a1)
+	move.w d2,_custom+dmacon.l
+	move.w #$40,(a0)
+	lea.l configurations_period_delta_0(pc),a0
+	adda.w d0,a0
+	movea.l a1,a2
+	moveq.l #10,d0
+abs_0_0005E458:
+	move.w (a0)+,(a1)+
+	dbf.w d0,abs_0_0005E458
+	move.w $000E(a2),$0016(a2)
+	move.b #$1,$0019(a2)
+	move.b $0014(a2),d0
+	ext.w d0
+	add.w d0,d0
+	lea.l $1164(a3),a0
+	movea.w $0(a0,d0.w),a0
+	adda.l a3,a0
+	move.l a0,$001A(a2)
+	move.w #$200,d0
+abs_0_0005E484:
+	dbf.w d0,abs_0_0005E484
+	st.b $0018(a2)
+	rts
 abs_0_0005E48E:
-	lea.l abs_0_0005D7DE(pc),a3
+	lea.l initialize_audio_player(pc),a3
 	move.b abs_0_0005E4AA(pc),d0
 	andi.b #72,d0
 	addi.b #56,d0
@@ -27337,42 +27531,43 @@ abs_0_0005E48E:
 	rts
 abs_0_0005E4AA:
 	dc.b $6F,$80,$1B,$34	; lookup_table
-abs_0_0005E4AE:
+dispatch_audio_channel_updates:
 	bsr.b abs_0_0005E48E
-	lea.l abs_0_0005E5F6(pc),a1
+	lea.l channels_period_delta_0(pc),a1
 	tst.b $0018(a1)
 	beq.b abs_0_0005E4C8
 	lea.l _custom.l,a0
 	moveq.l #1,d2
-	lea.l abs_0_0005E690(pc),a4
-	bsr.b abs_0_0005E512
+	lea.l channels_sample_ptr_0(pc),a4
+	bsr.b service_audio_channel_playback
 abs_0_0005E4C8:
-	lea.l abs_0_0005E61C(pc),a1
+	lea.l channels_period_delta_1(pc),a1
 	tst.b $0018(a1)
 	beq.b abs_0_0005E4E0
 	lea.l _custom+adkconr.l,a0
 	moveq.l #2,d2
-	lea.l abs_0_0005E69C(pc),a4
-	bsr.b abs_0_0005E512
+	lea.l channels_sample_ptr_1(pc),a4
+	bsr.b service_audio_channel_playback
 abs_0_0005E4E0:
-	lea.l abs_0_0005E642(pc),a1
+	lea.l channels_period_delta_2(pc),a1
 	tst.b $0018(a1)
 	beq.b abs_0_0005E4F8
 	lea.l _custom+dskpt.l,a0
 	moveq.l #4,d2
-	lea.l abs_0_0005E6A8(pc),a4
-	bsr.b abs_0_0005E512
+	lea.l channels_sample_ptr_2(pc),a4
+	bsr.b service_audio_channel_playback
 abs_0_0005E4F8:
-	lea.l abs_0_0005E668(pc),a1
+	lea.l channels_period_delta_3(pc),a1
 	tst.b $0018(a1)
 	beq.b abs_0_0005E510
 	lea.l _custom+serdat.l,a0
 	moveq.l #8,d2
-	lea.l abs_0_0005E6B4(pc),a4
-	bsr.b abs_0_0005E512
+abs_0_0005E50A:
+	lea.l channels_sample_ptr_3(pc),a4
+	bsr.b service_audio_channel_playback
 abs_0_0005E510:
 	rts
-abs_0_0005E512:
+service_audio_channel_playback:
 	subq.b #1,$0012(a1)
 	bne.b abs_0_0005E550
 	sf.b $0018(a1)
@@ -27398,6 +27593,7 @@ abs_0_0005E558:
 	subq.b #1,$0017(a1)
 	bne.b abs_0_0005E580
 	move.b $000F(a1),$0017(a1)
+abs_0_0005E56A:
 	move.l $0004(a1),d0
 	move.b $0010(a1),d1
 	ror.b #1,d1
@@ -27439,103 +27635,1001 @@ abs_0_0005E5CA:
 	swap.w d1
 abs_0_0005E5DC:
 	move.b d0,$0011(a1)
-	movea.l abs_0_0005E93E(pc),a1
+	movea.l audio_sample_address_base(pc),a1
 	adda.w d1,a1
 	move.l a1,$00A0(a0)
 	ori.w #33280,d2
 	move.w d2,_custom+dmacon.l
 	rts
-abs_0_0005E5F6:
-	dcb.b $26,$00
-abs_0_0005E61C:
-	dcb.b $26,$00
-abs_0_0005E642:
-	dcb.b $26,$00
-abs_0_0005E668:
-	dcb.b $28,$00
-abs_0_0005E690:
-	dcb.b $C,$00
-abs_0_0005E69C:
-	dcb.b $C,$00
-abs_0_0005E6A8:
-	dcb.b $C,$00
-abs_0_0005E6B4:
-	dcb.b $D,$00
-	dc.b $01,$0A,$F0,$00,$64,$FF,$FF,$07,$D0,$02,$00,$00,$00,$07,$01,$00
-	dc.b $00,$1E,$01,$01,$00,$00,$0C,$0D,$48,$00,$64,$FF,$F1,$09,$60,$02
-	dc.b $00,$00,$00,$07,$01,$00,$00,$32,$01,$00,$00,$00,$04,$07,$6C,$00
-	dc.b $78,$FF,$F1,$06,$A4,$02,$00,$00,$00,$09,$01,$00,$00,$32,$01,$00
-	dc.b $00,$00,$04,$01,$2C,$00,$64,$FF,$F1,$00,$C8,$02,$00,$00,$00,$08
-	dc.b $01,$00,$00,$0F,$01,$00,$00,$FF,$D8,$0A,$F0,$00,$0F,$FF,$F1,$08
-	dc.b $34,$02,$00,$01,$80,$03,$01,$92,$AA,$0F,$05,$00,$00,$00,$04,$17
-	dc.b $70,$00,$0F,$FF,$F1,$13,$88,$02,$00,$00,$00,$08,$01,$00,$00,$14
-	dc.b $04,$00,$00,$00,$37,$01,$A4,$00,$46,$FF,$B9,$02,$4E,$01,$80,$02
-	dc.b $00,$01,$01,$AA,$8C,$10,$04,$00,$00,$FF,$F9,$0B,$B8,$00,$0A,$FF
-	dc.b $F5,$07,$D0,$01,$80,$00,$00,$00,$01,$AA,$00,$37,$0A,$00,$00,$FF
-	dc.b $F8,$05,$B4,$00,$04,$FF,$F8,$05,$AA,$02,$00,$00,$00,$32,$00,$AA
-	dc.b $00,$32,$01,$00,$00,$FF,$FF,$02,$94,$00,$14,$FF,$EC,$02,$8A,$00
-	dc.b $80,$02,$00,$00,$01,$AA,$AA,$96,$19,$02,$00,$00,$0C,$0A,$F0,$00
-	dc.b $64,$FF,$F1,$07,$D0,$02,$00,$00,$00,$07,$01,$00,$00,$1E,$01,$01
-	dc.b $00,$00,$0C,$11,$30,$00,$64,$FF,$F1,$06,$A4,$02,$00,$00,$00,$08
-	dc.b $01,$00,$00,$64,$03,$00,$00,$00,$04,$02,$BC,$00,$64,$FF,$F1,$02
-	dc.b $58,$01,$00,$00,$80,$06,$01,$00,$00,$FF,$FF,$05,$00,$00,$04,$00
-	dc.b $C8,$00,$64,$FF,$F1,$00,$C8,$01,$00,$00,$80,$08,$01,$00,$00,$FF
-	dc.b $FF,$02,$00,$00,$01,$03,$84,$00,$64,$FF,$FF,$04,$4C,$01,$00,$00
-	dc.b $80,$0B,$01,$00,$00,$FF,$FF,$02,$00,$00,$0C,$12,$C0,$00,$64,$FF
-	dc.b $F1,$0F,$A0,$02,$00,$02,$00,$07,$01,$00,$00,$14,$01,$03
-	dcb.b $A,$00
-	dc.b $C8
-	dcb.b $8,$00
-	dc.b $0A,$01,$04
-	dcb.b $A,$00
-	dc.b $7E
-	dcb.b $8,$00
-	dc.b $0A,$01,$04,$00,$00,$01,$00,$C8,$FF,$FA,$FF,$EE,$00,$C8,$00,$00
-	dc.b $00,$00,$00,$06,$0F,$00,$30,$04,$00,$00,$FF,$F4,$01,$68,$FF,$FE
-	dc.b $00,$02,$01,$68,$01,$80,$00,$00,$00,$01,$55,$00,$14,$0C,$00,$00
-	dc.b $00,$00,$01,$68,$FF,$E2,$00,$32,$00,$B4,$01,$80,$00,$00,$08,$01
-	dc.b $3F,$00,$0E,$10,$00,$00,$FF,$F2,$01,$B8,$00,$0C,$FF,$F6,$01,$B8
-	dc.b $00,$00,$00,$00,$00,$01,$55,$00,$18,$07,$00,$00,$00,$00,$01,$40
-	dc.b $FF,$F6,$00,$0A,$00,$F0,$01,$80,$00,$00,$06,$01,$55,$00,$0C,$0B
-	dc.b $00,$00,$FF,$FC,$01,$68,$00,$2E,$FF,$BE,$01,$2C,$01,$80,$00,$00
-	dc.b $0F,$03,$55,$00,$1E,$05,$00,$00,$00,$00,$0B,$B8,$00,$64,$FF,$9C
-	dc.b $0B,$B8,$02,$00,$00,$00,$00,$01,$55,$00,$19,$40,$00,$00,$FF,$FA
-	dc.b $00,$F0,$00,$02,$FF,$FE,$00,$F0,$00,$00,$00,$00,$00,$01,$AA,$00
-	dc.b $0C,$0A,$00,$00,$FF,$F8,$02,$58,$00,$50,$FF,$B0,$02,$58,$00,$00
-	dc.b $01,$80,$00,$02,$A5,$AA,$3C,$03,$00,$00,$01,$2C,$02,$58,$FF,$88
-	dc.b $FF,$9C,$02,$58,$02,$00,$00,$00,$08,$03,$A5,$00,$26,$06,$00,$00
-	dc.b $FF,$9C,$13,$88,$FF,$CE,$00,$0F,$13,$88,$02,$00,$00,$00,$00,$01
-	dc.b $55,$00,$1E,$01,$00,$00
-abs_0_0005E93E:
-	dc.l $00000000,$117011A0,$11B911BB,$11CB11D6	; lookup_table
-	dc.l $40383028,$3A36322C,$28302E2C,$2A242624	; lookup_table
-	dc.l $22201E1C,$1A181614,$12100E0C,$0A0C0804	; lookup_table
-	dc.l $03020806,$04020106,$04020104,$030201FF	; lookup_table
-	dc.l $080C1016,$181C1A1E,$23282D32,$38403830	; lookup_table
-	dc.l $28231E19,$140F0A05,$FF20FF04,$0810181E	; lookup_table
-	dc.l $23282D32,$3C401E0F,$0A04FF40,$38302820	; lookup_table
-	dc.l $10080402,$01FF18FF	; lookup_table
+channels_period_delta_0:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_delta
+channels_period_reset_value_0:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_reset_value
+channels_period_delta_step_0:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long period_delta_step
+channels_current_period_0:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word current_period
+channels_sample_address_offset_0:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sample_address_offset
+channels_period_reset_interval_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_interval
+channels_period_delta_interval_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_interval
+channels_period_delta_select_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_select
+channels_sample_address_offset_select_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sample_address_offset_select
+channels_playback_ticks_remaining_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte playback_ticks_remaining
+channels_sequence_interval_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_interval
+channels_sequence_index_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_index
+channels_update_disabled_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte update_disabled
+channels_period_reset_countdown_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_countdown
+channels_period_delta_countdown_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_countdown
+channels_active_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte active
+channels_sequence_countdown_0:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_countdown
+channels_sequence_ptr_0:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sequence_ptr
+channels_gap_1E_0:
+	dcb.b $8,$00	; typed data block gap
+channels_period_delta_1:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_delta
+channels_period_reset_value_1:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_reset_value
+channels_period_delta_step_1:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long period_delta_step
+channels_current_period_1:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word current_period
+channels_sample_address_offset_1:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sample_address_offset
+channels_period_reset_interval_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_interval
+channels_period_delta_interval_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_interval
+channels_period_delta_select_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_select
+channels_sample_address_offset_select_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sample_address_offset_select
+channels_playback_ticks_remaining_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte playback_ticks_remaining
+channels_sequence_interval_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_interval
+channels_sequence_index_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_index
+channels_update_disabled_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte update_disabled
+channels_period_reset_countdown_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_countdown
+channels_period_delta_countdown_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_countdown
+channels_active_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte active
+channels_sequence_countdown_1:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_countdown
+channels_sequence_ptr_1:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sequence_ptr
+channels_gap_44_1:
+	dc.w $0000
+	dc.b $00,$00,$00,$00,$00,$00
+channels_period_delta_2:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_delta
+channels_period_reset_value_2:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_reset_value
+channels_period_delta_step_2:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long period_delta_step
+channels_current_period_2:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word current_period
+channels_sample_address_offset_2:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sample_address_offset
+channels_period_reset_interval_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_interval
+channels_period_delta_interval_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_interval
+channels_period_delta_select_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_select
+channels_sample_address_offset_select_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sample_address_offset_select
+channels_playback_ticks_remaining_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte playback_ticks_remaining
+channels_sequence_interval_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_interval
+channels_sequence_index_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_index
+channels_update_disabled_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte update_disabled
+channels_period_reset_countdown_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_countdown
+channels_period_delta_countdown_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_countdown
+channels_active_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte active
+channels_sequence_countdown_2:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_countdown
+channels_sequence_ptr_2:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sequence_ptr
+channels_gap_6A_2:
+	dcb.b $8,$00	; typed data block gap
+channels_period_delta_3:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_delta
+channels_period_reset_value_3:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word period_reset_value
+channels_period_delta_step_3:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long period_delta_step
+channels_current_period_3:	; STRUCT audio_channel_playback_state
+	dc.w $0000	; word current_period
+channels_sample_address_offset_3:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sample_address_offset
+channels_period_reset_interval_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_interval
+channels_period_delta_interval_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_interval
+channels_period_delta_select_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_select
+channels_sample_address_offset_select_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sample_address_offset_select
+channels_playback_ticks_remaining_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte playback_ticks_remaining
+channels_sequence_interval_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_interval
+channels_sequence_index_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_index
+channels_update_disabled_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte update_disabled
+channels_period_reset_countdown_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_reset_countdown
+channels_period_delta_countdown_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte period_delta_countdown
+channels_active_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte active
+channels_sequence_countdown_3:	; STRUCT audio_channel_playback_state
+	dc.b $00	; byte sequence_countdown
+channels_sequence_ptr_3:	; STRUCT audio_channel_playback_state
+	dc.l $00000000	; long sequence_ptr
+channels_gap_90_3:
+	dcb.b $8,$00	; typed data block gap
+abs_0_0005E68E:
+	dc.b $00,$00	; lookup_table
+channels_sample_ptr_0:	; STRUCT audio_channel_dma_configuration
+	dc.l $00000000	; long sample_ptr
+channels_sample_length_0:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_length
+channels_sample_period_0:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_period
+channels_sample_volume_0:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_volume
+channels_enabled_0:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte enabled
+channels_start_pending_0:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte start_pending
+channels_sample_ptr_1:	; STRUCT audio_channel_dma_configuration
+	dc.l $00000000	; long sample_ptr
+channels_sample_length_1:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_length
+channels_sample_period_1:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_period
+channels_sample_volume_1:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_volume
+channels_enabled_1:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte enabled
+channels_start_pending_1:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte start_pending
+channels_sample_ptr_2:	; STRUCT audio_channel_dma_configuration
+	dc.l $00000000	; long sample_ptr
+channels_sample_length_2:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_length
+channels_sample_period_2:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_period
+channels_sample_volume_2:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_volume
+channels_enabled_2:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte enabled
+channels_start_pending_2:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte start_pending
+channels_sample_ptr_3:	; STRUCT audio_channel_dma_configuration
+	dc.l $00000000	; long sample_ptr
+channels_sample_length_3:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_length
+channels_sample_period_3:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_period
+channels_sample_volume_3:	; STRUCT audio_channel_dma_configuration
+	dc.w $0000	; word sample_volume
+channels_enabled_3:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte enabled
+channels_start_pending_3:	; STRUCT audio_channel_dma_configuration
+	dc.b $00	; byte start_pending
+configurations_period_delta_0:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0001	; word period_delta
+configurations_period_reset_value_0:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0AF0	; word period_reset_value
+configurations_period_delta_step_0:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFFF	; long period_delta_step
+configurations_current_period_0:	; STRUCT audio_sequence_channel_configuration
+	dc.w $07D0	; word current_period
+configurations_sample_address_offset_0:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $07	; byte period_reset_interval
+configurations_period_delta_interval_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $1E	; byte playback_ticks_remaining
+configurations_sequence_interval_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_index
+configurations_update_disabled_0:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_1:	; STRUCT audio_sequence_channel_configuration
+	dc.w $000C	; word period_delta
+configurations_period_reset_value_1:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0D48	; word period_reset_value
+configurations_period_delta_step_1:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFF1	; long period_delta_step
+configurations_current_period_1:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0960	; word current_period
+configurations_sample_address_offset_1:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $07	; byte period_reset_interval
+configurations_period_delta_interval_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $32	; byte playback_ticks_remaining
+configurations_sequence_interval_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_1:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_2:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0004	; word period_delta
+configurations_period_reset_value_2:	; STRUCT audio_sequence_channel_configuration
+	dc.w $076C	; word period_reset_value
+configurations_period_delta_step_2:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0078FFF1	; long period_delta_step
+configurations_current_period_2:	; STRUCT audio_sequence_channel_configuration
+	dc.w $06A4	; word current_period
+configurations_sample_address_offset_2:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $09	; byte period_reset_interval
+configurations_period_delta_interval_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $32	; byte playback_ticks_remaining
+configurations_sequence_interval_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_2:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_3:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0004	; word period_delta
+configurations_period_reset_value_3:	; STRUCT audio_sequence_channel_configuration
+	dc.w $012C	; word period_reset_value
+configurations_period_delta_step_3:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFF1	; long period_delta_step
+configurations_current_period_3:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00C8	; word current_period
+configurations_sample_address_offset_3:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $08	; byte period_reset_interval
+configurations_period_delta_interval_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0F	; byte playback_ticks_remaining
+configurations_sequence_interval_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_3:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_4:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFD8	; word period_delta
+configurations_period_reset_value_4:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0AF0	; word period_reset_value
+configurations_period_delta_step_4:	; STRUCT audio_sequence_channel_configuration
+	dc.l $000FFFF1	; long period_delta_step
+configurations_current_period_4:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0834	; word current_period
+configurations_sample_address_offset_4:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000180	; long sample_address_offset
+configurations_period_reset_interval_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $03	; byte period_reset_interval
+configurations_period_delta_interval_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $92	; byte period_delta_select
+configurations_sample_address_offset_select_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0F	; byte playback_ticks_remaining
+configurations_sequence_interval_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $05	; byte sequence_interval
+configurations_sequence_index_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_4:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_5:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0004	; word period_delta
+configurations_period_reset_value_5:	; STRUCT audio_sequence_channel_configuration
+	dc.w $1770	; word period_reset_value
+configurations_period_delta_step_5:	; STRUCT audio_sequence_channel_configuration
+	dc.l $000FFFF1	; long period_delta_step
+configurations_current_period_5:	; STRUCT audio_sequence_channel_configuration
+	dc.w $1388	; word current_period
+configurations_sample_address_offset_5:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $08	; byte period_reset_interval
+configurations_period_delta_interval_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $14	; byte playback_ticks_remaining
+configurations_sequence_interval_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $04	; byte sequence_interval
+configurations_sequence_index_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_5:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_6:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0037	; word period_delta
+configurations_period_reset_value_6:	; STRUCT audio_sequence_channel_configuration
+	dc.w $01A4	; word period_reset_value
+configurations_period_delta_step_6:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0046FFB9	; long period_delta_step
+configurations_current_period_6:	; STRUCT audio_sequence_channel_configuration
+	dc.w $024E	; word current_period
+configurations_sample_address_offset_6:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01800200	; long sample_address_offset
+configurations_period_reset_interval_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_reset_interval
+configurations_period_delta_interval_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte period_delta_select
+configurations_sample_address_offset_select_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $8C	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $10	; byte playback_ticks_remaining
+configurations_sequence_interval_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $04	; byte sequence_interval
+configurations_sequence_index_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_6:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_7:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFF9	; word period_delta
+configurations_period_reset_value_7:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0BB8	; word period_reset_value
+configurations_period_delta_step_7:	; STRUCT audio_sequence_channel_configuration
+	dc.l $000AFFF5	; long period_delta_step
+configurations_current_period_7:	; STRUCT audio_sequence_channel_configuration
+	dc.w $07D0	; word current_period
+configurations_sample_address_offset_7:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01800000	; long sample_address_offset
+configurations_period_reset_interval_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte period_delta_select
+configurations_sample_address_offset_select_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $37	; byte playback_ticks_remaining
+configurations_sequence_interval_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0A	; byte sequence_interval
+configurations_sequence_index_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_7:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_8:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFF8	; word period_delta
+configurations_period_reset_value_8:	; STRUCT audio_sequence_channel_configuration
+	dc.w $05B4	; word period_reset_value
+configurations_period_delta_step_8:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0004FFF8	; long period_delta_step
+configurations_current_period_8:	; STRUCT audio_sequence_channel_configuration
+	dc.w $05AA	; word current_period
+configurations_sample_address_offset_8:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $32	; byte period_reset_interval
+configurations_period_delta_interval_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_interval
+configurations_period_delta_select_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte period_delta_select
+configurations_sample_address_offset_select_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $32	; byte playback_ticks_remaining
+configurations_sequence_interval_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_8:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_9:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFFF	; word period_delta
+configurations_period_reset_value_9:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0294	; word period_reset_value
+configurations_period_delta_step_9:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0014FFEC	; long period_delta_step
+configurations_current_period_9:	; STRUCT audio_sequence_channel_configuration
+	dc.w $028A	; word current_period
+configurations_sample_address_offset_9:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00800200	; long sample_address_offset
+configurations_period_reset_interval_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte period_delta_select
+configurations_sample_address_offset_select_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $96	; byte playback_ticks_remaining
+configurations_sequence_interval_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $19	; byte sequence_interval
+configurations_sequence_index_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $02	; byte sequence_index
+configurations_update_disabled_9:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_10:	; STRUCT audio_sequence_channel_configuration
+	dc.w $000C	; word period_delta
+configurations_period_reset_value_10:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0AF0	; word period_reset_value
+configurations_period_delta_step_10:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFF1	; long period_delta_step
+configurations_current_period_10:	; STRUCT audio_sequence_channel_configuration
+	dc.w $07D0	; word current_period
+configurations_sample_address_offset_10:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $07	; byte period_reset_interval
+configurations_period_delta_interval_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $1E	; byte playback_ticks_remaining
+configurations_sequence_interval_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_index
+configurations_update_disabled_10:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_11:	; STRUCT audio_sequence_channel_configuration
+	dc.w $000C	; word period_delta
+configurations_period_reset_value_11:	; STRUCT audio_sequence_channel_configuration
+	dc.w $1130	; word period_reset_value
+configurations_period_delta_step_11:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFF1	; long period_delta_step
+configurations_current_period_11:	; STRUCT audio_sequence_channel_configuration
+	dc.w $06A4	; word current_period
+configurations_sample_address_offset_11:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $08	; byte period_reset_interval
+configurations_period_delta_interval_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $64	; byte playback_ticks_remaining
+configurations_sequence_interval_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $03	; byte sequence_interval
+configurations_sequence_index_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_11:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_12:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0004	; word period_delta
+configurations_period_reset_value_12:	; STRUCT audio_sequence_channel_configuration
+	dc.w $02BC	; word period_reset_value
+configurations_period_delta_step_12:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFF1	; long period_delta_step
+configurations_current_period_12:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0258	; word current_period
+configurations_sample_address_offset_12:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01000080	; long sample_address_offset
+configurations_period_reset_interval_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $06	; byte period_reset_interval
+configurations_period_delta_interval_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $FF	; byte playback_ticks_remaining
+configurations_sequence_interval_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $FF	; byte sequence_interval
+configurations_sequence_index_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $05	; byte sequence_index
+configurations_update_disabled_12:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_13:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0004	; word period_delta
+configurations_period_reset_value_13:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00C8	; word period_reset_value
+configurations_period_delta_step_13:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFF1	; long period_delta_step
+configurations_current_period_13:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00C8	; word current_period
+configurations_sample_address_offset_13:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01000080	; long sample_address_offset
+configurations_period_reset_interval_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $08	; byte period_reset_interval
+configurations_period_delta_interval_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $FF	; byte playback_ticks_remaining
+configurations_sequence_interval_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $FF	; byte sequence_interval
+configurations_sequence_index_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $02	; byte sequence_index
+configurations_update_disabled_13:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_14:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0001	; word period_delta
+configurations_period_reset_value_14:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0384	; word period_reset_value
+configurations_period_delta_step_14:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFFF	; long period_delta_step
+configurations_current_period_14:	; STRUCT audio_sequence_channel_configuration
+	dc.w $044C	; word current_period
+configurations_sample_address_offset_14:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01000080	; long sample_address_offset
+configurations_period_reset_interval_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0B	; byte period_reset_interval
+configurations_period_delta_interval_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $FF	; byte playback_ticks_remaining
+configurations_sequence_interval_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $FF	; byte sequence_interval
+configurations_sequence_index_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $02	; byte sequence_index
+configurations_update_disabled_14:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_15:	; STRUCT audio_sequence_channel_configuration
+	dc.w $000C	; word period_delta
+configurations_period_reset_value_15:	; STRUCT audio_sequence_channel_configuration
+	dc.w $12C0	; word period_reset_value
+configurations_period_delta_step_15:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FFF1	; long period_delta_step
+configurations_current_period_15:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0FA0	; word current_period
+configurations_sample_address_offset_15:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000200	; long sample_address_offset
+configurations_period_reset_interval_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $07	; byte period_reset_interval
+configurations_period_delta_interval_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $14	; byte playback_ticks_remaining
+configurations_sequence_interval_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $03	; byte sequence_index
+configurations_update_disabled_15:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_16:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0000	; word period_delta
+configurations_period_reset_value_16:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0000	; word period_reset_value
+configurations_period_delta_step_16:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000000	; long period_delta_step
+configurations_current_period_16:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00C8	; word current_period
+configurations_sample_address_offset_16:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000000	; long sample_address_offset
+configurations_period_reset_interval_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_interval
+configurations_period_delta_select_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0A	; byte playback_ticks_remaining
+configurations_sequence_interval_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $04	; byte sequence_index
+configurations_update_disabled_16:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_17:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0000	; word period_delta
+configurations_period_reset_value_17:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0000	; word period_reset_value
+configurations_period_delta_step_17:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000000	; long period_delta_step
+configurations_current_period_17:	; STRUCT audio_sequence_channel_configuration
+	dc.w $007E	; word current_period
+configurations_sample_address_offset_17:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000000	; long sample_address_offset
+configurations_period_reset_interval_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_interval
+configurations_period_delta_select_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_delta_select
+configurations_sample_address_offset_select_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0A	; byte playback_ticks_remaining
+configurations_sequence_interval_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $04	; byte sequence_index
+configurations_update_disabled_17:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_18:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0001	; word period_delta
+configurations_period_reset_value_18:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00C8	; word period_reset_value
+configurations_period_delta_step_18:	; STRUCT audio_sequence_channel_configuration
+	dc.l $FFFAFFEE	; long period_delta_step
+configurations_current_period_18:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00C8	; word current_period
+configurations_sample_address_offset_18:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000000	; long sample_address_offset
+configurations_period_reset_interval_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $06	; byte period_delta_interval
+configurations_period_delta_select_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0F	; byte period_delta_select
+configurations_sample_address_offset_select_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $30	; byte playback_ticks_remaining
+configurations_sequence_interval_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $04	; byte sequence_interval
+configurations_sequence_index_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_18:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_19:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFF4	; word period_delta
+configurations_period_reset_value_19:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0168	; word period_reset_value
+configurations_period_delta_step_19:	; STRUCT audio_sequence_channel_configuration
+	dc.l $FFFE0002	; long period_delta_step
+configurations_current_period_19:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0168	; word current_period
+configurations_sample_address_offset_19:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01800000	; long sample_address_offset
+configurations_period_reset_interval_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $55	; byte period_delta_select
+configurations_sample_address_offset_select_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $14	; byte playback_ticks_remaining
+configurations_sequence_interval_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0C	; byte sequence_interval
+configurations_sequence_index_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_19:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_20:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0000	; word period_delta
+configurations_period_reset_value_20:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0168	; word period_reset_value
+configurations_period_delta_step_20:	; STRUCT audio_sequence_channel_configuration
+	dc.l $FFE20032	; long period_delta_step
+configurations_current_period_20:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00B4	; word current_period
+configurations_sample_address_offset_20:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01800000	; long sample_address_offset
+configurations_period_reset_interval_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $08	; byte period_reset_interval
+configurations_period_delta_interval_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $3F	; byte period_delta_select
+configurations_sample_address_offset_select_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0E	; byte playback_ticks_remaining
+configurations_sequence_interval_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $10	; byte sequence_interval
+configurations_sequence_index_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_20:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_21:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFF2	; word period_delta
+configurations_period_reset_value_21:	; STRUCT audio_sequence_channel_configuration
+	dc.w $01B8	; word period_reset_value
+configurations_period_delta_step_21:	; STRUCT audio_sequence_channel_configuration
+	dc.l $000CFFF6	; long period_delta_step
+configurations_current_period_21:	; STRUCT audio_sequence_channel_configuration
+	dc.w $01B8	; word current_period
+configurations_sample_address_offset_21:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000000	; long sample_address_offset
+configurations_period_reset_interval_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $55	; byte period_delta_select
+configurations_sample_address_offset_select_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $18	; byte playback_ticks_remaining
+configurations_sequence_interval_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $07	; byte sequence_interval
+configurations_sequence_index_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_21:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_22:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0000	; word period_delta
+configurations_period_reset_value_22:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0140	; word period_reset_value
+configurations_period_delta_step_22:	; STRUCT audio_sequence_channel_configuration
+	dc.l $FFF6000A	; long period_delta_step
+configurations_current_period_22:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00F0	; word current_period
+configurations_sample_address_offset_22:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01800000	; long sample_address_offset
+configurations_period_reset_interval_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $06	; byte period_reset_interval
+configurations_period_delta_interval_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $55	; byte period_delta_select
+configurations_sample_address_offset_select_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0C	; byte playback_ticks_remaining
+configurations_sequence_interval_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0B	; byte sequence_interval
+configurations_sequence_index_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_22:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_23:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFFC	; word period_delta
+configurations_period_reset_value_23:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0168	; word period_reset_value
+configurations_period_delta_step_23:	; STRUCT audio_sequence_channel_configuration
+	dc.l $002EFFBE	; long period_delta_step
+configurations_current_period_23:	; STRUCT audio_sequence_channel_configuration
+	dc.w $012C	; word current_period
+configurations_sample_address_offset_23:	; STRUCT audio_sequence_channel_configuration
+	dc.l $01800000	; long sample_address_offset
+configurations_period_reset_interval_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0F	; byte period_reset_interval
+configurations_period_delta_interval_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $03	; byte period_delta_interval
+configurations_period_delta_select_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $55	; byte period_delta_select
+configurations_sample_address_offset_select_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $1E	; byte playback_ticks_remaining
+configurations_sequence_interval_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $05	; byte sequence_interval
+configurations_sequence_index_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_23:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_24:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0000	; word period_delta
+configurations_period_reset_value_24:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0BB8	; word period_reset_value
+configurations_period_delta_step_24:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0064FF9C	; long period_delta_step
+configurations_current_period_24:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0BB8	; word current_period
+configurations_sample_address_offset_24:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $55	; byte period_delta_select
+configurations_sample_address_offset_select_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $19	; byte playback_ticks_remaining
+configurations_sequence_interval_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $40	; byte sequence_interval
+configurations_sequence_index_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_24:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_25:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFFA	; word period_delta
+configurations_period_reset_value_25:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00F0	; word period_reset_value
+configurations_period_delta_step_25:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0002FFFE	; long period_delta_step
+configurations_current_period_25:	; STRUCT audio_sequence_channel_configuration
+	dc.w $00F0	; word current_period
+configurations_sample_address_offset_25:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000000	; long sample_address_offset
+configurations_period_reset_interval_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte period_delta_select
+configurations_sample_address_offset_select_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0C	; byte playback_ticks_remaining
+configurations_sequence_interval_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $0A	; byte sequence_interval
+configurations_sequence_index_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_25:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_26:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FFF8	; word period_delta
+configurations_period_reset_value_26:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0258	; word period_reset_value
+configurations_period_delta_step_26:	; STRUCT audio_sequence_channel_configuration
+	dc.l $0050FFB0	; long period_delta_step
+configurations_current_period_26:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0258	; word current_period
+configurations_sample_address_offset_26:	; STRUCT audio_sequence_channel_configuration
+	dc.l $00000180	; long sample_address_offset
+configurations_period_reset_interval_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $02	; byte period_delta_interval
+configurations_period_delta_select_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $A5	; byte period_delta_select
+configurations_sample_address_offset_select_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $AA	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $3C	; byte playback_ticks_remaining
+configurations_sequence_interval_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $03	; byte sequence_interval
+configurations_sequence_index_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_26:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_27:	; STRUCT audio_sequence_channel_configuration
+	dc.w $012C	; word period_delta
+configurations_period_reset_value_27:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0258	; word period_reset_value
+configurations_period_delta_step_27:	; STRUCT audio_sequence_channel_configuration
+	dc.l $FF88FF9C	; long period_delta_step
+configurations_current_period_27:	; STRUCT audio_sequence_channel_configuration
+	dc.w $0258	; word current_period
+configurations_sample_address_offset_27:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $08	; byte period_reset_interval
+configurations_period_delta_interval_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $03	; byte period_delta_interval
+configurations_period_delta_select_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $A5	; byte period_delta_select
+configurations_sample_address_offset_select_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $26	; byte playback_ticks_remaining
+configurations_sequence_interval_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $06	; byte sequence_interval
+configurations_sequence_index_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_27:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+configurations_period_delta_28:	; STRUCT audio_sequence_channel_configuration
+	dc.w $FF9C	; word period_delta
+configurations_period_reset_value_28:	; STRUCT audio_sequence_channel_configuration
+	dc.w $1388	; word period_reset_value
+configurations_period_delta_step_28:	; STRUCT audio_sequence_channel_configuration
+	dc.l $FFCE000F	; long period_delta_step
+configurations_current_period_28:	; STRUCT audio_sequence_channel_configuration
+	dc.w $1388	; word current_period
+configurations_sample_address_offset_28:	; STRUCT audio_sequence_channel_configuration
+	dc.l $02000000	; long sample_address_offset
+configurations_period_reset_interval_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte period_reset_interval
+configurations_period_delta_interval_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte period_delta_interval
+configurations_period_delta_select_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $55	; byte period_delta_select
+configurations_sample_address_offset_select_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sample_address_offset_select
+configurations_playback_ticks_remaining_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $1E	; byte playback_ticks_remaining
+configurations_sequence_interval_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $01	; byte sequence_interval
+configurations_sequence_index_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte sequence_index
+configurations_update_disabled_28:	; STRUCT audio_sequence_channel_configuration
+	dc.b $00	; byte update_disabled
+audio_sample_address_base:
+	dc.l $00000000	; lookup_table
+envelope_offsets:
+	dc.w $1170,$11A0,$11B9,$11BB,$11CB,$11D6	; audio_sequence_envelope
+	dc.b $40,$38,$30,$28,$3A,$36,$32,$2C,$28,$30,$2E,$2C,$2A,$24
+	dc.b $26,$24,$22,$20,$1E,$1C,$1A,$18,$16,$14,$12,$10,$0E,$0C,$0A,$0C
+	dc.b $08,$04,$03,$02,$08,$06,$04,$02,$01,$06,$04,$02,$01,$04,$03,$02
+	dc.b $01,$FF,$08,$0C,$10,$16,$18,$1C,$1A,$1E,$23,$28,$2D,$32,$38,$40
+	dc.b $38,$30,$28,$23,$1E,$19,$14,$0F,$0A,$05,$FF,$20,$FF,$04,$08,$10
+	dc.b $18,$1E,$23,$28,$2D,$32,$3C,$40,$1E,$0F,$0A,$04,$FF,$40,$38,$30
+	dc.b $28,$20,$10,$08,$04,$02,$01,$FF,$18,$FF
 abs_0_0005E9B6:
 	dc.b $11,$F9,$11,$FC,$12,$02,$12,$23,$12,$51,$12,$57,$12,$7B,$12,$7F
 	dc.b $12,$9D,$12,$A9,$12,$C8,$12,$E6,$12,$EB,$12,$F0,$12,$F3,$12,$F6
 	dc.b $FF,$22,$A2,$01,$20,$18,$10,$08,$80,$01,$40,$30,$20,$18,$30,$20
 	dc.b $18,$10,$20,$18,$10,$08,$18,$10,$0C,$08,$10,$0C,$08,$06,$0C,$08
-	dc.b $06,$04,$08,$06,$04,$02,$06,$04,$02,$81,$01,$40,$30,$20,$18,$10
-	dc.b $30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10,$0C,$08,$04,$10
-	dc.b $0C,$0A,$08,$06,$0C,$0A,$08,$06,$04,$0A,$08,$06,$04,$03,$08,$06
-	dc.b $04,$03,$02,$06,$04,$03,$02,$81,$01,$40,$40,$38,$20,$98,$02,$40
-	dc.b $30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10
-	dc.b $0C,$08,$04,$10,$0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04,$02
-	dc.b $01,$80,$02,$38,$30,$A8,$02,$10,$18,$20,$28,$30,$38,$38,$38,$30
-	dc.b $30,$28,$28,$20,$20,$20,$20,$18,$18,$18,$18,$14,$14,$10,$10,$0C
-	dc.b $0C,$0A,$0A,$88,$01,$28,$20,$18,$10,$08,$04,$18,$10,$08,$04,$82
-	dc.b $02,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10,$0C,$08,$04
-	dc.b $10,$0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04,$02,$01,$80,$02
-	dc.b $08,$10,$18,$20,$28,$30,$30,$30,$28,$28,$20,$20,$20,$20,$18,$18
-	dc.b $18,$18,$14,$14,$10,$10,$0C,$0C,$0A,$0A,$08,$08,$86,$02,$30,$28
-	dc.b $24,$9A,$02,$38,$30,$28,$A0,$FF,$18,$98,$FF,$40,$C0,$FF,$00,$80
-	dc.b $4E,$71
-abs_0_0005EAD8:
+	dc.b $06,$04,$08,$06,$04,$02,$06,$04,$02,$81
+	dc.b $01,$40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08
+	dc.b $18,$10,$0C,$08,$04,$10,$0C,$0A,$08,$06,$0C,$0A,$08,$06,$04,$0A
+	dc.b $08,$06,$04,$03,$08,$06,$04,$03,$02,$06,$04,$03,$02,$81,$01,$40
+	dc.b $40,$38,$20,$98,$02,$40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20
+	dc.b $18,$10,$0C,$08,$18,$10,$0C,$08,$04,$10,$0C,$08,$04,$02,$0C,$08
+	dc.b $04,$02,$01,$08,$04,$02,$01,$80,$02,$38,$30,$A8,$02,$10,$18,$20
+	dc.b $28,$30,$38,$38,$38,$30,$30,$28,$28,$20,$20,$20,$20,$18,$18,$18
+	dc.b $18,$14,$14,$10,$10,$0C,$0C,$0A,$0A,$88,$01,$28,$20,$18,$10,$08
+	dc.b $04,$18,$10,$08,$04,$82,$02,$30,$20,$18,$10,$0C,$20,$18,$10,$0C
+	dc.b $08,$18,$10,$0C,$08,$04,$10,$0C,$08,$04,$02,$0C,$08,$04,$02,$01
+	dc.b $08,$04,$02,$01,$80,$02,$08,$10,$18,$20,$28,$30
+	dc.b $30,$30,$28,$28,$20,$20,$20,$20,$18,$18,$18,$18,$14,$14,$10,$10
+	dc.b $0C,$0C,$0A,$0A,$08,$08,$86,$02,$30,$28,$24,$9A,$02,$38,$30,$28
+	dc.b $A0,$FF,$18,$98,$FF,$40,$C0,$FF,$00,$80,$4E,$71
+packed_audio_sample_stream:
 	dc.b $00,$00,$13,$EE,$21,$02,$22,$3B,$42,$45,$47,$47,$17,$F9,$FE,$11
 	dc.b $10,$CE,$B5,$B3,$B1,$AF,$AD,$AA,$A7,$A5,$A3,$A1,$9C,$9F,$91,$EA
 	dc.b $29,$2D,$2E,$2F,$31,$33,$34,$36,$39,$3A,$3C,$3E,$40,$42,$44,$47
@@ -27544,45 +28638,46 @@ abs_0_0005EAD8:
 	dc.b $AE,$AB,$A9,$A7,$A3,$A7,$A1,$14,$33,$35,$36,$37,$3B,$3D,$40,$3D
 	dc.b $3F,$CE,$B6,$FE,$3C,$42,$44,$47,$49,$4B,$4D,$50,$4D,$58,$07,$BF
 	dc.b $BD,$BB,$B8,$B6,$B4,$B2,$B0,$AE,$AB,$A9,$A6,$A5,$9D,$D4,$32,$36
-	dc.b $39,$3B,$3C,$3E,$40,$41,$43,$45,$48,$4A,$4C,$4D,$51,$4B,$5C,$E1
-	dc.b $BE,$BC,$B9,$B8,$B6,$B4,$B2,$AF,$AD,$AB,$A7,$AB,$98,$03,$37,$3A
-	dc.b $3C,$3D,$40,$3C,$3F,$B9,$AB,$A9,$A6,$A5,$A1,$A2,$AD,$1E,$32,$34
-	dc.b $36,$39,$3A,$3C,$3D,$3E,$40,$40,$36,$CD,$AE,$AE,$B0,$F5,$33,$3E
-	dc.b $40,$42,$44,$47,$49,$4D,$47,$5C,$E5,$B9,$B7,$B5,$B4,$B1,$AF,$AD
-	dc.b $A9,$AD,$9D,$F6,$39,$3C,$3E,$40,$41,$43,$45,$48,$4A,$4C,$4E,$50
-	dc.b $51,$53,$56,$59,$5B,$5D,$5F,$64,$5E,$65,$DE,$D1,$CF,$CE,$CC,$CA
-	dc.b $C9,$C6,$C4,$C2,$C1,$BF,$BD,$BB,$B8,$B6,$B4,$B1,$B2,$B0,$F9,$0B
-	dc.b $EB,$C7,$CA,$F8,$2E,$3E,$41,$40,$45,$0B,$E1,$E6,$10,$3F,$43,$40
-	dc.b $C4,$B3,$B1,$AF,$AD,$AA,$A8,$A5,$A4,$9F,$A3,$9C,$12,$2E,$31,$24
-	dc.b $04,$F9,$02,$18,$2F,$35,$39,$3B,$3D,$3F,$41,$43,$45,$48,$4A,$4B
-	dc.b $4D,$4F,$51,$53,$57,$58,$5B,$5B,$44,$CA,$C7,$C5,$C4,$C2,$C0,$BE
-	dc.b $BF,$C6,$2F,$4F,$51,$57,$4F,$64,$DB,$C3,$C2,$C0,$BE,$BC,$B9,$B7
-	dc.b $B5,$B3,$B1,$AF,$AB,$AD,$A4,$E0,$34,$3C,$41,$3A,$4D,$C2,$AB,$AD
-	dc.b $A2,$ED,$36,$3C,$3F,$41,$42,$44,$47,$48,$4B,$4A,$55,$0C,$B9,$B7
-	dc.b $B5,$B3,$B2,$AF,$AD,$AA,$A8,$A6,$A3,$A3,$98,$DD,$2F,$33,$34,$36
-	dc.b $39,$3B,$3C,$3E,$40,$42,$43,$45,$48,$4A,$4B,$4F,$4A,$49,$C0,$BB
-	dc.b $B8,$B6,$B4,$B2,$B0,$AE,$AB,$A8,$AA,$9B,$F3,$36,$3A,$3C,$3D,$3F
-	dc.b $3D,$47,$F6,$AE,$AB,$A8,$A7,$A3,$A4,$B0,$24,$34,$37,$39,$3B,$3D
-	dc.b $3E,$40,$41,$45,$40,$47,$C4,$B1,$AF,$AD,$AB,$BD,$1B,$3C,$3F,$41
-	dc.b $43,$45,$47,$4C,$44,$5A,$CB,$B7,$B5,$B3,$B1,$AF,$AD,$AA,$A6,$AA
-	dc.b $9A,$FC,$35,$39,$3B,$3D,$3F,$41,$42,$44,$47,$49,$4B,$4C,$4E,$50
-	dc.b $52,$55,$58,$5A,$5C,$5E,$5E,$5D,$22,$07,$FB,$DB,$CE,$CC,$CA,$C7
-	dc.b $C5,$C4,$C2,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$A9,$AA,$B0
-	dc.b $06,$36,$3C,$3E,$3E,$42,$28,$2D,$41,$47,$49,$4E,$48,$51,$C5,$B9
-	dc.b $B7,$B5,$B3,$B1,$B0,$AB,$AF,$A0,$08,$3B,$3D,$3F,$31,$F8,$C9,$B0
-	dc.b $B2,$C5,$DE,$FD,$27,$3A,$3D,$40,$42,$44,$45,$48,$4A,$4C,$4E,$50
-	dc.b $52,$55,$56,$5B,$53,$69,$DA,$C7,$C5,$C4,$C2,$C1,$BD,$C1,$B8,$2B
-	dc.b $4F,$52,$53,$57,$59,$39,$C5,$C3,$C2,$C0,$BE,$BC,$B9,$B7,$B5,$B3
-	dc.b $B1,$AF,$AD,$A9,$C7,$36,$3E,$40,$43,$1B,$AE,$AB,$A8,$A8,$B8,$25
-	dc.b $3A,$3C,$3E,$40,$41,$43,$45,$48,$49,$4D,$48,$5E,$E0,$BB,$B8,$B6
-	dc.b $B4,$B2,$B0,$AE,$AA,$A8,$A6,$A2,$A6,$9F,$10,$32,$35,$37,$39,$3B
-	dc.b $3D,$3F,$40,$42,$44,$47,$48,$4A,$4B,$50,$49,$5B,$C7,$BC,$B9,$B7
-	dc.b $B5,$B3,$B1,$AF,$AD,$A9,$AD,$A5,$0C,$36,$3B,$3D,$3E,$3F,$41,$28
-	dc.b $BC,$AE,$AA,$A9,$A5,$A9,$A1,$1D,$36,$39,$3B,$3D,$3F,$40,$42,$43
-	dc.b $48,$41,$4E,$C1,$B3,$B1,$AF,$AB,$AF,$A2,$00,$3A,$3E,$40,$42,$44
-	dc.b $45,$49,$4A,$2B,$B6,$B4,$B2,$B0,$AD,$AA,$A8,$A6,$A4,$A1,$A0,$98
-	dc.b $D0,$29,$30,$32,$34,$35,$37,$3A,$3B,$3D,$3E,$40,$42,$44,$45,$48
-	dc.b $4A,$4C,$4D,$49,$25,$31,$4D,$55,$56,$5E,$23,$C7,$C5,$C3,$C1,$C0
+	dc.b $39,$3B,$3C,$3E,$40,$41,$43,$45,$48,$4A,$4C,$4D
+	dc.b $51,$4B,$5C,$E1,$BE,$BC,$B9,$B8,$B6,$B4,$B2,$AF,$AD,$AB,$A7,$AB
+	dc.b $98,$03,$37,$3A,$3C,$3D,$40,$3C,$3F,$B9,$AB,$A9,$A6,$A5,$A1,$A2
+	dc.b $AD,$1E,$32,$34,$36,$39,$3A,$3C,$3D,$3E,$40,$40,$36,$CD,$AE,$AE
+	dc.b $B0,$F5,$33,$3E,$40,$42,$44,$47,$49,$4D,$47,$5C,$E5,$B9,$B7,$B5
+	dc.b $B4,$B1,$AF,$AD,$A9,$AD,$9D,$F6,$39,$3C,$3E,$40,$41,$43,$45,$48
+	dc.b $4A,$4C,$4E,$50,$51,$53,$56,$59,$5B,$5D,$5F,$64,$5E,$65,$DE,$D1
+	dc.b $CF,$CE,$CC,$CA,$C9,$C6,$C4,$C2,$C1,$BF,$BD,$BB,$B8,$B6,$B4,$B1
+	dc.b $B2,$B0,$F9,$0B,$EB,$C7,$CA,$F8,$2E,$3E,$41,$40,$45,$0B,$E1,$E6
+	dc.b $10,$3F,$43,$40,$C4,$B3,$B1,$AF,$AD,$AA,$A8,$A5,$A4,$9F,$A3,$9C
+	dc.b $12,$2E,$31,$24,$04,$F9,$02,$18,$2F,$35,$39,$3B,$3D,$3F,$41,$43
+	dc.b $45,$48,$4A,$4B,$4D,$4F,$51,$53,$57,$58,$5B,$5B,$44,$CA,$C7,$C5
+	dc.b $C4,$C2,$C0,$BE,$BF,$C6,$2F,$4F,$51,$57,$4F,$64,$DB,$C3,$C2,$C0
+	dc.b $BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AB,$AD,$A4,$E0,$34,$3C,$41,$3A
+	dc.b $4D,$C2,$AB,$AD,$A2,$ED,$36,$3C,$3F,$41,$42,$44,$47,$48,$4B,$4A
+	dc.b $55,$0C,$B9,$B7,$B5,$B3,$B2,$AF,$AD,$AA,$A8,$A6,$A3,$A3,$98,$DD
+	dc.b $2F,$33,$34,$36,$39,$3B,$3C,$3E,$40,$42,$43,$45,$48,$4A,$4B,$4F
+	dc.b $4A,$49,$C0,$BB,$B8,$B6,$B4,$B2,$B0,$AE,$AB,$A8,$AA,$9B,$F3,$36
+	dc.b $3A,$3C,$3D,$3F,$3D,$47,$F6,$AE,$AB,$A8,$A7,$A3,$A4,$B0,$24,$34
+	dc.b $37,$39,$3B,$3D,$3E,$40,$41,$45,$40,$47,$C4,$B1,$AF,$AD,$AB,$BD
+	dc.b $1B,$3C,$3F,$41,$43,$45,$47,$4C,$44,$5A,$CB,$B7,$B5,$B3,$B1,$AF
+	dc.b $AD,$AA,$A6,$AA,$9A,$FC,$35,$39,$3B,$3D,$3F,$41,$42,$44,$47,$49
+	dc.b $4B,$4C,$4E,$50,$52,$55,$58,$5A,$5C,$5E,$5E,$5D,$22,$07,$FB,$DB
+	dc.b $CE,$CC,$CA,$C7,$C5,$C4,$C2,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF
+	dc.b $AD,$A9,$AA,$B0,$06,$36,$3C,$3E,$3E,$42,$28,$2D,$41,$47,$49,$4E
+	dc.b $48,$51,$C5,$B9,$B7,$B5,$B3,$B1,$B0,$AB,$AF,$A0
+	dc.b $08,$3B,$3D,$3F,$31,$F8,$C9,$B0,$B2,$C5,$DE,$FD,$27,$3A,$3D,$40
+	dc.b $42,$44,$45,$48,$4A,$4C,$4E,$50,$52,$55,$56,$5B,$53,$69,$DA,$C7
+	dc.b $C5,$C4,$C2,$C1,$BD,$C1,$B8,$2B,$4F,$52,$53,$57,$59,$39,$C5,$C3
+	dc.b $C2,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$A9,$C7,$36,$3E,$40
+	dc.b $43,$1B,$AE,$AB,$A8,$A8,$B8,$25,$3A,$3C,$3E,$40,$41,$43,$45,$48
+	dc.b $49,$4D,$48,$5E,$E0,$BB,$B8,$B6,$B4,$B2,$B0,$AE,$AA,$A8,$A6,$A2
+	dc.b $A6,$9F,$10,$32,$35,$37,$39,$3B,$3D,$3F,$40,$42,$44,$47,$48,$4A
+	dc.b $4B,$50,$49,$5B,$C7,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$A9,$AD,$A5
+	dc.b $0C,$36,$3B,$3D,$3E,$3F,$41,$28,$BC,$AE,$AA,$A9,$A5,$A9,$A1,$1D
+	dc.b $36,$39,$3B,$3D,$3F,$40,$42,$43,$48,$41,$4E,$C1,$B3,$B1,$AF,$AB
+	dc.b $AF,$A2,$00,$3A,$3E,$40,$42,$44,$45,$49,$4A,$2B,$B6,$B4,$B2,$B0
+	dc.b $AD,$AA,$A8,$A6,$A4,$A1,$A0,$98,$D0,$29,$30,$32,$34,$35,$37,$3A
+	dc.b $3B,$3D,$3E,$40,$42,$44,$45,$48,$4A,$4C,$4D,$49,$25,$31,$4D,$55
+	dc.b $56,$5E,$23,$C7,$C5,$C3,$C1,$C0
 	dc.b $BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$A9,$AA,$A2,$EF,$32,$3A,$3C
 	dc.b $3E,$3F,$41,$43,$45,$48,$4A,$4C,$50,$4A,$5E,$E3,$BD,$BB,$B8,$B6
 	dc.b $B5,$B2,$B3,$A7,$F5,$40,$43,$44,$49,$2D,$E7,$BC,$B2,$B0,$AD,$AA
@@ -27597,38 +28692,39 @@ abs_0_0005EAD8:
 	dc.b $A9,$A5,$AA,$9A,$12,$36,$39,$3B,$3D,$3E,$40,$42,$43,$48,$40,$58
 	dc.b $D2,$B4,$B1,$AF,$AE,$A9,$AE,$A3,$22,$3B,$3E,$3F,$41,$43,$45,$47
 	dc.b $4C,$1B,$B4,$B2,$B0,$AE,$AB,$A9,$A7,$A4,$A2,$9F,$A0,$95,$DA,$2C
-	dc.b $2F,$31,$33,$34,$36,$37,$3A,$3B,$3D,$3F,$40,$42,$44,$47,$48,$4A
-	dc.b $4B,$4D,$4F,$51,$55,$57,$58,$5E,$2C,$C9,$C6,$C4,$C2,$C0,$BF,$BD
-	dc.b $BB,$B8,$B6,$B4,$B2,$B0,$AD,$AB,$A7,$CA,$07,$2F,$3B,$3D,$40,$42
-	dc.b $44,$47,$49,$4B,$4C,$51,$4A,$5D,$CC,$BD,$BB,$B9,$B6,$B5,$B1,$B4
-	dc.b $B7,$33,$43,$47,$45,$49,$09,$CC,$B5,$B2,$B0,$AE,$AA,$A9,$A5,$A9
-	dc.b $A5,$23,$36,$3A,$3C,$3D,$3F,$41,$43,$45,$47,$49,$4B,$4C,$51,$49
-	dc.b $5E,$CC,$BD,$BB,$B8,$B6,$B5,$B0,$DE,$41,$48,$4A,$4C,$4E,$50,$51
-	dc.b $57,$26,$C1,$BF,$BD,$BB,$B8,$B6,$B4,$B2,$B0,$AE,$A9,$AD,$B1,$2C
-	dc.b $3C,$3E,$41,$3F,$45,$07,$DC,$DE,$F4,$F9,$E0,$BF,$BE,$F9,$37,$40
-	dc.b $42,$44,$47,$49,$4B,$4C,$51,$4A,$56,$C6,$BD,$BB,$B8,$B6,$B4,$B2
-	dc.b $B0,$AE,$A9,$AE,$A1,$0A,$3A,$3D,$3F,$41,$43,$44,$47,$49,$4B,$4D
-	dc.b $4F,$51,$53,$56,$59,$59,$63,$22,$C9,$C6,$C4,$C3,$C1,$BF,$BD,$BB
-	dc.b $B8,$B6,$B5,$B1,$B4,$AB,$0A,$3A,$4C,$DE,$AF,$AD,$AA,$A8,$A4,$A8
-	dc.b $97,$06,$34,$36,$39,$3B,$3D,$3F,$40,$42,$45,$41,$53,$EB,$B2,$B0
-	dc.b $AE,$AB,$A8,$AA,$9B,$F3,$37,$3B,$3D,$3E,$40,$42,$43,$47,$48,$28
-	dc.b $B3,$B1,$AF,$AD,$AA,$A8,$A6,$A3,$A2,$9C,$A3,$8F,$0B,$2E,$30,$31
-	dc.b $33,$35,$36,$39,$3A,$3C,$3E,$3F,$41,$43,$45,$47,$49,$4B,$4D,$4F
-	dc.b $51,$53,$57,$58,$5C,$59,$66,$05,$CC,$C9,$C7,$C5,$C3,$C2,$C0,$BE
-	dc.b $BC,$B9,$B7,$B5,$B3,$B1,$AF,$AF,$A8,$DE,$2F,$3E,$41,$43,$45,$48
-	dc.b $4A,$4B,$4E,$4F,$33,$BC,$B9,$B7,$B6,$B3,$B2,$AF,$AE,$C5,$36,$41
-	dc.b $43,$44,$45,$3D,$FD,$B8,$B2,$B0,$AE,$AB,$A8,$A7,$A2,$A7,$A3,$28
-	dc.b $35,$37,$3A,$3B,$3D,$3F,$40,$42,$44,$47,$49,$4B,$4A,$56,$06,$B9
-	dc.b $B7,$B5,$B3,$B3,$A9,$EB,$40,$44,$47,$49,$4B,$4D,$4F,$51,$52,$33
-	dc.b $C4,$BE,$BD,$B9,$B8,$B6,$B4,$B1,$B0,$AB,$AF,$B2,$33,$3F,$41,$43
-	dc.b $42,$4A,$22,$08,$1F,$2C,$EC,$B5,$B2,$B1,$AE,$CF,$32,$42,$44,$47
-	dc.b $49,$4B,$4D,$4F,$51,$52,$59,$24,$C2,$C0,$BE,$BC,$B9,$B7,$B5,$B4
-	dc.b $B1,$B2,$A8,$EA,$37,$41,$44,$47,$49,$4B,$4D,$4F,$51,$53,$56,$58
-	dc.b $5B,$5C,$61,$5B,$5E,$CF,$CD,$CB,$CA,$C7,$C5,$C4,$C2,$C0,$BE,$BC
-	dc.b $B9,$B9,$B2,$EB,$31,$F6,$B4,$B2,$B0,$AD,$AA,$A9,$A5,$A7,$AF,$2E
-	dc.b $37,$3A,$3C,$3D,$3F,$41,$43,$45,$44,$4F,$08,$B4,$B2,$B0,$AD,$AB
-	dc.b $A6,$AD,$98,$17,$39,$3B,$3D,$3F,$41,$41,$47,$3E,$53,$C3,$B1,$AF
-	dc.b $AD,$AA,$A8,$A6,$A4,$A1,$9F,$9D,$96,$C9,$2B,$2E,$30,$31,$33,$34
+	dc.b $2F,$31,$33,$34,$36,$37,$3A,$3B
+	dc.b $3D,$3F,$40,$42,$44,$47,$48,$4A,$4B,$4D,$4F,$51,$55,$57,$58,$5E
+	dc.b $2C,$C9,$C6,$C4,$C2,$C0,$BF,$BD,$BB,$B8,$B6,$B4,$B2,$B0,$AD,$AB
+	dc.b $A7,$CA,$07,$2F,$3B,$3D,$40,$42,$44,$47,$49,$4B,$4C,$51,$4A,$5D
+	dc.b $CC,$BD,$BB,$B9,$B6,$B5,$B1,$B4,$B7,$33,$43,$47,$45,$49,$09,$CC
+	dc.b $B5,$B2,$B0,$AE,$AA,$A9,$A5,$A9,$A5,$23,$36,$3A,$3C,$3D,$3F,$41
+	dc.b $43,$45,$47,$49,$4B,$4C,$51,$49,$5E,$CC,$BD,$BB,$B8,$B6,$B5,$B0
+	dc.b $DE,$41,$48,$4A,$4C,$4E,$50,$51,$57,$26,$C1,$BF,$BD,$BB,$B8,$B6
+	dc.b $B4,$B2,$B0,$AE,$A9,$AD,$B1,$2C,$3C,$3E,$41,$3F,$45,$07,$DC,$DE
+	dc.b $F4,$F9,$E0,$BF,$BE,$F9,$37,$40,$42,$44,$47,$49,$4B,$4C,$51,$4A
+	dc.b $56,$C6,$BD,$BB,$B8,$B6,$B4,$B2,$B0,$AE,$A9,$AE,$A1,$0A,$3A,$3D
+	dc.b $3F,$41,$43,$44,$47,$49,$4B,$4D,$4F,$51,$53,$56,$59,$59,$63,$22
+	dc.b $C9,$C6,$C4,$C3,$C1,$BF,$BD,$BB,$B8,$B6,$B5,$B1,$B4,$AB,$0A,$3A
+	dc.b $4C,$DE,$AF,$AD,$AA,$A8,$A4,$A8,$97,$06,$34,$36,$39,$3B,$3D,$3F
+	dc.b $40,$42,$45,$41,$53,$EB,$B2,$B0,$AE,$AB,$A8,$AA,$9B,$F3,$37,$3B
+	dc.b $3D,$3E,$40,$42,$43,$47,$48,$28,$B3,$B1,$AF,$AD,$AA,$A8,$A6,$A3
+	dc.b $A2,$9C,$A3,$8F,$0B,$2E,$30,$31,$33,$35,$36,$39,$3A,$3C,$3E,$3F
+	dc.b $41,$43,$45,$47,$49,$4B,$4D,$4F,$51,$53,$57,$58,$5C,$59,$66,$05
+	dc.b $CC,$C9,$C7,$C5,$C3,$C2,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AF
+	dc.b $A8,$DE,$2F,$3E,$41,$43,$45,$48,$4A,$4B,$4E,$4F,$33,$BC,$B9,$B7
+	dc.b $B6,$B3,$B2,$AF,$AE,$C5,$36,$41,$43,$44,$45,$3D,$FD,$B8,$B2,$B0
+	dc.b $AE,$AB,$A8,$A7,$A2,$A7,$A3,$28,$35,$37,$3A,$3B,$3D,$3F,$40,$42
+	dc.b $44,$47,$49,$4B,$4A,$56,$06,$B9,$B7,$B5,$B3,$B3,$A9,$EB,$40,$44
+	dc.b $47,$49,$4B,$4D,$4F,$51,$52,$33,$C4,$BE,$BD,$B9,$B8,$B6,$B4,$B1
+	dc.b $B0,$AB,$AF,$B2,$33,$3F,$41,$43,$42,$4A,$22,$08,$1F,$2C,$EC,$B5
+	dc.b $B2,$B1,$AE,$CF,$32,$42,$44,$47,$49,$4B,$4D,$4F,$51,$52,$59,$24
+	dc.b $C2,$C0,$BE,$BC,$B9,$B7,$B5,$B4,$B1,$B2,$A8,$EA,$37,$41,$44,$47
+	dc.b $49,$4B,$4D,$4F,$51,$53,$56,$58,$5B,$5C,$61,$5B,$5E,$CF,$CD,$CB
+	dc.b $CA,$C7,$C5,$C4,$C2,$C0,$BE,$BC,$B9,$B9,$B2,$EB,$31,$F6,$B4,$B2
+	dc.b $B0,$AD,$AA,$A9,$A5,$A7,$AF,$2E,$37,$3A,$3C,$3D,$3F,$41,$43,$45
+	dc.b $44,$4F,$08,$B4,$B2,$B0,$AD,$AB,$A6,$AD,$98,$17,$39,$3B,$3D,$3F
+	dc.b $41,$41,$47,$3E,$53,$C3,$B1,$AF,$AD,$AA,$A8,$A6,$A4,$A1,$9F,$9D
+	dc.b $96,$C9,$2B,$2E,$30,$31,$33,$34
 	dc.b $36,$37,$3A,$3C,$3E,$3F,$41,$43,$44,$47,$48,$4A,$4C,$4F,$51,$53
 	dc.b $57,$58,$5C,$58,$60,$F7,$CA,$C9,$C6,$C4,$C2,$C1,$BF,$BD,$BB,$B8
 	dc.b $B6,$B4,$B2,$B1,$AD,$AF,$B3,$2B,$3E,$41,$43,$45,$48,$4A,$4C,$4C
@@ -27703,28 +28799,29 @@ abs_0_0005EAD8:
 	dc.b $45,$48,$45,$4E,$09,$B7,$B4,$B2,$B0,$AE,$AB,$AA,$A5,$A9,$A9,$2E
 	dc.b $37,$3A,$3B,$3D,$3E,$41,$43,$45,$48,$4A,$4B,$50,$48,$60,$CB,$BC
 	dc.b $B9,$B7,$B5,$B3,$B1,$AF,$AD,$A8,$AF,$98,$19,$3A,$3D,$3E,$40,$42
-	dc.b $44,$47,$48,$4A,$4C,$4E,$4F,$50,$50,$57,$50,$68,$E2,$C5,$C3,$C1
-	dc.b $C0,$BD,$BC,$D7,$40,$5B,$DA,$BB,$B9,$B7,$B5,$B3,$B1,$AE,$AD,$A9
-	dc.b $A6,$CA,$39,$3D,$3E,$40,$42,$44,$47,$47,$4C,$47,$42,$B8,$B6,$B4
-	dc.b $B2,$B0,$AE,$AA,$A9,$A4,$A9,$99,$0F,$35,$37,$3A,$3C,$3E,$3F,$43
-	dc.b $3C,$53,$CE,$AF,$AD,$A9,$A8,$A4,$A9,$94,$0C,$34,$36,$37,$3A,$3B
-	dc.b $3E,$3E,$43,$3B,$51,$C2,$AF,$AA,$B0,$9C,$0C,$3C,$3E,$40,$42,$44
-	dc.b $47,$49,$4A,$4C,$4C,$4D,$22,$39,$52,$56,$58,$5E,$2B,$C7,$C5,$C4
-	dc.b $C2,$C0,$BE,$BC,$B9,$B8,$B4,$B8,$BC,$40,$49,$4B,$4D,$4F,$51,$52
-	dc.b $58,$4F,$61,$C9,$C3,$C1,$BF,$BD,$BC,$B9,$B7,$B4,$B4,$AF,$B5,$A9
-	dc.b $3A,$42,$47,$40,$57,$DC,$B3,$B1,$AE,$AB,$A9,$A7,$A5,$A2,$A2,$96
-	dc.b $DF,$30,$32,$34,$36,$37,$3A,$3C,$3C,$41,$39,$51,$BD,$AB,$A9,$A5
-	dc.b $A8,$A0,$04,$34,$37,$3A,$3C,$3E,$3E,$41,$2F,$41,$45,$49,$45,$57
-	dc.b $F6,$B7,$B5,$B3,$B2,$AE,$AF,$C1,$3D,$41,$43,$45,$47,$49,$4B,$4D
-	dc.b $4F,$52,$2C,$BE,$BC,$B9,$B7,$B6,$B4,$B1,$D7,$43,$44,$31,$B3,$B2
-	dc.b $AA,$E2,$3D,$43,$47,$49,$4B,$4C,$51,$49,$5E,$C6,$BD,$BB,$B8,$B6
-	dc.b $B4,$B2,$AF,$AE,$A8,$B0,$9A,$1F,$3B,$3E,$3F,$41,$43,$45,$48,$49
-	dc.b $4B,$4D,$4F,$51,$53,$55,$59,$55,$6A,$F4,$C7,$C5,$C3,$C3,$BC,$F6
-	dc.b $4F,$58,$28,$C3,$C1,$BF,$BD,$BB,$B8,$B6,$B4,$B3,$AE,$B5,$A5,$35
-	dc.b $41,$44,$45,$48,$4A,$4C,$4E,$4F,$53,$28,$BE,$BC,$B9,$B7,$B5,$B3
-	dc.b $B1,$AF,$AD,$AA,$A9,$A3,$D3,$33,$3A,$3C,$3F,$3F,$44,$3D,$44,$B2
-	dc.b $AE,$AB,$A9,$A7,$A5,$A2,$C1,$2D,$35,$37,$39,$3B,$3D,$3E,$42,$3F
-	dc.b $33,$B0,$AD,$AB,$A6,$AD,$9A,$1E,$39,$3B,$3D,$3F,$40,$42,$44,$45
+	dc.b $44,$47,$48,$4A,$4C,$4E,$4F,$50
+	dc.b $50,$57,$50,$68,$E2,$C5,$C3,$C1,$C0,$BD,$BC,$D7,$40,$5B,$DA,$BB
+	dc.b $B9,$B7,$B5,$B3,$B1,$AE,$AD,$A9,$A6,$CA,$39,$3D,$3E,$40,$42,$44
+	dc.b $47,$47,$4C,$47,$42,$B8,$B6,$B4,$B2,$B0,$AE,$AA,$A9,$A4,$A9,$99
+	dc.b $0F,$35,$37,$3A,$3C,$3E,$3F,$43,$3C,$53,$CE,$AF,$AD,$A9,$A8,$A4
+	dc.b $A9,$94,$0C,$34,$36,$37,$3A,$3B,$3E,$3E,$43,$3B,$51,$C2,$AF,$AA
+	dc.b $B0,$9C,$0C,$3C,$3E,$40,$42,$44,$47,$49,$4A,$4C,$4C,$4D,$22,$39
+	dc.b $52,$56,$58,$5E,$2B,$C7,$C5,$C4,$C2,$C0,$BE,$BC,$B9,$B8,$B4,$B8
+	dc.b $BC,$40,$49,$4B,$4D,$4F,$51,$52,$58,$4F,$61,$C9,$C3,$C1,$BF,$BD
+	dc.b $BC,$B9,$B7,$B4,$B4,$AF,$B5,$A9,$3A,$42,$47,$40,$57,$DC,$B3,$B1
+	dc.b $AE,$AB,$A9,$A7,$A5,$A2,$A2,$96,$DF,$30,$32,$34,$36,$37,$3A,$3C
+	dc.b $3C,$41,$39,$51,$BD,$AB,$A9,$A5,$A8,$A0,$04,$34,$37,$3A,$3C,$3E
+	dc.b $3E,$41,$2F,$41,$45,$49,$45,$57,$F6,$B7,$B5,$B3,$B2,$AE,$AF,$C1
+	dc.b $3D,$41,$43,$45,$47,$49,$4B,$4D,$4F,$52,$2C,$BE,$BC,$B9,$B7,$B6
+	dc.b $B4,$B1,$D7,$43,$44,$31,$B3,$B2,$AA,$E2,$3D,$43,$47,$49,$4B,$4C
+	dc.b $51,$49,$5E,$C6,$BD,$BB,$B8,$B6,$B4,$B2,$AF,$AE,$A8,$B0,$9A,$1F
+	dc.b $3B,$3E,$3F,$41,$43,$45,$48,$49,$4B,$4D,$4F,$51,$53,$55,$59,$55
+	dc.b $6A,$F4,$C7,$C5,$C3,$C3,$BC,$F6,$4F,$58,$28,$C3,$C1,$BF,$BD,$BB
+	dc.b $B8,$B6,$B4,$B3,$AE,$B5,$A5,$35,$41,$44,$45,$48,$4A,$4C,$4E,$4F
+	dc.b $53,$28,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$AA,$A9,$A3,$D3,$33
+	dc.b $3A,$3C,$3F,$3F,$44,$3D,$44,$B2,$AE,$AB,$A9,$A7,$A5,$A2,$C1,$2D
+	dc.b $35,$37,$39,$3B,$3D,$3E,$42,$3F,$33,$B0,$AD,$AB,$A6,$AD,$9A,$1E
+	dc.b $39,$3B,$3D,$3F,$40,$42,$44,$45
 	dc.b $48,$4A,$4B,$4D,$4F,$51,$55,$53,$5F,$15,$C4,$C3,$C1,$BF,$BD,$BB
 	dc.b $B8,$B6,$B5,$B0,$B5,$B2,$39,$44,$47,$49,$4B,$4D,$4F,$51,$51,$5C
 	dc.b $19,$C1,$BF,$BD,$BB,$B8,$B6,$B5,$B2,$B1,$AB,$B2,$A9,$37,$3F,$44
@@ -27797,84 +28894,84 @@ abs_0_0005EAD8:
 	dc.b $B3,$B0,$B1,$A5,$F1,$40,$42,$44,$47,$48,$49,$4C,$4D,$49,$18,$28
 	dc.b $01,$BD,$BE,$BE,$12,$48,$4F,$50,$57,$4F,$5E,$CD,$C3,$BF,$E9,$3C
 	dc.b $C3,$BE,$BC,$B9,$B8,$B6,$B3,$B0,$B2,$A7,$ED,$01,$30,$3C,$39,$AF
-	dc.b $AB,$A9,$A7,$A5,$A2,$A1,$9B,$A2,$8A,$08,$2D,$2F,$30,$32,$33,$35
-	dc.b $36,$39,$3B,$3C,$3E,$40,$42,$43,$44,$45,$48,$4B,$4D,$50,$51,$56
-	dc.b $51,$4D,$C3,$C1,$BF,$BD,$BC,$B9,$B7,$B5,$B3,$B1,$AE,$B1,$9F,$05
-	dc.b $3E,$40,$42,$44,$47,$49,$4B,$4C,$4F,$50,$55,$4E,$57,$C5,$C1,$BD
-	dc.b $E6,$4F,$4C,$61,$C9,$C0,$C0,$B9,$D0,$B8,$B6,$B4,$B2,$B0,$AF,$AB
-	dc.b $A9,$C9,$3C,$3E,$40,$42,$42,$4D,$04,$AF,$B6,$A4,$2B,$45,$0D,$AE
-	dc.b $AB,$A9,$A7,$A3,$A7,$94,$FE,$33,$35,$37,$39,$3B,$3D,$3E,$40,$42
-	dc.b $44,$45,$48,$4A,$4B,$4D,$50,$51,$57,$50,$66,$EA,$C3,$C2,$C0,$BE
-	dc.b $BC,$B9,$B7,$B5,$B4,$AF,$B6,$A2,$2D,$42,$44,$47,$49,$4B,$4D,$4F
-	dc.b $51,$53,$57,$51,$68,$EF,$C4,$C2,$C2,$BD,$C4,$B6,$45,$49,$60,$C7
-	dc.b $BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$A9,$A7,$A4,$A7,$95,$FC,$34
-	dc.b $36,$39,$3A,$3C,$3E,$3B,$4D,$E9,$AB,$A9,$A4,$D2,$3A,$3C,$3E,$40
-	dc.b $42,$43,$45,$48,$4A,$4C,$4D,$50,$51,$34,$BE,$BC,$BB,$B7,$B9,$AA
-	dc.b $05,$48,$4B,$4C,$50,$4D,$41,$BF,$BB,$C7,$E8,$1D,$4B,$52,$4B,$5C
-	dc.b $C7,$B7,$03,$4F,$5D,$11,$C5,$B6,$11,$56,$4F,$65,$DD,$C4,$C0,$C2
-	dc.b $D0,$48,$5B,$CA,$BE,$BE,$B7,$D1,$CC,$D1,$22,$C5,$B3,$B1,$AF,$AD
-	dc.b $A9,$A7,$A5,$A3,$A1,$9A,$CF,$31,$33,$34,$36,$37,$3A,$3B,$3C,$3F
-	dc.b $41,$42,$47,$41,$3F,$AF,$FF,$45,$4A,$4B,$4E,$50,$4F,$5C,$0F,$C0
-	dc.b $BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$A9,$A8,$A5,$A2,$C7,$34,$37
-	dc.b $3A,$3C,$3D,$40,$40,$45,$3E,$47,$B0,$B5,$A2,$1B,$41,$42,$40,$0F
-	dc.b $22,$42,$51,$01,$04,$27,$BB,$B5,$B3,$B1,$AF,$AA,$B1,$99,$16,$3D
-	dc.b $3F,$41,$42,$47,$17,$B0,$AE,$AD,$A5,$DC,$3B,$39,$4E,$DE,$AA,$A8
-	dc.b $A6,$A4,$9D,$D3,$34,$36,$37,$3A,$3C,$3D,$40,$32,$20,$42,$45,$48
-	dc.b $4A,$4C,$4E,$4F,$55,$4E,$5B,$D0,$C0,$BE,$BC,$B9,$B8,$B6,$B4,$B2
-	dc.b $B0,$AB,$B2,$99,$1A,$3E,$40,$42,$43,$45,$48,$4A,$4C,$4D,$50,$4E
-	dc.b $5E,$00,$BF,$BE,$BC,$B8,$E1,$4C,$4F,$50,$58,$21,$C0,$BE,$BC,$B9
-	dc.b $B7,$B5,$B3,$B1,$AF,$AD,$AA,$A8,$A6,$A2,$A7,$8E,$12,$33,$35,$37
-	dc.b $37,$3D,$36,$36,$A5,$AE,$95,$21,$39,$3B,$3D,$3E,$40,$42,$43,$45
-	dc.b $48,$49,$4F,$47,$5F,$CD,$B9,$B7,$B6,$B2,$B8,$A3,$1D,$44,$47,$49
-	dc.b $4C,$4B,$34,$B9,$B5,$B9,$AF,$17,$47,$4A,$4C,$51,$21,$B8,$BF,$AD
-	dc.b $28,$49,$53,$1A,$F8,$14,$D4,$BB,$B5,$B8,$C5,$48,$4A,$3D,$14,$51
-	dc.b $13,$B9,$B8,$B3,$BD,$A7,$3E,$40,$4C,$B6,$B3,$B1,$AF,$AD,$A9,$A8
-	dc.b $A4,$A4,$BE,$35,$37,$3A,$3B,$3F,$31,$3F,$42,$44,$47,$48,$4D,$43
-	dc.b $5E,$C0,$C0,$B0,$47,$4D,$4F,$51,$56,$4E,$67,$D8,$C2,$C0,$BF,$BD
-	dc.b $BB,$B8,$B6,$B4,$B2,$B0,$AE,$AD,$A4,$E0,$3D,$3F,$41,$42,$44,$47
-	dc.b $48,$4D,$44,$5D,$D2,$B8,$B6,$B4,$B3,$AF,$AF,$C7,$40,$43,$45,$48
-	dc.b $45,$55,$F7,$B6,$B4,$B2,$AF,$AE,$A9,$AD,$BB,$3B,$3D,$41,$3C,$51
-	dc.b $DC,$AE,$A8,$B1,$9B,$2C,$3C,$40,$3B,$36,$AD,$A8,$AE,$96,$14,$3A
-	dc.b $3C,$3E,$3F,$44,$12,$AA,$B1,$99,$1B,$3D,$3F,$41,$43,$44,$47,$49
-	dc.b $4B,$4D,$4F,$51,$52,$55,$34,$C2,$C0,$BE,$BD,$BB,$B8,$B6,$B3,$B6
-	dc.b $A3,$0C,$44,$47,$49,$4B,$4D,$4E,$52,$4D,$65,$E8,$C0,$BF,$BB,$C0
-	dc.b $A9,$26,$4D,$50,$51,$57,$50,$53,$C3,$C1,$C0,$BE,$BC,$B9,$B7,$B5
-	dc.b $B3,$B1,$AF,$AD,$A9,$A7,$A6,$9D,$D9,$36,$39,$3A,$3C,$40,$13,$AB
-	dc.b $9F,$EC,$3A,$3C,$3E,$40,$42,$43,$43,$47,$4A,$4C,$4E,$4F,$53,$4E
-	dc.b $65,$EE,$C1,$BF,$BD,$BC,$B8,$BC,$A9,$10,$4B,$47,$5D,$EB,$BC,$C5
-	dc.b $43,$3C,$C4,$C0,$3B,$4F,$4B,$5F,$F0,$BD,$BD,$B3,$F3,$43,$52,$BB
-	dc.b $B8,$B4,$B8,$B9,$41,$48,$4A,$4C,$50,$4B,$64,$E3,$BE,$BC,$B9,$B7
-	dc.b $B5,$B2,$B6,$9F,$14,$F0,$AB,$A9,$A7,$A5,$A3,$9F,$A3,$8C,$00,$2F
-	dc.b $31,$32,$33,$35,$36,$39,$3B,$3D,$3E,$40,$40,$49,$1B,$1A,$45,$49
-	dc.b $4B,$4D,$4F,$51,$53,$57,$55,$66,$03,$C5,$C4,$C2,$C0,$BE,$BC,$B9
-	dc.b $B7,$B5,$B3,$B2,$AD,$B5,$9B,$2C,$40,$42,$44,$45,$4B,$41,$5C,$C5
-	dc.b $B1,$EC,$4B,$20,$B3,$B7,$BD,$44,$48,$4A,$4C,$4E,$4F,$58,$1A,$BE
-	dc.b $BC,$B9,$B7,$B5,$B4,$AF,$B6,$9F,$2B,$42,$42,$4D,$02,$AF,$B7,$A1
-	dc.b $3A,$44,$3F,$56,$E0,$B1,$AF,$AE,$A8,$AB,$B9,$3A,$3F,$0F,$A8,$A2
-	dc.b $D8,$39,$3B,$3D,$3E,$3F,$41,$43,$45,$47,$49,$4B,$4D,$4D,$52,$4A
-	dc.b $63,$CA,$BF,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AB,$B3,$99,$26,$3F,$41
-	dc.b $43,$44,$47,$4B,$43,$5E,$D2,$BB,$B7,$2B,$53,$BE,$B5,$D0,$47,$4A
-	dc.b $4C,$4E,$4D,$5B,$08,$BD,$BB,$B8,$B6,$B4,$B2,$B0,$AE,$AB,$A9,$A6
-	dc.b $A4,$A1,$A3,$91,$00,$00,$0C,$4C,$21,$02,$FF,$F6,$EA,$E6,$F5,$14
-	dc.b $17,$EF,$D8,$DE,$D4,$D0,$F0,$FA,$FC,$35,$4C,$2F,$1A,$10,$07,$03
-	dc.b $E7,$DF,$FC,$14,$10,$FC,$FB,$EB,$D9,$F4,$28,$46,$34,$04,$D7,$CB
-	dc.b $DE,$01,$29,$1C,$FC,$F0,$E6,$E4,$F2,$18,$2E,$1C,$FB,$03,$19,$E8
-	dc.b $B4,$B0,$E6,$3B,$4A,$46,$37,$10,$FD,$C8,$AB,$D2,$FD,$18,$3C,$43
-	dc.b $3D,$D4,$A5,$AC,$D0,$46,$46,$42,$11,$B4,$AD,$B0,$C6,$46,$4C,$4A
-	dc.b $1D,$D0,$B0,$EC,$41,$2F,$1C,$2E,$0A,$DD,$FD,$E3,$BB,$E3,$08,$30
-	dc.b $43,$40,$EC,$A8,$A8,$E6,$4F,$32,$13,$DA,$AD,$AE,$FA,$01,$06,$4D
-	dc.b $3E,$19,$01,$E6,$0E,$FC,$D7,$0C,$43,$41,$3B,$F2,$A2,$C7,$41,$25
-	dc.b $CD,$AA,$FB,$4A,$26,$F1,$F3,$16,$F3,$A9,$C5,$19,$02,$25,$21,$FA
-	dc.b $FA,$25,$FA,$B3,$AE,$C7,$10,$19,$19,$35,$0C,$BD,$C0,$FA,$3E,$F6
-	dc.b $D6,$31,$4F,$4C,$43,$4B,$F0,$A8,$B6,$D8,$4D,$42,$44,$3B,$38,$D9
-	dc.b $9A,$29,$3A,$31,$39,$33,$2E,$2F,$AE,$8F,$A0,$9E,$AB,$A1,$0A,$53
-	dc.b $37,$4B,$E7,$9A,$B0,$AA,$B7,$B0,$1D,$62,$2C,$1F,$5B,$0C,$1A,$2F
-	dc.b $A7,$AE,$B4,$AE,$DE,$59,$4B,$4F,$D1,$AC,$BC,$B9,$C5,$BB,$11,$6E
-	dc.b $3C,$CB,$C2,$C8,$C7,$D5,$C3,$07,$32,$0C,$7B,$57,$DB,$D9,$FD,$C0
-	dc.b $41,$70,$5F,$61,$58,$57,$4C,$59,$06,$0E,$4F,$43,$26,$A3,$AE,$A4
-	dc.b $20,$54,$3C,$4D,$E6,$9C,$B2,$2E,$4B,$39,$46,$CC,$9B,$AA,$B4,$34
-	dc.b $52,$1C,$A1,$B4,$A4,$15,$52,$4B,$E9,$99,$27,$F8,$46,$F9,$A0,$B7
-	dc.b $B5,$BB,$3D,$59,$4C,$4B,$45,$42
+	dc.b $AB,$A9,$A7,$A5,$A2,$A1,$9B,$A2
+	dc.b $8A,$08,$2D,$2F,$30,$32,$33,$35,$36,$39,$3B,$3C,$3E,$40,$42,$43
+	dc.b $44,$45,$48,$4B,$4D,$50,$51,$56,$51,$4D,$C3,$C1,$BF,$BD,$BC,$B9
+	dc.b $B7,$B5,$B3,$B1,$AE,$B1,$9F,$05,$3E,$40,$42,$44,$47,$49,$4B,$4C
+	dc.b $4F,$50,$55,$4E,$57,$C5,$C1,$BD,$E6,$4F,$4C,$61,$C9,$C0,$C0,$B9
+	dc.b $D0,$B8,$B6,$B4,$B2,$B0,$AF,$AB,$A9,$C9,$3C,$3E,$40,$42,$42,$4D
+	dc.b $04,$AF,$B6,$A4,$2B,$45,$0D,$AE,$AB,$A9,$A7,$A3,$A7,$94,$FE,$33
+	dc.b $35,$37,$39,$3B,$3D,$3E,$40,$42,$44,$45,$48,$4A,$4B,$4D,$50,$51
+	dc.b $57,$50,$66,$EA,$C3,$C2,$C0,$BE,$BC,$B9,$B7,$B5,$B4,$AF,$B6,$A2
+	dc.b $2D,$42,$44,$47,$49,$4B,$4D,$4F,$51,$53,$57,$51,$68,$EF,$C4,$C2
+	dc.b $C2,$BD,$C4,$B6,$45,$49,$60,$C7,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF
+	dc.b $AD,$A9,$A7,$A4,$A7,$95,$FC,$34,$36,$39,$3A,$3C,$3E,$3B,$4D,$E9
+	dc.b $AB,$A9,$A4,$D2,$3A,$3C,$3E,$40,$42,$43,$45,$48,$4A,$4C,$4D,$50
+	dc.b $51,$34,$BE,$BC,$BB,$B7,$B9,$AA,$05,$48,$4B,$4C,$50,$4D,$41,$BF
+	dc.b $BB,$C7,$E8,$1D,$4B,$52,$4B,$5C,$C7,$B7,$03,$4F,$5D,$11,$C5,$B6
+	dc.b $11,$56,$4F,$65,$DD,$C4,$C0,$C2,$D0,$48,$5B,$CA,$BE,$BE,$B7,$D1
+	dc.b $CC,$D1,$22,$C5,$B3,$B1,$AF,$AD,$A9,$A7,$A5,$A3,$A1,$9A,$CF,$31
+	dc.b $33,$34,$36,$37,$3A,$3B,$3C,$3F,$41,$42,$47,$41,$3F,$AF,$FF,$45
+	dc.b $4A,$4B,$4E,$50,$4F,$5C,$0F,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF
+	dc.b $AD,$A9,$A8,$A5,$A2,$C7,$34,$37,$3A,$3C,$3D,$40,$40,$45,$3E,$47
+	dc.b $B0,$B5,$A2,$1B,$41,$42,$40,$0F,$22,$42,$51,$01,$04,$27,$BB,$B5
+	dc.b $B3,$B1,$AF,$AA,$B1,$99,$16,$3D,$3F,$41,$42,$47,$17,$B0,$AE,$AD
+	dc.b $A5,$DC,$3B,$39,$4E,$DE,$AA,$A8,$A6,$A4,$9D,$D3,$34,$36,$37,$3A
+	dc.b $3C,$3D,$40,$32,$20,$42,$45,$48,$4A,$4C,$4E,$4F,$55,$4E,$5B,$D0
+	dc.b $C0,$BE,$BC,$B9,$B8,$B6,$B4,$B2,$B0,$AB,$B2,$99,$1A,$3E,$40,$42
+	dc.b $43,$45,$48,$4A,$4C,$4D,$50,$4E,$5E,$00,$BF,$BE,$BC,$B8,$E1,$4C
+	dc.b $4F,$50,$58,$21,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$AA,$A8
+	dc.b $A6,$A2,$A7,$8E,$12,$33,$35,$37,$37,$3D,$36,$36,$A5,$AE,$95,$21
+	dc.b $39,$3B,$3D,$3E,$40,$42,$43,$45,$48,$49,$4F,$47,$5F,$CD,$B9,$B7
+	dc.b $B6,$B2,$B8,$A3,$1D,$44,$47,$49,$4C,$4B,$34,$B9,$B5,$B9,$AF,$17
+	dc.b $47,$4A,$4C,$51,$21,$B8,$BF,$AD,$28,$49,$53,$1A,$F8,$14,$D4,$BB
+	dc.b $B5,$B8,$C5,$48,$4A,$3D,$14,$51,$13,$B9,$B8,$B3,$BD,$A7,$3E,$40
+	dc.b $4C,$B6,$B3,$B1,$AF,$AD,$A9,$A8,$A4,$A4,$BE,$35,$37,$3A,$3B,$3F
+	dc.b $31,$3F,$42,$44,$47,$48,$4D,$43,$5E,$C0,$C0,$B0,$47,$4D,$4F,$51
+	dc.b $56,$4E,$67,$D8,$C2,$C0,$BF,$BD,$BB,$B8,$B6,$B4,$B2,$B0,$AE,$AD
+	dc.b $A4,$E0,$3D,$3F,$41,$42,$44,$47,$48,$4D,$44,$5D,$D2,$B8,$B6,$B4
+	dc.b $B3,$AF,$AF,$C7,$40,$43,$45,$48,$45,$55,$F7,$B6,$B4,$B2,$AF,$AE
+	dc.b $A9,$AD,$BB,$3B,$3D,$41,$3C,$51,$DC,$AE,$A8,$B1,$9B,$2C,$3C,$40
+	dc.b $3B,$36,$AD,$A8,$AE,$96,$14,$3A,$3C,$3E,$3F,$44,$12,$AA,$B1,$99
+	dc.b $1B,$3D,$3F,$41,$43,$44,$47,$49,$4B,$4D,$4F,$51,$52,$55,$34,$C2
+	dc.b $C0,$BE,$BD,$BB,$B8,$B6,$B3,$B6,$A3,$0C,$44,$47,$49,$4B,$4D,$4E
+	dc.b $52,$4D,$65,$E8,$C0,$BF,$BB,$C0,$A9,$26,$4D,$50,$51,$57,$50,$53
+	dc.b $C3,$C1,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B1,$AF,$AD,$A9,$A7,$A6,$9D
+	dc.b $D9,$36,$39,$3A,$3C,$40,$13,$AB,$9F,$EC,$3A,$3C,$3E,$40,$42,$43
+	dc.b $43,$47,$4A,$4C,$4E,$4F,$53,$4E,$65,$EE,$C1,$BF,$BD,$BC,$B8,$BC
+	dc.b $A9,$10,$4B,$47,$5D,$EB,$BC,$C5,$43,$3C,$C4,$C0,$3B,$4F,$4B,$5F
+	dc.b $F0,$BD,$BD,$B3,$F3,$43,$52,$BB,$B8,$B4,$B8,$B9,$41,$48,$4A,$4C
+	dc.b $50,$4B,$64,$E3,$BE,$BC,$B9,$B7,$B5,$B2,$B6,$9F,$14,$F0,$AB,$A9
+	dc.b $A7,$A5,$A3,$9F,$A3,$8C,$00,$2F,$31,$32,$33,$35,$36,$39,$3B,$3D
+	dc.b $3E,$40,$40,$49,$1B,$1A,$45,$49,$4B,$4D,$4F,$51,$53,$57,$55,$66
+	dc.b $03,$C5,$C4,$C2,$C0,$BE,$BC,$B9,$B7,$B5,$B3,$B2,$AD,$B5,$9B,$2C
+	dc.b $40,$42,$44,$45,$4B,$41,$5C,$C5,$B1,$EC,$4B,$20,$B3,$B7,$BD,$44
+	dc.b $48,$4A,$4C,$4E,$4F,$58,$1A,$BE,$BC,$B9,$B7,$B5,$B4,$AF,$B6,$9F
+	dc.b $2B,$42,$42,$4D,$02,$AF,$B7,$A1,$3A,$44,$3F,$56,$E0,$B1,$AF,$AE
+	dc.b $A8,$AB,$B9,$3A,$3F,$0F,$A8,$A2,$D8,$39,$3B,$3D,$3E,$3F,$41,$43
+	dc.b $45,$47,$49,$4B,$4D,$4D,$52,$4A,$63,$CA,$BF,$BE,$BC,$B9,$B7,$B5
+	dc.b $B3,$B1,$AB,$B3,$99,$26,$3F,$41,$43,$44,$47,$4B,$43,$5E,$D2,$BB
+	dc.b $B7,$2B,$53,$BE,$B5,$D0,$47,$4A,$4C,$4E,$4D,$5B,$08,$BD,$BB,$B8
+	dc.b $B6,$B4,$B2,$B0,$AE,$AB,$A9,$A6,$A4,$A1,$A3,$91,$00,$00,$0C,$4C
+	dc.b $21,$02,$FF,$F6,$EA,$E6,$F5,$14,$17,$EF,$D8,$DE,$D4,$D0,$F0,$FA
+	dc.b $FC,$35,$4C,$2F,$1A,$10,$07,$03,$E7,$DF,$FC,$14,$10,$FC,$FB,$EB
+	dc.b $D9,$F4,$28,$46,$34,$04,$D7,$CB,$DE,$01,$29,$1C,$FC,$F0,$E6,$E4
+	dc.b $F2,$18,$2E,$1C,$FB,$03,$19,$E8,$B4,$B0,$E6,$3B,$4A,$46,$37,$10
+	dc.b $FD,$C8,$AB,$D2,$FD,$18,$3C,$43,$3D,$D4,$A5,$AC,$D0,$46,$46,$42
+	dc.b $11,$B4,$AD,$B0,$C6,$46,$4C,$4A,$1D,$D0,$B0,$EC,$41,$2F,$1C,$2E
+	dc.b $0A,$DD,$FD,$E3,$BB,$E3,$08,$30,$43,$40,$EC,$A8,$A8,$E6,$4F,$32
+	dc.b $13,$DA,$AD,$AE,$FA,$01,$06,$4D,$3E,$19,$01,$E6,$0E,$FC,$D7,$0C
+	dc.b $43,$41,$3B,$F2,$A2,$C7,$41,$25,$CD,$AA,$FB,$4A,$26,$F1,$F3,$16
+	dc.b $F3,$A9,$C5,$19,$02,$25,$21,$FA,$FA,$25,$FA,$B3,$AE,$C7,$10,$19
+	dc.b $19,$35,$0C,$BD,$C0,$FA,$3E,$F6,$D6,$31,$4F,$4C,$43,$4B,$F0,$A8
+	dc.b $B6,$D8,$4D,$42,$44,$3B,$38,$D9,$9A,$29,$3A,$31,$39,$33,$2E,$2F
+	dc.b $AE,$8F,$A0,$9E,$AB,$A1,$0A,$53,$37,$4B,$E7,$9A,$B0,$AA,$B7,$B0
+	dc.b $1D,$62,$2C,$1F,$5B,$0C,$1A,$2F,$A7,$AE,$B4,$AE,$DE,$59,$4B,$4F
+	dc.b $D1,$AC,$BC,$B9,$C5,$BB,$11,$6E,$3C,$CB,$C2,$C8,$C7,$D5,$C3,$07
+	dc.b $32,$0C,$7B,$57,$DB,$D9,$FD,$C0,$41,$70,$5F,$61,$58,$57,$4C,$59
+	dc.b $06,$0E,$4F,$43,$26,$A3,$AE,$A4,$20,$54,$3C,$4D,$E6,$9C,$B2,$2E
+	dc.b $4B,$39,$46,$CC,$9B,$AA,$B4,$34,$52,$1C,$A1,$B4,$A4,$15,$52,$4B
+	dc.b $E9,$99,$27,$F8,$46,$F9,$A0,$B7,$B5,$BB,$3D,$59,$4C,$4B,$45,$42
 	dc.b $3E,$3A,$38,$31,$37,$10,$96,$99,$9E,$A1,$AC,$A3,$F8,$5E,$0A,$A4
 	dc.b $D1,$B5,$BC,$39,$60,$DA,$23,$54,$44,$3E,$4C,$DA,$BF,$4C,$2F,$47
 	dc.b $C4,$B2,$E6,$9A,$F1,$0B,$4B,$35,$44,$C8,$99,$AA,$A9,$B1,$B2,$BE
@@ -29201,12 +30298,12 @@ abs_0_000652DE:
 	bclr.b #0,app_033D(a6)
 	beq.b abs_0_000652FC
 	movem.l d1-d7/a0-a6,-(a7)
-	jsr abs_0_0005D872.l
-	move.b #$40,abs_0_0005DD00.l
+	jsr reset_audio_channels.l
+	move.b #$40,audio_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
 abs_0_000652FC:
 	rts
-abs_0_000652FE:
+update_player_proximity_audio:
 	btst.b #1,abs_0_0005C21A.l
 	bne.b abs_0_000652DE
 	lea.l world_x.l,a0
@@ -29226,8 +30323,8 @@ abs_0_00065322:
 	bclr.b #0,app_033D(a6)
 	beq.b abs_0_0006536E
 	movem.l d1-d7/a0-a6,-(a7)
-	jsr abs_0_0005D872.l
-	move.w #$40,abs_0_0005DD00.l
+	jsr reset_audio_channels.l
+	move.w #$40,audio_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
 	bra.b abs_0_0006536E
 abs_0_0006534A:
@@ -29235,13 +30332,13 @@ abs_0_0006534A:
 	bne.b abs_0_00065362
 	movem.l d0-d1/a6,-(a7)
 	moveq.l #2,d0
-	jsr abs_0_0005D7DE.l
+	jsr initialize_audio_player.l
 	movem.l (a7)+,d0-d1/a6
 abs_0_00065362:
 	lsr.w #2,d1
 	moveq.l #64,d0
 	sub.b d1,d0
-	move.w d0,abs_0_0005DD00.l
+	move.w d0,audio_master_volume.l
 abs_0_0006536E:
 	rts
 	dc.b $05,$00,$04,$07,$05,$08,$04,$02,$07,$0A,$FE,$03,$03,$09,$05,$02

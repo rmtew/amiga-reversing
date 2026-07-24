@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from amiga_reversing.disasm.manual_action_catalog import (
+    _data_block_element_type_binding_payload,
     _provenance_source_evidence_id,
     listing_catalog_manual_payload,
     listing_element_action_catalog,
@@ -10,6 +11,43 @@ from amiga_reversing.disasm.manual_action_catalog import (
     listing_row_action_catalog,
     target_catalog_manual_payload,
 )
+
+
+@pytest.mark.parametrize("element_kind", ["struct", "platform_struct"])
+def test_data_block_type_binding_accepts_struct_kinds_exposed_by_its_schema(element_kind: str) -> None:
+    row = {
+        "hunk": 0,
+        "addr": 0x1400,
+        "start_offset": 0x1400,
+        "end_offset": 0x1404,
+        "active_data_block_layout": {
+            "layout_id": "events",
+            "hunk": 0,
+            "source_start": 0x1400,
+            "source_end": 0x1480,
+        },
+        "active_data_block_element": {
+            "data_block_element_id": "events:0",
+            "layout_id": "events",
+            "offset": 0,
+            "width": 4,
+            "kind": "scalar",
+        },
+    }
+
+    payload = _data_block_element_type_binding_payload(
+        [row],
+        {
+            "layout_id": "events",
+            "offset": 0,
+            "width": 4,
+            "kind": element_kind,
+            "binding_kind": "custom_struct",
+            "type_id": "InputEvent",
+        },
+    )
+
+    assert payload["kind"] == "struct"
 
 
 def test_target_equate_catalog_payloads() -> None:
