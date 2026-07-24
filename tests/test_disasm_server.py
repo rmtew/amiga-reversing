@@ -1786,6 +1786,18 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
         "source_end",
         "base_addr",
     ]
+    data_block_layout_action = next(
+        action for action in actions if action["action_id"] == "target.data_block.layout.create"
+    )
+    assert data_block_layout_action["category"] == "target_metadata"
+    assert data_block_layout_action["appends_to_manual_action_log"] is True
+    assert data_block_layout_action["action"] == "create_manual_data_block_layout"
+    assert data_block_layout_action["parameter_schema"]["required"] == ["hunk", "source_start", "source_end"]
+    data_block_element_action = next(
+        action for action in actions if action["action_id"] == "target.data_block.element.set"
+    )
+    assert data_block_element_action["action"] == "set_manual_data_block_element"
+    assert data_block_element_action["parameter_schema"]["required"] == ["layout_id", "offset", "width", "kind"]
     rsset_region_action = next(action for action in actions if action["action_id"] == "target.rsset_region.add")
     assert rsset_region_action["category"] == "target_metadata"
     assert rsset_region_action["appends_to_manual_action_log"] is True
@@ -2621,6 +2633,40 @@ def test_command_manual_action_execute_appends_execution_view_action(
     }
     assert application["status"] == "applied"
     assert local_effect == {"kind": "execution_view", "execution_view": execution_view}
+    assert appended_actions == [action]
+
+
+def test_command_manual_action_execute_appends_exact_source_range_data_block_layout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch,
+        tmp_path,
+        command_id="target.data_block.layout.create",
+        context={"kind": "target"},
+        parameters={
+            "hunk": 0,
+            "source_start": 0xB3A0,
+            "source_end": 0xB3A8,
+            "name": "default_empty_item_slots",
+            "role": "item_slot_table",
+            "default_unit": "word",
+        },
+    )
+    action = cast(dict[str, object], payload["action"])
+    layout = cast(dict[str, object], cast(dict[str, object], action["payload"])["data_block_layout"])
+
+    assert action["kind"] == "create_manual_data_block_layout"
+    assert layout["layout_id"].startswith("catalog-")
+    assert {key: value for key, value in layout.items() if key != "layout_id"} == {
+        "hunk": 0,
+        "source_start": 0xB3A0,
+        "source_end": 0xB3A8,
+        "name": "default_empty_item_slots",
+        "role": "item_slot_table",
+        "default_unit": "word",
+    }
     assert appended_actions == [action]
 
 

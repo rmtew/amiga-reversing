@@ -113,6 +113,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_remove_action(),
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
+        _target_data_block_layout_action(),
+        _target_data_block_element_action(),
         _target_custom_struct_action(),
         _target_custom_struct_edit_action(),
         _target_custom_struct_rename_action(),
@@ -157,6 +159,10 @@ def target_catalog_manual_payload(
         return "create_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_runtime_observation_view":
         return "remove_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_data_block_layout":
+        return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
+    if action.get("action") == "set_manual_data_block_element":
+        return "set_manual_data_block_element", {"data_block_element": _data_block_element_payload([], params)}
     if action.get("action") == "create_manual_target_equate":
         return "create_manual_target_equate", {"target_equate": _target_equate_payload(params)}
     if action.get("action") == "rename_manual_target_equate":
@@ -1223,6 +1229,20 @@ def _data_block_layout_parameter_schema() -> dict[str, object]:
             "default_unit": {"type": "string", "enum": ["byte", "word", "long"]},
         },
     }
+
+
+def _target_data_block_layout_parameter_schema() -> dict[str, object]:
+    schema = _data_block_layout_parameter_schema()
+    properties = _object(schema.get("properties"), "data-block layout properties")
+    properties.update(
+        {
+            "hunk": {"type": "integer", "minimum": 0},
+            "source_start": {"type": "integer", "minimum": 0},
+            "source_end": {"type": "integer", "minimum": 1},
+        }
+    )
+    schema["required"] = ["hunk", "source_start", "source_end"]
+    return schema
 
 
 def _data_block_element_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
@@ -3835,6 +3855,30 @@ def _data_block_layout_payload(rows: list[Mapping[str, object]], params: Mapping
     return layout
 
 
+def _target_data_block_layout_payload(params: Mapping[str, object]) -> dict[str, object]:
+    hunk = _optional_int(params.get("hunk"))
+    source_start = _optional_int(params.get("source_start"))
+    source_end = _optional_int(params.get("source_end"))
+    if hunk is None or source_start is None or source_end is None or source_end <= source_start:
+        raise ValueError("create_manual_data_block_layout requires hunk and a non-empty source range")
+    layout: dict[str, object] = {
+        "layout_id": f"catalog-{uuid.uuid4().hex}",
+        "hunk": hunk,
+        "source_start": source_start,
+        "source_end": source_end,
+    }
+    name = params.get("name")
+    if isinstance(name, str) and name.strip():
+        layout["name"] = name.strip()
+    role = params.get("role")
+    if isinstance(role, str) and role.strip():
+        layout["role"] = role.strip()
+    default_unit = params.get("default_unit")
+    if isinstance(default_unit, str) and default_unit in {"byte", "word", "long"}:
+        layout["default_unit"] = default_unit
+    return layout
+
+
 def _data_block_layout_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
     layout_id = params.get("layout_id")
     if not isinstance(layout_id, str) or not layout_id.strip():
@@ -5358,6 +5402,26 @@ def _target_runtime_observation_view_remove_action() -> dict[str, object]:
         "Remove runtime observation view",
         "remove_manual_runtime_observation_view",
         _execution_view_identity_parameter_schema(),
+    )
+
+
+def _target_data_block_layout_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.layout.create",
+        "Create data-block layout at source range",
+        "create_manual_data_block_layout",
+        _target_data_block_layout_parameter_schema(),
+    )
+
+
+def _target_data_block_element_action() -> dict[str, object]:
+    schema = _data_block_element_parameter_schema()
+    schema["required"] = ["layout_id", "offset", "width", "kind"]
+    return _target_log_action(
+        "target.data_block.element.set",
+        "Set data-block element at layout offset",
+        "set_manual_data_block_element",
+        schema,
     )
 
 

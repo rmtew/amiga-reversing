@@ -161,6 +161,13 @@ pairs: `inventory_slots_ptr`/`initial_inventory_slots_ptr` at
 entries from the current tables; `initialize_world_state` copies eight bytes
 from each corresponding initial table to restore the current state.
 
+`default_empty_item_slots` at `$0001B3A0` is the shared, eight-byte zero
+initializer used by all four player inventory/trade pointers.  It is now an
+explicit four-element word table rather than part of the preceding anonymous
+12-byte zero fill.  The range is represented through the general target
+data-block layout/element commands, which also support an exact source
+subrange when a decoded listing row is broader than the recovered object.
+
 ### Confirmed item-name lookup
 
 `resolve_item_name` at `$00012B7E` masks an item id to seven bits, doubles it,

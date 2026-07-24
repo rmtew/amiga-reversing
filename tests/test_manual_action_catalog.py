@@ -1127,6 +1127,59 @@ def test_target_execution_view_add_and_edit_command_payloads() -> None:
         }
 
 
+def test_target_data_block_layout_create_payload_supports_exact_source_subranges() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.data_block.layout.create",
+        {
+            "hunk": 0,
+            "source_start": 0xB3A0,
+            "source_end": 0xB3A8,
+            "name": "default_empty_item_slots",
+            "role": "item_slot_table",
+            "default_unit": "word",
+        },
+    )
+
+    assert kind == "create_manual_data_block_layout"
+    layout = payload["data_block_layout"]
+    assert layout["layout_id"].startswith("catalog-")
+    assert {key: value for key, value in layout.items() if key != "layout_id"} == {
+        "hunk": 0,
+        "source_start": 0xB3A0,
+        "source_end": 0xB3A8,
+        "name": "default_empty_item_slots",
+        "role": "item_slot_table",
+        "default_unit": "word",
+    }
+
+
+def test_target_data_block_element_set_payload_supports_exact_layout_offsets() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.data_block.element.set",
+        {
+            "layout_id": "slots",
+            "offset": 0,
+            "width": 8,
+            "kind": "array",
+            "array_count": 4,
+            "array_stride": 2,
+        },
+    )
+
+    assert kind == "set_manual_data_block_element"
+    assert payload == {
+        "data_block_element": {
+            "data_block_element_id": "slots:0",
+            "layout_id": "slots",
+            "offset": 0,
+            "width": 8,
+            "kind": "array",
+            "array_count": 4,
+            "array_stride": 2,
+        }
+    }
+
+
 def test_target_execution_view_remove_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.execution_view.remove",
