@@ -34,6 +34,7 @@ static int address_observation_owner_symbol_expr(const M68kAddressObservationIR 
   char *buf, size_t buf_size);
 static const char *listing_operand_access_name(uint8_t access_kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
+static int listing_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t *out_value);
 
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
@@ -6352,18 +6353,21 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
 
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
   const M68kInstructionIR *instruction;
-  const M68kSimFormMetadata *metadata;
   size_t operand_index;
   int emitted = 0;
   if (json_builder_append(builder, "[") != 0) return -1;
   if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return json_builder_append(builder, "]");
   instruction = &stmt->u.instruction;
-  metadata = instruction_sim_metadata(instruction);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     const char *symbol_name = operand->symbol_ref.has_name != 0U ? operand->symbol_ref.name : NULL;
-    uint8_t access_kind = metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE;
-    int is_immediate = access_kind == M68K_SIM_ACCESS_IMMEDIATE;
+    /*
+     * The simulation metadata describes an immediate source by the access it
+     * has at the instruction level (for MOVE it is a read), not necessarily
+     * as M68K_SIM_ACCESS_IMMEDIATE.  Use the decoded operand shape here so
+     * the listing always exposes a selectable immediate literal.
+     */
+    int is_immediate = listing_operand_is_immediate_value(operand, NULL);
     unsigned width_bits = 0U;
     int32_t signed_value = (int32_t)operand->value.value;
     uint8_t base_reg = 0U;
@@ -8286,7 +8290,7 @@ static int listing_stmt_has_operand_parts(const M68kStatementIR *stmt) {
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
-    if (metadata != NULL && metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_IMMEDIATE) return 1;
+    if (listing_operand_is_immediate_value(operand, NULL)) return 1;
     if (operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U) return 1;
   }
   return 0;

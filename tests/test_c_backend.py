@@ -1599,6 +1599,34 @@ def test_full_listing_instruction_rows_expose_immediate_operand_parts(tmp_path: 
     assert moveq["operand_parts"][0]["signed_value"] == 5
 
 
+def test_full_listing_move_source_immediate_exposes_operand_part(tmp_path: Path) -> None:
+    """A MOVE source literal is modelled as a read, but remains selectable."""
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(bytes.fromhex("203c123456784e75"))
+
+    rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        RawBinarySource(
+            kind=BinarySourceKind.RAW_BINARY,
+            path=path,
+            address_model=RawAddressModel.LOCAL_OFFSET,
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    move = next(row for row in rows if row["kind"] == "instruction" and row["addr"] == 0)
+
+    assert move["operand_parts"][0]["kind"] == "immediate"
+    assert move["operand_parts"][0]["operand_index"] == 0
+    assert move["operand_parts"][0]["value"] == 0x12345678
+    assert move["operand_parts"][0]["width_bits"] == 32
+
+
 def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
