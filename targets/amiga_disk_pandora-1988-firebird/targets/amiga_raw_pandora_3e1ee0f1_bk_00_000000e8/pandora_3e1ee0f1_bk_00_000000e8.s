@@ -27226,9 +27226,20 @@ reset_audio_channels:
 	move.w #$0,_custom+aud2+ac_vol.l	; audio volume 0
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
 	rts
-	dc.b $47,$FA,$FF,$10,$4A,$2B,$05,$27,$67,$1E,$33,$FC,$00,$FF,$00,$DF
-	dc.b $F0,$9E,$32,$3C,$82,$00,$7E,$03,$0F,$C1,$51,$CF,$FF,$FC,$33,$C1
-	dc.b $00,$DF,$F0,$96,$50,$EB,$05,$29,$4E,$75
+enable_active_audio_channel_dma:
+	lea.l initialize_audio_player(pc),a3
+	tst.b $0527(a3)
+	beq.b abs_0_0005D8F4
+	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
+	move.w #$8200,d1
+	moveq.l #3,d7
+abs_0_0005D8E4:
+	bset d7,d1
+	dbf.w d7,abs_0_0005D8E4
+	move.w d1,_custom+dmacon.l
+	st.b $0529(a3)
+abs_0_0005D8F4:
+	rts
 abs_0_0005D8F6:
 	bra.w dispatch_audio_channel_updates
 abs_0_0005D8FA:

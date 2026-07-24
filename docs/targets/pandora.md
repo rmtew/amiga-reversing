@@ -25,6 +25,7 @@ output-affecting slice must retain full-file exact reassembly.
 | --- | --- | --- |
 | `$0005D7DE` | `initialize_audio_player` | Initializes the player-owned audio state, resets hardware channels, and builds four channel records from a selected sequence. |
 | `$0005D872` | `reset_audio_channels` | Clears channel activity/state and disables Amiga audio DMA/volumes. |
+| `$0005D8CC` | `enable_active_audio_channel_dma` | If the player enable latch is set, restores ADKCON, enables the four Paula DMA bits, and marks the player active. |
 | `$0005D8FE` | `update_audio_channels` | Per-update service routine for active audio channels. |
 | `$0005E4AE` | `dispatch_audio_channel_updates` | Dispatches the four playback-state/DMA-configuration pairs to the shared channel service helper. |
 | `$0005E512` | `service_audio_channel_playback` | Services one active channel: countdowns, period/sample offset updates, envelope volume, and DMA commit. |
