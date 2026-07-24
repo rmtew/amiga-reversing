@@ -2289,32 +2289,79 @@ static const M68kRenderTypedStorageSlot *lookup_typed_storage_slot(const M68kRen
   return NULL;
 }
 
-static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderTypedState *state,
-    const M68kOperandIR *operand) {
+static uint16_t lookup_policy_pointer_struct_id_for_field(const M68kAnalysisPolicy *policy, uint16_t struct_id,
+    int16_t displacement) {
+  const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
+  if (custom_struct != NULL) {
+    uint16_t field_index;
+    for (field_index = 0U; field_index < custom_struct->field_count &&
+         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
+      if (field->offset != (uint32_t)displacement || field->pointer_struct[0] == '\0') continue;
+      return lookup_policy_struct_id_by_name(policy, field->pointer_struct);
+    }
+    return AMIGA_OS_STRUCT_ID_NONE;
+  }
+  {
+    AmigaOsResolvedStructFieldInfo resolved;
+    const AmigaOsStructFieldInfo *field;
+    if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, displacement, 0, &resolved) ||
+        resolved.query_offset != resolved.offset) {
+      return AMIGA_OS_STRUCT_ID_NONE;
+    }
+    field = amiga_os_find_struct_field_by_field_id(resolved.field_id);
+    return field != NULL ? field->pointer_struct_id : AMIGA_OS_STRUCT_ID_NONE;
+  }
+}
+
+static uint16_t lookup_policy_nested_struct_id_for_field(const M68kAnalysisPolicy *policy, uint16_t struct_id,
+    int16_t displacement) {
+  const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
+  if (custom_struct != NULL) {
+    uint16_t field_index;
+    for (field_index = 0U; field_index < custom_struct->field_count &&
+         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
+      if (field->offset != (uint32_t)displacement || field->struct_name[0] == '\0') continue;
+      return lookup_policy_struct_id_by_name(policy, field->struct_name);
+    }
+    return AMIGA_OS_STRUCT_ID_NONE;
+  }
+  {
+    AmigaOsResolvedStructFieldInfo resolved;
+    const AmigaOsStructFieldInfo *field;
+    if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, displacement, 0, &resolved) ||
+        resolved.query_offset != resolved.offset) {
+      return AMIGA_OS_STRUCT_ID_NONE;
+    }
+    field = amiga_os_find_struct_field_by_field_id(resolved.field_id);
+    if (field == NULL || field->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE || field->size == 0U)
+      return AMIGA_OS_STRUCT_ID_NONE;
+    return amiga_os_struct_id_from_type_id(field->nested_type_id);
+  }
+}
+
+static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kOperandIR *operand) {
   uint8_t base_reg = 0U;
   int16_t displacement = 0;
   uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
-  AmigaOsResolvedStructFieldInfo resolved;
-  const AmigaOsStructFieldInfo *field;
-  if (state == NULL || operand == NULL ||
+  if (lookup == NULL || state == NULL || operand == NULL ||
       !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
       !state->addr_regs[base_reg].known) {
     return AMIGA_OS_STRUCT_ID_NONE;
   }
   struct_id = state->addr_regs[base_reg].struct_id;
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return AMIGA_OS_STRUCT_ID_NONE;
-  if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, displacement, 0, &resolved)) return AMIGA_OS_STRUCT_ID_NONE;
-  if (resolved.query_offset != resolved.offset) return AMIGA_OS_STRUCT_ID_NONE;
-  field = amiga_os_find_struct_field_by_field_id(resolved.field_id);
-  if (field == NULL || field->pointer_struct_id == AMIGA_OS_STRUCT_ID_NONE) return AMIGA_OS_STRUCT_ID_NONE;
-  return field->pointer_struct_id;
+  return lookup_policy_pointer_struct_id_for_field(lookup->policy, struct_id, displacement);
 }
 
 static int typed_stored_value_from_field_pointer_read(M68kRenderTypedStoredValue *value,
-    const M68kRenderTypedState *state, const M68kOperandIR *operand, size_t section_index, uint32_t offset) {
+    const M68kRenderLookup *lookup, const M68kRenderTypedState *state, const M68kOperandIR *operand,
+    size_t section_index, uint32_t offset) {
   uint16_t struct_id;
   if (value == NULL) return 0;
-  struct_id = typed_pointer_struct_id_for_field_read(state, operand);
+  struct_id = typed_pointer_struct_id_for_field_read(lookup, state, operand);
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
   typed_stored_value_clear(value);
   value->struct_id = struct_id;
@@ -2323,27 +2370,19 @@ static int typed_stored_value_from_field_pointer_read(M68kRenderTypedStoredValue
   return 1;
 }
 
-static uint16_t typed_nested_struct_id_for_field_address(const M68kRenderTypedState *state,
-    const M68kOperandIR *operand) {
+static uint16_t typed_nested_struct_id_for_field_address(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kOperandIR *operand) {
   uint8_t base_reg = 0U;
   int16_t displacement = 0;
   uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
-  AmigaOsResolvedStructFieldInfo resolved;
-  const AmigaOsStructFieldInfo *field;
-  if (state == NULL || operand == NULL ||
+  if (lookup == NULL || state == NULL || operand == NULL ||
       !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
       !state->addr_regs[base_reg].known) {
     return AMIGA_OS_STRUCT_ID_NONE;
   }
   struct_id = state->addr_regs[base_reg].struct_id;
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return AMIGA_OS_STRUCT_ID_NONE;
-  if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, displacement, 0, &resolved))
-    return AMIGA_OS_STRUCT_ID_NONE;
-  if (resolved.query_offset != resolved.offset) return AMIGA_OS_STRUCT_ID_NONE;
-  field = amiga_os_find_struct_field_by_field_id(resolved.field_id);
-  if (field == NULL || field->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE || field->size == 0U)
-    return AMIGA_OS_STRUCT_ID_NONE;
-  return amiga_os_struct_id_from_type_id(field->nested_type_id);
+  return lookup_policy_nested_struct_id_for_field(lookup->policy, struct_id, displacement);
 }
 
 static uint16_t amiga_struct_size_for_struct_id(uint16_t struct_id) {
@@ -3208,7 +3247,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     (void)typed_value_for_memory_read_operand(lookup, state, platform_state, section_index, source_operand,
       metadata->operand_access_kinds[source_index], &value, NULL);
     if (!typed_stored_value_has_useful_info(&value) && instruction->size_suffix == 'l')
-      (void)typed_stored_value_from_field_pointer_read(&value, state, source_operand, section_index, offset);
+      (void)typed_stored_value_from_field_pointer_read(&value, lookup, state, source_operand, section_index, offset);
   }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
     if (typed_stored_value_has_useful_info(&value)) typed_state_set_stack_slot(state, stack_displacement, &value);
@@ -3388,7 +3427,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE && move_metadata != NULL &&
         move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ &&
         instruction->size_suffix == 'l') {
-      if (typed_stored_value_from_field_pointer_read(&stored_value, state, source_operand, section_index, offset)) {
+      if (typed_stored_value_from_field_pointer_read(&stored_value, lookup, state, source_operand, section_index, offset)) {
         source_struct_id = stored_value.struct_id;
         source_provenance = stored_value.provenance;
       }
@@ -3463,7 +3502,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
             typed_state_set_reg_origin(state, 2U, dest_reg, &state->addr_regs[source_base_reg].origin);
           }
         } else {
-          source_struct_id = typed_nested_struct_id_for_field_address(state, &instruction->operands[0]);
+          source_struct_id = typed_nested_struct_id_for_field_address(lookup, state, &instruction->operands[0]);
           if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
             M68kRenderTypedProvenance field_provenance =
               typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS, section_index, offset);

@@ -2212,14 +2212,15 @@ abs_0_00012688:
 	cmp.w #$18,d0
 abs_0_0001268C:
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 abs_0_0001268E:
 	lea.l player_world_object.l,a4
 	movem.l d0-d2/a0-a2,-(a7)
-	movea.l $002C(a5),a0
-	movea.l $0000(a0),a1
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
+	movea.l world_position_descriptor_prefix_position_state_ptr(a0),a1
 	movea.l $0000(a1),a2
-	move.w $0004(a0),d0
-	add.w $000C(a1),d0
+	move.w world_position_descriptor_prefix_world_x(a0),d0
+	add.w world_position_state_record_world_x_offset(a1),d0
 	add.w $000E(a2),d0
 	move.w d0,d1
 	add.w $000C(a2),d1
@@ -2229,8 +2230,8 @@ abs_0_0001268E:
 	bcc.b abs_0_000126E6
 	cmp.w d1,d2
 	bcc.b abs_0_000126E6
-	move.w $0006(a0),d0
-	add.w $000E(a1),d0
+	move.w world_position_descriptor_prefix_world_y(a0),d0
+	add.w world_position_state_record_world_y_offset(a1),d0
 	add.w $0010(a2),d0
 	move.w d0,d1
 	add.w $000A(a2),d1
