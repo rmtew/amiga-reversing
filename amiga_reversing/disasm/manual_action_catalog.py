@@ -184,7 +184,12 @@ def target_catalog_manual_payload(
     if action.get("action") == "remove_manual_data_block_layout":
         return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
     if action.get("action") == "set_manual_data_block_element":
-        return "set_manual_data_block_element", {"data_block_element": _data_block_element_payload([], params)}
+        payload = (
+            _data_block_element_type_binding_payload([], params)
+            if isinstance(params.get("binding_kind"), str) and str(params["binding_kind"]).strip()
+            else _data_block_element_payload([], params)
+        )
+        return "set_manual_data_block_element", {"data_block_element": payload}
     if action.get("action") == "interpret_manual_data_block_element_ref":
         return "interpret_manual_data_block_element_ref", {
             "data_block_interpreted_ref": _data_block_element_ref_payload([], params)
@@ -1295,6 +1300,10 @@ def _data_block_element_parameter_schema(defaults: Mapping[str, object] | None =
                 "array_count": {"type": "integer", "minimum": 1},
                 "array_stride": {"type": "integer", "minimum": 1},
                 "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+                "binding_kind": {"type": "string", "enum": ["custom_struct", "platform_struct", "enum_domain", "equate_domain"]},
+                "type_id": {"type": "string"},
+                "domain_id": {"type": "string"},
+                "type_binding_id": {"type": "string"},
             },
             "required": ["layout_id", "offset"],
         },

@@ -705,6 +705,15 @@ transition for tile `$ec`. The interior branches and terminal `RTS` at
 `$000199AA` establish one contiguous code routine rather than a collection of
 embedded data bytes.
 
+### World-position state nodes
+
+`world_position_state_nodes` is the exact 24-record table at
+`$00048F70..$00049120` (runtime `$00058F70..$00059120`), with an 18-byte
+stride.  Each node starts with `position_descriptor_ptr`; the position-state
+restore routine clears bit 0 of `active_flag` at `+0x0A` and clears
+`restore_word` at `+0x10`.  The surrounding words and handler pointer remain
+raw pending a consumer that establishes their shared semantics.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

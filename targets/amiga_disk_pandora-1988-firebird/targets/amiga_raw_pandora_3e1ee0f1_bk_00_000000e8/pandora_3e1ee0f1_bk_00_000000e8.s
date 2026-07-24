@@ -319,6 +319,8 @@ channel_1_program_offset	EQU	4
 channel_2_program_offset	EQU	6
 channel_3_program_offset	EQU	8
 state_node_ptr	EQU	8
+active_flag	EQU	10
+restore_word	EQU	16
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -26688,54 +26690,250 @@ world_position_state_records_gap_237_21:
 	dc.b $10
 	dcb.b $9,$00
 	dc.b $05,$8F,$CA,$00,$00,$00,$20,$00,$05,$8C,$F4,$00,$00,$00,$00,$00
-	dc.b $10,$00,$05,$8C,$D0,$04,$40,$00,$05,$91,$20
-	dcb.b $9,$00
-	dc.b $05,$8C,$DC,$04,$40,$00,$05,$91,$20
-	dcb.b $9,$00
-	dc.b $05,$8C,$E8,$04,$40,$00,$05,$91,$20
-	dcb.b $9,$00
-	dc.b $05,$8C,$F4,$04,$40,$00,$05,$91,$20
-	dcb.b $9,$00
-	dc.b $05,$8C,$E8,$04,$40,$00,$05,$91,$20
-	dcb.b $9,$00
-	dc.b $05,$8C,$F4,$04,$40,$00,$05,$91,$20
-	dcb.b $9,$00
-	dc.b $05,$8B,$F8,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$04,$06,$40,$00,$05,$91,$50,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$10,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$1C,$06,$40,$00,$05,$91,$50,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$28,$06,$40,$00,$05,$91,$88,$01,$00,$00,$00
-	dc.b $00,$00,$00,$00,$00,$05,$8C,$34,$06,$40,$00,$05,$91,$50,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$40,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$4C,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$58,$06,$40,$00,$05,$91,$50,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$64,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$70,$06,$40,$00,$05,$91,$50,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$7C,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$88,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$94,$06,$40,$00,$05,$91,$50,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$A0,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$AC,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $8,$00
-	dc.b $05,$8C,$B8,$06,$40,$00,$05,$91,$88,$01,$00,$00,$00,$00,$00,$00
-	dc.b $00
-	dc.b $00,$05,$8C,$C4,$06,$40,$00,$05,$91,$88,$01
-	dcb.b $C,$00
-	dc.b $05,$8B,$B0,$00,$05,$8B,$C2,$00,$05,$8B,$D4,$00,$05,$8B,$E6
+	dc.b $10
+world_position_state_nodes:	; STRUCT WorldPositionStateNode
+	dc.l $00058CD0	; long position_descriptor_ptr
+world_position_state_nodes_gap_4_0:
+	dc.b $04,$40,$00,$05,$91,$20	; typed data block gap
+world_position_state_nodes_active_flag_0:	; STRUCT WorldPositionStateNode
+	dc.b $00	; byte active_flag
+world_position_state_nodes_gap_B_0:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_0:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_1:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$DC	; long position_descriptor_ptr
+world_position_state_nodes_gap_16_1:
+	dc.b $04,$40,$00,$05,$91,$20	; typed data block gap
+world_position_state_nodes_active_flag_1:	; STRUCT WorldPositionStateNode
+	dc.b $00	; byte active_flag
+world_position_state_nodes_gap_1D_1:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_1:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_2:	; STRUCT WorldPositionStateNode
+	dc.l $00058CE8	; long position_descriptor_ptr
+world_position_state_nodes_gap_28_2:
+	dc.b $04,$40,$00,$05,$91,$20	; typed data block gap
+world_position_state_nodes_active_flag_2:	; STRUCT WorldPositionStateNode
+	dc.b $00	; byte active_flag
+world_position_state_nodes_gap_2F_2:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_2:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_3:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$F4	; long position_descriptor_ptr
+world_position_state_nodes_gap_3A_3:
+	dc.b $04,$40,$00,$05,$91,$20	; typed data block gap
+world_position_state_nodes_active_flag_3:	; STRUCT WorldPositionStateNode
+	dc.b $00	; byte active_flag
+world_position_state_nodes_gap_41_3:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_3:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_4:	; STRUCT WorldPositionStateNode
+	dc.l $00058CE8	; long position_descriptor_ptr
+world_position_state_nodes_gap_4C_4:
+	dc.b $04,$40,$00,$05,$91,$20	; typed data block gap
+world_position_state_nodes_active_flag_4:	; STRUCT WorldPositionStateNode
+	dc.b $00	; byte active_flag
+world_position_state_nodes_gap_53_4:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_4:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_5:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$F4	; long position_descriptor_ptr
+world_position_state_nodes_gap_5E_5:
+	dc.b $04,$40,$00,$05,$91,$20	; typed data block gap
+world_position_state_nodes_active_flag_5:	; STRUCT WorldPositionStateNode
+	dc.b $00	; byte active_flag
+world_position_state_nodes_gap_65_5:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_5:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_6:	; STRUCT WorldPositionStateNode
+	dc.l $00058BF8	; long position_descriptor_ptr
+world_position_state_nodes_gap_70_6:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_6:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_77_6:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_6:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_7:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$04	; long position_descriptor_ptr
+world_position_state_nodes_gap_82_7:
+	dc.b $06,$40,$00,$05,$91,$50	; typed data block gap
+world_position_state_nodes_active_flag_7:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_89_7:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_7:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_8:	; STRUCT WorldPositionStateNode
+	dc.l $00058C10	; long position_descriptor_ptr
+world_position_state_nodes_gap_94_8:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_8:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_9B_8:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_8:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_9:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$1C	; long position_descriptor_ptr
+world_position_state_nodes_gap_A6_9:
+	dc.b $06,$40,$00,$05,$91,$50	; typed data block gap
+world_position_state_nodes_active_flag_9:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_AD_9:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_9:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_10:	; STRUCT WorldPositionStateNode
+	dc.l $00058C28	; long position_descriptor_ptr
+world_position_state_nodes_gap_B8_10:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_10:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_BF_10:
+	dc.b $00,$00,$00
+	dc.w $0000
+world_position_state_nodes_restore_word_10:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_11:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$34	; long position_descriptor_ptr
+world_position_state_nodes_gap_CA_11:
+	dc.b $06,$40,$00,$05,$91,$50	; typed data block gap
+world_position_state_nodes_active_flag_11:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_D1_11:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_11:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_12:	; STRUCT WorldPositionStateNode
+	dc.l $00058C40	; long position_descriptor_ptr
+world_position_state_nodes_gap_DC_12:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_12:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_E3_12:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_12:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_13:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$4C	; long position_descriptor_ptr
+world_position_state_nodes_gap_EE_13:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_13:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_F5_13:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_13:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_14:	; STRUCT WorldPositionStateNode
+	dc.l $00058C58	; long position_descriptor_ptr
+world_position_state_nodes_gap_100_14:
+	dc.b $06,$40,$00,$05,$91,$50	; typed data block gap
+world_position_state_nodes_active_flag_14:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_107_14:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_14:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_15:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$64	; long position_descriptor_ptr
+world_position_state_nodes_gap_112_15:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_15:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_119_15:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_15:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_16:	; STRUCT WorldPositionStateNode
+	dc.l $00058C70	; long position_descriptor_ptr
+world_position_state_nodes_gap_124_16:
+	dc.b $06,$40,$00,$05,$91,$50	; typed data block gap
+world_position_state_nodes_active_flag_16:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_12B_16:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_16:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_17:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$7C	; long position_descriptor_ptr
+world_position_state_nodes_gap_136_17:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_17:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_13D_17:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_17:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_18:	; STRUCT WorldPositionStateNode
+	dc.l $00058C88	; long position_descriptor_ptr
+world_position_state_nodes_gap_148_18:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_18:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_14F_18:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_18:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_19:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$94	; long position_descriptor_ptr
+world_position_state_nodes_gap_15A_19:
+	dc.b $06,$40,$00,$05,$91,$50	; typed data block gap
+world_position_state_nodes_active_flag_19:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_161_19:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_19:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_20:	; STRUCT WorldPositionStateNode
+	dc.l $00058CA0	; long position_descriptor_ptr
+world_position_state_nodes_gap_16C_20:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_20:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_173_20:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_20:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_21:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$AC	; long position_descriptor_ptr
+world_position_state_nodes_gap_17E_21:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_21:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_185_21:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_21:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_22:	; STRUCT WorldPositionStateNode
+	dc.l $00058CB8	; long position_descriptor_ptr
+world_position_state_nodes_gap_190_22:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_22:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_197_22:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_22:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+world_position_state_nodes_position_descriptor_ptr_23:	; STRUCT WorldPositionStateNode
+	dc.b $00,$05,$8C,$C4	; long position_descriptor_ptr
+world_position_state_nodes_gap_1A2_23:
+	dc.b $06,$40,$00,$05,$91,$88	; typed data block gap
+world_position_state_nodes_active_flag_23:	; STRUCT WorldPositionStateNode
+	dc.b $01	; byte active_flag
+world_position_state_nodes_gap_1A9_23:
+	dc.b $00,$00,$00,$00,$00	; typed data block gap
+world_position_state_nodes_restore_word_23:	; STRUCT WorldPositionStateNode
+	dc.w $0000	; word restore_word
+	dc.b $00,$00,$00,$00,$00,$05,$8B,$B0,$00,$05,$8B,$C2,$00,$05,$8B,$D4
+	dc.b $00,$05,$8B,$E6
 abs_0_00059134:
 	dc.b $00,$05
 	dc.b $8A,$C6,$00,$05,$8A,$6C,$00,$05,$8A,$7E,$00,$05,$8A,$90,$00,$05

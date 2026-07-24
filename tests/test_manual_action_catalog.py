@@ -1294,6 +1294,34 @@ def test_target_data_block_element_set_payload_supports_exact_layout_offsets() -
     }
 
 
+def test_target_data_block_element_set_payload_can_bind_custom_struct() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.data_block.element.set",
+        {
+            "layout_id": "nodes",
+            "offset": 0,
+            "width": 36,
+            "kind": "struct",
+            "array_count": 2,
+            "array_stride": 18,
+            "binding_kind": "custom_struct",
+            "type_id": "WorldPositionStateNode",
+        },
+    )
+
+    assert kind == "set_manual_data_block_element"
+    element = payload["data_block_element"]
+    assert element["type_binding"] == {
+        "type_binding_id": "nodes:0:36:custom_struct:WorldPositionStateNode",
+        "layout_id": "nodes",
+        "element_offset": 0,
+        "element_width": 36,
+        "binding_kind": "custom_struct",
+        "bound_type_id": "WorldPositionStateNode",
+        "array_count": 2,
+    }
+
+
 def test_target_data_block_element_interpret_ref_payload_supports_exact_layout_offsets() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.data_block.element.interpret_ref",
