@@ -1794,6 +1794,73 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
     assert {tuple(entity["parent_evidence_ids"]) for entity in typed_entities} == {("prov-root",)}
 
 
+def test_effective_metadata_preserves_layout_name_for_leading_typed_gap(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_custom_struct",
+                custom_struct={
+                    "name": "TrailingField",
+                    "size": 6,
+                    "fields": [{"name": "value", "type": "UWORD", "offset": 4, "size": 2}],
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_data_block_layout",
+                data_block_layout={
+                    "layout_id": "trailing-field",
+                    "hunk": 0,
+                    "source_start": 0x100,
+                    "source_end": 0x106,
+                    "name": "runtime_records",
+                    "default_unit": "byte",
+                },
+            ),
+            _action(
+                "a3",
+                3,
+                "set_manual_data_block_element",
+                data_block_element={
+                    "data_block_element_id": "trailing-field:0",
+                    "layout_id": "trailing-field",
+                    "offset": 0,
+                    "width": 6,
+                    "kind": "struct",
+                    "type_binding": {
+                        "type_binding_id": "trailing-field:0:6:custom_struct:TrailingField",
+                        "layout_id": "trailing-field",
+                        "element_offset": 0,
+                        "element_width": 6,
+                        "binding_kind": "custom_struct",
+                        "bound_type_id": "TrailingField",
+                    },
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+    typed_entities = [
+        entity
+        for entity in payload["seeded_entities"]
+        if entity["source_locator"] == "trailing-field:0:6:custom_struct:TrailingField"
+    ]
+
+    assert [(entity["addr"], entity["name"], entity["field_name"]) for entity in typed_entities] == [
+        (0x100, "runtime_records", None),
+        (0x104, "runtime_records_value", "value"),
+    ]
+
+
 def test_effective_metadata_projects_manual_data_block_interpreted_ref(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

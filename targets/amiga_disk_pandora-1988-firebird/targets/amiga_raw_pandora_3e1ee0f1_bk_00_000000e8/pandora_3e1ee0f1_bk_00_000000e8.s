@@ -265,6 +265,9 @@ trade_offer_table_ptr	EQU	24
 initial_inventory_slots_ptr	EQU	28
 initial_trade_offer_table_ptr	EQU	32
 position_state_ptr	EQU	0
+program_ptr	EQU	4
+channel_configuration_offset	EQU	8
+update_countdown	EQU	30
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -27501,7 +27504,53 @@ abs_0_0005DD0C:
 abs_0_0005DD12:
 	dc.w $0000	; lookup_table
 audio_channel_state_records:
-	dcb.b $C0,$00
+	dc.l $00000000	; typed data block gap
+audio_channel_state_records_program_ptr_0:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long program_ptr
+audio_channel_state_records_channel_configuration_offset_0:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word channel_configuration_offset
+audio_channel_state_records_gap_A_0:
+	dcb.b $14,$00	; typed data block gap
+audio_channel_state_records_update_countdown_0:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_countdown
+audio_channel_state_records_gap_20_0:
+	dcb.b $10,$00	; typed data block gap
+audio_channel_state_records_gap_30_1:
+	dc.l $00000000	; typed data block gap
+audio_channel_state_records_program_ptr_1:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long program_ptr
+audio_channel_state_records_channel_configuration_offset_1:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word channel_configuration_offset
+audio_channel_state_records_gap_3A_1:
+	dcb.b $14,$00	; typed data block gap
+audio_channel_state_records_update_countdown_1:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_countdown
+audio_channel_state_records_gap_50_1:
+	dcb.b $10,$00	; typed data block gap
+audio_channel_state_records_gap_60_2:
+	dc.l $00000000	; typed data block gap
+audio_channel_state_records_program_ptr_2:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long program_ptr
+audio_channel_state_records_channel_configuration_offset_2:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word channel_configuration_offset
+audio_channel_state_records_gap_6A_2:
+	dcb.b $14,$00	; typed data block gap
+audio_channel_state_records_update_countdown_2:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_countdown
+audio_channel_state_records_gap_80_2:
+	dcb.b $10,$00	; typed data block gap
+audio_channel_state_records_gap_90_3:
+	dc.l $00000000	; typed data block gap
+audio_channel_state_records_program_ptr_3:	; STRUCT audio_channel_runtime_state
+	dc.l $00000000	; long program_ptr
+audio_channel_state_records_channel_configuration_offset_3:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word channel_configuration_offset
+audio_channel_state_records_gap_9A_3:
+	dcb.b $14,$00	; typed data block gap
+audio_channel_state_records_update_countdown_3:	; STRUCT audio_channel_runtime_state
+	dc.w $0000	; word update_countdown
+audio_channel_state_records_gap_B0_3:
+	dcb.b $10,$00	; typed data block gap
 audio_pitch_scalars:
 	dc.w $2000	; lookup_table
 	dc.w $1E30

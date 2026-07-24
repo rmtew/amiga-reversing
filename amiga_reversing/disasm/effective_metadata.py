@@ -1121,6 +1121,12 @@ def _data_block_typed_field_label(base_label: str | None, field_name: str, index
 def _data_block_typed_gap_label(base_label: str | None, offset: int, index: int | None) -> str | None:
     if not base_label:
         return None
+    # A leading gap is still the start of the public data-block identity.  If
+    # it is renamed to ``*_gap_0`` every reference to the named layout loses
+    # its semantic base name merely because the first recovered field begins
+    # later in the record.
+    if offset == 0 and index in {None, 0}:
+        return base_label if len(base_label) < 64 else None
     label = f"{base_label}_gap_{offset:X}"
     if index is not None:
         label = f"{label}_{index}"
