@@ -544,6 +544,29 @@ def test_append_manual_action_rejects_duplicate_data_block_layout_range(tmp_path
         )
 
 
+def test_append_manual_action_rejects_overlapping_data_block_layout_range(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "target.bin"
+    _write_raw_source(target_dir, binary_path, payload=b"\x00" * 16)
+    binary_source = resolve_target_binary_source(target_dir)
+    assert binary_source is not None
+    append_manual_action(
+        target_dir,
+        kind=ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT,
+        payload={"data_block_layout": {"layout_id": "first-layout", "hunk": 0, "source_start": 0, "source_end": 8}},
+        binary_source=binary_source,
+    )
+
+    with pytest.raises(ValueError, match="overlaps this source range"):
+        append_manual_action(
+            target_dir,
+            kind=ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT,
+            payload={"data_block_layout": {"layout_id": "second-layout", "hunk": 0, "source_start": 4, "source_end": 12}},
+            binary_source=binary_source,
+        )
+
+
 def test_append_manual_action_rejects_reserved_payload_fields(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

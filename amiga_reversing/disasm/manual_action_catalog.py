@@ -120,6 +120,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_code_register_seed_action(),
         _target_code_register_seed_remove_action(),
         _target_data_block_layout_action(),
+        _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
         _target_custom_struct_action(),
         _target_custom_struct_edit_action(),
@@ -179,6 +180,8 @@ def target_catalog_manual_payload(
         return "remove_manual_register_seed", {"register_seed_id": str(params["register_seed_id"])}
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
+    if action.get("action") == "remove_manual_data_block_layout":
+        return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
     if action.get("action") == "set_manual_data_block_element":
         return "set_manual_data_block_element", {"data_block_element": _data_block_element_payload([], params)}
     if action.get("action") == "create_manual_target_equate":
@@ -5450,6 +5453,15 @@ def _target_data_block_layout_action() -> dict[str, object]:
         "Create data-block layout at source range",
         "create_manual_data_block_layout",
         _target_data_block_layout_parameter_schema(),
+    )
+
+
+def _target_data_block_layout_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.layout.remove",
+        "Remove data-block layout",
+        "remove_manual_data_block_layout",
+        _data_block_layout_remove_parameter_schema(None),
     )
 
 

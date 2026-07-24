@@ -1815,6 +1815,11 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     assert data_block_layout_action["appends_to_manual_action_log"] is True
     assert data_block_layout_action["action"] == "create_manual_data_block_layout"
     assert data_block_layout_action["parameter_schema"]["required"] == ["hunk", "source_start", "source_end"]
+    data_block_layout_remove_action = next(
+        action for action in actions if action["action_id"] == "target.data_block.layout.remove"
+    )
+    assert data_block_layout_remove_action["action"] == "remove_manual_data_block_layout"
+    assert data_block_layout_remove_action["parameter_schema"]["required"] == ["layout_id"]
     data_block_element_action = next(
         action for action in actions if action["action_id"] == "target.data_block.element.set"
     )

@@ -276,6 +276,8 @@ def append_manual_action(
             for layout in projection.data_block_layouts
         ):
             raise ValueError("an active data-block layout already covers this exact range")
+        if any(_data_block_layout_overlaps(requested_layout, layout) for layout in projection.data_block_layouts):
+            raise ValueError("an active data-block layout overlaps this source range")
     path = manual_action_log_path(target_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, object]] = []
@@ -1905,7 +1907,15 @@ def _project_actions(
                     removed_ref["cleanup_action_id"] = action.action_id
                     removed_data_block_interpreted_refs[ref_id] = removed_ref
         elif action.kind is ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT:
-            element = _validated_data_block_element(_action_object(action, "data_block_element"), data_block_layouts)
+            try:
+                element = _validated_data_block_element(_action_object(action, "data_block_element"), data_block_layouts)
+            except ValueError as exc:
+                # Older logs can contain a child element after a rejected overlapping
+                # layout create.  Preserve append-only history while allowing its
+                # later layout-removal correction to replay.
+                if "references unknown layout_id" in str(exc):
+                    continue
+                raise
             type_binding = element.get("type_binding")
             if isinstance(type_binding, dict):
                 element = dict(element)
