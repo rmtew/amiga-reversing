@@ -171,6 +171,16 @@ an offset into the NUL-terminated `item_name_string_table` beginning at
 carried and pocket item, while `initialize_world_state` uses it to populate
 each world object's `item_name_ptr`.
 
+### Confirmed interaction helpers
+
+`restore_world_object_position_state` at `$0001867E` clears the active
+position-state flags/timer and restores the preceding state link through the
+object's position descriptor.  It is used when interaction and position update
+paths return an object to its prior state.  `enqueue_status_message` at
+`$000199DE` appends an `a0` string to the scrolling status-message queue,
+initializing the queue/timing when necessary; trade, receptacle, and contextual
+interaction paths all use this common entry.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

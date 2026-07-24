@@ -2513,9 +2513,9 @@ abs_0_00012E0E:
 	rts
 abs_0_00012E10:
 	lea.l abs_0_00012E20(pc),a0
-	bsr.w abs_0_000199DE
+	bsr.w enqueue_status_message
 	lea.l abs_0_00012E51(pc),a0
-	bra.w abs_0_000199DE
+	bra.w enqueue_status_message
 abs_0_00012E20:
 	dc.b "EARTH ORBIT ESTABLISHED, MUTANT SPORES RELEASED.",$00
 abs_0_00012E51:
@@ -2580,7 +2580,7 @@ abs_0_00012F18:
 	bcs.b abs_0_00012F44
 	clr.b $0046(a4)
 	movea.l $0010(a5),a0
-	bsr.w abs_0_000199DE
+	bsr.w enqueue_status_message
 	bsr.w refresh_selected_item_name_display
 	bset.b #4,app_02A6(a6)
 	bra.b abs_0_00012F16
@@ -5388,7 +5388,7 @@ abs_0_000179EC:
 	jsr (a0)
 	movem.l (a7)+,a4-a5
 abs_0_00017A06:
-	bsr.w abs_0_0001867E
+	bsr.w restore_world_object_position_state
 	bset.b #1,$0048(a5)
 	bclr.b #1,app_022E(a6)
 	lea.l abs_0_0005C97A.l,a0
@@ -5561,7 +5561,7 @@ abs_0_00017C36:
 	bra.b abs_0_00017C0A
 abs_0_00017C46:
 	lea.l npc_trade_rejection_message(pc),a0
-	bsr.w abs_0_000199DE
+	bsr.w enqueue_status_message
 	bra.b abs_0_00017BF2
 npc_trade_rejection_message:
 	dc.b "Give me that, LET GO",$00
@@ -5597,7 +5597,7 @@ abs_0_00017CB6:
 	bset.b #3,$0048(a5)
 	bsr.w display_current_item_name
 	lea.l npc_trade_counteroffer_message(pc),a0
-	bsr.w abs_0_000199DE
+	bsr.w enqueue_status_message
 	move.w d0,d0
 	rts
 abs_0_00017CDE:
@@ -5609,7 +5609,7 @@ is_tradeable_item_id:
 	rts
 announce_item_trade:
 	lea.l objects_traded_message(pc),a0
-	bsr.w abs_0_000199DE
+	bsr.w enqueue_status_message
 	move.w #$112,d0
 	jsr abs_0_0005D330.l
 abs_0_00017CFE:
@@ -5871,7 +5871,7 @@ abs_0_00018032:
 	clr.w $0010(a0)
 	bclr.b #0,$000A(a0)
 	bset.b #1,$0048(a5)
-	bsr.w abs_0_0001867E
+	bsr.w restore_world_object_position_state
 	move.b #$46,app_02CC(a6)
 	clr.w $003C(a5)
 	lea.l abs_0_000132D6.l,a4
@@ -6164,7 +6164,7 @@ abs_0_00018376:
 	movem.l a0-a3,-(a7)
 	move.w #$3C,$0052(a5)
 	movea.l $000C(a5),a0
-	bsr.w abs_0_000199DE
+	bsr.w enqueue_status_message
 	movem.l (a7)+,a0-a3
 abs_0_000183AA:
 	bra.w scan_world_objects_for_proximity
@@ -6196,7 +6196,7 @@ invoke_nearby_object_interaction:
 	move.l $0010(a5),d0
 	beq.b abs_0_0001840E
 	movea.l d0,a0
-	bsr.w abs_0_000199DE
+	bsr.w enqueue_status_message
 abs_0_0001840E:
 	tst.b app_nearby_object_prompt_countdown(a6)
 	bne.b abs_0_0001848E
@@ -6393,7 +6393,7 @@ abs_0_00018670:
 	dc.b $04,$05,$02,$01,$04,$03,$02	; lookup_table
 abs_0_00018677:
 	dc.b $23,$15,$09,$07,$19,$0E,$08	; lookup_table
-abs_0_0001867E:
+restore_world_object_position_state:
 	move.l a0,-(a7)
 	movea.l $004E(a5),a0
 	move.l a0,-(a7)
@@ -6557,7 +6557,7 @@ abs_0_000188BC:
 	movea.l a4,a5
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
-	jsr abs_0_0001867E.l
+	jsr restore_world_object_position_state.l
 	bset.b #1,$0048(a5)
 	bra.w abs_0_0001884E
 abs_0_0001890C:
@@ -6916,7 +6916,7 @@ abs_0_000193EC:
 	movea.l d0,a0
 	jsr (a0)
 abs_0_000193F6:
-	bsr.w abs_0_0001867E
+	bsr.w restore_world_object_position_state
 	bset.b #1,$0048(a5)
 	addq.b #1,app_0327(a6)
 	move.w #$11B,d0
@@ -7137,7 +7137,7 @@ abs_0_000199D8:
 	movea.l a0,a1
 	movea.l (a7)+,a0
 	rts
-abs_0_000199DE:
+enqueue_status_message:
 	bclr.b #6,app_022E(a6)
 	beq.b abs_0_000199F2
 	lea.l app_scrolling_message_queue_head(a6),a1
@@ -7429,7 +7429,7 @@ abs_0_0001A0B8:
 	eor.b d0,d1
 	btst #1,d1
 	beq.b abs_0_0001A0D2
-	bsr.w abs_0_0001867E
+	bsr.w restore_world_object_position_state
 abs_0_0001A0D2:
 	move.b d0,$0048(a5)
 	btst.b #1,$0048(a5)
@@ -26561,7 +26561,7 @@ abs_0_0005C9CC:
 	bne.b abs_0_0005C9DC
 	lea.l abs_0_0005CB92(pc),a0
 abs_0_0005C9DC:
-	jsr abs_0_000199DE.l
+	jsr enqueue_status_message.l
 	lea.l app_carried_item_ids(a6),a1
 	moveq.l #3,d7
 	moveq.l #0,d0
@@ -26585,7 +26585,7 @@ abs_0_0005CA18:
 	bcs.b abs_0_0005CA2A
 	lea.l abs_0_0005CC05(pc),a0
 abs_0_0005CA2A:
-	jsr abs_0_000199DE.l
+	jsr enqueue_status_message.l
 	btst.b #3,app_033C(a6)
 	bne.b abs_0_0005CA3C
 	bsr.b abs_0_0005CA80
@@ -26608,7 +26608,7 @@ abs_0_0005CA5C:
 	add.w d0,d0
 	movea.l abs_0_0005CA6C(pc,d0.w),a0
 abs_0_0005CA64:
-	jsr abs_0_000199DE.l
+	jsr enqueue_status_message.l
 	rts
 abs_0_0005CA6C:
 	dc.l $0005CCF5,$0005CD0B,$0005CD25,$0005CD3E	; lookup_table
