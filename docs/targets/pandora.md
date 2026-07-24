@@ -718,6 +718,9 @@ than `+0x11`.  World-object interaction also follows `attachment_state_ptr` at
 These target-defined pointer fields now retain their pointed-to custom type in
 the durable layout and render as symbolic data references when alignment and a
 target label permit, rather than as indistinguishable numeric longs.
+The renderer applies that symbolic form only to runtime-mapped image pointers;
+unrelocated Hunk numeric longs remain numeric so regeneration never invents
+container relocation records.
 
 `world_position_state_nodes` is the exact 24-record table at
 `$00048F70..$00049120` (runtime `$00058F70..$00059120`), with an 18-byte

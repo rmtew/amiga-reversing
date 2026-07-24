@@ -2604,6 +2604,14 @@ static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const
   }
   target = m68k_read_u32be(section->data + offset);
   if (target == 0U) return 0;
+  /* A same-section Hunk numeric long need not have a relocation entry.  Using
+     a local symbol for it would invent one on reassembly.  Runtime-mapped raw
+     binaries, in contrast, encode their in-image pointers as absolute
+     addresses and can safely use their recovered target labels. */
+  if (!lookup_any_runtime_address_source_offset(lookup, section->section_index, target, section->size,
+      &target_offset)) {
+    return 0;
+  }
   if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, target, 0U,
       &target_offset)) {
     return 0;
@@ -2704,9 +2712,12 @@ static int structured_data_item_is_palette(const M68kAnalysisStructuredDataItem 
 }
 
 static int structured_data_item_is_pointer_table(const M68kAnalysisStructuredDataItem *item) {
-  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
-    ((structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U ||
-      item->is_pointer != 0U);
+  if (item == NULL) return 0;
+  if ((structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U)
+    return item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  /* A typed custom-structure pointer can start at an odd record stride.  It
+     is still one 32-bit stored address and must be rendered as such. */
+  return item->is_pointer != 0U && item->size == 4U;
 }
 
 static int structured_data_item_is_word_relative_lookup_table(const M68kAnalysisStructuredDataItem *item) {

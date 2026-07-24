@@ -4197,7 +4197,7 @@ after_data:
     write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
     records = [
         {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
-        {"record": "manual_action", "action_id": "a1", "sequence": 1, "created_at": "2026-07-25T00:00:01+00:00", "kind": "create_manual_custom_struct", "custom_struct": {"name": "OddStrideRecord", "size": 6, "fields": [{"name": "next_offset", "type": "long", "offset": 2, "size": 4}]}},
+        {"record": "manual_action", "action_id": "a1", "sequence": 1, "created_at": "2026-07-25T00:00:01+00:00", "kind": "create_manual_custom_struct", "custom_struct": {"name": "OddStrideRecord", "size": 6, "fields": [{"name": "next_offset", "type": "long", "offset": 2, "size": 4, "pointer_struct": "OddStrideRecord"}]}},
         {"record": "manual_action", "action_id": "a2", "sequence": 2, "created_at": "2026-07-25T00:00:02+00:00", "kind": "create_manual_data_block_layout", "data_block_layout": {"layout_id": "odd-stride", "hunk": 0, "source_start": 2, "source_end": 14, "name": "odd_stride_records", "default_unit": "byte"}},
         {"record": "manual_action", "action_id": "a3", "sequence": 3, "created_at": "2026-07-25T00:00:03+00:00", "kind": "set_manual_data_block_element", "data_block_element": {"data_block_element_id": "odd-stride:0", "layout_id": "odd-stride", "offset": 0, "width": 12, "kind": "struct", "array_count": 2, "array_stride": 6, "type_binding": {"type_binding_id": "odd-stride:0:12:custom_struct:OddStrideRecord", "layout_id": "odd-stride", "element_offset": 0, "element_width": 12, "binding_kind": "custom_struct", "bound_type_id": "OddStrideRecord", "owner_action_id": "a3"}}},
     ]
@@ -4210,6 +4210,9 @@ after_data:
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
 
     assert "long next_offset" in rendered
+    # This Hunk stores non-relocated numeric longs.  Symbolizing them would
+    # invent relocations, so pointer semantics must preserve the bytes here.
+    assert "dc.l odd_stride_records_gap_6_1" not in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk", rendered, project_root=PROJECT_ROOT
     )

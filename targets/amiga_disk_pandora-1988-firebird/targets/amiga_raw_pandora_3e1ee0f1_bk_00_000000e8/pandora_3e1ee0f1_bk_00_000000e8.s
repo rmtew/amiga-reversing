@@ -26779,15 +26779,15 @@ world_position_state_records_world_object_flags_0:	; STRUCT world_position_state
 world_position_state_records_gap_1A_1:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_1:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8F,$EE	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_7	; long state_node_ptr
 world_position_state_records_world_x_offset_1:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_1:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_1:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$04	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_1	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_1:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_1:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_1:	; STRUCT world_position_state_record
@@ -26811,15 +26811,15 @@ world_position_state_records_world_object_flags_2:	; STRUCT world_position_state
 world_position_state_records_gap_4E_3:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_3:	; STRUCT world_position_state_record
-	dc.b $00,$05,$90,$12	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_9	; long state_node_ptr
 world_position_state_records_world_x_offset_3:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_3:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_3:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$1C	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_3	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_3:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_3:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_3:	; STRUCT world_position_state_record
@@ -26843,15 +26843,15 @@ world_position_state_records_world_object_flags_4:	; STRUCT world_position_state
 world_position_state_records_gap_82_5:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_5:	; STRUCT world_position_state_record
-	dc.b $00,$05,$90,$36	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_11	; long state_node_ptr
 world_position_state_records_world_x_offset_5:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_5:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_5:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$34	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_5	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_5:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_5:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_5:	; STRUCT world_position_state_record
@@ -26875,15 +26875,15 @@ world_position_state_records_world_object_flags_6:	; STRUCT world_position_state
 world_position_state_records_gap_B6_7:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_7:	; STRUCT world_position_state_record
-	dc.b $00,$05,$90,$5A	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_13	; long state_node_ptr
 world_position_state_records_world_x_offset_7:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_7:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_7:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$4C	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_7	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_7:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_7:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_7:	; STRUCT world_position_state_record
@@ -26907,15 +26907,15 @@ world_position_state_records_world_object_flags_8:	; STRUCT world_position_state
 world_position_state_records_gap_EA_9:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_9:	; STRUCT world_position_state_record
-	dc.b $00,$05,$90,$7E	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_15	; long state_node_ptr
 world_position_state_records_world_x_offset_9:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_9:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_9:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$64	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_9	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_9:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_9:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_9:	; STRUCT world_position_state_record
@@ -26939,15 +26939,15 @@ world_position_state_records_world_object_flags_10:	; STRUCT world_position_stat
 world_position_state_records_gap_11E_11:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_11:	; STRUCT world_position_state_record
-	dc.b $00,$05,$90,$A2	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_17	; long state_node_ptr
 world_position_state_records_world_x_offset_11:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_11:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_11:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$7C	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_11	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_11:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_11:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_11:	; STRUCT world_position_state_record
@@ -26971,15 +26971,15 @@ world_position_state_records_world_object_flags_12:	; STRUCT world_position_stat
 world_position_state_records_gap_152_13:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_13:	; STRUCT world_position_state_record
-	dc.b $00,$05,$90,$C6	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_19	; long state_node_ptr
 world_position_state_records_world_x_offset_13:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_13:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_13:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$94	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_13	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_13:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_13:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_13:	; STRUCT world_position_state_record
@@ -27003,15 +27003,15 @@ world_position_state_records_world_object_flags_14:	; STRUCT world_position_stat
 world_position_state_records_gap_186_15:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_15:	; STRUCT world_position_state_record
-	dc.b $00,$05,$90,$EA	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_21	; long state_node_ptr
 world_position_state_records_world_x_offset_15:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_15:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_15:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$AC	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_15	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_15:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_15:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_15:	; STRUCT world_position_state_record
@@ -27035,15 +27035,15 @@ world_position_state_records_world_object_flags_16:	; STRUCT world_position_stat
 world_position_state_records_gap_1BA_17:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_17:	; STRUCT world_position_state_record
-	dc.b $00,$05,$91,$0E	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_23	; long state_node_ptr
 world_position_state_records_world_x_offset_17:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_17:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_17:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$C4	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_17	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_17:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_17:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_17:	; STRUCT world_position_state_record
@@ -27067,15 +27067,15 @@ world_position_state_records_world_object_flags_18:	; STRUCT world_position_stat
 world_position_state_records_gap_1EE_19:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_19:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8F,$82	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_1	; long state_node_ptr
 world_position_state_records_world_x_offset_19:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_19:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_19:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$DC	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_19	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_19:	; STRUCT world_position_state_record
-	dc.b $00,$00,$00,$00	; long attachment_state_ptr
+	dc.l $00000000	; long attachment_state_ptr
 world_position_state_records_interaction_flags_19:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_19:	; STRUCT world_position_state_record
@@ -27099,15 +27099,15 @@ world_position_state_records_world_object_flags_20:	; STRUCT world_position_stat
 world_position_state_records_gap_222_21:
 	dcb.b $8,$00	; typed data block gap
 world_position_state_records_state_node_ptr_21:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8F,$A6	; long state_node_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_3	; long state_node_ptr
 world_position_state_records_world_x_offset_21:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_x_offset
 world_position_state_records_world_y_offset_21:	; STRUCT world_position_state_record
 	dc.w $0000	; word world_y_offset
 world_position_state_records_position_descriptor_ptr_21:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8C,$F4	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_21	; long position_descriptor_ptr
 world_position_state_records_attachment_state_ptr_21:	; STRUCT world_position_state_record
-	dc.b $00,$05,$8F,$56	; long attachment_state_ptr
+	dc.l abs_0_00058F56	; long attachment_state_ptr
 world_position_state_records_interaction_flags_21:	; STRUCT world_position_state_record
 	dc.b $00	; byte interaction_flags
 world_position_state_records_world_object_flags_21:	; STRUCT world_position_state_record
@@ -27116,6 +27116,7 @@ abs_0_00058F3C:
 	dcb.b $9,$00
 	dc.b $05,$8F,$B8,$00,$00,$00,$20,$00,$05,$8C,$E8,$00,$00,$00,$00,$00
 	dc.b $10
+abs_0_00058F56:
 	dcb.b $9,$00
 	dc.b $05,$8F,$CA,$00,$00,$00,$20,$00,$05,$8C,$F4,$00,$00,$00,$00,$00
 	dc.b $10
@@ -27132,7 +27133,7 @@ world_position_state_nodes_gap_B_0:
 world_position_state_nodes_position_descriptor_sequence_index_0:	; STRUCT WorldPositionStateNode
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_1:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$DC	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_19	; long position_descriptor_ptr
 world_position_state_nodes_gap_16_1:
 	dc.w $0440	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_1:	; STRUCT WorldPositionStateNode
@@ -27156,7 +27157,7 @@ world_position_state_nodes_gap_2F_2:
 world_position_state_nodes_position_descriptor_sequence_index_2:	; STRUCT WorldPositionStateNode
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_3:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$F4	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_21	; long position_descriptor_ptr
 world_position_state_nodes_gap_3A_3:
 	dc.w $0440	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_3:	; STRUCT WorldPositionStateNode
@@ -27180,7 +27181,7 @@ world_position_state_nodes_gap_53_4:
 world_position_state_nodes_position_descriptor_sequence_index_4:	; STRUCT WorldPositionStateNode
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_5:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$F4	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_21	; long position_descriptor_ptr
 world_position_state_nodes_gap_5E_5:
 	dc.w $0440	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_5:	; STRUCT WorldPositionStateNode
@@ -27204,7 +27205,7 @@ world_position_state_nodes_gap_77_6:
 world_position_state_nodes_position_descriptor_sequence_index_6:	; STRUCT WorldPositionStateNode
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_7:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$04	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_1	; long position_descriptor_ptr
 world_position_state_nodes_gap_82_7:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_7:	; STRUCT WorldPositionStateNode
@@ -27228,7 +27229,7 @@ world_position_state_nodes_gap_9B_8:
 world_position_state_nodes_position_descriptor_sequence_index_8:	; STRUCT WorldPositionStateNode
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_9:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$1C	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_3	; long position_descriptor_ptr
 world_position_state_nodes_gap_A6_9:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_9:	; STRUCT WorldPositionStateNode
@@ -27252,7 +27253,7 @@ world_position_state_nodes_gap_BF_10:
 	dc.w $0000
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_11:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$34	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_5	; long position_descriptor_ptr
 world_position_state_nodes_gap_CA_11:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_11:	; STRUCT WorldPositionStateNode
@@ -27274,7 +27275,7 @@ world_position_state_nodes_gap_E3_12:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_13:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$4C	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_7	; long position_descriptor_ptr
 world_position_state_nodes_gap_EE_13:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_13:	; STRUCT WorldPositionStateNode
@@ -27296,7 +27297,7 @@ world_position_state_nodes_gap_107_14:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_15:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$64	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_9	; long position_descriptor_ptr
 world_position_state_nodes_gap_112_15:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_15:	; STRUCT WorldPositionStateNode
@@ -27318,7 +27319,7 @@ world_position_state_nodes_gap_12B_16:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_17:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$7C	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_11	; long position_descriptor_ptr
 world_position_state_nodes_gap_136_17:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_17:	; STRUCT WorldPositionStateNode
@@ -27340,7 +27341,7 @@ world_position_state_nodes_gap_14F_18:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_19:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$94	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_13	; long position_descriptor_ptr
 world_position_state_nodes_gap_15A_19:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_19:	; STRUCT WorldPositionStateNode
@@ -27362,7 +27363,7 @@ world_position_state_nodes_gap_173_20:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_21:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$AC	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_15	; long position_descriptor_ptr
 world_position_state_nodes_gap_17E_21:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_21:	; STRUCT WorldPositionStateNode
@@ -27384,7 +27385,7 @@ world_position_state_nodes_gap_197_22:
 	dc.b $00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0000	; word position_descriptor_sequence_index
 world_position_state_nodes_position_descriptor_ptr_23:	; STRUCT WorldPositionStateNode
-	dc.b $00,$05,$8C,$C4	; long position_descriptor_ptr
+	dc.l world_position_descriptors_position_state_ptr_17	; long position_descriptor_ptr
 world_position_state_nodes_gap_1A2_23:
 	dc.w $0640	; typed data block gap
 world_position_state_nodes_position_descriptor_sequence_ptr_23:	; STRUCT WorldPositionStateNode
@@ -28619,7 +28620,7 @@ player_world_object_initial_trade_offer_table_ptr:	; STRUCT world_object_shared_
 player_world_object_gap_24:
 	dc.b $00,$05,$C3,$12,$00,$05,$C3,$12	; typed data block gap
 player_world_object_position_descriptor_ptr:	; STRUCT world_object_shared_prefix
-	dc.b $00,$05,$C7,$1E	; long position_descriptor_ptr
+	dc.l player_position_descriptor	; long position_descriptor_ptr
 player_world_object_world_x:	; STRUCT world_object_shared_prefix
 	dc.w $0000	; word world_x
 player_world_object_world_y:	; STRUCT world_object_shared_prefix
