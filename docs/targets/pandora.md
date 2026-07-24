@@ -60,6 +60,17 @@ velocity plus its default lifetime. During initial starfield construction,
 fresh lifetime in the accepted randomized range; expired stars return through
 the reset path from `update_star_motion`.
 
+`initialize_starfield` at `$00010D20` builds 100 star records and returns at
+its terminal `RTS`; `update_starfield` at `$00010D8A` is the separate per-frame
+routine, likewise bounded by an `RTS`. `clear_star_pixel` and
+`render_star_pixel_by_lifetime` share the coordinate-to-bitplane calculation,
+then select one of eight continuations from the 32-byte
+`star_plane_bit_operation_dispatch` at `$00020CA0`. Each entry is a verified
+absolute code pointer to a three-plane `bclr`/`bset` combination followed by
+`jmp (a3)`: the caller supplies that continuation for either star-record setup
+or the next iteration of the frame update. The table is therefore an eight-long
+pointer dispatch, not raw data adjacent to code.
+
 ## RGB12 palette helpers
 
 The helper group at `$0001255E..$00012654` manipulates Amiga RGB12 colors as

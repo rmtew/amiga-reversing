@@ -15,6 +15,14 @@
 ;     absolute[$000039FC] refs=3 access=a
 ;     absolute[$00004000] refs=1 access=a
 ;     absolute[$000109EA] refs=1 access=a
+;     absolute[$00010CC0-$00010CC4] refs=1 access=a
+;     absolute[$00010CCC-$00010CD0] refs=1 access=a
+;     absolute[$00010CD8-$00010CDC] refs=1 access=a
+;     absolute[$00010CE4-$00010CE8] refs=1 access=a
+;     absolute[$00010CF0-$00010CF4] refs=1 access=a
+;     absolute[$00010CFC-$00010D00] refs=1 access=a
+;     absolute[$00010D08-$00010D0C] refs=1 access=a
+;     absolute[$00010D14-$00010D18] refs=1 access=a
 ;     absolute[$00010ED8] refs=1 access=a
 ;     absolute[$0001309A-$0001309E] refs=1 access=a
 ;     absolute[$0001A862] refs=2 access=a
@@ -221,6 +229,14 @@ UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 active_world_object_ptr_table	EQU	$1309A
+dblk_ref_h0_00010CCC	EQU	$10CCC
+dblk_ref_h0_00010CC0	EQU	$10CC0
+dblk_ref_h0_00010CD8	EQU	$10CD8
+dblk_ref_h0_00010CE4	EQU	$10CE4
+dblk_ref_h0_00010CF0	EQU	$10CF0
+dblk_ref_h0_00010CFC	EQU	$10CFC
+dblk_ref_h0_00010D08	EQU	$10D08
+dblk_ref_h0_00010D14	EQU	$10D14
 sample_ptr	EQU	0
 sample_length	EQU	4
 sample_period	EQU	6
@@ -924,10 +940,10 @@ abs_0_00010C24:
 	divs.w d1,d0
 	move.w d0,$0006(a2)
 	rts
-abs_0_00010C58:
+clear_star_pixel:
 	moveq.l #0,d2
 	bra.b abs_0_00010C6A
-abs_0_00010C5C:
+render_star_pixel_by_lifetime:
 	moveq.l #0,d2
 	move.b $0008(a2),d2
 	subi.b #16,d2
@@ -950,13 +966,19 @@ abs_0_00010C6A:
 	movea.l app_front_bitplane_base(a6),a0
 	add.w d2,d2
 	add.w d2,d2
-	movea.l lookup_table_00020CA0(pc,d2.w),a1
+	movea.l star_plane_bit_operation_dispatch(pc,d2.w),a1
 	adda.w d0,a0
 	jmp (a1)
-lookup_table_00020CA0:
+star_plane_bit_operation_dispatch:
 	dc.l abs_0_00010CC0	; pointer_table
-	dc.b $00,$01,$0C,$CC,$00,$01,$0C,$D8,$00,$01,$0C,$E4,$00,$01,$0C,$F0
-	dc.b $00,$01,$0C,$FC,$00,$01,$0D,$08,$00,$01,$0D,$14
+star_plane_operation_1:
+	dc.l abs_0_00010CCC	; pointer_table
+	dc.l abs_0_00010CD8	; pointer_table
+	dc.l abs_0_00010CE4	; pointer_table
+	dc.l abs_0_00010CF0	; pointer_table
+	dc.l abs_0_00010CFC	; pointer_table
+	dc.l abs_0_00010D08	; pointer_table
+	dc.l abs_0_00010D14	; pointer_table
 abs_0_00010CC0:
 	bclr.b d1,(a0)
 	bclr.b d1,$0028(a0)
@@ -997,7 +1019,7 @@ abs_0_00010D14:
 	bset.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010D20:
+initialize_starfield:
 	lea.l abs_0_00010B28(pc),a0
 	lea.l abs_0_00010B68(pc),a1
 	movea.l #abs_0_0001B3A8,a2
@@ -1015,7 +1037,7 @@ abs_0_00010D20:
 abs_0_00010D5C:
 	bsr.w initialize_star_motion_with_random_lifetime
 	lea.l finish_starfield_initialization(pc),a3
-	bra.w abs_0_00010C5C
+	bra.w render_star_pixel_by_lifetime
 finish_starfield_initialization:
 	lea.l $000A(a2),a2
 	dbf.w d7,abs_0_00010D5C
@@ -1027,19 +1049,19 @@ abs_0_00010D76:
 	bset.b #2,app_027B(a6)
 	move.b #$10,app_0285(a6)
 	rts
-abs_0_00010D8A:
+update_starfield:
 	move.w #$63,d7
 	movea.l #$400,a2
 abs_0_00010D94:
 	lea.l abs_0_00010D9C(pc),a3
-	bra.w abs_0_00010C58
+	bra.w clear_star_pixel
 abs_0_00010D9C:
 	bsr.w update_star_motion
 	bne.b abs_0_00010DA6
 	bsr.w reset_star_motion
 abs_0_00010DA6:
 	lea.l abs_0_00010DAE(pc),a3
-	bra.w abs_0_00010C5C
+	bra.w render_star_pixel_by_lifetime
 abs_0_00010DAE:
 	lea.l $000A(a2),a2
 	dbf.w d7,abs_0_00010D94
@@ -1178,7 +1200,7 @@ abs_0_00010F88:
 	bsr.w abs_0_000166D6
 	move.w #INTF_INTEN,intena(a5)
 	move.w #DMAF_MASTER,dmacon(a5)
-	bsr.w abs_0_00010D20
+	bsr.w initialize_starfield
 	lea.l abs_0_00010DE0(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l copper_list_00020ED8(pc),a0
@@ -1190,7 +1212,7 @@ abs_0_00010F88:
 	move.w #INTF_SETCLR|INTF_INTEN,intena(a5)
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,dmacon(a5)
 abs_0_00010FD2:
-	bsr.w abs_0_00010D8A
+	bsr.w update_starfield
 	btst.b #0,app_world_interaction_audio_flags(a6)
 	beq.b abs_0_00010FEC
 	movem.l d5/a6,-(a7)

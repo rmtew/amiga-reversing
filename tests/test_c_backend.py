@@ -1409,8 +1409,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("source_context_parent_disk_id", ctypes.c_char * 512),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
-        ("structured_data_items", _M68kAnalysisStructuredDataItem * 256),
-        ("named_labels", _M68kAnalysisNamedLabel * 128),
+        ("structured_data_items", _M68kAnalysisStructuredDataItem * 768),
+        ("named_labels", _M68kAnalysisNamedLabel * 1024),
         ("entry_comments", _M68kAnalysisEntryComment * 128),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
@@ -9140,6 +9140,41 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert amiga_policy.custom_struct_count == 1
     assert amiga_policy.custom_structs[0].fields[0].name == b"player_score"
     assert amiga_policy.named_label_count > 0
+
+
+def test_metadata_loader_accepts_more_than_legacy_named_label_limit(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    dll = ctypes.CDLL(str(PROJECT_ROOT / "src" / "build" / "platform_file_lib.dll"))
+    dll.platform_file_analysis_policy_load_target_metadata.argtypes = [
+        ctypes.POINTER(_M68kAnalysisPolicy),
+        ctypes.c_char_p,
+        _M68kDiagSink,
+    ]
+    dll.platform_file_analysis_policy_load_target_metadata.restype = ctypes.c_int
+    metadata_path = tmp_path / "many-labels.json"
+    label_count = 769
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "program",
+                "absolute_code_labels": [
+                    {"addr": index, "name": f"label_{index:04d}"}
+                    for index in range(label_count)
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    policy = _M68kAnalysisPolicy()
+    diagnostics = M68kDiagList()
+    assert dll.platform_file_analysis_policy_load_target_metadata(
+        ctypes.byref(policy),
+        str(metadata_path).encode("utf-8"),
+        _M68kDiagSink(ctypes.pointer(diagnostics)),
+    ) == 0
+    assert policy.named_label_count == label_count
+    assert policy.named_labels[label_count - 1].name == b"label_0768"
 
 
 def test_real_dll_custom_struct_seed_renders_typed_field(tmp_path: Path) -> None:
