@@ -306,6 +306,21 @@ uses it as the blitter source for clearing.  Its fixed size and all-zero
 contents are therefore intentional asset data, not padding between the
 world-interaction callbacks and the audio-player code that follows.
 
+### Audio channel runtime records
+
+`audio_channel_state_records` at `$0005DD14` is the zero-initialized runtime
+array for the four Paula audio channels. `initialize_audio_player` initializes
+four entries with a `$30`-byte stride, and `update_audio_channels` independently
+derives the same stride from its channel index before reading each entry's
+sample and playback state. Field names remain deferred until those repeated
+accesses are recovered across the update helpers.
+
+`audio_player_initialization_presets` starts at `$0005DF34`. The initializer
+uses its mode argument times `$0a` as an index, so its first 30 bytes are three
+10-byte presets: two byte controls followed by four channel configuration
+words. The subsequent packed audio stream is deliberately not included in that
+table until its format is recovered.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

@@ -27148,10 +27148,10 @@ initialize_audio_player:
 	bsr.w reset_audio_channels
 	bsr.w initialize_audio_sample_metadata
 	sf.b $052A(a3)
-	lea.l abs_0_0005DD14(pc),a1
+	lea.l audio_channel_state_records(pc),a1
 	ext.w d0
 	mulu.w #$A,d0
-	lea.l abs_0_0005DF34(pc),a0
+	lea.l audio_player_initialization_presets(pc),a0
 	move.b $0(a0,d0.w),d1
 	ext.w d1
 	move.w d1,$0520(a3)
@@ -27167,7 +27167,7 @@ abs_0_0005D81C:
 	lea.l abs_0_0005DE7E(pc),a0
 	move.l a0,$000C(a1)
 	move.l a0,$0010(a1)
-	lea.l abs_0_0005DF34(pc),a0
+	lea.l audio_player_initialization_presets(pc),a0
 	movea.w $2(a0,d0.w),a0
 	move.w a0,$0008(a1)
 	move.w #$2,$000A(a1)
@@ -27251,7 +27251,7 @@ abs_0_0005D968:
 	lea.l _custom.l,a6
 	move.w #$30,d0
 	mulu.w d7,d0
-	lea.l abs_0_0005DD14(pc),a0
+	lea.l audio_channel_state_records(pc),a0
 	adda.w d0,a0
 	move.w d7,d0
 	lsl.w #4,d0
@@ -27500,7 +27500,7 @@ abs_0_0005DD0C:
 	dc.w $0000
 abs_0_0005DD12:
 	dc.w $0000	; lookup_table
-abs_0_0005DD14:
+audio_channel_state_records:
 	dcb.b $C0,$00
 audio_pitch_scalars:
 	dc.w $2000	; lookup_table
@@ -27671,7 +27671,7 @@ audio_sample_metadata_sample_length_10:	; STRUCT audio_sample_metadata
 	dc.w $0000	; word sample_length
 audio_sample_metadata_sample_period_10:	; STRUCT audio_sample_metadata
 	dc.w $0000	; word sample_period
-abs_0_0005DF34:
+audio_player_initialization_presets:
 	dc.b $03,$04,$07
 	dc.b $8E,$07,$74,$07,$9A,$07,$A4,$03
 	dc.b $05,$09,$54,$09,$4A,$09,$5A,$09,$60
