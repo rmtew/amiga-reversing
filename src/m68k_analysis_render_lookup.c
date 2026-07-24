@@ -1556,6 +1556,7 @@ static uint8_t typed_provenance_rank(uint8_t kind) {
   case M68K_RENDER_TYPED_PROVENANCE_API_OUTPUT:
   case M68K_RENDER_TYPED_PROVENANCE_API_INPUT:
   case M68K_RENDER_TYPED_PROVENANCE_POLICY_SEED:
+  case M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA:
     return 70U;
   case M68K_RENDER_TYPED_PROVENANCE_FIELD_POINTER:
   case M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS:
@@ -1769,6 +1770,29 @@ static const char *lookup_policy_struct_name_by_id(const M68kAnalysisPolicy *pol
   if (platform_name != NULL && platform_name[0] != '\0') return platform_name;
   custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
   return custom_struct != NULL && custom_struct->name[0] != '\0' ? custom_struct->name : NULL;
+}
+
+/* A structured-data item at an exact address describes the object whose
+   address is materialised by LEA.  Do not infer a type for an interior field:
+   the typed register state has no base addend, so doing so would make later
+   displacement lookups unsound. */
+static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysisPolicy *policy,
+    size_t section_index, uint32_t offset) {
+  size_t index;
+  uint16_t resolved_struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  if (policy == NULL || policy->structured_data_items == NULL) return AMIGA_OS_STRUCT_ID_NONE;
+  for (index = 0U; index < policy->structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+    uint16_t struct_id;
+    if (!item->has_section_index || item->section_index != section_index || item->offset != offset) continue;
+    struct_id = item->struct_id != AMIGA_OS_STRUCT_ID_NONE ? item->struct_id :
+      lookup_policy_struct_id_by_name(policy, item->struct_name);
+    if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
+    if (resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE && resolved_struct_id != struct_id)
+      return AMIGA_OS_STRUCT_ID_NONE;
+    resolved_struct_id = struct_id;
+  }
+  return resolved_struct_id;
 }
 
 static uint16_t lookup_policy_struct_size_by_id(const M68kAnalysisPolicy *policy, uint16_t struct_id) {
@@ -3514,6 +3538,13 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           &dest_reg) ||
           candidate_loads_runtime_address_ref_target_to_address_reg(lookup, section_index, candidate, instruction,
             &target_section_index, &target_offset, &dest_reg)) {
+        source_struct_id = lookup_policy_struct_id_for_static_data_target(lookup != NULL ? lookup->policy : NULL,
+          target_section_index, target_offset);
+        if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+          M68kRenderTypedProvenance static_data_provenance =
+            typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA, target_section_index, target_offset);
+          typed_state_set_reg_struct_id(state, 2U, dest_reg, source_struct_id, &static_data_provenance);
+        }
         typed_state_set_memory_base(state, 2U, dest_reg, target_section_index, target_offset);
       } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
           &source_displacement) && source_base_reg < 8U && state->memory_base_regs[source_base_reg].known) {

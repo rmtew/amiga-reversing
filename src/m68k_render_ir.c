@@ -876,6 +876,8 @@ static int render_asm_declare_custom_struct_layouts(M68kRenderIRPreview *preview
        struct_index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++struct_index) {
     const M68kAnalysisCustomStruct *custom_struct = &policy->custom_structs[struct_index];
     uint16_t field_index;
+    uint16_t sorted_field_indices[M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT];
+    uint16_t sorted_field_count = 0U;
     uint32_t cursor = 0U;
     char line[192];
     if (custom_struct->name[0] == '\0' || custom_struct->size == 0U) continue;
@@ -885,7 +887,17 @@ static int render_asm_declare_custom_struct_layouts(M68kRenderIRPreview *preview
     preview->asm_source_lines += 2U;
     for (field_index = 0U; field_index < custom_struct->field_count &&
          field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
-      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
+      uint16_t insert_index = sorted_field_count;
+      while (insert_index > 0U &&
+          custom_struct->fields[field_index].offset < custom_struct->fields[sorted_field_indices[insert_index - 1U]].offset) {
+        sorted_field_indices[insert_index] = sorted_field_indices[insert_index - 1U];
+        --insert_index;
+      }
+      sorted_field_indices[insert_index] = field_index;
+      ++sorted_field_count;
+    }
+    for (field_index = 0U; field_index < sorted_field_count; ++field_index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[sorted_field_indices[field_index]];
       const char *directive;
       if (field->name[0] == '\0' || field->size == 0U || field->offset < cursor ||
           field->offset > custom_struct->size || field->size > custom_struct->size - field->offset) {

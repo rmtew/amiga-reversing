@@ -271,7 +271,11 @@ world_object_shared_prefix_interaction_callback RS.L 1
     RS.B 4
 world_object_shared_prefix_context_callback RS.L 1
 world_object_shared_prefix_interaction_data_ptr RS.L 1
-    RS.B 24
+world_object_shared_prefix_inventory_slots_ptr RS.L 1
+world_object_shared_prefix_trade_offer_table_ptr RS.L 1
+world_object_shared_prefix_initial_inventory_slots_ptr RS.L 1
+world_object_shared_prefix_initial_trade_offer_table_ptr RS.L 1
+    RS.B 8
 world_object_shared_prefix_position_descriptor_ptr RS.L 1
 world_object_shared_prefix_world_x RS.W 1
 world_object_shared_prefix_world_y RS.W 1
@@ -339,7 +343,8 @@ audio_player_initialization_preset_SIZEOF EQU __RS
 
 ; STRUCT world_position_state_record
     RSRESET
-    RS.B 8
+world_position_state_record_collision_bounds_ptr RS.L 1
+    RS.B 4
 world_position_state_record_state_node_ptr RS.L 1
 world_position_state_record_world_x_offset RS.W 1
 world_position_state_record_world_y_offset RS.W 1
@@ -374,6 +379,17 @@ WorldPositionAnimationFrame_frame_width RS.W 1
 WorldPositionAnimationFrame_x_offset RS.W 1
 WorldPositionAnimationFrame_y_offset RS.W 1
 WorldPositionAnimationFrame_SIZEOF EQU __RS
+
+; STRUCT world_position_collision_bounds
+    RSRESET
+    RS.B 10
+world_position_collision_bounds_world_y_extent RS.W 1
+world_position_collision_bounds_world_x_extent RS.W 1
+world_position_collision_bounds_world_x_origin_offset RS.W 1
+world_position_collision_bounds_world_y_origin_offset RS.W 1
+    RS.B 7
+world_position_collision_bounds_interaction_flags RS.B 1
+world_position_collision_bounds_SIZEOF EQU __RS
 
 ITEM_ID_LASER_RIFLE	EQU	$12
 ITEM_ID_BOTTLE_OF_GIN	EQU	$27
@@ -2197,14 +2213,14 @@ set_copper_interrupt_callback_atomic:
 	rts
 is_player_within_world_object_interaction_range:
 	lea.l player_world_object.l,a4
-	move.w $0032(a4),d0
+	move.w world_object_shared_prefix_world_y(a4),d0
 	sub.w $0032(a5),d0
 	bpl.b abs_0_00012676
 	neg.w d0
 abs_0_00012676:
 	cmp.w #$10,d0
 	bcc.b abs_0_0001268C
-	move.w $0030(a4),d0
+	move.w world_object_shared_prefix_world_x(a4),d0
 	sub.w $0030(a5),d0
 	bpl.b abs_0_00012688
 	neg.w d0
@@ -2218,13 +2234,13 @@ abs_0_0001268E:
 	movem.l d0-d2/a0-a2,-(a7)
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr(a0),a1
-	movea.l $0000(a1),a2
+	movea.l world_position_state_record_collision_bounds_ptr(a1),a2
 	move.w world_position_descriptor_prefix_world_x(a0),d0
 	add.w world_position_state_record_world_x_offset(a1),d0
-	add.w $000E(a2),d0
+	add.w world_position_collision_bounds_world_x_origin_offset(a2),d0
 	move.w d0,d1
-	add.w $000C(a2),d1
-	move.w $0030(a4),d2
+	add.w world_position_collision_bounds_world_x_extent(a2),d1
+	move.w world_object_shared_prefix_world_x(a4),d2
 	addi.w #16,d2
 	cmp.w d2,d0
 	bcc.b abs_0_000126E6
@@ -2232,10 +2248,10 @@ abs_0_0001268E:
 	bcc.b abs_0_000126E6
 	move.w world_position_descriptor_prefix_world_y(a0),d0
 	add.w world_position_state_record_world_y_offset(a1),d0
-	add.w $0010(a2),d0
+	add.w world_position_collision_bounds_world_y_origin_offset(a2),d0
 	move.w d0,d1
-	add.w $000A(a2),d1
-	move.w $0032(a4),d2
+	add.w world_position_collision_bounds_world_y_extent(a2),d1
+	move.w world_object_shared_prefix_world_y(a4),d2
 	addi.w #31,d2
 	cmp.w d2,d0
 	bcc.b abs_0_000126E6
@@ -2245,7 +2261,7 @@ abs_0_000126E6:
 	rts
 update_inventory_panel_availability:
 	lea.l player_world_object.l,a4
-	btst.b #1,$0048(a4)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.b abs_0_00012712
 	move.b app_ui_flags(a6),d0
 	andi.b #3,d0
@@ -2521,10 +2537,10 @@ handle_inventory_panel_selection:
 	bset.b #4,app_02A6(a6)
 	movea.l $0014(a5),a0
 	move.b $0(a0,d1.w),d2
-	move.b $0046(a4),$0(a0,d1.w)
+	move.b world_object_shared_prefix_selected_item_id(a4),$0(a0,d1.w)
 	lea.l app_inventory_display_item_ids(a6),a1
-	move.b $0046(a4),$0(a1,d0.w)
-	move.b d2,$0046(a4)
+	move.b world_object_shared_prefix_selected_item_id(a4),$0(a1,d0.w)
+	move.b d2,world_object_shared_prefix_selected_item_id(a4)
 	cmp.b $0046(a5),d2
 	bne.b abs_0_00012A9E
 	clr.b $0046(a5)
@@ -2541,9 +2557,9 @@ abs_0_00012AB6:
 transfer_selected_item_to_carried_inventory:
 	cmp.w #$60,d2
 	beq.b handle_item_too_large_for_pockets
-	move.b $0046(a4),d2
+	move.b world_object_shared_prefix_selected_item_id(a4),d2
 	lea.l app_carried_item_ids(a6),a0
-	move.b $0(a0,d0.w),$0046(a4)
+	move.b $0(a0,d0.w),world_object_shared_prefix_selected_item_id(a4)
 	move.b d2,$0(a0,d0.w)
 	move.w d0,-(a7)
 	bsr.w refresh_inventory_panel
@@ -2554,7 +2570,7 @@ transfer_selected_item_to_carried_inventory:
 handle_item_too_large_for_pockets:
 	movem.l d0/a0,-(a7)
 	moveq.l #0,d0
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	lea.l abs_0_0001A804.l,a0
 	bsr.w test_bitmap_pixel_bit
 	movem.l (a7)+,d0/a0
@@ -5865,8 +5881,8 @@ abs_0_0001779E:
 abs_0_000177EC:
 	move.b d1,app_02B6(a6)
 	lea.l player_world_object.l,a5
-	move.l $0030(a5),-(a7)
-	add.w d2,$0030(a5)
+	move.l world_object_shared_prefix_world_x(a5),-(a7)
+	add.w d2,world_object_shared_prefix_world_x(a5)
 	bsr.w abs_0_0001864C
 	move.b d0,app_02B2(a6)
 	move.b d0,app_02B3(a6)
@@ -5876,7 +5892,7 @@ abs_0_000177EC:
 	move.b $004A(a5),d0
 	cmp.b #$42,d0
 	bne.b abs_0_00017856
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$1E,d0
 	bne.b abs_0_0001783E
 	moveq.l #2,d0
@@ -6030,7 +6046,7 @@ abs_0_00017A06:
 	move.w d0,$0030(a5)
 	bsr.w abs_0_000124E0
 	lea.l player_world_object.l,a5
-	btst.b #1,$0048(a5)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
 	beq.b abs_0_00017A4E
 	movea.l app_interaction_object_ptr(a6),a5
 	bclr.b #6,$0048(a5)
@@ -6064,10 +6080,10 @@ abs_0_00017A94:
 	move.l a1,$0000(a2)
 	move.l a1,$0004(a2)
 	lea.l player_world_object.l,a5
-	move.w $0030(a5),d0
+	move.w world_object_shared_prefix_world_x(a5),d0
 	subi.w #10000,d0
 	move.w d0,$0004(a3)
-	move.w $0032(a5),$0006(a3)
+	move.w world_object_shared_prefix_world_y(a5),$0006(a3)
 	movem.l (a7)+,d0/a0-a5
 	rts
 abs_0_00017AE8:
@@ -6142,7 +6158,7 @@ validate_npc_item_trade:
 	bsr.w is_tradeable_item_id
 	bcs.b abs_0_00017C06
 	lea.l player_world_object.l,a4
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	bsr.w is_tradeable_item_id
 	bcs.w abs_0_00017BF2
 	move.b $0046(a4),d0
@@ -6748,8 +6764,8 @@ abs_0_000182E8:
 update_nearby_object_detection:
 	lea.l world_object_ptr_table(pc),a1
 	lea.l player_world_object.l,a4
-	move.w $0030(a4),d4
-	move.w $0032(a4),d5
+	move.w world_object_shared_prefix_world_x(a4),d4
+	move.w world_object_shared_prefix_world_y(a4),d5
 	move.w #$5A,d0
 	bset.b #2,app_02A6(a6)
 scan_world_objects_for_proximity:
@@ -7104,8 +7120,8 @@ update_player_security_zone:
 	moveq.l #0,d0
 	moveq.l #0,d1
 	moveq.l #0,d2
-	move.w $0030(a4),d0
-	move.w $0032(a4),d1
+	move.w world_object_shared_prefix_world_x(a4),d0
+	move.w world_object_shared_prefix_world_y(a4),d1
 	addi.w #12,d0
 	addi.w #24,d1
 	divu.w #$30,d1
@@ -7174,7 +7190,7 @@ clear_security_checkpoint_state:
 	rts
 process_security_checkpoint_response:
 	lea.l player_world_object.l,a4
-	btst.b #1,$0048(a4)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.b abs_0_0001884E
 	tst.b app_02CE(a6)
 	bne.b abs_0_00018896
@@ -7227,8 +7243,8 @@ abs_0_00018896:
 	bne.b abs_0_0001884E
 abs_0_000188BC:
 	lea.l player_world_object.l,a4
-	clr.w $003C(a4)
-	bset.b #1,$0048(a4)
+	clr.w world_object_shared_prefix_interaction_timer(a4)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
 	move.b #$46,app_02CC(a6)
 	jsr abs_0_0005C9AE.l
 	lea.l abs_0_0005C5B6.l,a0
@@ -7274,22 +7290,22 @@ process_terminal_item_deposit:
 	bne.w abs_0_00018A16
 	lea.l abs_0_000591EE.l,a0
 	lea.l player_world_object.l,a4
-	btst.b #1,$0048(a4)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.b abs_0_00018A16
 	move.w $0004(a0),d0
-	sub.w $0030(a4),d0
+	sub.w world_object_shared_prefix_world_x(a4),d0
 	bpl.b abs_0_000189B8
 	neg.w d0
 abs_0_000189B8:
 	move.w $0006(a0),d1
-	sub.w $0032(a4),d1
+	sub.w world_object_shared_prefix_world_y(a4),d1
 	bpl.b abs_0_000189C4
 	neg.w d1
 abs_0_000189C4:
 	add.w d1,d0
 	cmp.w #$18,d0
 	bcc.b abs_0_00018A16
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$2,d0
 	bcs.b abs_0_00018A16
 	lea.l app_02DA(a6),a0
@@ -7297,7 +7313,7 @@ abs_0_000189DA:
 	tst.b (a0)+
 	bne.b abs_0_000189DA
 	move.b d0,-(a0)
-	clr.b $0046(a4)
+	clr.b world_object_shared_prefix_selected_item_id(a4)
 	bset.b #4,app_02A6(a6)
 	lea.l abs_0_0001A813.l,a0
 	bsr.w test_bitmap_pixel_bit
@@ -7530,8 +7546,8 @@ abs_0_000190D6:
 	bsr.w abs_0_00016056
 	lea.l terminal_proximity_object_ptrs(pc),a0
 	lea.l player_world_object.l,a4
-	move.w $0030(a4),d0
-	move.w $0032(a4),d1
+	move.w world_object_shared_prefix_world_x(a4),d0
+	move.w world_object_shared_prefix_world_y(a4),d1
 	moveq.l #-1,d4
 	movea.l (a0),a2
 abs_0_00019156:
@@ -7637,7 +7653,7 @@ abs_0_0001926E:
 	addq.b #1,app_031B(a6)
 	lea.l player_world_object.l,a4
 	clr.w d0
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	subi.b #18,d0
 	cmp.b #$2,d0
 	bcc.w abs_0_000193D8
@@ -8631,8 +8647,8 @@ abs_0_00019FC4:
 	clr.w app_tilemap_scroll_x(a6)
 	lea.l player_world_object.l,a4
 	addi.w #50,d0
-	move.w d0,$0032(a4)
-	move.w #$F1,$0030(a4)
+	move.w d0,world_object_shared_prefix_world_y(a4)
+	move.w #$F1,world_object_shared_prefix_world_x(a4)
 	bsr.w abs_0_00016668
 	lea.l abs_0_000134C2.l,a0
 	lea.l abs_0_000134E2.l,a1
@@ -26562,113 +26578,115 @@ world_position_descriptors:
 	dc.w $0090	; world_y
 	dc.b $01,$80,$00,$90
 world_position_descriptors_position_state_ptr_1:
-	dc.l world_position_state_records_gap_1A_1	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_1	; position_state_ptr
 	dc.w $00D0	; world_x
 	dc.w $01C0	; world_y
 	dc.b $00,$D0,$01,$C0
 world_position_descriptors_position_state_ptr_2:
-	dc.l world_position_state_records_gap_34_2	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_2	; position_state_ptr
 	dc.w $01D0	; world_x
 	dc.w $0170	; world_y
 	dc.b $01,$D0,$01,$70
 world_position_descriptors_position_state_ptr_3:
-	dc.l world_position_state_records_gap_4E_3	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_3	; position_state_ptr
 	dc.w $02A0	; world_x
 	dc.w $01F0	; world_y
 	dc.b $02,$A0,$01,$F0
 world_position_descriptors_position_state_ptr_4:
-	dc.l world_position_state_records_gap_68_4	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_4	; position_state_ptr
 	dc.w $03B0	; world_x
 	dc.w $01D0	; world_y
 	dc.b $03,$B0,$01,$D0
 world_position_descriptors_position_state_ptr_5:
-	dc.l world_position_state_records_gap_82_5	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_5	; position_state_ptr
 	dc.w $0420	; world_x
 	dc.w $01F0	; world_y
 	dc.b $04,$20,$01,$F0
 world_position_descriptors_position_state_ptr_6:
-	dc.l world_position_state_records_gap_9C_6	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_6	; position_state_ptr
 	dc.w $04F0	; world_x
 	dc.w $01B0	; world_y
 	dc.b $04,$F0,$01,$B0
 world_position_descriptors_position_state_ptr_7:
-	dc.l world_position_state_records_gap_B6_7	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_7	; position_state_ptr
 	dc.w $0240	; world_x
 	dc.w $02C0	; world_y
 	dc.b $02,$40,$02,$C0
 world_position_descriptors_position_state_ptr_8:
-	dc.l world_position_state_records_gap_D0_8	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_8	; position_state_ptr
 	dc.w $03A0	; world_x
 	dc.w $0300	; world_y
 	dc.b $03,$A0,$03,$00
 world_position_descriptors_position_state_ptr_9:
-	dc.l world_position_state_records_gap_EA_9	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_9	; position_state_ptr
 	dc.w $0200	; world_x
 	dc.w $0500	; world_y
 	dc.b $02,$00,$05,$00
 world_position_descriptors_position_state_ptr_10:
-	dc.l world_position_state_records_gap_104_10	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_10	; position_state_ptr
 	dc.w $01B0	; world_x
 	dc.w $05B0	; world_y
 	dc.b $01,$B0,$05,$B0
 world_position_descriptors_position_state_ptr_11:
-	dc.l world_position_state_records_gap_11E_11	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_11	; position_state_ptr
 	dc.w $02B0	; world_x
 	dc.w $05D0	; world_y
 	dc.b $02,$B0,$05,$D0
 world_position_descriptors_position_state_ptr_12:
-	dc.l world_position_state_records_gap_138_12	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_12	; position_state_ptr
 	dc.w $0390	; world_x
 	dc.w $06F0	; world_y
 	dc.b $03,$90,$06,$F0
 world_position_descriptors_position_state_ptr_13:
-	dc.l world_position_state_records_gap_152_13	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_13	; position_state_ptr
 	dc.w $0390	; world_x
 	dc.w $0580	; world_y
 	dc.b $03,$90,$05,$80
 world_position_descriptors_position_state_ptr_14:
-	dc.l world_position_state_records_gap_16C_14	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_14	; position_state_ptr
 	dc.w $0420	; world_x
 	dc.w $0080	; world_y
 	dc.b $04,$20,$00,$80
 world_position_descriptors_position_state_ptr_15:
-	dc.l world_position_state_records_gap_186_15	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_15	; position_state_ptr
 	dc.w $01C0	; world_x
 	dc.w $06F0	; world_y
 	dc.b $01,$C0,$06,$F0
 world_position_descriptors_position_state_ptr_16:
-	dc.l world_position_state_records_gap_1A0_16	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_16	; position_state_ptr
 	dc.w $0490	; world_x
 	dc.w $0330	; world_y
 	dc.b $04,$90,$03,$30
 world_position_descriptors_position_state_ptr_17:
-	dc.l world_position_state_records_gap_1BA_17	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_17	; position_state_ptr
 	dc.w $0490	; world_x
 	dc.w $0370	; world_y
 	dc.b $04,$90,$03,$70
 world_position_descriptors_position_state_ptr_18:
-	dc.l world_position_state_records_gap_1D4_18	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_18	; position_state_ptr
 	dc.w $0234	; world_x
 	dc.w $03C0	; world_y
 	dc.b $02,$34,$03,$C0
 world_position_descriptors_position_state_ptr_19:
-	dc.l world_position_state_records_gap_1EE_19	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_19	; position_state_ptr
 	dc.w $0084	; world_x
 	dc.w $00D0	; world_y
 	dc.b $00,$84,$00,$D0
 world_position_descriptors_position_state_ptr_20:
-	dc.l world_position_state_records_gap_208_20	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_20	; position_state_ptr
 	dc.w $04F4	; world_x
 	dc.w $06E0	; world_y
 	dc.b $04,$F4,$06,$E0
 world_position_descriptors_position_state_ptr_21:
-	dc.l world_position_state_records_gap_222_21	; position_state_ptr
+	dc.l world_position_state_records_collision_bounds_ptr_21	; position_state_ptr
 	dc.w $00A0	; world_x
 	dc.w $0320	; world_y
 world_position_descriptors_gap_104:
 	dc.l $00A00320	; typed data block gap
 world_position_state_records:
-	dcb.b $8,$00	; typed data block gap
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_4_0:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_6	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26676,8 +26694,10 @@ world_position_state_records:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_1A_1:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_1:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_1E_1:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_7	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26685,8 +26705,10 @@ world_position_state_records_gap_1A_1:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_34_2:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_2:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_38_2:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_8	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26694,8 +26716,10 @@ world_position_state_records_gap_34_2:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_4E_3:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_3:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_52_3:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_9	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26703,8 +26727,10 @@ world_position_state_records_gap_4E_3:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_68_4:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_4:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_6C_4:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_10	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26712,8 +26738,10 @@ world_position_state_records_gap_68_4:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_82_5:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_5:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_86_5:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_11	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26721,8 +26749,10 @@ world_position_state_records_gap_82_5:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_9C_6:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_6:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_A0_6:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_12	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26730,8 +26760,10 @@ world_position_state_records_gap_9C_6:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_B6_7:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_7:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_BA_7:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_13	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26739,8 +26771,10 @@ world_position_state_records_gap_B6_7:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_D0_8:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_8:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_D4_8:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_14	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26748,8 +26782,10 @@ world_position_state_records_gap_D0_8:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_EA_9:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_9:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_EE_9:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_15	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26757,8 +26793,10 @@ world_position_state_records_gap_EA_9:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_104_10:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_10:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_108_10:
+	dc.l $00000000	; typed data block gap
 world_position_state_records_state_node_ptr_10:
 	dc.l world_position_state_nodes_position_descriptor_ptr_16	; state_node_ptr
 	dc.w $0000	; world_x_offset
@@ -26767,8 +26805,10 @@ world_position_state_records_state_node_ptr_10:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_11E_11:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_11:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_122_11:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_17	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26776,8 +26816,10 @@ world_position_state_records_gap_11E_11:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_138_12:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_12:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_13C_12:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_18	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26785,8 +26827,10 @@ world_position_state_records_gap_138_12:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_152_13:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_13:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_156_13:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_19	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26794,8 +26838,10 @@ world_position_state_records_gap_152_13:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $01	; world_object_flags
-world_position_state_records_gap_16C_14:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_14:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_170_14:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_20	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26803,8 +26849,10 @@ world_position_state_records_gap_16C_14:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_186_15:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_15:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_18A_15:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_21	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26812,8 +26860,10 @@ world_position_state_records_gap_186_15:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_1A0_16:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_16:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_1A4_16:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_22	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26821,8 +26871,10 @@ world_position_state_records_gap_1A0_16:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_1BA_17:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_17:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_1BE_17:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_23	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26830,8 +26882,10 @@ world_position_state_records_gap_1BA_17:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $21	; world_object_flags
-world_position_state_records_gap_1D4_18:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_18:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_1D8_18:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26839,8 +26893,10 @@ world_position_state_records_gap_1D4_18:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $10	; world_object_flags
-world_position_state_records_gap_1EE_19:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_19:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_1F2_19:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_1	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -26848,8 +26904,10 @@ world_position_state_records_gap_1EE_19:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $10	; world_object_flags
-world_position_state_records_gap_208_20:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_20:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_20C_20:
+	dc.l $00000000	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_2	; state_node_ptr
 	dc.w $0000	; world_x_offset
 world_position_state_records_world_y_offset_20:
@@ -26858,8 +26916,10 @@ world_position_state_records_world_y_offset_20:
 	dc.l abs_0_00058F3C	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $10	; world_object_flags
-world_position_state_records_gap_222_21:
-	dcb.b $8,$00	; typed data block gap
+world_position_state_records_collision_bounds_ptr_21:
+	dc.l $00000000	; collision_bounds_ptr
+world_position_state_records_gap_226_21:
+	dc.b $00,$00,$00,$00	; typed data block gap
 	dc.l world_position_state_nodes_position_descriptor_ptr_3	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
@@ -29846,7 +29906,7 @@ abs_0_0005E4AA:
 dispatch_audio_channel_updates:
 	bsr.b abs_0_0005E48E
 	lea.l audio_channel_playback_states(pc),a1
-	tst.b $0018(a1)
+	tst.b audio_channel_playback_state_active(a1)
 	beq.b abs_0_0005E4C8
 	lea.l _custom.l,a0
 	moveq.l #1,d2
@@ -29854,7 +29914,7 @@ dispatch_audio_channel_updates:
 	bsr.b service_audio_channel_playback
 abs_0_0005E4C8:
 	lea.l audio_channel_playback_states_period_delta_1(pc),a1
-	tst.b $0018(a1)
+	tst.b audio_channel_playback_state_active(a1)
 	beq.b abs_0_0005E4E0
 	lea.l _custom+adkconr.l,a0
 	moveq.l #2,d2
@@ -29862,7 +29922,7 @@ abs_0_0005E4C8:
 	bsr.b service_audio_channel_playback
 abs_0_0005E4E0:
 	lea.l audio_channel_playback_states_period_delta_2(pc),a1
-	tst.b $0018(a1)
+	tst.b audio_channel_playback_state_active(a1)
 	beq.b abs_0_0005E4F8
 	lea.l _custom+dskpt.l,a0
 	moveq.l #4,d2
@@ -29870,7 +29930,7 @@ abs_0_0005E4E0:
 	bsr.b service_audio_channel_playback
 abs_0_0005E4F8:
 	lea.l audio_channel_playback_states_period_delta_3(pc),a1
-	tst.b $0018(a1)
+	tst.b audio_channel_playback_state_active(a1)
 	beq.b abs_0_0005E510
 	lea.l _custom+serdat.l,a0
 	moveq.l #8,d2
