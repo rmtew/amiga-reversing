@@ -242,6 +242,11 @@ limits, `clip_tile_region_to_view` derives the visible region and clip flags,
 and `render_tilemap_view_to_back_buffer` submits the 20-by-8 tile view through
 the blitter.
 
+`tilemap_point_is_in_view` at `$00016828` is the companion fast predicate. It
+compares a point supplied in D2/D3 with those scroll-relative bounds and returns
+zero in D4 only for a point within the 320-by-128 view; it returns `-1` when the
+point is outside.
+
 `world_object_ptr_table` occupies `$0001300A` through `$00013099`: its 36
 longwords are the player pointer, 34 static-object pointers, and the null
 terminator.  The preceding word at `$00013008` is `$4e75` (`RTS`), which is a

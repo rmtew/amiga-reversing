@@ -4457,9 +4457,24 @@ get_tilemap_view_bounds:
 	swap.w d1
 	move.w app_tilemap_scroll_y(a6),d1
 	rts
-	dc.b $38,$3C,$FF,$FF,$61,$DC,$B4,$40,$65,$16,$48,$40,$B4,$40,$48,$40
-	dc.b $64,$0E,$B6,$41,$65,$0A,$48,$41,$B6,$41,$48,$41,$64,$02,$78,$00
-	dc.b $4E,$75
+tilemap_point_is_in_view:
+	move.w #$FFFF,d4
+	bsr.b get_tilemap_view_bounds
+	cmp.w d0,d2
+	bcs.b abs_0_00016848
+	swap.w d0
+	cmp.w d0,d2
+	swap.w d0
+	bcc.b abs_0_00016848
+	cmp.w d1,d3
+	bcs.b abs_0_00016848
+	swap.w d1
+	cmp.w d1,d3
+	swap.w d1
+	bcc.b abs_0_00016848
+	moveq.l #0,d4
+abs_0_00016848:
+	rts
 clip_tile_region_to_view:
 	bsr.b get_tilemap_view_bounds
 	movem.l d0-d3,-(a7)
