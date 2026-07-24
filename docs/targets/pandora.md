@@ -97,6 +97,25 @@ verified packed payload sizes are `$13EE`, `$0C4C`, `$121A`, `$157C`, `$14B4`,
 - Name the update helper blocks within `update_audio_channels` only after the
   repeated record fields and timer/envelope behavior are proven.
 
+## World-object subsystem
+
+### Confirmed player entry
+
+`player_world_object` at `$0005C322` is the first entry in
+`world_object_ptr_table`.  Direct consumers establish that it supplies the
+player's world position at offsets `+0x30` (`world_x`) and `+0x32`
+(`world_y`).  It also carries an object-state byte at `+0x48`: bit 1 is set
+when interaction logic enters its pending state and tested before inventory
+panel updates and proximity-context handling.  Other observed fields include
+the byte at `+0x3d`, the byte at `+0x46`, the word at `+0x3c`, and the pointer
+at `+0x4e`; their roles need further cross-object comparison before becoming
+shared record fields.
+
+The player entry is now rendered by this semantic label, so all absolute and
+pointer-table references converge on the same object identity.  A full
+`world_object_record` layout remains open rather than inferred from the player
+instance alone.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
