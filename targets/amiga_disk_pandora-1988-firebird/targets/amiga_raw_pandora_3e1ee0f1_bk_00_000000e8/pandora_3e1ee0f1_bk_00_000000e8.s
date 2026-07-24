@@ -177,7 +177,7 @@ app_032C RS.L 1
     RS.B 8
 app_0338 RS.B 1
 app_0339 RS.B 1
-    RS.B 2
+app_033A RS.W 1
 app_033C RS.B 1
 app_world_interaction_flags RS.B 1
 app_world_interaction_audio_flags RS.B 1
@@ -6139,6 +6139,7 @@ objects_traded_message:
 	dc.b "..... YOU HAVE TRADED OBJECTS ...."
 start_trade_result_countdown:
 	move.l d0,d7
+abs_0_00017D24:
 	bset.b #4,app_027B(a6)
 	move.b app_02C9(a6),app_0289(a6)
 	rts
@@ -7783,67 +7784,304 @@ abs_0_000195BE:
 	move.w $6(a2,d0.w),$000E(a4)
 abs_0_000195E0:
 	rts
-	dc.b $10,$2E,$02,$2E,$02,$00,$00,$06,$66,$00,$03,$98,$08,$2E,$00,$04
-	dc.b $02,$7B,$66,$00,$03,$B4,$08,$39,$00,$01,$00,$05,$C3,$6A,$66,$00
-	dc.b $03,$A8,$42,$6E,$03,$3A,$30,$2E,$01,$C6,$32,$2E,$01,$C8,$34,$00
-	dc.b $E7,$40,$90,$42,$E5,$41,$3D,$40,$01,$CA,$3D,$41,$01,$CC,$4A,$40
-	dc.b $67,$06,$4A,$41,$66,$00,$03,$5C,$34,$01,$84,$40,$67,$00,$03,$54
-	dc.b $49,$F9,$00,$05,$C3,$22,$08,$2E,$00,$04,$02,$A6,$67,$04,$61,$00
-	dc.b $F0,$88,$D0,$6C,$00,$30,$D2,$6C,$00,$32,$22,$6C,$00,$2C,$45,$F9
-	dc.b $00,$05,$C7,$2A,$26,$6A,$00,$00,$D0,$6A,$00,$0C,$D0,$6B,$00,$0E
-	dc.b $34,$00,$D0,$6B,$00,$0C,$36,$00,$D2,$6A,$00,$0E,$D2,$6B,$00,$10
-	dc.b $38,$01,$D2,$6B,$00,$0A,$3A,$01,$4A,$6E,$01,$CA,$67,$22,$33,$FC
-	dc.b $00,$02,$00,$05,$C3,$1A,$4A,$6E,$01,$CA,$6A,$0A,$32,$05,$59,$41
-	dc.b $30,$02,$60,$00,$00,$DA,$32,$05,$59,$41,$30,$03,$60,$00,$00,$D0
-	dc.b $4A,$6E,$01,$CC,$67,$00,$01,$9C,$33,$FC,$00,$01,$00,$05,$C3,$1A
-	dc.b $08,$2C,$00,$02,$00,$4B,$67,$06,$3D,$7C,$00,$07,$03,$3A,$08,$2C
-	dc.b $00,$03,$00,$4B,$67,$06,$3D,$7C,$FF,$F9,$03,$3A,$41,$F9,$00,$01
-	dc.b $A8,$22,$2C,$3C,$00,$01,$D0,$A8,$22,$6E,$01,$BE,$32,$05,$57,$41
-	dc.b $4A,$6E,$01,$CC,$6B,$02,$56,$41,$E8,$49,$C2,$EE,$01,$C2,$70,$00
-	dc.b $30,$02,$56,$40,$E8,$48,$D0,$41,$D0,$80,$D0,$80,$20,$31,$08,$00
-	dc.b $90,$86,$EE,$88,$61,$00,$C8,$F6,$66,$00,$02,$78,$70,$00,$30,$02
-	dc.b $D0,$43,$E2,$48,$E8,$48,$D0,$41,$D0,$80,$D0,$80,$20,$31,$08,$00
-	dc.b $90,$86,$EE,$88,$61,$00,$C8,$D6,$66,$00,$02,$58,$70,$00,$30,$03
-	dc.b $59,$40,$E8,$48,$D0,$41,$D0,$80,$D0,$80,$20,$31,$08,$00,$90,$86
-	dc.b $EE,$88,$B0,$7C,$00,$9F,$67,$00,$F8,$A8,$B0,$7C,$00,$9C,$67,$00
-	dc.b $F8,$A0,$B0,$7C,$01,$8E,$67,$00,$04,$A6,$B0,$7C,$01,$90,$67,$00
-	dc.b $04,$9E,$61,$00,$C8,$98,$66,$00,$02,$1A,$60,$00,$00,$90,$61,$00
-	dc.b $D0,$7A,$20,$10,$04,$80,$00,$01,$D0,$A8,$EE,$88,$08,$2E,$00,$04
-	dc.b $03,$3C,$67,$4A,$B0,$7C,$00,$EC,$66,$44,$08,$EE,$00,$03,$03,$3C
-	dc.b $23,$FC,$00,$05,$C5,$A4,$00,$05,$C7,$2A,$42,$B9,$00,$05,$C7,$32
-	dc.b $41,$F9,$00,$05,$D7,$DE,$42,$28,$0E,$BD,$42,$28,$0E,$C9,$42,$28
-	dc.b $0E,$D5,$42,$28,$0E,$E1,$08,$AE,$00,$07,$03,$3C,$2F,$0E,$70,$01
-	dc.b $4E,$B9,$00,$05,$D7,$DE,$2C,$5F,$4E,$F9,$00,$05,$C9,$94,$B0,$7C
-	dc.b $00,$9F,$67,$00,$F8,$1C,$B0,$7C,$00,$9C,$67,$00,$F8,$14,$B0,$7C
-	dc.b $01,$8E,$67,$00,$04,$1A,$B0,$7C,$01,$90,$67,$00,$04,$12,$41,$F9
-	dc.b $00,$01,$A8,$22,$61,$00,$C8,$06,$66,$00,$01,$88,$4A,$2E,$02,$D8
-	dc.b $66,$00,$01,$80,$30,$2E,$01,$CA,$32,$2E,$01,$CC,$3D,$40,$03,$1C
-	dc.b $3D,$41,$03,$1E,$D0,$6E,$03,$3A,$D1,$6C,$00,$30,$90,$6E,$03,$3A
-	dc.b $4A,$6E,$03,$3A,$66,$1C,$36,$2E,$01,$C4,$E9,$4B,$34,$2C,$00,$32
-	dc.b $D4,$41,$6A,$04,$D4,$43,$60,$06,$94,$43,$64,$02,$D4,$43,$39,$42
-	dc.b $00,$32,$42,$2C,$00,$4B,$41,$F9,$00,$05,$C7,$2A,$4A,$40,$67,$1E
-	dc.b $6A,$0E,$43,$F9,$00,$05,$C7,$76,$08,$EC,$00,$02,$00,$4B,$60,$2E
-	dc.b $43,$F9,$00,$05,$C7,$44,$08,$EC,$00,$03,$00,$4B,$60,$20,$4A,$41
-	dc.b $67,$1C,$6A,$0E,$43,$F9,$00,$05,$C7,$D6,$08,$EC,$00,$00,$00,$4B
-	dc.b $60,$0C,$43,$F9,$00,$05,$C7,$A8,$08,$EC,$00,$01,$00,$4B,$24,$68
-	dc.b $00,$08,$B3,$CA,$67,$0A,$24,$49,$21,$4A,$00,$08,$42,$6A,$00,$10
-	dc.b $08,$AA,$00,$00,$00,$0A,$08,$AA,$00,$01,$00,$0A,$4A,$40,$67,$58
-	dc.b $6A,$24,$34,$2E,$02,$8E,$30,$2C,$00,$30,$B0,$42,$64,$4A,$30,$2E
-	dc.b $01,$B6,$04,$40,$00,$30,$6B,$40,$3D,$7C,$FF,$F0,$02,$96,$42,$6E
-	dc.b $02,$98,$60,$00,$E4,$4E,$30,$2C,$00,$30,$06,$40,$00,$18,$34,$2E
-	dc.b $02,$90,$B0,$42,$65,$22,$30,$2E,$01,$B6,$06,$40,$01,$70,$32,$2E
-	dc.b $01,$C2,$E9,$49,$B0,$41,$64,$00,$00,$B0,$3D,$7C,$00,$10,$02,$96
-	dc.b $42,$6E,$02,$98,$60,$00,$E4,$1C,$4A,$41,$67,$00,$00,$9C,$6A,$3A
-	dc.b $30,$2C,$00,$32,$B0,$7C,$00,$10,$64,$18,$30,$2E,$01,$C4,$51,$40
-	dc.b $E9,$48,$3D,$40,$01,$B8,$06,$40,$00,$50,$39,$40,$00,$32,$60,$00
-	dc.b $E4,$00,$34,$2E,$02,$92,$B0,$42,$64,$00,$00,$6E,$42,$6E,$02,$96
-	dc.b $3D,$7C,$FF,$F0,$02,$98,$60,$00,$E3,$DA,$30,$2C,$00,$32,$32,$2E
-	dc.b $01,$C4,$57,$41,$E9,$49,$B0,$41,$65,$0E,$42,$6E,$01,$B8,$39,$7C
-	dc.b $00,$10,$00,$32,$60,$00,$E3,$CA,$34,$2E,$02,$94,$06,$40,$00,$20
-	dc.b $B0,$42,$65,$34,$42,$6E,$02,$96,$3D,$7C,$00,$10,$02,$98,$60,$00
-	dc.b $E3,$A2,$41,$F9,$00,$05,$C7,$32,$20,$50,$42,$68,$00,$10,$08,$E8
-	dc.b $00,$00,$00,$0A,$08,$A8,$00,$01,$00,$0A,$33,$FC,$00,$01,$00,$05
-	dc.b $C3,$1A,$08,$AE,$00,$06,$02,$7B,$4E,$75
+update_player_world_movement:
+	move.b app_ui_flags(a6),d0
+	andi.b #6,d0
+	bne.w abs_0_00019984
+	btst.b #4,app_027B(a6)
+	bne.w abs_0_000199AA
+	btst.b #1,player_world_object_world_object_flags.l
+	bne.w abs_0_000199AA
+	clr.w app_033A(a6)
+	move.w app_input_x_step(a6),d0
+	move.w app_input_y_step(a6),d1
+	move.w d0,d2
+	asl.w #3,d0
+	sub.w d2,d0
+	asl.w #2,d1
+	move.w d0,$01CA(a6)
+	move.w d1,$01CC(a6)
+	tst.w d0
+	beq.b abs_0_0001962A
+	tst.w d1
+	bne.w abs_0_00019984
+abs_0_0001962A:
+	move.w d1,d2
+	or.w d0,d2
+	beq.w abs_0_00019984
+	lea.l player_world_object.l,a4
+	btst.b #4,app_02A6(a6)
+	beq.b abs_0_00019644
+	bsr.w enforce_id_card_requirement
+abs_0_00019644:
+	add.w $0030(a4),d0
+	add.w $0032(a4),d1
+	movea.l $002C(a4),a1
+	lea.l abs_0_0005C72A.l,a2
+	movea.l $0000(a2),a3
+	add.w $000C(a2),d0
+	add.w $000E(a3),d0
+	move.w d0,d2
+	add.w $000C(a3),d0
+	move.w d0,d3
+	add.w $000E(a2),d1
+	add.w $0010(a3),d1
+	move.w d1,d4
+	add.w $000A(a3),d1
+	move.w d1,d5
+	tst.w $01CA(a6)
+	beq.b abs_0_000196A2
+	move.w #$2,abs_0_0005C31A.l
+	tst.w $01CA(a6)
+	bpl.b abs_0_00019698
+	move.w d5,d1
+	subq.w #4,d1
+	move.w d2,d0
+	bra.w abs_0_00019770
+abs_0_00019698:
+	move.w d5,d1
+	subq.w #4,d1
+	move.w d3,d0
+	bra.w abs_0_00019770
+abs_0_000196A2:
+	tst.w $01CC(a6)
+	beq.w abs_0_00019844
+	move.w #$1,abs_0_0005C31A.l
+	btst.b #2,$004B(a4)
+	beq.b abs_0_000196C0
+	move.w #$7,app_033A(a6)
+abs_0_000196C0:
+	btst.b #3,$004B(a4)
+	beq.b abs_0_000196CE
+	move.w #$FFF9,app_033A(a6)
+abs_0_000196CE:
+	lea.l abs_0_0001A822.l,a0
+	move.l #$1D0A8,d6
+	movea.l app_tilemap_base(a6),a1
+	move.w d5,d1
+	subq.w #3,d1
+	tst.w $01CC(a6)
+	bmi.b abs_0_000196EA
+	addq.w #3,d1
+abs_0_000196EA:
+	lsr.w #4,d1
+	mulu.w app_tilemap_width(a6),d1
+	moveq.l #0,d0
+	move.w d2,d0
+	addq.w #3,d0
+	lsr.w #4,d0
+	add.w d1,d0
+	add.l d0,d0
+	add.l d0,d0
+	move.l $0(a1,d0.l),d0
+	sub.l d6,d0
+	lsr.l #7,d0
+	bsr.w test_bitmap_pixel_bit
+	bne.w abs_0_00019984
+	moveq.l #0,d0
+	move.w d2,d0
+	add.w d3,d0
+	lsr.w #1,d0
+	lsr.w #4,d0
+	add.w d1,d0
+	add.l d0,d0
+	add.l d0,d0
+	move.l $0(a1,d0.l),d0
+	sub.l d6,d0
+	lsr.l #7,d0
+	bsr.w test_bitmap_pixel_bit
+	bne.w abs_0_00019984
+	moveq.l #0,d0
+	move.w d3,d0
+	subq.w #4,d0
+	lsr.w #4,d0
+	add.w d1,d0
+	add.l d0,d0
+	add.l d0,d0
+	move.l $0(a1,d0.l),d0
+	sub.l d6,d0
+	lsr.l #7,d0
+	cmp.w #$9F,d0
+	beq.w update_terminal_mode
+	cmp.w #$9C,d0
+	beq.w update_terminal_mode
+	cmp.w #$18E,d0
+	beq.w run_gameplay_update_loop
+	cmp.w #$190,d0
+	beq.w run_gameplay_update_loop
+	bsr.w test_bitmap_pixel_bit
+	bne.w abs_0_00019984
+	bra.w abs_0_000197FE
+abs_0_00019770:
+	bsr.w get_tilemap_cell_pointer
+	move.l (a0),d0
+	subi.l #118952,d0
+	lsr.l #7,d0
+	btst.b #4,app_033C(a6)
+	beq.b abs_0_000197D0
+	cmp.w #$EC,d0
+	bne.b abs_0_000197D0
+	bset.b #3,app_033C(a6)
+	move.l #$5C5A4,abs_0_0005C72A.l
+	clr.l abs_0_0005C732.l
+	lea.l initialize_audio_player.l,a0
+	clr.b $0EBD(a0)
+	clr.b $0EC9(a0)
+	clr.b $0ED5(a0)
+	clr.b $0EE1(a0)
+	bclr.b #7,app_033C(a6)
+	move.l a6,-(a7)
+	moveq.l #1,d0
+	jsr initialize_audio_player.l
+	movea.l (a7)+,a6
+	jmp abs_0_0005C994.l
+abs_0_000197D0:
+	cmp.w #$9F,d0
+	beq.w update_terminal_mode
+	cmp.w #$9C,d0
+	beq.w update_terminal_mode
+	cmp.w #$18E,d0
+	beq.w run_gameplay_update_loop
+	cmp.w #$190,d0
+	beq.w run_gameplay_update_loop
+	lea.l abs_0_0001A822.l,a0
+	bsr.w test_bitmap_pixel_bit
+	bne.w abs_0_00019984
+abs_0_000197FE:
+	tst.b app_02D8(a6)
+	bne.w abs_0_00019984
+	move.w $01CA(a6),d0
+	move.w $01CC(a6),d1
+	move.w d0,app_031C(a6)
+	move.w d1,app_031E(a6)
+	add.w app_033A(a6),d0
+	add.w d0,$0030(a4)
+	sub.w app_033A(a6),d0
+	tst.w app_033A(a6)
+	bne.b abs_0_00019844
+	move.w app_tilemap_height(a6),d3
+	lsl.w #4,d3
+	move.w $0032(a4),d2
+	add.w d1,d2
+	bpl.b abs_0_0001983A
+	add.w d3,d2
+	bra.b abs_0_00019840
+abs_0_0001983A:
+	sub.w d3,d2
+	bcc.b abs_0_00019840
+	add.w d3,d2
+abs_0_00019840:
+	move.w d2,$0032(a4)
+abs_0_00019844:
+	clr.b $004B(a4)
+	lea.l abs_0_0005C72A.l,a0
+	tst.w d0
+	beq.b abs_0_00019870
+	bpl.b abs_0_00019862
+	lea.l abs_0_0005C776.l,a1
+	bset.b #2,$004B(a4)
+	bra.b abs_0_00019890
+abs_0_00019862:
+	lea.l abs_0_0005C744.l,a1
+	bset.b #3,$004B(a4)
+	bra.b abs_0_00019890
+abs_0_00019870:
+	tst.w d1
+	beq.b abs_0_00019890
+	bpl.b abs_0_00019884
+	lea.l abs_0_0005C7D6.l,a1
+	bset.b #0,$004B(a4)
+	bra.b abs_0_00019890
+abs_0_00019884:
+	lea.l abs_0_0005C7A8.l,a1
+	bset.b #1,$004B(a4)
+abs_0_00019890:
+	movea.l $0008(a0),a2
+	cmpa.l a2,a1
+	beq.b abs_0_000198A2
+	movea.l a1,a2
+	move.l a2,$0008(a0)
+	clr.w $0010(a2)
+abs_0_000198A2:
+	bclr.b #0,$000A(a2)
+	bclr.b #1,$000A(a2)
+	tst.w d0
+	beq.b abs_0_0001990A
+	bpl.b abs_0_000198D8
+	move.w app_028E(a6),d2
+	move.w $0030(a4),d0
+	cmp.w d2,d0
+	bcc.b abs_0_0001990A
+	move.w app_tilemap_scroll_x(a6),d0
+	subi.w #48,d0
+	bmi.b abs_0_0001990A
+	move.w #$FFF0,app_0296(a6)
+	clr.w app_0298(a6)
+	bra.w abs_0_00017D24
+abs_0_000198D8:
+	move.w $0030(a4),d0
+	addi.w #24,d0
+	move.w app_0290(a6),d2
+	cmp.w d2,d0
+	bcs.b abs_0_0001990A
+	move.w app_tilemap_scroll_x(a6),d0
+	addi.w #368,d0
+	move.w app_tilemap_width(a6),d1
+	lsl.w #4,d1
+	cmp.w d1,d0
+	bcc.w abs_0_000199AA
+	move.w #$10,app_0296(a6)
+	clr.w app_0298(a6)
+	bra.w abs_0_00017D24
+abs_0_0001990A:
+	tst.w d1
+	beq.w abs_0_000199AA
+	bpl.b abs_0_0001994C
+	move.w $0032(a4),d0
+	cmp.w #$10,d0
+	bcc.b abs_0_00019934
+	move.w app_tilemap_height(a6),d0
+	subq.w #8,d0
+	lsl.w #4,d0
+	move.w d0,app_tilemap_scroll_y(a6)
+	addi.w #80,d0
+	move.w d0,$0032(a4)
+	bra.w abs_0_00017D32
+abs_0_00019934:
+	move.w app_0292(a6),d2
+	cmp.w d2,d0
+	bcc.w abs_0_000199AA
+	clr.w app_0296(a6)
+	move.w #$FFF0,app_0298(a6)
+	bra.w abs_0_00017D24
+abs_0_0001994C:
+	move.w $0032(a4),d0
+	move.w app_tilemap_height(a6),d1
+	subq.w #3,d1
+	lsl.w #4,d1
+	cmp.w d1,d0
+	bcs.b abs_0_0001996A
+	clr.w app_tilemap_scroll_y(a6)
+	move.w #$10,$0032(a4)
+	bra.w abs_0_00017D32
+abs_0_0001996A:
+	move.w app_0294(a6),d2
+	addi.w #32,d0
+	cmp.w d2,d0
+	bcs.b abs_0_000199AA
+	clr.w app_0296(a6)
+	move.w #$10,app_0298(a6)
+	bra.w abs_0_00017D24
+abs_0_00019984:
+	lea.l abs_0_0005C732.l,a0
+	movea.l (a0),a0
+	clr.w $0010(a0)
+	bset.b #0,$000A(a0)
+	bclr.b #1,$000A(a0)
+	move.w #$1,abs_0_0005C31A.l
+	bclr.b #6,app_027B(a6)
+abs_0_000199AA:
+	rts
 abs_0_000199AC:
 	move.l a0,-(a7)
 	moveq.l #0,d0
@@ -8361,7 +8599,7 @@ abs_0_0001A10A:
 	clr.w $0044(a5)
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
-	move.l #$5C72A,player_position_descriptor.l
+	move.l #abs_0_0005C72A,player_position_descriptor.l
 	clr.b app_nearby_object_prompt_countdown(a6)
 	bset.b #4,app_02A6(a6)
 	movea.l (a7)+,a5
@@ -27337,7 +27575,9 @@ abs_0_0005C2BE:
 	dcb.b $9,$00
 	dc.b $05,$C2,$52,$00,$05,$C2,$52,$00,$05,$C2,$64,$00,$05,$C2,$76,$00
 	dc.b $05,$C2,$88,$00,$05,$C2,$9A,$00,$05,$C2,$AC,$00,$07,$00,$01,$95
-	dc.b $E2,$00,$05,$00,$01,$00,$14,$00,$05,$C3,$12
+	dc.b $E2,$00,$05
+abs_0_0005C31A:
+	dc.b $00,$01,$00,$14,$00,$05,$C3,$12
 player_world_object:	; STRUCT world_object_shared_prefix
 	dc.l $00000000	; long item_name_ptr
 player_world_object_interaction_callback:	; STRUCT world_object_shared_prefix
@@ -27469,7 +27709,9 @@ player_position_descriptor_world_x:	; STRUCT world_position_descriptor_prefix
 	dc.w $0000	; word world_x
 player_position_descriptor_world_y:	; STRUCT world_position_descriptor_prefix
 	dc.w $0000	; word world_y
-	dcb.b $C,$00
+	dc.b $00,$00,$00,$00
+abs_0_0005C72A:
+	dcb.b $8,$00
 abs_0_0005C732:
 	dcb.b $9,$00
 	dc.b $05,$C7,$1E,$00,$00,$00,$00,$00,$02
@@ -27477,16 +27719,19 @@ abs_0_0005C744:
 	dc.b $00,$05,$C7,$1E,$07,$40,$00,$05,$C7,$56
 	dcb.b $9,$00
 	dc.b $05,$C3,$76,$00,$05,$C3,$88,$00,$05,$C3,$9A,$00,$05,$C3,$AC,$00
-	dc.b $05,$C3,$BE,$00,$05,$C3,$D0,$00,$05,$C3,$E2,$00,$05,$C3,$F4,$00
-	dc.b $05,$C7,$1E,$07,$40,$00,$05,$C7,$88
+	dc.b $05,$C3,$BE,$00,$05,$C3,$D0,$00,$05,$C3,$E2,$00,$05,$C3,$F4
+abs_0_0005C776:
+	dc.b $00,$05,$C7,$1E,$07,$40,$00,$05,$C7,$88
 	dcb.b $9,$00
 	dc.b $05,$C4,$06,$00,$05,$C4,$18,$00,$05,$C4,$2A,$00,$05,$C4,$3C,$00
-	dc.b $05,$C4,$4E,$00,$05,$C4,$60,$00,$05,$C4,$72,$00,$05,$C4,$84,$00
-	dc.b $05,$C7,$1E,$06,$80,$00,$05,$C7,$BA
+	dc.b $05,$C4,$4E,$00,$05,$C4,$60,$00,$05,$C4,$72,$00,$05,$C4,$84
+abs_0_0005C7A8:
+	dc.b $00,$05,$C7,$1E,$06,$80,$00,$05,$C7,$BA
 	dcb.b $9,$00
 	dc.b $05,$C4,$96,$00,$05,$C4,$A8,$00,$05,$C4,$BA,$00,$05,$C4,$CC,$00
-	dc.b $05,$C4,$DE,$00,$05,$C4,$F0,$00,$05,$C5,$02,$00,$05,$C7,$1E,$06
-	dc.b $80,$00,$05,$C7,$E8
+	dc.b $05,$C4,$DE,$00,$05,$C4,$F0,$00,$05,$C5,$02
+abs_0_0005C7D6:
+	dc.b $00,$05,$C7,$1E,$06,$80,$00,$05,$C7,$E8
 	dcb.b $9,$00
 	dc.b $05,$C5,$14,$00,$05,$C5,$26,$00,$05,$C5,$38,$00,$05,$C5,$4A,$00
 	dc.b $05,$C5,$5C,$00,$05,$C5,$6E,$00,$05,$C5,$80,$00,$05,$5C,$60,$00
@@ -27521,9 +27766,15 @@ abs_0_0005C96E:
 	dc.b $00,$05,$C9,$7A,$27,$10,$01,$F4,$27,$10,$01,$F4
 abs_0_0005C97A:
 	dcb.b $C,$00
-	dc.b $FF,$F0,$FF,$FC,$00,$05,$C9,$6E,$00,$00,$00,$00,$00,$00,$61,$00
-	dc.b $00,$18,$50,$EE,$02,$D8,$08,$EE,$00,$03,$03,$3C,$66,$06,$1D,$7C
-	dc.b $00,$46,$02,$CC,$4E,$75
+	dc.b $FF,$F0,$FF,$FC,$00,$05,$C9,$6E,$00,$00,$00,$00,$00,$00
+abs_0_0005C994:
+	bsr.w abs_0_0005C9AE
+	st.b app_02D8(a6)
+	bset.b #3,app_033C(a6)
+	bne.b abs_0_0005C9AA
+	move.b #$46,app_02CC(a6)
+abs_0_0005C9AA:
+	rts
 abs_0_0005C9AC:
 	rts
 abs_0_0005C9AE:

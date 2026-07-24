@@ -643,6 +643,20 @@ routine decrements that countdown and clears the same flag on expiry. This
 short helper is therefore code bounded by its `$4e75`, despite having no
 direct static call site currently recovered.
 
+### Player world movement
+
+`update_player_world_movement` at `$000195E2` is a formerly raw, `$4e75`-
+bounded movement routine. It rejects movement while modal UI/trade-result
+state is active, scales the input x/y steps, and tests the prospective player
+tile coordinates through the world tilemap and collision bitmap. Valid moves
+update the player object's coordinates, wrap its vertical coordinate over the
+configured tilemap height, and choose the movement-facing state. The special
+tile IDs `$9c/$9f` enter terminal mode; `$18e/$190` transfer to the gameplay
+update loop. The routine also contains the existing special-case audio/setup
+transition for tile `$ec`. The interior branches and terminal `RTS` at
+`$000199AA` establish one contiguous code routine rather than a collection of
+embedded data bytes.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
