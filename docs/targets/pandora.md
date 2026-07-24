@@ -183,6 +183,11 @@ view into the back bitplane with the custom-chip blitter. It begins at the
 configured tile row/column, performs 20 tile blits per display row across eight
 rows, and wraps tilemap addressing at the current map boundary.
 
+`blit_tile_to_bitplane` at `$000167B2` is its fixed-size blitter helper. It
+waits for the previous blit, then copies one word per row for 16 rows from A0 to
+A1, with a two-byte destination modulo. This is the fundamental 16-pixel tile
+transfer used by the view renderer.
+
 The loop calls `process_self_destruct_card_input` at `$00019CBE` when the
 self-destruct panel is active. That routine accepts the permitted selected item
 ids, records up to three resolved item-name pointers, starts feedback audio,

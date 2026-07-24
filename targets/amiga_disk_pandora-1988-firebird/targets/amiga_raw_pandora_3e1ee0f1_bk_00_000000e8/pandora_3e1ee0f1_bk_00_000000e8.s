@@ -4419,10 +4419,22 @@ abs_0_0001677E:
 abs_0_000167AC:
 	dbf.w d1,abs_0_0001677A
 	rts
-	dc.b $2F,$0D,$4B,$F9,$00,$DF,$F0,$00,$30,$2D,$00,$1E,$08,$00,$00,$06
-	dc.b $67,$F6,$3B,$7C,$00,$40,$00,$9C,$2B,$48,$00,$50,$2B,$49,$00,$54
-	dc.b $42,$6D,$00,$64,$3B,$7C,$00,$26,$00,$66,$3B,$7C,$09,$F0,$00,$40
-	dc.b $3B,$7C,$04,$01,$00,$58,$2A,$5F,$4E,$75
+blit_tile_to_bitplane:
+	move.l a5,-(a7)
+	lea.l _custom.l,a5
+abs_0_000167BA:
+	move.w intreqr(a5),d0	; interrupt request state
+	btst #6,d0
+	beq.b abs_0_000167BA
+	move.w #INTF_BLIT,intreq(a5)
+	move.l a0,bltapt(a5)	; blitter_source pointer
+	move.l a1,bltdpt(a5)	; blitter_destination pointer
+	clr.w bltamod(a5)
+	move.w #$26,bltdmod(a5)
+	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
+	move.w #(16<<6)|1,bltsize(a5)	; blitter size 16 rows x 1 words (2 bytes/row)
+	movea.l (a7)+,a5
+	rts
 get_tilemap_cell_pointer:
 	movem.l d0-d1,-(a7)
 	lsr.w #4,d0
