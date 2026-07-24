@@ -548,6 +548,14 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
       }
       continue;
     }
+    if (directive0 == M68K_SOURCE_DIRECTIVE_RSRESET) {
+      if (*rest != '\0' || !m68k_source_model_set_constant(source, "__RS", 0U, 1)) {
+        source_line_reader_close(reader);
+        source_parse_errorf(diagnostics, "bad RSRESET directive at line %u", (unsigned)line_number);
+        return 0;
+      }
+      continue;
+    }
     {
       uint32_t width = 0U;
       if (parse_rs_delta_directive(directive0, &width)) {
