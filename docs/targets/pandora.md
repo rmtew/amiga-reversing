@@ -616,6 +616,14 @@ by that grid builder and by the player/world coordinate lookup. The contiguous
 data after this prefix has not been included in the table because neither
 consumer proves its separate bounds or format.
 
+`world_tile_definition_offset_records` starts at `$00013F16`. The grid builder
+uses a selector multiplied by `$12` to read all nine word offsets in a record.
+Because the row-selector prefix reaches ID `$8B`, the recovered prefix contains
+140 records (`$00013F16..$000148EE`), each exactly 18 bytes. The offsets are
+rebased through `$0001D0A8` to populate the runtime pointer grid; consumers
+have not yet established whether the contiguous records beyond this required
+prefix belong to the same table.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
