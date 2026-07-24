@@ -26,7 +26,7 @@ from amiga_reversing.disasm.binary_source import (
     RawBinarySource,
 )
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
-from amiga_reversing.disasm.manual_action_catalog import listing_element_action_catalog
+from amiga_reversing.disasm.manual_action_catalog import listing_element_action_catalog, listing_range_action_catalog
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemState,
@@ -59,6 +59,22 @@ _FULL_DATA_ROLE_IDS = {
     "audio_table",
     "sprite",
 }
+
+
+def test_data_block_layout_range_spans_internal_label_rows() -> None:
+    """A record layout follows contiguous bytes, not visible row numbering."""
+    rows = [
+        {"kind": "data", "row_id": "first", "row_index": 10, "start_offset": 0x20, "end_offset": 0x24},
+        {"kind": "data", "row_id": "second", "row_index": 12, "start_offset": 0x24, "end_offset": 0x28},
+    ]
+
+    action = next(
+        item for item in listing_range_action_catalog(rows) if item["action_id"] == "range.data_block.layout.create"
+    )
+
+    assert action["applicable_subranges"] == [
+        {"row_indexes": [10, 12], "row_ids": ["first", "second"], "start_offset": 0x20, "end_offset": 0x28}
+    ]
 
 
 def _free_tcp_port() -> int:

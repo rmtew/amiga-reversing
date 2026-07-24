@@ -313,6 +313,17 @@ def listing_row_action_catalog(
     actions.extend(_suppress_seeded_item_actions(context, row))
     actions.extend(_row_data_role_actions(context))
     if _row_allows_data_seed(row):
+        active_layout = _active_data_block_layout(row)
+        actions.append(
+            _context_log_action(
+                "row.data_block.layout.remove",
+                "Remove data-block layout",
+                "remove_manual_data_block_layout",
+                context,
+                _data_block_layout_identity_payload(active_layout) if active_layout is not None else {},
+                _data_block_layout_remove_parameter_schema(active_layout),
+            )
+        )
         actions.append(
             _context_log_action(
                 "row.data_block.layout.create",
@@ -1601,7 +1612,9 @@ def _range_data_block_layout_action(context: Mapping[str, object], rows: list[Ma
         {"default_unit": "byte"},
         _data_block_layout_parameter_schema(),
     )
-    subranges = _contiguous_subranges(eligible)
+    # A layout describes bytes, not presentation rows.  Labels are zero-width
+    # rows, so selected data rows on either side of one form a single record.
+    subranges = _contiguous_data_layout_subranges(eligible)
     if len(eligible) == len(rows):
         action["range_availability"] = "applicable"
         action["availability_reason"] = f"Applies to all {len(rows)} selected rows."
@@ -1615,6 +1628,23 @@ def _range_data_block_layout_action(context: Mapping[str, object], rows: list[Ma
     action["applicable_subranges"] = subranges
     action["row_reasons"] = _row_eligibility_reasons(rows, eligible)
     return action
+
+
+def _contiguous_data_layout_subranges(rows: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
+    """Group selected data rows by adjoining byte spans, ignoring label rows."""
+    if not rows:
+        return []
+    ordered = sorted(rows, key=lambda row: _int_field(row, "start_offset", fallback="addr"))
+    groups: list[list[Mapping[str, object]]] = [[ordered[0]]]
+    for row in ordered[1:]:
+        previous = groups[-1][-1]
+        previous_end = _optional_int(previous.get("end_offset"))
+        start = _int_field(row, "start_offset", fallback="addr")
+        if previous_end == start:
+            groups[-1].append(row)
+        else:
+            groups.append([row])
+    return [_subrange_payload(group) for group in groups]
 
 
 def _suppress_seeded_item_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
@@ -1764,6 +1794,8 @@ def listing_catalog_manual_payload(
         }
     if ui_action == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _data_block_layout_payload([row], params)}
+    if ui_action == "remove_manual_data_block_layout":
+        return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
     if action_id == "row.data_block.element.bind_type":
         return "set_manual_data_block_element", {
             "data_block_element": _data_block_element_type_binding_payload([row], params)
@@ -3782,6 +3814,25 @@ def _data_block_layout_payload(rows: list[Mapping[str, object]], params: Mapping
     if isinstance(default_unit, str) and default_unit in {"byte", "word", "long"}:
         layout["default_unit"] = default_unit
     return layout
+
+
+def _data_block_layout_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    layout_id = params.get("layout_id")
+    if not isinstance(layout_id, str) or not layout_id.strip():
+        raise ValueError("remove_manual_data_block_layout requires layout_id")
+    identity: dict[str, object] = {"layout_id": layout_id.strip()}
+    for field_name in ("hunk", "source_start", "source_end"):
+        value = _optional_int(params.get(field_name))
+        if value is not None:
+            identity[field_name] = value
+    return identity
+
+
+def _data_block_layout_remove_parameter_schema(layout: Mapping[str, object] | None) -> dict[str, object]:
+    properties: dict[str, object] = {"layout_id": {"type": "string"}}
+    if layout is not None:
+        properties.update({key: {"type": "integer", "minimum": 0} for key in ("hunk", "source_start", "source_end")})
+    return {"type": "object", "properties": properties, "required": [] if layout is not None else ["layout_id"]}
 
 
 def _data_block_element_context(rows: list[Mapping[str, object]]) -> dict[str, object]:
