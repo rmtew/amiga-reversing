@@ -27342,9 +27342,9 @@ static int test_facts_v2_render_asm_source_renders_structured_data_comment(void)
   section_line = strstr(source, "    SECTION section,data\n");
   M68K_C_ASSERT(include_line != NULL && section_line != NULL && include_line < section_line);
   M68K_C_ASSERT(strstr(source, "resident:\t; STRUCT RT\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w RTC_MATCHWORD\t; UWORD RT_MATCHWORD = RTC_MATCHWORD\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b RTF_AUTOINIT\t; UBYTE RT_FLAGS = RTF_AUTOINIT\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b NT_LIBRARY\t; UBYTE RT_TYPE = NT_LIBRARY\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w RTC_MATCHWORD\t; RT.RT_MATCHWORD = RTC_MATCHWORD\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b RTF_AUTOINIT\t; RT.RT_FLAGS = RTF_AUTOINIT\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b NT_LIBRARY\t; RT.RT_TYPE = NT_LIBRARY\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -27431,7 +27431,7 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
     accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000012:") == NULL);
-  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.l resident_name\t; APTR RT_NAME\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.l resident_name\t; RT.RT_NAME\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "resident_name:\n") != NULL);
   m68k_render_ir_preview_destroy(&preview);
   m68k_render_ir_preview_init(&preview);
@@ -27490,7 +27490,7 @@ static int test_facts_v2_render_asm_source_resident_sizeof_defines_app_sizeof_wi
   M68K_C_ASSERT(strstr(source, "    RSSET LIB_SIZE\n") != NULL);
   M68K_C_ASSERT(strstr(source, "    RS.B 12\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_SIZEOF EQU __RS\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.l app_SIZEOF\t; ULONG resident_base_size\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l app_SIZEOF\t; resident_autoinit.resident_base_size\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -27544,8 +27544,8 @@ static int test_facts_v2_render_asm_source_resident_lib_size_omits_empty_app_siz
   M68K_C_ASSERT(strstr(source, "    INCLUDE \"exec/devices.i\"\n") != NULL);
   M68K_C_ASSERT(strstr(source, "    RSSET LIB_SIZE\n") == NULL);
   M68K_C_ASSERT(strstr(source, "app_SIZEOF EQU __RS\n") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.l LIB_SIZE\t; ULONG resident_base_size\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.l app_SIZEOF\t; ULONG resident_base_size\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l LIB_SIZE\t; resident_autoinit.resident_base_size\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l app_SIZEOF\t; resident_autoinit.resident_base_size\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -30546,7 +30546,7 @@ static int test_facts_v2_render_asm_source_marks_structured_data_code_overlap(vo
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "invalid overlap: decoded code at $0000 starts at structured data") != NULL);
   M68K_C_ASSERT(strstr(source, "\tillegal\n") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w $4AFC\t; UWORD header_word") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $4AFC\t; header.header_word") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.accepted_instructions);
   m68k_facts_v2_free_text(source);

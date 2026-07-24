@@ -2707,14 +2707,9 @@ static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const
   }
   target = m68k_read_u32be(section->data + offset);
   if (target == 0U) return 0;
-  /* A same-section Hunk numeric long need not have a relocation entry.  Using
-     a local symbol for it would invent one on reassembly.  Runtime-mapped raw
-     binaries, in contrast, encode their in-image pointers as absolute
-     addresses and can safely use their recovered target labels. */
-  if (!lookup_any_runtime_address_source_offset(lookup, section->section_index, target, section->size,
-      &target_offset)) {
-    return 0;
-  }
+  /* A same-section label expression remains a non-relocating local value.
+     Runtime-mapped raw binaries likewise encode in-image pointers as absolute
+     addresses and can use their recovered target labels. */
   if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, target, 0U,
       &target_offset)) {
     return 0;
