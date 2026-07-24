@@ -554,6 +554,20 @@ to both the normal channel update and command 2. Finally,
 display data while the updater writes its oscillating visual pattern. The
 surrounding bytes have no established independent consumers and remain raw.
 
+### Terminal item deposit
+
+`process_terminal_item_deposit` at `$00018984` is a terminal interaction called
+from the main update loop through its absolute `JSR` operand at source `$005FC`.
+When the player is within a Manhattan distance below `$18` of the terminal
+world-object record at `$000591EE`, it transfers the selected item (`+0x46` of
+the player object) into the first empty byte of the terminal's item storage at
+`app_02DA`, clears the selected item, and sets the interaction latch at
+`app_02A6` bit 4. If the terminal bitmap test succeeds it also increments
+`app_02D9`. The routine then queues `terminal_item_deposited_message`
+(`"ITEM DEPOSITED"` at `$0001A7C0`), refreshes the item display, and starts
+feedback audio sequence `$106`. Its terminal `RTS` at `$00018A16` is the code
+boundary immediately before the following data region.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

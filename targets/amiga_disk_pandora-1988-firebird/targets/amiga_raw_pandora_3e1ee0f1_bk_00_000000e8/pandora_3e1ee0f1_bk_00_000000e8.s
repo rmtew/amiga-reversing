@@ -506,7 +506,7 @@ abs_0_000105C2:
 	jsr process_security_checkpoint_response.l
 	jsr update_active_world_object_positions.l
 	bsr.w update_world_object_interactions
-	jsr abs_0_00018984.l
+	jsr process_terminal_item_deposit.l
 	bsr.w abs_0_00012D2A
 	lea.l _custom.l,a5
 	jsr abs_0_000107F0.l
@@ -7101,7 +7101,7 @@ begin_security_checkpoint_response:
 	bsr.w display_current_item_name
 abs_0_00018982:
 	rts
-abs_0_00018984:
+process_terminal_item_deposit:
 	tst.b app_022F(a6)
 	beq.w abs_0_00018A16
 	move.b app_ui_flags(a6),d0
@@ -7139,7 +7139,7 @@ abs_0_000189DA:
 	beq.b abs_0_000189FA
 	addq.b #1,app_02D9(a6)
 abs_0_000189FA:
-	lea.l abs_0_0001A7C0.l,a0
+	lea.l terminal_item_deposited_message.l,a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	bsr.w refresh_selected_item_name_display
@@ -8572,7 +8572,7 @@ item_name_offset_table:
 	dc.w abs_0_0001A6B3-item_name_string_table
 	dc.w abs_0_0001A6C0-item_name_string_table
 	dc.w abs_0_0001A6CD-item_name_string_table
-abs_0_0001A7C0:
+terminal_item_deposited_message:
 	dc.b " ITEM DEPOSITED",$00
 abs_0_0001A7D0:
 	dc.b "PANDORA",$00
