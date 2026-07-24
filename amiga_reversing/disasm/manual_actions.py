@@ -1272,18 +1272,38 @@ def _validated_data_block_interpreted_ref(
     elements: dict[tuple[str, int], dict[str, object]],
 ) -> dict[str, object]:
     element_key = _data_block_element_key(ref)
-    element = elements.get(element_key)
-    if element is None:
-        raise ValueError(f"data_block_interpreted_ref references unknown element: {element_key[0]}:{element_key[1]}")
-    _data_block_interpreted_ref_key(ref)
     width = _manual_seed_int(ref, "width")
     if width is None or width <= 0:
         raise ValueError("data_block_interpreted_ref requires positive width")
+    element = elements.get(element_key)
+    if element is None:
+        layout_id, offset = element_key
+        candidates = [
+            candidate
+            for (candidate_layout_id, candidate_offset), candidate in elements.items()
+            if candidate_layout_id == layout_id
+            and (candidate_width := _manual_seed_int(candidate, "width")) is not None
+            and candidate_offset <= offset
+            and offset + width <= candidate_offset + candidate_width
+        ]
+        if len(candidates) == 1:
+            element = candidates[0]
+    if element is None:
+        raise ValueError(f"data_block_interpreted_ref references unknown element: {element_key[0]}:{element_key[1]}")
+    _data_block_interpreted_ref_key(ref)
     if width not in {1, 2, 4}:
         raise ValueError("data_block_interpreted_ref supports only byte, word, and long widths")
     element_width = _manual_seed_int(element, "width")
-    if element_width is None or width != element_width:
-        raise ValueError("data_block_interpreted_ref width must match owning element width")
+    element_offset = _manual_seed_int(element, "offset")
+    ref_offset = _manual_seed_int(ref, "offset")
+    if (
+        element_width is None
+        or element_offset is None
+        or ref_offset is None
+        or ref_offset < element_offset
+        or ref_offset + width > element_offset + element_width
+    ):
+        raise ValueError("data_block_interpreted_ref must fit within owning element")
     reference_kind = ref.get("reference_kind")
     if reference_kind != "absolute":
         raise ValueError("data_block_interpreted_ref supports only absolute references")

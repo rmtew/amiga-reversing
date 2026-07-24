@@ -26,6 +26,7 @@
 ;     absolute[$00010ED8] refs=1 access=a
 ;     absolute[$0001309A-$0001309E] refs=1 access=a
 ;     absolute[$0001A862] refs=2 access=a
+;     absolute[$000585A6-$000585AA] refs=1 access=a
 ;     absolute[$0007D000] refs=1 access=a
 ;     absolute[$0007D380] refs=1 access=a
 ;     absolute[$0007D680] refs=1 access=a
@@ -231,6 +232,12 @@ UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 active_world_object_ptr_table	EQU	$1309A
+dblk_ref_h0_0005859A	EQU	$5859A
+dblk_ref_h0_000585A6	EQU	$585A6
+dblk_ref_h0_00058CD0	EQU	$58CD0
+dblk_ref_h0_00058CDC	EQU	$58CDC
+dblk_ref_h0_00058CE8	EQU	$58CE8
+dblk_ref_h0_00058CF4	EQU	$58CF4
 dblk_ref_h0_00010CCC	EQU	$10CCC
 dblk_ref_h0_00010CC0	EQU	$10CC0
 dblk_ref_h0_00010CD8	EQU	$10CD8
@@ -2886,17 +2893,17 @@ active_world_object_static_ptr_table:
 	dc.l abs_0_0005B900
 	dc.l abs_0_0005B82E
 	dc.l $00000000
-	dc.l abs_0_00058C10
-	dc.l abs_0_00058C28
-	dc.l abs_0_00058C40
-	dc.l abs_0_00058C4C
-	dc.l abs_0_00058C64
-	dc.l abs_0_00058C7C
-	dc.l abs_0_00058C88
-	dc.l abs_0_00058CA0
-	dc.l abs_0_00058CAC
-	dc.l abs_0_00058CB8
-	dc.l abs_0_00058CC4
+	dc.l world_position_descriptors_position_state_ptr_2
+	dc.l world_position_descriptors_position_state_ptr_4
+	dc.l world_position_descriptors_position_state_ptr_6
+	dc.l world_position_descriptors_position_state_ptr_7
+	dc.l world_position_descriptors_position_state_ptr_9
+	dc.l world_position_descriptors_position_state_ptr_11
+	dc.l world_position_descriptors_position_state_ptr_12
+	dc.l world_position_descriptors_position_state_ptr_14
+	dc.l world_position_descriptors_position_state_ptr_15
+	dc.l world_position_descriptors_position_state_ptr_16
+	dc.l world_position_descriptors_position_state_ptr_17
 	dc.l abs_0_0005A828
 	dc.l abs_0_0005A8B4
 	dc.l abs_0_0005A940
@@ -2916,8 +2923,8 @@ active_world_object_static_ptr_table:
 	dc.l abs_0_0005AF90
 	dc.l abs_0_0005B49C
 world_object_sort_source_ptrs:
-	dc.l abs_0_00058C70	; pointer_table
-	dc.l abs_0_00058C94
+	dc.l world_position_descriptors_position_state_ptr_10	; pointer_table
+	dc.l world_position_descriptors_position_state_ptr_13
 	dc.l abs_0_0005A2BC
 	dc.l abs_0_0005BE7A
 	dc.l abs_0_0005BEBA
@@ -2933,13 +2940,13 @@ world_object_sort_source_ptrs:
 	dc.l abs_0_00059AA8
 	dc.l abs_0_00059CB8
 	dc.l player_position_descriptor
-	dc.l abs_0_00058BF8
+	dc.l world_position_descriptors
 	dc.l abs_0_00059F24
 	dc.l abs_0_0005A636
-	dc.l abs_0_00058C04
-	dc.l abs_0_00058C1C
-	dc.l abs_0_00058C34
-	dc.l abs_0_00058C58
+	dc.l world_position_descriptors_position_state_ptr_1
+	dc.l world_position_descriptors_position_state_ptr_3
+	dc.l world_position_descriptors_position_state_ptr_5
+	dc.l world_position_descriptors_position_state_ptr_8
 	dc.l abs_0_0005A754
 	dc.l abs_0_00058794
 	dc.l abs_0_0005ADC0
@@ -2949,10 +2956,13 @@ world_object_sort_source_ptrs:
 	dc.l abs_0_0005B992
 	dc.l abs_0_0005B314
 abs_0_0001318E:
-	dc.b $00,$05,$85,$9A,$00,$05,$85,$A6,$00,$05,$8C,$D0,$00,$05,$8C,$DC
-	dc.l abs_0_00058CE8	; mode=required, data_role=pointer_table, unit=pointer
-	dc.l abs_0_00058CF4
-	dc.l $00000000
+	dc.l abs_0_0005859A	; pointer_table
+	dc.l abs_0_000585A6	; pointer_table
+	dc.l world_position_descriptors_position_state_ptr_18	; pointer_table
+	dc.l world_position_descriptors_position_state_ptr_19	; pointer_table
+	dc.l world_position_descriptors_position_state_ptr_20	; pointer_table
+	dc.l world_position_descriptors_position_state_ptr_21	; pointer_table
+	dc.b $00,$00,$00,$00
 abs_0_000131AA:
 	dcb.b $80,$00
 abs_0_0001322A:
@@ -6301,9 +6311,9 @@ abs_0_00017F08:
 	add.w $000C(a2),d0
 	add.w $000E(a2),d1
 	moveq.l #16,d4
-	cmpa.l #abs_0_00058CF4,a1
+	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
 	beq.b abs_0_00017F3A
-	cmpa.l #abs_0_00058CE8,a1
+	cmpa.l #world_position_descriptors_position_state_ptr_20,a1
 	bne.b abs_0_00017F3C
 abs_0_00017F3A:
 	moveq.l #32,d4
@@ -6330,24 +6340,24 @@ abs_0_00017F5C:
 	clr.b app_02D8(a6)
 	move.b $0046(a4),d0
 	moveq.l #0,d1
-	cmpa.l #abs_0_00058CD0,a1
+	cmpa.l #world_position_descriptors_position_state_ptr_18,a1
 	bne.b abs_0_00017F86
 	cmp.b #$30,d0
 	bne.w abs_0_0001800A
 abs_0_00017F86:
-	cmpa.l #abs_0_00058CDC,a1
+	cmpa.l #world_position_descriptors_position_state_ptr_19,a1
 	bne.b abs_0_00017F96
 	moveq.l #1,d1
 	cmp.b #$31,d0
 	bne.b abs_0_0001800A
 abs_0_00017F96:
-	cmpa.l #abs_0_00058CE8,a1
+	cmpa.l #world_position_descriptors_position_state_ptr_20,a1
 	bne.b abs_0_00017FA6
 	moveq.l #2,d1
 	cmp.b #$32,d0
 	bne.b abs_0_0001800A
 abs_0_00017FA6:
-	cmpa.l #abs_0_00058CF4,a1
+	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
 	bne.b abs_0_00017FC2
 	bclr.b #4,app_033C(a6)
 	moveq.l #3,d1
@@ -26155,6 +26165,7 @@ abs_0_0005859A:
 	dc.b $00,$05,$85,$B2
 abs_0_0005859E:
 	dcb.b $8,$00
+abs_0_000585A6:
 	dc.b $00,$05,$85,$CC
 abs_0_000585AA:
 	dcb.b $8,$00
@@ -26295,50 +26306,161 @@ abs_0_000588AA:
 	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$04,$F3,$A8,$00,$06
 	dc.b $80,$E4,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$04,$F5,$A8
 	dc.b $00,$06,$81,$64,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00
-abs_0_00058BF8:
-	dc.b $00,$05,$8D,$00,$01,$80,$00,$90,$01,$80,$00,$90
-abs_0_00058C04:
-	dc.b $00,$05,$8D,$1A,$00,$D0,$01,$C0,$00,$D0,$01,$C0
-abs_0_00058C10:
-	dc.b $00,$05,$8D,$34,$01,$D0,$01,$70,$01,$D0,$01,$70
-abs_0_00058C1C:
-	dc.b $00,$05,$8D,$4E,$02,$A0,$01,$F0,$02,$A0,$01,$F0
-abs_0_00058C28:
-	dc.b $00,$05,$8D,$68,$03,$B0,$01,$D0,$03,$B0,$01,$D0
-abs_0_00058C34:
-	dc.b $00,$05,$8D,$82,$04,$20,$01,$F0,$04,$20,$01,$F0
-abs_0_00058C40:
-	dc.b $00,$05,$8D,$9C,$04,$F0,$01,$B0,$04,$F0,$01,$B0
-abs_0_00058C4C:
-	dc.b $00,$05,$8D,$B6,$02,$40,$02,$C0,$02,$40,$02,$C0
-abs_0_00058C58:
-	dc.b $00,$05,$8D,$D0,$03,$A0,$03,$00,$03,$A0,$03,$00
-abs_0_00058C64:
-	dc.b $00,$05,$8D,$EA,$02,$00,$05,$00,$02,$00,$05,$00
-abs_0_00058C70:
-	dc.b $00,$05,$8E,$04,$01,$B0,$05,$B0,$01,$B0,$05,$B0
-abs_0_00058C7C:
-	dc.b $00,$05,$8E,$1E,$02,$B0,$05,$D0,$02,$B0,$05,$D0
-abs_0_00058C88:
-	dc.b $00,$05,$8E,$38,$03,$90,$06,$F0,$03,$90,$06,$F0
-abs_0_00058C94:
-	dc.b $00,$05,$8E,$52,$03,$90,$05,$80,$03,$90,$05,$80
-abs_0_00058CA0:
-	dc.b $00,$05,$8E,$6C,$04,$20,$00,$80,$04,$20,$00,$80
-abs_0_00058CAC:
-	dc.b $00,$05,$8E,$86,$01,$C0,$06,$F0,$01,$C0,$06,$F0
-abs_0_00058CB8:
-	dc.b $00,$05,$8E,$A0,$04,$90,$03,$30,$04,$90,$03,$30
-abs_0_00058CC4:
-	dc.b $00,$05,$8E,$BA,$04,$90,$03,$70,$04,$90,$03,$70
-abs_0_00058CD0:
-	dc.b $00,$05,$8E,$D4,$02,$34,$03,$C0,$02,$34,$03,$C0
-abs_0_00058CDC:
-	dc.b $00,$05,$8E,$EE,$00,$84,$00,$D0,$00,$84,$00,$D0
-abs_0_00058CE8:
-	dc.b $00,$05,$8F,$08,$04,$F4,$06,$E0,$04,$F4,$06,$E0
-abs_0_00058CF4:
-	dc.b $00,$05,$8F,$22,$00,$A0,$03,$20,$00,$A0,$03,$20
+world_position_descriptors:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058D00	; long position_state_ptr
+world_position_descriptors_world_x_0:	; STRUCT world_position_descriptor_prefix
+	dc.w $0180	; word world_x
+world_position_descriptors_world_y_0:	; STRUCT world_position_descriptor_prefix
+	dc.w $0090	; word world_y
+	dc.b $01,$80,$00,$90
+world_position_descriptors_position_state_ptr_1:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058D1A	; long position_state_ptr
+world_position_descriptors_world_x_1:	; STRUCT world_position_descriptor_prefix
+	dc.w $00D0	; word world_x
+world_position_descriptors_world_y_1:	; STRUCT world_position_descriptor_prefix
+	dc.w $01C0	; word world_y
+	dc.b $00,$D0,$01,$C0
+world_position_descriptors_position_state_ptr_2:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058D34	; long position_state_ptr
+world_position_descriptors_world_x_2:	; STRUCT world_position_descriptor_prefix
+	dc.w $01D0	; word world_x
+world_position_descriptors_world_y_2:	; STRUCT world_position_descriptor_prefix
+	dc.w $0170	; word world_y
+	dc.b $01,$D0,$01,$70
+world_position_descriptors_position_state_ptr_3:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058D4E	; long position_state_ptr
+world_position_descriptors_world_x_3:	; STRUCT world_position_descriptor_prefix
+	dc.w $02A0	; word world_x
+world_position_descriptors_world_y_3:	; STRUCT world_position_descriptor_prefix
+	dc.w $01F0	; word world_y
+	dc.b $02,$A0,$01,$F0
+world_position_descriptors_position_state_ptr_4:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058D68	; long position_state_ptr
+world_position_descriptors_world_x_4:	; STRUCT world_position_descriptor_prefix
+	dc.w $03B0	; word world_x
+world_position_descriptors_world_y_4:	; STRUCT world_position_descriptor_prefix
+	dc.w $01D0	; word world_y
+	dc.b $03,$B0,$01,$D0
+world_position_descriptors_position_state_ptr_5:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058D82	; long position_state_ptr
+world_position_descriptors_world_x_5:	; STRUCT world_position_descriptor_prefix
+	dc.w $0420	; word world_x
+world_position_descriptors_world_y_5:	; STRUCT world_position_descriptor_prefix
+	dc.w $01F0	; word world_y
+	dc.b $04,$20,$01,$F0
+world_position_descriptors_position_state_ptr_6:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058D9C	; long position_state_ptr
+world_position_descriptors_world_x_6:	; STRUCT world_position_descriptor_prefix
+	dc.w $04F0	; word world_x
+world_position_descriptors_world_y_6:	; STRUCT world_position_descriptor_prefix
+	dc.w $01B0	; word world_y
+	dc.b $04,$F0,$01,$B0
+world_position_descriptors_position_state_ptr_7:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058DB6	; long position_state_ptr
+world_position_descriptors_world_x_7:	; STRUCT world_position_descriptor_prefix
+	dc.w $0240	; word world_x
+world_position_descriptors_world_y_7:	; STRUCT world_position_descriptor_prefix
+	dc.w $02C0	; word world_y
+	dc.b $02,$40,$02,$C0
+world_position_descriptors_position_state_ptr_8:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058DD0	; long position_state_ptr
+world_position_descriptors_world_x_8:	; STRUCT world_position_descriptor_prefix
+	dc.w $03A0	; word world_x
+world_position_descriptors_world_y_8:	; STRUCT world_position_descriptor_prefix
+	dc.w $0300	; word world_y
+	dc.b $03,$A0,$03,$00
+world_position_descriptors_position_state_ptr_9:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058DEA	; long position_state_ptr
+world_position_descriptors_world_x_9:	; STRUCT world_position_descriptor_prefix
+	dc.w $0200	; word world_x
+world_position_descriptors_world_y_9:	; STRUCT world_position_descriptor_prefix
+	dc.w $0500	; word world_y
+	dc.b $02,$00,$05,$00
+world_position_descriptors_position_state_ptr_10:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058E04	; long position_state_ptr
+world_position_descriptors_world_x_10:	; STRUCT world_position_descriptor_prefix
+	dc.w $01B0	; word world_x
+world_position_descriptors_world_y_10:	; STRUCT world_position_descriptor_prefix
+	dc.w $05B0	; word world_y
+	dc.b $01,$B0,$05,$B0
+world_position_descriptors_position_state_ptr_11:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058E1E	; long position_state_ptr
+world_position_descriptors_world_x_11:	; STRUCT world_position_descriptor_prefix
+	dc.w $02B0	; word world_x
+world_position_descriptors_world_y_11:	; STRUCT world_position_descriptor_prefix
+	dc.w $05D0	; word world_y
+	dc.b $02,$B0,$05,$D0
+world_position_descriptors_position_state_ptr_12:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058E38	; long position_state_ptr
+world_position_descriptors_world_x_12:	; STRUCT world_position_descriptor_prefix
+	dc.w $0390	; word world_x
+world_position_descriptors_world_y_12:	; STRUCT world_position_descriptor_prefix
+	dc.w $06F0	; word world_y
+	dc.b $03,$90,$06,$F0
+world_position_descriptors_position_state_ptr_13:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058E52	; long position_state_ptr
+world_position_descriptors_world_x_13:	; STRUCT world_position_descriptor_prefix
+	dc.w $0390	; word world_x
+world_position_descriptors_world_y_13:	; STRUCT world_position_descriptor_prefix
+	dc.w $0580	; word world_y
+	dc.b $03,$90,$05,$80
+world_position_descriptors_position_state_ptr_14:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058E6C	; long position_state_ptr
+world_position_descriptors_world_x_14:	; STRUCT world_position_descriptor_prefix
+	dc.w $0420	; word world_x
+world_position_descriptors_world_y_14:	; STRUCT world_position_descriptor_prefix
+	dc.w $0080	; word world_y
+	dc.b $04,$20,$00,$80
+world_position_descriptors_position_state_ptr_15:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058E86	; long position_state_ptr
+world_position_descriptors_world_x_15:	; STRUCT world_position_descriptor_prefix
+	dc.w $01C0	; word world_x
+world_position_descriptors_world_y_15:	; STRUCT world_position_descriptor_prefix
+	dc.w $06F0	; word world_y
+	dc.b $01,$C0,$06,$F0
+world_position_descriptors_position_state_ptr_16:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058EA0	; long position_state_ptr
+world_position_descriptors_world_x_16:	; STRUCT world_position_descriptor_prefix
+	dc.w $0490	; word world_x
+world_position_descriptors_world_y_16:	; STRUCT world_position_descriptor_prefix
+	dc.w $0330	; word world_y
+	dc.b $04,$90,$03,$30
+world_position_descriptors_position_state_ptr_17:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058EBA	; long position_state_ptr
+world_position_descriptors_world_x_17:	; STRUCT world_position_descriptor_prefix
+	dc.w $0490	; word world_x
+world_position_descriptors_world_y_17:	; STRUCT world_position_descriptor_prefix
+	dc.w $0370	; word world_y
+	dc.b $04,$90,$03,$70
+world_position_descriptors_position_state_ptr_18:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058ED4	; long position_state_ptr
+world_position_descriptors_world_x_18:	; STRUCT world_position_descriptor_prefix
+	dc.w $0234	; word world_x
+world_position_descriptors_world_y_18:	; STRUCT world_position_descriptor_prefix
+	dc.w $03C0	; word world_y
+	dc.b $02,$34,$03,$C0
+world_position_descriptors_position_state_ptr_19:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058EEE	; long position_state_ptr
+world_position_descriptors_world_x_19:	; STRUCT world_position_descriptor_prefix
+	dc.w $0084	; word world_x
+world_position_descriptors_world_y_19:	; STRUCT world_position_descriptor_prefix
+	dc.w $00D0	; word world_y
+	dc.b $00,$84,$00,$D0
+world_position_descriptors_position_state_ptr_20:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058F08	; long position_state_ptr
+world_position_descriptors_world_x_20:	; STRUCT world_position_descriptor_prefix
+	dc.w $04F4	; word world_x
+world_position_descriptors_world_y_20:	; STRUCT world_position_descriptor_prefix
+	dc.w $06E0	; word world_y
+	dc.b $04,$F4,$06,$E0
+world_position_descriptors_position_state_ptr_21:	; STRUCT world_position_descriptor_prefix
+	dc.l $00058F22	; long position_state_ptr
+world_position_descriptors_world_x_21:	; STRUCT world_position_descriptor_prefix
+	dc.w $00A0	; word world_x
+world_position_descriptors_world_y_21:	; STRUCT world_position_descriptor_prefix
+	dc.w $0320	; word world_y
+world_position_descriptors_gap_104:
+	dc.l $00A00320	; typed data block gap
 	dcb.b $9,$00
 	dc.b $05,$8F,$DC,$00,$00,$00,$00,$00,$05,$8B,$F8,$00,$00,$00,$00,$00
 	dc.b $01

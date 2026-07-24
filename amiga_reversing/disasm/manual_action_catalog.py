@@ -122,6 +122,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_data_block_layout_action(),
         _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
+        _target_data_block_element_ref_action(),
         _target_custom_struct_action(),
         _target_custom_struct_edit_action(),
         _target_custom_struct_rename_action(),
@@ -184,6 +185,10 @@ def target_catalog_manual_payload(
         return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
     if action.get("action") == "set_manual_data_block_element":
         return "set_manual_data_block_element", {"data_block_element": _data_block_element_payload([], params)}
+    if action.get("action") == "interpret_manual_data_block_element_ref":
+        return "interpret_manual_data_block_element_ref", {
+            "data_block_interpreted_ref": _data_block_element_ref_payload([], params)
+        }
     if action.get("action") == "create_manual_target_equate":
         return "create_manual_target_equate", {"target_equate": _target_equate_payload(params)}
     if action.get("action") == "rename_manual_target_equate":
@@ -4276,7 +4281,12 @@ def _data_block_element_ref_payload(
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_hunk")
     if target_offset is None or target_offset < 0:
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_offset")
-    source_value = _data_block_ref_source_value(rows, width)
+    if rows:
+        source_value = _data_block_ref_source_value(rows, width)
+    else:
+        source_value = _optional_int(params.get("source_value"))
+        if source_value is None or source_value < 0:
+            raise ValueError("interpret_manual_data_block_element_ref requires source_value without selected source bytes")
     if source_value != target_offset:
         raise ValueError("interpret_manual_data_block_element_ref target_offset must match selected source bytes")
     ref_id = str(params.get("data_block_ref_id") or "").strip()
@@ -5625,6 +5635,25 @@ def _target_data_block_element_action() -> dict[str, object]:
         "target.data_block.element.set",
         "Set data-block element at layout offset",
         "set_manual_data_block_element",
+        schema,
+    )
+
+
+def _target_data_block_element_ref_action() -> dict[str, object]:
+    schema = _data_block_element_ref_parameter_schema()
+    schema["required"] = [
+        "layout_id",
+        "offset",
+        "width",
+        "reference_kind",
+        "target_hunk",
+        "target_offset",
+        "source_value",
+    ]
+    return _target_log_action(
+        "target.data_block.element.interpret_ref",
+        "Interpret data-block element reference at layout offset",
+        "interpret_manual_data_block_element_ref",
         schema,
     )
 

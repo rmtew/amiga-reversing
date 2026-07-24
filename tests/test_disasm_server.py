@@ -1825,6 +1825,19 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     )
     assert data_block_element_action["action"] == "set_manual_data_block_element"
     assert data_block_element_action["parameter_schema"]["required"] == ["layout_id", "offset", "width", "kind"]
+    data_block_ref_action = next(
+        action for action in actions if action["action_id"] == "target.data_block.element.interpret_ref"
+    )
+    assert data_block_ref_action["action"] == "interpret_manual_data_block_element_ref"
+    assert data_block_ref_action["parameter_schema"]["required"] == [
+        "layout_id",
+        "offset",
+        "width",
+        "reference_kind",
+        "target_hunk",
+        "target_offset",
+        "source_value",
+    ]
     rsset_region_action = next(action for action in actions if action["action_id"] == "target.rsset_region.add")
     assert rsset_region_action["category"] == "target_metadata"
     assert rsset_region_action["appends_to_manual_action_log"] is True

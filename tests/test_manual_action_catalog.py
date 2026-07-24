@@ -1294,6 +1294,38 @@ def test_target_data_block_element_set_payload_supports_exact_layout_offsets() -
     }
 
 
+def test_target_data_block_element_interpret_ref_payload_supports_exact_layout_offsets() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.data_block.element.interpret_ref",
+        {
+            "layout_id": "pointer_table",
+            "offset": 4,
+            "width": 4,
+            "reference_kind": "absolute",
+            "target_hunk": 0,
+            "target_offset": 0x1234,
+            "source_value": 0x1234,
+        },
+    )
+
+    assert kind == "interpret_manual_data_block_element_ref"
+    assert payload == {
+        "data_block_interpreted_ref": {
+            "data_block_ref_id": "pointer_table:4:absolute:h0:00001234",
+            "layout_id": "pointer_table",
+            "offset": 4,
+            "width": 4,
+            "reference_kind": "absolute",
+            "target_hunk": 0,
+            "target_offset": 0x1234,
+            "target_locator": {"hunk": 0, "offset": 0x1234},
+            "source_value": 0x1234,
+            "confidence": "manual",
+            "xref_generation_mode": "bidirectional",
+        }
+    }
+
+
 def test_target_execution_view_remove_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.execution_view.remove",

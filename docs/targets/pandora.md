@@ -273,6 +273,15 @@ All 35 non-null world-object entries use the same observed eight-byte prefix:
 `position_state_ptr`, `world_x`, and `world_y`; the rest of each descriptor is
 still raw pending record-specific evidence.
 
+The contiguous `$00058BF8..$00058CFFF` family is now the exact 22-entry
+`world_position_descriptors` table. Each 12-byte stride has the established
+`world_position_descriptor_prefix` at its start, and its remaining four bytes
+remain an explicit typed gap rather than an invented initial-coordinate field.
+The final six entries of `active_world_object_ptr_table` are individually
+interpreted pointer references into that table; this preserves their
+bidirectional xrefs and makes the update and interaction comparisons render
+against the shared descriptor fields.
+
 `update_active_world_object_positions` at `$00019250` runs in the main update
 after nearby-object detection.  It derives the player-relative tile position,
 then walks the active position-descriptor table while applying the current
