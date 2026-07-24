@@ -322,8 +322,13 @@ state_node_ptr	EQU	8
 active_flag	EQU	10
 position_descriptor_sequence_index	EQU	16
 position_descriptor_sequence_ptr	EQU	6
-primary_data_ptr	EQU	0
-secondary_data_ptr	EQU	4
+bitplane_data_ptr	EQU	0
+mask_data_ptr	EQU	4
+row_stride_words	EQU	8
+frame_height	EQU	10
+frame_width	EQU	12
+x_offset	EQU	14
+y_offset	EQU	16
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -26289,137 +26294,313 @@ abs_0_000588AA:
 	dcb.b $8,$00
 	dc.b $12,$00
 world_position_animation_frames:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033278	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_0:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E254	; long secondary_data_ptr
-world_position_animation_frames_gap_8_0:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$34,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E2,$D4	; long secondary_data_ptr
-world_position_animation_frames_gap_1A_1:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033678	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E354	; long secondary_data_ptr
-world_position_animation_frames_gap_2C_2:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$38,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E3,$D4	; long secondary_data_ptr
-world_position_animation_frames_gap_3E_3:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033A78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E454	; long secondary_data_ptr
-world_position_animation_frames_gap_50_4:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$3C,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E4,$D4	; long secondary_data_ptr
-world_position_animation_frames_gap_62_5:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00033E78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E554	; long secondary_data_ptr
-world_position_animation_frames_gap_74_6:
-	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$3F,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E5,$94	; long secondary_data_ptr
-world_position_animation_frames_gap_86_7:
-	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034078	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E5D4	; long secondary_data_ptr
-world_position_animation_frames_gap_98_8:
-	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$41,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E6,$14	; long secondary_data_ptr
-world_position_animation_frames_gap_AA_9:
-	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034278	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E654	; long secondary_data_ptr
-world_position_animation_frames_gap_BC_10:
-	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$43,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E6,$94	; long secondary_data_ptr
-world_position_animation_frames_gap_CE_11:
-	dc.b $00,$01,$00,$20,$00,$10,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034478	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E6D4	; long secondary_data_ptr
-world_position_animation_frames_gap_E0_12:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$46,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E7,$54	; long secondary_data_ptr
-world_position_animation_frames_gap_F2_13:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034878	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E7D4	; long secondary_data_ptr
-world_position_animation_frames_gap_104_14:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$4A,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E8,$54	; long secondary_data_ptr
-world_position_animation_frames_gap_116_15:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00034C78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0007E8D4	; long secondary_data_ptr
-world_position_animation_frames_gap_128_16:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$03,$4E,$78	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$07,$E9,$54	; long secondary_data_ptr
-world_position_animation_frames_gap_13A_17:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0004EFA8	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
-	dc.l $00067FE4	; long secondary_data_ptr
-world_position_animation_frames_gap_14C_18:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$04,$F1,$A8	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$06,$80,$64	; long secondary_data_ptr
-world_position_animation_frames_gap_15E_19:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
-	dc.l $0004F3A8	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
-	dc.l $000680E4	; long secondary_data_ptr
-world_position_animation_frames_gap_170_20:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
-world_position_animation_frames_primary_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$04,$F5,$A8	; long primary_data_ptr
-world_position_animation_frames_secondary_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
-	dc.b $00,$06,$81,$64	; long secondary_data_ptr
-world_position_animation_frames_gap_182_21:
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00	; typed data block gap
+	dc.l $00033278	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_0:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E254	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_0:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_0:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_0:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_0:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_0:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$34,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_1:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E2,$D4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_1:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_1:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_1:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_1:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_1:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00033678	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_2:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E354	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_2:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_2:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_2:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_2:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_2:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$38,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_3:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E3,$D4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_3:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_3:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_3:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_3:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_3:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00033A78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_4:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E454	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_4:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_4:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_4:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_4:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_4:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$3C,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_5:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E4,$D4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_5:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_5:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_5:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_5:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_5:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00033E78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_6:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E554	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_6:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0001	; word row_stride_words
+world_position_animation_frames_frame_height_6:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_6:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0010	; word frame_width
+world_position_animation_frames_x_offset_6:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_6:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$3F,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_7:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E5,$94	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_7:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0001	; word row_stride_words
+world_position_animation_frames_frame_height_7:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_7:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0010	; word frame_width
+world_position_animation_frames_x_offset_7:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_7:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034078	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_8:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E5D4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_8:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0001	; word row_stride_words
+world_position_animation_frames_frame_height_8:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_8:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0010	; word frame_width
+world_position_animation_frames_x_offset_8:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_8:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$41,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_9:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E6,$14	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_9:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0001	; word row_stride_words
+world_position_animation_frames_frame_height_9:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_9:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0010	; word frame_width
+world_position_animation_frames_x_offset_9:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_9:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034278	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_10:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E654	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_10:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0001	; word row_stride_words
+world_position_animation_frames_frame_height_10:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_10:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0010	; word frame_width
+world_position_animation_frames_x_offset_10:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_10:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$43,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_11:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E6,$94	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_11:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0001	; word row_stride_words
+world_position_animation_frames_frame_height_11:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_11:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0010	; word frame_width
+world_position_animation_frames_x_offset_11:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_11:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034478	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_12:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E6D4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_12:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_12:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_12:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_12:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_12:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$46,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_13:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E7,$54	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_13:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_13:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_13:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_13:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_13:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034878	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_14:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E7D4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_14:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_14:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_14:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_14:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_14:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$4A,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_15:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E8,$54	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_15:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_15:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_15:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_15:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_15:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00034C78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_16:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0007E8D4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_16:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_16:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_16:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_16:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_16:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$03,$4E,$78	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_17:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$07,$E9,$54	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_17:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_17:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_17:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_17:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_17:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0004EFA8	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_18:	; STRUCT WorldPositionAnimationFrame
+	dc.l $00067FE4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_18:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_18:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_18:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_18:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_18:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$04,$F1,$A8	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_19:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$06,$80,$64	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_19:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_19:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_19:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_19:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_19:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
+	dc.l $0004F3A8	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_20:	; STRUCT WorldPositionAnimationFrame
+	dc.l $000680E4	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_20:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_20:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_20:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_20:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_20:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
+world_position_animation_frames_bitplane_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$04,$F5,$A8	; long bitplane_data_ptr
+world_position_animation_frames_mask_data_ptr_21:	; STRUCT WorldPositionAnimationFrame
+	dc.b $00,$06,$81,$64	; long mask_data_ptr
+world_position_animation_frames_row_stride_words_21:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0002	; word row_stride_words
+world_position_animation_frames_frame_height_21:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_height
+world_position_animation_frames_frame_width_21:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0020	; word frame_width
+world_position_animation_frames_x_offset_21:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word x_offset
+world_position_animation_frames_y_offset_21:	; STRUCT WorldPositionAnimationFrame
+	dc.w $0000	; word y_offset
 world_position_descriptors:	; STRUCT world_position_descriptor_prefix
 	dc.l $00058D00	; long position_state_ptr
 world_position_descriptors_world_x_0:	; STRUCT world_position_descriptor_prefix

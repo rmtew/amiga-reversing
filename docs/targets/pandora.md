@@ -721,9 +721,10 @@ raw pending a consumer that establishes its shared semantics.
 
 Those sequence entries select the exact 22-record
 `world_position_animation_frames` table at `$00058A6C..$00058BF8`, also with
-an 18-byte stride.  Its two leading address-valued fields are represented as
-`primary_data_ptr` and `secondary_data_ptr`; its remaining frame metadata is
-left as typed gaps until rendering consumers establish the field meanings.
+an 18-byte stride.  The geometry renderer proves the two leading pointers are
+the bitplane and mask streams, uses `row_stride_words` at `+0x08` to advance
+those streams, and derives the clipped rectangle from `frame_height`,
+`frame_width`, `x_offset`, and `y_offset` at `+0x0A..+0x10`.
 
 ## Maintenance rule
 

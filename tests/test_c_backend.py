@@ -1409,8 +1409,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("source_context_parent_disk_id", ctypes.c_char * 512),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
-        ("structured_data_items", _M68kAnalysisStructuredDataItem * 1152),
-        ("named_labels", _M68kAnalysisNamedLabel * 1280),
+        ("structured_data_items", _M68kAnalysisStructuredDataItem * 1280),
+        ("named_labels", _M68kAnalysisNamedLabel * 1536),
         ("entry_comments", _M68kAnalysisEntryComment * 128),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
@@ -4210,6 +4210,63 @@ after_data:
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
 
     assert "long next_offset" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk", rendered, project_root=PROJECT_ROOT
+    )
+    assert rebuilt == original
+
+
+def test_real_dll_large_repeated_custom_struct_exceeds_previous_policy_capacity(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "large-repeated-custom-struct.bin"
+    record_count = 181
+    record_size = 18
+    source_text = f"""    SECTION section,code
+start:
+    bra.w after_data
+    dcb.b {record_count * record_size},$00
+after_data:
+    rts
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk", source_text, output_path=binary_path, project_root=PROJECT_ROOT
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}), encoding="utf-8"
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    fields = [
+        {"name": name, "type": "word" if offset >= 8 else "long", "offset": offset, "size": 2 if offset >= 8 else 4}
+        for name, offset in (
+            ("primary_ptr", 0), ("secondary_ptr", 4), ("stride", 8), ("height", 10),
+            ("width", 12), ("x_offset", 14), ("y_offset", 16),
+        )
+    ]
+    records = [
+        {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
+        {"record": "manual_action", "action_id": "a1", "sequence": 1, "created_at": "2026-07-25T00:00:01+00:00", "kind": "create_manual_custom_struct", "custom_struct": {"name": "LargeFrame", "size": record_size, "fields": fields}},
+        {"record": "manual_action", "action_id": "a2", "sequence": 2, "created_at": "2026-07-25T00:00:02+00:00", "kind": "create_manual_data_block_layout", "data_block_layout": {"layout_id": "frames", "hunk": 0, "source_start": 2, "source_end": 2 + record_count * record_size, "name": "large_frames", "default_unit": "byte"}},
+        {"record": "manual_action", "action_id": "a3", "sequence": 3, "created_at": "2026-07-25T00:00:03+00:00", "kind": "set_manual_data_block_element", "data_block_element": {"data_block_element_id": "frames:0", "layout_id": "frames", "offset": 0, "width": record_count * record_size, "kind": "struct", "array_count": record_count, "array_stride": record_size, "type_binding": {"type_binding_id": "frames:0:large", "layout_id": "frames", "element_offset": 0, "element_width": record_count * record_size, "binding_kind": "custom_struct", "bound_type_id": "LargeFrame", "owner_action_id": "a3"}}},
+    ]
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "".join(json.dumps(record, sort_keys=True) + "\n" for record in records), encoding="utf-8"
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)["analysis_policy"]
+        rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+
+    assert policy["structured_data_item_count"] >= record_count * len(fields)
+    assert policy["named_label_count"] >= record_count * len(fields)
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk", rendered, project_root=PROJECT_ROOT
     )
