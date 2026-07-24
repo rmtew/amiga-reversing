@@ -1010,13 +1010,21 @@ abs_0_00010D20:
 	move.l a0,app_current_palette(a6)
 	move.w #$63,d7
 	movea.l #$400,a2
+abs_0_00010D5C:
 	bsr.w abs_0_00010C22
-	lea.l abs_0_00010D68(pc),a3
+	lea.l finish_starfield_initialization(pc),a3
 	bra.w abs_0_00010C5C
-abs_0_00010D68:
-	dc.b $45,$EA,$00,$0A,$51,$CF,$FF,$EE,$41,$FA,$FD,$86,$7E,$17,$42,$58
-	dc.b $51,$CF,$FF,$FC,$08,$EE,$00,$02,$02,$7B,$1D,$7C,$00,$10,$02,$85
-	dc.b $4E,$75
+finish_starfield_initialization:
+	lea.l $000A(a2),a2
+	dbf.w d7,abs_0_00010D5C
+	lea.l abs_0_00010AF8(pc),a0
+	moveq.l #23,d7
+abs_0_00010D76:
+	clr.w (a0)+
+	dbf.w d7,abs_0_00010D76
+	bset.b #2,app_027B(a6)
+	move.b #$10,app_0285(a6)
+	rts
 abs_0_00010D8A:
 	move.w #$63,d7
 	movea.l #$400,a2

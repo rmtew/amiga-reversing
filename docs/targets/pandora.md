@@ -39,6 +39,14 @@ the four Paula audio channels.  The caller at `$0005D330` preserves the
 general registers around this call, which supports treating it as a subsystem
 entry rather than an inline helper.
 
+## Starfield initialization
+
+`finish_starfield_initialization` at `$00010D68` is the indirect continuation
+selected by the preceding star/palette setup routine through `a3`. It advances
+the generated-star buffer, clears a 24-word state region, sets the star/UI
+latch at `app_027B` bit 2, initializes the `$10` countdown at `app_0285`, and
+returns. Its former raw bytes are therefore executable starfield setup code.
+
 ## RGB12 palette helpers
 
 The helper group at `$0001255E..$00012654` manipulates Amiga RGB12 colors as
