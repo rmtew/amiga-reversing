@@ -1409,8 +1409,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("source_context_parent_disk_id", ctypes.c_char * 512),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
-        ("structured_data_items", _M68kAnalysisStructuredDataItem * 1280),
-        ("named_labels", _M68kAnalysisNamedLabel * 1536),
+        ("structured_data_items", _M68kAnalysisStructuredDataItem * 4096),
+        ("named_labels", _M68kAnalysisNamedLabel * 4096),
         ("entry_comments", _M68kAnalysisEntryComment * 128),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
@@ -4221,7 +4221,10 @@ def test_real_dll_large_repeated_custom_struct_exceeds_previous_policy_capacity(
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     binary_path = tmp_path / "large-repeated-custom-struct.bin"
-    record_count = 181
+    # This is deliberately beyond the former 2,048-item ceiling: repeated
+    # target layouts must not silently become unparseable as their recovered
+    # shared fields grow.
+    record_count = 351
     record_size = 18
     source_text = f"""    SECTION section,code
 start:

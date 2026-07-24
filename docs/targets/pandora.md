@@ -707,6 +707,15 @@ embedded data bytes.
 
 ### World-position state nodes
 
+The matching `world_position_state_records` table is 22 records of 26 bytes at
+`$00048D00..$00048F3C` (runtime `$00058D00..$00058F3C`).  Its common prefix
+contains the state-node pointer at `+0x08`, mutable world x/y offsets at
+`+0x0C/+0x0E`, and the back-reference to its position descriptor at `+0x10`.
+The latter was corrected from an earlier one-byte-late interpretation: the
+aligned bytes are `00 05 8B F8`, proving the pointer starts at `+0x10` rather
+than `+0x11`.  World-object interaction also follows `attachment_state_ptr` at
+`+0x14` and tests `interaction_flags`/`world_object_flags` at `+0x18/+0x19`.
+
 `world_position_state_nodes` is the exact 24-record table at
 `$00048F70..$00049120` (runtime `$00058F70..$00059120`), with an 18-byte
 stride.  Each node starts with `position_descriptor_ptr`; the position-state
