@@ -2448,7 +2448,7 @@ handle_item_too_large_for_pockets:
 	moveq.l #0,d0
 	move.b $0046(a4),d0
 	lea.l abs_0_0001A804.l,a0
-	bsr.w abs_0_00015FFE
+	bsr.w test_bitmap_pixel_bit
 	movem.l (a7)+,d0/a0
 	beq.b transfer_selected_item_to_pocket_inventory
 	tst.w app_scrolling_message_timer(a6)
@@ -3696,7 +3696,7 @@ abs_0_00013F16:
 	dc.b $67,$00,$2A,$00,$15,$00,$15,$00,$15,$00,$6C,$00,$68,$80,$1A,$80
 	dc.b $15,$00,$15,$00,$2A,$00,$11,$00,$11,$00,$11,$80,$6C,$80,$6C,$80
 	dc.b $6C,$80,$6F,$80,$6C,$80,$09,$00
-abs_0_00015FFE:
+test_bitmap_pixel_bit:
 	movem.l d0-d1,-(a7)
 	move.w d0,d1
 	lsr.w #3,d1
@@ -3704,11 +3704,30 @@ abs_0_00015FFE:
 	btst.b d0,$0(a0,d1.w)
 	movem.l (a7)+,d0-d1
 	rts
-	dc.b $48,$E7,$C0,$00,$32,$00,$E6,$49,$0A,$00,$00,$07,$01,$70,$10,$00
-	dc.b $4C,$DF,$00,$03,$4E,$75,$48,$E7,$C0,$00,$32,$00,$E6,$49,$0A,$00
-	dc.b $00,$07,$01,$B0,$10,$00,$4C,$DF,$00,$03,$4E,$75,$48,$E7,$C0,$00
-	dc.b $32,$00,$E6,$49,$0A,$00,$00,$07,$01,$F0,$10,$00,$4C,$DF,$00,$03
-	dc.b $4E,$75
+toggle_bitmap_pixel_bit:
+	movem.l d0-d1,-(a7)
+	move.w d0,d1
+	lsr.w #3,d1
+	eori.b #7,d0
+	bchg.b d0,$0(a0,d1.w)
+	movem.l (a7)+,d0-d1
+	rts
+clear_bitmap_pixel_bit:
+	movem.l d0-d1,-(a7)
+	move.w d0,d1
+	lsr.w #3,d1
+	eori.b #7,d0
+	bclr.b d0,$0(a0,d1.w)
+	movem.l (a7)+,d0-d1
+	rts
+set_bitmap_pixel_bit:
+	movem.l d0-d1,-(a7)
+	move.w d0,d1
+	lsr.w #3,d1
+	eori.b #7,d0
+	bset.b d0,$0(a0,d1.w)
+	movem.l (a7)+,d0-d1
+	rts
 abs_0_00016056:
 	move.l app_text_cursor_ptr(a6),-(a7)
 abs_0_0001605A:
@@ -7027,7 +7046,7 @@ abs_0_000189DA:
 	clr.b $0046(a4)
 	bset.b #4,app_02A6(a6)
 	lea.l abs_0_0001A813.l,a0
-	bsr.w abs_0_00015FFE
+	bsr.w test_bitmap_pixel_bit
 	beq.b abs_0_000189FA
 	addq.b #1,app_02D9(a6)
 abs_0_000189FA:
@@ -7248,7 +7267,7 @@ abs_0_000192DE:
 	subi.l #118952,d0
 	lsr.l #7,d0
 	lea.l abs_0_0001A822.l,a0
-	bsr.w abs_0_00015FFE
+	bsr.w test_bitmap_pixel_bit
 	bne.w abs_0_00019410
 	move.w d5,d0
 	move.w d6,d1
@@ -27186,7 +27205,7 @@ abs_0_0005C9DC:
 	lea.l abs_0_0001A813.l,a0
 abs_0_0005C9F0:
 	move.b (a1)+,d0
-	jsr abs_0_00015FFE.l
+	jsr test_bitmap_pixel_bit.l
 	beq.b abs_0_0005C9FE
 	addq.b #1,app_02D9(a6)
 abs_0_0005C9FE:

@@ -71,6 +71,17 @@ absolute code pointer to a three-plane `bclr`/`bset` combination followed by
 or the next iteration of the frame update. The table is therefore an eight-long
 pointer dispatch, not raw data adjacent to code.
 
+## Bitmap pixel-bit helpers
+
+The adjacent four routines at `$00015FFE..$00016055` implement a consistent
+one-pixel operation on a byte-addressed bitmap. They preserve `d0-d1`, derive
+the containing byte as `x >> 3`, invert the low bit index with `x xor 7`, and
+operate through `a0` using `d1` as the index. `test_bitmap_pixel_bit`,
+`toggle_bitmap_pixel_bit`, `clear_bitmap_pixel_bit`, and
+`set_bitmap_pixel_bit` use the corresponding `BTST`, `BCHG`, `BCLR`, and
+`BSET` instructions. Their terminal `$4E75` words establish four separate
+code boundaries immediately before the text-rendering routine at `$00016056`.
+
 ## RGB12 palette helpers
 
 The helper group at `$0001255E..$00012654` manipulates Amiga RGB12 colors as
