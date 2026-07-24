@@ -415,89 +415,6 @@ dblk_ref_h0_00010CF0	EQU	$10CF0
 dblk_ref_h0_00010CFC	EQU	$10CFC
 dblk_ref_h0_00010D08	EQU	$10D08
 dblk_ref_h0_00010D14	EQU	$10D14
-sample_ptr	EQU	audio_channel_dma_configuration_sample_ptr
-sample_length	EQU	audio_channel_dma_configuration_sample_length
-sample_period	EQU	audio_channel_dma_configuration_sample_period
-sample_volume	EQU	audio_channel_dma_configuration_sample_volume
-enabled	EQU	audio_channel_dma_configuration_enabled
-start_pending	EQU	audio_channel_dma_configuration_start_pending
-period_delta	EQU	audio_channel_playback_state_period_delta
-period_reset_value	EQU	audio_channel_playback_state_period_reset_value
-period_delta_step	EQU	audio_channel_playback_state_period_delta_step
-current_period	EQU	audio_channel_playback_state_current_period
-sample_address_offset	EQU	audio_channel_playback_state_sample_address_offset
-period_reset_interval	EQU	audio_channel_playback_state_period_reset_interval
-period_delta_interval	EQU	audio_channel_playback_state_period_delta_interval
-period_delta_select	EQU	audio_channel_playback_state_period_delta_select
-sample_address_offset_select	EQU	audio_channel_playback_state_sample_address_offset_select
-playback_ticks_remaining	EQU	audio_channel_playback_state_playback_ticks_remaining
-sequence_interval	EQU	audio_channel_playback_state_sequence_interval
-sequence_index	EQU	audio_channel_playback_state_sequence_index
-update_disabled	EQU	audio_channel_playback_state_update_disabled
-period_reset_countdown	EQU	audio_channel_playback_state_period_reset_countdown
-period_delta_countdown	EQU	audio_channel_playback_state_period_delta_countdown
-active	EQU	audio_channel_playback_state_active
-sequence_countdown	EQU	audio_channel_playback_state_sequence_countdown
-sequence_ptr	EQU	audio_channel_playback_state_sequence_ptr
-item_name_ptr	EQU	world_object_shared_prefix_item_name_ptr
-interaction_callback	EQU	world_object_shared_prefix_interaction_callback
-context_callback	EQU	world_object_shared_prefix_context_callback
-interaction_data_ptr	EQU	world_object_shared_prefix_interaction_data_ptr
-position_descriptor_ptr	EQU	world_object_shared_prefix_position_descriptor_ptr
-world_x	EQU	world_object_shared_prefix_world_x
-world_y	EQU	world_object_shared_prefix_world_y
-interaction_timer	EQU	world_object_shared_prefix_interaction_timer
-proximity_distance	EQU	world_object_shared_prefix_proximity_distance
-selected_item_id	EQU	world_object_shared_prefix_selected_item_id
-initial_selected_item_id	EQU	world_object_shared_prefix_initial_selected_item_id
-world_object_flags	EQU	world_object_shared_prefix_world_object_flags
-initial_world_object_flags	EQU	world_object_shared_prefix_initial_world_object_flags
-item_definition_id	EQU	world_object_shared_prefix_item_definition_id
-item_state	EQU	world_object_shared_prefix_item_state
-initial_item_state	EQU	world_object_shared_prefix_initial_item_state
-context_prompt_cooldown	EQU	world_object_shared_prefix_context_prompt_cooldown
-position_state_ptr	EQU	world_position_descriptor_prefix_position_state_ptr
-channel_flags	EQU	audio_channel_runtime_state_channel_flags
-pitch_modulation_flags	EQU	audio_channel_runtime_state_pitch_modulation_flags
-current_note	EQU	audio_channel_runtime_state_current_note
-note_offset	EQU	audio_channel_runtime_state_note_offset
-program_ptr	EQU	audio_channel_runtime_state_program_ptr
-channel_configuration_offset	EQU	audio_channel_runtime_state_channel_configuration_offset
-pitch_sequence_start_ptr	EQU	audio_channel_runtime_state_pitch_sequence_start_ptr
-pitch_sequence_cursor	EQU	audio_channel_runtime_state_pitch_sequence_cursor
-pitch_delta_step	EQU	audio_channel_runtime_state_pitch_delta_step
-pitch_delta_countdown	EQU	audio_channel_runtime_state_pitch_delta_countdown
-sample_start_pending	EQU	audio_channel_runtime_state_sample_start_pending
-sample_metadata_ptr	EQU	audio_channel_runtime_state_sample_metadata_ptr
-update_reload_countdown	EQU	audio_channel_runtime_state_update_reload_countdown
-update_countdown	EQU	audio_channel_runtime_state_update_countdown
-pitch_delta_accumulator	EQU	audio_channel_runtime_state_pitch_delta_accumulator
-volume_sequence_ptr	EQU	audio_channel_runtime_state_volume_sequence_ptr
-volume_sequence_cursor	EQU	audio_channel_runtime_state_volume_sequence_cursor
-volume_sequence_interval	EQU	audio_channel_runtime_state_volume_sequence_interval
-volume_sequence_countdown	EQU	audio_channel_runtime_state_volume_sequence_countdown
-pitch_modulation_step	EQU	audio_channel_runtime_state_pitch_modulation_step
-pitch_modulation_value	EQU	audio_channel_runtime_state_pitch_modulation_value
-pitch_modulation_limit	EQU	audio_channel_runtime_state_pitch_modulation_limit
-channel_0_program_offset	EQU	audio_player_initialization_preset_channel_0_program_offset
-channel_1_program_offset	EQU	audio_player_initialization_preset_channel_1_program_offset
-channel_2_program_offset	EQU	audio_player_initialization_preset_channel_2_program_offset
-channel_3_program_offset	EQU	audio_player_initialization_preset_channel_3_program_offset
-state_node_ptr	EQU	world_position_state_record_state_node_ptr
-world_x_offset	EQU	world_position_state_record_world_x_offset
-world_y_offset	EQU	world_position_state_record_world_y_offset
-attachment_state_ptr	EQU	world_position_state_record_attachment_state_ptr
-interaction_flags	EQU	world_position_state_record_interaction_flags
-position_descriptor_sequence_ptr	EQU	WorldPositionStateNode_position_descriptor_sequence_ptr
-active_flag	EQU	WorldPositionStateNode_active_flag
-position_descriptor_sequence_index	EQU	WorldPositionStateNode_position_descriptor_sequence_index
-bitplane_data_ptr	EQU	WorldPositionAnimationFrame_bitplane_data_ptr
-mask_data_ptr	EQU	WorldPositionAnimationFrame_mask_data_ptr
-row_stride_words	EQU	WorldPositionAnimationFrame_row_stride_words
-frame_height	EQU	WorldPositionAnimationFrame_frame_height
-frame_width	EQU	WorldPositionAnimationFrame_frame_width
-x_offset	EQU	WorldPositionAnimationFrame_x_offset
-y_offset	EQU	WorldPositionAnimationFrame_y_offset
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -28851,7 +28768,7 @@ abs_0_0005D39E:
 	rts
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_hooligan_or_robomechanic:
-	move.w #$FA,context_prompt_cooldown(a5)
+	move.w #$FA,world_object_shared_prefix_context_prompt_cooldown(a5)
 	move #$1,ccr
 	rts
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
@@ -28868,10 +28785,10 @@ interact_with_chemist:
 	bne.b abs_0_0005D3DC
 	bset.b #INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D3DC
-	move.l #$5CF4C,interaction_data_ptr(a5)
+	move.l #$5CF4C,world_object_shared_prefix_interaction_data_ptr(a5)
 	bra.b interact_with_hooligan_or_robomechanic
 abs_0_0005D3DC:
-	move.b selected_item_id(a5),d0
+	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SHAKESPEARE,d0
 	bne.b abs_0_0005D3F8
 	jsr advance_pseudorandom_state.l
@@ -28889,7 +28806,7 @@ interact_with_bank_manager:
 	beq.b abs_0_0005D410
 	lea.l abs_0_0005D275(pc),a0
 abs_0_0005D410:
-	move.l a0,interaction_data_ptr(a5)
+	move.l a0,world_object_shared_prefix_interaction_data_ptr(a5)
 	bra.b interact_with_hooligan_or_robomechanic
 abs_0_0005D416:
 	dc.l $0005CEB3,$0005CEDC,$0005CEFC,$0005CF27	; lookup_table
@@ -28901,7 +28818,7 @@ interact_with_priest:
 	rts
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_technician:
-	move.b selected_item_id(a5),d0
+	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_GLOBE,d0
 	bne.b abs_0_0005D446
 	bset.b #INTERACTION_FLAG_TECHNICIAN_COMPLETED,app_world_interaction_flags(a6)
@@ -28983,7 +28900,7 @@ abs_0_0005D510:
 	bra.b update_interaction_audio_sequence_214
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_squash_player:
-	move.b selected_item_id(a5),d0
+	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SQUASH_BALL,d0
 	bne.b abs_0_0005D534
 	bset.b #INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED,app_world_interaction_flags(a6)
@@ -29006,20 +28923,20 @@ interact_with_driffid:
 	move.w d0,d0
 	rts
 abs_0_0005D560:
-	move.l a0,interaction_data_ptr(a5)
+	move.l a0,world_object_shared_prefix_interaction_data_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_diabetic:
 	btst.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D592
-	move.b selected_item_id(a5),d0
+	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_HYPODERMIC,d0
 	beq.b abs_0_0005D596
 	lea.l abs_0_0005CFB4(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_INSULIN,d0
 	bne.b abs_0_0005D592
-	move.l a0,interaction_data_ptr(a5)
+	move.l a0,world_object_shared_prefix_interaction_data_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
 abs_0_0005D592:
 	move.w d0,d0
@@ -29035,7 +28952,7 @@ abs_0_0005D5A6:
 	beq.b abs_0_0005D592
 	dbf.w d7,abs_0_0005D5A6
 	lea.l abs_0_0005CF8E(pc),a0
-	move.l a0,interaction_data_ptr(a5)
+	move.l a0,world_object_shared_prefix_interaction_data_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
 abs_0_0005D5BA:
 	jsr is_player_within_world_object_interaction_range.l

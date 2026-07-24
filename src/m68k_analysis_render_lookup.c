@@ -1715,7 +1715,7 @@ typedef struct M68kRenderResolvedStructField {
   char root_struct_name[64];
   char owner_struct_name[64];
   char field_name[64];
-  char field_expr[96];
+  char field_expr[M68K_IR_SYMBOL_NAME_SIZE];
 } M68kRenderResolvedStructField;
 
 static uint16_t amiga_struct_size_for_struct_id(uint16_t struct_id);
@@ -1795,7 +1795,10 @@ static int lookup_policy_resolve_struct_field(const M68kAnalysisPolicy *policy, 
         snprintf(out_field->root_struct_name, sizeof(out_field->root_struct_name), "%s", custom_struct->name);
         snprintf(out_field->owner_struct_name, sizeof(out_field->owner_struct_name), "%s", custom_struct->name);
         snprintf(out_field->field_name, sizeof(out_field->field_name), "%s", field->name);
-        snprintf(out_field->field_expr, sizeof(out_field->field_expr), "%s", field->name);
+        if (snprintf(out_field->field_expr, sizeof(out_field->field_expr), "%s_%s",
+            custom_struct->name, field->name) >= (int)sizeof(out_field->field_expr)) {
+          return 0;
+        }
       }
       return 1;
     }

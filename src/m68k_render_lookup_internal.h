@@ -402,7 +402,7 @@ typedef struct M68kRenderTypedAccess {
   char root_struct_name[64];
   char owner_struct_name[64];
   char field_name[64];
-  char field_expr[96];
+  char field_expr[M68K_IR_SYMBOL_NAME_SIZE];
 } M68kRenderTypedAccess;
 
 typedef struct M68kRenderUnresolvedTypedAccess {

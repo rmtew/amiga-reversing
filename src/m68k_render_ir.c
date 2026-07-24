@@ -901,12 +901,6 @@ static int render_asm_declare_custom_struct_layouts(M68kRenderIRPreview *preview
         (unsigned)(field->size == 4U || field->size == 2U ? 1U : field->size));
       hash_asm_text(preview, line);
       ++preview->asm_source_lines;
-      /* Keep the established bare field-expression contract for existing
-       * typed-access facts.  The RS declaration remains structure-qualified;
-       * this compatibility alias is emitted once, matching the old EQU
-       * behaviour until the analysis schema carries qualified expressions. */
-      snprintf(line, sizeof(line), "%s_%s", custom_struct->name, field->name);
-      if (!render_asm_declare_symbol_expr_once(preview, field->name, line)) return 0;
       cursor = field->offset + field->size;
     }
     if (custom_struct->size > cursor) {
