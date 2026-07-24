@@ -27182,7 +27182,7 @@ initialize_audio_player:
 	ext.w d1
 	move.w d1,$0520(a3)
 	move.b $1(a0,d0.w),$0524(a3)
-	move.b abs_0_0005DD02(pc),$0525(a3)
+	move.b audio_update_phase_increment(pc),$0525(a3)
 	moveq.l #0,d7
 abs_0_0005D81C:
 	move.w #$1,$001E(a1)
@@ -27237,7 +27237,7 @@ update_audio_channels:
 	lea.l initialize_audio_player(pc),a3
 	tst.b $0529(a3)
 	beq.b abs_0_0005D8F6
-	move.b abs_0_0005DD02(pc),d0
+	move.b audio_update_phase_increment(pc),d0
 	ext.w d0
 	mulu.w #$10,d0
 	add.b d0,$0526(a3)
@@ -27250,7 +27250,7 @@ update_audio_channels:
 	bra.b abs_0_0005D8FA
 abs_0_0005D92A:
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
-	move.w abs_0_0005DD12(pc),d0
+	move.w audio_sample_visualization_offset(pc),d0
 	tst.w $0532(a3)
 	bmi.b abs_0_0005D950
 	move.w #$C0C0,$0(a0,d0.w)
@@ -27303,11 +27303,11 @@ abs_0_0005D968:
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
-	move.l abs_0_0005DD0C(pc),$0000(a4)
+	move.l audio_silence_sample_ptr(pc),$0000(a4)
 	move.w #$20,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9EC
-	move.l abs_0_0005DD0C(pc),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.l audio_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
 	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
 	subq.w #1,$001E(a0)
@@ -27330,7 +27330,7 @@ abs_0_0005DA1A:
 	move.b (a1)+,d0
 	bmi.w abs_0_0005DBA8
 	move.b d0,$0002(a0)
-	add.b abs_0_0005DD08(pc),d0
+	add.b audio_global_note_offset(pc),d0
 	add.b $0003(a0),d0
 	movea.l $0022(a0),a2
 	move.b (a2)+,d1
@@ -27374,7 +27374,7 @@ abs_0_0005DAAE:
 	bra.w abs_0_0005D8F6
 abs_0_0005DAB6:
 	move.b $0002(a0),d0
-	add.b abs_0_0005DD08(pc),d0
+	add.b audio_global_note_offset(pc),d0
 	add.b $0003(a0),d0
 	movea.l $0010(a0),a1
 	move.b (a1)+,d1
@@ -27499,7 +27499,7 @@ abs_0_0005DC20:
 	lea.l audio_sequence_command_dispatch_offsets(pc),a2
 	movea.w $0(a2,d0.w),a2
 	jmp $0(a3,a2.w)
-abs_0_0005DC2E:
+advance_audio_sequence_program:
 	move.w $000A(a0),d0
 	movea.w $0008(a0),a2
 	adda.w d0,a2
@@ -27513,48 +27513,48 @@ abs_0_0005DC46:
 	adda.l a3,a1
 	move.w d0,$000A(a0)
 	bra.w abs_0_0005DA1A
-abs_0_0005DC54:
+enable_audio_pitch_delta:
 	clr.w $0020(a0)
 	move.b (a1)+,$0014(a0)
 	move.b (a1)+,$0015(a0)
 	bset.b #1,$0000(a0)
 	bra.w abs_0_0005DA1A
-abs_0_0005DC6A:
+start_audio_silence_sample:
 	move.w $001C(a0),$001E(a0)
 	move.l a1,$0004(a0)
-	move.l abs_0_0005DD0C(pc),$0000(a4)
+	move.l audio_silence_sample_ptr(pc),$0000(a4)
 	move.w #$20,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DC92
-	move.l abs_0_0005DD0C(pc),$00A0(a6)
+	move.l audio_silence_sample_ptr(pc),$00A0(a6)
 	move.w #$20,$00A4(a6)
 abs_0_0005DC92:
 	bra.w abs_0_0005DAAE
-abs_0_0005DC96:
+continue_audio_channel_update:
 	bra.w abs_0_0005DA98
-abs_0_0005DC9A:
+reset_audio_channels_command:
 	bra.w reset_audio_channels
-abs_0_0005DC9E:
+set_audio_player_control_byte:
 	move.b (a1)+,$052A(a3)
 	bra.w abs_0_0005DA1A
-abs_0_0005DCA6:
+enable_audio_pitch_modulation:
 	st.b $0001(a0)
 	move.b (a1)+,$002C(a0)
 	move.b (a1)+,$002E(a0)
 	clr.b $002D(a0)
 	bra.w abs_0_0005DA1A
-abs_0_0005DCBA:
+disable_audio_pitch_modulation:
 	sf.b $0001(a0)
 	bra.w abs_0_0005DA1A
-abs_0_0005DCC2:
+set_audio_channel_note_offset:
 	move.b (a1)+,$0003(a0)
 	bra.w abs_0_0005DA1A
-abs_0_0005DCCA:
+set_audio_channel_program_configuration:
 	move.b (a1)+,$0008(a0)
 	move.b (a1)+,$0009(a0)
 	move.w #$0,$000A(a0)
 	bra.w abs_0_0005DA1A
-abs_0_0005DCDC:
+set_audio_player_base_note:
 	move.b (a1)+,d0
 	ext.w d0
 	move.w d0,$0520(a3)
@@ -27566,14 +27566,14 @@ abs_0_0005DCFE:
 	dc.w $0000	; lookup_table
 audio_master_volume:
 	dc.w $0040	; lookup_table
-abs_0_0005DD02:
+audio_update_phase_increment:
 	dc.b $00,$00,$00,$00,$00,$00	; lookup_table
-abs_0_0005DD08:
+audio_global_note_offset:
 	dc.b $00,$06,$00,$00	; lookup_table
-abs_0_0005DD0C:
+audio_silence_sample_ptr:
 	dc.l $00000000	; lookup_table
 	dc.w $0000
-abs_0_0005DD12:
+audio_sample_visualization_offset:
 	dc.w $0000	; lookup_table
 audio_channel_state_records:	; STRUCT audio_channel_runtime_state
 	dc.b $00	; byte channel_flags

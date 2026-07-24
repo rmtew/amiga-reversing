@@ -356,6 +356,17 @@ controls before returning to the shared packed-stream decoder. The `$4e75` RTS
 at `$0005DCDE` is a decisive code boundary within the dispatch island; it is
 not an inline-data marker.
 
+The adjacent audio-control globals now have xref-backed names. The byte at
+`audio_update_phase_increment` (`$0005DD02`) is copied into the player control
+area on initialization and multiplied by 16 to advance the update phase in
+`update_audio_channels`. `audio_global_note_offset` (`$0005DD08`) is added to
+every decoded note before the per-channel note offset. The long
+`audio_silence_sample_ptr` (`$0005DD0C`) supplies the 64-byte fallback sample
+to both the normal channel update and command 2. Finally,
+`audio_sample_visualization_offset` (`$0005DD12`) indexes the seventh sample's
+display data while the updater writes its oscillating visual pattern. The
+surrounding bytes have no established independent consumers and remain raw.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
