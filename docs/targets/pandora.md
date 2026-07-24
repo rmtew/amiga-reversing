@@ -107,14 +107,18 @@ player's world position at offsets `+0x30` (`world_x`) and `+0x32`
 (`world_y`).  It also carries an object-state byte at `+0x48`: bit 1 is set
 when interaction logic enters its pending state and tested before inventory
 panel updates and proximity-context handling.  Other observed fields include
-the byte at `+0x3d`, the byte at `+0x46`, the word at `+0x3c`, and the pointer
-at `+0x4e`; their roles need further cross-object comparison before becoming
-shared record fields.
+the byte at `+0x3d`, the byte at `+0x46`, the word at `+0x3c`, the pointer at
+`+0x4e`, and the two-byte context-prompt cooldown at `+0x52`; their roles need
+further cross-object comparison before becoming shared record fields.
 
-The player entry is now rendered by this semantic label, so all absolute and
-pointer-table references converge on the same object identity.  A full
-`world_object_record` layout remains open rather than inferred from the player
-instance alone.
+The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
+field facts come from the common scan loop rather than the player instance:
+`interaction_callback` (`+0x04`), `context_callback` (`+0x0c`),
+`interaction_data_ptr` (`+0x10`), `position_descriptor_ptr` (`+0x2c`),
+position, `proximity_distance` (`+0x42`), flags, and the cooldown.  The prefix
+is bound at the player entry; unclassified spans stay raw.  A complete
+`world_object_record` layout remains open rather than inferred from that
+minimum common prefix.
 
 ## Maintenance rule
 

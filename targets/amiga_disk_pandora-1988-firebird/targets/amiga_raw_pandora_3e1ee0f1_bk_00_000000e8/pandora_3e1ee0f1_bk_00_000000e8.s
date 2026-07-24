@@ -419,7 +419,7 @@ abs_0_000105C2:
 	move.w #$310,d0
 	jsr abs_0_0005D330.l
 abs_0_0001066C:
-	btst.b #1,world_object_flags.l
+	btst.b #1,shared_fields_world_object_flags.l
 	beq.b abs_0_00010688
 abs_0_00010676:
 	btst.b #5,app_02A6(a6)
@@ -474,7 +474,7 @@ abs_0_00010724:
 	lea.l abs_0_0005D5DE.l,a0
 	move.l a0,app_current_palette(a6)
 	st.b app_02D8(a6)
-	bset.b #1,world_object_flags.l
+	bset.b #1,shared_fields_world_object_flags.l
 	move.b #$46,app_02CC(a6)
 	jsr abs_0_0005C9AE.l
 abs_0_0001074C:
@@ -1893,7 +1893,7 @@ abs_0_00012644:
 	rts
 	dc.b $40,$E7,$46,$FC,$27,$00,$2D,$48,$03,$60,$46,$DF,$4E,$75
 abs_0_00012664:
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	move.w $0032(a4),d0
 	sub.w $0032(a5),d0
 	bpl.b abs_0_00012676
@@ -1910,7 +1910,7 @@ abs_0_00012688:
 abs_0_0001268C:
 	rts
 abs_0_0001268E:
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	movem.l d0-d2/a0-a2,-(a7)
 	movea.l $002C(a5),a0
 	movea.l $0000(a0),a1
@@ -1940,7 +1940,7 @@ abs_0_000126E6:
 	movem.l (a7)+,d0-d2/a0-a2
 	rts
 update_inventory_panel_availability:
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_00012712
 	move.b app_022E(a6),d0
@@ -2085,7 +2085,7 @@ abs_0_000128CC:
 handle_inventory_panel_input:
 	btst.b #2,app_022E(a6)
 	beq.b abs_0_00012918
-	btst.b #1,world_object_flags.l
+	btst.b #1,shared_fields_world_object_flags.l
 	bne.b abs_0_00012918
 	tst.w app_inventory_cursor_move_countdown(a6)
 	bne.w advance_inventory_cursor_move
@@ -2203,7 +2203,7 @@ handle_inventory_panel_selection:
 	bne.w abs_0_00012AB6
 	bsr.w clear_inventory_item_selection_flags
 	movea.l app_0358(a6),a5
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	move.w app_inventory_cursor_y(a6),d0
 	subi.w #139,d0
 	lsr.w #2,d0
@@ -2498,7 +2498,7 @@ abs_0_00012DDC:
 	bsr.w abs_0_00012E8A
 	btst.b #5,app_033C(a6)
 	bne.b abs_0_00012DF8
-	btst.b #1,world_object_flags.l
+	btst.b #1,shared_fields_world_object_flags.l
 	bne.b abs_0_00012DF8
 	tst.w app_0286(a6)
 	beq.b abs_0_00012E10
@@ -2556,7 +2556,7 @@ abs_0_00012ECE:
 abs_0_00012EE0:
 	dc.b $39,$39,$39,$39,$00,$00
 abs_0_00012EE6:
-	btst.b #1,world_object_flags.l
+	btst.b #1,shared_fields_world_object_flags.l
 	bne.b abs_0_00012F16
 	btst.b #1,app_022E(a6)
 	bne.w abs_0_000178CC
@@ -2650,7 +2650,7 @@ abs_0_00012FE8:
 	movem.l (a7)+,d2-d3
 	rts
 world_object_ptr_table:
-	dc.l player_world_object	; mode=required, data_role=pointer_table, unit=pointer
+	dc.l shared_fields_gap_0	; mode=required, data_role=pointer_table, unit=pointer
 abs_0_0001300E:
 	dc.l abs_0_0005BA66	; mode=required, data_role=pointer_table, unit=pointer
 	dc.l abs_0_0005C1D2
@@ -5234,7 +5234,7 @@ abs_0_0001779E:
 	lsr.b #1,d1
 abs_0_000177EC:
 	move.b d1,app_02B6(a6)
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	move.l $0030(a5),-(a7)
 	add.w d2,$0030(a5)
 	bsr.w abs_0_0001864C
@@ -5242,7 +5242,7 @@ abs_0_000177EC:
 	move.b d0,app_02B3(a6)
 	move.b d1,app_02B7(a6)
 	movea.l app_interaction_object_ptr(a6),a5
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	move.b $004A(a5),d0
 	cmp.b #$42,d0
 	bne.b abs_0_00017856
@@ -5321,7 +5321,7 @@ abs_0_000178F4:
 	and.b d2,d1
 	cmp.b d0,d1
 	bcs.b abs_0_00017938
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	move.b $003D(a4),d0
 	sub.b app_02B6(a6),d0
 	beq.w abs_0_000179A8
@@ -5357,7 +5357,7 @@ abs_0_00017980:
 	movea.l app_interaction_object_ptr(a6),a5
 	bsr.w abs_0_00018544
 	lea.l abs_0_000132D6.l,a4
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	bsr.w abs_0_00018544
 	bsr.w abs_0_0001817A
 	bsr.w abs_0_00017B3C
@@ -5399,7 +5399,7 @@ abs_0_00017A06:
 	andi.b #240,d0
 	move.w d0,$0030(a5)
 	bsr.w abs_0_000124E0
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	btst.b #1,$0048(a5)
 	beq.b abs_0_00017A4E
 	movea.l app_interaction_object_ptr(a6),a5
@@ -5433,7 +5433,7 @@ abs_0_00017A94:
 	movea.l $0010(a2),a3
 	move.l a1,$0000(a2)
 	move.l a1,$0004(a2)
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	move.w $0030(a5),d0
 	subi.w #10000,d0
 	move.w d0,$0004(a3)
@@ -5511,7 +5511,7 @@ validate_npc_item_trade:
 	move.b $0046(a5),d0
 	bsr.w is_tradeable_item_id
 	bcs.b abs_0_00017C06
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	move.b $0046(a4),d0
 	bsr.w is_tradeable_item_id
 	bcs.w abs_0_00017BF2
@@ -5631,7 +5631,7 @@ abs_0_00017D48:
 	clr.w app_0298(a6)
 	bra.w abs_0_00017D9C
 abs_0_00017D60:
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	move.w app_tilemap_height(a6),d1
 	subq.w #8,d1
 	lsl.w #4,d1
@@ -5668,7 +5668,7 @@ abs_0_00017DA6:
 	bset.b #2,app_033C(a6)
 	bne.b abs_0_00017DD6
 	lea.l abs_0_000132D6.l,a4
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	bsr.w abs_0_00018544
 abs_0_00017DD6:
 	lea.l abs_0_000134C2.l,a0
@@ -5679,7 +5679,7 @@ abs_0_00017DD6:
 abs_0_00017DEE:
 	rts
 update_world_object_interactions:
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	movea.l app_active_world_object_ptr_table(a6),a0
 	move.w active_world_object_count(a6),d7
 	beq.w abs_0_00017F06
@@ -6112,7 +6112,7 @@ abs_0_000182E8:
 	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF
 update_nearby_object_detection:
 	lea.l world_object_ptr_table(pc),a1
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	move.w $0030(a4),d4
 	move.w $0032(a4),d5
 	move.w #$5A,d0
@@ -6178,7 +6178,7 @@ update_nearby_object_context:
 	btst.b #2,app_02A6(a6)
 	bne.b clear_nearby_object_context_prompt
 	movea.l app_nearest_object_ptr(a6),a5
-	btst.b #1,world_object_flags.l
+	btst.b #1,shared_fields_world_object_flags.l
 	bne.b abs_0_0001840E
 	btst.b #1,$0048(a5)
 	bne.b abs_0_0001840E
@@ -6419,7 +6419,7 @@ abs_0_0001867E:
 	dc.b $3F,$FF,$4E,$75
 abs_0_0001875A:
 	lea.l abs_0_00013502(pc),a0
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	moveq.l #0,d0
 	moveq.l #0,d1
 	moveq.l #0,d2
@@ -6491,7 +6491,7 @@ abs_0_00018808:
 	jsr abs_0_0005D368.l
 	rts
 abs_0_00018814:
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_0001884E
 	tst.b app_02CE(a6)
@@ -6521,7 +6521,7 @@ abs_0_00018850:
 abs_0_00018864:
 	subq.w #1,app_02D0(a6)
 	bne.b abs_0_00018896
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	move.b $003D(a5),d0
 	subi.b #51,d0
 	bpl.b abs_0_0001887C
@@ -6533,7 +6533,7 @@ abs_0_0001887C:
 	move.b #$1F,app_02CE(a6)
 	move.w #$32,app_02D0(a6)
 abs_0_00018896:
-	lea.l player_world_object.l,a5
+	lea.l shared_fields_gap_0.l,a5
 	move.w app_02D2(a6),d0
 	tst.b app_02CE(a6)
 	beq.b abs_0_00018918
@@ -6544,7 +6544,7 @@ abs_0_00018896:
 	bmi.b abs_0_000188BC
 	bne.b abs_0_0001884E
 abs_0_000188BC:
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	clr.w $003C(a4)
 	bset.b #1,$0048(a4)
 	move.b #$46,app_02CC(a6)
@@ -6591,7 +6591,7 @@ abs_0_00018984:
 	andi.b #6,d0
 	bne.w abs_0_00018A16
 	lea.l abs_0_000591EE.l,a0
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	btst.b #1,$0048(a4)
 	bne.b abs_0_00018A16
 	move.w $0004(a0),d0
@@ -6776,7 +6776,7 @@ abs_0_0001924C:
 abs_0_0001924E:
 	dc.w $0000
 abs_0_00019250:
-	btst.b #1,world_object_flags.l
+	btst.b #1,shared_fields_world_object_flags.l
 	bne.w abs_0_000193D8
 	tst.w app_0320(a6)
 	beq.b abs_0_0001926E
@@ -6792,7 +6792,7 @@ abs_0_0001926E:
 	tst.b app_031B(a6)
 	bne.w abs_0_000193D8
 	addq.b #1,app_031B(a6)
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	clr.w d0
 	move.b $0046(a4),d0
 	subi.b #18,d0
@@ -7380,7 +7380,7 @@ abs_0_00019FC4:
 	move.w d0,app_tilemap_scroll_y(a6)
 	clr.w app_tile_column(a6)
 	clr.w app_tilemap_scroll_x(a6)
-	lea.l player_world_object.l,a4
+	lea.l shared_fields_gap_0.l,a4
 	addi.w #50,d0
 	move.w d0,$0032(a4)
 	move.w #$F1,$0030(a4)
@@ -26357,59 +26357,76 @@ abs_0_0005C2BE:
 	dc.b $05,$C2,$52,$00,$05,$C2,$52,$00,$05,$C2,$64,$00,$05,$C2,$76,$00
 	dc.b $05,$C2,$88,$00,$05,$C2,$9A,$00,$05,$C2,$AC,$00,$07,$00,$01,$95
 	dc.b $E2,$00,$05,$00,$01,$00,$14,$00,$05,$C3,$12
-player_world_object:
-	dcb.b $15,$00
-	dc.b $01,$B3,$A0,$00,$01,$B3,$A0,$00,$01,$B3,$A0,$00,$01,$B3,$A0,$00
-	dc.b $05,$C3,$12,$00,$05,$C3,$12,$00,$05,$C7,$1E
-world_x:
-	dc.w $0000	; world_object_record
-world_y:
-	dc.w $0000	; world_object_record
+shared_fields_gap_0:
+	dc.l $00000000	; typed data block gap
+shared_fields_interaction_callback:	; STRUCT world_object_shared_prefix
+	dc.l $00000000	; long interaction_callback
+shared_fields_gap_8:
+	dc.l $00000000	; typed data block gap
+shared_fields_context_callback:	; STRUCT world_object_shared_prefix
+	dc.l $00000000	; long context_callback
+shared_fields_interaction_data_ptr:	; STRUCT world_object_shared_prefix
+	dc.l $00000000	; long interaction_data_ptr
+shared_fields_gap_14:
+	dc.b $00,$01,$B3,$A0,$00,$01,$B3,$A0,$00,$01,$B3,$A0,$00,$01,$B3,$A0	; typed data block gap
+	dc.b $00,$05,$C3,$12,$00,$05,$C3,$12	; typed data block gap
+shared_fields_position_descriptor_ptr:	; STRUCT world_object_shared_prefix
+	dc.l $0005C71E	; long position_descriptor_ptr
+shared_fields_world_x:	; STRUCT world_object_shared_prefix
+	dc.w $0000	; word world_x
+shared_fields_world_y:	; STRUCT world_object_shared_prefix
+	dc.w $0000	; word world_y
+shared_fields_gap_34:
 	dcb.b $9,$00
 abs_0_0005C35F:
-	dc.b $5F,$00,$5F,$00,$64,$00,$00,$00,$00
+	dc.b $5F,$00,$5F,$00,$64
+shared_fields_proximity_distance:	; STRUCT world_object_shared_prefix
+	dc.w $0000	; word proximity_distance
+shared_fields_gap_44:
+	dc.w $0000
 selected_item_id:
 	dc.b $00	; world_object_record
 	dc.b $00
-world_object_flags:
-	dc.b $00	; world_object_record
-	dcb.b $9,$00
-context_prompt_cooldown:
-	dc.b $00	; world_object_record
-	dc.b $00,$00,$03,$15,$28,$00,$07,$DB,$00,$00,$02,$00,$1E,$00,$0E,$00
-	dc.b $07,$00,$00,$00,$03,$03,$28,$00,$07,$D6,$80,$00,$02,$00,$1E,$00
-	dc.b $18,$00,$02,$00,$00,$00,$03,$05,$28,$00,$07,$D7,$00,$00,$02,$00
-	dc.b $1D,$00,$1C,$00,$03,$00,$00,$00,$03,$07,$28,$00,$07,$D7,$80,$00
-	dc.b $02,$00,$1D,$00,$12,$00,$07,$00,$00,$00,$03,$09,$28,$00,$07,$D8
-	dc.b $00,$00,$02,$00,$1E,$00,$13,$00,$07,$00,$00,$00,$03,$0B,$28,$00
-	dc.b $07,$D8,$80,$00,$02,$00,$1D,$00,$1B,$00,$02,$00,$00,$00,$03,$0D
-	dc.b $28,$00,$07,$D9,$00,$00,$02,$00,$1E,$00,$13,$00,$06,$00,$00,$00
-	dc.b $03,$0F,$28,$00,$07,$D9,$80,$00,$02,$00,$1E,$00,$11,$00,$07,$00
-	dc.b $00,$00,$03,$17,$28,$00,$07,$DB,$80,$00,$02,$00,$1E,$00,$0E,$00
-	dc.b $0B,$00,$00,$00,$02,$F5,$28,$00,$07,$D0,$00,$00,$02,$00,$1E,$00
-	dc.b $17,$00,$07,$00,$00,$00,$02,$F7,$28,$00,$07,$D0,$80,$00,$02,$00
-	dc.b $1D,$00,$1C,$00,$01,$00,$00,$00,$02,$F9,$28,$00,$07,$D1,$00,$00
-	dc.b $02,$00,$1D,$00,$12,$00,$07,$00,$00,$00,$02,$FB,$28,$00,$07,$D1
-	dc.b $80,$00,$02,$00,$1E,$00,$13,$00,$06,$00,$00,$00,$02,$FD,$28,$00
-	dc.b $07,$D2,$00,$00,$02,$00,$1D,$00,$1B,$00,$03,$00,$00,$00,$02,$FF
-	dc.b $28,$00,$07,$D2,$80,$00,$02,$00,$1E,$00,$13,$00,$07,$00,$00,$00
-	dc.b $03,$01,$28,$00,$07,$D3,$00,$00,$02,$00,$1D,$00,$12,$00,$07,$00
-	dc.b $00,$00,$03,$11,$28,$00,$07,$DA,$00,$00,$02,$00,$20,$00,$1C,$00
-	dc.b $02,$00,$00,$00,$02,$E9,$28,$00,$07,$D3,$80,$00,$02,$00,$20,$00
-	dc.b $1C,$00,$02,$00,$00,$00,$02,$EB,$28,$00,$07,$D4,$00,$00,$02,$00
-	dc.b $1F,$00,$1C,$00,$02,$00,$00,$00,$02,$ED,$28,$00,$07,$D4,$80,$00
-	dc.b $02,$00,$20,$00,$1C,$00,$02,$00,$00,$00,$02,$EF,$28,$00,$07,$D5
-	dc.b $00,$00,$02,$00,$20,$00,$1C,$00,$02,$00,$00,$00,$02,$F1,$28,$00
-	dc.b $07,$D5,$80,$00,$02,$00,$1F,$00,$1C,$00,$02,$00,$00,$00,$02,$F3
-	dc.b $28,$00,$07,$D6,$00,$00,$02,$00,$20,$00,$1C,$00,$02,$00,$00,$00
-	dc.b $03,$13,$28,$00,$07,$DA,$80,$00,$02,$00,$1E,$00,$18,$00,$04,$00
-	dc.b $00,$00,$02,$DD,$28,$00,$06,$9B,$6C,$00,$02,$00,$20,$00,$16,$00
-	dc.b $04,$00,$00,$00,$02,$DF,$28,$00,$06,$9B,$EC,$00,$02,$00,$20,$00
-	dc.b $18,$00,$04,$00,$00,$00,$02,$E1,$28,$00,$06,$9C,$6C,$00,$02,$00
-	dc.b $20,$00,$18,$00,$04,$00,$00,$00,$02,$E3,$28,$00,$06,$9C,$EC,$00
-	dc.b $02,$00,$20,$00,$18,$00,$04,$00,$00,$00,$02,$E5,$28,$00,$06,$9D
-	dc.b $6C,$00,$02,$00,$20,$00,$18,$00,$04,$00,$00,$00,$02,$E7,$28,$00
-	dc.b $06,$9D,$EC,$00,$02,$00,$20,$00,$18,$00,$04,$00,$00
+shared_fields_world_object_flags:	; STRUCT world_object_shared_prefix
+	dc.b $00	; byte world_object_flags
+shared_fields_gap_49:
+	dcb.b $9,$00	; typed data block gap
+shared_fields_context_prompt_cooldown:	; STRUCT world_object_shared_prefix
+	dc.w $0000	; word context_prompt_cooldown
+	dc.b $00,$03,$15,$28,$00,$07,$DB,$00,$00,$02,$00,$1E,$00,$0E,$00,$07
+	dc.b $00,$00,$00,$03,$03,$28,$00,$07,$D6,$80,$00,$02,$00,$1E,$00,$18
+	dc.b $00,$02,$00,$00,$00,$03,$05,$28,$00,$07,$D7,$00,$00,$02,$00,$1D
+	dc.b $00,$1C,$00,$03,$00,$00,$00,$03,$07,$28,$00,$07,$D7,$80,$00,$02
+	dc.b $00,$1D,$00,$12,$00,$07,$00,$00,$00,$03,$09,$28,$00,$07,$D8,$00
+	dc.b $00,$02,$00,$1E,$00,$13,$00,$07,$00,$00,$00,$03,$0B,$28,$00,$07
+	dc.b $D8,$80,$00,$02,$00,$1D,$00,$1B,$00,$02,$00,$00,$00,$03,$0D,$28
+	dc.b $00,$07,$D9,$00,$00,$02,$00,$1E,$00,$13,$00,$06,$00,$00,$00,$03
+	dc.b $0F,$28,$00,$07,$D9,$80,$00,$02,$00,$1E,$00,$11,$00,$07,$00,$00
+	dc.b $00,$03,$17,$28,$00,$07,$DB,$80,$00,$02,$00,$1E,$00,$0E,$00,$0B
+	dc.b $00,$00,$00,$02,$F5,$28,$00,$07,$D0,$00,$00,$02,$00,$1E,$00,$17
+	dc.b $00,$07,$00,$00,$00,$02,$F7,$28,$00,$07,$D0,$80,$00,$02,$00,$1D
+	dc.b $00,$1C,$00,$01,$00,$00,$00,$02,$F9,$28,$00,$07,$D1,$00,$00,$02
+	dc.b $00,$1D,$00,$12,$00,$07,$00,$00,$00,$02,$FB,$28,$00,$07,$D1,$80
+	dc.b $00,$02,$00,$1E,$00,$13,$00,$06,$00,$00,$00,$02,$FD,$28,$00,$07
+	dc.b $D2,$00,$00,$02,$00,$1D,$00,$1B,$00,$03,$00,$00,$00,$02,$FF,$28
+	dc.b $00,$07,$D2,$80,$00,$02,$00,$1E,$00,$13,$00,$07,$00,$00,$00,$03
+	dc.b $01,$28,$00,$07,$D3,$00,$00,$02,$00,$1D,$00,$12,$00,$07,$00,$00
+	dc.b $00,$03,$11,$28,$00,$07,$DA,$00,$00,$02,$00,$20,$00,$1C,$00,$02
+	dc.b $00,$00,$00,$02,$E9,$28,$00,$07,$D3,$80,$00,$02,$00,$20,$00,$1C
+	dc.b $00,$02,$00,$00,$00,$02,$EB,$28,$00,$07,$D4,$00,$00,$02,$00,$1F
+	dc.b $00,$1C,$00,$02,$00,$00,$00,$02,$ED,$28,$00,$07,$D4,$80,$00,$02
+	dc.b $00,$20,$00,$1C,$00,$02,$00,$00,$00,$02,$EF,$28,$00,$07,$D5,$00
+	dc.b $00,$02,$00,$20,$00,$1C,$00,$02,$00,$00,$00,$02,$F1,$28,$00,$07
+	dc.b $D5,$80,$00,$02,$00,$1F,$00,$1C,$00,$02,$00,$00,$00,$02,$F3,$28
+	dc.b $00,$07,$D6,$00,$00,$02,$00,$20,$00,$1C,$00,$02,$00,$00,$00,$03
+	dc.b $13,$28,$00,$07,$DA,$80,$00,$02,$00,$1E,$00,$18,$00,$04,$00,$00
+	dc.b $00,$02,$DD,$28,$00,$06,$9B,$6C,$00,$02,$00,$20,$00,$16,$00,$04
+	dc.b $00,$00,$00,$02,$DF,$28,$00,$06,$9B,$EC,$00,$02,$00,$20,$00,$18
+	dc.b $00,$04,$00,$00,$00,$02,$E1,$28,$00,$06,$9C,$6C,$00,$02,$00,$20
+	dc.b $00,$18,$00,$04,$00,$00,$00,$02,$E3,$28,$00,$06,$9C,$EC,$00,$02
+	dc.b $00,$20,$00,$18,$00,$04,$00,$00,$00,$02,$E5,$28,$00,$06,$9D,$6C
+	dc.b $00,$02,$00,$20,$00,$18,$00,$04,$00,$00,$00,$02,$E7,$28,$00,$06
+	dc.b $9D,$EC,$00,$02,$00,$20,$00,$18,$00,$04,$00,$00
 abs_0_0005C592:
 	dc.b $00,$04,$76,$38,$00,$06,$5E,$98,$00,$04,$00,$20,$00,$40,$00,$00
 	dc.b $00,$00,$00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$20,$00,$20
@@ -30306,7 +30323,7 @@ abs_0_000652FC:
 update_player_proximity_audio:
 	btst.b #1,abs_0_0005C21A.l
 	bne.b abs_0_000652DE
-	lea.l world_x.l,a0
+	lea.l shared_fields_world_x.l,a0
 	move.w (a0)+,d0
 	subi.w #840,d0
 	bpl.b abs_0_00065318
