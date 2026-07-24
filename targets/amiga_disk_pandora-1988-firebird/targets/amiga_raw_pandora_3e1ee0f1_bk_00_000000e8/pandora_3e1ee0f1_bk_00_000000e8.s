@@ -425,7 +425,7 @@ abs_0_00010474:
 abs_0_00010488:
 	move #$2700,sr
 	lea.l absolute_slot_000039FC.l,a6
-	jsr abs_0_00019EBA.l
+	jsr initialize_world_tilemap_state.l
 abs_0_00010498:
 	lea.l _custom.l,a5
 	lea.l abs_0_00010750(pc),a0
@@ -1022,7 +1022,7 @@ abs_0_00010D14:
 initialize_starfield:
 	lea.l abs_0_00010B28(pc),a0
 	lea.l abs_0_00010B68(pc),a1
-	movea.l #abs_0_0001B3A8,a2
+	movea.l #world_runtime_setup_records,a2
 	moveq.l #31,d7
 	jsr clear_rgb12_palette_components.l
 	moveq.l #7,d7
@@ -1241,7 +1241,7 @@ abs_0_00010FEC:
 	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
 	bset.b #0,app_world_interaction_audio_flags(a6)
-	movea.l #abs_0_0001B3A8,a0
+	movea.l #world_runtime_setup_records,a0
 	moveq.l #47,d7
 abs_0_00011044:
 	clr.l (a0)+
@@ -1254,7 +1254,7 @@ abs_0_00011052:
 	subq.b #1,app_0284(a6)
 	lea.l abs_0_00010B28(pc),a0
 	lea.l abs_0_00010B68(pc),a1
-	movea.l #abs_0_0001B3A8,a2
+	movea.l #world_runtime_setup_records,a2
 	moveq.l #31,d7
 	bsr.w add_rgb12_palette_components
 abs_0_00011070:
@@ -4726,7 +4726,7 @@ abs_0_00016B18:
 	swap.w d6
 	clr.w d6
 	ror.l #4,d6
-	lea.l abs_0_0001B3A8.l,a3
+	lea.l world_runtime_setup_records.l,a3
 	move.l a2,-(a7)
 	move.l a3,-(a7)
 abs_0_00016B4C:
@@ -4823,7 +4823,7 @@ abs_0_00016C60:
 	swap.w d6
 	clr.w d6
 	ror.l #4,d6
-	lea.l abs_0_0001B3A8.l,a3
+	lea.l world_runtime_setup_records.l,a3
 	move.l a2,-(a7)
 	move.l a3,-(a7)
 	subq.l #2,a2
@@ -8138,7 +8138,7 @@ abs_0_00019EA2:
 	bsr.w abs_0_00016056
 abs_0_00019EB8:
 	rts
-abs_0_00019EBA:
+initialize_world_tilemap_state:
 	bsr.w seed_pseudorandom_state_from_beam_position
 	moveq.l #0,d0
 	moveq.l #0,d1
@@ -8154,7 +8154,7 @@ abs_0_00019EC6:
 	bsr.w abs_0_0001A198
 	move.w #$1,app_02CA(a6)
 	moveq.l #15,d7
-	lea.l abs_0_0001B3A8.l,a0
+	lea.l world_runtime_setup_records.l,a0
 	lea.l $00065374.l,a1
 	lea.l $000653B8.l,a2
 abs_0_00019F06:
@@ -8934,34 +8934,24 @@ abs_0_0001B0C0:
 	dc.b $6E,$14,$2F,$3C,$00,$00,$00,$00,$6E,$14,$2F,$3C,$00,$00,$00,$00
 default_empty_item_slots:
 	dc.w $0000,$0000,$0000,$0000	; item_slot_table
-abs_0_0001B3A8:
-	dcb.b $20,$00
-	dc.b $01,$C0,$00,$00,$01,$C0
-	dcb.b $A,$00
-	dc.b $01,$20,$00,$C0,$01,$E0
-	dcb.b $B,$00
-	dc.b $90,$00,$60,$00,$F0
-	dcb.b $B,$00
-	dc.b $48,$00,$30,$00,$78
-	dcb.b $A,$00
-	dc.b $FF,$C4,$00,$38,$FF,$FC
-	dcb.b $A,$00
-	dc.b $80,$02,$7F,$FC,$FF,$FE
-	dcb.b $A,$00
-	dc.b $80,$01,$7F,$FE,$FF,$FF
-	dcb.b $A,$00
-	dc.b $80,$00,$7F,$FC,$FF,$FE
-	dcb.b $B,$00
-	dc.b $40,$00,$38,$FF,$FC
-	dcb.b $B,$00
-	dc.b $40,$00,$30,$00,$78
-	dcb.b $B,$00
-	dc.b $80,$00,$60,$00,$F0
-	dcb.b $A,$00
-	dc.b $01,$00,$00,$C0,$01,$E0
-	dcb.b $A,$00
-	dc.b $01,$00,$00,$00,$01,$C0
-	dcb.b $3B,$00
+world_runtime_setup_records:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $01C0,$0000,$01C0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0120,$00C0,$01E0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0090,$0060,$00F0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0048,$0030,$0078,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $FFC4,$0038,$FFFC,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $8002,$7FFC,$FFFE,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $8001,$7FFE,$FFFF,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $8000,$7FFC,$FFFE,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0040,$0038,$FFFC,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0040,$0030,$0078,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0080,$0060,$00F0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0100,$00C0,$01E0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0100,$0000,$01C0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+	dcb.b $21,$00
 	dc.b $1C,$00,$00,$00,$1C
 	dcb.b $B,$00
 	dc.b $12,$00,$0C,$00,$1E

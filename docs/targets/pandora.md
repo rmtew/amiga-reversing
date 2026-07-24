@@ -596,6 +596,14 @@ mutable array after subtracting `$18` from the selected item ID, tests it, and
 decrements it before applying that item's effect. Their precise item-specific
 semantics remain intentionally unnamed pending additional consumers.
 
+`initialize_world_tilemap_state` at `$00019EBA` seeds the pseudorandom state,
+fills a 200-word line-offset sequence with successive 160-byte values, sets
+the `$5a` by `$81` world tilemap dimensions and base `$4000`, and copies the
+first two word pairs of each `world_runtime_setup_records` entry. That table at
+`$0001B3A8` is exactly 16 records with a 16-byte stride; the copy loop proves
+the bounds and stride, while the individual record words remain raw until
+their consumers establish field semantics.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly
