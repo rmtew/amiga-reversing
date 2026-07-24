@@ -47,6 +47,13 @@ the generated-star buffer, clears a 24-word state region, sets the star/UI
 latch at `app_027B` bit 2, initializes the `$10` countdown at `app_0285`, and
 returns. Its former raw bytes are therefore executable starfield setup code.
 
+The shared pseudo-random state is initialized by
+`seed_pseudorandom_state_from_beam_position`, which selects one of four
+`pseudorandom_seed_values` using the custom chip's beam-position register.
+`advance_pseudorandom_state` then runs a 32-step bitwise state transition.
+The star motion/initialization routines and gameplay update path both consume
+the resulting values.
+
 ## RGB12 palette helpers
 
 The helper group at `$0001255E..$00012654` manipulates Amiga RGB12 colors as

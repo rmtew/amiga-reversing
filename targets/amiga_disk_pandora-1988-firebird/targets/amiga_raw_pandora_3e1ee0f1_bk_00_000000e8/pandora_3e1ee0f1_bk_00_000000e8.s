@@ -497,7 +497,7 @@ abs_0_000105C2:
 	jsr abs_0_00019A48.l
 	bsr.w abs_0_00017DA6
 	bsr.w abs_0_00012D5A
-	jsr abs_0_00012FD8.l
+	jsr advance_pseudorandom_state.l
 	jsr update_player_proximity_audio.l
 	btst.b #5,app_033C(a6)
 	bne.b abs_0_00010676
@@ -872,7 +872,7 @@ update_star_motion:
 	cmp.b #$10,d1
 	rts
 abs_0_00010BD6:
-	bsr.w abs_0_00012FD8
+	bsr.w advance_pseudorandom_state
 	andi.w #255,d0
 	cmp.b #$A0,d0
 	bcs.b abs_0_00010BE6
@@ -906,7 +906,7 @@ abs_0_00010C0E:
 abs_0_00010C22:
 	bsr.b abs_0_00010BD6
 abs_0_00010C24:
-	bsr.w abs_0_00012FD8
+	bsr.w advance_pseudorandom_state
 	andi.b #63,d1
 	addq.b #1,d1
 	cmp.b #$11,d1
@@ -2796,14 +2796,14 @@ abs_0_00012F8E:
 	bsr.w refresh_selected_item_name_display
 	bsr.w clear_inventory_item_selection_flags
 	rts
-abs_0_00012FB2:
+pseudorandom_seed_values:
 	dc.l $67FDE432,$95429168,$DA0597A3,$54FFA672	; lookup_table
-abs_0_00012FC2:
+seed_pseudorandom_state_from_beam_position:
 	move.w _custom+vhposr.l,d0
 	andi.w #12,d0
-	move.l abs_0_00012FB2(pc,d0.w),$07EA.w
-	move.w abs_0_00012FB2(pc,d0.w),absolute_slot_000007E8.w
-abs_0_00012FD8:
+	move.l pseudorandom_seed_values(pc,d0.w),$07EA.w
+	move.w pseudorandom_seed_values(pc,d0.w),absolute_slot_000007E8.w
+advance_pseudorandom_state:
 	movem.l d2-d3,-(a7)
 	lea.l absolute_slot_000007E8.w,a0
 	move.l $0004(a0),d1
@@ -7665,7 +7665,7 @@ abs_0_00019C38:
 	bsr.w handle_inventory_panel_input
 	bsr.w abs_0_00019A48
 	bsr.w abs_0_00012D5A
-	jsr abs_0_00012FD8.l
+	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
 	beq.b abs_0_00019C76
 	subq.b #1,app_02CC(a6)
@@ -7853,7 +7853,7 @@ abs_0_00019EA2:
 abs_0_00019EB8:
 	rts
 abs_0_00019EBA:
-	bsr.w abs_0_00012FC2
+	bsr.w seed_pseudorandom_state_from_beam_position
 	moveq.l #0,d0
 	moveq.l #0,d1
 	move.w #$C7,d7
@@ -27459,7 +27459,7 @@ abs_0_0005D3DC:
 	move.b selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SHAKESPEARE,d0
 	bne.b abs_0_0005D3F8
-	jsr abs_0_00012FD8.l
+	jsr advance_pseudorandom_state.l
 	andi.w #12,d0
 	move.l abs_0_0005D416(pc,d0.w),$0010(a5)
 	bra.b interact_with_hooligan_or_robomechanic
