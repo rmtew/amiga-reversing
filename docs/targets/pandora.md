@@ -336,6 +336,14 @@ initializer walks those words while constructing the four runtime channel
 states. The subsequent packed audio stream is deliberately not included in
 that table until its format is recovered.
 
+The packed-stream command decoder has two bounded relative-offset tables. For
+command bytes `$a0..$ac`, `audio_pitch_sequence_offset_table` at `$0005DE64`
+contains 13 word offsets rebased through the audio-player base; its default
+target is `default_audio_pitch_sequence_stream` at `$0005DE7E`. For `$b0..$bf`,
+`audio_volume_sequence_offset_table` at `$0005E9B6` contains 16 similarly
+rebased word offsets for volume sequences. The sequence-byte encodings remain
+raw until the command language is fully recovered.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

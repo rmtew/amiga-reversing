@@ -27190,7 +27190,7 @@ abs_0_0005D81C:
 	sf.b $0001(a1)
 	sf.b $0003(a1)
 	st.b $0016(a1)
-	lea.l abs_0_0005DE7E(pc),a0
+	lea.l default_audio_pitch_sequence_stream(pc),a0
 	move.l a0,$000C(a1)
 	move.l a0,$0010(a1)
 	lea.l audio_player_initialization_presets(pc),a0
@@ -27476,7 +27476,7 @@ abs_0_0005DBDA:
 	blt.b abs_0_0005DBFE
 	subi.b #176,d0
 	add.w d0,d0
-	lea.l abs_0_0005E9B6(pc),a2
+	lea.l audio_volume_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
 	move.l a2,$0022(a0)
@@ -27487,7 +27487,7 @@ abs_0_0005DBFE:
 	blt.b abs_0_0005DC20
 	subi.b #160,d0
 	add.w d0,d0
-	lea.l abs_0_0005DE64(pc),a2
+	lea.l audio_pitch_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
 	move.l a2,$000C(a0)
@@ -27799,10 +27799,10 @@ audio_pitch_scalars:
 	dc.w audio_player_initialization_presets_gap_14_2-audio_sample_metadata
 	dc.w $008F
 	dc.w $0087
-abs_0_0005DE64:
+audio_pitch_sequence_offset_table:
 	dc.b $06,$A0,$06,$A2,$06,$A5,$06,$A8,$06,$AB,$06,$AE,$06,$B0,$06,$B8
 	dc.b $06,$BF,$06,$C5,$06,$C7,$06,$C9,$06,$CB
-abs_0_0005DE7E:
+default_audio_pitch_sequence_stream:
 	dc.b $00,$80,$07,$0C,$8F,$03,$07,$8C,$00,$03,$87,$00,$04,$87,$00,$8C
 	dc.b $0C,$00,$00,$00,$00,$00,$00,$80,$0C,$00,$00,$00,$00,$00,$80,$0C
 	dc.b $00,$00,$00,$00,$80,$00,$83,$00,$84,$00,$85,$18,$00,$00,$00,$00
@@ -29135,7 +29135,7 @@ envelope_offsets:
 	dc.b $38,$30,$28,$23,$1E,$19,$14,$0F,$0A,$05,$FF,$20,$FF,$04,$08,$10
 	dc.b $18,$1E,$23,$28,$2D,$32,$3C,$40,$1E,$0F,$0A,$04,$FF,$40,$38,$30
 	dc.b $28,$20,$10,$08,$04,$02,$01,$FF,$18,$FF
-abs_0_0005E9B6:
+audio_volume_sequence_offset_table:
 	dc.b $11,$F9,$11,$FC,$12,$02,$12,$23,$12,$51,$12,$57,$12,$7B,$12,$7F
 	dc.b $12,$9D,$12,$A9,$12,$C8,$12,$E6,$12,$EB,$12,$F0,$12,$F3,$12,$F6
 	dc.b $FF,$22,$A2,$01,$20,$18,$10,$08,$80,$01,$40,$30,$20,$18,$30,$20
