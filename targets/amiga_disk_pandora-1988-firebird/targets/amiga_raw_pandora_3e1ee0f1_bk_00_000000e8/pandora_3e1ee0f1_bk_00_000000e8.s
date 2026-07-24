@@ -4309,9 +4309,24 @@ abs_0_0001666E:
 	clr.l (a0)+
 	dbf.w d7,abs_0_0001666E
 	rts
-	dc.b $7E,$0F,$41,$FA,$41,$E8,$20,$18,$67,$1A,$2A,$40,$4A,$6D,$00,$06
-	dc.b $6A,$12,$20,$2D,$00,$28,$67,$0C,$22,$40,$48,$E7,$01,$80,$4E,$91
-	dc.b $4C,$DF,$01,$80,$51,$CF,$FF,$E0,$4E,$75
+process_world_object_callback_queue:
+	moveq.l #15,d7
+	lea.l abs_0_0001A862(pc),a0
+abs_0_0001667C:
+	move.l (a0)+,d0
+	beq.b abs_0_0001669A
+	movea.l d0,a5
+	tst.w $0006(a5)
+	bpl.b abs_0_0001669A
+	move.l $0028(a5),d0
+	beq.b abs_0_0001669A
+	movea.l d0,a1
+	movem.l d7/a0,-(a7)
+	jsr (a1)
+	movem.l (a7)+,d7/a0
+abs_0_0001669A:
+	dbf.w d7,abs_0_0001667C
+	rts
 abs_0_000166A0:
 	lea.l abs_0_0001A862(pc),a0
 abs_0_000166A4:
