@@ -521,6 +521,53 @@ def _range_command_context(rows: Sequence[ListingRow | Mapping[str, object]]) ->
     return {"kind": "range", "locators": [_row_locator(row) for row in rows]}
 
 
+def test_range_command_context_materializes_listing_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(
+            row_id=f"row-{index}",
+            kind="data",
+            text="dc.w $0000\n",
+            section_index=0,
+            start_offset=0x100 + index * 2,
+            end_offset=0x102 + index * 2,
+            addr=0x100 + index * 2,
+            stable_key=f"row-{index}",
+        )
+        for index in range(3)
+    ]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    original = disasm_server._all_listing_rows
+    calls = 0
+
+    def counted(project_name: str) -> list[dict[str, object]]:
+        nonlocal calls
+        calls += 1
+        return original(project_name)
+
+    monkeypatch.setattr(disasm_server, "_all_listing_rows", counted)
+
+    try:
+        catalog_context, catalog_rows = disasm_server._command_context_from_query(
+            "bloodwych",
+            _range_command_query(rows),
+        )
+        assert calls == 1
+        assert catalog_context["row_count"] == 3
+        assert [row["row_key"] for row in catalog_rows] == ["row-0", "row-1", "row-2"]
+
+        context, resolved = disasm_server._command_context_from_body(
+            "bloodwych",
+            _range_command_context(rows),
+        )
+
+        assert calls == 2
+        assert context["row_count"] == 3
+        assert [row["row_key"] for row in resolved] == ["row-0", "row-1", "row-2"]
+    finally:
+        disasm_server._LISTING_PROJECTION_SERVICE.reset()
+        disasm_server._COMMAND_AVAILABILITY_CACHE.clear()
+
+
 def _row_command_query(row: ListingRow | Mapping[str, object]) -> dict[str, list[str]]:
     return {"context": ["row"], "locator": [json.dumps(_row_locator(row))]}
 

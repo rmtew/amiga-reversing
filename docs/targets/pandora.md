@@ -154,6 +154,16 @@ is bound at the player entry; unclassified spans stay raw.  A complete
 `world_object_record` layout remains open rather than inferred from that
 minimum common prefix.
 
+### Confirmed item-name lookup
+
+`resolve_item_name` at `$00012B7E` masks an item id to seven bits, doubles it,
+then reads a signed/relative word from `item_name_offset_table` at `$0001A6DC`.
+That bounded 114-word lookup table ends exactly at `$0001A7C0`; every entry is
+an offset into the NUL-terminated `item_name_string_table` beginning at
+`$0001A25C`.  Inventory refresh uses the same two-table calculation for each
+carried and pocket item, while `initialize_world_state` uses it to populate
+each world object's `item_name_ptr`.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

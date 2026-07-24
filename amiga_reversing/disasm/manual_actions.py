@@ -267,6 +267,15 @@ def append_manual_action(
     if not isinstance(kind, ManualActionKind):
         raise TypeError("kind must be a ManualActionKind")
     validate_manual_action_payload(payload)
+    if kind is ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT:
+        requested_layout = _object(payload.get("data_block_layout"), what="data_block_layout")
+        requested_range = tuple(requested_layout.get(key) for key in ("hunk", "source_start", "source_end"))
+        projection = load_manual_projection(target_dir, binary_source=binary_source)
+        if any(
+            tuple(layout.get(key) for key in ("hunk", "source_start", "source_end")) == requested_range
+            for layout in projection.data_block_layouts
+        ):
+            raise ValueError("an active data-block layout already covers this exact range")
     path = manual_action_log_path(target_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, object]] = []

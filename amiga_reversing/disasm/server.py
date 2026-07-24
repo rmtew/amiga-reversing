@@ -2110,16 +2110,7 @@ def _command_context_from_query(
         locators = _query_locators(query)
         if len(locators) < 2:
             raise _command_contract_error("missing_locator", "range context requires at least two locators")
-        rows: list[dict[str, object]] = []
-        projection_hash = ""
-        row_keys: set[str] = set()
-        for locator in locators:
-            row, projection_hash = _resolve_command_range_locator(project_name, locator)
-            row_key = str(row.get("row_key") or "")
-            if row_key in row_keys:
-                raise _command_contract_error("ambiguous_locator", "range locators must be unique")
-            row_keys.add(row_key)
-            rows.append(row)
+        rows, projection_hash = _resolve_command_range_locators(project_name, locators)
         return {
             "kind": "range",
             "locators": locators,
@@ -2167,16 +2158,7 @@ def _command_context_from_body(
             raise _command_contract_error("missing_locator", "context.locators is required")
         if len(raw_locators) < 2:
             raise _command_contract_error("missing_locator", "range context requires at least two locators")
-        rows = []
-        projection_hash = ""
-        row_keys: set[str] = set()
-        for locator in raw_locators:
-            row, projection_hash = _resolve_command_range_locator(project_name, locator)
-            row_key = str(row.get("row_key") or "")
-            if row_key in row_keys:
-                raise _command_contract_error("ambiguous_locator", "range locators must be unique")
-            row_keys.add(row_key)
-            rows.append(row)
+        rows, projection_hash = _resolve_command_range_locators(project_name, raw_locators)
         return {
             "kind": "range",
             "locators": raw_locators,
@@ -2184,6 +2166,51 @@ def _command_context_from_body(
             "projection_hash": projection_hash,
         }, rows
     raise _command_contract_error("invalid_command_context", f"Unsupported command context: {kind}")
+
+
+def _resolve_command_range_locators(
+    project_name: str,
+    locators: list[object],
+) -> tuple[list[dict[str, object]], str]:
+    """Resolve a range against one materialized listing snapshot.
+
+    Range commands commonly select every row of a table.  Loading the whole
+    artifact per locator turns that normal operation into quadratic work.
+    Keep the same per-locator identity checks while sharing the snapshot.
+    """
+    try:
+        projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
+            project_id=project_name,
+            current_cache_key=_project_listing_cache_key(project_name),
+        )
+        all_rows = _all_listing_rows(project_name)
+    except ListingLocatorError as exc:
+        code = "stale_locator" if exc.code == "missing_locator" else exc.code
+        raise _command_contract_error(code, str(exc)) from exc
+    rows: list[dict[str, object]] = []
+    row_keys: set[str] = set()
+    for locator in locators:
+        try:
+            row = _LISTING_PROJECTION_SERVICE.resolve_locator(
+                target_id=project_name,
+                projection_hash=projection_hash,
+                rows=all_rows,
+                locator_payload=locator,
+            )
+        except ListingLocatorError as exc:
+            code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
+            raise _command_contract_error(code, str(exc)) from exc
+        row = dict(row)
+        row_key = str(row.get("row_key") or "")
+        if row_key in row_keys:
+            raise _command_contract_error("ambiguous_locator", "range locators must be unique")
+        row_keys.add(row_key)
+        row["stable_key"] = row.get("row_key")
+        row["stableKey"] = row.get("row_key")
+        row["row_id"] = row.get("row_key")
+        _annotate_suppressible_seeded_items(row, _target_suppressible_seeded_items(project_name))
+        rows.append(row)
+    return rows, projection_hash
 
 
 def _query_locator(query: dict[str, list[str]]) -> dict[str, object]:
@@ -2353,29 +2380,6 @@ def _resolve_command_locator(
                 value = groups.get(source_key)
                 if isinstance(value, list):
                     row[row_key] = list(value)
-    row["stable_key"] = row.get("row_key")
-    row["stableKey"] = row.get("row_key")
-    row["row_id"] = row.get("row_key")
-    _annotate_suppressible_seeded_items(row, _target_suppressible_seeded_items(project_name))
-    return row, projection_hash
-
-
-def _resolve_command_range_locator(project_name: str, locator: object) -> tuple[dict[str, object], str]:
-    try:
-        projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
-            project_id=project_name,
-            current_cache_key=_project_listing_cache_key(project_name),
-        )
-        row = _LISTING_PROJECTION_SERVICE.resolve_locator(
-            target_id=project_name,
-            projection_hash=projection_hash,
-            rows=_all_listing_rows(project_name),
-            locator_payload=locator,
-        )
-    except ListingLocatorError as exc:
-        code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
-        raise _command_contract_error(code, str(exc)) from exc
-    row = dict(row)
     row["stable_key"] = row.get("row_key")
     row["stableKey"] = row.get("row_key")
     row["row_id"] = row.get("row_key")
