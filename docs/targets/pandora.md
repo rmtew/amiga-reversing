@@ -288,6 +288,12 @@ That initialization loop proves the shared prefix's current/initial pairs:
 `world_object_flags`/`initial_world_object_flags`, and
 `item_state`/`initial_item_state`.  It also resets `interaction_timer` and
 uses `item_definition_id` to resolve each object's item-name pointer.
+
+`adjust_active_world_object_item_state` at `$000186A6` applies a byte delta
+from D0 to the `item_state` field of every eligible `world_object_ptr_table`
+entry. Null entries and objects whose `world_object_flags` have bit 1 set are
+skipped, establishing this as a shared state-update pass rather than an object
+local helper.
 The resulting long at prefix offset `+0x00` is represented as `item_name_ptr`.
 
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
