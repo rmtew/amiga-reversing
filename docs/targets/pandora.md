@@ -152,6 +152,14 @@ remain structurally unnamed until the broader shared world-object layout is
 recovered, but these update-pass roles are directly supported by the copies
 and traversal.
 
+The tile-region path also contains four compact helpers at
+`$00016DCA..$00016DFC`. `calculate_tilemap_buffer_offset` derives the
+word-aligned buffer offset from the coordinate and indexed row-offset table.
+The other three are exact field-copy helpers: they copy the A5-relative
+`+0x30` or `+0x36` value into the indirect record's `+4` slot, or copy `+0x30`
+to `+0x36`. Their record fields remain intentionally descriptive rather than
+speculative until the common layout is recovered.
+
 `world_object_ptr_table` occupies `$0001300A` through `$00013099`: its 36
 longwords are the player pointer, 34 static-object pointers, and the null
 terminator.  The preceding word at `$00013008` is `$4e75` (`RTS`), which is a

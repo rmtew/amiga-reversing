@@ -4831,10 +4831,26 @@ abs_0_00016DAE:
 	adda.w d0,a1
 	movem.l (a7)+,d0-d2
 	rts
-	dc.b $2F,$01,$34,$00,$E6,$4A,$02,$02,$00,$FE,$D2,$41,$D4,$76,$10,$00
-	dc.b $22,$1F,$4E,$75,$20,$6D,$00,$2C,$21,$6D,$00,$30,$00,$04,$4E,$75
-	dc.b $20,$6D,$00,$2C,$21,$6D,$00,$36,$00,$04,$4E,$75,$2B,$6D,$00,$30
-	dc.b $00,$36,$4E,$75
+calculate_tilemap_buffer_offset:
+	move.l d1,-(a7)
+	move.w d0,d2
+	lsr.w #3,d2
+	andi.b #254,d2
+	add.w d1,d1
+	add.w $0(a6,d1.w),d2
+	move.l (a7)+,d1
+	rts
+copy_world_object_field_30_to_indirect_slot_4:
+	movea.l $002C(a5),a0
+	move.l $0030(a5),$0004(a0)
+	rts
+copy_world_object_field_36_to_indirect_slot_4:
+	movea.l $002C(a5),a0
+	move.l $0036(a5),$0004(a0)
+	rts
+copy_world_object_field_30_to_field_36:
+	move.l $0030(a5),$0036(a5)
+	rts
 abs_0_00016DFE:
 	move.l $0000(a0),d0
 abs_0_00016E02:
