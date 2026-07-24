@@ -871,7 +871,7 @@ update_star_motion:
 	move.b d1,$0008(a2)
 	cmp.b #$10,d1
 	rts
-abs_0_00010BD6:
+reset_star_motion:
 	bsr.w advance_pseudorandom_state
 	andi.w #255,d0
 	cmp.b #$A0,d0
@@ -903,8 +903,8 @@ abs_0_00010C0E:
 	move.w d0,$0006(a2)
 	move.b #$40,$0008(a2)
 	rts
-abs_0_00010C22:
-	bsr.b abs_0_00010BD6
+initialize_star_motion_with_random_lifetime:
+	bsr.b reset_star_motion
 abs_0_00010C24:
 	bsr.w advance_pseudorandom_state
 	andi.b #63,d1
@@ -1013,7 +1013,7 @@ abs_0_00010D20:
 	move.w #$63,d7
 	movea.l #$400,a2
 abs_0_00010D5C:
-	bsr.w abs_0_00010C22
+	bsr.w initialize_star_motion_with_random_lifetime
 	lea.l finish_starfield_initialization(pc),a3
 	bra.w abs_0_00010C5C
 finish_starfield_initialization:
@@ -1036,7 +1036,7 @@ abs_0_00010D94:
 abs_0_00010D9C:
 	bsr.w update_star_motion
 	bne.b abs_0_00010DA6
-	bsr.w abs_0_00010BD6
+	bsr.w reset_star_motion
 abs_0_00010DA6:
 	lea.l abs_0_00010DAE(pc),a3
 	bra.w abs_0_00010C5C

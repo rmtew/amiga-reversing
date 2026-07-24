@@ -54,6 +54,12 @@ The shared pseudo-random state is initialized by
 The star motion/initialization routines and gameplay update path both consume
 the resulting values.
 
+`reset_star_motion` supplies a star record with randomized position and
+velocity plus its default lifetime. During initial starfield construction,
+`initialize_star_motion_with_random_lifetime` invokes that reset and chooses a
+fresh lifetime in the accepted randomized range; expired stars return through
+the reset path from `update_star_motion`.
+
 ## RGB12 palette helpers
 
 The helper group at `$0001255E..$00012654` manipulates Amiga RGB12 colors as
