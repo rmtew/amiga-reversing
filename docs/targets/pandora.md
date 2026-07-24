@@ -578,6 +578,16 @@ selected item's name. Non-ID selections show the terminal's `ACCESS DENIED...`
 and `ID REQUIRED` feedback. The table's 10 long entries are a single bounded
 pointer array; the final zero is its sentinel.
 
+`update_terminal_mode` at `$00018FF2` is the modal terminal-mode loop. It
+swaps to the terminal tilemap context, renders the terminal view, swaps the
+front/back bitplanes, and initializes the selected-item display. It then
+waits on the display/update synchronization path while processing inventory
+availability and input, terminal UI state, and world-object updates. On its
+exit path it clears the terminal UI counters, restores the prior tilemap
+context, and reinstates tilemap base `$4000`. The routine is bounded by the
+`RTS` at `$000190B0`; its predecessor bytes are terminal text/asset data, not
+part of the routine.
+
 ## Maintenance rule
 
 Add entries only when they are represented by durable facts or are clearly

@@ -9,7 +9,7 @@
 ;     absolute[$000010F0] refs=1 access=a
 ;     absolute[$00002204] refs=1 access=a
 ;     absolute[$000032FC] refs=1 access=a
-;     absolute[$0000397C] refs=4 access=a
+;     absolute[$0000397C] refs=5 access=a
 ;     absolute[$000039BC-$000039BD] refs=1 access=r
 ;     absolute[$000039CC] refs=1 access=a
 ;     absolute[$000039FC] refs=3 access=a
@@ -7262,19 +7262,58 @@ abs_0_00018D36:
 	dc.b $6E,$65,$20,$68,$61,$76,$65,$20,$74,$68,$65,$20,$6D,$65,$61,$6E
 	dc.b $73,$0D
 	dc.b "to escape from Pandora",$00
-	dc.b $00,$61,$00,$02,$26,$61,$00,$D7,$30,$61,$00,$94,$B2,$22,$2E,$01
-	dc.b $D4,$20,$2E,$01,$D8,$2D,$40,$01,$D4,$2D,$41,$01,$D8,$2D,$40,$01
-	dc.b $DC,$61,$00,$00,$B4,$4E,$B9,$00,$01,$07,$F0,$66,$F8,$08,$AE,$00
-	dc.b $05,$02,$7B,$08,$2E,$00,$05,$02,$7B,$67,$F8,$61,$00,$9C,$FC,$4E
-	dc.b $B9,$00,$01,$07,$F0,$61,$00,$96,$B4,$61,$00,$98,$98,$61,$00,$0A
-	dc.b $08,$61,$00,$9D,$16,$4E,$B9,$00,$01,$2F,$D8,$08,$39,$00,$01,$00
-	dc.b $05,$C3,$6A,$67,$0C,$53,$2E,$02,$CC,$66,$06,$4E,$F9,$00,$01,$04
-	dc.b $56,$41,$F9,$00,$00,$39,$7C,$4A,$28,$00,$56,$67,$06,$4E,$F9,$00
-	dc.b $01,$04,$56,$61,$00,$00,$3C,$08,$2E,$00,$02,$02,$2E,$66,$9E,$4E
-	dc.b $B9,$00,$01,$07,$F0,$67,$96,$4E,$B9,$00,$01,$07,$F0,$66,$F8,$42
-	dc.b $6E,$02,$96,$42,$6E,$02,$98,$08,$EE,$00,$04,$02,$7B,$1D,$7C,$00
-	dc.b $02,$02,$89,$61,$00,$01,$74,$2D,$7C,$00,$00,$40,$00,$01,$BE,$4E
-	dc.b $75
+	dc.b $00
+update_terminal_mode:
+	bsr.w swap_tilemap_context
+	bsr.w render_tilemap_view_to_back_buffer
+	bsr.w snapshot_active_world_object_links
+	move.l app_front_bitplane_base(a6),d1
+	move.l app_back_bitplane_base(a6),d0
+	move.l d0,app_front_bitplane_base(a6)
+	move.l d1,app_back_bitplane_base(a6)
+	move.l d0,app_display_bitplane_base(a6)
+	bsr.w redraw_terminal_selected_item
+abs_0_00019016:
+	jsr abs_0_000107F0.l
+	bne.b abs_0_00019016
+abs_0_0001901E:
+	bclr.b #5,app_027B(a6)
+abs_0_00019024:
+	btst.b #5,app_027B(a6)
+	beq.b abs_0_00019024
+	bsr.w abs_0_00012D2A
+	jsr abs_0_000107F0.l
+	bsr.w update_inventory_panel_availability
+	bsr.w handle_inventory_panel_input
+	bsr.w abs_0_00019A48
+	bsr.w abs_0_00012D5A
+	jsr advance_pseudorandom_state.l
+	btst.b #1,player_world_object_world_object_flags.l
+	beq.b abs_0_00019062
+	subq.b #1,app_02CC(a6)
+	bne.b abs_0_00019062
+	jmp abs_0_00010456.l
+abs_0_00019062:
+	lea.l absolute_slot_0000397C.l,a0
+	tst.b $0056(a0)
+	beq.b abs_0_00019074
+	jmp abs_0_00010456.l
+abs_0_00019074:
+	bsr.w update_terminal_selected_item
+	btst.b #2,app_ui_flags(a6)
+	bne.b abs_0_0001901E
+	jsr abs_0_000107F0.l
+	beq.b abs_0_0001901E
+abs_0_00019088:
+	jsr abs_0_000107F0.l
+	bne.b abs_0_00019088
+	clr.w app_0296(a6)
+	clr.w app_0298(a6)
+	bset.b #4,app_027B(a6)
+	move.b #$2,app_0289(a6)
+	bsr.w swap_tilemap_context
+	move.l #$4000,app_tilemap_base(a6)
+	rts
 update_terminal_selected_item:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b app_031A(a6),d0
