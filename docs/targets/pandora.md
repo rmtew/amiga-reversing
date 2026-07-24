@@ -330,9 +330,11 @@ do not erase their own semantic base identity.
 
 `audio_player_initialization_presets` starts at `$0005DF34`. The initializer
 uses its mode argument times `$0a` as an index, so its first 30 bytes are three
-10-byte presets: two byte controls followed by four channel configuration
-words. The subsequent packed audio stream is deliberately not included in that
-table until its format is recovered.
+10-byte `audio_player_initialization_preset` records. Each has two as-yet
+unnamed byte controls followed by four named channel-program offsets; the
+initializer walks those words while constructing the four runtime channel
+states. The subsequent packed audio stream is deliberately not included in
+that table until its format is recovered.
 
 ## Maintenance rule
 

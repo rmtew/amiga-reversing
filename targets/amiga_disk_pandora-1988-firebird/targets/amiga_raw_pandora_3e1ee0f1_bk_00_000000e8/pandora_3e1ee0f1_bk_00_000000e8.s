@@ -287,6 +287,10 @@ volume_sequence_countdown	EQU	43
 pitch_modulation_step	EQU	44
 pitch_modulation_value	EQU	45
 pitch_modulation_limit	EQU	46
+channel_0_program_offset	EQU	2
+channel_1_program_offset	EQU	4
+channel_2_program_offset	EQU	6
+channel_3_program_offset	EQU	8
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 DMAF_CLRALL	EQU	$7FFF
@@ -27792,7 +27796,7 @@ audio_pitch_scalars:
 	dc.w $00B5
 	dc.w $00AA
 	dc.w $00A1
-	dc.w $0098
+	dc.w audio_player_initialization_presets_gap_14_2-audio_sample_metadata
 	dc.w $008F
 	dc.w $0087
 abs_0_0005DE64:
@@ -27892,10 +27896,37 @@ audio_sample_metadata_sample_length_10:	; STRUCT audio_sample_metadata
 audio_sample_metadata_sample_period_10:	; STRUCT audio_sample_metadata
 	dc.w $0000	; word sample_period
 audio_player_initialization_presets:
-	dc.b $03,$04,$07
-	dc.b $8E,$07,$74,$07,$9A,$07,$A4,$03
-	dc.b $05,$09,$54,$09,$4A,$09,$5A,$09,$60
-	dc.b $05,$05,$0A,$7E,$0A,$7A,$0A,$82,$0A
+	dc.w $0304	; typed data block gap
+audio_player_initialization_presets_channel_0_program_offset_0:	; STRUCT audio_player_initialization_preset
+	dc.b $07
+	dc.b $8E
+audio_player_initialization_presets_channel_1_program_offset_0:	; STRUCT audio_player_initialization_preset
+	dc.w $0774	; word channel_1_program_offset
+audio_player_initialization_presets_channel_2_program_offset_0:	; STRUCT audio_player_initialization_preset
+	dc.w $079A	; word channel_2_program_offset
+audio_player_initialization_presets_channel_3_program_offset_0:	; STRUCT audio_player_initialization_preset
+	dc.w $07A4	; word channel_3_program_offset
+audio_player_initialization_presets_gap_A_1:
+	dc.b $03
+	dc.b $05
+audio_player_initialization_presets_channel_0_program_offset_1:	; STRUCT audio_player_initialization_preset
+	dc.w $0954	; word channel_0_program_offset
+audio_player_initialization_presets_channel_1_program_offset_1:	; STRUCT audio_player_initialization_preset
+	dc.w $094A	; word channel_1_program_offset
+audio_player_initialization_presets_channel_2_program_offset_1:	; STRUCT audio_player_initialization_preset
+	dc.w $095A	; word channel_2_program_offset
+audio_player_initialization_presets_channel_3_program_offset_1:	; STRUCT audio_player_initialization_preset
+	dc.w $0960	; word channel_3_program_offset
+audio_player_initialization_presets_gap_14_2:
+	dc.w $0505	; typed data block gap
+audio_player_initialization_presets_channel_0_program_offset_2:	; STRUCT audio_player_initialization_preset
+	dc.w $0A7E	; word channel_0_program_offset
+audio_player_initialization_presets_channel_1_program_offset_2:	; STRUCT audio_player_initialization_preset
+	dc.w $0A7A	; word channel_1_program_offset
+audio_player_initialization_presets_channel_2_program_offset_2:	; STRUCT audio_player_initialization_preset
+	dc.w $0A82	; word channel_2_program_offset
+audio_player_initialization_presets_channel_3_program_offset_2:	; STRUCT audio_player_initialization_preset
+	dc.b $0A
 	dc.b $8C,$07,$A8,$07,$A8,$07,$EF,$07,$EF
 	dc.b $08,$18,$08,$18,$08,$18,$08,$18,$08,$16,$08
 	dc.b $16,$08,$16,$08,$16,$00,$00,$08,$41,$08
