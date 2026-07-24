@@ -328,7 +328,7 @@ abs_0_00010498:
 	clr.w bltcon1(a5)
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_BLITTER,dmacon(a5)
 	bsr.w abs_0_000107CC
-	jsr abs_0_00019F26.l
+	jsr initialize_world_state.l
 	lea.l handle_level_3_interrupts(pc),a0
 	move.l a0,m68k_vector_level_3_interrupt_autovector.w
 	moveq.l #120,d0
@@ -7321,7 +7321,7 @@ abs_0_00019F06:
 	bsr.w abs_0_00017244
 	move.l #$70000,$01E0(a6)
 	rts
-abs_0_00019F26:
+initialize_world_state:
 	move.l a5,-(a7)
 	move.w abs_0_0001924C.l,abs_0_0001924E.l
 	move.w #$BB8,app_0328(a6)

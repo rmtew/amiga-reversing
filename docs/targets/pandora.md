@@ -133,6 +133,11 @@ after nearby-object detection.  It derives the player-relative tile position,
 then walks the active position-descriptor table while applying the current
 object-position updates.
 
+`initialize_world_state` at `$00019F26` is the corresponding producer.  It
+initializes tilemap/player/UI state, installs the static active-table pointer
+and count, then iterates every `world_object_ptr_table` entry to reset per-object
+state and resolve item names.
+
 The target now has a shared 0x54-byte `world_object_shared_prefix` type.  Its
 field facts come from the common scan loop rather than the player instance:
 `interaction_callback` (`+0x04`), `context_callback` (`+0x0c`),
