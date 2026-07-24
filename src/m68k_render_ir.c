@@ -5064,14 +5064,12 @@ int lookup_range_ownership_at_index(const M68kRenderLookup *lookup, size_t index
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
     size_t comment_size) {
   const char *field_name;
-  const char *type_name;
   if (comment == NULL || comment_size == 0U) return 0;
   comment[0] = '\0';
   if (item == NULL) return 0;
   field_name = item->field_name[0] != '\0' ? item->field_name : item->label;
   if (item->struct_name[0] != '\0' && field_name != NULL && field_name[0] != '\0') {
-    (void)type_name;
-    snprintf(comment, comment_size, "%s.%s", item->struct_name, field_name);
+    snprintf(comment, comment_size, "%s", field_name);
     return 1;
   }
   if (item->comment[0] != '\0') {
