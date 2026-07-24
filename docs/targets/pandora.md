@@ -111,15 +111,24 @@ the byte at `+0x3d`, the byte at `+0x46`, the word at `+0x3c`, the pointer at
 `+0x4e`, and the two-byte context-prompt cooldown at `+0x52`; their roles need
 further cross-object comparison before becoming shared record fields.
 
-`world_object_ptr_table` is a bounded 36-element long-pointer array followed
-by its null terminator.  `scan_world_objects_for_proximity` advances through
-that exact range and branches to context handling at the terminator; subsequent
+`world_object_ptr_table` occupies `$0001300A` through `$00013099`: its 36
+longwords are the player pointer, 34 static-object pointers, and the null
+terminator.  The preceding word at `$00013008` is `$4e75` (`RTS`), which is a
+hard code/data boundary.  `scan_world_objects_for_proximity` advances through
+this exact range and branches to context handling at the terminator; subsequent
 longwords belong to a different table.
 
-`active_world_object_static_ptr_table` starts at the second pointer and has 35
+`active_world_object_static_ptr_table` starts at the second pointer and has 34
 entries before the same terminator.  It intentionally excludes the player and
 is used by `update_active_world_object_positions`; the similarly named runtime
 equate is a separate active-table pointer slot.
+
+`active_world_object_ptr_table` is the separate 67-entry pointer array at
+`$0001309A` through `$000131A5`, followed by its own null terminator at
+`$000131A6`.  `initialize_world_state` installs this address and count `$43`;
+the symbolic `EQU` is intentionally used because the renderer coalesces its
+adjacent longword directives and cannot safely split them at that interior
+address without a new directive-boundary fact.
 
 `player_position_descriptor` at `$0005C71E` is the object referenced by the
 player prefix at `+0x2c`.  Proximity scanning stores `world_x` and `world_y`
@@ -134,7 +143,7 @@ then walks the active position-descriptor table while applying the current
 object-position updates.
 
 `initialize_world_state` at `$00019F26` is the corresponding producer.  It
-initializes tilemap/player/UI state, installs the static active-table pointer
+initializes tilemap/player/UI state, installs the active-table pointer
 and count, then iterates every `world_object_ptr_table` entry to reset per-object
 state and resolve item names.
 
