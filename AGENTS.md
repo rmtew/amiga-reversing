@@ -33,6 +33,7 @@ Before agentic target work, read and follow:
 
 - `docs/agents/reversing-loop.md`
 - relevant sections of `docs/proposals/010-agentic-reversing-loop.md`
+- `.agents/skills/target-reversing-workflow/SKILL.md`
 
 Agentic target work is useful only when it moves the rendered target source
 toward human-quality reconstructed source: clearer symbols, typed data,

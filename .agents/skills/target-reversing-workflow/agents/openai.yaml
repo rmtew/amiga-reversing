@@ -1,0 +1,4 @@
+interface:
+  display_name: "Target Reversing Workflow"
+  short_description: "Restore targets through durable analysis facts"
+  default_prompt: "Use $target-reversing-workflow to reverse the next evidence-backed target subsystem."
