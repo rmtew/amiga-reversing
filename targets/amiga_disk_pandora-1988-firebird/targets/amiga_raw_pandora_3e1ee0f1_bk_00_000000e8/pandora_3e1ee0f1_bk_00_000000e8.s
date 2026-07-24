@@ -567,7 +567,8 @@ abs_0_000106BA:
 	jsr abs_0_0001A152.l
 abs_0_000106D2:
 	bra.w abs_0_000105A8
-	dc.b $4E,$75
+return_immediately:
+	rts
 abs_0_000106D8:
 	bset.b #5,app_033C(a6)
 	bne.b abs_0_0001074C
