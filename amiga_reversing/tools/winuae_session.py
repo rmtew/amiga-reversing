@@ -35,6 +35,7 @@ class HeadlessWinUaeSession:
     breakpoint_wait_seconds: int = 60
     observation_memory_address: int | None = None
     observation_memory_equals: bytes | None = None
+    observation_memory_write_watch: bool = False
     breakpoint_source_offset: int | None = None
     breakpoint_runtime_address: int | None = None
 
@@ -72,6 +73,8 @@ class HeadlessWinUaeSession:
             command.extend(("-ObservationMemoryAddress", f"0x{self.observation_memory_address:x}"))
         if self.observation_memory_equals is not None:
             command.extend(("-ObservationMemoryEquals", self.observation_memory_equals.hex()))
+        if self.observation_memory_write_watch:
+            command.append("-ObservationMemoryWriteWatch")
         return command
 
 
@@ -252,6 +255,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="bounded wait after the payload is confirmed and a breakpoint is armed",
     )
     parser.add_argument(
+        "--observation-memory-write-watch",
+        action="store_true",
+        help="stop on the first write to the observed diagnostic longword",
+    )
+    parser.add_argument(
         "--observation-memory-equals",
         help="stop early when the observed diagnostic longword equals this eight-hex-digit value",
     )
@@ -274,6 +282,8 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("--observation-memory-equals must contain exactly four bytes of hexadecimal data.")
     if observation_memory_equals is not None and args.observation_memory_address is None:
         raise ValueError("--observation-memory-equals requires --observation-memory-address.")
+    if args.observation_memory_write_watch and args.observation_memory_address is None:
+        raise ValueError("--observation-memory-write-watch requires --observation-memory-address.")
     paths = resolve_project_paths(args.target)
     breakpoint_row = resolve_breakpoint_stable_key(args.target, args.breakpoint_stable_key) if args.breakpoint_stable_key else None
     session = HeadlessWinUaeSession(
@@ -286,6 +296,7 @@ def main(argv: list[str] | None = None) -> int:
         breakpoint_wait_seconds=args.breakpoint_wait_seconds,
         observation_memory_address=args.observation_memory_address,
         observation_memory_equals=observation_memory_equals,
+        observation_memory_write_watch=args.observation_memory_write_watch,
         breakpoint_source_offset=breakpoint_row["start_offset"] if breakpoint_row is not None and "runtime_breakpoint_address" not in breakpoint_row else None,
         breakpoint_runtime_address=breakpoint_row.get("runtime_breakpoint_address") if breakpoint_row is not None else None,
     )

@@ -275,12 +275,30 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
     return report
 
 
-def pause_at_observation_memory(gdb: MiProcess, *, address: int | None, expected: bytes | None, timeout_seconds: int) -> tuple[str, dict[str, object] | None]:
+def pause_at_observation_memory(gdb: MiProcess, *, address: int | None, expected: bytes | None, write_watch: bool, timeout_seconds: int) -> tuple[str, dict[str, object] | None]:
     """Pause at a bounded diagnostic marker, or after the supplied time budget."""
 
     started = time.monotonic()
     matched = False
     observation = None
+    if write_watch:
+        if address is None:
+            raise MiError("A diagnostic write watch requires a memory address.")
+        gdb.command(f'-break-watch -- "*((unsigned char *)0x{address:x})"')
+        gdb.command("-exec-continue")
+        try:
+            stop = gdb.wait_for_stop(timeout_seconds)
+        except MiTimeout:
+            gdb.command("-exec-interrupt")
+            stop = gdb.wait_for_stop()
+        value = read_memory(gdb, address, 4)
+        return stop, {
+            "address": f"0x{address:08x}",
+            "bytes": value.hex(),
+            "matched": expected is None or value == expected,
+            "elapsed_seconds": round(time.monotonic() - started, 3),
+            "watchpoint": True,
+        }
     gdb.command("-exec-continue")
     if address is None:
         time.sleep(timeout_seconds)
@@ -308,7 +326,7 @@ def pause_at_observation_memory(gdb: MiProcess, *, address: int | None, expected
     return stop, observation
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None) -> dict[str, object]:
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None, observation_memory_write_watch: bool) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -320,6 +338,7 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             gdb,
             address=observation_memory_address,
             expected=observation_memory_equals,
+            write_watch=observation_memory_write_watch,
             timeout_seconds=continue_seconds,
         )
         pc = gdb.command("-data-evaluate-expression $pc")
@@ -414,6 +433,7 @@ def main() -> int:
     parser.add_argument("--breakpoint-wait-seconds", type=int, default=60)
     parser.add_argument("--observation-memory-address", type=lambda value: int(value, 0))
     parser.add_argument("--observation-memory-equals", type=bytes.fromhex)
+    parser.add_argument("--observation-memory-write-watch", action="store_true")
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
         parser.error("--continue-seconds must be between 1 and 120")
@@ -428,7 +448,7 @@ def main() -> int:
     if args.observation_memory_equals is not None and args.observation_memory_address is None:
         parser.error("--observation-memory-equals requires --observation-memory-address")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds, args.observation_memory_address, args.observation_memory_equals)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds, args.observation_memory_address, args.observation_memory_equals, args.observation_memory_write_watch)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1

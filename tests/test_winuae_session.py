@@ -55,10 +55,12 @@ def test_headless_session_passes_a_single_bounded_memory_observation() -> None:
         runner_path=Path(r"C:\repo\tools\run_winuae_headless.ps1"),
         observation_memory_address=0x400,
         observation_memory_equals=b"HAND",
+        observation_memory_write_watch=True,
     )
 
-    assert session.command()[-4:] == [
+    assert session.command()[-5:] == [
         "-ObservationMemoryAddress", "0x400", "-ObservationMemoryEquals", "48414e44",
+        "-ObservationMemoryWriteWatch",
     ]
 
 
