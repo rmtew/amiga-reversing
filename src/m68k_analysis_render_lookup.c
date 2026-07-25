@@ -3914,6 +3914,19 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           state->addr_regs[dest_reg].byte_cursor = static_byte_cursor;
         }
         typed_state_set_memory_base(state, 2U, dest_reg, target_section_index, target_offset);
+        {
+          uint32_t target_runtime_address = 0U;
+          if (lookup_source_runtime_address(lookup, target_section_index, target_offset,
+              &target_runtime_address)) {
+            /* A static address remains a pointer value even when overlapping
+             * structured-data facts leave its pointee type conflicted.  Do
+             * not turn that conflict into a trusted typed base. */
+            if (static_conflict_struct_id == AMIGA_OS_STRUCT_ID_NONE)
+              state->addr_regs[dest_reg].known = 1U;
+            state->addr_regs[dest_reg].pointer_value_known = 1U;
+            state->addr_regs[dest_reg].pointer_value = target_runtime_address;
+          }
+        }
       } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
           &source_displacement) && source_base_reg < 8U && state->memory_base_regs[source_base_reg].known) {
         uint32_t next_offset = 0U;
