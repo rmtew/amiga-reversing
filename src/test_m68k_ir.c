@@ -26546,14 +26546,20 @@ static int test_facts_v2_render_asm_source_rejects_conflicting_static_struct_typ
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
   M68kAnalysisCustomStruct *custom_structs = NULL;
+  const M68kSectionAnalysisIR *analysis_section;
+  const M68kRecoveredPlatformUnresolvedTypedAccessIR *unresolved = NULL;
+  char *analysis_json = NULL;
   char *source = NULL;
+  size_t index;
   uint8_t bytes[68] = {
     0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x10u,
     0x30u, 0x2cu, 0x00u, 0x00u,
     0x4eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
@@ -26601,6 +26607,28 @@ static int test_facts_v2_render_asm_source_rejects_conflicting_static_struct_typ
   policy.structured_data_items[1] = policy.structured_data_items[0];
   snprintf(policy.structured_data_items[1].struct_name, sizeof(policy.structured_data_items[1].struct_name),
     "second_singleton");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  analysis_section = &analysis.sections[0];
+  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
+    const M68kRecoveredPlatformUnresolvedTypedAccessIR *candidate =
+      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
+    if (candidate->offset == 6U && candidate->operand_index == 0U && candidate->base_reg == 4U &&
+        candidate->displacement == 0 && candidate->classification ==
+          M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT) {
+      unresolved = candidate;
+      break;
+    }
+  }
+  M68K_C_ASSERT(unresolved != NULL);
+  M68K_C_ASSERT_U32(2U, unresolved->container_candidate_count);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA, unresolved->type_provenance_kind);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"classification_id\":3,\"classification\":\"type_conflict\"") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);

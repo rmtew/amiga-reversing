@@ -1816,7 +1816,7 @@ static const char *lookup_policy_struct_name_by_id(const M68kAnalysisPolicy *pol
    interior position relative to the root object for later field resolution. */
 static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset, uint16_t *out_array_element_count,
-    uint16_t *out_array_element_index, int32_t *out_byte_cursor) {
+    uint16_t *out_array_element_index, int32_t *out_byte_cursor, uint16_t *out_conflict_struct_id) {
   size_t index;
   uint16_t resolved_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   uint16_t resolved_array_element_count = 0U, resolved_array_element_index = 0U;
@@ -1824,6 +1824,7 @@ static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysi
   if (out_array_element_count != NULL) *out_array_element_count = 0U;
   if (out_array_element_index != NULL) *out_array_element_index = 0U;
   if (out_byte_cursor != NULL) *out_byte_cursor = 0;
+  if (out_conflict_struct_id != NULL) *out_conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   if (policy == NULL || policy->structured_data_items == NULL) return AMIGA_OS_STRUCT_ID_NONE;
   for (index = 0U; index < policy->structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
@@ -1847,8 +1848,10 @@ static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysi
     }
     if (resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE &&
         (resolved_struct_id != struct_id || resolved_array_element_count != array_element_count ||
-         resolved_array_element_index != array_element_index || resolved_byte_cursor != byte_cursor))
-      return AMIGA_OS_STRUCT_ID_NONE;
+         resolved_array_element_index != array_element_index || resolved_byte_cursor != byte_cursor)) {
+      if (out_conflict_struct_id != NULL) *out_conflict_struct_id = struct_id;
+      return resolved_struct_id;
+    }
     resolved_struct_id = struct_id;
     resolved_array_element_count = array_element_count;
     resolved_array_element_index = array_element_index;
@@ -3761,11 +3764,21 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           candidate_loads_runtime_address_ref_target_to_address_reg(lookup, section_index, candidate, instruction,
             &target_section_index, &target_offset, &dest_reg)) {
         uint16_t static_array_element_count = 0U, static_array_element_index = 0U;
+        uint16_t static_conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
         int32_t static_byte_cursor = 0;
         source_struct_id = lookup_policy_struct_id_for_static_data_target(lookup != NULL ? lookup->policy : NULL,
           target_section_index, target_offset, &static_array_element_count, &static_array_element_index,
-          &static_byte_cursor);
-        if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+          &static_byte_cursor, &static_conflict_struct_id);
+        if (static_conflict_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+          M68kRenderTypedRegValue *value = &state->addr_regs[dest_reg];
+          M68kRenderTypedProvenance static_data_provenance =
+            typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA, target_section_index, target_offset);
+          typed_reg_value_clear(value);
+          value->type_conflicted = 1U;
+          value->struct_id = source_struct_id;
+          value->conflict_struct_id = static_conflict_struct_id;
+          value->provenance = static_data_provenance;
+        } else if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
           M68kRenderTypedProvenance static_data_provenance =
             typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA, target_section_index, target_offset);
           typed_state_set_reg_struct_id_array(state, 2U, dest_reg, source_struct_id,
