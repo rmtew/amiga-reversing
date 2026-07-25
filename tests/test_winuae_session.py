@@ -29,9 +29,23 @@ def test_headless_session_passes_only_a_source_offset_breakpoint() -> None:
         target_payload_path=Path(r"C:\target\binary.bin"),
         runner_path=Path(r"C:\repo\tools\run_winuae_headless.ps1"),
         breakpoint_source_offset=0xBA8,
+        breakpoint_wait_seconds=12,
     )
 
-    assert session.command()[-2:] == ["-BreakpointSourceOffset", "0xba8"]
+    assert session.command()[-4:] == [
+        "-BreakpointSourceOffset", "0xba8", "-BreakpointWaitSeconds", "12",
+    ]
+
+
+def test_headless_session_does_not_pass_breakpoint_wait_without_a_breakpoint() -> None:
+    session = winuae_session.HeadlessWinUaeSession(
+        rom_path=Path(r"C:\roms\kick.rom"),
+        target_payload_path=Path(r"C:\target\binary.bin"),
+        runner_path=Path(r"C:\repo\tools\run_winuae_headless.ps1"),
+        breakpoint_wait_seconds=12,
+    )
+
+    assert "-BreakpointWaitSeconds" not in session.command()
 
 
 def test_resolve_breakpoint_stable_key_requires_current_canonical_row(monkeypatch) -> None:

@@ -32,6 +32,7 @@ class HeadlessWinUaeSession:
     floppy0: Path | None = None
     state_directory: Path | None = None
     continue_seconds: int = 60
+    breakpoint_wait_seconds: int = 60
     breakpoint_source_offset: int | None = None
     breakpoint_runtime_address: int | None = None
 
@@ -56,9 +57,15 @@ class HeadlessWinUaeSession:
         if self.state_directory is not None:
             command.extend(("-StateDirectory", str(self.state_directory)))
         if self.breakpoint_runtime_address is not None:
-            command.extend(("-BreakpointAddress", f"0x{self.breakpoint_runtime_address:x}"))
+            command.extend((
+                "-BreakpointAddress", f"0x{self.breakpoint_runtime_address:x}",
+                "-BreakpointWaitSeconds", str(self.breakpoint_wait_seconds),
+            ))
         elif self.breakpoint_source_offset is not None:
-            command.extend(("-BreakpointSourceOffset", f"0x{self.breakpoint_source_offset:x}"))
+            command.extend((
+                "-BreakpointSourceOffset", f"0x{self.breakpoint_source_offset:x}",
+                "-BreakpointWaitSeconds", str(self.breakpoint_wait_seconds),
+            ))
         return command
 
 
@@ -231,6 +238,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--floppy0", type=Path)
     parser.add_argument("--continue-seconds", type=int, default=60, choices=range(1, 121))
+    parser.add_argument(
+        "--breakpoint-wait-seconds",
+        type=int,
+        default=60,
+        choices=range(1, 121),
+        help="bounded wait after the payload is confirmed and a breakpoint is armed",
+    )
     parser.add_argument("--state-directory", type=Path)
     parser.add_argument("--runner", type=Path, default=DEFAULT_HEADLESS_RUNNER)
     parser.add_argument("--breakpoint-stable-key")
@@ -249,6 +263,7 @@ def main(argv: list[str] | None = None) -> int:
         runner_path=args.runner,
         state_directory=args.state_directory,
         continue_seconds=args.continue_seconds,
+        breakpoint_wait_seconds=args.breakpoint_wait_seconds,
         breakpoint_source_offset=breakpoint_row["start_offset"] if breakpoint_row is not None and "runtime_breakpoint_address" not in breakpoint_row else None,
         breakpoint_runtime_address=breakpoint_row.get("runtime_breakpoint_address") if breakpoint_row is not None else None,
     )

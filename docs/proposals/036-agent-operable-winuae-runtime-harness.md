@@ -229,6 +229,24 @@ relocations, self-modification, and protection systems are target-specific.
 Every hybrid adapter must declare its injection point, prerequisites, bytes
 replaced, and validation. A hybrid success is not full reproduction proof.
 
+#### Direct decompressed-payload launch is not an implicit hybrid adapter
+
+A diagnostic bootblock which reads a decompressed raw image to its declared
+load address and transfers to its declared entrypoint is tempting, but those
+two fields alone do not prove the image is independently bootable.  Pandora
+provided a concrete counterexample on 2026-07-26: a disposable custom boot disk
+was built from the byte-identified ByteKiller output, loaded it at `$20000`,
+and returned its declared `$20000` entrypoint.  The headless WinUAE process
+exited before its GDB listener became available.  The experiment is therefore
+not an adopted adapter and does not establish whether the missing prerequisite
+is parent-loader state, a bootstrap ABI detail, or an emulator/media defect.
+
+Do not retain a generic direct-payload option after such a result.  A future
+adapter must first capture the original handoff state, declare every required
+register, memory range, interrupt/vector condition, and media prerequisite,
+then prove a headless cold boot reaches the byte-identified payload before it
+is exposed through the public runtime interface.
+
 ### 6. Scenario And Checkpoint, Not Screenshots, Define Tests
 
 A scenario specifies the controlled starting condition, input, stopping
