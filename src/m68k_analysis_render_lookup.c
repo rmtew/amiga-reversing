@@ -3452,7 +3452,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   size_t operand_index, source_index = 0U, dest_index = 0U;
   uint8_t dest_reg = 0U, bit;
   uint8_t source_addr_reg = 0U;
+  uint8_t source_data_reg = 0U;
   uint8_t source_alias_reg = 0U;
+  uint16_t source_array_element_count = 0U;
+  uint16_t source_array_element_index = 0U;
   uint32_t immediate_value = 0U;
   int16_t source_app_displacement = 0;
   int source_is_app_address = 0;
@@ -3482,6 +3485,15 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     typed_stored_value_clear(&stored_value);
     source_output = typed_state_output_for_operand(state, source_operand, NULL, NULL);
     source_struct_id = typed_state_struct_id_for_operand(state, source_operand);
+    if (operand_address_register_index_local(source_operand, &source_addr_reg) && source_addr_reg < 8U &&
+        state->addr_regs[source_addr_reg].known) {
+      source_array_element_count = state->addr_regs[source_addr_reg].array_element_count;
+      source_array_element_index = state->addr_regs[source_addr_reg].array_element_index;
+    } else if (operand_is_data_register_local(source_operand, &source_data_reg) && source_data_reg < 8U &&
+               state->data_regs[source_data_reg].known) {
+      source_array_element_count = state->data_regs[source_data_reg].array_element_count;
+      source_array_element_index = state->data_regs[source_data_reg].array_element_index;
+    }
     source_is_app_address = typed_state_copy_app_address(state, source_operand, &source_app_displacement);
     source_has_memory_base = typed_state_copy_memory_base(state, source_operand, &source_memory_base);
     (void)typed_state_origin_for_operand(state, source_operand, &source_origin);
@@ -3526,7 +3538,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           (source_struct_id == AMIGA_OS_STRUCT_ID_NONE || source_output->struct_id != AMIGA_OS_STRUCT_ID_NONE)) {
         typed_state_set_reg(state, 1U, dest_reg, source_output, &source_provenance);
       } else if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
-        typed_state_set_reg_struct_id(state, 1U, dest_reg, source_struct_id, &source_provenance);
+        typed_state_set_reg_struct_id_array(state, 1U, dest_reg, source_struct_id,
+          source_array_element_count, source_array_element_index, &source_provenance);
       }
       if (source_is_app_address) typed_state_set_data_app_address(state, dest_reg, source_app_displacement);
       if (source_has_memory_base)
@@ -3540,7 +3553,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           (source_struct_id == AMIGA_OS_STRUCT_ID_NONE || source_output->struct_id != AMIGA_OS_STRUCT_ID_NONE)) {
         typed_state_set_reg(state, 2U, dest_reg, source_output, &source_provenance);
       } else if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
-        typed_state_set_reg_struct_id(state, 2U, dest_reg, source_struct_id, &source_provenance);
+        typed_state_set_reg_struct_id_array(state, 2U, dest_reg, source_struct_id,
+          source_array_element_count, source_array_element_index, &source_provenance);
       }
       if (source_has_memory_base)
         typed_state_set_memory_base(state, 2U, dest_reg, source_memory_base.section_index, source_memory_base.offset);
@@ -3569,7 +3583,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
             typed_state_set_app_address(state, dest_reg, state->app_addr_regs[source_base_reg].displacement,
               source_struct_id, &state->addr_regs[source_base_reg].provenance);
           } else if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
-            typed_state_set_reg_struct_id(state, 2U, dest_reg, source_struct_id,
+            typed_state_set_reg_struct_id_array(state, 2U, dest_reg, source_struct_id,
+              state->addr_regs[source_base_reg].array_element_count,
+              state->addr_regs[source_base_reg].array_element_index,
               &state->addr_regs[source_base_reg].provenance);
             typed_state_set_reg_origin(state, 2U, dest_reg, &state->addr_regs[source_base_reg].origin);
           }

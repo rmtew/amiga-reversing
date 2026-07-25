@@ -26117,7 +26117,16 @@ static int test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_st
   M68kFactsV2Profile profile;
   M68kAnalysisCustomStruct *custom_structs = NULL;
   char *source = NULL;
-  uint8_t bytes[10] = {0x30u, 0x2du, 0x00u, 0x04u, 0x58u, 0x8du, 0x30u, 0x15u, 0x4eu, 0x75u};
+  uint8_t bytes[18] = {
+    0x30u, 0x2du, 0x00u, 0x04u,
+    0x58u, 0x8du,
+    0x30u, 0x15u,
+    0x28u, 0x4du,
+    0x30u, 0x14u,
+    0x47u, 0xd4u,
+    0x30u, 0x13u,
+    0x4eu, 0x75u
+  };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
@@ -26153,7 +26162,9 @@ static int test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_st
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w array_element_value+array_element_SIZEOF(a5),d0\n"
-    "\taddq.l #4,a5\n\tmove.w array_element_value(a5),d0\n") != NULL);
+    "\taddq.l #4,a5\n\tmove.w array_element_value(a5),d0\n"
+    "\tmovea.l a5,a4\n\tmove.w array_element_value(a4),d0\n"
+    "\tlea.l array_element_value(a4),a3\n\tmove.w array_element_value(a3),d0\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
