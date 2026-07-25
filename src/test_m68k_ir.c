@@ -26685,6 +26685,62 @@ static int test_facts_v2_analysis_propagates_static_array_address_to_generic_poi
   return 0;
 }
 
+static int test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_store(void) {
+  M68kObject object;
+  M68kSection code, data;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs;
+  uint8_t code_bytes[8] = {0x2au, 0xbcu, 0, 0, 0, 4u, 0x4eu, 0x75u};
+  uint8_t data_bytes[16] = {0};
+  memset(&code, 0, sizeof(code)); memset(&data, 0, sizeof(data));
+  memset(&fixup, 0, sizeof(fixup)); memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  code.kind = M68K_SECTION_CODE; code.size = code.data_size = sizeof(code_bytes); code.data = code_bytes;
+  data.kind = M68K_SECTION_DATA; data.size = data.data_size = sizeof(data_bytes); data.data = data_bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &code).ok);
+  M68K_C_ASSERT(m68k_object_add_section(&object, &data).ok);
+  fixup.section_index = 0U; fixup.offset = 2U; fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32; fixup.target_section_index = 1U; fixup.has_target_section = 1;
+  fixup.addend = 4;
+  M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
+  m68k_analysis_policy_init_default(&policy);
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs; policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "world_object_shared_prefix");
+  custom_structs[0].size = 4U; custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].size = 4U;
+  custom_structs[0].fields[0].value_kind = M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "interaction_data_ptr");
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 2U;
+  policy.runtime_ranges[0].has_section_index = 1U; policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(code_bytes); policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.runtime_ranges[1].has_section_index = 1U; policy.runtime_ranges[1].section_index = 1U;
+  policy.runtime_ranges[1].size = sizeof(data_bytes); policy.runtime_ranges[1].runtime_address = 0x200U;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS; policy.register_seeds[0].reg_index = 5U;
+  policy.register_seeds[0].has_entry_offset = policy.register_seeds[0].has_section_index = 1U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "world_object_shared_prefix");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
+  M68K_C_ASSERT_U32(0x204U, analysis.sections[0].pointer_stores[0].source_value);
+  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_RESOLVED, analysis.sections[0].pointer_stores[0].resolution);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].pointer_stores[0].target_section_index);
+  M68K_C_ASSERT_U32(4U, analysis.sections[0].pointer_stores[0].target_offset);
+  m68k_ir_source_analysis_destroy(&analysis); m68k_analysis_policy_destroy(&policy); m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(void) {
   M68kObject object;
   M68kSection section;
@@ -33399,6 +33455,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge},
     {"facts_v2_analysis_propagates_static_array_address_to_generic_pointer_store",
       test_facts_v2_analysis_propagates_static_array_address_to_generic_pointer_store},
+    {"facts_v2_analysis_uses_relocation_target_for_generic_pointer_store",
+      test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_store},
     {"facts_v2_render_asm_source_propagates_static_struct_data_type",
       test_facts_v2_render_asm_source_propagates_static_struct_data_type},
     {"facts_v2_render_asm_source_propagates_static_struct_pointer_chain",

@@ -3495,7 +3495,7 @@ static int instruction_may_update_stack_pointer_from_metadata(const M68kInstruct
 
 static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M68kRenderTypedState *state,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
-    uint32_t offset, int allow_lookup_storage, int *io_changed) {
+    const M68kDecodeCandidate *candidate, uint32_t offset, int allow_lookup_storage, int *io_changed) {
   const M68kSimFormMetadata *metadata = NULL;
   size_t source_index = 0U, dest_index = 0U;
   uint8_t base_reg = 0U;
@@ -3512,6 +3512,17 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
       value.pointer_value_known = 1U;
       value.pointer_value = immediate_value;
+      if (candidate != NULL) {
+        const M68kFact *relocation = analysis_operand_relocation_ref(lookup, section_index, candidate, source_index);
+        uint32_t target_runtime_address = 0U;
+        if (relocation != NULL && relocation->target_section_index < lookup->section_count &&
+            lookup_source_runtime_address(lookup, relocation->target_section_index, relocation->target_offset,
+              &target_runtime_address)) {
+          value.pointer_value = target_runtime_address;
+          value.provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA,
+            relocation->target_section_index, relocation->target_offset);
+        }
+      }
       typed_stored_value_update_known(&value);
     }
   }
@@ -4756,7 +4767,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     return -1;
   }
   if (render_lookup_record_typed_storage_store(lookup, out_typed_state, out_platform_state, section->section_index,
-      &instruction, node->candidate->offset, allow_lookup_storage, io_changed) != 0) {
+      &instruction, node->candidate, node->candidate->offset, allow_lookup_storage, io_changed) != 0) {
     return -1;
   }
   if (render_lookup_record_untyped_memory_writes(lookup, out_typed_state, out_platform_state, section->section_index,
@@ -7949,6 +7960,22 @@ static int render_lookup_pointer_value_to_source_offset(const M68kRenderLookup *
   return 0;
 }
 
+static int render_lookup_pointer_value_to_source_location(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint32_t value, size_t *out_section_index, uint32_t *out_source_offset) {
+  size_t section_index;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (lookup == NULL || decode == NULL || out_section_index == NULL || out_source_offset == NULL) return 0;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    if (render_lookup_pointer_value_to_source_offset(lookup, &decode->sections[section_index], value,
+        out_source_offset)) {
+      *out_section_index = section_index;
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int render_lookup_pointer_table_target_can_take_auto_label(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
     uint32_t offset) {
@@ -8021,31 +8048,33 @@ int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLook
   for (index = 0U; index < lookup->pointer_store_count; ++index) {
     M68kRenderPointerStore *store = &lookup->pointer_stores[index];
     const M68kDecodeSectionIR *section;
+    size_t target_section_index = 0U;
     uint32_t target_offset = 0U;
     if (store->fact.resolution != M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET) continue;
     if (store->section_index >= decode->section_count) continue;
-    section = &decode->sections[store->section_index];
-    if (!render_lookup_pointer_value_to_source_offset(lookup, section, store->fact.source_value, &target_offset)) {
+    if (!render_lookup_pointer_value_to_source_location(lookup, decode, store->fact.source_value,
+        &target_section_index, &target_offset)) {
       store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
       continue;
     }
+    section = &decode->sections[target_section_index];
     if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section,
-        accepted_start != NULL ? accepted_start[store->section_index] : NULL,
-        accepted_bytes[store->section_index], target_offset)) {
+        accepted_start != NULL ? accepted_start[target_section_index] : NULL,
+        accepted_bytes[target_section_index], target_offset)) {
       store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET;
       continue;
     }
     store->fact.has_address = 1U;
     store->fact.has_target = 1U;
-    store->fact.target_section_index = store->section_index;
+    store->fact.target_section_index = target_section_index;
     store->fact.target_offset = target_offset;
     store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_RESOLVED;
-    render_lookup_mark_label(lookup, store->section_index, target_offset);
-    render_lookup_mark_label_target_ref(lookup, store->section_index, target_offset);
+    render_lookup_mark_label(lookup, target_section_index, target_offset);
+    render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
     /* A resolved store emits a source-level symbol expression.  Its target
        must therefore be a renderable statement boundary even when it falls
        inside otherwise coalesced semantic data (for example, a string). */
-    render_lookup_mark_label_statement_ref(lookup, store->section_index, target_offset);
+    render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
   }
   return 0;
 }
