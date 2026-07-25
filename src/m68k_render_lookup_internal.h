@@ -403,6 +403,7 @@ typedef struct M68kRenderTypedAccess {
   uint16_t struct_size;
   uint16_t field_size;
   int16_t array_element_addend;
+  int32_t base_cursor;
   uint8_t inherited;
   uint8_t nested;
   M68kRenderTypedProvenance provenance;

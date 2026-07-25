@@ -1742,8 +1742,8 @@ typedef struct M68kRenderResolvedStructField {
 static uint16_t amiga_struct_size_for_struct_id(uint16_t struct_id);
 static uint16_t lookup_policy_struct_size_by_id(const M68kAnalysisPolicy *policy, uint16_t struct_id);
 static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
-  uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t struct_size,
-  int16_t array_element_addend, const M68kRenderResolvedStructField *field,
+    uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t struct_size,
+  int16_t array_element_addend, int32_t base_cursor, const M68kRenderResolvedStructField *field,
   const M68kRenderTypedProvenance *provenance);
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset, uint8_t operand_index, uint8_t base_reg, int32_t displacement, const char *root_struct_name,
@@ -1811,34 +1811,52 @@ static const char *lookup_policy_struct_name_by_id(const M68kAnalysisPolicy *pol
   return custom_struct != NULL && custom_struct->name[0] != '\0' ? custom_struct->name : NULL;
 }
 
-/* A structured-data item at an exact address describes the object whose
-   address is materialised by LEA.  Do not infer a type for an interior field:
-   the typed register state has no base addend, so doing so would make later
-   displacement lookups unsound. */
+/* A structured-data item can describe an object whose address is materialised
+   at either its start or a proven interior byte.  The cursor records that
+   interior position relative to the root object for later field resolution. */
 static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysisPolicy *policy,
-    size_t section_index, uint32_t offset, uint16_t *out_array_element_count) {
+    size_t section_index, uint32_t offset, uint16_t *out_array_element_count,
+    uint16_t *out_array_element_index, int32_t *out_byte_cursor) {
   size_t index;
   uint16_t resolved_struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  uint16_t resolved_array_element_count = 0U, resolved_array_element_index = 0U;
+  int32_t resolved_byte_cursor = 0;
   if (out_array_element_count != NULL) *out_array_element_count = 0U;
+  if (out_array_element_index != NULL) *out_array_element_index = 0U;
+  if (out_byte_cursor != NULL) *out_byte_cursor = 0;
   if (policy == NULL || policy->structured_data_items == NULL) return AMIGA_OS_STRUCT_ID_NONE;
   for (index = 0U; index < policy->structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
     uint16_t struct_id;
-    if (!item->has_section_index || item->section_index != section_index || item->offset != offset) continue;
+    uint16_t struct_size, array_element_count = 0U, array_element_index = 0U;
+    int32_t byte_cursor;
+    uint64_t item_end;
+    if (!item->has_section_index || item->section_index != section_index || item->size == 0U) continue;
+    item_end = (uint64_t)item->offset + item->size;
+    if (offset < item->offset || (uint64_t)offset >= item_end) continue;
     struct_id = item->struct_id != AMIGA_OS_STRUCT_ID_NONE ? item->struct_id :
       lookup_policy_struct_id_by_name(policy, item->struct_name);
     if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
-    if (resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE && resolved_struct_id != struct_id)
+    struct_size = lookup_policy_struct_size_by_id(policy, struct_id);
+    byte_cursor = (int32_t)(offset - item->offset);
+    if (struct_size != 0U && item->size >= struct_size && item->size % struct_size == 0U &&
+        item->size / struct_size <= UINT16_MAX) {
+      array_element_count = (uint16_t)(item->size / struct_size);
+      array_element_index = (uint16_t)((uint32_t)byte_cursor / struct_size);
+      byte_cursor %= struct_size;
+    }
+    if (resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE &&
+        (resolved_struct_id != struct_id || resolved_array_element_count != array_element_count ||
+         resolved_array_element_index != array_element_index || resolved_byte_cursor != byte_cursor))
       return AMIGA_OS_STRUCT_ID_NONE;
     resolved_struct_id = struct_id;
-    if (out_array_element_count != NULL) {
-      uint16_t struct_size = lookup_policy_struct_size_by_id(policy, struct_id);
-      if (struct_size != 0U && item->size >= struct_size && item->size % struct_size == 0U &&
-          item->size / struct_size <= UINT16_MAX) {
-        *out_array_element_count = (uint16_t)(item->size / struct_size);
-      }
-    }
+    resolved_array_element_count = array_element_count;
+    resolved_array_element_index = array_element_index;
+    resolved_byte_cursor = byte_cursor;
   }
+  if (out_array_element_count != NULL) *out_array_element_count = resolved_array_element_count;
+  if (out_array_element_index != NULL) *out_array_element_index = resolved_array_element_index;
+  if (out_byte_cursor != NULL) *out_byte_cursor = resolved_byte_cursor;
   return resolved_struct_id;
 }
 
@@ -2903,7 +2921,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     uint8_t base_reg = 0U, classification = M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP;
     uint8_t auto_update = M68K_SIM_EA_UPDATE_NONE;
-    int32_t displacement = 0;
+    int32_t displacement = 0, effective_displacement = 0, base_cursor = 0;
     uint16_t struct_id, struct_size, container_struct_id = AMIGA_OS_STRUCT_ID_NONE, container_candidate_count = 0U;
     uint16_t conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     int16_t array_element_addend = 0;
@@ -2952,15 +2970,21 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
       continue;
     }
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
+    if (state->addr_regs[base_reg].known) base_cursor = state->addr_regs[base_reg].byte_cursor;
     struct_size = lookup_policy_struct_size_by_id(lookup->policy, struct_id);
     access_size = instruction_size_suffix_bytes_local(instruction->size_suffix);
     if (auto_update == M68K_SIM_EA_UPDATE_PREDECREMENT) displacement = -(int32_t)access_size;
+    if ((base_cursor > 0 && displacement > INT32_MAX - base_cursor) ||
+        (base_cursor < 0 && displacement < INT32_MIN - base_cursor)) {
+      base_cursor = 0;
+    }
+    effective_displacement = displacement + base_cursor;
     if (operand->value.ea_mode == 6U) {
       if (record_accesses) {
         const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
+              (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC, 0U, NULL, NULL, 0U, NULL,
               provenance) != 0) {
           return -1;
@@ -2974,7 +2998,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         const char *conflict_struct_name = lookup_policy_struct_name_by_id(lookup->policy, conflict_struct_id);
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
+              (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT,
               conflict_struct_name != NULL ? 2U : 1U, conflict_struct_name, NULL, 0U, NULL, provenance) != 0) {
           return -1;
@@ -2987,7 +3011,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
+              (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR, 0U, NULL, NULL, 0U, NULL,
               provenance) != 0) {
           return -1;
@@ -2995,11 +3019,21 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
       }
       continue;
     }
-    field_displacement = (int16_t)displacement;
+    if (effective_displacement < INT16_MIN || effective_displacement > INT16_MAX) {
+      if (record_accesses) {
+        const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
+        if (root_struct_name != NULL && render_lookup_add_unresolved_typed_access_by_names(lookup,
+            section_index, offset, (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name,
+            struct_size, access_size, M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP, 0U, NULL, NULL,
+            0U, NULL, provenance) != 0) return -1;
+      }
+      continue;
+    }
+    field_displacement = (int16_t)effective_displacement;
     if (state->addr_regs[base_reg].known && state->addr_regs[base_reg].array_element_count != 0U &&
         struct_size != 0U) {
       int32_t array_offset = (int32_t)state->addr_regs[base_reg].array_element_index * (int32_t)struct_size +
-        (int32_t)displacement;
+        effective_displacement;
       if (array_offset >= 0 && (uint32_t)array_offset <
           (uint32_t)state->addr_regs[base_reg].array_element_count * struct_size) {
         array_element_addend = (int16_t)((int32_t)((uint32_t)array_offset / struct_size) -
@@ -3010,7 +3044,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (!lookup_policy_resolve_struct_field(lookup->policy, struct_id, field_displacement, &field)) {
       int refined_exact_field_access_recorded = 0;
       if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) != NULL) {
-        classify_unresolved_typed_access(struct_id, (int16_t)displacement, struct_size, access_size,
+        classify_unresolved_typed_access(struct_id, field_displacement, struct_size, access_size,
           &classification, &container_candidate_count,
           container_struct_name, sizeof(container_struct_name), container_field_expr, sizeof(container_field_expr),
           &container_struct_id);
@@ -3032,7 +3066,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
             typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_PREFIX_REFINEMENT, section_index, offset);
           if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, (uint8_t)operand_index,
               base_reg, (int16_t)displacement, lookup_policy_struct_size_by_id(lookup->policy, container_struct_id),
-              array_element_addend, &field,
+              array_element_addend, base_cursor, &field,
               &prefix_provenance) != 0) {
             return -1;
           }
@@ -3042,7 +3076,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
           const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
           if (root_struct_name != NULL &&
               render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-                (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size, classification,
+                (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size, classification,
                 container_candidate_count, container_struct_name, container_field_expr,
                 (uint8_t)(refinement_applied ? 1U : 0U),
                 refinement_applied ? lookup_policy_struct_name_by_id(lookup->policy, container_struct_id) : NULL,
@@ -3058,7 +3092,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
+              (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP, 0U, NULL, NULL, 0U, NULL, provenance) != 0) {
           return -1;
         }
@@ -3067,7 +3101,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     }
     if (record_accesses) {
       if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, (uint8_t)operand_index,
-          base_reg, (int16_t)displacement, struct_size, array_element_addend, &field, provenance) != 0) {
+          base_reg, (int16_t)displacement, struct_size, array_element_addend, base_cursor, &field, provenance) != 0) {
         return -1;
       }
     }
@@ -3684,14 +3718,17 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           &dest_reg) ||
           candidate_loads_runtime_address_ref_target_to_address_reg(lookup, section_index, candidate, instruction,
             &target_section_index, &target_offset, &dest_reg)) {
-        uint16_t static_array_element_count = 0U;
+        uint16_t static_array_element_count = 0U, static_array_element_index = 0U;
+        int32_t static_byte_cursor = 0;
         source_struct_id = lookup_policy_struct_id_for_static_data_target(lookup != NULL ? lookup->policy : NULL,
-          target_section_index, target_offset, &static_array_element_count);
+          target_section_index, target_offset, &static_array_element_count, &static_array_element_index,
+          &static_byte_cursor);
         if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
           M68kRenderTypedProvenance static_data_provenance =
             typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA, target_section_index, target_offset);
           typed_state_set_reg_struct_id_array(state, 2U, dest_reg, source_struct_id,
-            static_array_element_count, 0U, &static_data_provenance);
+            static_array_element_count, static_array_element_index, &static_data_provenance);
+          state->addr_regs[dest_reg].byte_cursor = static_byte_cursor;
         }
         typed_state_set_memory_base(state, 2U, dest_reg, target_section_index, target_offset);
       } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
@@ -5241,7 +5278,7 @@ static int append_render_lookup_typed_accesses_for_section(const M68kRenderLooku
     if (access->section_index != section_analysis->section_index) continue;
     if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
         M68K_PLATFORM_BACKEND_AMIGA_HUNK, access->offset, access->operand_index, access->base_reg,
-        access->displacement, access->field_offset, access->struct_size, access->field_size,
+        access->displacement, access->base_cursor, access->field_offset, access->struct_size, access->field_size,
         access->root_struct_name, access->owner_struct_name, access->field_name, access->field_expr,
         access->inherited, access->nested, access->provenance.kind, access->provenance.section_index,
         access->provenance.offset) != 0) {
@@ -6691,7 +6728,7 @@ int render_lookup_add_typed_app_slot_region(M68kRenderLookup *lookup, int16_t di
 
 static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t struct_size,
-    int16_t array_element_addend, const M68kRenderResolvedStructField *field,
+    int16_t array_element_addend, int32_t base_cursor, const M68kRenderResolvedStructField *field,
     const M68kRenderTypedProvenance *provenance) {
   size_t index;
   M68kRenderTypedAccess *grown;
@@ -6726,6 +6763,7 @@ static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, siz
   lookup->typed_accesses[lookup->typed_access_count].struct_size = struct_size;
   lookup->typed_accesses[lookup->typed_access_count].field_size = field->size;
   lookup->typed_accesses[lookup->typed_access_count].array_element_addend = array_element_addend;
+  lookup->typed_accesses[lookup->typed_access_count].base_cursor = base_cursor;
   lookup->typed_accesses[lookup->typed_access_count].inherited = field->inherited;
   lookup->typed_accesses[lookup->typed_access_count].nested = field->nested;
   if (provenance != NULL) {
@@ -6769,7 +6807,7 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
   snprintf(resolved.field_name, sizeof(resolved.field_name), "%s", field_name);
   snprintf(resolved.field_expr, sizeof(resolved.field_expr), "%s", field_expr);
   return render_lookup_add_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
-    displacement, amiga_struct_size_for_struct_id(root_struct_id), 0U, &resolved, provenance);
+    displacement, amiga_struct_size_for_struct_id(root_struct_id), 0U, 0, &resolved, provenance);
 }
 
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,
@@ -9549,7 +9587,7 @@ static int analysis_record_mac_output_pointer_local_read_facts(const M68kDecodeS
         }
         if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
             M68K_PLATFORM_BACKEND_MACOS, candidate->offset, (uint8_t)operand_index, base_reg, displacement, 0,
-            0U, access_size, arg->pointee_type_name, arg->pointee_type_name, arg->field_name,
+            0, 0U, access_size, arg->pointee_type_name, arg->pointee_type_name, arg->field_name,
             "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index, call_offset) != 0) {
           return -1;
         }
@@ -9565,7 +9603,7 @@ static int analysis_record_mac_output_pointer_local_read_facts(const M68kDecodeS
             }
             if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
                 M68K_PLATFORM_BACKEND_MACOS, candidate->offset, (uint8_t)dest_index, dest_base_reg,
-                dest_displacement, 0, 0U, access_size, arg->pointee_type_name, arg->pointee_type_name,
+                dest_displacement, 0, 0, 0U, access_size, arg->pointee_type_name, arg->pointee_type_name,
                 arg->field_name, "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index,
                 call_offset) != 0) {
               return -1;
@@ -9647,7 +9685,7 @@ static int analysis_record_mac_call_stack_arg_facts(const M68kRenderLookup *look
           param->type_name != NULL && param->type_name[0] != '\0' && arg->source_reg_kind == 2U) {
         if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
             M68K_PLATFORM_BACKEND_MACOS, arg->offset, 0U, arg->source_reg_index, arg->source_displacement, 0,
-            0U, 0U, param->type_name, param->type_name, param->name != NULL ? param->name : "",
+            0, 0U, 0U, param->type_name, param->type_name, param->name != NULL ? param->name : "",
             "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT, section->section_index, call_offset) != 0) {
           return -1;
         }

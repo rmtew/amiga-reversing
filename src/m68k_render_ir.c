@@ -4578,6 +4578,7 @@ static int attach_amiga_typed_struct_field_symbols(const M68kRenderLookup *looku
     operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
     operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
     snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", access->field_expr);
+    operand->symbol_ref.addend = -access->base_cursor;
     if (access->array_element_addend != 0) {
       operand->symbol_ref.has_symbolic_addend = 1U;
       operand->symbol_ref.symbolic_addend_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;

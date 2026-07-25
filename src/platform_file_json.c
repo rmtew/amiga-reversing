@@ -5219,9 +5219,9 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         goto oom;
       if (json_builder_appendf(&builder,
             "{\"offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,"
-            "\"field_offset\":%d,\"struct_size\":%u,\"field_size\":%u,\"root_struct_name\":",
+            "\"base_cursor\":%d,\"field_offset\":%d,\"struct_size\":%u,\"field_size\":%u,\"root_struct_name\":",
             (unsigned)access->offset, (unsigned)access->operand_index, (unsigned)access->base_reg,
-            (int)access->displacement, (int)access->field_offset, (unsigned)access->struct_size,
+            (int)access->displacement, (int)access->base_cursor, (int)access->field_offset, (unsigned)access->struct_size,
             (unsigned)access->field_size) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
@@ -6274,10 +6274,11 @@ static int append_listing_typed_accesses_json(JsonBuilder *builder, const M68kSt
     field_name = m68k_platform_name_ref_display_text(&access->field_ref, access->field_name);
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
-        "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"field_offset\":%d,"
+        "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"base_cursor\":%d,\"field_offset\":%d,"
         "\"struct_size\":%u,\"field_size\":%u,\"root_struct_name\":",
         (unsigned)access->operand_index, (unsigned)access->base_reg, (int)access->displacement,
-        (int)access->field_offset, (unsigned)access->struct_size, (unsigned)access->field_size) != 0)
+        (int)access->base_cursor, (int)access->field_offset, (unsigned)access->struct_size,
+        (unsigned)access->field_size) != 0)
       return -1;
     if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
     if (json_builder_append(builder, ",\"owner_struct_name\":") != 0) return -1;
