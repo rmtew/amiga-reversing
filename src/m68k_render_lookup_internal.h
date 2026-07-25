@@ -320,6 +320,9 @@ typedef struct M68kRenderTypedStoredValue {
   uint8_t known;
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
+  uint16_t array_element_count;
+  uint16_t array_element_index;
+  int32_t byte_cursor;
   uint8_t app_address_known;
   int16_t app_displacement;
   M68kRenderTypedProvenance provenance;

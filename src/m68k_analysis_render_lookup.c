@@ -2121,10 +2121,17 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
   typed_stored_value_clear(&value);
   value.struct_id = typed_state_struct_id_for_operand(state, operand);
   value.output = typed_state_output_for_operand(state, operand, NULL, NULL);
-  if (state != NULL && operand_is_data_register_local(operand, &reg))
+  if (state != NULL && operand_is_data_register_local(operand, &reg)) {
     value.provenance = state->data_regs[reg].provenance;
-  else if (state != NULL && operand_address_register_index_local(operand, &reg))
+    value.array_element_count = state->data_regs[reg].array_element_count;
+    value.array_element_index = state->data_regs[reg].array_element_index;
+    value.byte_cursor = state->data_regs[reg].byte_cursor;
+  } else if (state != NULL && operand_address_register_index_local(operand, &reg)) {
     value.provenance = state->addr_regs[reg].provenance;
+    value.array_element_count = state->addr_regs[reg].array_element_count;
+    value.array_element_index = state->addr_regs[reg].array_element_index;
+    value.byte_cursor = state->addr_regs[reg].byte_cursor;
+  }
   if (typed_state_copy_app_address(state, operand, &app_displacement)) {
     value.app_address_known = 1U;
     value.app_displacement = app_displacement;
@@ -3623,6 +3630,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       source_struct_id = stored_value.struct_id;
       source_is_app_address = stored_value.app_address_known;
       source_app_displacement = stored_value.app_displacement;
+      source_array_element_count = stored_value.array_element_count;
+      source_array_element_index = stored_value.array_element_index;
+      source_byte_cursor = stored_value.byte_cursor;
       source_provenance = stored_value.provenance;
     }
     if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE && move_metadata != NULL &&
@@ -3882,6 +3892,8 @@ static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
     const M68kRenderTypedStoredValue *right) {
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->output == right->output && left->struct_id == right->struct_id &&
+    left->array_element_count == right->array_element_count &&
+    left->array_element_index == right->array_element_index && left->byte_cursor == right->byte_cursor &&
     left->app_address_known == right->app_address_known && left->app_displacement == right->app_displacement &&
     typed_provenances_equal(&left->provenance, &right->provenance);
 }
@@ -4051,6 +4063,12 @@ static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
   if (dest->output != source->output) dest->output = NULL;
   typed_provenance_merge(&dest->provenance, &source->provenance);
   dest->struct_id = typed_struct_id_common_merge(dest->struct_id, source->struct_id);
+  if (dest->array_element_count != source->array_element_count ||
+      dest->array_element_index != source->array_element_index || dest->byte_cursor != source->byte_cursor) {
+    dest->array_element_count = 0U;
+    dest->array_element_index = 0U;
+    dest->byte_cursor = 0;
+  }
   if (dest->output != NULL && dest->struct_id != AMIGA_OS_STRUCT_ID_NONE &&
       dest->output->struct_id != dest->struct_id) {
     dest->output = NULL;
@@ -6566,6 +6584,9 @@ static int typed_storage_merge_value(M68kRenderTypedStorageSlot *slot,
     } else if (slot->value.struct_id != merged_struct_id) {
       slot->value.struct_id = merged_struct_id;
       slot->value.output = NULL;
+      slot->value.array_element_count = 0U;
+      slot->value.array_element_index = 0U;
+      slot->value.byte_cursor = 0;
       changed = 1;
     }
   }
@@ -6575,6 +6596,14 @@ static int typed_storage_merge_value(M68kRenderTypedStorageSlot *slot,
     slot->value.output = NULL;
     changed = 1;
   } else {
+    if (slot->value.array_element_count != value->array_element_count ||
+        slot->value.array_element_index != value->array_element_index ||
+        slot->value.byte_cursor != value->byte_cursor) {
+      slot->value.array_element_count = 0U;
+      slot->value.array_element_index = 0U;
+      slot->value.byte_cursor = 0;
+      changed = 1;
+    }
     if (slot->value.output == NULL && value->output != NULL &&
         (slot->value.struct_id == AMIGA_OS_STRUCT_ID_NONE ||
           value->output->struct_id == AMIGA_OS_STRUCT_ID_NONE ||
