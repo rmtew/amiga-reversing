@@ -11,6 +11,7 @@ import subprocess
 import sys
 import threading
 import time
+from contextlib import suppress
 from pathlib import Path
 
 
@@ -274,7 +275,40 @@ def inspect_current_task(gdb: MiProcess, ndk: dict[str, object]) -> dict[str, ob
     return report
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int) -> dict[str, object]:
+def pause_at_observation_memory(gdb: MiProcess, *, address: int | None, expected: bytes | None, timeout_seconds: int) -> tuple[str, dict[str, object] | None]:
+    """Pause at a bounded diagnostic marker, or after the supplied time budget."""
+
+    started = time.monotonic()
+    matched = False
+    observation = None
+    gdb.command("-exec-continue")
+    if address is None:
+        time.sleep(timeout_seconds)
+        gdb.command("-exec-interrupt")
+        return gdb.wait_for_stop(), None
+    while True:
+        remaining = timeout_seconds - (time.monotonic() - started)
+        if remaining <= 0:
+            gdb.command("-exec-interrupt")
+            stop = gdb.wait_for_stop()
+            break
+        time.sleep(min(0.25, remaining))
+        gdb.command("-exec-interrupt")
+        stop = gdb.wait_for_stop()
+        if address is not None:
+            value = read_memory(gdb, address, 4)
+            observation = {"address": f"0x{address:08x}", "bytes": value.hex()}
+            matched = expected is not None and value == expected
+            if matched:
+                break
+        gdb.command("-exec-continue")
+    if observation is not None:
+        observation["matched"] = matched
+        observation["elapsed_seconds"] = round(time.monotonic() - started, 3)
+    return stop, observation
+
+
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -282,10 +316,12 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
         gdb.command("-gdb-set confirm off")
         gdb.command("-gdb-set mi-async on")
         gdb.command("-target-select remote 127.0.0.1:2345")
-        gdb.command("-exec-continue")
-        time.sleep(continue_seconds)
-        gdb.command("-exec-interrupt")
-        stop = gdb.wait_for_stop()
+        stop, observation_memory = pause_at_observation_memory(
+            gdb,
+            address=observation_memory_address,
+            expected=observation_memory_equals,
+            timeout_seconds=continue_seconds,
+        )
         pc = gdb.command("-data-evaluate-expression $pc")
         sp = gdb.command("-data-evaluate-expression $sp")
         memory = gdb.command("-data-read-memory-bytes 0xfc0000 8")
@@ -293,6 +329,14 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
         pc_address = int(pc_value, 0) if pc_value is not None else 0
         pc_memory_bytes = read_memory(gdb, pc_address, 16) if pc_address else b""
         pc_memory = pc_memory_bytes.hex() if pc_memory_bytes else None
+        observation_memory = observation_memory or (
+            {
+                "address": f"0x{observation_memory_address:08x}",
+                "bytes": read_memory(gdb, observation_memory_address, 4).hex(),
+            }
+            if observation_memory_address is not None
+            else None
+        )
         exec_state = inspect_current_task(gdb, ndk)
         loader_watch = watch_loadseg(gdb, ndk, loadseg_watch_seconds) if loadseg_watch_seconds else None
         target_detection = detect_payload_execution(target_payload_path, pc_address, pc_memory_bytes) if target_payload_path and pc_memory_bytes else None
@@ -329,10 +373,8 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             breakpoint_sp_address = int(breakpoint_sp_value, 0) if breakpoint_sp_value is not None else 0
             breakpoint_return_address = None
             if breakpoint_sp_address:
-                try:
+                with suppress(MiError):
                     breakpoint_return_address = f"0x{int.from_bytes(read_memory(gdb, breakpoint_sp_address, 4), 'big'):08x}"
-                except MiError:
-                    pass
             breakpoint = {
                 "address": f"0x{breakpoint_address:08x}",
                 "status": breakpoint_status,
@@ -350,6 +392,7 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "sp": mi_value(sp),
             "memory_pc": pc_memory,
             "memory_0xfc0000": mi_memory_bytes(memory),
+            "observation_memory": observation_memory,
             "exec_state": exec_state,
             "active_execution": active_execution,
             "loadseg_watch": loader_watch,
@@ -369,6 +412,8 @@ def main() -> int:
     parser.add_argument("--breakpoint-address", type=lambda value: int(value, 0))
     parser.add_argument("--breakpoint-source-offset", type=lambda value: int(value, 0))
     parser.add_argument("--breakpoint-wait-seconds", type=int, default=60)
+    parser.add_argument("--observation-memory-address", type=lambda value: int(value, 0))
+    parser.add_argument("--observation-memory-equals", type=bytes.fromhex)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
         parser.error("--continue-seconds must be between 1 and 120")
@@ -376,8 +421,14 @@ def main() -> int:
         parser.error("--loadseg-watch-seconds must be between 1 and 120")
     if not 1 <= args.breakpoint_wait_seconds <= 120:
         parser.error("--breakpoint-wait-seconds must be between 1 and 120")
+    if args.observation_memory_address is not None and not 0 <= args.observation_memory_address <= 0xFFFFFF:
+        parser.error("--observation-memory-address must be a 24-bit Amiga address")
+    if args.observation_memory_equals is not None and len(args.observation_memory_equals) != 4:
+        parser.error("--observation-memory-equals must contain exactly four bytes of hexadecimal data")
+    if args.observation_memory_equals is not None and args.observation_memory_address is None:
+        parser.error("--observation-memory-equals requires --observation-memory-address")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds, args.observation_memory_address, args.observation_memory_equals)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1

@@ -233,19 +233,20 @@ replaced, and validation. A hybrid success is not full reproduction proof.
 
 A diagnostic bootblock which reads a decompressed raw image to its declared
 load address and transfers to its declared entrypoint is tempting, but those
-two fields alone do not prove the image is independently bootable.  Pandora
-provided a concrete counterexample on 2026-07-26: a disposable custom boot disk
-was built from the byte-identified ByteKiller output, loaded it at `$20000`,
-and returned its declared `$20000` entrypoint.  The headless WinUAE process
-exited before its GDB listener became available.  The experiment is therefore
-not an adopted adapter and does not establish whether the missing prerequisite
-is parent-loader state, a bootstrap ABI detail, or an emulator/media defect.
+two fields alone do not prove the image is independently bootable. Pandora
+provided the required distinction on 2026-07-26. Its ByteKiller metadata named
+`$20000` for both load and entry; that transfer entered the image and then
+reset. The byte-identified execution view instead proved the viable contract:
+read the same raw image to `$10000` and jump directly to `$10000`. A custom
+boot disk reached the payload's relocation stub after 15.728 seconds, without
+depending on the original disk's filesystem metadata.
 
-Do not retain a generic direct-payload option after such a result.  A future
-adapter must first capture the original handoff state, declare every required
-register, memory range, interrupt/vector condition, and media prerequisite,
-then prove a headless cold boot reaches the byte-identified payload before it
-is exposed through the public runtime interface.
+This is evidence for a Pandora-specific adapter contract, not a reason to
+reinterpret decompression metadata globally. Every direct adapter must declare
+its byte identity, load and entry addresses, register/memory prerequisites,
+and a bounded handoff marker; it must prove a headless cold boot reaches the
+byte-identified payload before it is exposed through the public runtime
+interface.
 
 ### 6. Scenario And Checkpoint, Not Screenshots, Define Tests
 

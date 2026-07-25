@@ -22,6 +22,10 @@ param(
 
     [string]$BreakpointSourceOffset,
 
+    [string]$ObservationMemoryAddress,
+
+    [string]$ObservationMemoryEquals,
+
     [ValidateRange(1, 120)]
     [int]$BreakpointWaitSeconds = 60,
 
@@ -48,6 +52,12 @@ if ($BreakpointAddress -and -not $ContinueSeconds) {
 }
 if ($BreakpointSourceOffset -and -not $ContinueSeconds) {
     throw 'BreakpointSourceOffset requires ContinueSeconds.'
+}
+if ($ObservationMemoryAddress -and -not $ContinueSeconds) {
+    throw 'ObservationMemoryAddress requires ContinueSeconds.'
+}
+if ($ObservationMemoryEquals -and -not $ObservationMemoryAddress) {
+    throw 'ObservationMemoryEquals requires ObservationMemoryAddress.'
 }
 if ($BreakpointAddress -and $BreakpointSourceOffset) {
     throw 'Specify either BreakpointAddress or BreakpointSourceOffset, not both.'
@@ -169,6 +179,12 @@ try {
         }
         if ($BreakpointSourceOffset) {
             $gdbArgs += '--breakpoint-source-offset', $BreakpointSourceOffset, '--breakpoint-wait-seconds', "$BreakpointWaitSeconds"
+        }
+        if ($ObservationMemoryAddress) {
+            $gdbArgs += '--observation-memory-address', $ObservationMemoryAddress
+        }
+        if ($ObservationMemoryEquals) {
+            $gdbArgs += '--observation-memory-equals', $ObservationMemoryEquals
         }
         $gdbProcess = Start-Process -FilePath $python -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
         $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + $LoadSegWatchSeconds + $(if ($BreakpointAddress -or $BreakpointSourceOffset) { $BreakpointWaitSeconds } else { 0 }) + 15) * 1000

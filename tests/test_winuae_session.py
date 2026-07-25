@@ -48,6 +48,20 @@ def test_headless_session_does_not_pass_breakpoint_wait_without_a_breakpoint() -
     assert "-BreakpointWaitSeconds" not in session.command()
 
 
+def test_headless_session_passes_a_single_bounded_memory_observation() -> None:
+    session = winuae_session.HeadlessWinUaeSession(
+        rom_path=Path(r"C:\roms\kick.rom"),
+        target_payload_path=Path(r"C:\target\binary.bin"),
+        runner_path=Path(r"C:\repo\tools\run_winuae_headless.ps1"),
+        observation_memory_address=0x400,
+        observation_memory_equals=b"HAND",
+    )
+
+    assert session.command()[-4:] == [
+        "-ObservationMemoryAddress", "0x400", "-ObservationMemoryEquals", "48414e44",
+    ]
+
+
 def test_resolve_breakpoint_stable_key_requires_current_canonical_row(monkeypatch) -> None:
     row = {"stable_key": "s0:00000BA8:instruction:760", "start_offset": 0xBA8}
     artifact = _FakeArtifact(row)
