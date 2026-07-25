@@ -2712,7 +2712,7 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
 
 int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, uint8_t operand_index,
-    uint8_t base_reg, int16_t displacement, uint16_t struct_size, const char *root_struct_name,
+    uint8_t base_reg, int16_t displacement, uint16_t struct_size, uint8_t access_size, const char *root_struct_name,
     uint8_t classification, uint16_t container_candidate_count, const char *container_struct_name,
     const char *container_field_expr, uint8_t refinement_applied, const char *refined_struct_name,
     uint8_t type_provenance_kind, size_t type_provenance_section_index, uint32_t type_provenance_offset) {
@@ -2755,7 +2755,8 @@ int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
       &section_analysis->recovered_platform_unresolved_typed_accesses[index];
     if (existing->offset == offset && existing->operand_index == operand_index &&
         existing->base_reg == base_reg && existing->displacement == displacement &&
-        existing->struct_size == struct_size && existing->classification == classification &&
+        existing->struct_size == struct_size && existing->access_size == access_size &&
+        existing->classification == classification &&
         existing->container_candidate_count == container_candidate_count &&
         existing->refinement_applied == refinement_applied &&
         existing->type_provenance_kind == type_provenance_kind &&
@@ -2806,6 +2807,8 @@ int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     section_analysis->recovered_platform_unresolved_typed_access_count].displacement = displacement;
   section_analysis->recovered_platform_unresolved_typed_accesses[
     section_analysis->recovered_platform_unresolved_typed_access_count].struct_size = struct_size;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].access_size = access_size;
   section_analysis->recovered_platform_unresolved_typed_accesses[
     section_analysis->recovered_platform_unresolved_typed_access_count].classification = classification;
   section_analysis->recovered_platform_unresolved_typed_accesses[
@@ -4690,7 +4693,7 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
       M68K_PLATFORM_NAME_STRUCT, root_struct_name);
     if (m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(&copy, platform_kind,
           access->offset, access->operand_index, access->base_reg, access->displacement,
-          access->struct_size, root_struct_name, access->classification, access->container_candidate_count,
+          access->struct_size, access->access_size, root_struct_name, access->classification, access->container_candidate_count,
           container_struct_name, access->container_field_expr, access->refinement_applied,
           refined_struct_name, access->type_provenance_kind, access->type_provenance_section_index,
           access->type_provenance_offset) != 0) {

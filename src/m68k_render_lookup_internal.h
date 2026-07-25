@@ -418,6 +418,7 @@ typedef struct M68kRenderUnresolvedTypedAccess {
   uint8_t base_reg;
   int16_t displacement;
   uint16_t struct_size;
+  uint8_t access_size;
   uint8_t classification;
   uint16_t container_candidate_count;
   uint8_t refinement_applied;
@@ -823,7 +824,8 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
     const M68kRenderTypedProvenance *provenance);
 int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id, uint16_t struct_size,
-  uint8_t refinement_applied, uint16_t refined_struct_id, const M68kRenderTypedProvenance *provenance);
+  uint8_t access_size, uint8_t refinement_applied, uint16_t refined_struct_id,
+  const M68kRenderTypedProvenance *provenance);
 const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset);
 int render_lookup_add_string_span(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,

@@ -3248,11 +3248,12 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_appendf(builder,
           "{\"record_kind_id\":%u,\"record_kind\":\"platform_unresolved_typed_access\","
           "\"memory_kind\":\"platform_struct_unresolved\",\"section_index\":%u,\"source_offset\":%u,"
-          "\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,"
+          "\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,\"access_size\":%u,"
           "\"classification_id\":%u,\"classification\":",
           (unsigned)M68K_MEMORY_LAYOUT_RECORD_PLATFORM_UNRESOLVED_TYPED_ACCESS,
           (unsigned)section->section_index, (unsigned)access->offset, (unsigned)access->operand_index,
           (unsigned)access->base_reg, (int)access->displacement, (unsigned)access->struct_size,
+          (unsigned)access->access_size,
           (unsigned)access->classification) != 0) {
         return -1;
       }
@@ -5268,9 +5269,9 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         goto oom;
       if (json_builder_appendf(&builder,
             "{\"offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,"
-            "\"struct_size\":%u,\"root_struct_name\":",
+            "\"struct_size\":%u,\"access_size\":%u,\"root_struct_name\":",
             (unsigned)access->offset, (unsigned)access->operand_index, (unsigned)access->base_reg,
-            (int)access->displacement, (unsigned)access->struct_size) != 0)
+            (int)access->displacement, (unsigned)access->struct_size, (unsigned)access->access_size) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
         goto oom;
@@ -6320,10 +6321,10 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
       access->refined_struct_name);
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
-        "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,"
+        "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,\"access_size\":%u,"
         "\"root_struct_name\":",
         (unsigned)access->operand_index, (unsigned)access->base_reg, (int)access->displacement,
-        (unsigned)access->struct_size) != 0)
+        (unsigned)access->struct_size, (unsigned)access->access_size) != 0)
       return -1;
     if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
     if (json_builder_appendf(builder, ",\"classification_id\":%u,\"classification\":",
@@ -9442,9 +9443,9 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
       m68k_platform_name_ref_display_text(&access->root_struct_ref, access->root_struct_name)) != 0)
     return -1;
   if (json_builder_appendf(builder, ",\"base_register\":\"A%u\",\"operand_index\":%u,\"displacement\":%d,"
-        "\"struct_size\":%u,\"classification_id\":%u,\"classification\":",
+        "\"struct_size\":%u,\"access_size\":%u,\"classification_id\":%u,\"classification\":",
         (unsigned)access->base_reg, (unsigned)access->operand_index, (int)access->displacement,
-        (unsigned)access->struct_size, (unsigned)access->classification) != 0)
+        (unsigned)access->struct_size, (unsigned)access->access_size, (unsigned)access->classification) != 0)
     return -1;
   if (json_builder_append_json_string(builder,
       unresolved_typed_access_classification_name(access->classification)) != 0) return -1;

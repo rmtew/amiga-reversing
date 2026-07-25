@@ -23992,6 +23992,7 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   }
   M68K_C_ASSERT(unresolved != NULL);
   M68K_C_ASSERT(unresolved->struct_size > 0U);
+  M68K_C_ASSERT_U32(1U, unresolved->access_size);
   M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE,
     unresolved->classification);
   M68K_C_ASSERT_U32(0U, unresolved->container_candidate_count);
@@ -23999,6 +24000,7 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   M68K_C_ASSERT_U32(0U, unresolved->type_provenance_offset);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"access_size\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"classification_id\":2,\"classification\":\"custom_tail_or_mistyped_base\"") != NULL);
   free(analysis_json);
@@ -26889,10 +26891,6 @@ static int test_facts_v2_analysis_collects_macos_symbol_string_without_source_re
   M68kSection section;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
-  M68kSourceAnalysisIR analysis;
-  const M68kSectionAnalysisIR *analysis_section;
-  const M68kRecoveredPlatformUnresolvedTypedAccessIR *unresolved = NULL;
-  size_t index;
   M68kSourceAnalysisIR source_analysis;
   uint16_t index;
   uint32_t symbol_items = 0U;
@@ -30542,22 +30540,6 @@ static int test_facts_v2_runtime_sink_operand_symbol_does_not_leak_by_value(void
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
-    &analysis, m68k_diag_sink(NULL)));
-  analysis_section = &analysis.sections[0];
-  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
-    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
-      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    if (access->offset == 34U && access->operand_index == 0U && access->base_reg == 0U &&
-        access->displacement == 0x14) {
-      unresolved = access;
-      break;
-    }
-  }
-  M68K_C_ASSERT(unresolved != NULL);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT, unresolved->classification);
-  M68K_C_ASSERT(unresolved->container_candidate_count >= 1U);
-  m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);

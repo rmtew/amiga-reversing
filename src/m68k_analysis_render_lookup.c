@@ -1743,7 +1743,7 @@ static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, siz
   const M68kRenderTypedProvenance *provenance);
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement, const char *root_struct_name,
-  uint16_t struct_size, uint8_t classification, uint16_t container_candidate_count,
+  uint16_t struct_size, uint8_t access_size, uint8_t classification, uint16_t container_candidate_count,
   const char *container_struct_name, const char *container_field_expr, uint8_t refinement_applied,
   const char *refined_struct_name, const M68kRenderTypedProvenance *provenance);
 
@@ -2941,7 +2941,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         const char *conflict_struct_name = lookup_policy_struct_name_by_id(lookup->policy, conflict_struct_id);
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size,
+              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT,
               conflict_struct_name != NULL ? 2U : 1U, conflict_struct_name, NULL, 0U, NULL, provenance) != 0) {
           return -1;
@@ -2996,7 +2996,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
           const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
           if (root_struct_name != NULL &&
               render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-                (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, classification,
+                (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size, classification,
                 container_candidate_count, container_struct_name, container_field_expr,
                 (uint8_t)(refinement_applied ? 1U : 0U),
                 refinement_applied ? lookup_policy_struct_name_by_id(lookup->policy, container_struct_id) : NULL,
@@ -3012,7 +3012,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
-              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size,
+              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP, 0U, NULL, NULL, 0U, NULL, provenance) != 0) {
           return -1;
         }
@@ -5178,7 +5178,7 @@ static int append_render_lookup_unresolved_typed_accesses_for_section(const M68k
     if (access->section_index != section_analysis->section_index) continue;
     if (m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(section_analysis,
         M68K_PLATFORM_BACKEND_AMIGA_HUNK, access->offset, access->operand_index, access->base_reg,
-        access->displacement, access->struct_size, access->root_struct_name, access->classification,
+        access->displacement, access->struct_size, access->access_size, access->root_struct_name, access->classification,
         access->container_candidate_count, access->container_struct_name, access->container_field_expr,
         access->refinement_applied, access->refined_struct_name, access->provenance.kind,
         access->provenance.section_index, access->provenance.offset) != 0) {
@@ -6689,7 +6689,7 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
 
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement, const char *root_struct_name,
-    uint16_t struct_size, uint8_t classification, uint16_t container_candidate_count,
+    uint16_t struct_size, uint8_t access_size, uint8_t classification, uint16_t container_candidate_count,
     const char *container_struct_name, const char *container_field_expr, uint8_t refinement_applied,
     const char *refined_struct_name, const M68kRenderTypedProvenance *provenance) {
   size_t index;
@@ -6722,6 +6722,7 @@ static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].base_reg = base_reg;
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].displacement = displacement;
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].struct_size = struct_size;
+  lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].access_size = access_size;
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].classification = classification;
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].container_candidate_count =
     container_candidate_count;
@@ -6751,7 +6752,7 @@ static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *
 
 int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id,
-    uint16_t struct_size, uint8_t refinement_applied, uint16_t refined_struct_id,
+    uint16_t struct_size, uint8_t access_size, uint8_t refinement_applied, uint16_t refined_struct_id,
     const M68kRenderTypedProvenance *provenance) {
   const char *root_struct_name;
   const char *refined_struct_name = NULL;
@@ -6765,7 +6766,7 @@ int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t s
   if (root_struct_name == NULL || root_struct_name[0] == '\0') return 0;
   container_struct_name[0] = '\0';
   container_field_expr[0] = '\0';
-  classify_unresolved_typed_access(root_struct_id, displacement, struct_size, 0U, &classification,
+  classify_unresolved_typed_access(root_struct_id, displacement, struct_size, access_size, &classification,
     &container_candidate_count, container_struct_name, sizeof(container_struct_name), container_field_expr,
     sizeof(container_field_expr), NULL);
   if (refinement_applied != 0U && refined_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
@@ -6781,7 +6782,8 @@ int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t s
     }
   }
   return render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
-    displacement, root_struct_name, struct_size, classification, container_candidate_count, container_struct_name,
+    displacement, root_struct_name, struct_size, access_size, classification, container_candidate_count,
+    container_struct_name,
     container_field_expr, refinement_applied, refined_struct_name, provenance);
 }
 

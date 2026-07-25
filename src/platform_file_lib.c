@@ -2110,7 +2110,6 @@ static int append_metadata_entry_point_local(const char *object_start, const cha
   source_path[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &offset, &has_offset) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
-      !json_number_field_local(object_start, object_end, "array_length", &array_length, NULL) ||
       !json_optional_string_field_local(object_start, object_end, "seed_origin", seed_origin, sizeof(seed_origin)) ||
       !json_optional_string_field_local(object_start, object_end, "source_path", source_path, sizeof(source_path)))
     return 0;
