@@ -2452,11 +2452,15 @@ static int render_lookup_add_pointer_store(M68kRenderLookup *lookup, size_t sect
       if (existing->section_index == section_index && existing->fact.offset == fact->offset &&
           existing->fact.source_operand_index == fact->source_operand_index &&
           existing->fact.destination_operand_index == fact->destination_operand_index) {
-        /* The instruction can be revisited while the fixed-point state gains
-         * source identity from a predecessor.  Keep that later, stronger
-         * observation rather than freezing the first unresolved pass. */
+        /* The instruction can be revisited while its incoming fixed-point
+         * state becomes more precise or merges incompatible predecessors.
+         * A merged ambiguity is authoritative: retaining a first-path
+         * resolution would falsely claim a unique stored address. */
         M68kRenderPointerStore *mutable_existing = &lookup->pointer_stores[index];
-        if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_RESOLVED &&
+        if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET &&
+            fact->resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET) {
+          mutable_existing->fact = *fact;
+        } else if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_RESOLVED &&
             fact->resolution == M68K_POINTER_STORE_RESOLUTION_RESOLVED) {
           mutable_existing->fact = *fact;
         } else if (mutable_existing->fact.source_value == 0U && fact->source_value != 0U &&

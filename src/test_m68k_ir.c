@@ -26534,6 +26534,87 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   return 0;
 }
 
+static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  const M68kPointerStoreIR *store;
+  char *source = NULL;
+  uint8_t bytes[0x30] = {0};
+  /* tst.b d1; beq.s second; move.l #$9999,d0; bra.s join;
+     second: move.l #$AAAA,d0; join: move.l d0,(0,a5); rts */
+  bytes[0] = 0x4au; bytes[1] = 0x01u;
+  bytes[2] = 0x67u; bytes[3] = 0x08u;
+  bytes[4] = 0x20u; bytes[5] = 0x3cu;
+  bytes[8] = 0x99u; bytes[9] = 0x99u;
+  bytes[10] = 0x60u; bytes[11] = 0x06u;
+  bytes[12] = 0x20u; bytes[13] = 0x3cu;
+  bytes[16] = 0xaau; bytes[17] = 0xaau;
+  bytes[18] = 0x2bu; bytes[19] = 0x40u;
+  bytes[22] = 0x4eu; bytes[23] = 0x75u;
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = 1U;
+  policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "world_object_shared_prefix");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "interaction_data_ptr");
+  custom_structs[0].fields[0].size = 4U;
+  custom_structs[0].fields[0].value_kind = M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER;
+  policy.has_entry_offset = 1U;
+  policy.entry_offset = 0U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 5U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "world_object_shared_prefix");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.l d0,world_object_shared_prefix_interaction_data_ptr.w(a5)\n") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
+  store = &analysis.sections[0].pointer_stores[0];
+  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET, store->resolution);
+  M68K_C_ASSERT_U32(0U, store->has_target);
+  M68K_C_ASSERT_U32(0U, store->source_value);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(void) {
   M68kObject object;
   M68kSection section;
@@ -33244,6 +33325,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_propagates_generic_pointer_store_through_stack_reload},
     {"facts_v2_render_asm_source_resolves_generic_pointer_field_store",
       test_facts_v2_render_asm_source_resolves_generic_pointer_field_store},
+    {"facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge",
+      test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge},
     {"facts_v2_render_asm_source_propagates_static_struct_data_type",
       test_facts_v2_render_asm_source_propagates_static_struct_data_type},
     {"facts_v2_render_asm_source_propagates_static_struct_pointer_chain",
