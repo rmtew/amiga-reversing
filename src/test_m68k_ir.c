@@ -26345,8 +26345,11 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   char *source = NULL;
   size_t index;
   uint8_t bytes[68] = {
-    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x10u,
+    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x20u,
     0x4bu, 0xecu, 0x00u, 0x30u,
+    0x23u, 0xcdu, 0x00u, 0x07u, 0x00u, 0x00u,
+    0x2au, 0x40u,
+    0x2au, 0x79u, 0x00u, 0x07u, 0x00u, 0x00u,
     0x30u, 0x15u,
     0x4eu, 0x75u
   };
@@ -26389,7 +26392,7 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   policy.structured_data_item_count = 1U;
   policy.structured_data_items[0].has_section_index = 1U;
   policy.structured_data_items[0].section_index = 0U;
-  policy.structured_data_items[0].offset = 16U;
+  policy.structured_data_items[0].offset = 32U;
   policy.structured_data_items[0].size = 52U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
   snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
@@ -26400,7 +26403,7 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
     const M68kRecoveredPlatformTypedAccessIR *candidate =
       &analysis_section->recovered_platform_typed_accesses[index];
-    if (candidate->offset == 10U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
+    if (candidate->offset == 24U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
         candidate->displacement == 0) {
       typed = candidate;
       break;
