@@ -1794,6 +1794,31 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
     assert {tuple(entity["parent_evidence_ids"]) for entity in typed_entities} == {("prov-root",)}
 
 
+def test_effective_metadata_projects_pointer_table_pointee_binding(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(target_dir / MANUAL_ACTION_LOG_FILE_NAME, [
+        {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+        _action("a1", 1, "create_manual_data_block_layout", data_block_layout={
+            "layout_id": "objects", "hunk": 0, "source_start": 0x100, "source_end": 0x110,
+            "name": "world_object_ptr_table", "role": "pointer_table", "default_unit": "long",
+        }),
+        _action("a2", 2, "set_manual_data_block_element", data_block_element={
+            "data_block_element_id": "objects:0", "layout_id": "objects", "offset": 0, "width": 16,
+            "kind": "array", "array_count": 4, "array_stride": 4,
+            "type_binding": {"type_binding_id": "objects:0:16:pointer_struct:world_object_shared_prefix",
+                              "layout_id": "objects", "element_offset": 0, "element_width": 16,
+                              "binding_kind": "pointer_struct", "bound_type_id": "world_object_shared_prefix",
+                              "owner_action_id": "a2"},
+        }),
+    ])
+    payload = json.loads(effective_metadata_text(target_dir))
+    entity = next(item for item in payload["seeded_entities"] if item["addr"] == 0x100)
+    assert entity["pointer_struct"] == "world_object_shared_prefix"
+    assert entity["source_locator"] == "objects:0:16:pointer_struct:world_object_shared_prefix"
+
+
 def test_effective_metadata_preserves_layout_name_for_leading_typed_gap(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

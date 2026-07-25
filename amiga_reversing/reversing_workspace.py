@@ -226,14 +226,16 @@ def _classify_target_files(target_dir: Path) -> list[TargetFileInventoryEntry]:
 def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
     path = Path(rel_path)
     name = path.name
-    if path.parts and path.parts[0] == "agent":
+    nested_target_parts = _nested_target_local_parts(path)
+    if (path.parts and path.parts[0] == "agent") or (
+        nested_target_parts and nested_target_parts[0] == "agent"
+    ):
         return TargetFileInventoryEntry(
             rel_path,
             TargetFileClass.AGENT_AUDIT,
             TargetFileAction.PRESERVE_AGENT_AUDIT,
             "agent audit/scratch state is separate from durable target facts",
         )
-    nested_target_parts = _nested_target_local_parts(path)
     is_top_level = len(path.parts) == 1
     is_target_local = is_top_level or nested_target_parts is not None
     if (is_top_level and name in PROJECT_SOURCE_IMPORT_FACT_FILE_NAMES) or (

@@ -1300,7 +1300,7 @@ def _data_block_element_parameter_schema(defaults: Mapping[str, object] | None =
                 "array_count": {"type": "integer", "minimum": 1},
                 "array_stride": {"type": "integer", "minimum": 1},
                 "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
-                "binding_kind": {"type": "string", "enum": ["custom_struct", "platform_struct", "enum_domain", "equate_domain"]},
+                "binding_kind": {"type": "string", "enum": ["custom_struct", "platform_struct", "pointer_struct", "enum_domain", "equate_domain"]},
                 "type_id": {"type": "string"},
                 "domain_id": {"type": "string"},
                 "type_binding_id": {"type": "string"},
@@ -1379,7 +1379,7 @@ def _data_block_element_type_binding_parameter_schema(defaults: Mapping[str, obj
                 "kind": {"type": "string", "enum": ["struct", "platform_struct", "scalar", "array"]},
                 "binding_kind": {
                     "type": "string",
-                    "enum": ["custom_struct", "platform_struct", "enum_domain", "equate_domain"],
+                    "enum": ["custom_struct", "platform_struct", "pointer_struct", "enum_domain", "equate_domain"],
                 },
                 "type_binding_id": {"type": "string"},
                 "type_id": {"type": "string"},
@@ -1416,7 +1416,7 @@ def _data_block_element_type_clear_parameter_schema(defaults: Mapping[str, objec
                 "type_binding_id": {"type": "string"},
                 "binding_kind": {
                     "type": "string",
-                    "enum": ["custom_struct", "platform_struct", "enum_domain", "equate_domain"],
+                    "enum": ["custom_struct", "platform_struct", "pointer_struct", "enum_domain", "equate_domain"],
                 },
                 "bound_type_id": {"type": "string"},
                 "bound_domain_id": {"type": "string"},
@@ -4166,7 +4166,7 @@ def _data_block_element_type_binding_payload(
 ) -> dict[str, object]:
     element = _data_block_element_payload(rows, params)
     binding_kind = str(params.get("binding_kind") or "").strip()
-    if binding_kind not in {"custom_struct", "platform_struct", "enum_domain", "equate_domain"}:
+    if binding_kind not in {"custom_struct", "platform_struct", "pointer_struct", "enum_domain", "equate_domain"}:
         raise ValueError("bind data-block element type requires binding_kind")
     type_id = str(params.get("type_id") or "").strip()
     domain_id = str(params.get("domain_id") or "").strip()
@@ -4175,6 +4175,8 @@ def _data_block_element_type_binding_payload(
     if not bound_id:
         raise ValueError("bind data-block element type requires type_id or domain_id")
     width = cast(int, element["width"])
+    if binding_kind == "pointer_struct" and width % 4 != 0:
+        raise ValueError("pointer_struct data-block elements must be a whole number of long pointers")
     offset = cast(int, element["offset"])
     layout_id = cast(str, element["layout_id"])
     binding: dict[str, object] = {

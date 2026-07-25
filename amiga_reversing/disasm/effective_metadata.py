@@ -1092,6 +1092,14 @@ def _data_block_bound_value_domain(element: DataBlockElementMetadata) -> str | N
     return bound_domain
 
 
+def _data_block_bound_pointer_struct(element: DataBlockElementMetadata) -> str | None:
+    binding = element.type_binding
+    if not isinstance(binding, dict) or binding.get("binding_kind") != "pointer_struct":
+        return None
+    pointer_struct = binding.get("bound_type_id")
+    return pointer_struct if isinstance(pointer_struct, str) and pointer_struct else None
+
+
 def _data_block_type_binding_locator(element: DataBlockElementMetadata) -> str | None:
     binding = element.type_binding
     if not isinstance(binding, dict):
@@ -1304,6 +1312,7 @@ def _data_block_element_entity(
     name = element.name or (layout.name if element.offset == 0 else None)
     comment = layout.role
     value_domain = _data_block_bound_value_domain(element)
+    pointer_struct = _data_block_bound_pointer_struct(element)
     return SeededEntityMetadata(
         addr=addr,
         end=end,
@@ -1316,12 +1325,13 @@ def _data_block_element_entity(
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,
-        source_id="manual_action_log" if value_domain is not None else None,
-        source_locator=_data_block_type_binding_locator(element) if value_domain is not None else None,
+        source_id="manual_action_log" if value_domain is not None or pointer_struct is not None else None,
+        source_locator=_data_block_type_binding_locator(element) if value_domain is not None or pointer_struct is not None else None,
+        pointer_struct=pointer_struct,
         value_domain=value_domain,
-        owner_action_id=_data_block_type_binding_text(element, "owner_action_id") if value_domain is not None else None,
-        source_evidence_id=_data_block_type_binding_text(element, "source_evidence_id") if value_domain is not None else None,
-        parent_evidence_ids=_data_block_type_binding_parent_evidence_ids(element) if value_domain is not None else (),
+        owner_action_id=_data_block_type_binding_text(element, "owner_action_id") if value_domain is not None or pointer_struct is not None else None,
+        source_evidence_id=_data_block_type_binding_text(element, "source_evidence_id") if value_domain is not None or pointer_struct is not None else None,
+        parent_evidence_ids=_data_block_type_binding_parent_evidence_ids(element) if value_domain is not None or pointer_struct is not None else (),
     )
 
 

@@ -346,6 +346,14 @@ typedef struct M68kRenderTypedMemoryBaseValue {
   uint8_t known;
   size_t section_index;
   uint32_t offset;
+  /* A homogeneous pointer table remains a useful type source when a loop
+   * merges several concrete cursor positions.  Keep its declared range
+   * separately from the exact address, which is intentionally cleared at
+   * such a merge. */
+  uint8_t pointer_table_known;
+  size_t pointer_table_section_index;
+  uint32_t pointer_table_offset;
+  uint32_t pointer_table_size;
 } M68kRenderTypedMemoryBaseValue;
 
 typedef struct M68kRenderIoRequestSetupValue {
@@ -415,6 +423,7 @@ typedef struct M68kRenderTypedAccess {
   int16_t field_offset;
   uint16_t struct_size;
   uint16_t field_size;
+  uint16_t field_byte_offset;
   int16_t array_element_addend;
   int32_t base_cursor;
   uint8_t inherited;

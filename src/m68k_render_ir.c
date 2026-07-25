@@ -4579,11 +4579,26 @@ static int attach_amiga_typed_struct_field_symbols(const M68kRenderLookup *looku
     operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
     snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", access->field_expr);
     operand->symbol_ref.addend = -access->base_cursor;
-    if (access->array_element_addend != 0) {
+    if (access->array_element_addend != 0 || access->field_byte_offset != 0U) {
       operand->symbol_ref.has_symbolic_addend = 1U;
       operand->symbol_ref.symbolic_addend_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
-      operand->symbol_ref.symbolic_addend_value = access->array_element_addend;
-      if (access->array_element_addend == 1 || access->array_element_addend == -1) {
+      operand->symbol_ref.symbolic_addend_value = 1;
+      if (access->array_element_addend == 0) {
+        snprintf(operand->symbol_ref.symbolic_addend_name, sizeof(operand->symbol_ref.symbolic_addend_name), "%u",
+          (unsigned)access->field_byte_offset);
+      } else if (access->field_byte_offset != 0U) {
+        if (access->array_element_addend == 1 || access->array_element_addend == -1) {
+          snprintf(operand->symbol_ref.symbolic_addend_name, sizeof(operand->symbol_ref.symbolic_addend_name),
+            "%u%c%s_SIZEOF", (unsigned)access->field_byte_offset,
+            access->array_element_addend < 0 ? '-' : '+', access->root_struct_name);
+        } else {
+          snprintf(operand->symbol_ref.symbolic_addend_name, sizeof(operand->symbol_ref.symbolic_addend_name),
+            "%u%c%u*%s_SIZEOF", (unsigned)access->field_byte_offset,
+            access->array_element_addend < 0 ? '-' : '+',
+            (unsigned)(access->array_element_addend < 0 ? -access->array_element_addend : access->array_element_addend),
+            access->root_struct_name);
+        }
+      } else if (access->array_element_addend == 1 || access->array_element_addend == -1) {
         snprintf(operand->symbol_ref.symbolic_addend_name, sizeof(operand->symbol_ref.symbolic_addend_name), "%s_SIZEOF",
           access->root_struct_name);
       } else {

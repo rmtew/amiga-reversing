@@ -98,6 +98,35 @@ def test_data_block_type_binding_accepts_struct_kinds_exposed_by_its_schema(elem
     assert payload["kind"] == "struct"
 
 
+def test_data_block_pointer_struct_binding_preserves_a_pointer_table_element() -> None:
+    row = {
+        "hunk": 0, "addr": 0x1400, "start_offset": 0x1400, "end_offset": 0x1410,
+        "active_data_block_layout": {"layout_id": "objects", "hunk": 0, "source_start": 0x1400, "source_end": 0x1410},
+        "active_data_block_element": {"data_block_element_id": "objects:0", "layout_id": "objects", "offset": 0,
+                                      "width": 16, "kind": "array", "array_count": 4, "array_stride": 4},
+    }
+    payload = _data_block_element_type_binding_payload([row], {
+        "layout_id": "objects", "offset": 0, "width": 16, "kind": "array",
+        "binding_kind": "pointer_struct", "type_id": "world_object_shared_prefix",
+    })
+    assert payload["kind"] == "array"
+    assert payload["type_binding"]["bound_type_id"] == "world_object_shared_prefix"
+
+
+def test_data_block_pointer_struct_binding_requires_long_aligned_elements() -> None:
+    row = {
+        "hunk": 0, "addr": 0x1400, "start_offset": 0x1400, "end_offset": 0x1402,
+        "active_data_block_layout": {"layout_id": "objects", "hunk": 0, "source_start": 0x1400, "source_end": 0x1402},
+        "active_data_block_element": {"data_block_element_id": "objects:0", "layout_id": "objects", "offset": 0,
+                                      "width": 2, "kind": "scalar"},
+    }
+    with pytest.raises(ValueError, match="whole number of long pointers"):
+        _data_block_element_type_binding_payload([row], {
+            "layout_id": "objects", "offset": 0, "width": 2, "kind": "scalar",
+            "binding_kind": "pointer_struct", "type_id": "world_object_shared_prefix",
+        })
+
+
 def test_target_equate_catalog_payloads() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.equate.add",

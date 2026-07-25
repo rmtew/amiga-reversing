@@ -1,4 +1,5 @@
 #include "m68k_instruction_spec.h"
+#include "m68k_parse_util.h"
 #include "m68k_simulator.h"
 
 #include <stdio.h>
@@ -117,7 +118,9 @@ int m68k_instruction_decoded_ea_target(const M68kOperandIR *operand, uint8_t ea_
     return *out_target < section_size;
   }
   if (m68k_instruction_decoded_ea_target_kind(operand, ea_shape, include_pc_index) == 2U) {
-    *out_target = (uint32_t)((int32_t)pc_base + (int32_t)operand->value.value);
+    int32_t displacement = ea_shape == M68K_SIM_EA_SHAPE_PC_DISPLACEMENT ?
+      (int32_t)m68k_sign_extend32(operand->value.value, 16U) : (int32_t)operand->value.value;
+    *out_target = (uint32_t)((int32_t)pc_base + displacement);
     return *out_target < section_size;
   }
   return 0;

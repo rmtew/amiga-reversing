@@ -1218,14 +1218,16 @@ def _validated_data_block_type_binding(type_binding: object, element: dict[str, 
     if not isinstance(type_binding, dict):
         raise ValueError("data_block_element type_binding must be an object")
     binding_kind = type_binding.get("binding_kind")
-    if binding_kind not in {"custom_struct", "platform_struct", "enum_domain", "equate_domain"}:
+    if binding_kind not in {"custom_struct", "platform_struct", "pointer_struct", "enum_domain", "equate_domain"}:
         raise ValueError("data_block_element type_binding requires supported binding_kind")
     bound_type_id = type_binding.get("bound_type_id")
     bound_domain_id = type_binding.get("bound_domain_id")
-    if binding_kind in {"custom_struct", "platform_struct"} and (
+    if binding_kind in {"custom_struct", "platform_struct", "pointer_struct"} and (
         not isinstance(bound_type_id, str) or not bound_type_id
     ):
         raise ValueError("data_block_element type_binding requires bound_type_id")
+    if binding_kind == "pointer_struct" and (_manual_seed_int(element, "width") or 0) % 4 != 0:
+        raise ValueError("pointer_struct data-block elements must be a whole number of long pointers")
     if binding_kind in {"enum_domain", "equate_domain"} and (
         not isinstance(bound_domain_id, str) or not bound_domain_id
     ):

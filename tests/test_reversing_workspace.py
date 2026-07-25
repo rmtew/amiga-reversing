@@ -115,12 +115,14 @@ def test_hygiene_marks_unknown_files_unsafe(tmp_path: Path) -> None:
 def test_hygiene_report_is_json_serializable_and_separates_agent_audit(tmp_path: Path) -> None:
     target_dir = _target(tmp_path)
     _touch(target_dir / "agent" / "reversing-loop.jsonl")
+    _touch(target_dir / "targets" / "raw_payload" / "agent" / "latest-reversing-loop.json")
     _touch(target_dir / "reproduction.json")
 
     report = inspect_target_hygiene("demo", project_root=tmp_path)
     payload = report.to_dict()
 
     assert _entry(report, "agent/reversing-loop.jsonl")["class"] == TargetFileClass.AGENT_AUDIT
+    assert _entry(report, "targets/raw_payload/agent/latest-reversing-loop.json")["class"] == TargetFileClass.AGENT_AUDIT
     assert _entry(report, "reproduction.json")["class"] == TargetFileClass.GENERATED_OUTPUT
     assert json.loads(json.dumps(payload))["recommended_modes"] == ["continue", "clean-run", "reimport"]
 
