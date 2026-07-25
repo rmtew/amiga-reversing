@@ -6009,8 +6009,8 @@ abs_0_00017980:
 	bsr.w abs_0_00017B3C
 	rts
 abs_0_000179A8:
-	clr.w $003C(a4)
-	bset.b #1,$0048(a4)
+	clr.w world_object_shared_prefix_interaction_timer(a4)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
 	move.b #$46,app_02CC(a6)
 	lea.l abs_0_0005C5B6.l,a0
 	move.l a0,$004E(a4)
@@ -6360,7 +6360,7 @@ abs_0_00017E04:
 abs_0_00017E58:
 	add.w d2,d0
 	move.w $0030(a4),d2
-	move.w $0032(a4),d3
+	move.w world_object_shared_prefix_world_y(a4),d3
 	moveq.l #16,d4
 	add.w d4,d2
 	add.w d4,d3
@@ -6416,7 +6416,7 @@ abs_0_00017F02:
 abs_0_00017F06:
 	rts
 abs_0_00017F08:
-	btst.b #1,$0048(a4)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.b abs_0_00017F02
 	btst.b #3,app_033C(a6)
 	bne.b abs_0_00017F02
@@ -6434,8 +6434,8 @@ abs_0_00017F3A:
 abs_0_00017F3C:
 	add.w d4,d1
 	addi.w #16,d0
-	move.w $0030(a4),d2
-	move.w $0032(a4),d3
+	move.w world_object_shared_prefix_world_x(a4),d2
+	move.w world_object_shared_prefix_world_y(a4),d3
 	moveq.l #16,d4
 	add.w d4,d2
 	add.w d4,d3
@@ -6452,7 +6452,7 @@ abs_0_00017F5C:
 	cmp.w #$12,d0
 	bcc.w abs_0_00017FF4
 	clr.b app_02D8(a6)
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	moveq.l #0,d1
 	cmpa.l #world_position_descriptors_position_state_ptr_18,a1
 	bne.b abs_0_00017F86
@@ -6521,7 +6521,7 @@ abs_0_00018032:
 	movea.l $0008(a0),a0
 	clr.w $0010(a0)
 	bclr.b #0,$000A(a0)
-	bset.b #1,$0048(a5)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w restore_world_object_position_state
 	move.b #$46,app_02CC(a6)
 	clr.w $003C(a5)
@@ -6538,7 +6538,7 @@ handle_item_receptacle_interaction:
 	add.w $000E(a2),d1
 	addi.w #16,d1
 	addi.w #16,d0
-	move.w $0030(a4),d2
+	move.w world_object_shared_prefix_world_x(a4),d2
 	move.w $0032(a4),d3
 	moveq.l #16,d4
 	add.w d4,d2
@@ -6572,7 +6572,7 @@ abs_0_000180B8:
 complete_item_receptacle_interaction:
 	move.l (a3),$0014(a2)
 	clr.l (a3)
-	clr.b $0046(a4)
+	clr.b world_object_shared_prefix_selected_item_id(a4)
 	bra.w refresh_selected_item_name_display
 deposit_item_in_receptacle:
 	move.b $0046(a4),d0
@@ -6580,7 +6580,7 @@ deposit_item_in_receptacle:
 	bcc.w abs_0_00017F02
 	move.l $0014(a2),(a3)
 	clr.l $0014(a2)
-	move.b $0004(a3),$0046(a4)
+	move.b $0004(a3),world_object_shared_prefix_selected_item_id(a4)
 	bsr.w refresh_selected_item_name_display
 	move.b $0046(a4),d0
 	cmp.b #$68,d0
