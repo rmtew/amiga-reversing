@@ -24016,6 +24016,88 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   return 0;
 }
 
+static int test_facts_v2_analysis_tracks_auto_updating_typed_accesses(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  const M68kSectionAnalysisIR *analysis_section;
+  const M68kRecoveredPlatformUnresolvedTypedAccessIR *postincrement = NULL;
+  const M68kRecoveredPlatformUnresolvedTypedAccessIR *predecrement = NULL;
+  char *source = NULL;
+  size_t index;
+  uint8_t bytes[14] = {
+    0x4eu, 0xaeu, 0xfdu, 0x66u,
+    0x20u, 0x40u,
+    0x4au, 0x18u,
+    0x20u, 0x40u,
+    0x4au, 0x20u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "exec.library");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  analysis_section = &analysis.sections[0];
+  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
+    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
+    if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
+        access->displacement == 0 && access->classification ==
+          M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR) {
+      postincrement = access;
+      break;
+    }
+  }
+  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
+    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
+    if (access->offset == 10U && access->operand_index == 0U && access->base_reg == 0U &&
+        access->displacement == -1 && access->classification ==
+          M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR) {
+      predecrement = access;
+      break;
+    }
+  }
+  M68K_C_ASSERT(postincrement != NULL);
+  M68K_C_ASSERT(predecrement != NULL);
+  M68K_C_ASSERT_U32(1U, postincrement->access_size);
+  M68K_C_ASSERT_U32(1U, predecrement->access_size);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, predecrement->type_provenance_kind);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\ttst.b (a0)+\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\ttst.b -(a0)\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_analysis_classifies_unique_prefix_extension_without_rendering_field(void) {
   M68kObject object;
   M68kSection section;
@@ -32852,6 +32934,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_uses_makelibrary_output_type},
     {"facts_v2_analysis_records_unresolved_typed_field_without_rendering_field",
       test_facts_v2_analysis_records_unresolved_typed_field_without_rendering_field},
+    {"facts_v2_analysis_tracks_auto_updating_typed_accesses",
+      test_facts_v2_analysis_tracks_auto_updating_typed_accesses},
     {"facts_v2_analysis_classifies_unique_prefix_extension_without_rendering_field",
       test_facts_v2_analysis_classifies_unique_prefix_extension_without_rendering_field},
     {"facts_v2_analysis_refines_ambiguous_prefix_by_exact_access_size",

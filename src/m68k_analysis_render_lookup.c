@@ -2898,6 +2898,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     uint8_t base_reg = 0U, classification = M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP;
+    uint8_t auto_update = M68K_SIM_EA_UPDATE_NONE;
     int32_t displacement = 0;
     uint16_t struct_id, struct_size, container_struct_id = AMIGA_OS_STRUCT_ID_NONE, container_candidate_count = 0U;
     uint16_t conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
@@ -2914,7 +2915,12 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     container_field_expr[0] = '\0';
     if (metadata != NULL && metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET)
       continue;
-    if (operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 6U && operand->value.ea_reg < 8U) {
+    if (operand->kind == M68K_ASM_OPERAND_EA &&
+        (operand->value.ea_mode == 3U || operand->value.ea_mode == 4U) && operand->value.ea_reg < 8U) {
+      base_reg = operand->value.ea_reg;
+      auto_update = operand->value.ea_mode == 3U ? M68K_SIM_EA_UPDATE_POSTINCREMENT :
+        M68K_SIM_EA_UPDATE_PREDECREMENT;
+    } else if (operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 6U && operand->value.ea_reg < 8U) {
       base_reg = operand->value.ea_reg;
       displacement = operand->value.full_ext_base_disp_size != 0U
         ? (int32_t)operand->value.full_ext_base_disp_value
@@ -2944,6 +2950,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     struct_size = lookup_policy_struct_size_by_id(lookup->policy, struct_id);
     access_size = instruction_size_suffix_bytes_local(instruction->size_suffix);
+    if (auto_update == M68K_SIM_EA_UPDATE_PREDECREMENT) displacement = -(int32_t)access_size;
     if (operand->value.ea_mode == 6U) {
       if (record_accesses) {
         const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
@@ -2966,6 +2973,19 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
               (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT,
               conflict_struct_name != NULL ? 2U : 1U, conflict_struct_name, NULL, 0U, NULL, provenance) != 0) {
+          return -1;
+        }
+      }
+      continue;
+    }
+    if (auto_update != M68K_SIM_EA_UPDATE_NONE) {
+      if (record_accesses) {
+        const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
+        if (root_struct_name != NULL &&
+            render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
+              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size, access_size,
+              M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR, 0U, NULL, NULL, 0U, NULL,
+              provenance) != 0) {
           return -1;
         }
       }
@@ -3495,6 +3515,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
     const M68kDecodeCandidate *candidate, const AmigaOsLibraryVectorInfo *vector, uint32_t offset) {
   const M68kSimFormMetadata *move_metadata = NULL;
+  const M68kSimFormMetadata *metadata;
   const AmigaOsCallOutputInfo *source_output = NULL;
   uint16_t source_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   M68kRenderTypedStorageOrigin source_origin;
@@ -3729,6 +3750,17 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       } else if (operand_address_register_index_local(operand, &dest_reg)) {
         typed_state_clear_reg(state, 2U, dest_reg);
       }
+    }
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata != NULL) {
+    for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+      const M68kOperandIR *operand = &instruction->operands[operand_index];
+      if (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_NONE ||
+          operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U) {
+        continue;
+      }
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg);
     }
   }
   if (instruction_may_update_stack_pointer_from_metadata(instruction)) typed_state_clear_stack_slots(state);

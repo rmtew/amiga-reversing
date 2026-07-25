@@ -72,6 +72,8 @@ static const char *unresolved_typed_access_classification_name(uint8_t classific
     return "custom_tail_or_mistyped_base";
   case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC:
     return "indexed_dynamic";
+  case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR:
+    return "auto_update_cursor";
   case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP:
   default:
     return "field_gap";
@@ -9418,6 +9420,8 @@ static void listing_navigation_unresolved_summary(char *out, size_t out_size,
     else snprintf(out, out_size, "%s%s%s prefix extension", root, joiner, displacement);
   } else if (access->classification == M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE) {
     snprintf(out, out_size, "%s%s%s unknown extension", root, joiner, displacement);
+  } else if (access->classification == M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR) {
+    snprintf(out, out_size, "%s%s%s requires auto-update cursor evidence", root, joiner, displacement);
   } else {
     snprintf(out, out_size, "%s%s%s field metadata gap", root, joiner, displacement);
   }
