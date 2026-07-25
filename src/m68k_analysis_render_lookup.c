@@ -1169,6 +1169,9 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector
     unsigned depth);
 static int instruction_move_operand_indices_from_metadata(const M68kInstructionIR *instruction,
     size_t *out_source_index, size_t *out_dest_index, const M68kSimFormMetadata **out_metadata);
+static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR *decode, uint8_t **accepted_start,
+    size_t section_index, uint32_t target_offset, uint8_t requested_mask, uint8_t depth);
+static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, uint8_t preserved_address);
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
@@ -3683,9 +3686,141 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
   return 0;
 }
 
+static uint8_t typed_flow_movem_address_mask(const M68kOperandIR *operand) {
+  uint8_t reg;
+  uint8_t mask = 0U;
+  for (reg = 0U; reg < 8U; ++reg) {
+    if (reglist_contains_address_register_local(operand, reg)) mask |= (uint8_t)(1U << reg);
+  }
+  return mask;
+}
+
+static int typed_flow_instruction_writes_unsaved_address(const M68kInstructionIR *instruction, uint8_t requested_mask,
+    uint8_t saved_mask) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (instruction == NULL) return 1;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 1;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+        operand_address_register_index_local(&instruction->operands[operand_index], &reg) && reg < 8U &&
+        (requested_mask & (uint8_t)(1U << reg)) != 0U && (saved_mask & (uint8_t)(1U << reg)) == 0U) {
+      return 1;
+    }
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
+      uint8_t written = typed_flow_movem_address_mask(&instruction->operands[operand_index]);
+      if ((written & requested_mask & (uint8_t)~saved_mask) != 0U) return 1;
+    }
+    if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
+        instruction->operands[operand_index].kind == M68K_ASM_OPERAND_EA &&
+        instruction->operands[operand_index].value.ea_reg < 8U) {
+      reg = instruction->operands[operand_index].value.ea_reg;
+      if ((requested_mask & (uint8_t)(1U << reg)) != 0U && (saved_mask & (uint8_t)(1U << reg)) == 0U) return 1;
+    }
+  }
+  return 0;
+}
+
+static int typed_flow_first_local_control_target(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint32_t *out_target) {
+  size_t index;
+  if (out_target != NULL) *out_target = 0U;
+  if (section == NULL || candidate == NULL || out_target == NULL) return 0;
+  for (index = 0U; index < candidate->target_count; ++index) {
+    const M68kDecodeTarget *target = &candidate->targets[index];
+    if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_JUMP) &&
+        target->has_section && target->section_index == section->section_index && target->offset < section->size) {
+      *out_target = target->offset;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR *decode, uint8_t **accepted_start,
+    size_t section_index, uint32_t target_offset, uint8_t requested_mask, uint8_t depth) {
+  typedef struct M68kTypedLocalCalleeState { uint32_t offset; uint8_t saved_mask; } M68kTypedLocalCalleeState;
+  M68kTypedLocalCalleeState worklist[128];
+  M68kTypedLocalCalleeState visited[128];
+  const M68kDecodeSectionIR *section;
+  uint8_t work_count = 0U, visited_count = 0U, returned = 0U;
+  if (decode == NULL || accepted_start == NULL || section_index >= decode->section_count ||
+      accepted_start[section_index] == NULL || requested_mask == 0U || depth > 4U) return 0U;
+  section = &decode->sections[section_index];
+  if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0U;
+  worklist[work_count].offset = target_offset;
+  worklist[work_count++].saved_mask = 0U;
+  while (work_count != 0U) {
+    M68kTypedLocalCalleeState state = worklist[--work_count];
+    uint8_t step;
+    for (step = 0U; step < 64U; ++step) {
+      const M68kDecodeCandidate *candidate;
+      M68kInstructionIR instruction;
+      const M68kSimFormMetadata *metadata;
+      uint32_t branch_target = 0U;
+      uint8_t index;
+      for (index = 0U; index < visited_count; ++index) {
+        if (visited[index].offset == state.offset && visited[index].saved_mask == state.saved_mask) break;
+      }
+      if (index != visited_count) break;
+      if (visited_count >= (uint8_t)(sizeof(visited) / sizeof(visited[0]))) return 0U;
+      visited[visited_count++] = state;
+      candidate = m68k_decode_ir_find_candidate_at_offset(section, state.offset);
+      if (candidate == NULL || candidate->byte_count == 0U || accepted_start[section_index][state.offset] == 0U ||
+          m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0U;
+      metadata = m68k_sim_metadata_for_instruction(&instruction);
+      if (metadata == NULL) return 0U;
+      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction.operand_count == 2U &&
+          instruction.operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
+          operand_is_predec_a7_local(&instruction.operands[1])) {
+        state.saved_mask |= typed_flow_movem_address_mask(&instruction.operands[0]) & requested_mask;
+      } else if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction.operand_count == 2U &&
+                 operand_is_postinc_a7_local(&instruction.operands[0]) &&
+                 instruction.operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+        uint8_t restored = typed_flow_movem_address_mask(&instruction.operands[1]) & requested_mask;
+        if ((restored & (uint8_t)~state.saved_mask) != 0U) return 0U;
+        state.saved_mask &= (uint8_t)~restored;
+      } else if (typed_flow_instruction_writes_unsaved_address(&instruction, requested_mask, state.saved_mask)) {
+        return 0U;
+      }
+      if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+        size_t callee_section = 0U;
+        uint32_t callee_offset = 0U;
+        uint8_t live_mask = requested_mask & (uint8_t)~state.saved_mask;
+        if (live_mask != 0U && (!candidate_direct_target(candidate, &callee_section, &callee_offset) ||
+            typed_flow_local_callee_preserved_address_mask(decode, accepted_start, callee_section, callee_offset,
+              live_mask, (uint8_t)(depth + 1U)) != live_mask)) return 0U;
+      }
+      if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) {
+        if (state.saved_mask != 0U) return 0U;
+        returned = 1U;
+        break;
+      }
+      if (typed_flow_first_local_control_target(section, candidate, &branch_target)) {
+        if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+            (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
+          state.offset = branch_target;
+          continue;
+        }
+        if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) return 0U;
+        worklist[work_count].offset = branch_target;
+        worklist[work_count++].saved_mask = state.saved_mask;
+      }
+      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+          (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U) ||
+          metadata->flow_kind == M68K_SIM_FLOW_TRAP || candidate->byte_count > section->size - state.offset) break;
+      state.offset += candidate->byte_count;
+    }
+  }
+  return returned != 0U ? requested_mask : 0U;
+}
+
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
-    const M68kDecodeCandidate *candidate, const AmigaOsLibraryVectorInfo *vector, uint32_t offset) {
+    const M68kDecodeCandidate *candidate, const AmigaOsLibraryVectorInfo *vector,
+    uint8_t locally_preserved_address, uint32_t offset) {
   const M68kSimFormMetadata *move_metadata = NULL;
   const M68kSimFormMetadata *metadata;
   const AmigaOsCallOutputInfo *source_output = NULL;
@@ -3714,6 +3849,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   if (instruction_has_call_flow_local(instruction)) {
     if (vector != NULL && lookup != NULL && lookup->object != NULL)
       typed_state_apply_platform_call_clobbers(lookup->object->platform_backend_kind, state);
+    else if (locally_preserved_address != 0U) typed_state_apply_local_call_clobbers(state, locally_preserved_address);
     else if (vector != NULL) typed_state_clear_all(state);
     else typed_state_clear_all(state);
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count >= 2U &&
@@ -4620,7 +4756,7 @@ static int typed_flow_infer_local_helper_output_reg_at(const M68kRenderLookup *l
       }
     }
     typed_state_update_after_instruction(&typed_state, lookup, &platform_state, section->section_index,
-      &instruction, candidate, vector, candidate->offset);
+      &instruction, candidate, vector, 0U, candidate->offset);
     if (nested_resolution.output_reg_known && nested_resolution.vector != NULL &&
         amiga_output_has_typed_info(&nested_resolution.vector->output)) {
       M68kRenderTypedProvenance api_provenance =
@@ -4736,6 +4872,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   M68kTypedFlowCallResolution call_resolution;
   const AmigaOsCallOutputInfo *stored_output = NULL;
   int16_t slot_displacement = 0;
+  uint8_t locally_preserved_address = 0U;
   if (lookup == NULL || decode == NULL || accepted_start == NULL || section == NULL || node == NULL ||
       out_typed_state == NULL || out_platform_state == NULL || node->candidate == NULL) {
     return -1;
@@ -4751,6 +4888,19 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   typed_flow_call_resolution_init(&call_resolution);
   chosen_vector = typed_flow_resolve_vector(lookup, decode, accepted_start, section, node->candidate,
     out_platform_state, &instruction, &call_resolution);
+  if (chosen_vector == NULL && instruction_has_call_flow_local(&instruction)) {
+    size_t target_section_index = 0U;
+    uint32_t target_offset = 0U;
+    uint8_t requested_address = 0U;
+    uint8_t reg;
+    if (candidate_direct_target(node->candidate, &target_section_index, &target_offset)) {
+      for (reg = 0U; reg < 8U; ++reg) {
+        if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
+      }
+      locally_preserved_address = typed_flow_local_callee_preserved_address_mask(decode, accepted_start,
+        target_section_index, target_offset, requested_address, 0U);
+    }
+  }
   if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, &instruction,
       node->candidate->offset, record_typed_accesses, io_changed) != 0) {
     return -1;
@@ -4781,7 +4931,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     return -1;
   }
   typed_state_update_after_instruction(out_typed_state, lookup, out_platform_state, section->section_index,
-    &instruction, node->candidate, chosen_vector, node->candidate->offset);
+    &instruction, node->candidate, chosen_vector, locally_preserved_address, node->candidate->offset);
   if (call_resolution.output_reg_known && call_resolution.vector != NULL &&
       amiga_output_has_typed_info(&call_resolution.vector->output)) {
     M68kRenderTypedProvenance api_provenance =
@@ -4845,6 +4995,9 @@ typedef struct M68kRenderTypedFlowGraph {
   size_t node_count;
   size_t *node_by_offset;
   uint32_t node_by_offset_count;
+  size_t *predecessor_offsets;
+  size_t *predecessors;
+  size_t predecessor_count;
 } M68kRenderTypedFlowGraph;
 
 static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph) {
@@ -4910,6 +5063,7 @@ static void typed_flow_reset_roots(M68kRenderTypedFlowNode *nodes, size_t node_c
     memset(&nodes[node_index].platform_in, 0, sizeof(nodes[node_index].platform_in));
     memset(&nodes[node_index].platform_out, 0, sizeof(nodes[node_index].platform_out));
     nodes[node_index].has_in = 0U;
+    nodes[node_index].has_out = 0U;
     if (nodes[node_index].is_root) {
       nodes[node_index].has_in = 1U;
     }
@@ -4927,6 +5081,8 @@ static int typed_flow_initialize_roots(const M68kDecodeSectionIR *section, const
   return 0;
 }
 
+static int typed_flow_build_predecessors(M68kRenderTypedFlowGraph *graph, Arena *arena);
+
 static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, Arena *arena) {
   if (graph == NULL) return -1;
@@ -4937,6 +5093,10 @@ static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kDec
   }
   typed_flow_build_successors_for_nodes(section, accepted_start, graph->nodes, graph->node_count,
     graph->node_by_offset, graph->node_by_offset_count);
+  if (typed_flow_build_predecessors(graph, arena) != 0) {
+    typed_flow_graph_destroy(graph);
+    return -1;
+  }
   if (typed_flow_initialize_roots(section, accepted_start, graph->nodes, graph->node_count,
       graph->node_by_offset, graph->node_by_offset_count, arena) != 0) {
     typed_flow_graph_destroy(graph);
@@ -4991,6 +5151,41 @@ static int typed_flow_enqueue_node(size_t *queue, uint8_t *queued, size_t capaci
   return 0;
 }
 
+static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index) {
+  M68kRenderTypedFlowNode *node;
+  M68kRenderTypedState typed_input;
+  M68kRenderPlatformState platform_input;
+  int has_input;
+  size_t predecessor_index;
+  if (graph == NULL || node_index >= graph->node_count || graph->predecessor_offsets == NULL ||
+      graph->predecessors == NULL) return 0;
+  node = &graph->nodes[node_index];
+  memset(&typed_input, 0, sizeof(typed_input));
+  memset(&platform_input, 0, sizeof(platform_input));
+  has_input = node->is_root != 0U;
+  for (predecessor_index = graph->predecessor_offsets[node_index];
+       predecessor_index < graph->predecessor_offsets[node_index + 1U]; ++predecessor_index) {
+    const M68kRenderTypedFlowNode *predecessor = &graph->nodes[graph->predecessors[predecessor_index]];
+    if (predecessor->has_out == 0U) continue;
+    if (!has_input) {
+      typed_input = predecessor->typed_out;
+      platform_input = predecessor->platform_out;
+      has_input = 1;
+    } else {
+      (void)typed_state_merge_into(&typed_input, &predecessor->typed_out);
+      (void)platform_state_merge_into(&platform_input, &predecessor->platform_out);
+    }
+  }
+  if ((node->has_in != 0U) == has_input && (!has_input ||
+      (typed_state_equal(&node->typed_in, &typed_input) && platform_states_equal(&node->platform_in, &platform_input)))) {
+    return 0;
+  }
+  node->typed_in = typed_input;
+  node->platform_in = platform_input;
+  node->has_in = has_input ? 1U : 0U;
+  return 1;
+}
+
 static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, const M68kDecodeSectionIR *section, M68kRenderTypedFlowGraph *graph,
     int final_pass, int *io_changed, Arena *arena) {
@@ -5033,17 +5228,18 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
         0, &next_typed_state, &next_platform_state, io_changed) != 0) {
       goto cleanup;
     }
-    if (!typed_state_equal(&node->typed_out, &next_typed_state) ||
+    if (node->has_out == 0U || !typed_state_equal(&node->typed_out, &next_typed_state) ||
         !platform_states_equal(&node->platform_out, &next_platform_state)) {
       node->typed_out = next_typed_state;
       node->platform_out = next_platform_state;
-    }
-    for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
-      size_t successor = node->successors[successor_index];
-      if (successor >= graph->node_count) continue;
-      if (typed_flow_merge_input(&graph->nodes[successor], &next_typed_state, &next_platform_state)) {
-        if (typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count, successor) != 0)
-          goto cleanup;
+      node->has_out = 1U;
+      for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
+        size_t successor = node->successors[successor_index];
+        if (successor >= graph->node_count) continue;
+        if (typed_flow_recompute_node_input(graph, successor)) {
+          if (typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count, successor) != 0)
+            goto cleanup;
+        }
       }
     }
   }
@@ -8071,6 +8267,68 @@ int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLook
     }
   }
   return 0;
+}
+
+static int typed_flow_build_predecessors(M68kRenderTypedFlowGraph *graph, Arena *arena) {
+  size_t *counts = NULL;
+  size_t *cursor = NULL;
+  size_t node_index;
+  ArenaMark mark;
+  if (graph == NULL || arena == NULL) return -1;
+  if (graph->node_count == 0U) return 0;
+  mark = arena_mark(arena);
+  counts = (size_t *)arena_calloc(arena, graph->node_count, sizeof(*counts));
+  cursor = (size_t *)arena_alloc(arena, graph->node_count * sizeof(*cursor));
+  if (counts == NULL || cursor == NULL) goto fail;
+  for (node_index = 0U; node_index < graph->node_count; ++node_index) {
+    uint8_t successor_index;
+    for (successor_index = 0U; successor_index < graph->nodes[node_index].successor_count; ++successor_index) {
+      size_t successor = graph->nodes[node_index].successors[successor_index];
+      if (successor < graph->node_count) ++counts[successor];
+    }
+  }
+  graph->predecessor_offsets = (size_t *)arena_alloc(arena, (graph->node_count + 1U) *
+    sizeof(*graph->predecessor_offsets));
+  if (graph->predecessor_offsets == NULL) goto fail;
+  graph->predecessor_offsets[0] = 0U;
+  for (node_index = 0U; node_index < graph->node_count; ++node_index) {
+    if (counts[node_index] > SIZE_MAX - graph->predecessor_offsets[node_index]) goto fail;
+    graph->predecessor_offsets[node_index + 1U] = graph->predecessor_offsets[node_index] + counts[node_index];
+    cursor[node_index] = graph->predecessor_offsets[node_index];
+  }
+  graph->predecessor_count = graph->predecessor_offsets[graph->node_count];
+  graph->predecessors = (size_t *)arena_alloc(arena, (graph->predecessor_count != 0U ? graph->predecessor_count : 1U) *
+    sizeof(*graph->predecessors));
+  if (graph->predecessors == NULL) goto fail;
+  for (node_index = 0U; node_index < graph->node_count; ++node_index) {
+    uint8_t successor_index;
+    for (successor_index = 0U; successor_index < graph->nodes[node_index].successor_count; ++successor_index) {
+      size_t successor = graph->nodes[node_index].successors[successor_index];
+      if (successor < graph->node_count) graph->predecessors[cursor[successor]++] = node_index;
+    }
+  }
+  return 0;
+fail:
+  arena_rewind(arena, mark);
+  return -1;
+}
+
+static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, uint8_t preserved_address) {
+  M68kRenderTypedState old_state;
+  uint8_t reg;
+  if (state == NULL) return;
+  old_state = *state;
+  typed_state_clear_all(state);
+  for (reg = 0U; reg < 8U; ++reg) {
+    if ((preserved_address & (uint8_t)(1U << reg)) == 0U) continue;
+    state->addr_regs[reg] = old_state.addr_regs[reg];
+    state->app_addr_regs[reg] = old_state.app_addr_regs[reg];
+    state->memory_base_regs[reg] = old_state.memory_base_regs[reg];
+    if (m68k_bitset_u32_has(old_state.addr_reg_alias_known, reg)) {
+      m68k_bitset_u32_set(&state->addr_reg_alias_known, reg);
+      state->addr_reg_alias_source[reg] = old_state.addr_reg_alias_source[reg];
+    }
+  }
 }
 
 int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLookup *lookup,

@@ -2579,7 +2579,7 @@ handle_item_too_large_for_pockets:
 	bne.b abs_0_00012B32
 	move.w #$46,app_scrolling_message_timer(a6)
 	moveq.l #0,d0
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	bsr.w resolve_item_name
 	bsr.w enqueue_scrolling_message
 	lea.l item_too_large_for_pockets_message(pc),a0
@@ -2590,9 +2590,9 @@ handle_item_too_large_for_pockets:
 abs_0_00012B32:
 	rts
 transfer_selected_item_to_pocket_inventory:
-	move.b $0046(a4),d2
+	move.b world_object_shared_prefix_selected_item_id(a4),d2
 	lea.l app_pocket_item_ids(a6),a0
-	move.b $0(a0,d0.w),$0046(a4)
+	move.b $0(a0,d0.w),world_object_shared_prefix_selected_item_id(a4)
 	move.b d2,$0(a0,d0.w)
 	move.w d0,-(a7)
 	bsr.w refresh_inventory_panel
@@ -6161,7 +6161,7 @@ validate_npc_item_trade:
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	bsr.w is_tradeable_item_id
 	bcs.w abs_0_00017BF2
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$2,d0
 	bcc.b evaluate_npc_trade_offer
 	move.b $0046(a5),d0
@@ -6189,7 +6189,7 @@ select_npc_trade_item:
 evaluate_npc_trade_offer:
 	movea.l $0018(a5),a2
 	moveq.l #3,d7
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$2,d0
 	bcs.b abs_0_00017C0A
 abs_0_00017C2A:
@@ -6359,7 +6359,7 @@ abs_0_00017E04:
 	moveq.l #16,d2
 abs_0_00017E58:
 	add.w d2,d0
-	move.w $0030(a4),d2
+	move.w world_object_shared_prefix_world_x(a4),d2
 	move.w world_object_shared_prefix_world_y(a4),d3
 	moveq.l #16,d4
 	add.w d4,d2
@@ -6524,13 +6524,13 @@ abs_0_00018032:
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w restore_world_object_position_state
 	move.b #$46,app_02CC(a6)
-	clr.w $003C(a5)
+	clr.w world_object_shared_prefix_interaction_timer(a5)
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
 	jsr abs_0_0005C9AE.l
 	rts
 handle_item_receptacle_interaction:
-	btst.b #1,$0048(a4)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.w abs_0_00017F02
 	move.w $0004(a1),d0
 	move.w $0006(a1),d1
@@ -6539,7 +6539,7 @@ handle_item_receptacle_interaction:
 	addi.w #16,d1
 	addi.w #16,d0
 	move.w world_object_shared_prefix_world_x(a4),d2
-	move.w $0032(a4),d3
+	move.w world_object_shared_prefix_world_y(a4),d3
 	moveq.l #16,d4
 	add.w d4,d2
 	add.w d4,d3
@@ -6560,7 +6560,7 @@ abs_0_000180B8:
 	clr.b app_02D8(a6)
 	tst.l (a3)
 	beq.b deposit_item_in_receptacle
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b $0004(a3),d0
 	beq.b complete_item_receptacle_interaction
 	move.l a0,-(a7)
@@ -6575,7 +6575,7 @@ complete_item_receptacle_interaction:
 	clr.b world_object_shared_prefix_selected_item_id(a4)
 	bra.w refresh_selected_item_name_display
 deposit_item_in_receptacle:
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$2,d0
 	bcc.w abs_0_00017F02
 	move.l $0014(a2),(a3)
@@ -7939,9 +7939,9 @@ abs_0_0001962A:
 	beq.b abs_0_00019644
 	bsr.w enforce_id_card_requirement
 abs_0_00019644:
-	add.w $0030(a4),d0
-	add.w $0032(a4),d1
-	movea.l $002C(a4),a1
+	add.w world_object_shared_prefix_world_x(a4),d0
+	add.w world_object_shared_prefix_world_y(a4),d1
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a4),a1
 	lea.l abs_0_0005C72A.l,a2
 	movea.l $0000(a2),a3
 	add.w $000C(a2),d0
@@ -8080,13 +8080,13 @@ abs_0_000197FE:
 	move.w d0,app_031C(a6)
 	move.w d1,app_031E(a6)
 	add.w app_033A(a6),d0
-	add.w d0,$0030(a4)
+	add.w d0,world_object_shared_prefix_world_x(a4)
 	sub.w app_033A(a6),d0
 	tst.w app_033A(a6)
 	bne.b abs_0_00019844
 	move.w app_tilemap_height(a6),d3
 	lsl.w #4,d3
-	move.w $0032(a4),d2
+	move.w world_object_shared_prefix_world_y(a4),d2
 	add.w d1,d2
 	bpl.b abs_0_0001983A
 	add.w d3,d2
@@ -8096,7 +8096,7 @@ abs_0_0001983A:
 	bcc.b abs_0_00019840
 	add.w d3,d2
 abs_0_00019840:
-	move.w d2,$0032(a4)
+	move.w d2,world_object_shared_prefix_world_y(a4)
 abs_0_00019844:
 	clr.b $004B(a4)
 	lea.l abs_0_0005C72A.l,a0
@@ -8134,7 +8134,7 @@ abs_0_000198A2:
 	beq.b abs_0_0001990A
 	bpl.b abs_0_000198D8
 	move.w app_028E(a6),d2
-	move.w $0030(a4),d0
+	move.w world_object_shared_prefix_world_x(a4),d0
 	cmp.w d2,d0
 	bcc.b abs_0_0001990A
 	move.w app_tilemap_scroll_x(a6),d0
@@ -8144,7 +8144,7 @@ abs_0_000198A2:
 	clr.w app_0298(a6)
 	bra.w abs_0_00017D24
 abs_0_000198D8:
-	move.w $0030(a4),d0
+	move.w world_object_shared_prefix_world_x(a4),d0
 	addi.w #24,d0
 	move.w app_0290(a6),d2
 	cmp.w d2,d0
@@ -8162,7 +8162,7 @@ abs_0_0001990A:
 	tst.w d1
 	beq.w abs_0_000199AA
 	bpl.b abs_0_0001994C
-	move.w $0032(a4),d0
+	move.w world_object_shared_prefix_world_y(a4),d0
 	cmp.w #$10,d0
 	bcc.b abs_0_00019934
 	move.w app_tilemap_height(a6),d0
@@ -8170,7 +8170,7 @@ abs_0_0001990A:
 	lsl.w #4,d0
 	move.w d0,app_tilemap_scroll_y(a6)
 	addi.w #80,d0
-	move.w d0,$0032(a4)
+	move.w d0,world_object_shared_prefix_world_y(a4)
 	bra.w abs_0_00017D32
 abs_0_00019934:
 	move.w app_0292(a6),d2
@@ -8180,14 +8180,14 @@ abs_0_00019934:
 	move.w #$FFF0,app_0298(a6)
 	bra.w abs_0_00017D24
 abs_0_0001994C:
-	move.w $0032(a4),d0
+	move.w world_object_shared_prefix_world_y(a4),d0
 	move.w app_tilemap_height(a6),d1
 	subq.w #3,d1
 	lsl.w #4,d1
 	cmp.w d1,d0
 	bcs.b abs_0_0001996A
 	clr.w app_tilemap_scroll_y(a6)
-	move.w #$10,$0032(a4)
+	move.w #$10,world_object_shared_prefix_world_y(a4)
 	bra.w abs_0_00017D32
 abs_0_0001996A:
 	move.w app_0294(a6),d2

@@ -400,6 +400,7 @@ typedef struct M68kRenderTypedFlowNode {
   uint8_t successor_count;
   uint8_t is_root;
   uint8_t has_in;
+  uint8_t has_out;
 } M68kRenderTypedFlowNode;
 
 typedef struct M68kRenderTypedAccess {

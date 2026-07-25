@@ -26765,15 +26765,19 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   M68kAnalysisCustomStruct *custom_structs = NULL;
   const M68kSectionAnalysisIR *analysis_section;
   const M68kRecoveredPlatformTypedAccessIR *typed = NULL;
+  const M68kRecoveredPlatformTypedAccessIR *adjacent_typed = NULL;
   char *source = NULL;
   size_t index;
-  uint8_t bytes[68] = {
-    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x20u,
+  uint8_t bytes[128] = {
+    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x40u,
     0x4bu, 0xecu, 0x00u, 0x30u,
     0x23u, 0xcdu, 0x00u, 0x07u, 0x00u, 0x00u,
     0x2au, 0x40u,
     0x2au, 0x79u, 0x00u, 0x07u, 0x00u, 0x00u,
+    0x61u, 0x00u, 0x00u, 0x08u,
     0x30u, 0x15u,
+    0x32u, 0x2du, 0x00u, 0x02u,
+    0x4eu, 0x75u,
     0x4eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
@@ -26805,17 +26809,20 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   policy.custom_struct_owner = 1U;
   snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "world_object_shared_prefix");
   custom_structs[0].size = 52U;
-  custom_structs[0].field_count = 2U;
+  custom_structs[0].field_count = 3U;
   custom_structs[0].fields[0].offset = 48U;
   custom_structs[0].fields[0].size = 2U;
   snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "world_x");
-  custom_structs[0].fields[1].offset = 0U;
-  custom_structs[0].fields[1].size = 4U;
-  snprintf(custom_structs[0].fields[1].name, sizeof(custom_structs[0].fields[1].name), "root_ptr");
+  custom_structs[0].fields[1].offset = 50U;
+  custom_structs[0].fields[1].size = 2U;
+  snprintf(custom_structs[0].fields[1].name, sizeof(custom_structs[0].fields[1].name), "world_y");
+  custom_structs[0].fields[2].offset = 0U;
+  custom_structs[0].fields[2].size = 4U;
+  snprintf(custom_structs[0].fields[2].name, sizeof(custom_structs[0].fields[2].name), "root_ptr");
   policy.structured_data_item_count = 1U;
   policy.structured_data_items[0].has_section_index = 1U;
   policy.structured_data_items[0].section_index = 0U;
-  policy.structured_data_items[0].offset = 32U;
+  policy.structured_data_items[0].offset = 64U;
   policy.structured_data_items[0].size = 52U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
   snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
@@ -26826,21 +26833,27 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
     const M68kRecoveredPlatformTypedAccessIR *candidate =
       &analysis_section->recovered_platform_typed_accesses[index];
-    if (candidate->offset == 24U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
+    if (candidate->offset == 28U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
         candidate->displacement == 0) {
       typed = candidate;
-      break;
+    }
+    if (candidate->offset == 30U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
+        candidate->displacement == 2) {
+      adjacent_typed = candidate;
     }
   }
   M68K_C_ASSERT(typed != NULL);
   M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_FIELD_ADDRESS, typed->type_provenance_kind);
   M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
   M68K_C_ASSERT_INT(48, typed->base_cursor);
+  M68K_C_ASSERT(adjacent_typed != NULL);
+  M68K_C_ASSERT(strcmp(adjacent_typed->field_name, "world_y") == 0);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_world_x-48(a5),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_world_y-48(a5),d1\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
