@@ -7995,6 +7995,7 @@ static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLook
   size_t section_index;
   uint32_t cursor;
   uint32_t available;
+  (void)accepted_start;
   if (lookup == NULL || decode == NULL || accepted_bytes == NULL ||
       !render_lookup_structured_item_is_long_label_table_local(item)) {
     return 0;
@@ -8010,12 +8011,15 @@ static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLook
     uint32_t target_offset = 0U;
     if (value == 0U) continue;
     if (!render_lookup_pointer_value_to_source_offset(lookup, section, value, &target_offset)) continue;
-    if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section, accepted_start[section_index],
-        accepted_bytes[section_index], target_offset)) {
-      continue;
-    }
+    /* A classified pointer table is authoritative data evidence.  Its targets
+       must be materialized before rendering, including targets that the
+       speculative decoder happened to cover as instructions; otherwise a
+       later table expression can introduce an undefined symbol.  Relocation
+       payload remains non-addressable source storage. */
+    if (lookup_offset_is_inside_relocation_payload(lookup, section_index, target_offset)) continue;
     render_lookup_mark_label(lookup, section_index, target_offset);
     render_lookup_mark_label_target_ref(lookup, section_index, target_offset);
+    render_lookup_mark_label_statement_ref(lookup, section_index, target_offset);
   }
   return 0;
 }
@@ -8037,8 +8041,36 @@ static int render_lookup_add_pointer_table_target_labels(M68kRenderLookup *looku
 }
 
 int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes) {
-  return render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes);
+    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    const M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
+  if (source_analysis == NULL) return 0;
+  /* A source-analysis item can intentionally supersede a broad policy data
+     range.  Materialize it directly instead of relying on range ownership,
+     whose policy range remains useful for the earlier classification pass. */
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    if (render_lookup_add_pointer_table_target_labels_for_item(lookup, decode, accepted_start, accepted_bytes,
+        &source_analysis->structured_data_items[index]) != 0) return -1;
+  }
+  for (index = 0U; index < source_analysis->section_count && index < decode->section_count; ++index) {
+    const M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[index];
+    size_t entry_index;
+    for (entry_index = 0U; entry_index < section_analysis->table_entry_count; ++entry_index) {
+      const M68kTableEntryIR *entry = &section_analysis->table_entries[entry_index];
+      if (entry->table_kind_id != M68K_ANALYSIS_TABLE_KIND_POINTER ||
+          entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET ||
+          entry->target_section_index >= lookup->section_count ||
+          entry->target_offset > lookup->label_extents[entry->target_section_index] ||
+          lookup_offset_is_inside_relocation_payload(lookup, entry->target_section_index, entry->target_offset)) {
+        continue;
+      }
+      render_lookup_mark_label(lookup, entry->target_section_index, entry->target_offset);
+      render_lookup_mark_label_target_ref(lookup, entry->target_section_index, entry->target_offset);
+      render_lookup_mark_label_statement_ref(lookup, entry->target_section_index, entry->target_offset);
+    }
+  }
+  return 0;
 }
 
 int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLookup *lookup,
