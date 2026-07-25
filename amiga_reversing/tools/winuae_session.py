@@ -17,6 +17,7 @@ from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
 from amiga_reversing.disasm.project_paths import resolve_project_paths
+from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_HEADLESS_RUNNER = ROOT / "tools" / "run_winuae_headless.ps1"
@@ -250,6 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--floppy0", type=Path)
     parser.add_argument("--host-directory", type=Path, help="host directory mounted as PAYLOAD:")
+    parser.add_argument("--direct-payload-contract", help="validated contract used to build and boot a direct payload ADF")
     parser.add_argument("--continue-seconds", type=int, default=60, choices=range(1, 121))
     parser.add_argument(
         "--breakpoint-wait-seconds",
@@ -288,28 +290,45 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("--observation-memory-equals requires --observation-memory-address.")
     if args.observation_memory_write_watch and args.observation_memory_address is None:
         raise ValueError("--observation-memory-write-watch requires --observation-memory-address.")
+    if args.direct_payload_contract and (args.floppy0 or args.host_directory):
+        raise ValueError("--direct-payload-contract cannot be combined with --floppy0 or --host-directory.")
+    if args.direct_payload_contract and args.state_directory is None:
+        raise ValueError("--direct-payload-contract requires --state-directory for its generated ADF.")
     paths = resolve_project_paths(args.target)
+    direct_payload = None
+    floppy0 = args.floppy0
+    observation_memory_address = args.observation_memory_address
+    observation_memory_equals = observation_memory_equals
+    observation_memory_write_watch = args.observation_memory_write_watch
+    if args.direct_payload_contract:
+        contract = load_contract(args.direct_payload_contract)
+        output = args.state_directory / f"direct-payload-{contract.identifier}.adf"
+        direct_payload = build_for_target(contract.identifier, args.target, output)
+        floppy0 = output
+        observation_memory_address = contract.handoff_marker_address
+        observation_memory_equals = contract.handoff_marker_value.to_bytes(4, "big")
+        observation_memory_write_watch = True
     breakpoint_row = resolve_breakpoint_stable_key(args.target, args.breakpoint_stable_key) if args.breakpoint_stable_key else None
     session = HeadlessWinUaeSession(
         rom_path=args.rom,
-        floppy0=args.floppy0,
+        floppy0=floppy0,
         host_directory=args.host_directory,
         target_payload_path=paths.binary_source.path,
         runner_path=args.runner,
         state_directory=args.state_directory,
         continue_seconds=args.continue_seconds,
         breakpoint_wait_seconds=args.breakpoint_wait_seconds,
-        observation_memory_address=args.observation_memory_address,
+        observation_memory_address=observation_memory_address,
         observation_memory_equals=observation_memory_equals,
-        observation_memory_write_watch=args.observation_memory_write_watch,
+        observation_memory_write_watch=observation_memory_write_watch,
         breakpoint_source_offset=breakpoint_row["start_offset"] if breakpoint_row is not None and "runtime_breakpoint_address" not in breakpoint_row else None,
         breakpoint_runtime_address=breakpoint_row.get("runtime_breakpoint_address") if breakpoint_row is not None else None,
     )
     if not args.run:
-        print(json.dumps({"status": "planned", "target_id": args.target, "breakpoint_stable_key": args.breakpoint_stable_key, "command": session.command()}, indent=2))
+        print(json.dumps({"status": "planned", "target_id": args.target, "direct_payload": direct_payload, "breakpoint_stable_key": args.breakpoint_stable_key, "command": session.command()}, indent=2))
         return 0
     report = run_session(session)
-    result = {"runner": report, "pc_resolution": resolve_paused_pc(args.target, report)}
+    result = {"runner": report, "direct_payload": direct_payload, "pc_resolution": resolve_paused_pc(args.target, report)}
     if breakpoint_row is not None:
         result["breakpoint"] = resolve_breakpoint_hit(breakpoint_row, report)
     print(json.dumps(result, indent=2))

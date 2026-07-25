@@ -260,6 +260,14 @@ and a bounded handoff marker; it must prove a headless cold boot reaches the
 byte-identified payload before it is exposed through the public runtime
 interface.
 
+The repository now provides this as a generic contract resource. JSON records
+under `runtime/direct_payload_contracts/` bind a target id, decoded-payload
+hash, load/entry addresses, and handoff marker to the shared raw-boot-ADF
+builder. `winuae_session --direct-payload-contract <id>` generates that ADF in
+the caller's isolated state directory and selects it explicitly; it never
+falls back to original media. Pandora is the first contract, not a special
+launcher implementation.
+
 ### 6. Scenario And Checkpoint, Not Screenshots, Define Tests
 
 A scenario specifies the controlled starting condition, input, stopping

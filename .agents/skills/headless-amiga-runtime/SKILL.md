@@ -73,6 +73,31 @@ For every harness change, run:
 
 Do not add GUI fallbacks, hidden interactive prompts, raw agent GDB consoles, or untracked dependency locations.
 
+## Direct-payload contracts
+
+When static and runtime evidence prove that a decoded payload can be entered
+without reproducing its original loader, create a generic direct-payload
+contract instead of a target-specific launcher. Contracts live in
+`runtime/direct_payload_contracts/`; the shared builder is
+`amiga_reversing.tools.direct_payload_adapter`.
+
+Each contract must declare the target id, decoded-payload SHA-256, load
+address, entrypoint, and a four-byte handoff marker. Build and launch it only
+through the public session interface:
+
+```text
+python -m amiga_reversing.tools.winuae_session --target <target> --rom <legal-rom> \
+  --direct-payload-contract <contract> --state-directory <isolated-run-dir> --run
+```
+
+This selection creates a disposable raw boot ADF, embeds the validated target
+payload, and stops at the declared marker. It has no fallback to original
+media. Do not create a contract from decompression metadata alone: prove the
+load/entry contract, cold-boot marker, and byte-identified payload execution.
+Keep a contract only when it provides a required observation or improves the
+measured original-media path; otherwise retain the evidence in Proposal 036
+and do not keep an adapter.
+
 ## Interpret outcomes
 
 - `pc_matched`: useful runtime/source observation; still not a loader claim.

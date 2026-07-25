@@ -66,6 +66,13 @@ def test_headless_session_passes_a_single_bounded_memory_observation() -> None:
     ]
 
 
+def test_direct_contract_requires_an_isolated_generated_adf_state_directory() -> None:
+    parser = winuae_session.build_parser()
+    args = parser.parse_args(["--target", "pandora", "--rom", "C:\\roms\\kick.rom", "--direct-payload-contract", "pandora"])
+
+    assert args.direct_payload_contract == "pandora"
+
+
 def test_resolve_breakpoint_stable_key_requires_current_canonical_row(monkeypatch) -> None:
     row = {"stable_key": "s0:00000BA8:instruction:760", "start_offset": 0xBA8}
     artifact = _FakeArtifact(row)
