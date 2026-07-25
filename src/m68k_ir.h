@@ -537,6 +537,7 @@ typedef struct M68kSymbolRefIR {
   uint8_t name_provenance;
   uint8_t symbolic_addend_provenance;
   uint8_t render_pc_relative_displacement_expr;
+  uint8_t force_word_displacement;
   uint32_t pc_relative_displacement_base_offset;
   size_t symbol_index;
   size_t section_index;

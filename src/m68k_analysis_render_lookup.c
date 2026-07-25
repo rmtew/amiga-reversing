@@ -2864,13 +2864,9 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     const M68kRenderTypedProvenance *provenance = NULL;
     container_struct_name[0] = '\0';
     container_field_expr[0] = '\0';
-    /*
-     * Keep zero-offset (An) field facts analysis-only. Rendering FIELD(a0) would
-     * force d16(An) encoding and break exact reproduction of original (An) bytes.
-     */
     if (metadata != NULL && metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET)
       continue;
-    if (!operand_is_address_displacement_local(operand, &base_reg, &displacement) || base_reg >= 8U) continue;
+    if (!operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U) continue;
     if (state->addr_regs[base_reg].known) {
       struct_id = state->addr_regs[base_reg].struct_id;
       provenance = &state->addr_regs[base_reg].provenance;

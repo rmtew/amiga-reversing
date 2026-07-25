@@ -442,7 +442,8 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 1)
     return append_format(out_text, out_text_size, inout_used, "%s.l", name);
   if (operand->value.ea_mode == 5)
-    return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
+    return append_format(out_text, out_text_size, inout_used, operand->value.value == 0U ? "%s.w(a%u)" : "%s(a%u)",
+      name, (unsigned)operand->value.ea_reg);
   if (operand->value.ea_mode == 2)
     return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2) {

@@ -248,6 +248,13 @@ static int parse_displacement_ea(const M68kAsmEaTextFormDef *text_form, const ch
   if (suffix == NULL) return 0;
   snprintf(suffix_buffer, sizeof(suffix_buffer), "%s", suffix);
   buffer[suffix - buffer] = '\0';
+  {
+    char *force_word_suffix = strrchr(buffer, '.');
+    if (force_word_suffix != NULL) {
+      if (!m68k_ascii_equal_ci(force_word_suffix, ".w")) return 0;
+      *force_word_suffix = '\0';
+    }
+  }
   if (!parse_value(text_form, m68k_trim_in_place(buffer), out_value)) return 0;
   if (text_form->uses_base_register) {
     unsigned reg = 0;

@@ -134,11 +134,12 @@ static int rewrite_pc_relative_symbol_operand( const M68kSymbolicParseContext *c
 
 static int rewrite_base_relative_symbol_operand(const M68kSymbolicParseContext *context, const char *operand,
   char *out_rewritten, size_t out_rewritten_size, char *out_symbolic_name, size_t out_symbolic_name_size,
-  int32_t *out_addend) {
+  int32_t *out_addend, uint8_t *out_force_word_displacement) {
   const char *paren = NULL;
   M68kSourceConstantResult symbol_value;
   size_t prefix_len;
   char prefix[M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
+  uint8_t force_word_displacement = 0U;
   if (context == NULL || operand == NULL || out_rewritten == NULL || out_symbolic_name == NULL || out_addend == NULL)
     return 0;
   paren = strchr(operand, '(');
@@ -147,22 +148,29 @@ static int rewrite_base_relative_symbol_operand(const M68kSymbolicParseContext *
   prefix_len = (size_t)(paren - operand);
   if (prefix_len == 0U || prefix_len >= sizeof(prefix)) return 0;
   snprintf(prefix, sizeof(prefix), "%.*s", (int)prefix_len, operand);
+  if (prefix_len > 2U && m68k_ascii_equal_ci(prefix + prefix_len - 2U, ".w")) {
+    prefix[prefix_len - 2U] = '\0';
+    force_word_displacement = 1U;
+  }
   if (parse_symbol_plus_addend(context, prefix, out_symbolic_name, out_symbolic_name_size, out_addend)) {
-    snprintf(out_rewritten, out_rewritten_size, "0%s", paren);
+    snprintf(out_rewritten, out_rewritten_size, force_word_displacement ? "0.w%s" : "0%s", paren);
+    if (out_force_word_displacement != NULL) *out_force_word_displacement = force_word_displacement;
     return 1;
   }
   symbol_value = m68k_source_parse_constant_expression(prefix, lookup_constant_symbol_for_expression, (void *)context);
   if (context->lookup_symbol != NULL && symbol_value.ok) {
-    snprintf(out_rewritten, out_rewritten_size, "%d%s", (int32_t)symbol_value.value, paren);
+    snprintf(out_rewritten, out_rewritten_size, force_word_displacement ? "%d.w%s" : "%d%s",
+      (int32_t)symbol_value.value, paren);
     out_symbolic_name[0] = '\0';
     *out_addend = 0;
     return 1;
   }
   if (context->is_symbol_name == NULL || !context->is_symbol_name(prefix, context->user_data)) return 0;
   if (is_register_like_symbol(prefix, context->target_cpu)) return 0;
-  snprintf(out_rewritten, out_rewritten_size, "0%s", paren);
+  snprintf(out_rewritten, out_rewritten_size, force_word_displacement ? "0.w%s" : "0%s", paren);
   snprintf(out_symbolic_name, out_symbolic_name_size, "%s", prefix);
   *out_addend = 0;
+  if (out_force_word_displacement != NULL) *out_force_word_displacement = force_word_displacement;
   return 1;
 }
 
@@ -246,6 +254,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
   char symbolic_names[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
   int32_t symbolic_addends[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
   uint8_t symbolic_ref_kinds[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
+  uint8_t force_word_displacements[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
   size_t operand_count = 0;
   size_t operand_index;
   char *dot = NULL;
@@ -311,7 +320,8 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
       symbolic_ref_kinds[operand_index] = M68K_IR_SYMBOL_REF_PC_REL;
     } else if (rewrite_base_relative_symbol_operand(context, operand, rewritten_operands[operand_index],
         sizeof(rewritten_operands[operand_index]), symbolic_names[operand_index],
-        sizeof(symbolic_names[operand_index]), &symbolic_addends[operand_index])) {
+        sizeof(symbolic_names[operand_index]), &symbolic_addends[operand_index],
+        &force_word_displacements[operand_index])) {
     } else {
       snprintf(rewritten_operands[operand_index], sizeof(rewritten_operands[operand_index]), "%s", operand);
     }
@@ -337,6 +347,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
       sizeof(out_instruction->operand_label_names[operand_index]), "%s", symbolic_names[operand_index]);
     out_instruction->operand_label_addends[operand_index] = symbolic_addends[operand_index];
     out_instruction->operand_label_ref_kinds[operand_index] = symbolic_ref_kinds[operand_index];
+    out_instruction->operand_force_word_displacements[operand_index] = force_word_displacements[operand_index];
   }
   return 1;
 }
@@ -362,6 +373,8 @@ int m68k_parse_instruction_with_symbol_fallback_ir( const M68kSymbolicParseConte
     mark_ir_symbol_ref_kind(&out_instruction->operands[operand_index]);
     if (parsed.operand_label_ref_kinds[operand_index] != 0U)
       out_instruction->operands[operand_index].symbol_ref.kind = parsed.operand_label_ref_kinds[operand_index];
+    out_instruction->operands[operand_index].symbol_ref.force_word_displacement =
+      parsed.operand_force_word_displacements[operand_index];
   }
   return 1;
 }

@@ -1593,6 +1593,32 @@ static int test_source_parse_treats_cpu_policy_as_ceiling(void) {
   return 0;
 }
 
+static int test_source_rs_zero_offset_symbol_uses_address_indirect_encoding(void) {
+  AsmSourceFile source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  const char *source_text =
+    "    RSRESET\n"
+    "world_object_shared_prefix_item_name_ptr RS.L 1\n"
+    "SECTION section_0,code\n"
+    "\tmove.w world_object_shared_prefix_item_name_ptr(a0),d0\n"
+    "\tmove.w world_object_shared_prefix_item_name_ptr.w(a0),d0\n";
+  const uint8_t expected[] = {0x30U, 0x10U, 0x30U, 0x28U, 0x00U, 0x00U};
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&source, &object, m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)object.section_count);
+  M68K_C_ASSERT_U32((uint32_t)sizeof(expected), object.sections[0].data_size);
+  M68K_C_ASSERT(memcmp(object.sections[0].data, expected, sizeof(expected)) == 0);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&source);
+  return 0;
+}
+
 static int test_source_symbolic_absolute_word_jmp_stays_absolute(void) {
   AsmSourceFile source;
   M68kObject object;
@@ -23721,7 +23747,7 @@ static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region(v
   M68K_C_ASSERT(alias_line < app_sizeof_line);
   M68K_C_ASSERT(alias_line < section_line);
   M68K_C_ASSERT(strstr(source, "app_0001 EQU $0001\n") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l app_0000(a4),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l app_0000.w(a4),d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.b app_0001(a4),d1\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -24590,7 +24616,7 @@ static int test_facts_v2_render_asm_source_propagates_api_output_type_through_le
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOCreateMsgPort(a6)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tlea.l (a0),a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l LN_SUCC(a0),a1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.b MP_SIGBIT(a1)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -26020,6 +26046,69 @@ static int test_facts_v2_render_asm_source_renders_custom_struct_field_from_entr
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_renders_zero_offset_custom_struct_field(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  char *source = NULL;
+  uint8_t bytes[12] = {
+    0x30u, 0x15u,
+    0x3au, 0x80u,
+    0x52u, 0x55u,
+    0x41u, 0xedu, 0x00u, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = 1U;
+  policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "world_object_shared_prefix");
+  custom_structs[0].size = 2U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "root_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 5U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "zero_offset_field_test");
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "world_object_shared_prefix");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_root_word(a5),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w d0,world_object_shared_prefix_root_word(a5)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\taddq.w #1,world_object_shared_prefix_root_word(a5)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l world_object_shared_prefix_root_word.w(a5),a0\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_custom_field_pointer_type(void) {
   M68kObject object;
   M68kSection section;
@@ -26084,7 +26173,7 @@ static int test_facts_v2_render_asm_source_propagates_custom_field_pointer_type(
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmovea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l world_object_shared_prefix_position_descriptor_ptr.w(a5),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w world_position_descriptor_prefix_world_x(a0),d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w world_position_descriptor_prefix_world_y(a0),d1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "position_descriptor_ptr\tEQU\t") == NULL);
@@ -26284,11 +26373,11 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_pointer_chai
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmovea.l world_object_shared_prefix_position_descriptor_ptr(a4),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l world_object_shared_prefix_position_descriptor_ptr.w(a4),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tmovea.l world_position_descriptor_prefix_position_state_ptr(a0),a1\n") != NULL);
+    "\tmovea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a1\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tmovea.l world_position_state_record_collision_bounds_ptr(a1),a2\n") != NULL);
+    "\tmovea.l world_position_state_record_collision_bounds_ptr.w(a1),a2\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.w world_position_collision_bounds_world_x_origin_offset(a2),d0\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -26503,7 +26592,7 @@ static int test_facts_v2_render_asm_source_propagates_zero_offset_field_pointer_
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOFindName(a6)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmovea.l (a0),a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l LN_SUCC(a0),a1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.b LN_TYPE(a1)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -31991,6 +32080,8 @@ int m68k_c_ir_tests(void) {
     {"facts_v2_boundary_relocation_api_call_restore_wrapper_promotes_code",
       test_facts_v2_boundary_relocation_api_call_restore_wrapper_promotes_code},
     {"source_parse_treats_cpu_policy_as_ceiling", test_source_parse_treats_cpu_policy_as_ceiling},
+    {"source_rs_zero_offset_symbol_uses_address_indirect_encoding",
+      test_source_rs_zero_offset_symbol_uses_address_indirect_encoding},
     {"source_symbolic_absolute_word_jmp_stays_absolute",
       test_source_symbolic_absolute_word_jmp_stays_absolute},
     {"source_absolute_word_high_bit_payload_reassembles",
@@ -32743,6 +32834,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_tracks_app_slot_address_through_data_register_copy},
     {"facts_v2_render_asm_source_renders_custom_struct_field_from_entry_register_seed",
       test_facts_v2_render_asm_source_renders_custom_struct_field_from_entry_register_seed},
+    {"facts_v2_render_asm_source_renders_zero_offset_custom_struct_field",
+      test_facts_v2_render_asm_source_renders_zero_offset_custom_struct_field},
     {"facts_v2_render_asm_source_propagates_custom_field_pointer_type",
       test_facts_v2_render_asm_source_propagates_custom_field_pointer_type},
     {"facts_v2_render_asm_source_propagates_static_struct_data_type",

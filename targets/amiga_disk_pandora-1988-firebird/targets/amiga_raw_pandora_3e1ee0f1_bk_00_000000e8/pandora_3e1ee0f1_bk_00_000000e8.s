@@ -2233,8 +2233,8 @@ abs_0_0001268E:
 	lea.l player_world_object.l,a4
 	movem.l d0-d2/a0-a2,-(a7)
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
-	movea.l world_position_descriptor_prefix_position_state_ptr(a0),a1
-	movea.l world_position_state_record_collision_bounds_ptr(a1),a2
+	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a1
+	movea.l world_position_state_record_collision_bounds_ptr.w(a1),a2
 	move.w world_position_descriptor_prefix_world_x(a0),d0
 	add.w world_position_state_record_world_x_offset(a1),d0
 	add.w world_position_collision_bounds_world_x_origin_offset(a2),d0
@@ -32226,7 +32226,7 @@ update_player_proximity_audio:
 	bpl.b abs_0_00065318
 	neg.w d0
 abs_0_00065318:
-	move.w (a0),d1
+	move.w world_object_shared_prefix_item_name_ptr(a0),d1
 	subi.w #168,d1
 	bpl.b abs_0_00065322
 	neg.w d1

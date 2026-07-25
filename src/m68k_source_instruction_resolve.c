@@ -22,9 +22,14 @@ static int normalize_symbolic_zero_address_displacements_local(const M68kSourceI
     for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
         M68kOperandIR *operand = &instruction->operands[operand_index];
         if (!operand->symbol_ref.has_name || operand->symbol_ref.has_section) continue;
-        if (context != NULL && context->lookup_symbol != NULL) {
+        if (operand->symbol_ref.force_word_displacement) continue;
+        if (context == NULL || context->lookup_symbol == NULL) continue;
+        {
             M68kSourceLookupResult symbol = context->lookup_symbol(operand->symbol_ref.name, context->user_data);
-            if (symbol.ok && symbol.defined && symbol.is_constant) continue;
+            /* A zero-valued absolute constant is semantically identical to
+             * address-register indirect.  Preserve section-relative labels,
+             * whose relocation meaning requires the displacement extension. */
+            if (!symbol.ok || !symbol.defined || !symbol.is_constant) continue;
         }
         if (operand->value.kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 5U) continue;
         if (operand->value.value != 0U) continue;
