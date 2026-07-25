@@ -305,8 +305,10 @@ typedef struct M68kRenderTypedProvenance {
 
 typedef struct M68kRenderTypedRegValue {
   uint8_t known;
+  uint8_t type_conflicted;
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
+  uint16_t conflict_struct_id;
   uint16_t array_element_count;
   uint16_t array_element_index;
   M68kRenderTypedStorageOrigin origin;

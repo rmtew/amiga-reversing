@@ -1656,8 +1656,10 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
   if (state == NULL || output == NULL || reg_index >= 8U || !amiga_output_has_typed_info(output)) return;
   if (reg_kind == 1U) {
     state->data_regs[reg_index].known = 1U;
+    state->data_regs[reg_index].type_conflicted = 0U;
     state->data_regs[reg_index].output = output;
     state->data_regs[reg_index].struct_id = output->struct_id;
+    state->data_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->data_regs[reg_index].array_element_count = 0U;
     state->data_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->data_regs[reg_index].origin);
@@ -1667,8 +1669,10 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
     typed_memory_base_clear(&state->data_memory_base_regs[reg_index]);
   } else if (reg_kind == 2U) {
     state->addr_regs[reg_index].known = 1U;
+    state->addr_regs[reg_index].type_conflicted = 0U;
     state->addr_regs[reg_index].output = output;
     state->addr_regs[reg_index].struct_id = output->struct_id;
+    state->addr_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->addr_regs[reg_index].array_element_count = 0U;
     state->addr_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->addr_regs[reg_index].origin);
@@ -1685,8 +1689,10 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
   if (state == NULL || reg_index >= 8U || struct_id == AMIGA_OS_STRUCT_ID_NONE) return;
   if (reg_kind == 1U) {
     state->data_regs[reg_index].known = 1U;
+    state->data_regs[reg_index].type_conflicted = 0U;
     state->data_regs[reg_index].output = NULL;
     state->data_regs[reg_index].struct_id = struct_id;
+    state->data_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->data_regs[reg_index].array_element_count = 0U;
     state->data_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->data_regs[reg_index].origin);
@@ -1696,8 +1702,10 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     typed_memory_base_clear(&state->data_memory_base_regs[reg_index]);
   } else if (reg_kind == 2U) {
     state->addr_regs[reg_index].known = 1U;
+    state->addr_regs[reg_index].type_conflicted = 0U;
     state->addr_regs[reg_index].output = NULL;
     state->addr_regs[reg_index].struct_id = struct_id;
+    state->addr_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->addr_regs[reg_index].array_element_count = 0U;
     state->addr_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->addr_regs[reg_index].origin);
@@ -2892,11 +2900,13 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     uint8_t base_reg = 0U, classification = M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP;
     int16_t displacement = 0;
     uint16_t struct_id, struct_size, container_struct_id = AMIGA_OS_STRUCT_ID_NONE, container_candidate_count = 0U;
+    uint16_t conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     int16_t array_element_addend = 0;
     int16_t field_displacement;
     uint8_t access_size;
     char container_struct_name[64], container_field_expr[96];
     int refinement_applied = 0;
+    int type_conflicted = 0;
     M68kRenderResolvedStructField field;
     M68kRenderTypedProvenance app_slot_provenance;
     const M68kRenderTypedProvenance *provenance = NULL;
@@ -2908,6 +2918,11 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (state->addr_regs[base_reg].known) {
       struct_id = state->addr_regs[base_reg].struct_id;
       provenance = &state->addr_regs[base_reg].provenance;
+    } else if (state->addr_regs[base_reg].type_conflicted != 0U) {
+      struct_id = state->addr_regs[base_reg].struct_id;
+      conflict_struct_id = state->addr_regs[base_reg].conflict_struct_id;
+      provenance = &state->addr_regs[base_reg].provenance;
+      type_conflicted = 1;
     } else if (state->app_addr_regs[base_reg].known) {
       struct_id = lookup_typed_app_slot_struct_id(lookup, state->app_addr_regs[base_reg].displacement);
       if (struct_id == AMIGA_OS_STRUCT_ID_NONE)
@@ -2920,6 +2935,20 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     struct_size = lookup_policy_struct_size_by_id(lookup->policy, struct_id);
     access_size = instruction_size_suffix_bytes_local(instruction->size_suffix);
+    if (type_conflicted) {
+      if (record_accesses) {
+        const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
+        const char *conflict_struct_name = lookup_policy_struct_name_by_id(lookup->policy, conflict_struct_id);
+        if (root_struct_name != NULL &&
+            render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
+              (uint8_t)operand_index, base_reg, displacement, root_struct_name, struct_size,
+              M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT,
+              conflict_struct_name != NULL ? 2U : 1U, conflict_struct_name, NULL, 0U, NULL, provenance) != 0) {
+          return -1;
+        }
+      }
+      continue;
+    }
     field_displacement = displacement;
     if (state->addr_regs[base_reg].known && state->addr_regs[base_reg].array_element_count != 0U &&
         struct_size != 0U) {
@@ -3691,7 +3720,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
 static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
     const M68kRenderTypedRegValue *right) {
   if (left == NULL || right == NULL) return 0;
-  return left->known == right->known && left->output == right->output && left->struct_id == right->struct_id &&
+  return left->known == right->known && left->type_conflicted == right->type_conflicted &&
+    left->output == right->output && left->struct_id == right->struct_id &&
+    left->conflict_struct_id == right->conflict_struct_id &&
     left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
     typed_origins_equal(&left->origin, &right->origin) &&
     typed_provenances_equal(&left->provenance, &right->provenance);
@@ -3798,6 +3829,17 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   M68kRenderTypedRegValue old_value;
   if (dest == NULL || source == NULL) return 0;
   old_value = *dest;
+  if (dest->type_conflicted != 0U || source->type_conflicted != 0U) {
+    if (dest->type_conflicted == 0U) *dest = *source;
+    dest->known = 0U;
+    dest->type_conflicted = 1U;
+    dest->output = NULL;
+    dest->array_element_count = 0U;
+    dest->array_element_index = 0U;
+    typed_origin_clear(&dest->origin);
+    typed_provenance_merge(&dest->provenance, &source->provenance);
+    return !typed_reg_values_equal(dest, &old_value);
+  }
   if (dest->known == 0U || source->known == 0U) {
     typed_reg_value_clear(dest);
     return !typed_reg_values_equal(dest, &old_value);
@@ -3827,7 +3869,14 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->array_element_index = 0U;
     return !typed_reg_values_equal(dest, &old_value);
   }
-  typed_reg_value_clear(dest);
+  dest->known = 0U;
+  dest->type_conflicted = 1U;
+  dest->output = NULL;
+  dest->conflict_struct_id = source->struct_id;
+  dest->array_element_count = 0U;
+  dest->array_element_index = 0U;
+  typed_origin_clear(&dest->origin);
+  typed_provenance_merge(&dest->provenance, &source->provenance);
   return !typed_reg_values_equal(dest, &old_value);
 }
 
