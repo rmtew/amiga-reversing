@@ -26529,6 +26529,20 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   M68K_C_ASSERT_U32(0U, analysis.sections[0].pointer_stores[0].has_target);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
+  source = NULL;
+  memset(&analysis, 0, sizeof(analysis));
+  object.sections[0].data[4] = 0x01U;
+  object.sections[0].data[5] = 0x01U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000101") == NULL);
+  M68K_C_ASSERT_U32(0x101U, analysis.sections[0].pointer_stores[0].source_value);
+  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET,
+    analysis.sections[0].pointer_stores[0].resolution);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].pointer_stores[0].has_target);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
