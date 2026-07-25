@@ -1533,6 +1533,43 @@ static void typed_stored_value_clear(M68kRenderTypedStoredValue *value) {
   value->struct_id = AMIGA_OS_STRUCT_ID_NONE;
 }
 
+/* A branch merge can retain a small, exact set of static pointer values. */
+static void typed_pointer_candidates_normalize(uint8_t *known, uint8_t *count,
+    uint32_t *value, uint32_t candidates[4]) {
+  if (known == NULL || count == NULL || value == NULL || candidates == NULL) return;
+  if (*known == 0U) { *count = 0U; return; }
+  if (*count == 0U) { candidates[0] = *value; *count = 1U; }
+  *value = candidates[0];
+}
+
+static int typed_pointer_candidates_merge(uint8_t *dest_known, uint8_t *dest_count,
+    uint32_t *dest_value, uint32_t dest_candidates[4], uint8_t source_known,
+    uint8_t source_count, uint32_t source_value, const uint32_t source_candidates[4]) {
+  uint32_t merged[4];
+  size_t count = 0U, index, candidate_index;
+  if (dest_known == NULL || dest_count == NULL || dest_value == NULL || dest_candidates == NULL ||
+      source_candidates == NULL) return 0;
+  memset(merged, 0, sizeof(merged));
+  typed_pointer_candidates_normalize(dest_known, dest_count, dest_value, dest_candidates);
+  if (source_known == 0U) return 0;
+  if (source_count == 0U) source_count = 1U;
+  for (index = 0U; index < *dest_count; ++index) merged[count++] = dest_candidates[index];
+  for (index = 0U; index < source_count; ++index) {
+    uint32_t candidate = source_count == 1U && index == 0U ? source_value : source_candidates[index];
+    for (candidate_index = 0U; candidate_index < count; ++candidate_index)
+      if (merged[candidate_index] == candidate) break;
+    if (candidate_index == count) {
+      if (count == sizeof(merged) / sizeof(merged[0])) return 0;
+      merged[count++] = candidate;
+    }
+  }
+  memcpy(dest_candidates, merged, sizeof(merged));
+  *dest_count = (uint8_t)count;
+  *dest_value = merged[0];
+  *dest_known = 1U;
+  return 1;
+}
+
 static int typed_stored_value_has_payload(const M68kRenderTypedStoredValue *value) {
   return value != NULL && (value->struct_id != AMIGA_OS_STRUCT_ID_NONE || value->app_address_known != 0U ||
     value->pointer_value_known != 0U);
@@ -2135,6 +2172,8 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
     value.byte_cursor = state->data_regs[reg].byte_cursor;
     value.pointer_value_known = state->data_regs[reg].pointer_value_known;
     value.pointer_value = state->data_regs[reg].pointer_value;
+    value.pointer_candidate_count = state->data_regs[reg].pointer_candidate_count;
+    memcpy(value.pointer_candidates, state->data_regs[reg].pointer_candidates, sizeof(value.pointer_candidates));
   } else if (state != NULL && operand_address_register_index_local(operand, &reg)) {
     value.provenance = state->addr_regs[reg].provenance;
     value.array_element_count = state->addr_regs[reg].array_element_count;
@@ -2142,6 +2181,8 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
     value.byte_cursor = state->addr_regs[reg].byte_cursor;
     value.pointer_value_known = state->addr_regs[reg].pointer_value_known;
     value.pointer_value = state->addr_regs[reg].pointer_value;
+    value.pointer_candidate_count = state->addr_regs[reg].pointer_candidate_count;
+    memcpy(value.pointer_candidates, state->addr_regs[reg].pointer_candidates, sizeof(value.pointer_candidates));
   }
   if (typed_state_copy_app_address(state, operand, &app_displacement)) {
     value.app_address_known = 1U;
@@ -2445,6 +2486,21 @@ static const M68kAnalysisCustomStructField *lookup_policy_pointer_value_field(co
   return NULL;
 }
 
+static void pointer_store_merge_candidate_targets(M68kPointerStoreIR *dest, const M68kPointerStoreIR *source) {
+  uint8_t merged_count = 0U, index, source_index;
+  if (dest == NULL || source == NULL) return;
+  for (index = 0U; index < dest->candidate_target_count; ++index)
+    dest->candidate_source_values[merged_count++] = dest->candidate_source_values[index];
+  for (source_index = 0U; source_index < source->candidate_target_count; ++source_index) {
+    for (index = 0U; index < merged_count; ++index)
+      if (dest->candidate_source_values[index] == source->candidate_source_values[source_index]) break;
+    if (index == merged_count && merged_count < 4U)
+      dest->candidate_source_values[merged_count++] = source->candidate_source_values[source_index];
+  }
+  dest->candidate_target_count = merged_count;
+  dest->source_value = merged_count == 1U ? dest->candidate_source_values[0] : 0U;
+}
+
 static int render_lookup_add_pointer_store(M68kRenderLookup *lookup, size_t section_index,
     const M68kPointerStoreIR *fact) {
   M68kRenderPointerStore *grown;
@@ -2460,6 +2516,13 @@ static int render_lookup_add_pointer_store(M68kRenderLookup *lookup, size_t sect
          * A merged ambiguity is authoritative: retaining a first-path
          * resolution would falsely claim a unique stored address. */
         M68kRenderPointerStore *mutable_existing = &lookup->pointer_stores[index];
+        if (fact->candidate_target_count != 0U &&
+            (mutable_existing->fact.candidate_target_count != 0U ||
+             fact->resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET)) {
+          pointer_store_merge_candidate_targets(&mutable_existing->fact, fact);
+          if (mutable_existing->fact.candidate_target_count > 1U)
+            mutable_existing->fact.resolution = M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET;
+        }
         if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET &&
             fact->resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET) {
           mutable_existing->fact = *fact;
@@ -3515,6 +3578,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
       value.pointer_value_known = 1U;
       value.pointer_value = immediate_value;
+      value.pointer_candidate_count = 1U;
+      value.pointer_candidates[0] = immediate_value;
       if (candidate != NULL) {
         const M68kFact *relocation = analysis_operand_relocation_ref(lookup, section_index, candidate, source_index);
         uint32_t target_runtime_address = 0U;
@@ -3522,6 +3587,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
             lookup_source_runtime_address(lookup, relocation->target_section_index, relocation->target_offset,
               &target_runtime_address)) {
           value.pointer_value = target_runtime_address;
+          value.pointer_candidates[0] = target_runtime_address;
           value.provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA,
             relocation->target_section_index, relocation->target_offset);
         }
@@ -3555,8 +3621,10 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       fact.destination_value_kind = destination_field->value_kind;
       fact.source_kind = m68k_ir_operand_immediate_value(source_operand, &fact.source_value) ? 1U : 2U;
       if (value.pointer_value_known) fact.source_value = value.pointer_value;
-      fact.resolution = value.pointer_value_known ? M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET :
-        M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET;
+      fact.resolution = value.pointer_value_known && value.pointer_candidate_count <= 1U ?
+        M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET : M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET;
+      fact.candidate_target_count = value.pointer_candidate_count;
+      memcpy(fact.candidate_source_values, value.pointer_candidates, sizeof(fact.candidate_source_values));
       fact.provenance_kind = value.provenance.kind;
       fact.provenance_section_index = value.provenance.section_index;
       fact.provenance_offset = value.provenance.offset;
@@ -3867,6 +3935,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
       stored_value.pointer_value_known = 1U;
       stored_value.pointer_value = immediate_value;
+      stored_value.pointer_candidate_count = 1U;
+      stored_value.pointer_candidates[0] = immediate_value;
       typed_stored_value_update_known(&stored_value);
     } else {
       stored_value = typed_stored_value_for_operand(state, source_operand);
@@ -3944,6 +4014,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         state->data_regs[dest_reg].known = 1U;
         state->data_regs[dest_reg].pointer_value_known = 1U;
         state->data_regs[dest_reg].pointer_value = stored_value.pointer_value;
+        state->data_regs[dest_reg].pointer_candidate_count = stored_value.pointer_candidate_count;
+        memcpy(state->data_regs[dest_reg].pointer_candidates, stored_value.pointer_candidates,
+          sizeof(state->data_regs[dest_reg].pointer_candidates));
       }
       typed_state_set_reg_origin(state, 1U, dest_reg, &source_origin);
     } else if (operand_address_register_index_local(dest_operand, &dest_reg)) {
@@ -3964,6 +4037,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         state->addr_regs[dest_reg].known = 1U;
         state->addr_regs[dest_reg].pointer_value_known = 1U;
         state->addr_regs[dest_reg].pointer_value = stored_value.pointer_value;
+        state->addr_regs[dest_reg].pointer_candidate_count = stored_value.pointer_candidate_count;
+        memcpy(state->addr_regs[dest_reg].pointer_candidates, stored_value.pointer_candidates,
+          sizeof(state->addr_regs[dest_reg].pointer_candidates));
       }
       typed_state_set_reg_origin(state, 2U, dest_reg, &source_origin);
       if (source_tracks_plain_addr_alias && dest_reg != source_alias_reg)
@@ -4072,6 +4148,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
               state->addr_regs[dest_reg].known = 1U;
             state->addr_regs[dest_reg].pointer_value_known = 1U;
             state->addr_regs[dest_reg].pointer_value = target_runtime_address;
+            state->addr_regs[dest_reg].pointer_candidate_count = 1U;
+            state->addr_regs[dest_reg].pointer_candidates[0] = target_runtime_address;
           }
         }
       } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
@@ -4182,6 +4260,8 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->type_conflicted == right->type_conflicted &&
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
+    left->pointer_candidate_count == right->pointer_candidate_count &&
+    memcmp(left->pointer_candidates, right->pointer_candidates, sizeof(left->pointer_candidates)) == 0 &&
     left->output == right->output && left->struct_id == right->struct_id &&
     left->conflict_struct_id == right->conflict_struct_id &&
     left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
@@ -4195,6 +4275,8 @@ static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->output == right->output && left->struct_id == right->struct_id &&
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
+    left->pointer_candidate_count == right->pointer_candidate_count &&
+    memcmp(left->pointer_candidates, right->pointer_candidates, sizeof(left->pointer_candidates)) == 0 &&
     left->array_element_count == right->array_element_count &&
     left->array_element_index == right->array_element_index && left->byte_cursor == right->byte_cursor &&
     left->app_address_known == right->app_address_known && left->app_displacement == right->app_displacement &&
@@ -4304,6 +4386,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->byte_cursor = 0;
     dest->pointer_value_known = 0U;
     dest->pointer_value = 0U;
+    dest->pointer_candidate_count = 0U;
     typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
@@ -4315,6 +4398,15 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   }
   if (dest->known == 0U || source->known == 0U) {
     typed_reg_value_clear(dest);
+    return !typed_reg_values_equal(dest, &old_value);
+  }
+  if (dest->output == NULL && source->output == NULL &&
+      dest->struct_id == AMIGA_OS_STRUCT_ID_NONE && source->struct_id == AMIGA_OS_STRUCT_ID_NONE &&
+      typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+        &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
+        source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
+    typed_origin_clear(&dest->origin);
+    typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
   }
   if (dest->output == source->output && dest->struct_id == source->struct_id &&
@@ -4333,10 +4425,12 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
       dest->array_element_count = 0U;
       dest->array_element_index = 0U;
       dest->byte_cursor = 0;
-      if (dest->pointer_value_known == 0U || source->pointer_value_known == 0U ||
-          dest->pointer_value != source->pointer_value) {
+      if (!typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+          &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
+          source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
         dest->pointer_value_known = 0U;
         dest->pointer_value = 0U;
+        dest->pointer_candidate_count = 0U;
       }
       if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
       typed_provenance_merge(&dest->provenance, &source->provenance);
@@ -4348,10 +4442,12 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->array_element_count = 0U;
     dest->array_element_index = 0U;
     dest->byte_cursor = 0;
-    if (dest->pointer_value_known == 0U || source->pointer_value_known == 0U ||
-        dest->pointer_value != source->pointer_value) {
+    if (!typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+        &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
+        source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
       dest->pointer_value_known = 0U;
       dest->pointer_value = 0U;
+      dest->pointer_candidate_count = 0U;
     }
     return !typed_reg_values_equal(dest, &old_value);
   }
@@ -4364,6 +4460,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   dest->byte_cursor = 0;
   dest->pointer_value_known = 0U;
   dest->pointer_value = 0U;
+  dest->pointer_candidate_count = 0U;
   typed_origin_clear(&dest->origin);
   typed_provenance_merge(&dest->provenance, &source->provenance);
   return !typed_reg_values_equal(dest, &old_value);
@@ -4392,10 +4489,12 @@ static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
     dest->array_element_index = 0U;
     dest->byte_cursor = 0;
   }
-  if (dest->pointer_value_known == 0U || source->pointer_value_known == 0U ||
-      dest->pointer_value != source->pointer_value) {
+  if (!typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+      &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
+      source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
     dest->pointer_value_known = 0U;
     dest->pointer_value = 0U;
+    dest->pointer_candidate_count = 0U;
   }
   if (dest->output != NULL && dest->struct_id != AMIGA_OS_STRUCT_ID_NONE &&
       dest->output->struct_id != dest->struct_id) {
@@ -8340,6 +8439,39 @@ int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLook
     const M68kDecodeSectionIR *section;
     size_t target_section_index = 0U;
     uint32_t target_offset = 0U;
+    if (store->fact.resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET &&
+        store->fact.candidate_target_count > 1U) {
+      uint8_t candidate_index;
+      int valid = 1;
+      for (candidate_index = 0U; candidate_index < store->fact.candidate_target_count; ++candidate_index) {
+        if (!render_lookup_pointer_value_to_source_location(lookup, decode,
+            store->fact.candidate_source_values[candidate_index], &target_section_index, &target_offset)) {
+          store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
+          valid = 0;
+          break;
+        }
+        section = &decode->sections[target_section_index];
+        if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section,
+            accepted_start != NULL ? accepted_start[target_section_index] : NULL,
+            accepted_bytes[target_section_index], target_offset)) {
+          store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET;
+          valid = 0;
+          break;
+        }
+        store->fact.candidate_target_section_indices[candidate_index] = target_section_index;
+        store->fact.candidate_target_offsets[candidate_index] = target_offset;
+      }
+      if (!valid) continue;
+      store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS;
+      for (candidate_index = 0U; candidate_index < store->fact.candidate_target_count; ++candidate_index) {
+        target_section_index = store->fact.candidate_target_section_indices[candidate_index];
+        target_offset = store->fact.candidate_target_offsets[candidate_index];
+        render_lookup_mark_label(lookup, target_section_index, target_offset);
+        render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
+        render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+      }
+      continue;
+    }
     if (store->fact.resolution != M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET) continue;
     if (store->section_index >= decode->section_count) continue;
     if (!render_lookup_pointer_value_to_source_location(lookup, decode, store->fact.source_value,

@@ -26558,16 +26558,18 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
   M68kAnalysisCustomStruct *custom_structs = NULL;
   const M68kPointerStoreIR *store;
   char *source = NULL;
+  int saw_first_target = 0, saw_second_target = 0;
+  size_t index;
   uint8_t bytes[0x30] = {0};
-  /* tst.b d1; beq.s second; move.l #$9999,d0; bra.s join;
-     second: move.l #$AAAA,d0; join: move.l d0,(0,a5); rts */
+  /* tst.b d1; beq.s second; move.l #$120,d0; bra.s join;
+     second: move.l #$124,d0; join: move.l d0,(0,a5); rts */
   bytes[0] = 0x4au; bytes[1] = 0x01u;
   bytes[2] = 0x67u; bytes[3] = 0x08u;
   bytes[4] = 0x20u; bytes[5] = 0x3cu;
-  bytes[8] = 0x99u; bytes[9] = 0x99u;
+  bytes[8] = 0x01u; bytes[9] = 0x20u;
   bytes[10] = 0x60u; bytes[11] = 0x06u;
   bytes[12] = 0x20u; bytes[13] = 0x3cu;
-  bytes[16] = 0xaau; bytes[17] = 0xaau;
+  bytes[16] = 0x01u; bytes[17] = 0x24u;
   bytes[18] = 0x2bu; bytes[19] = 0x40u;
   bytes[22] = 0x4eu; bytes[23] = 0x75u;
   memset(&section, 0, sizeof(section));
@@ -26602,6 +26604,12 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
   policy.runtime_ranges[0].offset = 0U;
   policy.runtime_ranges[0].size = sizeof(bytes);
   policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 0x20U;
+  policy.structured_data_items[0].size = 8U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
   policy.register_seed_count = 1U;
   policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
@@ -26619,9 +26627,19 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
     "\tmove.l d0,world_object_shared_prefix_interaction_data_ptr.w(a5)\n") != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   store = &analysis.sections[0].pointer_stores[0];
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET, store->resolution);
+  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS, store->resolution);
   M68K_C_ASSERT_U32(0U, store->has_target);
-  M68K_C_ASSERT_U32(0U, store->source_value);
+  M68K_C_ASSERT_U32(2U, store->candidate_target_count);
+  for (index = 0U; index < store->candidate_target_count; ++index) {
+    if (store->candidate_source_values[index] == 0x120U && store->candidate_target_offsets[index] == 0x20U)
+      saw_first_target = 1;
+    if (store->candidate_source_values[index] == 0x124U && store->candidate_target_offsets[index] == 0x24U)
+      saw_second_target = 1;
+  }
+  M68K_C_ASSERT(saw_first_target);
+  M68K_C_ASSERT(saw_second_target);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000120:") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000124:") != NULL);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);

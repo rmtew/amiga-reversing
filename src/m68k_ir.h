@@ -1335,7 +1335,8 @@ typedef enum M68kPointerStoreResolutionKind {
   M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET = 3,
   M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET = 4,
   M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE = 5,
-  M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT = 6
+  M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT = 6,
+  M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS = 7
 } M68kPointerStoreResolutionKind;
 
 typedef struct M68kPointerStoreIR {
@@ -1346,6 +1347,8 @@ typedef struct M68kPointerStoreIR {
   uint32_t source_value;
   uint32_t target_offset;
   uint32_t provenance_offset;
+  uint32_t candidate_source_values[4];
+  uint32_t candidate_target_offsets[4];
   uint16_t destination_field_offset;
   uint8_t source_operand_index;
   uint8_t destination_operand_index;
@@ -1355,9 +1358,10 @@ typedef struct M68kPointerStoreIR {
   uint8_t has_target;
   uint8_t has_address;
   uint8_t provenance_kind;
-  uint8_t reserved[1];
+  uint8_t candidate_target_count;
   size_t target_section_index;
   size_t provenance_section_index;
+  size_t candidate_target_section_indices[4];
 } M68kPointerStoreIR;
 
 typedef enum M68kAddressIdentityRoleKind {

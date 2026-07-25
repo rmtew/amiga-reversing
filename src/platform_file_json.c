@@ -252,6 +252,7 @@ static const char *pointer_store_resolution_name(uint8_t resolution) {
   case M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET: return "invalid_target";
   case M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE: return "outside_known_address_space";
   case M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT: return "type_conflict";
+  case M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS: return "finite_candidate_targets";
   default: return "unknown";
   }
 }
@@ -4488,6 +4489,19 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           ",\"target_section_index\":%u,\"target_offset\":%u",
           (unsigned)store->target_section_index, (unsigned)store->target_offset) != 0)
         goto oom;
+      if (store->candidate_target_count != 0U) {
+        uint8_t candidate_index;
+        if (json_builder_append(&builder, ",\"candidate_targets\":[") != 0) goto oom;
+        for (candidate_index = 0U; candidate_index < store->candidate_target_count; ++candidate_index) {
+          if (candidate_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (json_builder_appendf(&builder,
+              "{\"source_value\":%u,\"section_index\":%u,\"offset\":%u}",
+              (unsigned)store->candidate_source_values[candidate_index],
+              (unsigned)store->candidate_target_section_indices[candidate_index],
+              (unsigned)store->candidate_target_offsets[candidate_index]) != 0) goto oom;
+        }
+        if (json_builder_append(&builder, "]") != 0) goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0) goto oom;
     }
     if (json_builder_appendf(&builder,

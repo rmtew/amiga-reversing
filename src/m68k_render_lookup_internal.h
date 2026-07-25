@@ -307,8 +307,9 @@ typedef struct M68kRenderTypedRegValue {
   uint8_t known;
   uint8_t type_conflicted;
   uint8_t pointer_value_known;
-  uint8_t reserved0;
+  uint8_t pointer_candidate_count;
   uint32_t pointer_value;
+  uint32_t pointer_candidates[4];
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
   uint16_t conflict_struct_id;
@@ -322,8 +323,10 @@ typedef struct M68kRenderTypedRegValue {
 typedef struct M68kRenderTypedStoredValue {
   uint8_t known;
   uint8_t pointer_value_known;
-  uint8_t reserved0[2];
+  uint8_t pointer_candidate_count;
+  uint8_t reserved0;
   uint32_t pointer_value;
+  uint32_t pointer_candidates[4];
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
   uint16_t array_element_count;
