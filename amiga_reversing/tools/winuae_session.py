@@ -30,6 +30,7 @@ class HeadlessWinUaeSession:
     target_payload_path: Path
     runner_path: Path = DEFAULT_HEADLESS_RUNNER
     floppy0: Path | None = None
+    host_directory: Path | None = None
     state_directory: Path | None = None
     continue_seconds: int = 60
     breakpoint_wait_seconds: int = 60
@@ -57,6 +58,8 @@ class HeadlessWinUaeSession:
         ]
         if self.floppy0 is not None:
             command.extend(("-Floppy0", str(self.floppy0)))
+        if self.host_directory is not None:
+            command.extend(("-HostDirectory", str(self.host_directory)))
         if self.state_directory is not None:
             command.extend(("-StateDirectory", str(self.state_directory)))
         if self.breakpoint_runtime_address is not None:
@@ -246,6 +249,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target", required=True)
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--floppy0", type=Path)
+    parser.add_argument("--host-directory", type=Path, help="host directory mounted as PAYLOAD:")
     parser.add_argument("--continue-seconds", type=int, default=60, choices=range(1, 121))
     parser.add_argument(
         "--breakpoint-wait-seconds",
@@ -289,6 +293,7 @@ def main(argv: list[str] | None = None) -> int:
     session = HeadlessWinUaeSession(
         rom_path=args.rom,
         floppy0=args.floppy0,
+        host_directory=args.host_directory,
         target_payload_path=paths.binary_source.path,
         runner_path=args.runner,
         state_directory=args.state_directory,

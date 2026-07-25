@@ -238,8 +238,20 @@ provided the required distinction on 2026-07-26. Its ByteKiller metadata named
 `$20000` for both load and entry; that transfer entered the image and then
 reset. The byte-identified execution view instead proved the viable contract:
 read the same raw image to `$10000` and jump directly to `$10000`. A custom
-boot disk reached the payload's relocation stub after 15.728 seconds, without
-depending on the original disk's filesystem metadata.
+boot disk reached the payload's relocation stub after 13.842 seconds measured
+from GDB continuation to its write-watch handoff marker, without depending on
+the original disk's filesystem metadata.
+
+A host-mounted directory was also tested as an alternative payload transport.
+The runner now mounts an explicit host directory as `PAYLOAD:` without
+misquoting its Windows path. A derived Pandora bootstrap invoked a HUNK loader
+from that volume, which read the decoded payload to `$10000` and reached its
+own handoff marker. The WinUAE host filesystem was not available until a
+three-second AmigaDOS delay; the fastest successful handoff was 17.379 seconds.
+It is therefore not retained as a Pandora acceleration adapter. The generic
+mount facility remains useful for bounded runtime experiments, but a target
+adapter must demonstrate an improvement before it becomes a supported launch
+path.
 
 This is evidence for a Pandora-specific adapter contract, not a reason to
 reinterpret decompression metadata globally. Every direct adapter must declare

@@ -6,6 +6,8 @@ param(
 
     [string]$Floppy0,
 
+    [string]$HostDirectory,
+
     [string]$StateDirectory,
 
     [string[]]$GdbCommand = @(),
@@ -117,7 +119,12 @@ $emulator = Get-ToolPath 'ext\tools\winuae\windows-x64\winuae-gdb.exe'
 $gdb = Get-ToolPath 'ext\tools\winuae\windows-x64\m68k-amiga-elf-gdb.exe'
 $resolvedRom = (Resolve-Path -LiteralPath $RomPath).Path
 $resolvedFloppy0 = if ($Floppy0) { (Resolve-Path -LiteralPath $Floppy0).Path } else { $null }
+$resolvedHostDirectory = if ($HostDirectory) { (Resolve-Path -LiteralPath $HostDirectory).Path } else { $null }
 $resolvedTargetPayload = if ($TargetPayloadPath) { (Resolve-Path -LiteralPath $TargetPayloadPath).Path } else { $null }
+
+if ($resolvedHostDirectory -and $resolvedHostDirectory.Contains(',')) {
+    throw 'HostDirectory cannot contain a comma because WinUAE filesystem2 uses commas as field separators.'
+}
 
 if (Get-NetTCPConnection -State Listen -LocalPort 2345 -ErrorAction SilentlyContinue) {
     throw 'TCP port 2345 is already in use; stop the existing WinUAE GDB session first.'
@@ -145,6 +152,9 @@ $emulatorArgs = @(
 )
 if ($resolvedFloppy0) {
     $emulatorArgs += '-s', "floppy0=$resolvedFloppy0"
+}
+if ($resolvedHostDirectory) {
+    $emulatorArgs += '-s', "filesystem2=rw,DH0:PAYLOAD:$resolvedHostDirectory,1"
 }
 
 $process = Start-Process -FilePath $emulator -ArgumentList (ConvertTo-ArgumentListString $emulatorArgs) -WindowStyle Hidden -PassThru
@@ -245,6 +255,7 @@ try {
         status = 'ok'
         state_directory = $resolvedStateDirectory
         floppy0 = $resolvedFloppy0
+        host_directory = $resolvedHostDirectory
         target_payload = $resolvedTargetPayload
         continue_seconds = $ContinueSeconds
         loadseg_watch_seconds = $LoadSegWatchSeconds

@@ -9,6 +9,7 @@ def test_headless_session_command_is_non_interactive_and_payload_bound() -> None
     session = winuae_session.HeadlessWinUaeSession(
         rom_path=Path(r"C:\roms\kick.rom"),
         floppy0=Path(r"C:\media\pandora.adf"),
+        host_directory=Path(r"C:\media\payload"),
         target_payload_path=Path(r"C:\target\binary.bin"),
         runner_path=Path(r"C:\repo\tools\run_winuae_headless.ps1"),
         state_directory=Path(r"C:\tmp\winuae"),
@@ -19,7 +20,8 @@ def test_headless_session_command_is_non_interactive_and_payload_bound() -> None
         "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
         r"C:\repo\tools\run_winuae_headless.ps1", "-RomPath", r"C:\roms\kick.rom",
         "-TargetPayloadPath", r"C:\target\binary.bin", "-ContinueSeconds", "60",
-        "-Floppy0", r"C:\media\pandora.adf", "-StateDirectory", r"C:\tmp\winuae",
+        "-Floppy0", r"C:\media\pandora.adf", "-HostDirectory", r"C:\media\payload",
+        "-StateDirectory", r"C:\tmp\winuae",
     ]
 
 
