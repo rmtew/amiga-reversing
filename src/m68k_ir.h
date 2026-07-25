@@ -401,6 +401,15 @@ typedef struct M68kAnalysisTargetEquate {
   char value_expr[64];
 } M68kAnalysisTargetEquate;
 
+/* The stored value's semantics are independent of its assembly width and
+ * field name.  A typed pointer is identified by pointer_struct; a generic
+ * target pointer deliberately has no fabricated pointee type. */
+typedef enum M68kAnalysisStructFieldValueKind {
+  M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR = 0,
+  M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER = 1,
+  M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER = 2
+} M68kAnalysisStructFieldValueKind;
+
 typedef struct M68kAnalysisCustomStructField {
   char name[64];
   char type_name[64];
@@ -409,6 +418,8 @@ typedef struct M68kAnalysisCustomStructField {
   char struct_name[64];
   char pointer_struct[64];
   char named_base[64];
+  uint8_t value_kind;
+  uint8_t reserved[3];
 } M68kAnalysisCustomStructField;
 
 typedef struct M68kAnalysisCustomStruct {
@@ -1318,6 +1329,37 @@ typedef struct M68kAddressObservationIR {
   uint8_t confidence;
 } M68kAddressObservationIR;
 
+typedef enum M68kPointerStoreResolutionKind {
+  M68K_POINTER_STORE_RESOLUTION_RESOLVED = 1,
+  M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET = 2,
+  M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET = 3,
+  M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET = 4,
+  M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE = 5,
+  M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT = 6
+} M68kPointerStoreResolutionKind;
+
+typedef struct M68kPointerStoreIR {
+  char destination_struct_name[64];
+  char destination_field_name[64];
+  char pointee_struct_name[64];
+  uint32_t offset;
+  uint32_t source_value;
+  uint32_t target_offset;
+  uint32_t provenance_offset;
+  uint16_t destination_field_offset;
+  uint8_t source_operand_index;
+  uint8_t destination_operand_index;
+  uint8_t destination_value_kind;
+  uint8_t source_kind;
+  uint8_t resolution;
+  uint8_t has_target;
+  uint8_t has_address;
+  uint8_t provenance_kind;
+  uint8_t reserved[1];
+  size_t target_section_index;
+  size_t provenance_section_index;
+} M68kPointerStoreIR;
+
 typedef enum M68kAddressIdentityRoleKind {
   M68K_ADDRESS_IDENTITY_ROLE_UNKNOWN = 0,
   M68K_ADDRESS_IDENTITY_ROLE_STORAGE = 1,
@@ -2059,6 +2101,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kAddressObservationIR *address_observations;
   size_t address_observation_count;
   size_t address_observation_capacity;
+  M68kPointerStoreIR *pointer_stores;
+  size_t pointer_store_count;
+  size_t pointer_store_capacity;
   M68kPlatformAddressUseIR *platform_address_uses;
   size_t platform_address_use_count;
   size_t platform_address_use_capacity;
@@ -2310,6 +2355,8 @@ int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *s
     const M68kRuntimeAddressRefIR *runtime_address_ref);
 int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressObservationIR *observation);
+int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section_analysis,
+    const M68kPointerStoreIR *pointer_store);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use);
 int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR *section_analysis,

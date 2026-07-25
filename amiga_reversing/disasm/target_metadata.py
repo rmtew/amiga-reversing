@@ -362,6 +362,16 @@ class CustomStructFieldMetadata:
     struct: str | None = None
     pointer_struct: str | None = None
     named_base: str | None = None
+    value_kind: str = "scalar"
+
+    def __post_init__(self) -> None:
+        if self.value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
+            raise ValueError(f"unsupported custom struct field value_kind: {self.value_kind}")
+        if self.pointer_struct is not None:
+            if self.value_kind != "struct_pointer":
+                raise ValueError("pointer_struct requires value_kind struct_pointer")
+        elif self.value_kind == "struct_pointer":
+            raise ValueError("struct_pointer fields require pointer_struct")
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> CustomStructFieldMetadata:
@@ -373,6 +383,7 @@ class CustomStructFieldMetadata:
         struct_name = payload["struct"]
         pointer_struct = payload["pointer_struct"]
         named_base = payload.get("named_base")
+        value_kind = payload.get("value_kind")
         assert isinstance(name, str)
         assert isinstance(field_type, str)
         assert isinstance(offset, int)
@@ -381,6 +392,17 @@ class CustomStructFieldMetadata:
         assert struct_name is None or isinstance(struct_name, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
         assert named_base is None or isinstance(named_base, str)
+        assert value_kind is None or isinstance(value_kind, str)
+        if pointer_struct is not None:
+            if value_kind not in (None, "struct_pointer"):
+                raise ValueError("pointer_struct requires value_kind struct_pointer")
+            value_kind = "struct_pointer"
+        elif value_kind is None:
+            value_kind = "scalar"
+        if value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
+            raise ValueError(f"unsupported custom struct field value_kind: {value_kind}")
+        if value_kind == "struct_pointer":
+            raise ValueError("struct_pointer fields require pointer_struct")
         return cls(
             name=name,
             type=field_type,
@@ -390,6 +412,7 @@ class CustomStructFieldMetadata:
             struct=struct_name,
             pointer_struct=pointer_struct,
             named_base=named_base,
+            value_kind=value_kind,
         )
 
 @dataclass(frozen=True, slots=True, kw_only=True)

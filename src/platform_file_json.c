@@ -19,6 +19,9 @@ static const char *range_ownership_kind_name(uint8_t kind);
 static const char *range_ownership_status_name(uint8_t status);
 static const char *unresolved_typed_access_classification_name(uint8_t classification);
 static const char *type_provenance_kind_name(uint8_t kind);
+static const char *pointer_store_resolution_name(uint8_t resolution);
+static const char *pointer_store_source_kind_name(uint8_t source_kind);
+static const char *struct_field_value_kind_name(uint8_t value_kind);
 static const char *runtime_view_materialization_reason_name(uint8_t reason);
 static const char *runtime_view_relationship_kind_name(uint8_t kind);
 static int append_runtime_view_relationship_json(JsonBuilder *builder,
@@ -238,6 +241,35 @@ static const char *analysis_conflict_state_name(uint8_t conflict_state) {
     return "unresolved_code_target";
   default:
     return "unknown";
+  }
+}
+
+static const char *pointer_store_resolution_name(uint8_t resolution) {
+  switch (resolution) {
+  case M68K_POINTER_STORE_RESOLUTION_RESOLVED: return "resolved";
+  case M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET: return "unknown_target";
+  case M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET: return "ambiguous_target";
+  case M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET: return "invalid_target";
+  case M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE: return "outside_known_address_space";
+  case M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT: return "type_conflict";
+  default: return "unknown";
+  }
+}
+
+static const char *pointer_store_source_kind_name(uint8_t source_kind) {
+  switch (source_kind) {
+  case 1U: return "immediate";
+  case 2U: return "propagated";
+  default: return "unknown";
+  }
+}
+
+static const char *struct_field_value_kind_name(uint8_t value_kind) {
+  switch (value_kind) {
+  case M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER: return "target_pointer";
+  case M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER: return "struct_pointer";
+  case M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR:
+  default: return "scalar";
   }
 }
 
@@ -4415,6 +4447,50 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         goto oom;
     }
     if (json_builder_appendf(&builder,
+          "],\"pointer_store_count\":%u,\"pointer_stores\":[",
+          (unsigned)section->pointer_store_count) != 0)
+      goto oom;
+    for (address_observation_index = 0U; address_observation_index < section->pointer_store_count;
+        ++address_observation_index) {
+      const M68kPointerStoreIR *store = &section->pointer_stores[address_observation_index];
+      if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+            "{\"offset\":%u,\"source_operand_index\":%u,\"destination_operand_index\":%u,"
+            "\"source_value\":%u,\"destination_field_offset\":%u,\"destination_value_kind_id\":%u,"
+            "\"destination_value_kind\":",
+            (unsigned)store->offset, (unsigned)store->source_operand_index,
+            (unsigned)store->destination_operand_index, (unsigned)store->source_value,
+            (unsigned)store->destination_field_offset, (unsigned)store->destination_value_kind) != 0 ||
+          json_builder_append_json_string(&builder, struct_field_value_kind_name(store->destination_value_kind)) != 0 ||
+          json_builder_appendf(&builder,
+            ",\"source_kind_id\":%u,\"source_kind\":",
+            (unsigned)store->source_kind) != 0 ||
+          json_builder_append_json_string(&builder, pointer_store_source_kind_name(store->source_kind)) != 0 ||
+          json_builder_appendf(&builder,
+            ",\"resolution_id\":%u,\"resolution\":",
+            (unsigned)store->resolution) != 0 ||
+          json_builder_append_json_string(&builder, pointer_store_resolution_name(store->resolution)) != 0 ||
+          json_builder_appendf(&builder,
+            ",\"has_address\":%u,\"provenance_kind_id\":%u,\"provenance_kind\":",
+            (unsigned)store->has_address, (unsigned)store->provenance_kind) != 0 ||
+          json_builder_append_json_string(&builder, type_provenance_kind_name(store->provenance_kind)) != 0 ||
+          json_builder_appendf(&builder,
+            ",\"provenance_section_index\":%u,\"provenance_offset\":%u,"
+            "\"destination_struct_name\":",
+            (unsigned)store->provenance_section_index, (unsigned)store->provenance_offset) != 0 ||
+          json_builder_append_json_string(&builder, store->destination_struct_name) != 0 ||
+          json_builder_append(&builder, ",\"destination_field_name\":") != 0 ||
+          json_builder_append_json_string(&builder, store->destination_field_name) != 0 ||
+          json_builder_append(&builder, ",\"pointee_struct_name\":") != 0 ||
+          json_builder_append_json_string(&builder, store->pointee_struct_name) != 0)
+        goto oom;
+      if (store->has_target && json_builder_appendf(&builder,
+          ",\"target_section_index\":%u,\"target_offset\":%u",
+          (unsigned)store->target_section_index, (unsigned)store->target_offset) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0) goto oom;
+    }
+    if (json_builder_appendf(&builder,
           "],\"platform_address_use_count\":%u,\"platform_address_uses\":[",
           (unsigned)section->platform_address_use_count) != 0)
       goto oom;
@@ -6251,6 +6327,56 @@ static int append_listing_code_start_refs_json(JsonBuilder *builder, const M68kS
       if (json_builder_appendf(builder, "%u", (unsigned)ref->runtime_address) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_appendf(builder, ",\"size\":%u}", (unsigned)ref->size) != 0) return -1;
+    emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int listing_stmt_has_pointer_stores(const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL) return 0;
+  for (index = 0U; index < section_analysis->pointer_store_count; ++index)
+    if (section_analysis->pointer_stores[index].offset == stmt->offset) return 1;
+  return 0;
+}
+
+static int append_listing_pointer_stores_json(JsonBuilder *builder, const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL)
+    return json_builder_append(builder, "]");
+  for (index = 0U; index < section_analysis->pointer_store_count; ++index) {
+    const M68kPointerStoreIR *store = &section_analysis->pointer_stores[index];
+    if (store->offset != stmt->offset) continue;
+    if (emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder,
+          "{\"source_operand_index\":%u,\"destination_operand_index\":%u,\"source_value\":%u,"
+          "\"destination\":{\"struct\":",
+          (unsigned)store->source_operand_index, (unsigned)store->destination_operand_index,
+          (unsigned)store->source_value) != 0 ||
+        json_builder_append_json_string(builder, store->destination_struct_name) != 0 ||
+        json_builder_append(builder, ",\"field\":") != 0 ||
+        json_builder_append_json_string(builder, store->destination_field_name) != 0 ||
+        json_builder_appendf(builder, ",\"field_offset\":%u,\"value_kind\":",
+          (unsigned)store->destination_field_offset) != 0 ||
+        json_builder_append_json_string(builder, struct_field_value_kind_name(store->destination_value_kind)) != 0 ||
+        json_builder_append(builder, "},\"source_kind\":") != 0 ||
+        json_builder_append_json_string(builder, pointer_store_source_kind_name(store->source_kind)) != 0 ||
+        json_builder_append(builder, ",\"resolution\":") != 0 ||
+        json_builder_append_json_string(builder, pointer_store_resolution_name(store->resolution)) != 0 ||
+        json_builder_append(builder, ",\"provenance\":{\"kind\":") != 0 ||
+        json_builder_append_json_string(builder, type_provenance_kind_name(store->provenance_kind)) != 0 ||
+        json_builder_appendf(builder, ",\"section_index\":%u,\"offset\":%u}",
+          (unsigned)store->provenance_section_index, (unsigned)store->provenance_offset) != 0)
+      return -1;
+    if (store->has_target && json_builder_appendf(builder,
+          ",\"target\":{\"section_index\":%u,\"offset\":%u}",
+          (unsigned)store->target_section_index, (unsigned)store->target_offset) != 0)
+      return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
     emitted = 1;
   }
   return json_builder_append(builder, "]");
@@ -8557,6 +8683,10 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (listing_stmt_has_code_start_refs(stmt, section_analysis)) {
       if (json_builder_append(builder, ",\"code_start_refs\":") != 0) return -1;
       if (append_listing_code_start_refs_json(builder, stmt, section_analysis) != 0) return -1;
+    }
+    if (listing_stmt_has_pointer_stores(stmt, section_analysis)) {
+      if (json_builder_append(builder, ",\"pointer_stores\":") != 0) return -1;
+      if (append_listing_pointer_stores_json(builder, stmt, section_analysis) != 0) return -1;
     }
     if (listing_stmt_has_typed_accesses(stmt, section_analysis)) {
       if (json_builder_append(builder, ",\"typed_accesses\":") != 0) return -1;

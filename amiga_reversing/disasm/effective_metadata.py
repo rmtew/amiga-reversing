@@ -536,6 +536,8 @@ def _manual_custom_struct_field_to_metadata(field: dict[str, object]) -> CustomS
         struct=_manual_seed_text(field, "struct"),
         pointer_struct=_manual_seed_text(field, "pointer_struct"),
         named_base=_manual_seed_text(field, "named_base"),
+        value_kind=("struct_pointer" if _manual_seed_text(field, "pointer_struct") is not None
+                    else (_manual_seed_text(field, "value_kind") or "scalar")),
     )
 
 
@@ -993,6 +995,7 @@ def _platform_struct_field_metadata(
         offset=offset_base + offset,
         size=size,
         pointer_struct=pointer_struct,
+        value_kind="struct_pointer" if pointer_struct is not None else "scalar",
     )
 
 

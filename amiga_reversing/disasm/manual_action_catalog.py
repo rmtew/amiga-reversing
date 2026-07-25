@@ -2447,10 +2447,18 @@ def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, objec
         "offset": offset,
         "size": size,
     }
-    for field_name in ("available_since", "struct", "pointer_struct", "named_base"):
+    for field_name in ("available_since", "struct", "pointer_struct", "named_base", "value_kind"):
         value = field.get(field_name)
         if isinstance(value, str) and value.strip():
             payload[field_name] = value.strip()
+    value_kind = str(payload.get("value_kind") or "scalar")
+    pointer_struct = payload.get("pointer_struct")
+    if value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
+        raise ValueError("custom struct field value_kind must be scalar, target_pointer, or struct_pointer")
+    if pointer_struct is not None and value_kind != "struct_pointer":
+        raise ValueError("custom struct field pointer_struct requires value_kind struct_pointer")
+    if value_kind == "struct_pointer" and pointer_struct is None:
+        raise ValueError("custom struct field value_kind struct_pointer requires pointer_struct")
     return payload
 
 
@@ -3399,7 +3407,13 @@ def _typed_field_parameter_schema() -> dict[str, object]:
             "offset": {"type": "integer", "minimum": 0},
             "struct": {"type": "string"},
             "pointer_struct": {"type": "string"},
+            "value_kind": {
+                "type": "string",
+                "enum": ["scalar", "target_pointer", "struct_pointer"],
+                "default": "scalar",
+            },
             "named_base": {"type": "string"},
+            "value_kind": {"type": "string", "enum": ["scalar", "target_pointer", "struct_pointer"], "default": "scalar"},
             **_source_evidence_parameter_properties(),
         },
         "required": ["name", "type", "size"],
@@ -3618,6 +3632,11 @@ def _custom_struct_field_parameter_schema() -> dict[str, object]:
             "available_since": {"type": "string", "default": "1.0"},
             "struct": {"type": "string"},
             "pointer_struct": {"type": "string"},
+            "value_kind": {
+                "type": "string",
+                "enum": ["scalar", "target_pointer", "struct_pointer"],
+                "default": "scalar",
+            },
             "named_base": {"type": "string"},
             "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
         },

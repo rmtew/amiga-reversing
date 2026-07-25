@@ -10437,6 +10437,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   end = clock();
   platform_analysis_stats.pass_seconds = elapsed_seconds_local(start, end);
+  if (m68k_analysis_render_lookup_materialize_pointer_store_targets(&render_lookup, &decode, accepted_start,
+      accepted_bytes) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 pointer-store target materialization failed");
+    goto fail;
+  }
   if (source_analysis != NULL &&
       m68k_analysis_render_lookup_build_source_analysis(&render_lookup, &decode, policy,
         accepted_start, accepted_bytes, source_analysis, &source_analysis_stats) != 0) {

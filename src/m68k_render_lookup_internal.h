@@ -306,6 +306,9 @@ typedef struct M68kRenderTypedProvenance {
 typedef struct M68kRenderTypedRegValue {
   uint8_t known;
   uint8_t type_conflicted;
+  uint8_t pointer_value_known;
+  uint8_t reserved0;
+  uint32_t pointer_value;
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
   uint16_t conflict_struct_id;
@@ -318,6 +321,9 @@ typedef struct M68kRenderTypedRegValue {
 
 typedef struct M68kRenderTypedStoredValue {
   uint8_t known;
+  uint8_t pointer_value_known;
+  uint8_t reserved0[2];
+  uint32_t pointer_value;
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
   uint16_t array_element_count;
@@ -480,6 +486,11 @@ typedef struct M68kRenderTypedStorageSlot {
   uint32_t source_offset;
   M68kRenderTypedStoredValue value;
 } M68kRenderTypedStorageSlot;
+
+typedef struct M68kRenderPointerStore {
+  M68kPointerStoreIR fact;
+  size_t section_index;
+} M68kRenderPointerStore;
 
 typedef struct M68kRenderDataPointerValue {
   uint8_t known;
@@ -646,6 +657,9 @@ struct M68kRenderLookup {
   M68kRenderUnresolvedTypedAccess *unresolved_typed_accesses;
   size_t unresolved_typed_access_count;
   size_t unresolved_typed_access_capacity;
+  M68kRenderPointerStore *pointer_stores;
+  size_t pointer_store_count;
+  size_t pointer_store_capacity;
   M68kRenderBootblockDiskRead *bootblock_disk_reads;
   size_t bootblock_disk_read_count;
   size_t bootblock_disk_read_capacity;
@@ -938,6 +952,8 @@ void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRend
 int m68k_analysis_render_lookup_import_source_analysis_structured_data(M68kRenderLookup *lookup,
   const M68kSourceAnalysisIR *source_analysis);
 int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes);
+int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes);
 int m68k_analysis_render_lookup_append_base_layout_fields(Arena *scratch_arena,
   const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);

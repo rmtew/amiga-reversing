@@ -2965,6 +2965,28 @@ int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *s
   return 0;
 }
 
+int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section_analysis,
+    const M68kPointerStoreIR *pointer_store) {
+  size_t index;
+  if (section_analysis == NULL || pointer_store == NULL || section_analysis->arena == NULL) return -1;
+  for (index = 0U; index < section_analysis->pointer_store_count; ++index) {
+    const M68kPointerStoreIR *existing = &section_analysis->pointer_stores[index];
+    if (existing->offset == pointer_store->offset &&
+        existing->source_operand_index == pointer_store->source_operand_index &&
+        existing->destination_operand_index == pointer_store->destination_operand_index &&
+        existing->destination_field_offset == pointer_store->destination_field_offset &&
+        existing->source_value == pointer_store->source_value) {
+      return 0;
+    }
+  }
+  section_analysis->pointer_stores = (M68kPointerStoreIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->pointer_stores, section_analysis->pointer_store_count,
+    &section_analysis->pointer_store_capacity, 8U, sizeof(*section_analysis->pointer_stores));
+  if (section_analysis->pointer_stores == NULL) return -1;
+  section_analysis->pointer_stores[section_analysis->pointer_store_count++] = *pointer_store;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use) {
   M68kPlatformAddressUseIR copy;
@@ -4718,6 +4740,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->address_observation_count; ++index) {
     if (m68k_ir_section_analysis_append_address_observation(&copy,
           &section_analysis->address_observations[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->pointer_store_count; ++index) {
+    if (m68k_ir_section_analysis_append_pointer_store(&copy,
+          &section_analysis->pointer_stores[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

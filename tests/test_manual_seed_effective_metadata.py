@@ -2449,10 +2449,11 @@ def test_effective_metadata_applies_manual_custom_struct(tmp_path: Path) -> None
                     "name": "ie_Class",
                     "named_base": None,
                     "offset": 4,
-                    "pointer_struct": None,
-                    "size": 1,
-                    "struct": None,
-                    "type": "UBYTE",
+                        "pointer_struct": None,
+                        "size": 1,
+                        "struct": None,
+                        "type": "UBYTE",
+                        "value_kind": "scalar",
                 }
             ],
             "name": "InputEvent",
@@ -2591,6 +2592,7 @@ def test_effective_metadata_applies_manual_custom_struct_field(tmp_path: Path) -
             "size": 1,
             "struct": None,
             "type": "UBYTE",
+            "value_kind": "scalar",
         }
     ]
 
