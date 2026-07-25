@@ -29043,21 +29043,21 @@ initialize_audio_player:
 	move.b audio_update_phase_increment(pc),$0525(a3)
 	moveq.l #0,d7
 abs_0_0005D81C:
-	move.w #$1,$001E(a1)
-	sf.b $0000(a1)
-	sf.b $0001(a1)
-	sf.b $0003(a1)
-	st.b $0016(a1)
+	move.w #$1,audio_channel_runtime_state_update_countdown(a1)
+	sf.b audio_channel_runtime_state_channel_flags.w(a1)
+	sf.b audio_channel_runtime_state_pitch_modulation_flags(a1)
+	sf.b audio_channel_runtime_state_note_offset(a1)
+	st.b audio_channel_runtime_state_sample_start_pending(a1)
 	lea.l default_audio_pitch_sequence_stream(pc),a0
-	move.l a0,$000C(a1)
-	move.l a0,$0010(a1)
+	move.l a0,audio_channel_runtime_state_pitch_sequence_start_ptr(a1)
+	move.l a0,audio_channel_runtime_state_pitch_sequence_cursor(a1)
 	lea.l audio_player_initialization_presets(pc),a0
 	movea.w $2(a0,d0.w),a0
-	move.w a0,$0008(a1)
+	move.w a0,audio_channel_runtime_state_channel_configuration_offset(a1)
 	move.w #$2,$000A(a1)
 	movea.w $0(a3,a0.w),a0
 	adda.l a3,a0
-	move.l a0,$0004(a1)
+	move.l a0,audio_channel_runtime_state_program_ptr(a1)
 	adda.w #$30,a1
 	addq.w #2,d0
 	addq.w #1,d7
@@ -29815,13 +29815,13 @@ initialize_audio_sample_metadata:
 abs_0_0005E38A:
 	move.l (a0)+,d2
 	move.w (a0)+,d3
-	move.l a0,$0000(a5)
+	move.l a0,audio_sample_metadata_sample_ptr.w(a5)
 	adda.l d2,a0
 	lsr.l #1,d2
-	move.w d2,$0008(a5)
+	move.w d2,audio_sample_metadata_sample_length(a5)
 	move.l #$369E99,d2
 	divu.w d3,d2
-	move.w d2,$000A(a5)
+	move.w d2,audio_sample_metadata_sample_period(a5)
 	adda.w #$C,a5
 	dbf.w d1,abs_0_0005E38A
 	move.l a0,$052E(a3)
@@ -29868,7 +29868,7 @@ abs_0_0005E430:
 	adda.w #$10,a0
 	bra.b abs_0_0005E430
 abs_0_0005E440:
-	sf.b $0018(a1)
+	sf.b audio_channel_playback_state_active(a1)
 	move.w d2,_custom+dmacon.l
 	move.w #$40,(a0)
 	lea.l audio_sequence_channel_configurations(pc),a0
@@ -29878,19 +29878,19 @@ abs_0_0005E440:
 abs_0_0005E458:
 	move.w (a0)+,(a1)+
 	dbf.w d0,abs_0_0005E458
-	move.w $000E(a2),$0016(a2)
-	move.b #$1,$0019(a2)
-	move.b $0014(a2),d0
+	move.w audio_channel_playback_state_period_reset_interval(a2),audio_channel_playback_state_period_reset_countdown(a2)
+	move.b #$1,audio_channel_playback_state_sequence_countdown(a2)
+	move.b audio_channel_playback_state_sequence_index(a2),d0
 	ext.w d0
 	add.w d0,d0
 	lea.l $1164(a3),a0
 	movea.w $0(a0,d0.w),a0
 	adda.l a3,a0
-	move.l a0,$001A(a2)
+	move.l a0,audio_channel_playback_state_sequence_ptr(a2)
 	move.w #$200,d0
 abs_0_0005E484:
 	dbf.w d0,abs_0_0005E484
-	st.b $0018(a2)
+	st.b audio_channel_playback_state_active(a2)
 	rts
 abs_0_0005E48E:
 	lea.l initialize_audio_player(pc),a3
