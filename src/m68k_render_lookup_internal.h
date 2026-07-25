@@ -311,6 +311,7 @@ typedef struct M68kRenderTypedRegValue {
   uint16_t conflict_struct_id;
   uint16_t array_element_count;
   uint16_t array_element_index;
+  int32_t byte_cursor;
   M68kRenderTypedStorageOrigin origin;
   M68kRenderTypedProvenance provenance;
 } M68kRenderTypedRegValue;

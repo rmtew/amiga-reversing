@@ -1662,6 +1662,7 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
     state->data_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->data_regs[reg_index].array_element_count = 0U;
     state->data_regs[reg_index].array_element_index = 0U;
+    state->data_regs[reg_index].byte_cursor = 0;
     typed_origin_clear(&state->data_regs[reg_index].origin);
     state->data_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->data_app_addr_regs[reg_index].known = 0U;
@@ -1675,6 +1676,7 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
     state->addr_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->addr_regs[reg_index].array_element_count = 0U;
     state->addr_regs[reg_index].array_element_index = 0U;
+    state->addr_regs[reg_index].byte_cursor = 0;
     typed_origin_clear(&state->addr_regs[reg_index].origin);
     state->addr_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->app_addr_regs[reg_index].known = 0U;
@@ -1695,6 +1697,7 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     state->data_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->data_regs[reg_index].array_element_count = 0U;
     state->data_regs[reg_index].array_element_index = 0U;
+    state->data_regs[reg_index].byte_cursor = 0;
     typed_origin_clear(&state->data_regs[reg_index].origin);
     state->data_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->data_app_addr_regs[reg_index].known = 0U;
@@ -1708,6 +1711,7 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     state->addr_regs[reg_index].conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->addr_regs[reg_index].array_element_count = 0U;
     state->addr_regs[reg_index].array_element_index = 0U;
+    state->addr_regs[reg_index].byte_cursor = 0;
     typed_origin_clear(&state->addr_regs[reg_index].origin);
     state->addr_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->app_addr_regs[reg_index].known = 0U;
@@ -3528,6 +3532,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   uint8_t source_alias_reg = 0U;
   uint16_t source_array_element_count = 0U;
   uint16_t source_array_element_index = 0U;
+  int32_t source_byte_cursor = 0;
   uint32_t immediate_value = 0U;
   int16_t source_app_displacement = 0;
   int source_is_app_address = 0;
@@ -3561,10 +3566,12 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         state->addr_regs[source_addr_reg].known) {
       source_array_element_count = state->addr_regs[source_addr_reg].array_element_count;
       source_array_element_index = state->addr_regs[source_addr_reg].array_element_index;
+      source_byte_cursor = state->addr_regs[source_addr_reg].byte_cursor;
     } else if (operand_is_data_register_local(source_operand, &source_data_reg) && source_data_reg < 8U &&
                state->data_regs[source_data_reg].known) {
       source_array_element_count = state->data_regs[source_data_reg].array_element_count;
       source_array_element_index = state->data_regs[source_data_reg].array_element_index;
+      source_byte_cursor = state->data_regs[source_data_reg].byte_cursor;
     }
     source_is_app_address = typed_state_copy_app_address(state, source_operand, &source_app_displacement);
     source_has_memory_base = typed_state_copy_memory_base(state, source_operand, &source_memory_base);
@@ -3612,6 +3619,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       } else if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
         typed_state_set_reg_struct_id_array(state, 1U, dest_reg, source_struct_id,
           source_array_element_count, source_array_element_index, &source_provenance);
+        state->data_regs[dest_reg].byte_cursor = source_byte_cursor;
       }
       if (source_is_app_address) typed_state_set_data_app_address(state, dest_reg, source_app_displacement);
       if (source_has_memory_base)
@@ -3627,6 +3635,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       } else if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
         typed_state_set_reg_struct_id_array(state, 2U, dest_reg, source_struct_id,
           source_array_element_count, source_array_element_index, &source_provenance);
+        state->addr_regs[dest_reg].byte_cursor = source_byte_cursor;
       }
       if (source_has_memory_base)
         typed_state_set_memory_base(state, 2U, dest_reg, source_memory_base.section_index, source_memory_base.offset);
@@ -3659,6 +3668,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
               state->addr_regs[source_base_reg].array_element_count,
               state->addr_regs[source_base_reg].array_element_index,
               &state->addr_regs[source_base_reg].provenance);
+            state->addr_regs[dest_reg].byte_cursor = state->addr_regs[source_base_reg].byte_cursor;
             typed_state_set_reg_origin(state, 2U, dest_reg, &state->addr_regs[source_base_reg].origin);
           }
         } else {
@@ -3720,8 +3730,24 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ) ? -(int32_t)immediate_value : (int32_t)immediate_value;
     uint16_t struct_size = lookup_policy_struct_size_by_id(lookup->policy, value->struct_id);
     int32_t next_index;
-    if (value->known == 0U || value->array_element_count == 0U || struct_size == 0U ||
-        delta % (int32_t)struct_size != 0) {
+    if (value->known != 0U && (value->array_element_count == 0U || struct_size == 0U ||
+        delta % (int32_t)struct_size != 0)) {
+      int64_t next_cursor = (int64_t)value->byte_cursor + (int64_t)delta;
+      uint32_t next_offset;
+      if (next_cursor < INT32_MIN || next_cursor > INT32_MAX) {
+        typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg);
+      } else {
+        value->output = NULL;
+        value->byte_cursor = (int32_t)next_cursor;
+        if (state->memory_base_regs[dest_reg].known &&
+            typed_memory_base_offset_add(state->memory_base_regs[dest_reg].offset, delta, &next_offset)) {
+          state->memory_base_regs[dest_reg].offset = next_offset;
+        } else if (state->memory_base_regs[dest_reg].known) {
+          typed_memory_base_clear(&state->memory_base_regs[dest_reg]);
+        }
+      }
+    } else if (value->known == 0U || value->array_element_count == 0U || struct_size == 0U ||
+               delta % (int32_t)struct_size != 0) {
       typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg);
     } else {
       next_index = (int32_t)value->array_element_index + delta / (int32_t)struct_size;
@@ -3778,6 +3804,7 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
     left->output == right->output && left->struct_id == right->struct_id &&
     left->conflict_struct_id == right->conflict_struct_id &&
     left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
+    left->byte_cursor == right->byte_cursor &&
     typed_origins_equal(&left->origin, &right->origin) &&
     typed_provenances_equal(&left->provenance, &right->provenance);
 }
@@ -3890,6 +3917,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->output = NULL;
     dest->array_element_count = 0U;
     dest->array_element_index = 0U;
+    dest->byte_cursor = 0;
     typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
@@ -3900,7 +3928,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   }
   if (dest->output == source->output && dest->struct_id == source->struct_id &&
       dest->array_element_count == source->array_element_count &&
-      dest->array_element_index == source->array_element_index) {
+      dest->array_element_index == source->array_element_index && dest->byte_cursor == source->byte_cursor) {
     if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
@@ -3912,6 +3940,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
       dest->output = NULL;
       dest->array_element_count = 0U;
       dest->array_element_index = 0U;
+      dest->byte_cursor = 0;
       if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
       typed_provenance_merge(&dest->provenance, &source->provenance);
       return !typed_reg_values_equal(dest, &old_value);
@@ -3921,6 +3950,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->output = NULL;
     dest->array_element_count = 0U;
     dest->array_element_index = 0U;
+    dest->byte_cursor = 0;
     return !typed_reg_values_equal(dest, &old_value);
   }
   dest->known = 0U;
@@ -3929,6 +3959,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   dest->conflict_struct_id = source->struct_id;
   dest->array_element_count = 0U;
   dest->array_element_index = 0U;
+  dest->byte_cursor = 0;
   typed_origin_clear(&dest->origin);
   typed_provenance_merge(&dest->provenance, &source->provenance);
   return !typed_reg_values_equal(dest, &old_value);
