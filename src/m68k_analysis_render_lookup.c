@@ -2464,6 +2464,7 @@ static uint16_t typed_nested_struct_id_for_field_address(const M68kRenderLookup 
     const M68kRenderTypedState *state, const M68kOperandIR *operand) {
   uint8_t base_reg = 0U;
   int16_t displacement = 0;
+  int32_t effective_displacement;
   uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
   if (lookup == NULL || state == NULL || operand == NULL ||
       !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
@@ -2472,7 +2473,10 @@ static uint16_t typed_nested_struct_id_for_field_address(const M68kRenderLookup 
   }
   struct_id = state->addr_regs[base_reg].struct_id;
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return AMIGA_OS_STRUCT_ID_NONE;
-  return lookup_policy_nested_struct_id_for_field(lookup->policy, struct_id, displacement);
+  effective_displacement = state->addr_regs[base_reg].byte_cursor + displacement;
+  if (effective_displacement < INT16_MIN || effective_displacement > INT16_MAX)
+    return AMIGA_OS_STRUCT_ID_NONE;
+  return lookup_policy_nested_struct_id_for_field(lookup->policy, struct_id, (int16_t)effective_displacement);
 }
 
 static uint16_t amiga_struct_size_for_struct_id(uint16_t struct_id) {
@@ -3711,6 +3715,34 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
             M68kRenderTypedProvenance field_provenance =
               typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS, section_index, offset);
             typed_state_set_reg_struct_id(state, 2U, dest_reg, source_struct_id, &field_provenance);
+          } else {
+            const M68kRenderTypedRegValue *source_value = &state->addr_regs[source_base_reg];
+            uint16_t source_struct_size = lookup_policy_struct_size_by_id(lookup->policy,
+              source_value->struct_id);
+            int64_t source_relative_offset = (int64_t)source_value->byte_cursor + source_displacement;
+            uint16_t destination_array_index = source_value->array_element_index;
+            int32_t destination_cursor = 0;
+            int valid = 0;
+            if (source_value->array_element_count != 0U && source_struct_size != 0U) {
+              source_relative_offset += (int64_t)source_value->array_element_index * source_struct_size;
+              if (source_relative_offset >= 0 && source_relative_offset <
+                  (int64_t)source_value->array_element_count * source_struct_size) {
+                destination_array_index = (uint16_t)(source_relative_offset / source_struct_size);
+                destination_cursor = (int32_t)(source_relative_offset % source_struct_size);
+                valid = 1;
+              }
+            } else if (source_relative_offset >= 0 && source_relative_offset < source_struct_size) {
+              destination_cursor = (int32_t)source_relative_offset;
+              valid = 1;
+            }
+            if (valid) {
+              M68kRenderTypedProvenance field_provenance =
+                typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS, section_index, offset);
+              typed_state_set_reg_struct_id_array(state, 2U, dest_reg, source_value->struct_id,
+                source_value->array_element_count, destination_array_index, &field_provenance);
+              state->addr_regs[dest_reg].byte_cursor = destination_cursor;
+              typed_state_set_reg_origin(state, 2U, dest_reg, &source_value->origin);
+            }
           }
         }
       }

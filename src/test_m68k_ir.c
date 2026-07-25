@@ -26345,8 +26345,9 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   char *source = NULL;
   size_t index;
   uint8_t bytes[68] = {
-    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x40u,
-    0x30u, 0x14u,
+    0x49u, 0xf9u, 0x00u, 0x01u, 0x00u, 0x10u,
+    0x4bu, 0xecu, 0x00u, 0x30u,
+    0x30u, 0x15u,
     0x4eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
@@ -26399,21 +26400,21 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
   for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
     const M68kRecoveredPlatformTypedAccessIR *candidate =
       &analysis_section->recovered_platform_typed_accesses[index];
-    if (candidate->offset == 6U && candidate->operand_index == 0U && candidate->base_reg == 4U &&
+    if (candidate->offset == 10U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
         candidate->displacement == 0) {
       typed = candidate;
       break;
     }
   }
   M68K_C_ASSERT(typed != NULL);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA, typed->type_provenance_kind);
-  M68K_C_ASSERT_U32(64U, typed->type_provenance_offset);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_FIELD_ADDRESS, typed->type_provenance_kind);
+  M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
   M68K_C_ASSERT_INT(48, typed->base_cursor);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_world_x-48(a4),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_world_x-48(a5),d0\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
