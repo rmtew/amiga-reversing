@@ -77,7 +77,7 @@ typedef struct M68kAnalysisRegisterSeed {
   uint8_t reg_index;
   uint8_t has_entry_offset;
   uint8_t has_section_index;
-  uint8_t reserved[2];
+  uint16_t array_element_count;
   uint32_t entry_offset;
   uint32_t section_index;
   char name[64];

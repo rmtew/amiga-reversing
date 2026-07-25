@@ -1658,6 +1658,8 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
     state->data_regs[reg_index].known = 1U;
     state->data_regs[reg_index].output = output;
     state->data_regs[reg_index].struct_id = output->struct_id;
+    state->data_regs[reg_index].array_element_count = 0U;
+    state->data_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->data_regs[reg_index].origin);
     state->data_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->data_app_addr_regs[reg_index].known = 0U;
@@ -1667,6 +1669,8 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
     state->addr_regs[reg_index].known = 1U;
     state->addr_regs[reg_index].output = output;
     state->addr_regs[reg_index].struct_id = output->struct_id;
+    state->addr_regs[reg_index].array_element_count = 0U;
+    state->addr_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->addr_regs[reg_index].origin);
     state->addr_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->app_addr_regs[reg_index].known = 0U;
@@ -1683,6 +1687,8 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     state->data_regs[reg_index].known = 1U;
     state->data_regs[reg_index].output = NULL;
     state->data_regs[reg_index].struct_id = struct_id;
+    state->data_regs[reg_index].array_element_count = 0U;
+    state->data_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->data_regs[reg_index].origin);
     state->data_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->data_app_addr_regs[reg_index].known = 0U;
@@ -1692,6 +1698,8 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     state->addr_regs[reg_index].known = 1U;
     state->addr_regs[reg_index].output = NULL;
     state->addr_regs[reg_index].struct_id = struct_id;
+    state->addr_regs[reg_index].array_element_count = 0U;
+    state->addr_regs[reg_index].array_element_index = 0U;
     typed_origin_clear(&state->addr_regs[reg_index].origin);
     state->addr_regs[reg_index].provenance = provenance != NULL ? *provenance : typed_provenance_make(0U, 0U, 0U);
     state->app_addr_regs[reg_index].known = 0U;
@@ -1720,9 +1728,11 @@ typedef struct M68kRenderResolvedStructField {
 } M68kRenderResolvedStructField;
 
 static uint16_t amiga_struct_size_for_struct_id(uint16_t struct_id);
+static uint16_t lookup_policy_struct_size_by_id(const M68kAnalysisPolicy *policy, uint16_t struct_id);
 static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t struct_size,
-  const M68kRenderResolvedStructField *field, const M68kRenderTypedProvenance *provenance);
+  int16_t array_element_addend, const M68kRenderResolvedStructField *field,
+  const M68kRenderTypedProvenance *provenance);
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement, const char *root_struct_name,
   uint16_t struct_size, uint8_t classification, uint16_t container_candidate_count,
@@ -1764,6 +1774,23 @@ static uint16_t lookup_policy_struct_id_by_name(const M68kAnalysisPolicy *policy
   return AMIGA_OS_STRUCT_ID_NONE;
 }
 
+static void typed_state_set_reg_struct_id_array(M68kRenderTypedState *state, uint8_t reg_kind, uint8_t reg_index,
+    uint16_t struct_id, uint16_t element_count, uint16_t element_index,
+    const M68kRenderTypedProvenance *provenance) {
+  if (element_count == 0U || element_index >= element_count) {
+    typed_state_set_reg_struct_id(state, reg_kind, reg_index, struct_id, provenance);
+    return;
+  }
+  typed_state_set_reg_struct_id(state, reg_kind, reg_index, struct_id, provenance);
+  if (reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+    state->data_regs[reg_index].array_element_count = element_count;
+    state->data_regs[reg_index].array_element_index = element_index;
+  } else if (reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
+    state->addr_regs[reg_index].array_element_count = element_count;
+    state->addr_regs[reg_index].array_element_index = element_index;
+  }
+}
+
 static const char *lookup_policy_struct_name_by_id(const M68kAnalysisPolicy *policy, uint16_t struct_id) {
   const M68kAnalysisCustomStruct *custom_struct;
   const char *platform_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id);
@@ -1777,9 +1804,10 @@ static const char *lookup_policy_struct_name_by_id(const M68kAnalysisPolicy *pol
    the typed register state has no base addend, so doing so would make later
    displacement lookups unsound. */
 static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysisPolicy *policy,
-    size_t section_index, uint32_t offset) {
+    size_t section_index, uint32_t offset, uint16_t *out_array_element_count) {
   size_t index;
   uint16_t resolved_struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  if (out_array_element_count != NULL) *out_array_element_count = 0U;
   if (policy == NULL || policy->structured_data_items == NULL) return AMIGA_OS_STRUCT_ID_NONE;
   for (index = 0U; index < policy->structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
@@ -1791,6 +1819,13 @@ static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysi
     if (resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE && resolved_struct_id != struct_id)
       return AMIGA_OS_STRUCT_ID_NONE;
     resolved_struct_id = struct_id;
+    if (out_array_element_count != NULL) {
+      uint16_t struct_size = lookup_policy_struct_size_by_id(policy, struct_id);
+      if (struct_size != 0U && item->size >= struct_size && item->size % struct_size == 0U &&
+          item->size / struct_size <= UINT16_MAX) {
+        *out_array_element_count = (uint16_t)(item->size / struct_size);
+      }
+    }
   }
   return resolved_struct_id;
 }
@@ -1878,7 +1913,8 @@ static void typed_state_apply_policy_register_seeds(M68kRenderTypedState *state,
     struct_id = lookup_policy_struct_id_by_name(policy, struct_name);
     if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
     provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_POLICY_SEED, section_index, offset);
-    typed_state_set_reg_struct_id(state, seed->reg_kind, seed->reg_index, struct_id, &provenance);
+    typed_state_set_reg_struct_id_array(state, seed->reg_kind, seed->reg_index, struct_id,
+      seed->array_element_count, 0U, &provenance);
   }
 }
 
@@ -2856,6 +2892,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     uint8_t base_reg = 0U, classification = M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP;
     int16_t displacement = 0;
     uint16_t struct_id, struct_size, container_struct_id = AMIGA_OS_STRUCT_ID_NONE, container_candidate_count = 0U;
+    int16_t array_element_addend = 0;
+    int16_t field_displacement;
     uint8_t access_size;
     char container_struct_name[64], container_field_expr[96];
     int refinement_applied = 0;
@@ -2882,7 +2920,19 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     struct_size = lookup_policy_struct_size_by_id(lookup->policy, struct_id);
     access_size = instruction_size_suffix_bytes_local(instruction->size_suffix);
-    if (!lookup_policy_resolve_struct_field(lookup->policy, struct_id, displacement, &field)) {
+    field_displacement = displacement;
+    if (state->addr_regs[base_reg].known && state->addr_regs[base_reg].array_element_count != 0U &&
+        struct_size != 0U) {
+      int32_t array_offset = (int32_t)state->addr_regs[base_reg].array_element_index * (int32_t)struct_size +
+        (int32_t)displacement;
+      if (array_offset >= 0 && (uint32_t)array_offset <
+          (uint32_t)state->addr_regs[base_reg].array_element_count * struct_size) {
+        array_element_addend = (int16_t)((int32_t)((uint32_t)array_offset / struct_size) -
+          (int32_t)state->addr_regs[base_reg].array_element_index);
+        field_displacement = (int16_t)((uint32_t)array_offset % struct_size);
+      }
+    }
+    if (!lookup_policy_resolve_struct_field(lookup->policy, struct_id, field_displacement, &field)) {
       int refined_exact_field_access_recorded = 0;
       if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) != NULL) {
         classify_unresolved_typed_access(struct_id, displacement, struct_size, access_size,
@@ -2900,13 +2950,14 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
       }
       if (record_accesses) {
         if (refinement_applied && container_struct_id != AMIGA_OS_STRUCT_ID_NONE && access_size != 0U &&
-            lookup_policy_resolve_struct_field(lookup->policy, container_struct_id, displacement, &field) &&
-            field.offset == displacement && field.size == access_size &&
+            lookup_policy_resolve_struct_field(lookup->policy, container_struct_id, field_displacement, &field) &&
+            field.offset == field_displacement && field.size == access_size &&
             field.field_expr[0] != '\0') {
           M68kRenderTypedProvenance prefix_provenance =
             typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_PREFIX_REFINEMENT, section_index, offset);
           if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, (uint8_t)operand_index,
-              base_reg, displacement, lookup_policy_struct_size_by_id(lookup->policy, container_struct_id), &field,
+              base_reg, displacement, lookup_policy_struct_size_by_id(lookup->policy, container_struct_id),
+              array_element_addend, &field,
               &prefix_provenance) != 0) {
             return -1;
           }
@@ -2941,7 +2992,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     }
     if (record_accesses) {
       if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, (uint8_t)operand_index,
-          base_reg, displacement, struct_size, &field, provenance) != 0) {
+          base_reg, displacement, struct_size, array_element_addend, &field, provenance) != 0) {
         return -1;
       }
     }
@@ -3402,6 +3453,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   uint8_t dest_reg = 0U, bit;
   uint8_t source_addr_reg = 0U;
   uint8_t source_alias_reg = 0U;
+  uint32_t immediate_value = 0U;
   int16_t source_app_displacement = 0;
   int source_is_app_address = 0;
   int source_has_memory_base = 0;
@@ -3534,12 +3586,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           &dest_reg) ||
           candidate_loads_runtime_address_ref_target_to_address_reg(lookup, section_index, candidate, instruction,
             &target_section_index, &target_offset, &dest_reg)) {
+        uint16_t static_array_element_count = 0U;
         source_struct_id = lookup_policy_struct_id_for_static_data_target(lookup != NULL ? lookup->policy : NULL,
-          target_section_index, target_offset);
+          target_section_index, target_offset, &static_array_element_count);
         if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
           M68kRenderTypedProvenance static_data_provenance =
             typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA, target_section_index, target_offset);
-          typed_state_set_reg_struct_id(state, 2U, dest_reg, source_struct_id, &static_data_provenance);
+          typed_state_set_reg_struct_id_array(state, 2U, dest_reg, source_struct_id,
+            static_array_element_count, 0U, &static_data_provenance);
         }
         typed_state_set_memory_base(state, 2U, dest_reg, target_section_index, target_offset);
       } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
@@ -3558,6 +3612,45 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           state->addr_reg_alias_source[source_base_reg] : source_base_reg;
         if (source_alias_reg < 8U && dest_reg != source_alias_reg)
           typed_state_set_addr_alias(state, dest_reg, source_alias_reg);
+      }
+    }
+  } else if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADD ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDA ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDI ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDQ ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBI ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ) &&
+             instruction->operand_count == 2U &&
+             m68k_ir_operand_immediate_value(&instruction->operands[0], &immediate_value) &&
+             operand_address_register_index_local(&instruction->operands[1], &dest_reg) && dest_reg < 8U) {
+    M68kRenderTypedRegValue *value = &state->addr_regs[dest_reg];
+    int32_t delta = (instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBI ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ) ? -(int32_t)immediate_value : (int32_t)immediate_value;
+    uint16_t struct_size = lookup_policy_struct_size_by_id(lookup->policy, value->struct_id);
+    int32_t next_index;
+    if (value->known == 0U || value->array_element_count == 0U || struct_size == 0U ||
+        delta % (int32_t)struct_size != 0) {
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg);
+    } else {
+      next_index = (int32_t)value->array_element_index + delta / (int32_t)struct_size;
+      if (next_index < 0 || next_index >= (int32_t)value->array_element_count) {
+        typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg);
+      } else {
+        uint32_t next_offset;
+        value->output = NULL;
+        value->array_element_index = (uint16_t)next_index;
+        state->app_addr_regs[dest_reg].known = 0U;
+        state->app_addr_regs[dest_reg].displacement = 0;
+        if (state->memory_base_regs[dest_reg].known &&
+            typed_memory_base_offset_add(state->memory_base_regs[dest_reg].offset, delta, &next_offset)) {
+          state->memory_base_regs[dest_reg].offset = next_offset;
+        } else if (state->memory_base_regs[dest_reg].known) {
+          typed_memory_base_clear(&state->memory_base_regs[dest_reg]);
+        }
       }
     }
   } else if (instruction->operand_count != 0U) {
@@ -3583,6 +3676,7 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
     const M68kRenderTypedRegValue *right) {
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->output == right->output && left->struct_id == right->struct_id &&
+    left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
     typed_origins_equal(&left->origin, &right->origin) &&
     typed_provenances_equal(&left->provenance, &right->provenance);
 }
@@ -3692,7 +3786,9 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     typed_reg_value_clear(dest);
     return !typed_reg_values_equal(dest, &old_value);
   }
-  if (dest->output == source->output && dest->struct_id == source->struct_id) {
+  if (dest->output == source->output && dest->struct_id == source->struct_id &&
+      dest->array_element_count == source->array_element_count &&
+      dest->array_element_index == source->array_element_index) {
     if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
@@ -3702,6 +3798,8 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     if (common_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
       dest->struct_id = common_struct_id;
       dest->output = NULL;
+      dest->array_element_count = 0U;
+      dest->array_element_index = 0U;
       if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
       typed_provenance_merge(&dest->provenance, &source->provenance);
       return !typed_reg_values_equal(dest, &old_value);
@@ -3709,6 +3807,8 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   }
   if (dest->struct_id != AMIGA_OS_STRUCT_ID_NONE && dest->struct_id == source->struct_id) {
     dest->output = NULL;
+    dest->array_element_count = 0U;
+    dest->array_element_index = 0U;
     return !typed_reg_values_equal(dest, &old_value);
   }
   typed_reg_value_clear(dest);
@@ -6441,7 +6541,8 @@ int render_lookup_add_typed_app_slot_region(M68kRenderLookup *lookup, int16_t di
 
 static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t struct_size,
-    const M68kRenderResolvedStructField *field, const M68kRenderTypedProvenance *provenance) {
+    int16_t array_element_addend, const M68kRenderResolvedStructField *field,
+    const M68kRenderTypedProvenance *provenance) {
   size_t index;
   M68kRenderTypedAccess *grown;
   size_t next_capacity;
@@ -6474,6 +6575,7 @@ static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, siz
   lookup->typed_accesses[lookup->typed_access_count].field_offset = field->offset;
   lookup->typed_accesses[lookup->typed_access_count].struct_size = struct_size;
   lookup->typed_accesses[lookup->typed_access_count].field_size = field->size;
+  lookup->typed_accesses[lookup->typed_access_count].array_element_addend = array_element_addend;
   lookup->typed_accesses[lookup->typed_access_count].inherited = field->inherited;
   lookup->typed_accesses[lookup->typed_access_count].nested = field->nested;
   if (provenance != NULL) {
@@ -6517,7 +6619,7 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
   snprintf(resolved.field_name, sizeof(resolved.field_name), "%s", field_name);
   snprintf(resolved.field_expr, sizeof(resolved.field_expr), "%s", field_expr);
   return render_lookup_add_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
-    displacement, amiga_struct_size_for_struct_id(root_struct_id), &resolved, provenance);
+    displacement, amiga_struct_size_for_struct_id(root_struct_id), 0U, &resolved, provenance);
 }
 
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,

@@ -307,6 +307,8 @@ typedef struct M68kRenderTypedRegValue {
   uint8_t known;
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
+  uint16_t array_element_count;
+  uint16_t array_element_index;
   M68kRenderTypedStorageOrigin origin;
   M68kRenderTypedProvenance provenance;
 } M68kRenderTypedRegValue;
@@ -397,6 +399,7 @@ typedef struct M68kRenderTypedAccess {
   int16_t field_offset;
   uint16_t struct_size;
   uint16_t field_size;
+  int16_t array_element_addend;
   uint8_t inherited;
   uint8_t nested;
   M68kRenderTypedProvenance provenance;

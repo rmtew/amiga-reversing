@@ -2057,6 +2057,7 @@ static int append_metadata_register_seed_local(const char *object_start, const c
   char context_name[64];
   uint32_t entry_offset = 0U;
   uint32_t hunk = 0U;
+  uint32_t array_length = 0U;
   uint8_t seed_kind;
   int has_entry_offset = 0;
   int has_hunk = 0;
@@ -2077,8 +2078,22 @@ static int append_metadata_register_seed_local(const char *object_start, const c
     return kind[0] == '\0';
   }
   if (register_name[0] == '\0' || kind[0] == '\0' || name[0] == '\0') return 1;
-  return policy_add_register_seed_local(policy, has_hunk ? hunk : 0U, has_entry_offset ? entry_offset : 0U,
-    has_entry_offset ? 1U : 0U, register_name, seed_kind, name, struct_name, context_name);
+  if (!policy_add_register_seed_local(policy, has_hunk ? hunk : 0U, has_entry_offset ? entry_offset : 0U,
+      has_entry_offset ? 1U : 0U, register_name, seed_kind, name, struct_name, context_name)) return 0;
+  if (array_length != 0U && array_length <= UINT16_MAX) {
+    uint16_t index;
+    for (index = 0U; index < policy->register_seed_count; ++index) {
+      M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+      if (seed->kind == seed_kind && seed->has_entry_offset == (uint8_t)(has_entry_offset ? 1U : 0U) &&
+          (!has_entry_offset || seed->entry_offset == entry_offset) &&
+          (!has_hunk || (seed->has_section_index && seed->section_index == hunk)) &&
+          strcmp(seed->name, name) == 0 && strcmp(seed->type_name, struct_name) == 0 &&
+          strcmp(seed->context_name, context_name) == 0) {
+        seed->array_element_count = (uint16_t)array_length;
+      }
+    }
+  }
+  return 1;
 }
 
 static int append_metadata_entry_point_local(const char *object_start, const char *object_end,
@@ -2095,6 +2110,7 @@ static int append_metadata_entry_point_local(const char *object_start, const cha
   source_path[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &offset, &has_offset) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_number_field_local(object_start, object_end, "array_length", &array_length, NULL) ||
       !json_optional_string_field_local(object_start, object_end, "seed_origin", seed_origin, sizeof(seed_origin)) ||
       !json_optional_string_field_local(object_start, object_end, "source_path", source_path, sizeof(source_path)))
     return 0;
@@ -8925,6 +8941,7 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (append_nullable_text_json_local(builder, seed->name) != 0) return -1;
     if (json_builder_append(builder, ",\"type_name\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, seed->type_name) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"array_length\":%u", (unsigned)seed->array_element_count) != 0) return -1;
     if (json_builder_append(builder, ",\"context_name\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, seed->context_name) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;

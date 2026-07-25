@@ -26109,6 +26109,59 @@ static int test_facts_v2_render_asm_source_renders_zero_offset_custom_struct_fie
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_stride(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  char *source = NULL;
+  uint8_t bytes[10] = {0x30u, 0x2du, 0x00u, 0x04u, 0x58u, 0x8du, 0x30u, 0x15u, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = 1U;
+  policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "array_element");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "value");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 5U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].array_element_count = 2U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "array_element_base");
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name), "array_element");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w array_element_value+array_element_SIZEOF(a5),d0\n"
+    "\taddq.l #4,a5\n\tmove.w array_element_value(a5),d0\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_custom_field_pointer_type(void) {
   M68kObject object;
   M68kSection section;
@@ -32836,6 +32889,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_custom_struct_field_from_entry_register_seed},
     {"facts_v2_render_asm_source_renders_zero_offset_custom_struct_field",
       test_facts_v2_render_asm_source_renders_zero_offset_custom_struct_field},
+    {"facts_v2_render_asm_source_tracks_bounded_custom_struct_array_stride",
+      test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_stride},
     {"facts_v2_render_asm_source_propagates_custom_field_pointer_type",
       test_facts_v2_render_asm_source_propagates_custom_field_pointer_type},
     {"facts_v2_render_asm_source_propagates_static_struct_data_type",
