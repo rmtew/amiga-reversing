@@ -23951,7 +23951,7 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   uint8_t bytes[12] = {
     0x4eu, 0xaeu, 0xfdu, 0x66u,
     0x20u, 0x40u,
-    0x4au, 0x28u, 0x01u, 0x00u,
+    0x4au, 0x30u, 0x00u, 0x00u,
     0x4eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
@@ -23985,7 +23985,7 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
     const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
     if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
-        access->displacement == 0x0100 && root_struct_name != NULL && strcmp(root_struct_name, "MP") == 0) {
+        access->displacement == 0 && root_struct_name != NULL && strcmp(root_struct_name, "MP") == 0) {
       unresolved = access;
       break;
     }
@@ -23993,7 +23993,7 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   M68K_C_ASSERT(unresolved != NULL);
   M68K_C_ASSERT(unresolved->struct_size > 0U);
   M68K_C_ASSERT_U32(1U, unresolved->access_size);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE,
+  M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC,
     unresolved->classification);
   M68K_C_ASSERT_U32(0U, unresolved->container_candidate_count);
   M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, unresolved->type_provenance_kind);
@@ -24002,13 +24002,13 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_size\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"classification_id\":2,\"classification\":\"custom_tail_or_mistyped_base\"") != NULL);
+    "\"classification_id\":4,\"classification\":\"indexed_dynamic\"") != NULL);
   free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\ttst.b $0100(a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\ttst.b $0(a0,d0.w)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.b MP_") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);

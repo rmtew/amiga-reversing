@@ -416,7 +416,7 @@ typedef struct M68kRenderUnresolvedTypedAccess {
   uint32_t offset;
   uint8_t operand_index;
   uint8_t base_reg;
-  int16_t displacement;
+  int32_t displacement;
   uint16_t struct_size;
   uint8_t access_size;
   uint8_t classification;
@@ -823,7 +823,7 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
     const AmigaOsResolvedStructFieldInfo *field, const char *field_expr,
     const M68kRenderTypedProvenance *provenance);
 int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
-  uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id, uint16_t struct_size,
+  uint8_t operand_index, uint8_t base_reg, int32_t displacement, uint16_t root_struct_id, uint16_t struct_size,
   uint8_t access_size, uint8_t refinement_applied, uint16_t refined_struct_id,
   const M68kRenderTypedProvenance *provenance);
 const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, size_t section_index,

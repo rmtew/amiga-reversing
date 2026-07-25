@@ -70,6 +70,8 @@ static const char *unresolved_typed_access_classification_name(uint8_t classific
     return "prefix_extension";
   case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE:
     return "custom_tail_or_mistyped_base";
+  case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC:
+    return "indexed_dynamic";
   case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP:
   default:
     return "field_gap";
@@ -9378,10 +9380,10 @@ static void listing_navigation_typed_summary(char *out, size_t out_size,
   else if (owner != NULL) listing_copy_text(out, out_size, owner);
 }
 
-static void listing_navigation_signed_hex(char *out, size_t out_size, int16_t value) {
+static void listing_navigation_signed_hex(char *out, size_t out_size, int32_t value) {
   if (out == NULL || out_size == 0U) return;
-  if (value < 0) snprintf(out, out_size, "-$%04X", (unsigned)(uint16_t)(-value));
-  else snprintf(out, out_size, "$%04X", (unsigned)(uint16_t)value);
+  if (value < 0) snprintf(out, out_size, "-$%X", (unsigned)(-(int64_t)value));
+  else snprintf(out, out_size, "$%X", (unsigned)value);
 }
 
 static void listing_navigation_unresolved_summary(char *out, size_t out_size,
