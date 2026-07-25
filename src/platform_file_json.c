@@ -70,6 +70,8 @@ static const char *unresolved_typed_access_classification_name(uint8_t classific
     return "prefix_extension";
   case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE:
     return "custom_tail_or_mistyped_base";
+  case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT:
+    return "type_conflict";
   case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC:
     return "indexed_dynamic";
   case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR:
@@ -9423,6 +9425,10 @@ static void listing_navigation_unresolved_summary(char *out, size_t out_size,
     snprintf(out, out_size, "%s%s%s unknown extension", root, joiner, displacement);
   } else if (access->classification == M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR) {
     snprintf(out, out_size, "%s%s%s requires auto-update cursor evidence", root, joiner, displacement);
+  } else if (access->classification == M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC) {
+    snprintf(out, out_size, "%s%s%s requires indexed effective-address evidence", root, joiner, displacement);
+  } else if (access->classification == M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT) {
+    snprintf(out, out_size, "%s%s%s conflicting base-type evidence", root, joiner, displacement);
   } else {
     snprintf(out, out_size, "%s%s%s field metadata gap", root, joiner, displacement);
   }
