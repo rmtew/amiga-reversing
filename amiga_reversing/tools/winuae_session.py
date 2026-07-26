@@ -228,11 +228,16 @@ def compile_scenario(target_id: str, scenario_path: Path, output_path: Path, *, 
             if not isinstance(address, int):
                 raise ValueError(f"Scenario phase {phase['name']} has no reviewed runtime observation mapping: {phase['stable_key']}")
             phase["breakpoint_address"] = address
+        symbols = (
+            generate_gdb_symbol_artifact(target_id, symbol_directory, artifact=artifact).scenario_payload()
+            if symbol_directory is not None
+            else None
+        )
     finally:
         artifact.close()
     compiled = {"schema_version": 1, "identifier": identifier, "phases": compiled_phases, "input_events": compiled_events}
-    if symbol_directory is not None:
-        compiled["symbols"] = generate_gdb_symbol_artifact(target_id, symbol_directory).scenario_payload()
+    if symbols is not None:
+        compiled["symbols"] = symbols
     output_path.write_text(json.dumps(compiled, indent=2) + "\n", encoding="utf-8")
     return compiled
 def resolve_paused_pc(target_id: str, runner_report: dict[str, object]) -> dict[str, object]:

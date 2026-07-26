@@ -101,3 +101,6 @@ targets/**/*
 !targets/**/source_binary.json
 !targets/**/target_metadata.json
 *.analysis
+
+# Disposable isolated WinUAE/GDB session state.
+.runtime-state/

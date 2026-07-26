@@ -111,12 +111,17 @@ def test_compile_scenario_plans_generated_symbols_in_the_public_session(monkeypa
     artifact = _FakeArtifact({"stable_key": "s0:00000BA8:instruction:760", "start_offset": 0xBA8, "runtime_observation_view": {"base_addr": 0x12000, "source_start": 0, "source_end": 0x40000}})
     artifact._runtime_observation_views = ({"base_addr": 0x12000, "source_start": 0, "source_end": 0x40000},)
     monkeypatch.setattr(winuae_session, "build_project_listing_artifact_profile", lambda _: (0, {}, artifact))
-    monkeypatch.setattr(winuae_session, "generate_gdb_symbol_artifact", lambda *_: type("Symbols", (), {"scenario_payload": lambda _: {"elf_path": "generated.elf", "runtime_view": {"base_addr": 0x12000}, "functions": []}})())
+    symbol_calls: list[dict[str, object]] = []
+    def generate_symbols(*_: object, **kwargs: object) -> object:
+        symbol_calls.append(kwargs)
+        return type("Symbols", (), {"scenario_payload": lambda _: {"elf_path": "generated.elf", "runtime_view": {"base_addr": 0x12000}, "functions": []}})()
+    monkeypatch.setattr(winuae_session, "generate_gdb_symbol_artifact", generate_symbols)
 
     compiled = winuae_session.compile_scenario("pandora", scenario, output, symbol_directory=tmp_path)
 
     assert compiled["phases"][0]["breakpoint_address"] == 0x12BA8
     assert compiled["symbols"]["runtime_view"]["base_addr"] == 0x12000
+    assert symbol_calls == [{"artifact": artifact}]
 
 
 def test_resolve_breakpoint_stable_key_requires_current_canonical_row(monkeypatch) -> None:

@@ -389,7 +389,7 @@ def capture_scenario_state(gdb: MiProcess, capture: dict[str, object]) -> dict[s
     return {"registers": register_values, "memory_reads": captured_memory}
 
 
-def wait_for_phase_breakpoint(gdb: MiProcess, address: int, timeout_seconds: int) -> tuple[bool, str, str | None, list[dict[str, str | None]]]:
+def wait_for_phase_breakpoint(gdb: MiProcess, address: int, timeout_seconds: int) -> tuple[bool, bool, str, str | None, list[dict[str, str | None]]]:
     """Wait for one phase's breakpoint while preserving non-phase stops as evidence."""
 
     deadline = time.monotonic() + timeout_seconds
@@ -401,17 +401,17 @@ def wait_for_phase_breakpoint(gdb: MiProcess, address: int, timeout_seconds: int
             gdb.command("-exec-interrupt")
             stop = gdb.wait_for_stop()
             pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
-            return False, stop, pc, intervening_stops
+            return False, True, stop, pc, intervening_stops
         try:
             stop = gdb.wait_for_stop(remaining)
         except MiTimeout:
             gdb.command("-exec-interrupt")
             stop = gdb.wait_for_stop()
             pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
-            return False, stop, pc, intervening_stops
+            return False, True, stop, pc, intervening_stops
         pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
         if mi_stop_reason(stop) == "breakpoint-hit" and mi_address(pc) == address:
-            return True, stop, pc, intervening_stops
+            return True, False, stop, pc, intervening_stops
         intervening_stops.append({"stop_reason": mi_stop_reason(stop), "pc": pc})
         gdb.command("-exec-continue")
 
@@ -509,20 +509,21 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_pat
             breakpoint_number = re.search(r'number=\\?"(\d+)\\?"', breakpoint_record)
             if breakpoint_number is None:
                 raise MiError(f"Could not identify symbolic breakpoint for scenario phase {name}: {breakpoint_record}")
-            hit, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
+            hit, timed_out, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
         else:
             breakpoint_record = gdb.command(f"-break-insert *0x{address:x}")
             breakpoint_number = re.search(r'number=\\?"(\d+)\\?"', breakpoint_record)
             if breakpoint_number is None:
                 raise MiError(f"Could not identify breakpoint for scenario phase {name}: {breakpoint_record}")
-            hit, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
+            hit, timed_out, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
         capture_result = capture_scenario_state(gdb, capture) if hit else None
         if breakpoint_number is not None:
             gdb.command(f"-break-delete {breakpoint_number.group(1)}")
         result_phases.append({
             "name": name,
             "address": f"0x{address:08x}",
-            "status": "hit" if hit else "not_hit",
+            "status": "hit" if hit else "timeout" if timed_out else "not_hit",
+            "termination": "breakpoint_hit" if hit else "deadline_interrupt" if timed_out else "unexpected_stop",
             "stop_reason": mi_stop_reason(stop),
             "pc": pc_value,
             "intervening_stops": intervening_stops,

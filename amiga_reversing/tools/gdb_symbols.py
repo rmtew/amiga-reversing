@@ -9,14 +9,16 @@ inference from rendered assembly or the next label.
 
 from __future__ import annotations
 
+import argparse
+import json
 import re
 import struct
 from dataclasses import dataclass
 from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
-from amiga_reversing.disasm.manual_actions import load_manual_projection
-from amiga_reversing.disasm.project_paths import resolve_project_paths
+from amiga_reversing.disasm.function_facts import canonical_function_facts
+
 
 @dataclass(frozen=True, slots=True)
 class FunctionSymbol:
@@ -54,58 +56,55 @@ def _single_runtime_view(artifact: object) -> dict[str, int]:
     return {key: int(valid[0][key]) for key in ("base_addr", "source_start", "source_end")}
 
 
-def _canonical_labels(target_id: str, view: dict[str, int]) -> list[dict[str, object]]:
-    projection = load_manual_projection(resolve_project_paths(target_id).target_dir)
-    return [
-        {
-            "name": item.get("name"),
-            "source_start": (
-                int(item["addr"]) - view["base_addr"] + view["source_start"]
-                if item.get("address_domain") == "runtime" and isinstance(item.get("addr"), int)
-                else None
-            ),
-        }
-        for item in projection.labels
-    ]
-
-
 def _eligible_functions(target_id: str, artifact: object) -> tuple[dict[str, int], tuple[FunctionSymbol, ...]]:
     analysis, _ = artifact.analysis_payload()
     sections = analysis.get("sections")
     if not isinstance(sections, list) or not sections or not isinstance(sections[0], dict):
         raise ValueError("Canonical analysis has no primary section for GDB symbols.")
-    accepted_runs = sections[0].get("accepted_code_runs")
-    if not isinstance(accepted_runs, list):
-        raise ValueError("Canonical analysis has no accepted code runs for GDB symbols.")
     view = _single_runtime_view(artifact)
-    runs = {
-        (item.get("start_offset"), item.get("end_offset"))
-        for item in accepted_runs
-        if isinstance(item, dict)
-        and isinstance(item.get("start_offset"), int)
-        and isinstance(item.get("end_offset"), int)
-        and int(item["start_offset"]) < int(item["end_offset"])
-    }
-    labels = _canonical_labels(target_id, view)
-    name_counts: dict[str, int] = {}
-    for label in labels:
-        name = label.get("name")
-        if isinstance(name, str):
-            name_counts[name] = name_counts.get(name, 0) + 1
-    functions: list[FunctionSymbol] = []
-    for label in labels:
-        name = label.get("name")
-        source_start = label.get("source_start")
-        if not isinstance(name, str) or name_counts.get(name) != 1 or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) or not isinstance(source_start, int):
-            continue
-        matching = [end for start, end in runs if start == source_start]
-        if len(matching) != 1:
-            continue
-        functions.append(FunctionSymbol(name, source_start, matching[0]))
+    facts = canonical_function_facts(target_id, analysis, view).get("functions")
+    if not isinstance(facts, list):
+        raise ValueError("Canonical analysis has no function facts for GDB symbols.")
+    functions, _ = _gdb_eligible_facts(facts)
     functions.sort(key=lambda item: (item.source_start, item.name))
     if not functions:
         raise ValueError("Canonical analysis has no accepted named function ranges for GDB symbols.")
     return view, tuple(functions)
+
+
+def _gdb_eligible_facts(facts: list[object]) -> tuple[list[FunctionSymbol], list[dict[str, object]]]:
+    """Select fact ranges the ELF symbol table can represent exactly."""
+
+    functions: list[FunctionSymbol] = []
+    omitted: list[dict[str, object]] = []
+    for item in facts:
+        if not isinstance(item, dict):
+            raise ValueError("Canonical function facts contain a malformed entry.")
+        name = item.get("name")
+        entry = item.get("entry_offset")
+        if not isinstance(name, str) or not isinstance(entry, int):
+            raise ValueError("Canonical function fact has no named entry offset.")
+        if item.get("status") != "accepted":
+            omitted.append({"name": name, "entry_offset": entry, "reason": item.get("reason")})
+            continue
+        ranges = item.get("ranges")
+        if not isinstance(ranges, list) or len(ranges) != 1:
+            omitted.append({"name": name, "entry_offset": entry, "reason": "noncontiguous_function_ranges"})
+            continue
+        only_range = ranges[0]
+        if not isinstance(only_range, dict) or not isinstance(only_range.get("start_offset"), int) or not isinstance(only_range.get("end_offset"), int):
+            raise ValueError("Accepted function fact has an invalid range.")
+        start, end = int(only_range["start_offset"]), int(only_range["end_offset"])
+        if start != entry:
+            omitted.append({"name": name, "entry_offset": entry, "reason": "range_does_not_begin_at_entry"})
+            continue
+        if end <= start:
+            raise ValueError("Accepted function fact has an empty range.")
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+            omitted.append({"name": name, "entry_offset": entry, "reason": "invalid_symbol_name"})
+            continue
+        functions.append(FunctionSymbol(name, start, end))
+    return functions, omitted
 
 
 def _uleb128(value: int) -> bytes:
@@ -191,15 +190,61 @@ def _elf_bytes(functions: tuple[FunctionSymbol, ...]) -> bytes:
     return bytes(data)
 
 
-def generate_gdb_symbol_artifact(target_id: str, state_directory: Path) -> GdbSymbolArtifact:
+def generate_gdb_symbol_artifact(
+    target_id: str, state_directory: Path, *, artifact: object | None = None
+) -> GdbSymbolArtifact:
     """Build one disposable, relocatable 68K ELF/DWARF artifact for a target."""
 
-    _, _, artifact = build_project_listing_artifact_profile(target_id)
+    owns_artifact = artifact is None
+    if artifact is None:
+        _, _, artifact = build_project_listing_artifact_profile(target_id)
     try:
         view, functions = _eligible_functions(target_id, artifact)
     finally:
-        artifact.close()
+        if owns_artifact:
+            artifact.close()
     state_directory.mkdir(parents=True, exist_ok=True)
     elf_path = state_directory / "canonical-gdb-symbols.elf"
     elf_path.write_bytes(_elf_bytes(functions))
     return GdbSymbolArtifact(elf_path, view, functions)
+
+
+def symbol_coverage_report(target_id: str) -> dict[str, object]:
+    """Report canonical symbol eligibility without creating an artifact."""
+
+    _, _, artifact = build_project_listing_artifact_profile(target_id)
+    try:
+        analysis, _ = artifact.analysis_payload()
+        view = _single_runtime_view(artifact)
+        facts = canonical_function_facts(target_id, analysis, view)["functions"]
+    finally:
+        artifact.close()
+    emitted_functions, omitted = _gdb_eligible_facts(facts)
+    emitted = [
+        {
+            "name": item.name,
+            "source_start": item.source_start,
+            "source_end": item.source_end,
+            "range_count": 1,
+        }
+        for item in emitted_functions
+    ]
+    return {
+        "target_id": target_id,
+        "runtime_view": view,
+        "counts": {"emitted": len(emitted), "omitted": len(omitted)},
+        "emitted": emitted,
+        "omitted": omitted,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--target", required=True)
+    args = parser.parse_args(argv)
+    print(json.dumps(symbol_coverage_report(args.target), indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

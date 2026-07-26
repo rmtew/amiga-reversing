@@ -58,7 +58,8 @@ Do not set target code breakpoints from reset: WinUAE checks them while executin
 
 Use generated symbols when a bounded scenario must resolve or enter a reconstructed function. Generate the disposable artifact through the public scenario path; never accept a user-managed symbol file or raw GDB symbol command.
 
-- Derive each function only from a canonical accepted named label whose entry exactly matches an accepted code run. Omit missing, duplicate, or unsupported ranges.
+- Derive each function from the canonical function-fact projection: a unique named entry plus accepted CFG ownership. The fact records every owned block, merged ranges, shared terminal blocks, and an explicit rejection reason when ownership is ambiguous or incomplete.
+- Emit an ELF symbol only when that accepted fact has one contiguous range beginning at its entry. Do not approximate disjoint ranges with a broad symbol-table extent; report them as omitted until the artifact can represent them exactly.
 - Generate an M68K ELF/DWARF artifact into the isolated session state directory. It must contain no target bytes and must not alter exported source.
 - Load it only after a scenario phase uniquely confirms the payload runtime base. Map source offsets through that confirmed observation view.
 - Use `enter_function` for an adjacent call that must enter a named callee. It is a symbolic GDB breakpoint transition, not an instruction-step fallback; do not invent a caller name merely to make native GDB stepping work.
