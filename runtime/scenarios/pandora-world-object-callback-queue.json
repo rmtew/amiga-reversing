@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "identifier": "pandora-world-object-callback-queue",
+  "identifier": "pandora-ui-overlay-update-queue",
   "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
   "direct_payload_contract": "pandora",
   "phases": [
@@ -14,12 +14,12 @@
       "wait_seconds": 20
     },
     {
-      "name": "world_callback_initialization",
+      "name": "ui_overlay_initialization",
       "breakpoint_stable_key": "s0:0000079E:instruction:764",
       "wait_seconds": 20
     },
     {
-      "name": "queue_enqueue",
+      "name": "ui_overlay_enqueue",
       "breakpoint_stable_key": "s0:000066A0:instruction:4514",
       "wait_seconds": 20,
       "transition": "enter_function",
@@ -31,7 +31,7 @@
       }
     },
     {
-      "name": "queue_dispatch",
+      "name": "ui_overlay_queue_process",
       "breakpoint_stable_key": "s0:00006676:instruction:4496",
       "wait_seconds": 20,
       "transition": "enter_function",

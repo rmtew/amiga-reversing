@@ -82,6 +82,8 @@ from amiga_reversing.reversing_workspace import (
     inspect_target_hygiene,
 )
 
+DEFAULT_LISTING_TIMEOUT_SECONDS = 30.0
+
 TERMINAL_RUN_STATUSES = frozenset({"completed", "failed", "stopped"})
 PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
 _LISTING_COMMENT_SEARCH_ROW_COUNT = 512
@@ -405,7 +407,7 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--label-name")
     run_parser.add_argument("--label-rationale")
     run_parser.add_argument("--label-evidence", action="append", default=[])
-    run_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+    run_parser.add_argument("--listing-timeout-seconds", type=float, default=DEFAULT_LISTING_TIMEOUT_SECONDS)
 
     args = parser.parse_args(argv)
     if args.command == "hygiene":
@@ -642,7 +644,7 @@ def decide_callback_code(
     write: bool = False,
     slot_symbol: str | None = None,
     slot_offset: int | None = None,
-    listing_timeout_seconds: float = 10.0,
+    listing_timeout_seconds: float = DEFAULT_LISTING_TIMEOUT_SECONDS,
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     callback_report = inspect_callback_slots(

@@ -720,7 +720,7 @@ abs_0_000106D8:
 	clr.b $0010(a0)
 	bclr.b #0,$000A(a0)
 	lea.l abs_0_0001332E.l,a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001335A.l,a5
 	bsr.w abs_0_0001639A
 abs_0_00010724:
@@ -775,7 +775,7 @@ abs_0_0001079E:
 	bsr.b abs_0_000107C6
 	lea.l abs_0_000132AA(pc),a5
 abs_0_000107C6:
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	rts
 abs_0_000107CC:
 	movea.l #$77D00,a0
@@ -2346,9 +2346,9 @@ abs_0_00012754:
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
 	lea.l abs_0_0001340A(pc),a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_00013436(pc),a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	clr.w app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
 	bra.w abs_0_000194E2
@@ -2378,9 +2378,9 @@ abs_0_000127AE:
 	bsr.w abs_0_0001639A
 abs_0_000127C4:
 	lea.l abs_0_00013386(pc),a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_000133B2(pc),a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	bsr.w finalize_inventory_selection
 	cmp.b #$64,d0
 	bne.w abs_0_00012712
@@ -2398,11 +2398,11 @@ open_nearby_object_inventory_panel:
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
 	lea.l abs_0_000133DE(pc),a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001340A(pc),a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_00013436(pc),a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	move.w #$C0,app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
 	bsr.w abs_0_000194E2
@@ -2544,7 +2544,7 @@ abs_0_000129D6:
 	bsr.w resolve_item_name
 	lea.l abs_0_000132AA(pc),a5
 	move.l d0,$000C(a5)
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	movea.l (a7)+,a5
 abs_0_000129E8:
 	rts
@@ -4492,7 +4492,7 @@ abs_0_0001666E:
 	clr.l (a0)+
 	dbf.w d7,abs_0_0001666E
 	rts
-process_world_object_callback_queue:
+process_ui_overlay_update_queue:
 	moveq.l #15,d7
 	lea.l abs_0_0001A862(pc),a0
 abs_0_0001667C:
@@ -4510,7 +4510,7 @@ abs_0_0001667C:
 abs_0_0001669A:
 	dbf.w d7,abs_0_0001667C
 	rts
-enqueue_world_object_callback:
+enqueue_ui_overlay_update:
 	lea.l abs_0_0001A862(pc),a0
 abs_0_000166A4:
 	move.l (a0)+,d0
@@ -5917,9 +5917,9 @@ abs_0_00017792:
 abs_0_0001779E:
 	bset.b #1,app_ui_flags(a6)
 	lea.l abs_0_00013302.l,a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001335A.l,a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	clr.w app_02AE(a6)
 	clr.w app_02B0(a6)
 	move.w #$2710,d2
@@ -6117,7 +6117,7 @@ abs_0_00017A4E:
 	clr.b $0010(a0)
 	bclr.b #0,$000A(a0)
 	lea.l abs_0_0001332E.l,a5
-	bsr.w enqueue_world_object_callback
+	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001335A.l,a5
 	bsr.w abs_0_0001639A
 	rts
