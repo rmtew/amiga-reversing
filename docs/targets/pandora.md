@@ -500,12 +500,16 @@ surface now has a durable `target.code.register_seed.add` action for this
 entry-specific type fact; the renderer deliberately applies such seeds only
 at the exact function entry, not to unrelated preceding code.
 
-`process_world_object_callback_queue` at `$00016676` is the corresponding
-runtime dispatcher. It walks the 16 pointer slots at `$0001A862`, skips null
-entries and objects whose signed status word at `+0x06` is non-negative, then
-calls a non-null function pointer at `+0x28` while preserving the loop
-registers. The immediately preceding routine clears those same 16 slots, so
-the storage is an explicit callback queue rather than an untyped object list.
+`process_world_object_callback_queue` at `$00016676` walks the 16 pointer
+slots at `$0001A862`, skips null entries and objects whose signed status word
+at `+0x06` is non-negative, then calls a non-null function pointer at `+0x28`
+while preserving the loop registers. The immediately preceding routine clears
+those same 16 slots, so the storage is an explicit callback queue rather than
+an untyped object list. Its invocation is not yet recovered: there is no
+direct call or stored absolute pointer to `$00016676`, and the current
+title-to-gameplay runtime scenario observes enqueue but not this queue-walking
+routine. Its name records the established behavior, not a proven runtime
+dispatch edge.
 
 ### Blank sprite datum
 
