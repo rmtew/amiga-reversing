@@ -5,8 +5,8 @@
   "tools": [
     {
       "file": "winuae-gdb.exe",
-      "sha256": "3AC0D5E1D10E684DE1DFDAA1939D42EBE5CE256E4A9890684B3457505C31DC67",
-      "size_bytes": 28675072,
+      "sha256": "49BD3FE092344E39697F32D1E91BDB72DC7D4CEDA0D3264ED3424F0C04D3961D",
+      "size_bytes": 28676096,
       "role": "Strict-headless WinUAE emulator with Bartman GDB server",
       "source_repository": "https://github.com/BartmanAbyss/WinUAE.git",
       "source_base_commit": "b34884cc25e561eecac5dcec70cac97d6b12b2d9",
@@ -15,7 +15,8 @@
         "353046b4 Add strict headless host startup",
         "539f3260 Write runtime executable to tracked ext bundle",
         "a3b85de3 Harden first-run headless startup",
-        "40902ffd Fix fresh-state headless startup"
+        "40902ffd Fix fresh-state headless startup",
+        "fc324354 Add bounded GDB virtual joystick input"
       ],
       "build": {
         "project": "od-win32/winuae_msvc15/winuae_msvc.vcxproj",

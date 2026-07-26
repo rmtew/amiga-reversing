@@ -936,6 +936,21 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   `jsr (app_0360)`, after the Copper interrupt bit is tested. That evidence
   supports the rendered label `handle_copper_interrupt_palette_effect`; it
   does not itself make the generic app slot name authoritative.
+- The public session now accepts a declarative scenario only with a direct
+  payload contract, so input cannot be delivered before its verified handoff
+  marker. Scenarios name canonical source rows for phases, schedule bounded
+  virtual joystick events by physical Amiga port, and declare bounded register
+  and memory captures. The pinned fork exposes only `port0`/`port1` fire and
+  directional controls through GDB monitor commands; it does not expose raw
+  monitor commands, host input, arbitrary memory writes, or target facts.
+  A phase can use an explicit instruction-level `step_into` transition for an
+  adjacent direct call when a normal breakpoint continuation would re-enter a
+  frame wait. On 2026-07-26, `pandora-gameplay-entry` verified handoff, title
+  (`s0:00000BA8:instruction:1014`), the gameplay call site
+  (`s0:000005D6:instruction:640`), and the inventory handler entry
+  (`s0:000028D4:instruction:2461`). Its capture recorded `A4=$0000F568`,
+  `A5=$00DFF000`, and the declared byte at `A4+$46` as `$00`. This is runtime
+  observation only; it does not promote a player-object type fact.
 
 ## Decision Record
 

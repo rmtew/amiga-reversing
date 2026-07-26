@@ -30,6 +30,8 @@ param(
 
     [switch]$ObservationMemoryWriteWatch,
 
+    [string]$ScenarioPath,
+
     [ValidateRange(1, 120)]
     [int]$BreakpointWaitSeconds = 60,
 
@@ -65,6 +67,9 @@ if ($ObservationMemoryEquals -and -not $ObservationMemoryAddress) {
 }
 if ($ObservationMemoryWriteWatch -and -not $ObservationMemoryAddress) {
     throw 'ObservationMemoryWriteWatch requires ObservationMemoryAddress.'
+}
+if ($ScenarioPath -and -not $ContinueSeconds) {
+    throw 'ScenarioPath requires ContinueSeconds.'
 }
 if ($BreakpointAddress -and $BreakpointSourceOffset) {
     throw 'Specify either BreakpointAddress or BreakpointSourceOffset, not both.'
@@ -121,6 +126,7 @@ $resolvedRom = (Resolve-Path -LiteralPath $RomPath).Path
 $resolvedFloppy0 = if ($Floppy0) { (Resolve-Path -LiteralPath $Floppy0).Path } else { $null }
 $resolvedHostDirectory = if ($HostDirectory) { (Resolve-Path -LiteralPath $HostDirectory).Path } else { $null }
 $resolvedTargetPayload = if ($TargetPayloadPath) { (Resolve-Path -LiteralPath $TargetPayloadPath).Path } else { $null }
+$resolvedScenarioPath = if ($ScenarioPath) { (Resolve-Path -LiteralPath $ScenarioPath).Path } else { $null }
 
 if ($resolvedHostDirectory -and $resolvedHostDirectory.Contains(',')) {
     throw 'HostDirectory cannot contain a comma because WinUAE filesystem2 uses commas as field separators.'
@@ -204,6 +210,9 @@ try {
         if ($ObservationMemoryWriteWatch) {
             $gdbArgs += '--observation-memory-write-watch'
         }
+        if ($resolvedScenarioPath) {
+            $gdbArgs += '--scenario', $resolvedScenarioPath
+        }
         $gdbProcess = Start-Process -FilePath $python -ArgumentList (ConvertTo-ArgumentListString $gdbArgs) -WindowStyle Hidden -PassThru -RedirectStandardOutput $gdbStdout -RedirectStandardError $gdbStderr
         $gdbTimeoutMilliseconds = ($GdbTimeoutSeconds + $ContinueSeconds + $LoadSegWatchSeconds + $(if ($BreakpointAddress -or $BreakpointSourceOffset) { $BreakpointWaitSeconds } else { 0 }) + 15) * 1000
     }
@@ -257,6 +266,7 @@ try {
         floppy0 = $resolvedFloppy0
         host_directory = $resolvedHostDirectory
         target_payload = $resolvedTargetPayload
+        scenario = $resolvedScenarioPath
         continue_seconds = $ContinueSeconds
         loadseg_watch_seconds = $LoadSegWatchSeconds
         gdb_output = if ($ContinueSeconds) { $null } else { $gdbOutput.Trim() }

@@ -326,7 +326,171 @@ def pause_at_observation_memory(gdb: MiProcess, *, address: int | None, expected
     return stop, observation
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None, observation_memory_write_watch: bool) -> dict[str, object]:
+def run_monitor_input(gdb: MiProcess, control: str, state: str) -> None:
+    """Send one allow-listed emulator input event through the scenario bridge."""
+
+    if control not in {f"port{port} {direction}" for port in range(2) for direction in ("fire", "left", "right", "up", "down")}:
+        raise MiError(f"Scenario requests unsupported input control: {control}")
+    if state not in {"press", "release"}:
+        raise MiError(f"Scenario requests unsupported input state: {state}")
+    gdb.command(f'-interpreter-exec console "monitor input {control} {state}"')
+
+
+def capture_scenario_state(gdb: MiProcess, capture: dict[str, object]) -> dict[str, object]:
+    """Read only the bounded registers and memory explicitly declared by a scenario."""
+
+    registers = capture.get("registers", [])
+    memory_reads = capture.get("memory_reads", [])
+    if not isinstance(registers, list) or not all(isinstance(register, str) for register in registers):
+        raise MiError("Scenario capture.registers must be a list of register names.")
+    if not isinstance(memory_reads, list):
+        raise MiError("Scenario capture.memory_reads must be a list.")
+    register_values: dict[str, str | None] = {}
+    for register in registers:
+        if not re.fullmatch(r"[ad][0-7]", register):
+            raise MiError(f"Scenario capture has an invalid 68000 register: {register}")
+        register_values[register] = mi_value(gdb.command(f"-data-evaluate-expression ${register}"))
+    captured_memory: list[dict[str, object]] = []
+    for memory_read in memory_reads:
+        if not isinstance(memory_read, dict):
+            raise MiError("Scenario capture memory read must be an object.")
+        address = memory_read.get("address")
+        base_register = memory_read.get("base_register")
+        offset = memory_read.get("offset", 0)
+        size = memory_read.get("size")
+        if address is not None and base_register is not None:
+            raise MiError("Scenario capture memory read cannot specify both address and base_register.")
+        if base_register is not None:
+            if not isinstance(base_register, str) or not re.fullmatch(r"a[0-7]", base_register) or not isinstance(offset, int):
+                raise MiError("Scenario capture register-relative memory read requires an address register and integer offset.")
+            base_value = register_values.get(base_register)
+            if base_value is None:
+                base_value = mi_value(gdb.command(f"-data-evaluate-expression ${base_register}"))
+            if base_value is None:
+                raise MiError(f"Scenario capture could not read ${base_register}.")
+            address = int(base_value, 0) + offset
+        if not isinstance(address, int) or not 0 <= address <= 0xFFFFFF:
+            raise MiError("Scenario capture memory address must resolve to a 24-bit integer.")
+        if not isinstance(size, int) or not 1 <= size <= 64:
+            raise MiError("Scenario capture memory size must be between 1 and 64 bytes.")
+        captured_memory.append({"address": f"0x{address:08x}", "bytes": read_memory(gdb, address, size).hex(), "base_register": base_register, "offset": offset if base_register is not None else None})
+    return {"registers": register_values, "memory_reads": captured_memory}
+
+
+def wait_for_phase_breakpoint(gdb: MiProcess, address: int, timeout_seconds: int) -> tuple[bool, str, str | None, list[dict[str, str | None]]]:
+    """Wait for one phase's breakpoint while preserving non-phase stops as evidence."""
+
+    deadline = time.monotonic() + timeout_seconds
+    intervening_stops: list[dict[str, str | None]] = []
+    gdb.command("-exec-continue")
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            gdb.command("-exec-interrupt")
+            stop = gdb.wait_for_stop()
+            pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
+            return False, stop, pc, intervening_stops
+        try:
+            stop = gdb.wait_for_stop(remaining)
+        except MiTimeout:
+            gdb.command("-exec-interrupt")
+            stop = gdb.wait_for_stop()
+            pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
+            return False, stop, pc, intervening_stops
+        pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
+        if mi_stop_reason(stop) == "breakpoint-hit" and pc == f"0x{address:x}":
+            return True, stop, pc, intervening_stops
+        intervening_stops.append({"stop_reason": mi_stop_reason(stop), "pc": pc})
+        gdb.command("-exec-continue")
+
+
+def run_scenario(gdb: MiProcess, scenario: dict[str, object]) -> dict[str, object]:
+    """Execute a validated phase sequence after the public handoff checkpoint."""
+
+    phases = scenario.get("phases")
+    input_events = scenario.get("input_events", [])
+    if not isinstance(phases, list) or not phases:
+        raise MiError("Scenario must contain at least one executable phase.")
+    if not isinstance(input_events, list):
+        raise MiError("Scenario input_events must be a list.")
+    events_by_phase: dict[str, list[dict[str, object]]] = {}
+    for event in input_events:
+        if not isinstance(event, dict):
+            raise MiError("Scenario input event must be an object.")
+        phase_name = event.get("after_phase")
+        control = event.get("control")
+        delay_seconds = event.get("delay_seconds", 0)
+        duration_seconds = event.get("duration_seconds")
+        if not isinstance(phase_name, str) or not isinstance(control, str) or not isinstance(delay_seconds, (int, float)) or not isinstance(duration_seconds, (int, float)):
+            raise MiError("Scenario input event requires after_phase, control, delay_seconds, and duration_seconds.")
+        if not 0 <= delay_seconds <= 30:
+            raise MiError("Scenario input delay_seconds must be between 0 and 30.")
+        if not 0 < duration_seconds <= 30:
+            raise MiError("Scenario input duration_seconds must be between 0 and 30.")
+        events_by_phase.setdefault(phase_name, []).append(event)
+    result_phases: list[dict[str, object]] = []
+    for phase in phases:
+        if not isinstance(phase, dict):
+            raise MiError("Scenario phase must be an object.")
+        name = phase.get("name")
+        address = phase.get("breakpoint_address")
+        wait_seconds = phase.get("wait_seconds")
+        transition = phase.get("transition", "continue")
+        capture = phase.get("capture", {})
+        if not isinstance(name, str) or not isinstance(address, int) or not 0 <= address <= 0xFFFFFF:
+            raise MiError("Scenario phase requires a name and 24-bit breakpoint_address.")
+        if not isinstance(wait_seconds, int) or not 1 <= wait_seconds <= 120:
+            raise MiError("Scenario phase wait_seconds must be between 1 and 120.")
+        if transition not in {"continue", "step_into"}:
+            raise MiError("Scenario phase transition must be continue or step_into.")
+        if not isinstance(capture, dict):
+            raise MiError("Scenario phase capture must be an object.")
+        breakpoint_number = None
+        if transition == "step_into":
+            gdb.command("-exec-step-instruction")
+            stop = gdb.wait_for_stop(wait_seconds)
+            pc_value = mi_value(gdb.command("-data-evaluate-expression $pc"))
+            hit = pc_value == f"0x{address:x}"
+            intervening_stops = []
+        else:
+            breakpoint_record = gdb.command(f"-break-insert *0x{address:x}")
+            breakpoint_number = re.search(r'number="(\d+)"', breakpoint_record)
+            if breakpoint_number is None:
+                raise MiError(f"Could not identify breakpoint for scenario phase {name}: {breakpoint_record}")
+            hit, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
+        capture_result = capture_scenario_state(gdb, capture) if hit else None
+        if breakpoint_number is not None:
+            gdb.command(f"-break-delete {breakpoint_number.group(1)}")
+        result_phases.append({
+            "name": name,
+            "address": f"0x{address:08x}",
+            "status": "hit" if hit else "not_hit",
+            "stop_reason": mi_stop_reason(stop),
+            "pc": pc_value,
+            "intervening_stops": intervening_stops,
+            "capture": capture_result,
+        })
+        if not hit:
+            break
+        for event in events_by_phase.get(name, []):
+            control = event["control"]
+            delay_seconds = float(event["delay_seconds"])
+            duration_seconds = float(event["duration_seconds"])
+            if delay_seconds:
+                gdb.command("-exec-continue")
+                time.sleep(delay_seconds)
+                gdb.command("-exec-interrupt")
+                gdb.wait_for_stop(15)
+            run_monitor_input(gdb, control, "press")
+            gdb.command("-exec-continue")
+            time.sleep(duration_seconds)
+            gdb.command("-exec-interrupt")
+            gdb.wait_for_stop(15)
+            run_monitor_input(gdb, control, "release")
+    return {"identifier": scenario.get("identifier"), "phases": result_phases}
+
+
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None, observation_memory_write_watch: bool, scenario_path: Path | None) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -366,6 +530,8 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "process": active_process,
             "payload": target_detection,
         }
+        scenario = json.loads(scenario_path.read_text(encoding="utf-8")) if scenario_path is not None else None
+        scenario_result = run_scenario(gdb, scenario) if isinstance(scenario, dict) else None
         breakpoint = None
         if breakpoint_address is not None and breakpoint_source_offset is not None:
             raise MiError("Specify either a breakpoint address or a source offset, not both.")
@@ -415,6 +581,7 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "exec_state": exec_state,
             "active_execution": active_execution,
             "loadseg_watch": loader_watch,
+            "scenario": scenario_result,
             "breakpoint": breakpoint,
         }
     finally:
@@ -434,6 +601,7 @@ def main() -> int:
     parser.add_argument("--observation-memory-address", type=lambda value: int(value, 0))
     parser.add_argument("--observation-memory-equals", type=bytes.fromhex)
     parser.add_argument("--observation-memory-write-watch", action="store_true")
+    parser.add_argument("--scenario", type=Path)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
         parser.error("--continue-seconds must be between 1 and 120")
@@ -448,7 +616,7 @@ def main() -> int:
     if args.observation_memory_equals is not None and args.observation_memory_address is None:
         parser.error("--observation-memory-equals requires --observation-memory-address")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds, args.observation_memory_address, args.observation_memory_equals, args.observation_memory_write_watch)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds, args.observation_memory_address, args.observation_memory_equals, args.observation_memory_write_watch, args.scenario.resolve() if args.scenario else None)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1

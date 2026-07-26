@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-gameplay-entry",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction:1014",
+      "wait_seconds": 20
+    },
+    {
+      "name": "gameplay_loop",
+      "breakpoint_stable_key": "s0:000005D6:instruction:640",
+      "wait_seconds": 20
+    },
+    {
+      "name": "inventory_input_handler",
+      "breakpoint_stable_key": "s0:000028D4:instruction:2461",
+      "wait_seconds": 20,
+      "transition": "step_into",
+      "capture": {
+        "registers": ["a4", "a5"],
+        "memory_reads": [
+          {"base_register": "a4", "offset": 70, "size": 1}
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "delay_seconds": 3,
+      "duration_seconds": 1
+    }
+  ]
+}

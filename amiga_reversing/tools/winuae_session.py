@@ -1,8 +1,9 @@
-"""Run a bounded headless WinUAE observation and resolve its paused PC.
+"""Run bounded, declarative headless WinUAE observations and scenarios.
 
 This is deliberately a read-only bridge between the project-owned headless
 runner and the canonical listing.  It does not expose arbitrary GDB commands,
-write target facts, or alter emulator input.
+write target facts.  Scenario input is strictly declarative and is delivered
+only through the pinned emulator's allow-listed virtual joystick bridge.
 """
 
 from __future__ import annotations
@@ -40,6 +41,7 @@ class HeadlessWinUaeSession:
     observation_memory_write_watch: bool = False
     breakpoint_source_offset: int | None = None
     breakpoint_runtime_address: int | None = None
+    scenario_path: Path | None = None
 
     def command(self) -> list[str]:
         command = [
@@ -79,6 +81,8 @@ class HeadlessWinUaeSession:
             command.extend(("-ObservationMemoryEquals", self.observation_memory_equals.hex()))
         if self.observation_memory_write_watch:
             command.append("-ObservationMemoryWriteWatch")
+        if self.scenario_path is not None:
+            command.extend(("-ScenarioPath", str(self.scenario_path)))
         return command
 
 
@@ -95,20 +99,15 @@ def _as_int(value: object) -> int | None:
         return None
 
 
-def resolve_breakpoint_stable_key(target_id: str, stable_key: str) -> dict[str, object]:
-    """Resolve and validate one canonical listing row for a runtime breakpoint."""
-
+def _resolve_breakpoint_stable_key_from_artifact(artifact: object, stable_key: str) -> dict[str, object]:
+    """Resolve one canonical listing row using an already-open listing artifact."""
     match = re.fullmatch(r"s(?P<section>\d+):(?P<offset>[0-9A-Fa-f]{8}):.+", stable_key)
     if match is None:
         raise ValueError("Breakpoint stable key must use the canonical s<section>:<offset>:... form.")
     section_index = int(match.group("section"))
     source_offset = int(match.group("offset"), 16)
-    _, _, artifact = build_project_listing_artifact_profile(target_id)
-    try:
-        row = artifact.row_for_source_offset(section_index=section_index, offset=source_offset)
-        observation_views = getattr(artifact, "_runtime_observation_views", ())
-    finally:
-        artifact.close()
+    row = artifact.row_for_source_offset(section_index=section_index, offset=source_offset)
+    observation_views = getattr(artifact, "_runtime_observation_views", ())
     if row is None or row.get("stable_key") != stable_key:
         raise ValueError(f"Breakpoint stable key is not a current canonical row: {stable_key}")
     for view in observation_views:
@@ -122,6 +121,16 @@ def resolve_breakpoint_stable_key(target_id: str, stable_key: str) -> dict[str, 
             row["runtime_breakpoint_address"] = base_addr + source_offset - source_start
             break
     return row
+
+
+def resolve_breakpoint_stable_key(target_id: str, stable_key: str) -> dict[str, object]:
+    """Resolve and validate one canonical listing row for a runtime breakpoint."""
+
+    _, _, artifact = build_project_listing_artifact_profile(target_id)
+    try:
+        return _resolve_breakpoint_stable_key_from_artifact(artifact, stable_key)
+    finally:
+        artifact.close()
 
 
 def resolve_breakpoint_hit(row: dict[str, object], runner_report: dict[str, object]) -> dict[str, object]:
@@ -150,6 +159,79 @@ def resolve_breakpoint_hit(row: dict[str, object], runner_report: dict[str, obje
         "expected_runtime_address": f"0x{expected_address:08x}" if expected_address is not None else None,
         "observation": breakpoint_record or None,
     }
+
+
+def compile_scenario(target_id: str, scenario_path: Path, output_path: Path) -> dict[str, object]:
+    """Validate a target scenario and resolve only canonical source rows to PCs."""
+
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    if not isinstance(scenario, dict) or scenario.get("schema_version") != 1:
+        raise ValueError("Scenario must be a schema_version 1 JSON object.")
+    if scenario.get("target_id") != target_id:
+        raise ValueError("Scenario target_id does not match --target.")
+    identifier = scenario.get("identifier")
+    phases = scenario.get("phases")
+    input_events = scenario.get("input_events", [])
+    if not isinstance(identifier, str) or not identifier:
+        raise ValueError("Scenario requires a non-empty identifier.")
+    if not isinstance(phases, list) or len(phases) < 2:
+        raise ValueError("Scenario requires boot handoff plus at least one canonical source-row phase.")
+    if not isinstance(input_events, list):
+        raise ValueError("Scenario input_events must be a list.")
+    compiled_phases: list[dict[str, object]] = []
+    names: set[str] = set()
+    for index, phase in enumerate(phases):
+        if not isinstance(phase, dict):
+            raise ValueError("Scenario phase must be an object.")
+        name = phase.get("name")
+        if not isinstance(name, str) or not name or name in names:
+            raise ValueError("Scenario phase names must be unique non-empty strings.")
+        names.add(name)
+        if index == 0:
+            if phase.get("observable") != "direct_payload_handoff":
+                raise ValueError("The first scenario phase must be the direct_payload_handoff observable.")
+            continue
+        stable_key = phase.get("breakpoint_stable_key")
+        wait_seconds = phase.get("wait_seconds")
+        transition = phase.get("transition", "continue")
+        capture = phase.get("capture", {})
+        if not isinstance(stable_key, str) or not isinstance(wait_seconds, int) or not 1 <= wait_seconds <= 120:
+            raise ValueError("Source-row scenario phases require breakpoint_stable_key and wait_seconds (1..120).")
+        if not isinstance(capture, dict):
+            raise ValueError("Scenario phase capture must be an object.")
+        if transition not in {"continue", "step_into"}:
+            raise ValueError("Scenario phase transition must be continue or step_into.")
+        compiled_phases.append({"name": name, "stable_key": stable_key, "wait_seconds": wait_seconds, "transition": transition, "capture": capture})
+    compiled_events: list[dict[str, object]] = []
+    for event in input_events:
+        if not isinstance(event, dict):
+            raise ValueError("Scenario input event must be an object.")
+        after_phase = event.get("after_phase")
+        control = event.get("control")
+        delay = event.get("delay_seconds", 0)
+        duration = event.get("duration_seconds")
+        if after_phase not in names or after_phase == phases[0].get("name"):
+            raise ValueError("Scenario input must be scheduled after a named source-row phase.")
+        if control not in {f"port{port} {direction}" for port in range(2) for direction in ("fire", "left", "right", "up", "down")}:
+            raise ValueError("Scenario input control is not supported by the virtual joystick bridge.")
+        if not isinstance(delay, (int, float)) or not 0 <= delay <= 30:
+            raise ValueError("Scenario input delay_seconds must be between 0 and 30.")
+        if not isinstance(duration, (int, float)) or not 0 < duration <= 30:
+            raise ValueError("Scenario input duration_seconds must be between 0 and 30.")
+        compiled_events.append({"after_phase": after_phase, "control": control, "delay_seconds": delay, "duration_seconds": duration})
+    _, _, artifact = build_project_listing_artifact_profile(target_id)
+    try:
+        for phase in compiled_phases:
+            row = _resolve_breakpoint_stable_key_from_artifact(artifact, str(phase["stable_key"]))
+            address = row.get("runtime_breakpoint_address")
+            if not isinstance(address, int):
+                raise ValueError(f"Scenario phase {phase['name']} has no reviewed runtime observation mapping: {phase['stable_key']}")
+            phase["breakpoint_address"] = address
+    finally:
+        artifact.close()
+    compiled = {"schema_version": 1, "identifier": identifier, "phases": compiled_phases, "input_events": compiled_events}
+    output_path.write_text(json.dumps(compiled, indent=2) + "\n", encoding="utf-8")
+    return compiled
 def resolve_paused_pc(target_id: str, runner_report: dict[str, object]) -> dict[str, object]:
     """Resolve a runner JSON observation to a canonical listing row.
 
@@ -252,6 +334,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--floppy0", type=Path)
     parser.add_argument("--host-directory", type=Path, help="host directory mounted as PAYLOAD:")
     parser.add_argument("--direct-payload-contract", help="validated contract used to build and boot a direct payload ADF")
+    parser.add_argument("--scenario", type=Path, help="declarative runtime scenario executed after direct-payload handoff")
     parser.add_argument("--continue-seconds", type=int, default=60, choices=range(1, 121))
     parser.add_argument(
         "--breakpoint-wait-seconds",
@@ -294,6 +377,8 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("--direct-payload-contract cannot be combined with --floppy0 or --host-directory.")
     if args.direct_payload_contract and args.state_directory is None:
         raise ValueError("--direct-payload-contract requires --state-directory for its generated ADF.")
+    if args.scenario and not args.direct_payload_contract:
+        raise ValueError("--scenario requires --direct-payload-contract so input cannot run before a verified handoff.")
     paths = resolve_project_paths(args.target)
     direct_payload = None
     floppy0 = args.floppy0
@@ -308,6 +393,11 @@ def main(argv: list[str] | None = None) -> int:
         observation_memory_address = contract.handoff_marker_address
         observation_memory_equals = contract.handoff_marker_value.to_bytes(4, "big")
         observation_memory_write_watch = True
+    compiled_scenario = None
+    scenario_output = None
+    if args.scenario:
+        scenario_output = args.state_directory / "runtime-scenario.json"
+        compiled_scenario = compile_scenario(args.target, args.scenario, scenario_output)
     breakpoint_row = resolve_breakpoint_stable_key(args.target, args.breakpoint_stable_key) if args.breakpoint_stable_key else None
     session = HeadlessWinUaeSession(
         rom_path=args.rom,
@@ -323,12 +413,13 @@ def main(argv: list[str] | None = None) -> int:
         observation_memory_write_watch=observation_memory_write_watch,
         breakpoint_source_offset=breakpoint_row["start_offset"] if breakpoint_row is not None and "runtime_breakpoint_address" not in breakpoint_row else None,
         breakpoint_runtime_address=breakpoint_row.get("runtime_breakpoint_address") if breakpoint_row is not None else None,
+        scenario_path=scenario_output,
     )
     if not args.run:
-        print(json.dumps({"status": "planned", "target_id": args.target, "direct_payload": direct_payload, "breakpoint_stable_key": args.breakpoint_stable_key, "command": session.command()}, indent=2))
+        print(json.dumps({"status": "planned", "target_id": args.target, "direct_payload": direct_payload, "scenario": compiled_scenario, "breakpoint_stable_key": args.breakpoint_stable_key, "command": session.command()}, indent=2))
         return 0
     report = run_session(session)
-    result = {"runner": report, "direct_payload": direct_payload, "pc_resolution": resolve_paused_pc(args.target, report)}
+    result = {"runner": report, "direct_payload": direct_payload, "scenario": compiled_scenario, "pc_resolution": resolve_paused_pc(args.target, report)}
     if breakpoint_row is not None:
         result["breakpoint"] = resolve_breakpoint_hit(breakpoint_row, report)
     print(json.dumps(result, indent=2))

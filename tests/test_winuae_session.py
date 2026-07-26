@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from amiga_reversing.tools import winuae_session
@@ -71,6 +72,36 @@ def test_direct_contract_requires_an_isolated_generated_adf_state_directory() ->
     args = parser.parse_args(["--target", "pandora", "--rom", "C:\\roms\\kick.rom", "--direct-payload-contract", "pandora"])
 
     assert args.direct_payload_contract == "pandora"
+
+
+def test_compile_scenario_resolves_only_canonical_rows_once(monkeypatch, tmp_path: Path) -> None:
+    scenario = tmp_path / "scenario.json"
+    output = tmp_path / "compiled.json"
+    scenario.write_text(json.dumps({
+        "schema_version": 1,
+        "identifier": "test",
+        "target_id": "pandora",
+        "phases": [
+            {"name": "boot", "observable": "direct_payload_handoff"},
+            {"name": "title", "breakpoint_stable_key": "s0:00000BA8:instruction:760", "wait_seconds": 10},
+            {"name": "inventory", "breakpoint_stable_key": "s0:00002904:instruction:2473", "wait_seconds": 10,
+             "capture": {"registers": ["a4", "a5"], "memory_reads": []}},
+        ],
+        "input_events": [{"after_phase": "title", "control": "port1 fire", "delay_seconds": 3, "duration_seconds": 1}],
+    }), encoding="utf-8")
+    artifact = _FakeArtifact({"stable_key": "unused", "runtime_observation_view": {"base_addr": 0x10000, "source_start": 0, "source_end": 0x40000}})
+    artifact._runtime_observation_views = ({"base_addr": 0x10000, "source_start": 0, "source_end": 0x40000},)
+    rows = {
+        0xBA8: {"stable_key": "s0:00000BA8:instruction:760", "start_offset": 0xBA8},
+        0x2904: {"stable_key": "s0:00002904:instruction:2473", "start_offset": 0x2904},
+    }
+    artifact.row_for_source_offset = lambda *, section_index, offset: rows[offset]  # type: ignore[method-assign]
+    monkeypatch.setattr(winuae_session, "build_project_listing_artifact_profile", lambda _: (0, {}, artifact))
+
+    compiled = winuae_session.compile_scenario("pandora", scenario, output)
+
+    assert [phase["breakpoint_address"] for phase in compiled["phases"]] == [0x10BA8, 0x12904]
+    assert json.loads(output.read_text(encoding="utf-8"))["identifier"] == "test"
 
 
 def test_resolve_breakpoint_stable_key_requires_current_canonical_row(monkeypatch) -> None:
