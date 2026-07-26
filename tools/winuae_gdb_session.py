@@ -296,20 +296,39 @@ def pause_at_observation_memory(gdb: MiProcess, *, address: int | None, expected
     if write_watch:
         if address is None:
             raise MiError("A diagnostic write watch requires a memory address.")
+        value = read_memory(gdb, address, 4)
+        if expected is None or value == expected:
+            return "*stopped,reason=\"observation-present\"", {
+                "address": f"0x{address:08x}",
+                "bytes": value.hex(),
+                "matched": True,
+                "elapsed_seconds": round(time.monotonic() - started, 3),
+                "watchpoint": False,
+            }
         gdb.command(f'-break-watch -- "*((unsigned char *)0x{address:x})"')
         gdb.command("-exec-continue")
-        try:
-            stop = gdb.wait_for_stop(timeout_seconds)
-        except MiTimeout:
-            gdb.command("-exec-interrupt")
-            stop = gdb.wait_for_stop()
-        value = read_memory(gdb, address, 4)
+        while True:
+            remaining = timeout_seconds - (time.monotonic() - started)
+            if remaining <= 0:
+                gdb.command("-exec-interrupt")
+                stop = gdb.wait_for_stop()
+                value = read_memory(gdb, address, 4)
+                break
+            try:
+                stop = gdb.wait_for_stop(remaining)
+            except MiTimeout:
+                gdb.command("-exec-interrupt")
+                stop = gdb.wait_for_stop()
+                value = read_memory(gdb, address, 4)
+                break
+            value = read_memory(gdb, address, 4)
+            if expected is None or value == expected:
+                break
+            gdb.command("-exec-continue")
         return stop, {
-            "address": f"0x{address:08x}",
-            "bytes": value.hex(),
+            "address": f"0x{address:08x}", "bytes": value.hex(),
             "matched": expected is None or value == expected,
-            "elapsed_seconds": round(time.monotonic() - started, 3),
-            "watchpoint": True,
+            "elapsed_seconds": round(time.monotonic() - started, 3), "watchpoint": True,
         }
     gdb.command("-exec-continue")
     if address is None:

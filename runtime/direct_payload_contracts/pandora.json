@@ -4,6 +4,6 @@
   "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
   "load_address": "0x10000",
   "entrypoint": "0x10000",
-  "handoff_marker_address": "0x7fff8",
+  "handoff_marker_address": "0xc7fff8",
   "handoff_marker_value": "0x48414e44"
 }
