@@ -24,7 +24,8 @@ Read the relevant implementation before changing it.
 | `tools/run_winuae_headless.ps1` | Strict headless launcher, A500/Kickstart 1.3 profile, GDB process management. |
 | `tools/winuae_gdb_session.py` | WinUAE/GDB MI protocol, pause/continue, bounded breakpoint handling, observation capture. |
 | `amiga_reversing/tools/winuae_session.py` | Restricted target-aware agent API: stable source keys, observation views, structured results. |
-| `tests/test_winuae_session.py` | Focused public-session contract. |
+| `amiga_reversing/tools/gdb_symbols.py` | Disposable M68K ELF/DWARF artifacts from canonical function facts. |
+| `tests/test_winuae_session.py`, `tests/test_gdb_symbols.py` | Focused public-session and symbol-generation contracts. |
 | `ext/tools/winuae/windows-x64/` | Committed Windows WinUAE and m68k GDB binaries used by the harness. |
 | `resources/clone_amiga/WinUAE/` | Local Bartman-derived WinUAE fork, on `codex/local-workspace-build`. |
 | `docs/proposals/036-agent-operable-winuae-runtime-harness.md` | Architecture, decisions, limitations, and environment notes. |
@@ -52,6 +53,18 @@ Use canonical stable source keys such as `s0:00000BA8:instruction:755`, never a 
 5. Use the stack return address to inspect static predecessors and justify labels or reachability facts.
 
 Do not set target code breakpoints from reset: WinUAE checks them while executing Kickstart and this is prohibitively slow. The supported pattern is boot, confirm, pause, arm, continue.
+
+## Canonical GDB symbols
+
+Use generated symbols when a bounded scenario must resolve or enter a reconstructed function. Generate the disposable artifact through the public scenario path; never accept a user-managed symbol file or raw GDB symbol command.
+
+- Derive each function only from a canonical accepted named label whose entry exactly matches an accepted code run. Omit missing, duplicate, or unsupported ranges.
+- Generate an M68K ELF/DWARF artifact into the isolated session state directory. It must contain no target bytes and must not alter exported source.
+- Load it only after a scenario phase uniquely confirms the payload runtime base. Map source offsets through that confirmed observation view.
+- Use `enter_function` for an adjacent call that must enter a named callee. It is a symbolic GDB breakpoint transition, not an instruction-step fallback; do not invent a caller name merely to make native GDB stepping work.
+- Include the resolved function and accepted source range in phase results when the hit lies in an emitted function.
+
+For symbol-path changes, test accepted emission and ambiguous omission, non-default runtime-base planning, public-session loading, a real strictly headless scenario, and exact target round trip.
 
 ## Improve the harness only when needed
 
