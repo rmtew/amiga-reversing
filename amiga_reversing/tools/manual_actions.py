@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from typing import cast
 
 from amiga_reversing.disasm import server
@@ -28,6 +29,28 @@ def main(argv: list[str] | None = None) -> int:
         metavar="NAME=JSON",
         help="Action parameter. Values are parsed as JSON when possible.",
     )
+    invoke_parser.add_argument(
+        "--listing-timeout-seconds",
+        type=float,
+        default=30.0,
+        help="Maximum time to wait for the project listing to become ready before invoking the action.",
+    )
+
+    batch_parser = subparsers.add_parser("invoke-batch", help="Invoke target-context catalog actions in one listing session.")
+    batch_parser.add_argument("project")
+    batch_parser.add_argument(
+        "--action",
+        action="append",
+        required=True,
+        metavar="JSON",
+        help='Action object: {"command_id": "...", "parameters": {...}}.',
+    )
+    batch_parser.add_argument(
+        "--listing-timeout-seconds",
+        type=float,
+        default=30.0,
+        help="Maximum time to wait for the project listing to become ready before invoking actions.",
+    )
 
     args = parser.parse_args(argv)
     if args.command == "list":
@@ -41,10 +64,12 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
         raise SystemExit(f"Catalog command not found: {args.action_id}")
     if args.command == "invoke":
+        parameters = _parse_params(args.param)
+        _open_and_wait_for_listing(args.project, args.listing_timeout_seconds)
         body = {
             "command_id": args.action_id,
             "context": _context_body(args),
-            "parameters": _parse_params(args.param),
+            "parameters": parameters,
         }
         payload = server.route_request(
             "POST",
@@ -54,7 +79,52 @@ def main(argv: list[str] | None = None) -> int:
         )
         _print_json(payload["data"])
         return 0
+    if args.command == "invoke-batch":
+        actions = _parse_batch_actions(args.action)
+        _open_and_wait_for_listing(args.project, args.listing_timeout_seconds)
+        results: list[object] = []
+        for action in actions:
+            payload = server.route_request(
+                "POST",
+                f"/api/projects/{args.project}/commands/execute",
+                {},
+                {"command_id": action["command_id"], "context": {"kind": "target"}, "parameters": action["parameters"]},
+            )
+            results.append(payload["data"])
+        _print_json({"actions": results})
+        return 0
     raise SystemExit(f"Unsupported command: {args.command}")
+
+
+def _open_and_wait_for_listing(project: str, timeout_seconds: float) -> None:
+    """Establish the listing session required by all manual-action commands."""
+    opened = server.route_request("POST", f"/api/projects/{project}/listing/open", {}, {})
+    job = opened.get("data")
+    if not isinstance(job, dict):
+        raise SystemExit("listing/open returned malformed job")
+    job_id = job.get("job_id")
+    if not isinstance(job_id, str) or not job_id:
+        raise SystemExit("listing/open did not return job_id")
+    deadline = time.monotonic() + max(0.0, timeout_seconds)
+    current = job
+    while True:
+        status = current.get("status")
+        if status == "ready":
+            return
+        if status == "failed":
+            raise SystemExit(str(current.get("error") or "listing job failed"))
+        if time.monotonic() >= deadline:
+            raise SystemExit("listing readiness timed out")
+        time.sleep(0.05)
+        polled = server.route_request(
+            "GET",
+            f"/api/projects/{project}/listing/status",
+            {"job_id": [job_id]},
+        )
+        data = polled.get("data")
+        if not isinstance(data, dict):
+            raise SystemExit("listing/status returned malformed job")
+        current = data
 
 
 def _add_context_args(parser: argparse.ArgumentParser) -> None:
@@ -138,6 +208,22 @@ def _parse_params(values: list[str]) -> dict[str, object]:
         except json.JSONDecodeError:
             params[name] = raw
     return params
+
+
+def _parse_batch_actions(values: list[str]) -> list[dict[str, object]]:
+    actions: list[dict[str, object]] = []
+    for value in values:
+        parsed = _parse_json_arg(value, "--action")
+        if not isinstance(parsed, dict):
+            raise SystemExit("--action must be a JSON object")
+        command_id = parsed.get("command_id")
+        parameters = parsed.get("parameters", {})
+        if not isinstance(command_id, str) or not command_id:
+            raise SystemExit("--action requires command_id")
+        if not isinstance(parameters, dict):
+            raise SystemExit("--action parameters must be a JSON object")
+        actions.append({"command_id": command_id, "parameters": parameters})
+    return actions
 
 
 def _parse_json_arg(value: str, name: str) -> object:

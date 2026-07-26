@@ -408,6 +408,25 @@ item_receptacle_interaction_data_required_item_definition_id RS.B 1
 item_receptacle_interaction_data_flags RS.B 1
 item_receptacle_interaction_data_SIZEOF EQU __RS
 
+; STRUCT ui_overlay_descriptor
+    RSRESET
+ui_overlay_descriptor_x RS.B 1
+ui_overlay_descriptor_y RS.B 1
+ui_overlay_descriptor_width RS.B 1
+ui_overlay_descriptor_height RS.B 1
+    RS.B 2
+ui_overlay_descriptor_flags RS.W 1
+ui_overlay_descriptor_title_ptr RS.L 1
+ui_overlay_descriptor_line_0_ptr RS.L 1
+ui_overlay_descriptor_line_1_ptr RS.L 1
+ui_overlay_descriptor_line_2_ptr RS.L 1
+ui_overlay_descriptor_line_3_ptr RS.L 1
+ui_overlay_descriptor_line_4_ptr RS.L 1
+ui_overlay_descriptor_line_5_ptr RS.L 1
+ui_overlay_descriptor_bitmap_ptr RS.L 1
+ui_overlay_descriptor_update_callback RS.L 1
+ui_overlay_descriptor_SIZEOF EQU __RS
+
 ITEM_ID_LASER_RIFLE	EQU	$12
 ITEM_ID_BOTTLE_OF_GIN	EQU	$27
 ITEM_ID_INSULIN	EQU	$28
@@ -4486,7 +4505,7 @@ abs_0_00016632:
 	addq.l #1,app_text_cursor_ptr(a6)
 	bra.w abs_0_00016146
 abs_0_00016668:
-	lea.l abs_0_0001A862(pc),a0
+	lea.l ui_overlay_update_queue(pc),a0
 	moveq.l #31,d7
 abs_0_0001666E:
 	clr.l (a0)+
@@ -4494,7 +4513,7 @@ abs_0_0001666E:
 	rts
 process_ui_overlay_update_queue:
 	moveq.l #15,d7
-	lea.l abs_0_0001A862(pc),a0
+	lea.l ui_overlay_update_queue(pc),a0
 abs_0_0001667C:
 	move.l (a0)+,d0
 	beq.b abs_0_0001669A
@@ -4511,7 +4530,7 @@ abs_0_0001669A:
 	dbf.w d7,abs_0_0001667C
 	rts
 enqueue_ui_overlay_update:
-	lea.l abs_0_0001A862(pc),a0
+	lea.l ui_overlay_update_queue(pc),a0
 abs_0_000166A4:
 	move.l (a0)+,d0
 	beq.b abs_0_000166AE
@@ -9221,8 +9240,12 @@ abs_0_0001A822:
 	dc.b $00,$00,$1C,$0F,$C5,$03,$F0,$3F,$03,$F7,$C7,$FF,$FF,$07,$FF,$FF
 	dc.b $FF,$F8,$00,$FF,$FF,$FF,$FF,$FC,$3F,$FF,$FF,$F8,$10,$00,$03,$E1
 	dc.b $FE,$03,$F3,$FF,$FF,$7B,$00,$00,$01,$17,$9E,$FF,$EF,$FF,$8C,$60
-abs_0_0001A862:
-	dcb.b $90,$00
+ui_overlay_update_queue:
+	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
+	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
+	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
+	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
+	dcb.b $50,$00
 	dc.b $0C,$0C,$18
 	dcb.b $62,$00
 	dc.b $18,$18

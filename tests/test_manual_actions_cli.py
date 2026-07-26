@@ -108,6 +108,9 @@ def test_manual_actions_cli_invokes_catalog_action(monkeypatch, capsys) -> None:
     captured_body: dict[str, object] = {}
 
     def route(method: str, path: str, query, body=None):
+        if path == "/api/projects/bloodwych/listing/open":
+            assert method == "POST"
+            return {"ok": True, "data": {"job_id": "listing-job", "status": "ready"}}
         assert method == "POST"
         assert path == "/api/projects/bloodwych/commands/execute"
         assert query == {}
@@ -187,6 +190,52 @@ def test_manual_actions_cli_invokes_catalog_action(monkeypatch, capsys) -> None:
         },
         "parameters": {"title": "Check range"},
     }
+
+
+def test_manual_actions_cli_stops_when_listing_is_not_ready(monkeypatch) -> None:
+    def route(method: str, path: str, query, body=None):
+        assert method == "POST"
+        assert path == "/api/projects/bloodwych/listing/open"
+        return {"ok": True, "data": {"job_id": "listing-job", "status": "failed", "error": "bad listing"}}
+
+    monkeypatch.setattr(manual_actions.server, "route_request", route)
+
+    with pytest.raises(SystemExit, match="bad listing"):
+        manual_actions.main(["invoke", "bloodwych", "target.code.seed"])
+
+
+def test_manual_actions_cli_invokes_target_action_batch_in_one_listing_session(monkeypatch, capsys) -> None:
+    calls: list[tuple[str, object]] = []
+
+    def route(method: str, path: str, query, body=None):
+        calls.append((path, body))
+        if path == "/api/projects/bloodwych/listing/open":
+            return {"ok": True, "data": {"job_id": "listing-job", "status": "ready"}}
+        assert method == "POST"
+        assert path == "/api/projects/bloodwych/commands/execute"
+        return {"ok": True, "data": {"command_id": cast(dict[str, object], body)["command_id"]}}
+
+    monkeypatch.setattr(manual_actions.server, "route_request", route)
+
+    assert manual_actions.main(
+        [
+            "invoke-batch",
+            "bloodwych",
+            "--action",
+            '{"command_id":"target.seed.remove","parameters":{"seed_id":"old"}}',
+            "--action",
+            '{"command_id":"target.code.seed","parameters":{"hunk":0,"addr":42,"name":"new"}}',
+        ]
+    ) == 0
+
+    assert json.loads(capsys.readouterr().out) == {
+        "actions": [{"command_id": "target.seed.remove"}, {"command_id": "target.code.seed"}]
+    }
+    assert [path for path, _body in calls] == [
+        "/api/projects/bloodwych/listing/open",
+        "/api/projects/bloodwych/commands/execute",
+        "/api/projects/bloodwych/commands/execute",
+    ]
 
 
 def test_manual_actions_cli_reports_invalid_inputs(monkeypatch) -> None:
