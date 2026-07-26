@@ -6879,8 +6879,11 @@ static const char *listing_row_kind_name(uint8_t row_kind_id) {
 static void listing_row_stable_key(char *buf, size_t buf_size, int section_index, uint32_t addr,
     const char *row_kind, size_t row_index) {
   if (buf == NULL || buf_size == 0U) return;
-  snprintf(buf, buf_size, "s%d:%08X:%s:%u", section_index, (unsigned)addr, row_kind != NULL ? row_kind : "",
-    (unsigned)row_index);
+  (void)row_index;
+  /* A source-coordinate row identity must survive unrelated analysis rows
+   * being inserted or removed.  The rendering ordinal is presentation state,
+   * not part of the durable locator. */
+  snprintf(buf, buf_size, "s%d:%08X:%s", section_index, (unsigned)addr, row_kind != NULL ? row_kind : "");
 }
 
 static void listing_register_name(char *buf, size_t buf_size, uint8_t reg) {
@@ -8586,8 +8589,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
   if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
   if (has_addr) {
     char stable_key[128];
-    snprintf(stable_key, sizeof(stable_key), "s%d:%08X:%s:%u", section_index, (unsigned)addr, row_kind,
-      (unsigned)row_index);
+    snprintf(stable_key, sizeof(stable_key), "s%d:%08X:%s", section_index, (unsigned)addr, row_kind);
     if (json_builder_append_json_string(builder, stable_key) != 0) return -1;
   } else if (json_builder_appendf(builder, "\"global:%s:%u\"", row_kind, (unsigned)row_index) != 0) return -1;
   if (json_builder_append(builder, ",\"analysis_generation\":") != 0) return -1;

@@ -74,6 +74,18 @@ def test_direct_contract_requires_an_isolated_generated_adf_state_directory() ->
     assert args.direct_payload_contract == "pandora"
 
 
+def test_headless_session_selects_the_declared_direct_payload_contract() -> None:
+    session = winuae_session.HeadlessWinUaeSession(
+        rom_path=Path(r"C:\roms\kick.rom"),
+        target_payload_path=Path(r"C:\target\binary.bin"),
+        direct_payload_contract="pandora",
+    )
+
+    command = session.command()
+
+    assert command[command.index("-DirectPayloadContract") + 1] == "pandora"
+
+
 def test_compile_scenario_resolves_only_canonical_rows_once(monkeypatch, tmp_path: Path) -> None:
     scenario = tmp_path / "scenario.json"
     output = tmp_path / "compiled.json"

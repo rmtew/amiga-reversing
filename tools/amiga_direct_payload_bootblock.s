@@ -30,8 +30,16 @@ read_payload:
 handoff:
     INCLUDE "direct_payload_entry_context.i"
     move.l  #HANDOFF_VALUE,HANDOFF_MARKER
+; WinUAE exposes GDB after the boot code may otherwise have handed execution
+; to the payload.  The shared direct-payload protocol holds at this explicit
+; marker until the target-aware session has attached and armed its first
+; bounded observation.
+await_session_release:
+    cmpi.l  #HANDOFF_RELEASE_VALUE,HANDOFF_MARKER
+    bne.b   await_session_release
     jmp     PAYLOAD_ENTRY.l
 
 failed:
-    moveq   #1,d0
-    rts
+    move.l  #'FAIL',HANDOFF_MARKER
+failed_hold:
+    bra.b   failed_hold

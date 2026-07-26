@@ -1426,6 +1426,28 @@ def test_effective_metadata_carries_runtime_observation_view_without_execution_v
     ]
 
 
+def test_effective_metadata_carries_typed_runtime_data_range(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(target_dir / MANUAL_ACTION_LOG_FILE_NAME, [
+        {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+        _action("a1", 1, "create_manual_runtime_data_range", runtime_data_range={
+            "runtime_data_range_id": "ui-overlay-descriptors", "runtime_address": 0x132AA,
+            "size": 440, "element_count": 10, "element_stride": 44,
+            "struct_name": "ui_overlay_descriptor", "name": "ui_overlay_descriptors",
+            "observation_provenance": "pandora-world-object-callback-queue",
+        }),
+    ])
+    payload = json.loads(effective_metadata_text(target_dir))
+    assert payload["runtime_data_ranges"] == [{
+        "runtime_data_range_id": "ui-overlay-descriptors", "runtime_address": 0x132AA,
+        "size": 440, "element_count": 10, "element_stride": 44,
+        "struct_name": "ui_overlay_descriptor", "name": "ui_overlay_descriptors",
+        "observation_provenance": "pandora-world-object-callback-queue", "owner_action_id": "a1",
+    }]
+
+
 def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -1877,6 +1899,7 @@ def test_effective_metadata_projects_pointer_table_pointee_binding(tmp_path: Pat
     ])
     payload = json.loads(effective_metadata_text(target_dir))
     entity = next(item for item in payload["seeded_entities"] if item["addr"] == 0x100)
+    assert entity["subtype"] == "pointer_table"
     assert entity["pointer_struct"] == "world_object_shared_prefix"
     assert entity["source_locator"] == "objects:0:16:pointer_struct:world_object_shared_prefix"
 

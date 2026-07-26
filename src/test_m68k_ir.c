@@ -21769,8 +21769,8 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   M68K_C_ASSERT(strstr(rows_json, "\"function\":\"PolyDraw\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"type_name\":\"WORD *\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"reason\":\"typed_pointer\"") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"stable_key\":\"s0:00000004:instruction:2\"") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction:1\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"stable_key\":\"s0:00000004:instruction\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json,
     "\"app-slot-api-args\":[{\"summary\":\"app_key_buffer -> RawKeyConvert buffer A1 (string_ptr)\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json,
@@ -21843,8 +21843,8 @@ static int test_listing_json_tracks_app_slot_address_immediate_adjust(void) {
   M68K_C_ASSERT(strstr(rows_json,
     "\"displacement\":260,\"base_displacement\":256,\"effective_displacement\":260") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"source_flow_row_index\":2") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"stable_key\":\"s0:00000006:instruction:3\"") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction:1\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"stable_key\":\"s0:00000006:instruction\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction\"") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);
@@ -27226,7 +27226,8 @@ static int test_facts_v2_render_asm_source_preserves_type_across_observed_absolu
     0x2bu, 0x40u, 0x00u, 0x10u,             /* move.l d0,$10(a5) */
     0x4eu, 0x75u,                           /* rts */
     0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
-    0x20u, 0x4du,                           /* callee: movea.l a5,a0 */
+    0x2fu, 0x0du,                           /* callee: move.l a5,-(a7) */
+    0x2au, 0x5fu,                           /* movea.l (a7)+,a5 */
     0x4eu, 0x75u                            /* rts */
   };
   memset(&section, 0, sizeof(section));
@@ -27292,7 +27293,7 @@ static int test_facts_v2_render_asm_source_preserves_type_across_observed_absolu
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_stack_saved_call(void) {
+static int test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -27300,23 +27301,20 @@ static int test_facts_v2_render_asm_source_preserves_pointer_table_cursor_throug
   M68kFactsV2Profile profile;
   char *source = NULL;
   M68kAnalysisCustomStruct *custom_structs = NULL;
-  uint8_t bytes[50] = {
-    0x41u, 0xfau, 0x00u, 0x20u, /* lea table(pc),a0 */
+  uint8_t bytes[48] = {
+    0x41u, 0xfau, 0x00u, 0x1eu, /* lea table(pc),a0 */
     0x24u, 0x18u,             /* move.l (a0)+,d2 */
-    0x67u, 0x18u,             /* beq.b done */
+    0x67u, 0x14u,             /* beq.b done */
     0x2au, 0x42u,             /* movea.l d2,a5 */
     0x30u, 0x2du, 0x00u, 0x02u, /* move.w $02(a5),d0 */
-    0x02u, 0x00u, 0x00u, 0x42u, /* andi.b #$42,d0 */
-    0x66u, 0xf0u,             /* bne.b loop */
-    0x2fu, 0x08u,             /* move.l a0,-(a7) */
-    0x4eu, 0xb9u, 0x00u, 0x01u, 0x00u, 0x30u, /* jsr helper */
-    0x20u, 0x5fu,             /* movea.l (a7)+,a0 */
-    0x60u, 0xe4u,             /* bra.b loop */
+    0x22u, 0x42u,             /* movea.l d2,a1 */
+    0x48u, 0xe7u, 0x01u, 0x80u, /* movem.l d7/a0,-(a7) */
+    0x4eu, 0x91u,             /* jsr (a1) */
+    0x4cu, 0xdfu, 0x01u, 0x80u, /* movem.l (a7)+,d7/a0 */
+    0x60u, 0xe8u,             /* bra.b loop */
     0x4eu, 0x75u,             /* done: rts */
     0x00u, 0x01u, 0x00u, 0x30u, /* table entry */
-    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
-    0x00u, 0x00u,
-    0x4eu, 0x75u              /* helper: rts */
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -27354,7 +27352,7 @@ static int test_facts_v2_render_asm_source_preserves_pointer_table_cursor_throug
   policy.structured_data_item_count = 1U;
   policy.structured_data_items[0].has_section_index = 1U;
   policy.structured_data_items[0].section_index = 0U;
-  policy.structured_data_items[0].offset = 34U;
+  policy.structured_data_items[0].offset = 32U;
   policy.structured_data_items[0].size = 8U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
   m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
@@ -34008,8 +34006,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_applies_function_register_contract},
     {"facts_v2_render_asm_source_preserves_type_across_observed_absolute_local_call",
       test_facts_v2_render_asm_source_preserves_type_across_observed_absolute_local_call},
-    {"facts_v2_render_asm_source_preserves_pointer_table_cursor_through_stack_saved_call",
-      test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_stack_saved_call},
+    {"facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback",
+      test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback},
     {"facts_v2_render_asm_source_propagates_static_struct_pointer_chain",
       test_facts_v2_render_asm_source_propagates_static_struct_pointer_chain},
     {"facts_v2_render_asm_source_rejects_conflicting_static_struct_types",

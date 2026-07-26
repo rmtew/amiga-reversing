@@ -11,8 +11,11 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
+
+from amiga_reversing.tools.direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
 
 class MiError(RuntimeError):
@@ -474,7 +477,8 @@ def resolved_function(symbols: object, address: int) -> dict[str, object] | None
     return None
 
 
-def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_path: Path) -> dict[str, object]:
+def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_path: Path,
+                 release_handoff: Callable[[], None] | None = None) -> dict[str, object]:
     """Execute a validated phase sequence after the public handoff checkpoint."""
 
     phases = scenario.get("phases")
@@ -531,7 +535,9 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_pat
             breakpoint_number = re.search(r'number=\\?"(\d+)\\?"', breakpoint_record)
             if breakpoint_number is None:
                 raise MiError(f"Could not identify breakpoint for scenario phase {name}: {breakpoint_record}")
-            hit, timed_out, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
+        if phase_index == 0 and release_handoff is not None:
+            release_handoff()
+        hit, timed_out, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
         capture_result = capture_scenario_state(gdb, capture) if hit else None
         if breakpoint_number is not None:
             gdb.command(f"-break-delete {breakpoint_number.group(1)}")
@@ -557,7 +563,7 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_pat
     return {"identifier": scenario.get("identifier"), "symbols": symbols_loaded, "phases": result_phases}
 
 
-def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None, observation_memory_write_watch: bool, scenario_path: Path | None) -> dict[str, object]:
+def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None, observation_memory_write_watch: bool, direct_payload_contract: str | None, scenario_path: Path | None) -> dict[str, object]:
     ndk = json.loads(ndk_path.read_text(encoding="utf-8"))
     gdb = MiProcess(gdb_path)
     try:
@@ -598,9 +604,22 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "payload": target_detection,
         }
         scenario = json.loads(scenario_path.read_text(encoding="utf-8")) if scenario_path is not None else None
+        contract = load_contract(direct_payload_contract) if direct_payload_contract is not None else None
+        if contract is not None and not (isinstance(observation_memory, dict) and observation_memory.get("matched") is True):
+            observed_marker = observation_memory.get("bytes") if isinstance(observation_memory, dict) else None
+            raise MiError(f"Direct payload handoff marker was not observed ({observed_marker}); refusing to release the payload.")
+        def release_handoff() -> None:
+            if contract is not None:
+                gdb.command(f"-data-write-memory-bytes 0x{contract.handoff_marker_address:x} {HANDOFF_RELEASE_VALUE:08x}")
+                released = read_memory(gdb, contract.handoff_marker_address, 4)
+                expected_release = HANDOFF_RELEASE_VALUE.to_bytes(4, "big")
+                if released != expected_release:
+                    raise MiError(
+                        f"Direct payload handoff release did not persist ({released.hex()}); refusing to continue."
+                    )
         if isinstance(scenario, dict) and target_payload_path is None:
             raise MiError("Scenario symbols require a target payload for runtime-base confirmation.")
-        scenario_result = run_scenario(gdb, scenario, target_payload_path) if isinstance(scenario, dict) and target_payload_path is not None else None
+        scenario_result = run_scenario(gdb, scenario, target_payload_path, release_handoff if contract is not None else None) if isinstance(scenario, dict) and target_payload_path is not None else None
         breakpoint = None
         if breakpoint_address is not None and breakpoint_source_offset is not None:
             raise MiError("Specify either a breakpoint address or a source offset, not both.")
@@ -670,6 +689,7 @@ def main() -> int:
     parser.add_argument("--observation-memory-address", type=lambda value: int(value, 0))
     parser.add_argument("--observation-memory-equals", type=bytes.fromhex)
     parser.add_argument("--observation-memory-write-watch", action="store_true")
+    parser.add_argument("--direct-payload-contract")
     parser.add_argument("--scenario", type=Path)
     args = parser.parse_args()
     if args.continue_seconds < 1 or args.continue_seconds > 120:
@@ -685,7 +705,7 @@ def main() -> int:
     if args.observation_memory_equals is not None and args.observation_memory_address is None:
         parser.error("--observation-memory-equals requires --observation-memory-address")
     try:
-        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds, args.observation_memory_address, args.observation_memory_equals, args.observation_memory_write_watch, args.scenario.resolve() if args.scenario else None)
+        result = run_session(args.gdb.resolve(), args.ndk.resolve(), args.continue_seconds, args.loadseg_watch_seconds, args.target_payload.resolve() if args.target_payload else None, args.breakpoint_address, args.breakpoint_source_offset, args.breakpoint_wait_seconds, args.observation_memory_address, args.observation_memory_equals, args.observation_memory_write_watch, args.direct_payload_contract, args.scenario.resolve() if args.scenario else None)
     except MiError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}))
         return 1

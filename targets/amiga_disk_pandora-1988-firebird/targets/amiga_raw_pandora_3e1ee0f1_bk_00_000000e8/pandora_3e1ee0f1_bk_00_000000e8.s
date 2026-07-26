@@ -414,8 +414,10 @@ ui_overlay_descriptor_x RS.B 1
 ui_overlay_descriptor_y RS.B 1
 ui_overlay_descriptor_width RS.B 1
 ui_overlay_descriptor_height RS.B 1
-    RS.B 2
-ui_overlay_descriptor_flags RS.W 1
+ui_overlay_descriptor_title_x_offset RS.B 1
+ui_overlay_descriptor_text_color RS.B 1
+ui_overlay_descriptor_state_flags RS.B 1
+ui_overlay_descriptor_line_style_flags RS.B 1
 ui_overlay_descriptor_title_ptr RS.L 1
 ui_overlay_descriptor_line_0_ptr RS.L 1
 ui_overlay_descriptor_line_1_ptr RS.L 1
@@ -2132,16 +2134,16 @@ abs_0_000124FE:
 	subq.w #1,d7
 abs_0_0001250E:
 	movea.l (a0)+,a1
-	move.l $0000(a1),d0
+	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
 	beq.b abs_0_00012536
 	movea.l d0,a4
 	movem.l d7/a0,-(a7)
 abs_0_0001251C:
-	btst.b #0,$0018(a4)
+	btst.b #0,world_position_state_record_interaction_flags(a4)
 	bne.b abs_0_00012528
 	bsr.w abs_0_0001951A
 abs_0_00012528:
-	move.l $0014(a4),d0
+	move.l world_position_state_record_attachment_state_ptr(a4),d0
 	beq.b abs_0_00012532
 	movea.l d0,a4
 	bra.b abs_0_0001251C
@@ -4248,15 +4250,15 @@ abs_0_0001632C:
 	move.l a1,app_text_cursor_ptr(a6)
 	rts
 abs_0_00016332:
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
-	movea.l $0024(a5),a1
+	movea.l ui_overlay_descriptor_bitmap_ptr(a5),a1
 	clr.w d0
 	clr.w d1
-	move.b $0003(a5),d0
+	move.b ui_overlay_descriptor_height(a5),d0
 	lsl.w #5,d0
-	move.b $0002(a5),d1
+	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
 	moveq.l #40,d2
@@ -4281,15 +4283,15 @@ abs_0_00016366:
 	movea.l (a7)+,a5
 	rts
 abs_0_0001639A:
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
-	movea.l $0024(a5),a1
+	movea.l ui_overlay_descriptor_bitmap_ptr(a5),a1
 	clr.w d0
 	clr.w d1
-	move.b $0003(a5),d0
+	move.b ui_overlay_descriptor_height(a5),d0
 	lsl.b #5,d0
-	move.b $0002(a5),d1
+	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
 	moveq.l #40,d2
@@ -4312,21 +4314,21 @@ abs_0_000163CE:
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w d1,bltsize(a5)
 	movea.l (a7)+,a5
-	bclr.b #5,$0006(a5)
-	bclr.b #7,$0006(a5)
+	bclr.b #5,ui_overlay_descriptor_state_flags(a5)
+	bclr.b #7,ui_overlay_descriptor_state_flags(a5)
 	rts
 abs_0_0001640E:
 	movem.l d0/d7/a0-a2,-(a7)
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d1
 	add.b d0,d1
-	move.b $0000(a5),d0
+	move.b ui_overlay_descriptor_x.w(a5),d0
 	addq.b #1,d0
 	bsr.w abs_0_00016126
 	clr.b app_022D(a6)
 	movea.l a0,a2
 	clr.w d7
-	move.b $0002(a5),d7
+	move.b ui_overlay_descriptor_width(a5),d7
 	subq.b #3,d7
 abs_0_00016432:
 	movea.l a2,a1
@@ -4336,15 +4338,15 @@ abs_0_00016432:
 	movem.l (a7)+,d0/d7/a0-a2
 	rts
 abs_0_00016444:
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
 	clr.w d0
 	clr.w d1
-	move.b $0003(a5),d0
+	move.b ui_overlay_descriptor_height(a5),d0
 	lsl.w #5,d0
 	lsl.w #6,d0
-	move.b $0002(a5),d1
+	move.b ui_overlay_descriptor_width(a5),d1
 	lsr.w #1,d1
 	moveq.l #40,d2
 	moveq.l #0,d3
@@ -4371,112 +4373,112 @@ abs_0_00016478:
 	rts
 abs_0_000164AE:
 	move.l d7,-(a7)
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B020(pc),a0
 	bsr.w abs_0_0001620E
-	move.b $0002(a5),d0
+	move.b ui_overlay_descriptor_width(a5),d0
 	subq.b #1,d0
-	add.b $0000(a5),d0
-	move.b $0001(a5),d1
+	add.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B040(pc),a0
 	bsr.w abs_0_0001620E
-	move.b $0000(a5),d0
-	move.b $0003(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_height(a5),d1
 	subq.b #1,d1
-	add.b $0001(a5),d1
+	add.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B0A0(pc),a0
 	bsr.w abs_0_0001620E
-	move.b $0002(a5),d0
-	move.b $0003(a5),d1
+	move.b ui_overlay_descriptor_width(a5),d0
+	move.b ui_overlay_descriptor_height(a5),d1
 	subq.b #1,d0
 	subq.b #1,d1
-	add.b $0000(a5),d0
-	add.b $0001(a5),d1
+	add.b ui_overlay_descriptor_x.w(a5),d0
+	add.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B0C0(pc),a0
 	bsr.w abs_0_0001620E
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d0
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B060(pc),a0
 	clr.w d7
-	move.b $0002(a5),d7
+	move.b ui_overlay_descriptor_width(a5),d7
 	subq.b #3,d7
 abs_0_00016532:
 	bsr.w abs_0_0001620E
 	bsr.w abs_0_0001629C
 	dbf.w d7,abs_0_00016532
-	move.b $0000(a5),d0
+	move.b ui_overlay_descriptor_x.w(a5),d0
 	addq.b #1,d0
-	move.b $0003(a5),d1
+	move.b ui_overlay_descriptor_height(a5),d1
 	subq.b #1,d1
-	add.b $0001(a5),d1
+	add.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B060(pc),a0
 	clr.w d7
-	move.b $0002(a5),d7
+	move.b ui_overlay_descriptor_width(a5),d7
 	subq.b #3,d7
 abs_0_0001655E:
 	bsr.w abs_0_0001620E
 	bsr.w abs_0_0001629C
 	dbf.w d7,abs_0_0001655E
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d1
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B080(pc),a0
 	clr.w d7
-	move.b $0003(a5),d7
+	move.b ui_overlay_descriptor_height(a5),d7
 	subq.b #3,d7
 abs_0_00016584:
 	bsr.w abs_0_0001620E
 	addi.l #1280,app_text_cursor_ptr(a6)
 	dbf.w d7,abs_0_00016584
-	move.b $0002(a5),d0
+	move.b ui_overlay_descriptor_width(a5),d0
 	subq.b #1,d0
-	add.b $0000(a5),d0
-	move.b $0001(a5),d1
+	add.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d1
 	bsr.w abs_0_00016126
 	lea.l abs_0_0001B080(pc),a0
 	clr.w d7
-	move.b $0003(a5),d7
+	move.b ui_overlay_descriptor_height(a5),d7
 	subq.b #3,d7
 abs_0_000165B4:
 	bsr.w abs_0_0001620E
 	addi.l #1280,app_text_cursor_ptr(a6)
 	dbf.w d7,abs_0_000165B4
-	move.b $0004(a5),d0
-	add.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_title_x_offset(a5),d0
+	add.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
-	movea.l $0008(a5),a0
+	movea.l ui_overlay_descriptor_title_ptr(a5),a0
 	bsr.w abs_0_000162A8
 	move.l (a7)+,d7
 	rts
 abs_0_000165E0:
 	movem.l d7/a4,-(a7)
-	move.b $0005(a5),app_022D(a6)
-	lea.l $000C(a5),a4
+	move.b ui_overlay_descriptor_text_color(a5),app_022D(a6)
+	lea.l ui_overlay_descriptor_line_0_ptr(a5),a4
 	moveq.l #0,d7
 abs_0_000165F0:
-	move.b $0000(a5),d0
+	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b d7,d1
 	addq.b #1,d1
-	add.b $0001(a5),d1
+	add.b ui_overlay_descriptor_y(a5),d1
 	bsr.w abs_0_00016126
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
-	tst.l (a4)
+	tst.l ui_overlay_descriptor_line_0_ptr-12(a4)
 	beq.b abs_0_00016624
 	movea.l (a4)+,a3
-	btst.b d7,$0007(a5)
+	btst.b d7,ui_overlay_descriptor_line_style_flags(a5)
 	beq.b abs_0_00016620
 	bsr.w abs_0_00016146
 	bra.b abs_0_00016624
@@ -4490,15 +4492,15 @@ abs_0_00016624:
 	rts
 abs_0_00016632:
 	bsr.w abs_0_0001640E
-	move.b $0005(a5),app_022D(a6)
+	move.b ui_overlay_descriptor_text_color(a5),app_022D(a6)
 	add.w d0,d0
 	add.w d0,d0
 	movea.l $C(a5,d0.w),a3
 	lsr.w #2,d0
 	addq.b #1,d0
-	add.b $0001(a5),d0
+	add.b ui_overlay_descriptor_y(a5),d0
 	move.b d0,d1
-	move.b $0000(a5),d0
+	move.b ui_overlay_descriptor_x.w(a5),d0
 	bsr.w abs_0_00016126
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
@@ -4518,9 +4520,9 @@ abs_0_0001667C:
 	move.l (a0)+,d0
 	beq.b abs_0_0001669A
 	movea.l d0,a5
-	tst.w $0006(a5)
+	tst.w ui_overlay_descriptor_state_flags(a5)
 	bpl.b abs_0_0001669A
-	move.l $0028(a5),d0
+	move.l ui_overlay_descriptor_update_callback(a5),d0
 	beq.b abs_0_0001669A
 	movea.l d0,a1
 	movem.l d7/a0,-(a7)
@@ -4540,15 +4542,15 @@ abs_0_000166A4:
 abs_0_000166AE:
 	move.l a5,-(a0)
 abs_0_000166B0:
-	btst.b #6,$0006(a5)
+	btst.b #6,ui_overlay_descriptor_state_flags(a5)
 	beq.b abs_0_000166C2
-	bset.b #5,$0006(a5)
+	bset.b #5,ui_overlay_descriptor_state_flags(a5)
 	bsr.w abs_0_00016332
 abs_0_000166C2:
 	bsr.w abs_0_00016444
 	bsr.w abs_0_000164AE
 	bsr.w abs_0_000165E0
-	bset.b #7,$0006(a5)
+	bset.b #7,ui_overlay_descriptor_state_flags(a5)
 	rts
 abs_0_000166D6:
 	movea.l #$70000,a0	; bitmap memory plane 4 base $00070000
@@ -6109,15 +6111,15 @@ abs_0_000179EC:
 	movem.l (a7)+,a4-a5
 abs_0_00017A06:
 	bsr.w restore_world_object_position_state
-	bset.b #1,$0048(a5)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bclr.b #1,app_ui_flags(a6)
 	lea.l abs_0_0005C97A.l,a0
 	clr.l (a0)
 	move.w #$2710,d2
-	sub.w d2,$0030(a5)
-	move.w $0030(a5),d0
+	sub.w d2,world_object_shared_prefix_world_x(a5)
+	move.w world_object_shared_prefix_world_x(a5),d0
 	andi.b #240,d0
-	move.w d0,$0030(a5)
+	move.w d0,world_object_shared_prefix_world_x(a5)
 	bsr.w abs_0_000124E0
 	lea.l player_world_object.l,a5
 	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
@@ -6411,24 +6413,24 @@ update_world_object_interactions:
 	subq.w #1,d7
 abs_0_00017E04:
 	movea.l (a0)+,a1
-	move.l $0000(a1),d0
+	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
-	btst.b #0,$0018(a2)
+	btst.b #0,world_position_state_record_interaction_flags(a2)
 	bne.w abs_0_00017F02
-	btst.b #4,$0019(a2)
+	btst.b #4,world_position_state_record_world_object_flags(a2)
 	bne.w abs_0_00017F08
-	btst.b #2,$0019(a2)
+	btst.b #2,world_position_state_record_world_object_flags(a2)
 	bne.w handle_item_receptacle_interaction
-	btst.b #0,$0019(a2)
+	btst.b #0,world_position_state_record_world_object_flags(a2)
 	beq.w abs_0_00017F02
-	move.w $0004(a1),d0
-	move.w $0006(a1),d1
-	add.w $000C(a2),d0
-	add.w $000E(a2),d1
+	move.w world_position_descriptor_prefix_world_x(a1),d0
+	move.w world_position_descriptor_prefix_world_y(a1),d1
+	add.w world_position_state_record_world_x_offset(a2),d0
+	add.w world_position_state_record_world_y_offset(a2),d1
 	addi.w #16,d1
 	moveq.l #8,d2
-	btst.b #5,$0019(a2)
+	btst.b #5,world_position_state_record_world_object_flags(a2)
 	bne.b abs_0_00017E58
 	moveq.l #16,d2
 abs_0_00017E58:
@@ -6450,41 +6452,41 @@ abs_0_00017E74:
 	cmp.w #$2C,d0
 	bcc.b abs_0_00017EC2
 	lea.l abs_0_00059134.l,a3
-	btst.b #5,$0019(a2)
+	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017E90
 	lea.l abs_0_0005916C.l,a3
 abs_0_00017E90:
-	movea.l $0008(a2),a5
-	cmpa.l $0006(a5),a3
+	movea.l world_position_state_record_state_node_ptr(a2),a5
+	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,$0006(a5)
-	bclr.b #0,$000A(a5)
-	bset.b #2,$000A(a5)
-	clr.w $0010(a5)
+	move.l a3,WorldPositionStateNode_position_descriptor_sequence_ptr(a5)
+	bclr.b #0,WorldPositionStateNode_active_flag(a5)
+	bset.b #2,WorldPositionStateNode_active_flag(a5)
+	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a5)
 	move.l a0,-(a7)
 	movea.l (a7)+,a0
 	bra.b abs_0_00017F02
 abs_0_00017EC2:
 	lea.l abs_0_00059150.l,a3
-	btst.b #5,$0019(a2)
+	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017ED6
 	lea.l abs_0_00059188.l,a3
 abs_0_00017ED6:
-	movea.l $0008(a2),a5
-	cmpa.l $0006(a5),a3
+	movea.l world_position_state_record_state_node_ptr(a2),a5
+	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,$0006(a5)
-	bclr.b #0,$000A(a5)
-	bset.b #2,$000A(a5)
-	clr.w $0010(a5)
+	move.l a3,WorldPositionStateNode_position_descriptor_sequence_ptr(a5)
+	bclr.b #0,WorldPositionStateNode_active_flag(a5)
+	bset.b #2,WorldPositionStateNode_active_flag(a5)
+	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a5)
 abs_0_00017F02:
 	dbf.w d7,abs_0_00017E04
 abs_0_00017F06:
@@ -6494,10 +6496,10 @@ abs_0_00017F08:
 	bne.b abs_0_00017F02
 	btst.b #3,app_033C(a6)
 	bne.b abs_0_00017F02
-	move.w $0004(a1),d0
-	move.w $0006(a1),d1
-	add.w $000C(a2),d0
-	add.w $000E(a2),d1
+	move.w world_position_descriptor_prefix_world_x(a1),d0
+	move.w world_position_descriptor_prefix_world_y(a1),d1
+	add.w world_position_state_record_world_x_offset(a2),d0
+	add.w world_position_state_record_world_y_offset(a2),d1
 	moveq.l #16,d4
 	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
 	beq.b abs_0_00017F3A
@@ -6561,16 +6563,16 @@ abs_0_00017FC2:
 	movem.l (a7)+,a0-a3
 	addq.b #1,app_0338(a6)
 abs_0_00017FDE:
-	movea.l $0008(a2),a3
-	bset.b #0,$000A(a3)
-	move.l $0014(a2),d0
+	movea.l world_position_state_record_state_node_ptr(a2),a3
+	bset.b #0,WorldPositionStateNode_active_flag(a3)
+	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FDE
 abs_0_00017FF4:
-	movea.l $0008(a2),a3
-	bclr.b #0,$000A(a3)
-	move.l $0014(a2),d0
+	movea.l world_position_state_record_state_node_ptr(a2),a3
+	bclr.b #0,WorldPositionStateNode_active_flag(a3)
+	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FF4
@@ -6656,12 +6658,12 @@ deposit_item_in_receptacle:
 	clr.l world_position_state_record_attachment_state_ptr(a2)
 	move.b item_receptacle_interaction_data_required_item_definition_id(a3),world_object_shared_prefix_selected_item_id(a4)
 	bsr.w refresh_selected_item_name_display
-	move.b $0046(a4),d0
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$68,d0
 	bne.b abs_0_0001814C
 	bset.b #0,app_033C(a6)
 	bne.b abs_0_0001814C
-	move.w #$5F,$003C(a4)
+	move.w #$5F,world_object_shared_prefix_hit_points(a4)
 	movea.l a4,a5
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
@@ -6846,11 +6848,11 @@ scan_world_objects_for_proximity:
 	move.l (a1)+,d2
 	beq.w update_nearby_object_context
 	movea.l d2,a5
-	movea.l $002C(a5),a0
-	move.w $0030(a5),d2
-	move.w $0032(a5),d3
-	move.w d2,$0004(a0)
-	move.w d3,$0006(a0)
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
+	move.w world_object_shared_prefix_world_x(a5),d2
+	move.w world_object_shared_prefix_world_y(a5),d3
+	move.w d2,world_position_descriptor_prefix_world_x(a0)
+	move.w d3,world_position_descriptor_prefix_world_y(a0)
 	cmpa.l a5,a4
 	beq.w abs_0_000183AA
 	sub.w d4,d2
@@ -6862,33 +6864,33 @@ abs_0_00018334:
 	neg.w d3
 abs_0_0001833A:
 	add.w d2,d3
-	move.w d3,$0042(a5)
-	bclr.b #5,$0048(a5)
+	move.w d3,world_object_shared_prefix_proximity_distance(a5)
+	bclr.b #5,world_object_shared_prefix_world_object_flags(a5)
 	cmp.w d0,d3
 	bcc.b abs_0_000183AA
 	bclr.b #2,app_02A6(a6)
 	move.w d3,d0
 	move.w d0,app_nearest_object_distance(a6)
-	bset.b #5,$0048(a5)
+	bset.b #5,world_object_shared_prefix_world_object_flags(a5)
 	cmpa.l app_nearest_object_ptr(a6),a5
 	beq.b abs_0_000183AA
 	move.l a5,app_nearest_object_ptr(a6)
 	move.l a5,app_02D4(a6)
-	move.w $0052(a5),d0
+	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
 	beq.b abs_0_00018376
 	subq.w #1,d0
-	move.w d0,$0052(a5)
+	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
 abs_0_00018376:
 	bset.b #1,app_02A6(a6)
-	bset.b #2,$0048(a5)
+	bset.b #2,world_object_shared_prefix_world_object_flags(a5)
 	bne.b abs_0_000183AA
-	btst.b #1,$0048(a5)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bne.b abs_0_000183AA
-	tst.l $000C(a5)
+	tst.l world_object_shared_prefix_context_message_ptr(a5)
 	beq.w scan_world_objects_for_proximity
 	movem.l a0-a3,-(a7)
-	move.w #$3C,$0052(a5)
-	movea.l $000C(a5),a0
+	move.w #$3C,world_object_shared_prefix_context_prompt_cooldown(a5)
+	movea.l world_object_shared_prefix_context_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	movem.l (a7)+,a0-a3
 abs_0_000183AA:
@@ -9241,10 +9243,22 @@ abs_0_0001A822:
 	dc.b $FF,$F8,$00,$FF,$FF,$FF,$FF,$FC,$3F,$FF,$FF,$F8,$10,$00,$03,$E1
 	dc.b $FE,$03,$F3,$FF,$FF,$7B,$00,$00,$01,$17,$9E,$FF,$EF,$FF,$8C,$60
 ui_overlay_update_queue:
-	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
-	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
-	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
-	dc.l $00000000,$00000000,$00000000,$00000000	; ui_overlay_descriptor_pointer_table
+	dc.l $00000000	; ui_overlay_descriptor_pointer_table
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
 	dcb.b $50,$00
 	dc.b $0C,$0C,$18
 	dcb.b $62,$00

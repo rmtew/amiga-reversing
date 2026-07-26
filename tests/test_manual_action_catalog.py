@@ -1465,6 +1465,25 @@ def test_target_runtime_observation_view_add_and_remove_command_payloads() -> No
     }
 
 
+def test_target_runtime_data_range_add_and_remove_command_payloads() -> None:
+    parameters = {
+        "runtime_data_range_id": "ui-overlay-descriptors",
+        "runtime_address": 0x132AA,
+        "size": 440,
+        "element_count": 10,
+        "element_stride": 44,
+        "struct_name": "ui_overlay_descriptor",
+        "name": "ui_overlay_descriptors",
+        "observation_provenance": "pandora-world-object-callback-queue",
+    }
+    kind, payload = target_catalog_manual_payload("target.runtime_data_range.add", parameters)
+    assert kind == "create_manual_runtime_data_range"
+    assert payload == {"runtime_data_range": parameters}
+    kind, payload = target_catalog_manual_payload("target.runtime_data_range.remove", parameters)
+    assert kind == "remove_manual_runtime_data_range"
+    assert payload == {"runtime_data_range": {"runtime_data_range_id": "ui-overlay-descriptors", "runtime_address": 0x132AA}}
+
+
 def test_target_custom_struct_add_and_edit_command_payloads() -> None:
     for command_id in ("target.custom_struct.add", "target.custom_struct.edit"):
         kind, payload = target_catalog_manual_payload(

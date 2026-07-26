@@ -113,6 +113,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_remove_action(),
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
+        _target_runtime_data_range_action(),
+        _target_runtime_data_range_remove_action(),
         _target_code_seed_action(),
         _target_seed_remove_action(),
         _target_code_label_action(),
@@ -171,6 +173,10 @@ def target_catalog_manual_payload(
         return "create_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_runtime_observation_view":
         return "remove_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_runtime_data_range":
+        return "create_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_payload(params)}
+    if action.get("action") == "remove_manual_runtime_data_range":
+        return "remove_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_identity_payload(params)}
     if action.get("action") == "create_manual_seed":
         return "create_manual_seed", {"seed": _target_code_seed_payload(params)}
     if action.get("action") == "remove_manual_seed":
@@ -2418,6 +2424,56 @@ def _execution_view_id(
     return f"catalog-execution-view-{source_start:08X}-{source_end:08X}-{base_addr:08X}"
 
 
+def _runtime_data_range_payload(params: Mapping[str, object]) -> dict[str, object]:
+    runtime_address = _optional_int(params.get("runtime_address"))
+    size = _optional_int(params.get("size"))
+    element_count = _optional_int(params.get("element_count"))
+    element_stride = _optional_int(params.get("element_stride"))
+    struct_name = params.get("struct_name")
+    name = params.get("name")
+    observation_provenance = params.get("observation_provenance")
+    if runtime_address is None or size is None or element_count is None or element_stride is None:
+        raise ValueError("create_manual_runtime_data_range requires runtime_address, size, element_count, and element_stride")
+    if runtime_address < 0 or size <= 0 or element_count <= 0 or element_stride <= 0 or size != element_count * element_stride:
+        raise ValueError("create_manual_runtime_data_range requires size == element_count * element_stride")
+    if not isinstance(struct_name, str) or not struct_name.strip() or not isinstance(name, str) or not name.strip():
+        raise ValueError("create_manual_runtime_data_range requires struct_name and name")
+    if not isinstance(observation_provenance, str) or not observation_provenance.strip():
+        raise ValueError("create_manual_runtime_data_range requires observation_provenance")
+    data_range: dict[str, object] = {
+        "runtime_data_range_id": _runtime_data_range_id(params, runtime_address),
+        "runtime_address": runtime_address,
+        "size": size,
+        "element_count": element_count,
+        "element_stride": element_stride,
+        "struct_name": struct_name.strip(),
+        "name": name.strip(),
+        "observation_provenance": observation_provenance.strip(),
+    }
+    comment = params.get("comment")
+    if isinstance(comment, str) and comment.strip():
+        data_range["comment"] = comment.strip()
+    return data_range
+
+
+def _runtime_data_range_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    runtime_address = _optional_int(params.get("runtime_address"))
+    if runtime_address is None or runtime_address < 0:
+        raise ValueError("remove_manual_runtime_data_range requires runtime_address")
+    data_range: dict[str, object] = {"runtime_address": runtime_address}
+    range_id = params.get("runtime_data_range_id")
+    if isinstance(range_id, str) and range_id.strip():
+        data_range["runtime_data_range_id"] = range_id.strip()
+    return data_range
+
+
+def _runtime_data_range_id(params: Mapping[str, object], runtime_address: int) -> str:
+    value = params.get("runtime_data_range_id")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return f"catalog-runtime-data-range-{runtime_address:08X}"
+
+
 def _target_equate_payload(params: Mapping[str, object]) -> dict[str, object]:
     name = str(params.get("name") or "").strip()
     value = _optional_int(params.get("value"))
@@ -3465,7 +3521,6 @@ def _typed_field_parameter_schema() -> dict[str, object]:
                 "default": "scalar",
             },
             "named_base": {"type": "string"},
-            "value_kind": {"type": "string", "enum": ["scalar", "target_pointer", "struct_pointer"], "default": "scalar"},
             **_source_evidence_parameter_properties(),
         },
         "required": ["name", "type", "size"],
@@ -4004,6 +4059,32 @@ def _target_data_block_layout_payload(params: Mapping[str, object]) -> dict[str,
     if isinstance(default_unit, str) and default_unit in {"byte", "word", "long"}:
         layout["default_unit"] = default_unit
     return layout
+
+
+def _runtime_data_range_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "runtime_data_range_id": {"type": "string"},
+            "runtime_address": {"type": "integer", "minimum": 0},
+            "size": {"type": "integer", "minimum": 1},
+            "element_count": {"type": "integer", "minimum": 1},
+            "element_stride": {"type": "integer", "minimum": 1},
+            "struct_name": {"type": "string"},
+            "name": {"type": "string"},
+            "observation_provenance": {"type": "string"},
+            "comment": {"type": "string"},
+        },
+        "required": ["runtime_address", "size", "element_count", "element_stride", "struct_name", "name", "observation_provenance"],
+    }
+
+
+def _runtime_data_range_identity_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"runtime_data_range_id": {"type": "string"}, "runtime_address": {"type": "integer", "minimum": 0}},
+        "required": ["runtime_address"],
+    }
 
 
 def _data_block_layout_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
@@ -5541,6 +5622,24 @@ def _target_runtime_observation_view_remove_action() -> dict[str, object]:
         "Remove runtime observation view",
         "remove_manual_runtime_observation_view",
         _execution_view_identity_parameter_schema(),
+    )
+
+
+def _target_runtime_data_range_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.runtime_data_range.add",
+        "Add typed runtime data range",
+        "create_manual_runtime_data_range",
+        _runtime_data_range_parameter_schema(),
+    )
+
+
+def _target_runtime_data_range_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.runtime_data_range.remove",
+        "Remove typed runtime data range",
+        "remove_manual_runtime_data_range",
+        _runtime_data_range_identity_parameter_schema(),
     )
 
 

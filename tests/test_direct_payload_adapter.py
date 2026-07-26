@@ -62,6 +62,16 @@ def test_entry_context_source_orders_data_then_address_registers() -> None:
     )
 
 
+def test_direct_boot_shim_waits_for_the_shared_session_release_token() -> None:
+    source = adapter.BOOT_SOURCE.read_text(encoding="ascii")
+
+    assert "await_session_release:" in source
+    assert "cmpi.l  #HANDOFF_RELEASE_VALUE,HANDOFF_MARKER" in source
+    assert "move.l  #'FAIL',HANDOFF_MARKER" in source
+    assert "failed_hold:" in source
+    assert adapter.HANDOFF_RELEASE_VALUE == 0x474F2121
+
+
 def test_load_contract_rejects_missing_entry_registers(tmp_path) -> None:
     (tmp_path / "test.json").write_text(
         """{"identifier":"test","target_id":"target","payload_sha256":"0000000000000000000000000000000000000000000000000000000000000000","load_address":"0x10000","entrypoint":"0x10000","handoff_marker_address":"0x7fff8","handoff_marker_value":"0x48414e44"}""",

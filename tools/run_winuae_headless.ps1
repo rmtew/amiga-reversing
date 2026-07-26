@@ -30,6 +30,8 @@ param(
 
     [switch]$ObservationMemoryWriteWatch,
 
+    [string]$DirectPayloadContract,
+
     [string]$ScenarioPath,
 
     [ValidateRange(1, 120)]
@@ -209,6 +211,9 @@ try {
         }
         if ($ObservationMemoryWriteWatch) {
             $gdbArgs += '--observation-memory-write-watch'
+        }
+        if ($DirectPayloadContract) {
+            $gdbArgs += '--direct-payload-contract', $DirectPayloadContract
         }
         if ($resolvedScenarioPath) {
             $gdbArgs += '--scenario', $resolvedScenarioPath

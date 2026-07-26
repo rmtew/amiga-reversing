@@ -7,6 +7,6 @@
   "entry_registers": {
     "a1": "0x20000"
   },
-  "handoff_marker_address": "0xc7fff8",
+  "handoff_marker_address": "0x7fff8",
   "handoff_marker_value": "0x48414e44"
 }

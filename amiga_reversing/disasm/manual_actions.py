@@ -182,6 +182,8 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     CREATE_MANUAL_RUNTIME_OBSERVATION_VIEW = "create_manual_runtime_observation_view"
     REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW = "remove_manual_runtime_observation_view"
+    CREATE_MANUAL_RUNTIME_DATA_RANGE = "create_manual_runtime_data_range"
+    REMOVE_MANUAL_RUNTIME_DATA_RANGE = "remove_manual_runtime_data_range"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -237,6 +239,8 @@ class ManualActionLogProjection:
     removed_execution_views: tuple[dict[str, object], ...]
     runtime_observation_views: tuple[dict[str, object], ...]
     removed_runtime_observation_views: tuple[dict[str, object], ...]
+    runtime_data_ranges: tuple[dict[str, object], ...]
+    removed_runtime_data_ranges: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
     resolutions: tuple[dict[str, object], ...]
     active_action_ids: tuple[str, ...]
@@ -423,6 +427,8 @@ def _empty_projection(
         removed_execution_views=(),
         runtime_observation_views=(),
         removed_runtime_observation_views=(),
+        runtime_data_ranges=(),
+        removed_runtime_data_ranges=(),
         review_notes=(),
         resolutions=(),
         active_action_ids=(),
@@ -1031,6 +1037,13 @@ def _execution_view_key(view: dict[str, object]) -> tuple[int, int, int]:
     if source_start < 0 or source_end <= source_start or base_addr < 0:
         raise ValueError("execution_view has invalid source/runtime range")
     return source_start, source_end, base_addr
+
+
+def _runtime_data_range_key(data_range: dict[str, object]) -> int:
+    runtime_address = _manual_seed_int(data_range, "runtime_address")
+    if runtime_address is None or runtime_address < 0:
+        raise ValueError("runtime_data_range requires non-negative runtime_address")
+    return runtime_address
 
 
 def _rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str, int]:
@@ -1743,6 +1756,8 @@ def _project_actions(
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
+    runtime_data_ranges: dict[int, dict[str, object]] = {}
+    removed_runtime_data_ranges: dict[int, dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
@@ -2047,6 +2062,19 @@ def _project_actions(
             removed = dict(existing_view or view)
             removed["cleanup_action_id"] = action.action_id
             removed_runtime_observation_views[view_key] = removed
+        elif action.kind is ManualActionKind.CREATE_MANUAL_RUNTIME_DATA_RANGE:
+            data_range = dict(_action_object(action, "runtime_data_range"))
+            data_range["owner_action_id"] = action.action_id
+            range_key = _runtime_data_range_key(data_range)
+            removed_runtime_data_ranges.pop(range_key, None)
+            runtime_data_ranges[range_key] = data_range
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_RUNTIME_DATA_RANGE:
+            data_range = _action_object(action, "runtime_data_range")
+            range_key = _runtime_data_range_key(data_range)
+            existing_range = runtime_data_ranges.pop(range_key, None)
+            removed = dict(existing_range or data_range)
+            removed["cleanup_action_id"] = action.action_id
+            removed_runtime_data_ranges[range_key] = removed
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -2115,6 +2143,8 @@ def _project_actions(
         removed_execution_views=tuple(removed_execution_views.values()),
         runtime_observation_views=tuple(runtime_observation_views.values()),
         removed_runtime_observation_views=tuple(removed_runtime_observation_views.values()),
+        runtime_data_ranges=tuple(runtime_data_ranges.values()),
+        removed_runtime_data_ranges=tuple(removed_runtime_data_ranges.values()),
         review_notes=tuple(review_notes.values()),
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),

@@ -10,17 +10,17 @@
     },
     {
       "name": "title_menu_loop",
-      "breakpoint_stable_key": "s0:00000BA8:instruction:1014",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
       "wait_seconds": 20
     },
     {
       "name": "gameplay_loop",
-      "breakpoint_stable_key": "s0:000005D6:instruction:640",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
       "wait_seconds": 20
     },
     {
       "name": "inventory_input_handler",
-      "breakpoint_stable_key": "s0:000028D4:instruction:2461",
+      "breakpoint_stable_key": "s0:000028D4:instruction",
       "wait_seconds": 20,
       "transition": "enter_function",
       "capture": {

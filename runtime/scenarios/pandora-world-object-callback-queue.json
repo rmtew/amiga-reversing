@@ -10,41 +10,55 @@
     },
     {
       "name": "title_menu_loop",
-      "breakpoint_stable_key": "s0:00000BA8:instruction:1014",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
       "wait_seconds": 20
     },
     {
       "name": "ui_overlay_initialization",
-      "breakpoint_stable_key": "s0:0000079E:instruction:764",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
       "wait_seconds": 20
     },
     {
       "name": "ui_overlay_enqueue",
-      "breakpoint_stable_key": "s0:000066A0:instruction:4514",
+      "breakpoint_stable_key": "s0:000066A0:instruction",
       "wait_seconds": 20,
       "transition": "enter_function",
       "capture": {
         "registers": ["a5"],
         "memory_reads": [
+          {"address": 78506, "size": 64},
+          {"address": 78570, "size": 64},
+          {"address": 78634, "size": 64},
+          {"address": 78698, "size": 64},
+          {"address": 78762, "size": 64},
+          {"address": 78826, "size": 64},
+          {"address": 78890, "size": 56},
           {"address": 108642, "size": 64}
         ]
       }
     },
     {
       "name": "ui_overlay_queue_process",
-      "breakpoint_stable_key": "s0:00006676:instruction:4496",
+      "breakpoint_stable_key": "s0:00006676:instruction",
       "wait_seconds": 20,
       "transition": "enter_function",
       "capture": {
         "registers": ["a5"],
         "memory_reads": [
+          {"address": 78506, "size": 64},
+          {"address": 78570, "size": 64},
+          {"address": 78634, "size": 64},
+          {"address": 78698, "size": 64},
+          {"address": 78762, "size": 64},
+          {"address": 78826, "size": 64},
+          {"address": 78890, "size": 56},
           {"address": 108642, "size": 64}
         ]
       }
     },
     {
       "name": "gameplay_loop",
-      "breakpoint_stable_key": "s0:000005D6:instruction:640",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
       "wait_seconds": 20
     }
   ],
@@ -52,7 +66,7 @@
     {
       "after_phase": "title_menu_loop",
       "control": "port1 fire",
-      "release_after_phase": "world_callback_initialization"
+      "release_after_phase": "ui_overlay_initialization"
     }
   ]
 }

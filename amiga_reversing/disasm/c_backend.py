@@ -784,12 +784,14 @@ def build_listing_artifact_profile_from_binary_source(
         return int(total_rows) if isinstance(total_rows, int) else 0, profile, artifact
     metadata_text = _metadata_path_text(metadata_path)
     runtime_observation_views = _runtime_observation_views_from_metadata_path(metadata_path)
+    runtime_data_ranges = _runtime_data_ranges_from_metadata_path(metadata_path)
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
         artifact = CListingArtifact.create(
             source_file,
             metadata_text=metadata_text,
             runtime_observation_views=runtime_observation_views,
+            runtime_data_ranges=runtime_data_ranges,
             include_dir=str(include_dir),
             project_root=project_root,
         )
@@ -1035,6 +1037,32 @@ def _runtime_observation_views_from_metadata_path(metadata_path: Path | None) ->
             continue
         views.append(dict(raw_view))
     return tuple(views)
+
+
+def _runtime_data_ranges_from_metadata_path(metadata_path: Path | None) -> tuple[dict[str, object], ...]:
+    if metadata_path is None or not metadata_path.exists():
+        return ()
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ()
+    raw_ranges = payload.get("runtime_data_ranges") if isinstance(payload, dict) else None
+    if not isinstance(raw_ranges, list):
+        return ()
+    ranges: list[dict[str, object]] = []
+    for raw_range in raw_ranges:
+        if not isinstance(raw_range, dict):
+            continue
+        values = tuple(raw_range.get(key) for key in ("runtime_address", "size", "element_count", "element_stride"))
+        if not all(isinstance(value, int) and not isinstance(value, bool) for value in values):
+            continue
+        runtime_address, size, element_count, element_stride = cast(tuple[int, int, int, int], values)
+        if runtime_address < 0 or size <= 0 or element_count <= 0 or element_stride <= 0 or size != element_count * element_stride:
+            continue
+        if not all(isinstance(raw_range.get(key), str) and raw_range[key].strip() for key in ("runtime_data_range_id", "struct_name", "name", "observation_provenance")):
+            continue
+        ranges.append(dict(raw_range))
+    return tuple(ranges)
 
 
 def _entry_offsets_text(entry_offset_args: tuple[str, ...]) -> str:
@@ -1660,10 +1688,11 @@ class _CBackendSourceFile:
 
 
 class CListingArtifact:
-    def __init__(self, dll: CDLL, handle: c_void_p, *, runtime_observation_views: tuple[dict[str, object], ...] = ()) -> None:
+    def __init__(self, dll: CDLL, handle: c_void_p, *, runtime_observation_views: tuple[dict[str, object], ...] = (), runtime_data_ranges: tuple[dict[str, object], ...] = ()) -> None:
         self._dll = dll
         self._handle = handle
         self._runtime_observation_views = runtime_observation_views
+        self._runtime_data_ranges = runtime_data_ranges
 
     @classmethod
     def create(
@@ -1672,6 +1701,7 @@ class CListingArtifact:
         *,
         metadata_text: str,
         runtime_observation_views: tuple[dict[str, object], ...] = (),
+        runtime_data_ranges: tuple[dict[str, object], ...] = (),
         include_dir: str,
         project_root: Path,
     ) -> CListingArtifact:
@@ -1703,7 +1733,7 @@ class CListingArtifact:
             error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
             if result != 0 or not artifact.value:
                 raise RuntimeError(f"C backend DLL failed: {error_text}")
-            return cls(dll, artifact, runtime_observation_views=runtime_observation_views)
+            return cls(dll, artifact, runtime_observation_views=runtime_observation_views, runtime_data_ranges=runtime_data_ranges)
         finally:
             if error.value:
                 dll.platform_file_free_text(error)
@@ -1907,6 +1937,23 @@ class CListingArtifact:
         return row
 
     def row_for_runtime_address(self, *, address: int) -> dict[str, object] | None:
+        # A typed runtime allocation describes the current RAM contents and
+        # therefore shadows any broad source-image observation view.
+        for data_range in self._runtime_data_ranges:
+            runtime_address = cast(int, data_range["runtime_address"])
+            size = cast(int, data_range["size"])
+            if address < runtime_address or address >= runtime_address + size:
+                continue
+            element_stride = cast(int, data_range["element_stride"])
+            range_offset = address - runtime_address
+            return {
+                "runtime_address": address,
+                "runtime_data_range": dict(data_range),
+                "runtime_range_offset": range_offset,
+                "runtime_element_index": range_offset // element_stride,
+                "runtime_element_offset": range_offset % element_stride,
+                "struct_name": data_range["struct_name"],
+            }
         combined = cast(
             dict[str, object],
             json.loads(

@@ -65,7 +65,8 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"Catalog command not found: {args.action_id}")
     if args.command == "invoke":
         parameters = _parse_params(args.param)
-        _open_and_wait_for_listing(args.project, args.listing_timeout_seconds)
+        if _context_requires_listing(args.context):
+            _open_and_wait_for_listing(args.project, args.listing_timeout_seconds)
         body = {
             "command_id": args.action_id,
             "context": _context_body(args),
@@ -81,7 +82,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "invoke-batch":
         actions = _parse_batch_actions(args.action)
-        _open_and_wait_for_listing(args.project, args.listing_timeout_seconds)
         results: list[object] = []
         for action in actions:
             payload = server.route_request(
@@ -97,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _open_and_wait_for_listing(project: str, timeout_seconds: float) -> None:
-    """Establish the listing session required by all manual-action commands."""
+    """Establish the listing session required by locator-backed commands."""
     opened = server.route_request("POST", f"/api/projects/{project}/listing/open", {}, {})
     job = opened.get("data")
     if not isinstance(job, dict):
@@ -125,6 +125,10 @@ def _open_and_wait_for_listing(project: str, timeout_seconds: float) -> None:
         if not isinstance(data, dict):
             raise SystemExit("listing/status returned malformed job")
         current = data
+
+
+def _context_requires_listing(context: str) -> bool:
+    return context in {"review-item", "row", "element", "range"}
 
 
 def _add_context_args(parser: argparse.ArgumentParser) -> None:

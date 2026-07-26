@@ -40,6 +40,7 @@ class HeadlessWinUaeSession:
     observation_memory_address: int | None = None
     observation_memory_equals: bytes | None = None
     observation_memory_write_watch: bool = False
+    direct_payload_contract: str | None = None
     breakpoint_source_offset: int | None = None
     breakpoint_runtime_address: int | None = None
     scenario_path: Path | None = None
@@ -82,6 +83,8 @@ class HeadlessWinUaeSession:
             command.extend(("-ObservationMemoryEquals", self.observation_memory_equals.hex()))
         if self.observation_memory_write_watch:
             command.append("-ObservationMemoryWriteWatch")
+        if self.direct_payload_contract is not None:
+            command.extend(("-DirectPayloadContract", self.direct_payload_contract))
         if self.scenario_path is not None:
             command.extend(("-ScenarioPath", str(self.scenario_path)))
         return command
@@ -391,6 +394,7 @@ def main(argv: list[str] | None = None) -> int:
     observation_memory_address = args.observation_memory_address
     observation_memory_equals = observation_memory_equals
     observation_memory_write_watch = args.observation_memory_write_watch
+    direct_payload_contract = None
     if args.direct_payload_contract:
         contract = load_contract(args.direct_payload_contract)
         output = args.state_directory / f"direct-payload-{contract.identifier}.adf"
@@ -399,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
         observation_memory_address = contract.handoff_marker_address
         observation_memory_equals = contract.handoff_marker_value.to_bytes(4, "big")
         observation_memory_write_watch = True
+        direct_payload_contract = contract.identifier
     compiled_scenario = None
     scenario_output = None
     if args.scenario:
@@ -417,6 +422,7 @@ def main(argv: list[str] | None = None) -> int:
         observation_memory_address=observation_memory_address,
         observation_memory_equals=observation_memory_equals,
         observation_memory_write_watch=observation_memory_write_watch,
+        direct_payload_contract=direct_payload_contract,
         breakpoint_source_offset=breakpoint_row["start_offset"] if breakpoint_row is not None and "runtime_breakpoint_address" not in breakpoint_row else None,
         breakpoint_runtime_address=breakpoint_row.get("runtime_breakpoint_address") if breakpoint_row is not None else None,
         scenario_path=scenario_output,

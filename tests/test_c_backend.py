@@ -7676,6 +7676,55 @@ def test_listing_artifact_runtime_observation_view_maps_pc_without_source_view(t
     }
 
 
+def test_listing_artifact_runtime_data_range_returns_typed_element_coordinate(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    data_range = {
+        "runtime_data_range_id": "descriptors", "runtime_address": 0x132AA,
+        "size": 440, "element_count": 10, "element_stride": 44,
+        "struct_name": "ui_overlay_descriptor", "name": "ui_overlay_descriptors",
+        "observation_provenance": "bounded-scenario",
+    }
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(binary_path, "amiga-raw", 0), metadata_text="",
+        runtime_data_ranges=(data_range,), include_dir="", project_root=PROJECT_ROOT,
+    )
+    try:
+        row = artifact.row_for_runtime_address(address=0x132AA + 44 + 6)
+    finally:
+        artifact.close()
+    assert row == {
+        "runtime_address": 0x132AA + 44 + 6, "runtime_data_range": data_range,
+        "runtime_range_offset": 50, "runtime_element_index": 1, "runtime_element_offset": 6,
+        "struct_name": "ui_overlay_descriptor",
+    }
+
+
+def test_runtime_data_range_shadows_overlapping_runtime_observation_view(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    data_range = {
+        "runtime_data_range_id": "descriptors", "runtime_address": 0x10000,
+        "size": 44, "element_count": 1, "element_stride": 44,
+        "struct_name": "ui_overlay_descriptor", "name": "ui_overlay_descriptors",
+        "observation_provenance": "bounded-scenario",
+    }
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(binary_path, "amiga-raw", 0), metadata_text="",
+        runtime_observation_views=({"execution_view_id": "source-image", "source_start": 0, "source_end": 2, "base_addr": 0x10000, "name": "source image"},),
+        runtime_data_ranges=(data_range,), include_dir="", project_root=PROJECT_ROOT,
+    )
+    try:
+        row = artifact.row_for_runtime_address(address=0x10000)
+    finally:
+        artifact.close()
+    assert row is not None
+    assert row["runtime_data_range"] == data_range
+    assert "runtime_observation_view" not in row
+
+
 def test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org() -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths(

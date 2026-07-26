@@ -168,7 +168,6 @@ def test_review_note_actions_project_notes_and_review_items(tmp_path: Path) -> N
             _action("a2", 2, "edit_review_note", note_id="note-1", title="Check branch target"),
         ],
     )
-
     projection = load_manual_projection(target_dir)
 
     assert projection.review_state == "needs_review"
@@ -287,7 +286,7 @@ def test_manual_action_log_projects_data_symbol_rename_as_seed_override(tmp_path
             ),
         ],
     )
-
+    projection = load_manual_projection(target_dir)
     projection = load_manual_projection(target_dir)
 
     assert projection.seeds == (
@@ -1128,9 +1127,7 @@ def test_manual_action_log_projects_runtime_observation_view(tmp_path: Path) -> 
             ),
         ],
     )
-
     projection = load_manual_projection(target_dir)
-
     assert projection.execution_views == ()
     assert projection.runtime_observation_views == (
         {
@@ -1143,6 +1140,29 @@ def test_manual_action_log_projects_runtime_observation_view(tmp_path: Path) -> 
         },
     )
 
+
+def test_manual_action_log_projects_and_removes_runtime_data_range(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    header = {"record": "manual_action_log_header", "version": 1, "target_identity": {}}
+    data_range = {
+        "runtime_data_range_id": "ui-overlay-descriptors",
+        "runtime_address": 0x132AA,
+        "size": 440,
+        "element_count": 10,
+        "element_stride": 44,
+        "struct_name": "ui_overlay_descriptor",
+        "name": "ui_overlay_descriptors",
+        "observation_provenance": "pandora-world-object-callback-queue",
+    }
+    _append_jsonl(target_dir / MANUAL_ACTION_LOG_FILE_NAME, [
+        header,
+        _action("a1", 1, "create_manual_runtime_data_range", runtime_data_range=data_range),
+        _action("a2", 2, "remove_manual_runtime_data_range", runtime_data_range={"runtime_address": 0x132AA}),
+    ])
+    projection = load_manual_projection(target_dir)
+    assert projection.runtime_data_ranges == ()
+    assert projection.removed_runtime_data_ranges == ({**data_range, "owner_action_id": "a1", "cleanup_action_id": "a2"},)
 
 def test_manual_action_log_projects_rsset_layout_region(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"

@@ -2218,6 +2218,29 @@ def test_command_manual_action_execute_appends_target_equate_action(
     assert appended_actions == [action]
 
 
+def test_command_manual_action_execute_appends_typed_runtime_data_range(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    parameters = {
+        "runtime_data_range_id": "ui-overlay-descriptors", "runtime_address": 0x132AA,
+        "size": 440, "element_count": 10, "element_stride": 44,
+        "struct_name": "ui_overlay_descriptor", "name": "ui_overlay_descriptors",
+        "observation_provenance": "bounded-scenario",
+    }
+    payload, appended_actions = _execute_manual_command_fixture(
+        monkeypatch, tmp_path, command_id="target.runtime_data_range.add",
+        context={"kind": "target"}, parameters=parameters,
+    )
+    action = cast(dict[str, object], payload["action"])
+    data_range = cast(dict[str, object], cast(dict[str, object], action["payload"])["runtime_data_range"])
+    application = cast(dict[str, object], payload["application"])
+    assert action["kind"] == "create_manual_runtime_data_range"
+    assert data_range == parameters
+    assert application["local_effects"] == [{"kind": "runtime_data_range", "runtime_data_range": parameters}]
+    assert appended_actions == [action]
+
+
 @pytest.mark.parametrize(
     ("command_id", "parameters", "action_kind", "local_effect_kind", "expected_equate"),
     [

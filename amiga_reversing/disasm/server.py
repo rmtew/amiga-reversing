@@ -2652,9 +2652,9 @@ def _execute_manual_action_command(
     workflow_profile: WorkflowProfile | None = None,
 ) -> dict[str, object]:
     project = get_project(project_name)
-    if project.kind is not ProjectKind.BINARY or not project.ready:
-        raise ValueError(f"Project {project_name} is not ready for manual review actions")
     context_kind = context.get("kind")
+    if project.kind is not ProjectKind.BINARY or (context_kind != "target" and not project.ready):
+        raise ValueError(f"Project {project_name} is not ready for manual review actions")
     if context_kind == "review_item":
         item = _catalog_review_item(project_name, cast(str, context.get("item_id")), None)
         kind, action_payload = review_item_catalog_manual_payload(item, action_id, parameters)
@@ -3026,6 +3026,14 @@ def _manual_action_application_payload(
         view = action_payload.get("runtime_observation_view")
         if isinstance(view, Mapping):
             local_effects.append({"kind": "runtime_observation_view_remove", "runtime_observation_view": dict(view)})
+    elif kind == "create_manual_runtime_data_range":
+        data_range = action_payload.get("runtime_data_range")
+        if isinstance(data_range, Mapping):
+            local_effects.append({"kind": "runtime_data_range", "runtime_data_range": dict(data_range)})
+    elif kind == "remove_manual_runtime_data_range":
+        data_range = action_payload.get("runtime_data_range")
+        if isinstance(data_range, Mapping):
+            local_effects.append({"kind": "runtime_data_range_remove", "runtime_data_range": dict(data_range)})
     elif kind == "add_review_note":
         note = action_payload.get("note")
         if isinstance(note, Mapping):

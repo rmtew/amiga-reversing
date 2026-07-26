@@ -10,7 +10,7 @@
     },
     {
       "name": "relocated_payload_entry",
-      "breakpoint_stable_key": "s0:0000046A:instruction:555",
+      "breakpoint_stable_key": "s0:0000046A:instruction",
       "wait_seconds": 20
     }
   ],

@@ -19,6 +19,7 @@ NDK_INCLUDE = ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"
 ADF_SIZE = 901_120
 SECTOR_SIZE = 512
 BOOT_BLOCK_SIZE = SECTOR_SIZE * 2
+HANDOFF_RELEASE_VALUE = 0x474F2121  # "GO!!", the shared headless-session release token.
 PAYLOAD_DISK_OFFSET = BOOT_BLOCK_SIZE
 
 
@@ -134,6 +135,7 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
         "PAYLOAD_DISK_OFFSET": PAYLOAD_DISK_OFFSET,
         "HANDOFF_MARKER": contract.handoff_marker_address,
         "HANDOFF_VALUE": contract.handoff_marker_value,
+        "HANDOFF_RELEASE_VALUE": HANDOFF_RELEASE_VALUE,
     }
     context_path = output_path.parent / "direct_payload_entry_context.i"
     context_path.write_text(entry_context_source(contract.entry_registers), encoding="ascii")

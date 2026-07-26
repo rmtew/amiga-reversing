@@ -28,7 +28,6 @@ from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
     AbsoluteCodeLabelMetadata,
     CallbackTableSignatureMetadata,
-    FunctionRegisterContractMetadata,
     CustomStructFieldMetadata,
     CustomStructMetadata,
     DataBlockElementKind,
@@ -38,6 +37,7 @@ from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedKind,
     EntryRegisterSeedMetadata,
     ExecutionViewMetadata,
+    FunctionRegisterContractMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
     ManualRuntimeAddressRefMetadata,
@@ -1358,6 +1358,12 @@ def _data_block_element_entity(
     comment = layout.role
     value_domain = _data_block_bound_value_domain(element)
     pointer_struct = _data_block_bound_pointer_struct(element)
+    # A pointee contract makes this element a pointer table independently of
+    # the human-facing layout role.  The C analysis consumes this canonical
+    # subtype to retain the pointee type through table loads; using a
+    # target-specific role here drops that semantic contract at the metadata
+    # boundary.
+    subtype = "pointer_table" if pointer_struct is not None else layout.role
     return SeededEntityMetadata(
         addr=addr,
         end=end,
@@ -1365,7 +1371,7 @@ def _data_block_element_entity(
         name=name,
         comment=comment,
         type="data",
-        subtype=layout.role,
+        subtype=subtype,
         unit=_data_block_element_unit(layout, element),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
@@ -2345,6 +2351,8 @@ def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool 
         )
         payload["execution_views"] = execution_views
         payload["runtime_observation_views"] = observations
+    if projection.runtime_data_ranges:
+        payload["runtime_data_ranges"] = [dict(data_range) for data_range in projection.runtime_data_ranges]
     _add_source_context(target_dir, payload)
     _add_source_descriptor_execution_view(target_dir, payload)
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
