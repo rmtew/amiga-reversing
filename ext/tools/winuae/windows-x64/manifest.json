@@ -5,8 +5,8 @@
   "tools": [
     {
       "file": "winuae-gdb.exe",
-      "sha256": "759A7F89223110C86193F2021D6C47B04FBB145E45C39387D7CA19E3AE24F377",
-      "size_bytes": 28682752,
+      "sha256": "3AC0D5E1D10E684DE1DFDAA1939D42EBE5CE256E4A9890684B3457505C31DC67",
+      "size_bytes": 28675072,
       "role": "Strict-headless WinUAE emulator with Bartman GDB server",
       "source_repository": "https://github.com/BartmanAbyss/WinUAE.git",
       "source_base_commit": "b34884cc25e561eecac5dcec70cac97d6b12b2d9",
@@ -14,7 +14,8 @@
         "d7853f49 Make local WinUAE build paths portable",
         "353046b4 Add strict headless host startup",
         "539f3260 Write runtime executable to tracked ext bundle",
-        "a3b85de3 Harden first-run headless startup"
+        "a3b85de3 Harden first-run headless startup",
+        "40902ffd Fix fresh-state headless startup"
       ],
       "build": {
         "project": "od-win32/winuae_msvc15/winuae_msvc.vcxproj",
