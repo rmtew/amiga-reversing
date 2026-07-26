@@ -2415,8 +2415,130 @@ def _all_listing_rows(project_name: str) -> list[dict[str, object]]:
             continue
         row = dict(raw_row)
         row.setdefault("row_index", index)
+        row_key = row.get("row_key") or row.get("stable_key") or row.get("row_id")
+        if isinstance(row_key, str) and row_key:
+            row["row_key"] = row_key
+            row["stable_key"] = row_key
         resolved.append(row)
     return resolved
+
+
+def _unresolved_typed_access_report_payload(
+    project_name: str,
+    query: Mapping[str, list[str]],
+) -> dict[str, object]:
+    """Return the analysis-backed work queue for missing struct fields.
+
+    Listing rows already carry unresolved typed accesses, but consumers had to
+    scan the rendered source or page every listing window to find them.  Keep
+    the report strictly a projection of those row facts so each occurrence
+    retains the normal locator and element identity required by the existing
+    typed-field command path.
+    """
+    requested_struct = _first_query_value(query, "struct_name")
+    requested_base = _first_query_value(query, "base_register")
+    requested_classification = _first_query_value(query, "classification")
+    limit = _parse_int_arg(query, "limit")
+    if limit is not None and limit < 1:
+        raise ValueError("limit must be positive")
+    normalized_base = requested_base.upper() if requested_base else None
+    projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
+        project_id=project_name,
+        current_cache_key=_project_listing_cache_key(project_name),
+    )
+    grouped: dict[tuple[str, int | None, str, int | None, str | None], dict[str, object]] = {}
+    occurrence_count = 0
+    for row in _all_listing_rows(project_name):
+        row["stable_key"] = row.get("row_key")
+        for context in listing_element_contexts(row):
+            if context.get("element_kind") != "typed_gap":
+                continue
+            root_struct_name = context.get("root_struct_name")
+            base_register = context.get("base_register")
+            classification = context.get("classification")
+            if not isinstance(root_struct_name, str) or not root_struct_name:
+                continue
+            if requested_struct and root_struct_name != requested_struct:
+                continue
+            if normalized_base and base_register != normalized_base:
+                continue
+            if requested_classification and classification != requested_classification:
+                continue
+            displacement = context.get("displacement")
+            struct_size = context.get("struct_size")
+            refined_struct_name = context.get("refined_struct_name")
+            group_key = (
+                root_struct_name,
+                displacement if isinstance(displacement, int) else None,
+                base_register if isinstance(base_register, str) else "",
+                struct_size if isinstance(struct_size, int) else None,
+                refined_struct_name if isinstance(refined_struct_name, str) else None,
+            )
+            group = grouped.setdefault(
+                group_key,
+                {
+                    "root_struct_name": root_struct_name,
+                    "displacement": displacement,
+                    "base_register": base_register,
+                    "struct_size": struct_size,
+                    "classification": classification,
+                    "refined_struct_name": refined_struct_name,
+                    "occurrences": [],
+                },
+            )
+            locator = _LISTING_PROJECTION_SERVICE.locator_for_row(
+                target_id=project_name,
+                projection_hash=projection_hash,
+                row=row,
+            ).to_dict()
+            occurrence = {
+                "locator": locator,
+                "element_id": context.get("element_id"),
+                "operand_index": context.get("operand_index"),
+                "section_index": row.get("section_index"),
+                "source_offset": row.get("start_offset"),
+                "runtime_address": row.get("runtime_address"),
+                "text": str(row.get("text") or "").strip(),
+            }
+            cast(list[dict[str, object]], group["occurrences"]).append(
+                {key: value for key, value in occurrence.items() if value is not None}
+            )
+            occurrence_count += 1
+    groups = sorted(
+        grouped.values(),
+        key=lambda group: (
+            str(group["root_struct_name"]),
+            int(group["displacement"]) if isinstance(group["displacement"], int) else -1,
+            str(group["base_register"] or ""),
+        ),
+    )
+    if limit is not None:
+        groups = groups[:limit]
+    for group in groups:
+        occurrences = cast(list[dict[str, object]], group["occurrences"])
+        occurrences.sort(
+            key=lambda occurrence: (
+                int(occurrence.get("section_index") or -1),
+                int(occurrence.get("source_offset") or -1),
+                int(occurrence.get("operand_index") or -1),
+            )
+        )
+        group["occurrence_count"] = len(occurrences)
+    return {
+        "projection_hash": projection_hash,
+        "filters": {
+            key: value
+            for key, value in {
+                "struct_name": requested_struct,
+                "base_register": normalized_base,
+                "classification": requested_classification,
+            }.items()
+            if value is not None
+        },
+        "total_group_count": len(grouped),
+        "total_occurrence_count": occurrence_count,
+        "groups": groups,
+    }
 
 
 def _execute_command(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
@@ -3751,6 +3873,23 @@ def route_request(
                     payload=annotated_payload,
                 ),
             }
+        if (
+            method == "GET"
+            and len(parts) == 6
+            and parts[3] == "analysis"
+            and parts[4] == "typed-accesses"
+            and parts[5] == "unresolved"
+        ):
+            project = get_project(project_name)
+            if not _is_listing_project(project):
+                raise ValueError(
+                    f"Project {project_name} does not expose a disassembly listing"
+                )
+            if not project.ready:
+                raise ValueError(
+                    f"Project {project_name} is not ready for typed-access analysis"
+                )
+            return {"ok": True, "data": _unresolved_typed_access_report_payload(project_name, query)}
         if (
             method == "GET"
             and len(parts) == 5

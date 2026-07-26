@@ -114,11 +114,15 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
         _target_code_seed_action(),
-        _target_code_seed_remove_action(),
+        _target_seed_remove_action(),
         _target_code_label_action(),
         _target_code_label_remove_action(),
         _target_code_register_seed_action(),
         _target_code_register_seed_remove_action(),
+        _target_callback_table_signature_action(),
+        _target_callback_table_signature_remove_action(),
+        _target_function_register_contract_action(),
+        _target_function_register_contract_remove_action(),
         _target_data_block_layout_action(),
         _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
@@ -179,6 +183,22 @@ def target_catalog_manual_payload(
         return "create_manual_register_seed", {"register_seed": _target_code_register_seed_payload(params)}
     if action.get("action") == "remove_manual_register_seed":
         return "remove_manual_register_seed", {"register_seed_id": str(params["register_seed_id"])}
+    if action.get("action") == "create_manual_callback_table_signature":
+        return "create_manual_callback_table_signature", {
+            "callback_table_signature": _target_callback_table_signature_payload(params)
+        }
+    if action.get("action") == "remove_manual_callback_table_signature":
+        return "remove_manual_callback_table_signature", {
+            "callback_table_signature_id": str(params["callback_table_signature_id"])
+        }
+    if action.get("action") == "create_manual_function_register_contract":
+        return "create_manual_function_register_contract", {
+            "function_register_contract": _target_function_register_contract_payload(params)
+        }
+    if action.get("action") == "remove_manual_function_register_contract":
+        return "remove_manual_function_register_contract", {
+            "function_register_contract_id": str(params["function_register_contract_id"])
+        }
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
     if action.get("action") == "remove_manual_data_block_layout":
@@ -322,6 +342,14 @@ def listing_row_action_catalog(
             {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
             _data_name_parameter_schema(),
             "F2",
+        ),
+        _context_log_action(
+            "row.seed.data.named_string",
+            "Name string",
+            "create_manual_seed",
+            context,
+            {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+            _data_name_parameter_schema(),
         ),
         _context_log_action(
             "row.seed.data.byte",
@@ -1246,7 +1274,7 @@ def _row_data_role_actions(context: Mapping[str, object]) -> list[dict[str, obje
 
 
 def _range_data_role_actions(context: Mapping[str, object], rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
-    return [
+    actions = [
         _range_seed_action(
             f"range.seed.data.{spec['role']}",
             spec["label"],
@@ -1257,6 +1285,18 @@ def _range_data_role_actions(context: Mapping[str, object], rows: list[Mapping[s
         )
         for spec in _DATA_ROLE_COMMANDS
     ]
+    actions.append(
+        _range_seed_action(
+            "range.seed.data.named_string",
+            "Name string",
+            context,
+            rows,
+            {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+            _row_allows_data_seed,
+            _data_name_end_parameter_schema(),
+        )
+    )
+    return actions
 
 
 def _data_block_layout_parameter_schema() -> dict[str, object]:
@@ -3366,6 +3406,17 @@ def _data_name_parameter_schema() -> dict[str, object]:
     }
 
 
+def _data_name_end_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "end": {"type": "integer", "minimum": 1},
+        },
+        "required": ["name", "end"],
+    }
+
+
 def _app_slot_rename_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -3374,9 +3425,10 @@ def _app_slot_rename_parameter_schema() -> dict[str, object]:
             "size": {"type": "integer", "minimum": 1, "maximum": 255},
             "storage_kind": {
                 "type": "string",
-                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer", "byte_array"],
+                  "enum": ["scalar", "pointer", "pointer_table", "struct_instance", "struct_pointer", "byte_array"],
             },
-            "semantic_type": {"type": "string"},
+              "semantic_type": {"type": "string"},
+              "pointer_struct": {"type": "string"},
             "parser_role": {"type": "string"},
             "parser_routine": {"type": "string"},
             "parse_order": {"type": "integer", "minimum": 0},
@@ -3680,9 +3732,9 @@ def _rsset_layout_region_parameter_schema() -> dict[str, object]:
             "sizeof_symbol": {"type": "string"},
             "struct_name": {"type": "string"},
             "pointer_struct": {"type": "string"},
-            "storage_kind": {
-                "type": "string",
-                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer", "byte_array"],
+              "storage_kind": {
+                  "type": "string",
+                  "enum": ["scalar", "pointer", "pointer_table", "struct_instance", "struct_pointer", "byte_array"],
             },
             "semantic_type": {"type": "string"},
             "parser_role": {"type": "string"},
@@ -3874,6 +3926,11 @@ def _range_seed_payload(rows: list[Mapping[str, object]], params: Mapping[str, o
         end = _optional_int(last.get("start_offset"))
     if end is None:
         end = _optional_int(last.get("addr"))
+    requested_end = _optional_int(params.get("end"))
+    if requested_end is not None:
+        if end is None or requested_end <= addr or requested_end > end:
+            raise ValueError("range string end must lie within the selected source rows")
+        end = requested_end
     if end is not None and end > addr:
         seed["end"] = end
     if seed_kind == "data":
@@ -5523,10 +5580,10 @@ def _target_code_seed_action() -> dict[str, object]:
     )
 
 
-def _target_code_seed_remove_action() -> dict[str, object]:
+def _target_seed_remove_action() -> dict[str, object]:
     return _target_log_action(
-        "target.code.seed.remove",
-        "Remove code entrypoint seed",
+        "target.seed.remove",
+        "Remove manual seed",
         "remove_manual_seed",
         {"type": "object", "properties": {"seed_id": {"type": "string"}}, "required": ["seed_id"]},
     )
@@ -5586,6 +5643,71 @@ def _target_code_register_seed_remove_action() -> dict[str, object]:
             "type": "object",
             "properties": {"register_seed_id": {"type": "string"}},
             "required": ["register_seed_id"],
+        },
+    )
+
+
+def _target_callback_table_signature_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.callback_table_signature.add",
+        "Add typed callback-table signature",
+        "create_manual_callback_table_signature",
+        {
+            "type": "object",
+            "properties": {
+                "hunk": {"type": "integer", "minimum": 0},
+                "table_offset": {"type": "integer", "minimum": 0},
+                "entry_count": {"type": "integer", "minimum": 1},
+                "register": {"type": "string"},
+                "struct_name": {"type": "string"},
+                "context_name": {"type": "string"},
+            },
+            "required": ["hunk", "table_offset", "entry_count", "register", "struct_name"],
+        },
+    )
+
+
+def _target_callback_table_signature_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.callback_table_signature.remove",
+        "Remove typed callback-table signature",
+        "remove_manual_callback_table_signature",
+        {
+            "type": "object",
+            "properties": {"callback_table_signature_id": {"type": "string"}},
+            "required": ["callback_table_signature_id"],
+        },
+    )
+
+
+def _target_function_register_contract_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.function.register_contract.add",
+        "Add typed function-register contract",
+        "create_manual_function_register_contract",
+        {
+            "type": "object",
+            "properties": {
+                "hunk": {"type": "integer", "minimum": 0},
+                "entry_offset": {"type": "integer", "minimum": 0},
+                "register": {"type": "string"},
+                "struct_name": {"type": "string"},
+                "context_name": {"type": "string"},
+            },
+            "required": ["hunk", "entry_offset", "register", "struct_name"],
+        },
+    )
+
+
+def _target_function_register_contract_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.function.register_contract.remove",
+        "Remove typed function-register contract",
+        "remove_manual_function_register_contract",
+        {
+            "type": "object",
+            "properties": {"function_register_contract_id": {"type": "string"}},
+            "required": ["function_register_contract_id"],
         },
     )
 
@@ -5656,6 +5778,60 @@ def _target_code_register_seed_payload(params: Mapping[str, object]) -> dict[str
     if isinstance(context_name, str) and context_name.strip():
         seed["context_name"] = context_name.strip()
     return seed
+
+
+def _target_callback_table_signature_payload(params: Mapping[str, object]) -> dict[str, object]:
+    hunk = _optional_int(params.get("hunk"))
+    table_offset = _optional_int(params.get("table_offset"))
+    entry_count = _optional_int(params.get("entry_count"))
+    register = params.get("register")
+    struct_name = params.get("struct_name")
+    if hunk is None or table_offset is None or entry_count is None or entry_count <= 0 or not isinstance(register, str) \
+            or not register.strip() or not isinstance(struct_name, str) or not struct_name.strip():
+        raise ValueError("target.callback_table_signature.add requires hunk, table_offset, entry_count, register, and struct_name")
+    normalized_register = register.strip().upper()
+    signature: dict[str, object] = {
+        "callback_table_signature_id": (
+            f"catalog-callback-table-signature-h{hunk}-{table_offset:08X}-{normalized_register}"
+        ),
+        "hunk": hunk,
+        "table_offset": table_offset,
+        "entry_count": entry_count,
+        "register": normalized_register,
+        "struct_name": struct_name.strip(),
+        "note": "Typed callback-table signature",
+        "context_name": "",
+    }
+    context_name = params.get("context_name")
+    if isinstance(context_name, str) and context_name.strip():
+        signature["context_name"] = context_name.strip()
+    return signature
+
+
+def _target_function_register_contract_payload(params: Mapping[str, object]) -> dict[str, object]:
+    hunk = _optional_int(params.get("hunk"))
+    entry_offset = _optional_int(params.get("entry_offset"))
+    register = params.get("register")
+    struct_name = params.get("struct_name")
+    if hunk is None or entry_offset is None or not isinstance(register, str) or not register.strip() \
+            or not isinstance(struct_name, str) or not struct_name.strip():
+        raise ValueError("target.function.register_contract.add requires hunk, entry_offset, register, and struct_name")
+    normalized_register = register.strip().upper()
+    contract: dict[str, object] = {
+        "function_register_contract_id": (
+            f"catalog-function-register-contract-h{hunk}-{entry_offset:08X}-{normalized_register}"
+        ),
+        "hunk": hunk,
+        "entry_offset": entry_offset,
+        "register": normalized_register,
+        "struct_name": struct_name.strip(),
+        "note": "Typed function-register contract",
+        "context_name": "",
+    }
+    context_name = params.get("context_name")
+    if isinstance(context_name, str) and context_name.strip():
+        contract["context_name"] = context_name.strip()
+    return contract
 
 
 def _target_data_block_element_action() -> dict[str, object]:
@@ -6014,7 +6190,10 @@ def _interaction_schema(
             "preview": {"kind": "label", "symbol": context.get("symbol") or (item or {}).get("message")},
             "validation": _label_validation_metadata(context),
         }
-    if ui_action == "create_manual_seed" and action_id.endswith(".seed.data.named"):
+    if ui_action == "create_manual_seed" and action_id in {
+        "row.seed.data.named",
+        "row.seed.data.named_string",
+    }:
         return {
             "type": "text",
             "hosts": ["palette", "inline"],

@@ -129,7 +129,6 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
             "-no-opt",
             "-quiet",
             "-nosym",
-            "-kick1hunks",
             *_vasm_include_args(project_root),
             "-o",
             str(output_path),

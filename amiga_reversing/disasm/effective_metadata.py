@@ -27,6 +27,8 @@ from amiga_reversing.disasm.manual_actions import (
 from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
     AbsoluteCodeLabelMetadata,
+    CallbackTableSignatureMetadata,
+    FunctionRegisterContractMetadata,
     CustomStructFieldMetadata,
     CustomStructMetadata,
     DataBlockElementKind,
@@ -391,6 +393,46 @@ def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> Entry
     )
 
 
+def _manual_callback_table_signature_to_metadata(
+    signature: dict[str, object],
+) -> CallbackTableSignatureMetadata | None:
+    hunk = _manual_seed_int(signature, "hunk")
+    table_offset = _manual_seed_int(signature, "table_offset")
+    entry_count = _manual_seed_int(signature, "entry_count")
+    register = _manual_seed_text(signature, "register")
+    struct_name = _manual_seed_text(signature, "struct_name")
+    if hunk is None or table_offset is None or entry_count is None or entry_count <= 0 or register is None or struct_name is None:
+        return None
+    return CallbackTableSignatureMetadata(
+        hunk=hunk,
+        table_offset=table_offset,
+        entry_count=entry_count,
+        register=register.upper(),
+        struct_name=struct_name,
+        note=_manual_seed_text(signature, "note") or _manual_action_citation(signature, "callback_table_signature_id"),
+        context_name=_manual_seed_text(signature, "context_name"),
+    )
+
+
+def _manual_function_register_contract_to_metadata(
+    contract: dict[str, object],
+) -> FunctionRegisterContractMetadata | None:
+    hunk = _manual_seed_int(contract, "hunk")
+    entry_offset = _manual_seed_int(contract, "entry_offset")
+    register = _manual_seed_text(contract, "register")
+    struct_name = _manual_seed_text(contract, "struct_name")
+    if hunk is None or entry_offset is None or register is None or struct_name is None:
+        return None
+    return FunctionRegisterContractMetadata(
+        hunk=hunk,
+        entry_offset=entry_offset,
+        register=register.upper(),
+        struct_name=struct_name,
+        note=_manual_seed_text(contract, "note") or _manual_action_citation(contract, "function_register_contract_id"),
+        context_name=_manual_seed_text(contract, "context_name"),
+    )
+
+
 def _manual_suppressed_seeded_item_to_metadata(item: dict[str, object]) -> SuppressedSeededItemMetadata | None:
     kind = _manual_seed_text(item, "kind")
     hunk = _manual_seed_int(item, "hunk")
@@ -610,7 +652,9 @@ def _custom_struct_with_manual_field_projection(
         if field is not None:
             fields.append(field)
     merged_fields = {field.offset: field for field in fields}
-    return replace(struct, fields=tuple(merged_fields.values()))
+    projected_fields = tuple(merged_fields.values())
+    projected_size = max([struct.size, *(field.offset + field.size for field in projected_fields)])
+    return replace(struct, size=projected_size, fields=projected_fields)
 
 
 def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetLayoutRegionMetadata | None:
@@ -1196,6 +1240,7 @@ def _data_block_custom_struct_field_entity(
         field_type=field.type,
         c_type=field.type,
         pointer_struct=field.pointer_struct,
+        value_kind=field.value_kind,
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,
@@ -1727,6 +1772,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     representations = projection.representations
     semantic_hints = projection.semantic_hints
     register_seed_projections = projection.register_seeds
+    callback_table_signature_projections = projection.callback_table_signatures
+    function_register_contract_projections = projection.function_register_contracts
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
     target_equate_projections = projection.target_equates
     renamed_target_equate_projections = projection.renamed_target_equates
@@ -1758,6 +1805,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not representations
         and not semantic_hints
         and not register_seed_projections
+        and not callback_table_signature_projections
+        and not function_register_contract_projections
         and not suppressed_seeded_item_projections
         and not target_equate_projections
         and not renamed_target_equate_projections
@@ -1792,6 +1841,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     absolute_code_labels = list(metadata.absolute_code_labels)
     entry_comments = list(metadata.entry_comments)
     entry_register_seeds = list(metadata.entry_register_seeds)
+    callback_table_signatures = list(metadata.callback_table_signatures)
+    function_register_contracts = list(metadata.function_register_contracts)
     manual_representations = list(metadata.manual_representations)
     target_equates = list(metadata.target_equates)
     manual_runtime_address_refs = list(metadata.manual_runtime_address_refs)
@@ -1979,6 +2030,14 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         entry_register_seed = _manual_register_seed_to_metadata(register_seed)
         if entry_register_seed is not None:
             entry_register_seeds.append(entry_register_seed)
+    for signature in callback_table_signature_projections:
+        callback_table_signature = _manual_callback_table_signature_to_metadata(signature)
+        if callback_table_signature is not None:
+            callback_table_signatures.append(callback_table_signature)
+    for contract in function_register_contract_projections:
+        function_register_contract = _manual_function_register_contract_to_metadata(contract)
+        if function_register_contract is not None:
+            function_register_contracts.append(function_register_contract)
     for item in suppressed_seeded_item_projections:
         suppressed_seeded_item = _manual_suppressed_seeded_item_to_metadata(item)
         if suppressed_seeded_item is not None:
@@ -2115,6 +2174,14 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     result = replace(
         metadata,
         entry_register_seeds=tuple(entry_register_seeds),
+        callback_table_signatures=tuple({
+            (signature.hunk, signature.table_offset, signature.entry_count, signature.register, signature.struct_name): signature
+            for signature in callback_table_signatures
+        }.values()),
+        function_register_contracts=tuple({
+            (contract.hunk, contract.entry_offset, contract.register, contract.struct_name): contract
+            for contract in function_register_contracts
+        }.values()),
         seeded_entities=_merge_projected_seeded_entities(seeded_entities),
         seeded_code_labels=tuple(seeded_code_labels),
         absolute_code_labels=tuple(absolute_code_labels),
@@ -2262,7 +2329,22 @@ def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool 
         binary_source=resolve_target_binary_source(target_dir),
     )
     if projection.runtime_observation_views:
-        payload["runtime_observation_views"] = [dict(view) for view in projection.runtime_observation_views]
+        observations = [dict(view) for view in projection.runtime_observation_views]
+        # A runtime observation is valid pointer-address evidence, but is not
+        # control-flow evidence.  Feed that scope through the shared C view
+        # representation while preserving the projection for debugger lookup.
+        raw_execution_views = payload.get("execution_views")
+        execution_views = list(raw_execution_views) if isinstance(raw_execution_views, list) else []
+        execution_views.extend(
+            {
+                **view,
+                "runtime_view_provenance": "observed",
+                "runtime_view_use": "pointer_target",
+            }
+            for view in observations
+        )
+        payload["execution_views"] = execution_views
+        payload["runtime_observation_views"] = observations
     _add_source_context(target_dir, payload)
     _add_source_descriptor_execution_view(target_dir, payload)
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"

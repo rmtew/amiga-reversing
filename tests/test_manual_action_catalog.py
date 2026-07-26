@@ -202,7 +202,7 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
     }
 
     kind, payload = target_catalog_manual_payload(
-        "target.code.seed.remove", {"seed_id": "catalog-code-seed-h0-0004D37E"}
+        "target.seed.remove", {"seed_id": "catalog-code-seed-h0-0004D37E"}
     )
     assert kind == "remove_manual_seed"
     assert payload == {"seed_id": "catalog-code-seed-h0-0004D37E"}
@@ -254,6 +254,36 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
     )
     assert kind == "remove_manual_register_seed"
     assert payload == {"register_seed_id": "catalog-code-register-seed-h0-0004D37E-A5"}
+
+    kind, payload = target_catalog_manual_payload(
+        "target.function.register_contract.add",
+        {
+            "hunk": 0,
+            "entry_offset": 0x7BBA,
+            "register": "a5",
+            "struct_name": "world_object_shared_prefix",
+            "context_name": "npc_item_trade_validation",
+        },
+    )
+    assert kind == "create_manual_function_register_contract"
+    assert payload == {
+        "function_register_contract": {
+            "function_register_contract_id": "catalog-function-register-contract-h0-00007BBA-A5",
+            "hunk": 0,
+            "entry_offset": 0x7BBA,
+            "register": "A5",
+            "struct_name": "world_object_shared_prefix",
+            "context_name": "npc_item_trade_validation",
+            "note": "Typed function-register contract",
+        }
+    }
+
+    kind, payload = target_catalog_manual_payload(
+        "target.function.register_contract.remove",
+        {"function_register_contract_id": "catalog-function-register-contract-h0-00007BBA-A5"},
+    )
+    assert kind == "remove_manual_function_register_contract"
+    assert payload == {"function_register_contract_id": "catalog-function-register-contract-h0-00007BBA-A5"}
 
 
 def test_provenance_source_evidence_id_includes_all_parent_evidence_ids() -> None:
@@ -1839,6 +1869,29 @@ def test_target_rsset_layout_region_command_payload_accepts_byte_array_storage()
             "storage_kind": "byte_array",
             "semantic_type": "item_id_array",
         }
+    }
+
+
+def test_target_rsset_layout_region_command_payload_accepts_typed_runtime_pointer_table() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.rsset_region.add",
+        {
+            "offset": 0x2A8,
+            "size": 4,
+            "symbol": "app_active_world_object_ptr_table",
+            "storage_kind": "pointer_table",
+            "pointer_struct": "world_object_shared_prefix",
+        },
+    )
+
+    assert kind == "create_manual_rsset_layout_region"
+    assert payload["rsset_layout_region"] == {
+        "rsset_layout_region_id": "catalog-rsset-region-app-02A8",
+        "offset": 0x2A8,
+        "size": 4,
+        "symbol": "app_active_world_object_ptr_table",
+        "storage_kind": "pointer_table",
+        "pointer_struct": "world_object_shared_prefix",
     }
 
 

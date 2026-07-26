@@ -140,6 +140,10 @@ class ManualActionKind(StrEnum):
     RENAME_DATA_SYMBOL = "rename_data_symbol"
     CREATE_MANUAL_REGISTER_SEED = "create_manual_register_seed"
     REMOVE_MANUAL_REGISTER_SEED = "remove_manual_register_seed"
+    CREATE_MANUAL_CALLBACK_TABLE_SIGNATURE = "create_manual_callback_table_signature"
+    REMOVE_MANUAL_CALLBACK_TABLE_SIGNATURE = "remove_manual_callback_table_signature"
+    CREATE_MANUAL_FUNCTION_REGISTER_CONTRACT = "create_manual_function_register_contract"
+    REMOVE_MANUAL_FUNCTION_REGISTER_CONTRACT = "remove_manual_function_register_contract"
     CREATE_MANUAL_LABEL = "create_manual_label"
     REMOVE_MANUAL_LABEL = "remove_manual_label"
     RENAME_MANUAL_LABEL = "rename_manual_label"
@@ -201,6 +205,8 @@ class ManualActionLogProjection:
     current_target_identity: dict[str, object] | None
     seeds: tuple[dict[str, object], ...]
     register_seeds: tuple[dict[str, object], ...]
+    callback_table_signatures: tuple[dict[str, object], ...]
+    function_register_contracts: tuple[dict[str, object], ...]
     labels: tuple[dict[str, object], ...]
     comments: tuple[dict[str, object], ...]
     representations: tuple[dict[str, object], ...]
@@ -385,6 +391,8 @@ def _empty_projection(
         current_target_identity=current_target_identity,
         seeds=(),
         register_seeds=(),
+        callback_table_signatures=(),
+        function_register_contracts=(),
         labels=(),
         comments=(),
         representations=(),
@@ -1703,6 +1711,8 @@ def _project_actions(
 
     seeds: dict[str, dict[str, object]] = {}
     register_seeds: dict[str, dict[str, object]] = {}
+    callback_table_signatures: dict[str, dict[str, object]] = {}
+    function_register_contracts: dict[str, dict[str, object]] = {}
     labels: dict[str, dict[str, object]] = {}
     comments: dict[str, dict[str, object]] = {}
     representations: dict[str, dict[str, object]] = {}
@@ -1753,6 +1763,16 @@ def _project_actions(
             _put_by_id(register_seeds, _action_object(action, "register_seed"), "register_seed_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_REGISTER_SEED:
             _drop_by_id(register_seeds, action, "register_seed_id")
+        elif action.kind is ManualActionKind.CREATE_MANUAL_CALLBACK_TABLE_SIGNATURE:
+            _put_by_id(callback_table_signatures, _action_object(action, "callback_table_signature"),
+                "callback_table_signature_id")
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_CALLBACK_TABLE_SIGNATURE:
+            _drop_by_id(callback_table_signatures, action, "callback_table_signature_id")
+        elif action.kind is ManualActionKind.CREATE_MANUAL_FUNCTION_REGISTER_CONTRACT:
+            _put_by_id(function_register_contracts, _action_object(action, "function_register_contract"),
+                "function_register_contract_id")
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_FUNCTION_REGISTER_CONTRACT:
+            _drop_by_id(function_register_contracts, action, "function_register_contract_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_LABEL:
             _put_by_id(labels, _projected_manual_label(action), "label_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_LABEL:
@@ -2063,6 +2083,8 @@ def _project_actions(
         current_target_identity=current_target_identity,
         seeds=tuple(seeds.values()),
         register_seeds=tuple(register_seeds.values()),
+        callback_table_signatures=tuple(callback_table_signatures.values()),
+        function_register_contracts=tuple(function_register_contracts.values()),
         labels=tuple(labels.values()),
         comments=tuple(comments.values()),
         representations=tuple(representations.values()),

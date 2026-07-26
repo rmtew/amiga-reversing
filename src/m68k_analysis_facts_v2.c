@@ -1352,7 +1352,9 @@ static int seed_runtime_address_space_from_policy(const M68kObject *object, cons
     const M68kSection *section;
     uint32_t extent;
     uint32_t size;
-    if (section_index >= object->section_count) continue;
+    if (section_index >= object->section_count ||
+        (range->use_mask != M68K_ANALYSIS_RUNTIME_RANGE_USE_DEFAULT &&
+         (range->use_mask & M68K_ANALYSIS_RUNTIME_RANGE_USE_CONTROL_FLOW) == 0U)) continue;
     section = &object->sections[section_index];
     extent = section->size != 0U ? section->size : section->data_size;
     if (range->offset >= extent) continue;
@@ -10433,7 +10435,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         &platform_analysis_stats) != 0) {
     goto fail;
   }
-  m68k_render_lookup_materialize_structured_long_table_target_labels(&render_lookup, &decode);
+  m68k_render_lookup_materialize_structured_pointer_target_labels(&render_lookup, &decode);
   m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   end = clock();
   platform_analysis_stats.pass_seconds = elapsed_seconds_local(start, end);
@@ -10508,7 +10510,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       goto fail;
     }
     if (render_asm_source) {
-      m68k_render_lookup_materialize_structured_long_table_target_labels(&render_lookup, &decode);
+      m68k_render_lookup_materialize_structured_pointer_target_labels(&render_lookup, &decode);
       m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
       if (m68k_analysis_render_lookup_materialize_pointer_table_targets(&render_lookup, &decode, accepted_start,
           accepted_bytes, source_analysis) != 0) {

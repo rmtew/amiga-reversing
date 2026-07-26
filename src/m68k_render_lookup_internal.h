@@ -320,6 +320,21 @@ typedef struct M68kRenderTypedRegValue {
   M68kRenderTypedProvenance provenance;
 } M68kRenderTypedRegValue;
 
+typedef struct M68kRenderTypedMemoryBaseValue {
+  uint8_t known;
+  size_t section_index;
+  uint32_t offset;
+  /* A homogeneous pointer table remains a useful type source when a loop
+   * merges several concrete cursor positions.  Keep its declared range
+   * separately from the exact address, which is intentionally cleared at
+   * such a merge. */
+  uint8_t pointer_table_known;
+  uint16_t pointer_table_struct_id;
+  size_t pointer_table_section_index;
+  uint32_t pointer_table_offset;
+  uint32_t pointer_table_size;
+} M68kRenderTypedMemoryBaseValue;
+
 typedef struct M68kRenderTypedStoredValue {
   uint8_t known;
   uint8_t pointer_value_known;
@@ -342,20 +357,6 @@ typedef struct M68kRenderTypedAppAddressValue {
   int16_t displacement;
 } M68kRenderTypedAppAddressValue;
 
-typedef struct M68kRenderTypedMemoryBaseValue {
-  uint8_t known;
-  size_t section_index;
-  uint32_t offset;
-  /* A homogeneous pointer table remains a useful type source when a loop
-   * merges several concrete cursor positions.  Keep its declared range
-   * separately from the exact address, which is intentionally cleared at
-   * such a merge. */
-  uint8_t pointer_table_known;
-  size_t pointer_table_section_index;
-  uint32_t pointer_table_offset;
-  uint32_t pointer_table_size;
-} M68kRenderTypedMemoryBaseValue;
-
 typedef struct M68kRenderIoRequestSetupValue {
   uint8_t known;
   uint32_t value;
@@ -371,8 +372,13 @@ typedef struct M68kRenderIoRequestSetup {
 
 typedef struct M68kRenderTypedStackSlot {
   uint8_t known;
+  /* A value explicitly pushed by the caller is restored relative to the
+   * caller's stack pointer after a call returns. Fixed stack-frame slots are
+   * not given that ABI guarantee. */
+  uint8_t caller_save_temporary;
   int16_t displacement;
   M68kRenderTypedStoredValue value;
+  M68kRenderTypedMemoryBaseValue memory_base;
 } M68kRenderTypedStackSlot;
 
 typedef struct M68kRenderTypedBaseSlot {
@@ -960,7 +966,7 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
   const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count);
 void m68k_render_lookup_destroy(M68kRenderLookup *lookup);
 void m68k_render_lookup_materialize_relocation_target_labels(M68kRenderLookup *lookup);
-void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRenderLookup *lookup,
+void m68k_render_lookup_materialize_structured_pointer_target_labels(M68kRenderLookup *lookup,
   const M68kDecodeIR *decode);
 int m68k_analysis_render_lookup_import_source_analysis_structured_data(M68kRenderLookup *lookup,
   const M68kSourceAnalysisIR *source_analysis);

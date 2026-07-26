@@ -1696,7 +1696,8 @@ static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t sec
 static int policy_add_entry_comment_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
   const char *comment);
 static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t section_index,
-  uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name);
+  uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name, uint8_t provenance,
+  uint8_t use_mask);
 static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t runtime_address);
 static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
@@ -2172,6 +2173,38 @@ static int append_metadata_execution_view_local(const char *object_start, const 
   int has_source_end = 0;
   int has_base_addr = 0;
   char name[64];
+  char provenance_text[32];
+  char use_text[32];
+  uint8_t provenance = M68K_ANALYSIS_RUNTIME_RANGE_PROVENANCE_CONFIGURED;
+  uint8_t use_mask = M68K_ANALYSIS_RUNTIME_RANGE_USE_DEFAULT;
+  name[0] = '\0';
+  provenance_text[0] = '\0';
+  use_text[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "source_start", &source_start, &has_source_start) ||
+      !json_number_field_local(object_start, object_end, "source_end", &source_end, &has_source_end) ||
+      !json_number_field_local(object_start, object_end, "base_addr", &base_addr, &has_base_addr) ||
+      !json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
+      !json_optional_string_field_local(object_start, object_end, "runtime_view_provenance", provenance_text,
+        sizeof(provenance_text)) ||
+      !json_optional_string_field_local(object_start, object_end, "runtime_view_use", use_text, sizeof(use_text))) {
+    return 0;
+  }
+  if (!has_source_start || !has_source_end || !has_base_addr) return 1;
+  if (strcmp(provenance_text, "observed") == 0) provenance = M68K_ANALYSIS_RUNTIME_RANGE_PROVENANCE_OBSERVED;
+  if (strcmp(use_text, "pointer_target") == 0) use_mask = M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET;
+  return policy_add_runtime_range_local(policy, 0U, source_start, source_end, base_addr, name,
+    provenance, use_mask);
+}
+
+static int append_metadata_runtime_observation_view_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t source_start = 0U;
+  uint32_t source_end = 0U;
+  uint32_t base_addr = 0U;
+  int has_source_start = 0;
+  int has_source_end = 0;
+  int has_base_addr = 0;
+  char name[64];
   name[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "source_start", &source_start, &has_source_start) ||
       !json_number_field_local(object_start, object_end, "source_end", &source_end, &has_source_end) ||
@@ -2180,7 +2213,8 @@ static int append_metadata_execution_view_local(const char *object_start, const 
     return 0;
   }
   if (!has_source_start || !has_source_end || !has_base_addr) return 1;
-  return policy_add_runtime_range_local(policy, 0U, source_start, source_end, base_addr, name);
+  return policy_add_runtime_range_local(policy, 0U, source_start, source_end, base_addr, name,
+    M68K_ANALYSIS_RUNTIME_RANGE_PROVENANCE_OBSERVED, M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET);
 }
 
 static int append_metadata_absolute_code_label_local(const char *object_start, const char *object_end,
@@ -2214,6 +2248,7 @@ static uint8_t rsset_layout_region_storage_kind_id_from_text_local(const char *s
     { "struct", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE },
     { "struct_pointer", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER },
     { "pointer", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER },
+    { "pointer_table", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE },
     { "scalar", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR },
     { "byte_array", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_BYTE_ARRAY },
   };
@@ -2226,6 +2261,7 @@ static const char *rsset_layout_region_storage_kind_name_local(uint8_t storage_k
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE: return "struct_instance";
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER: return "struct_pointer";
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER: return "pointer";
+    case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE: return "pointer_table";
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR: return "scalar";
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_BYTE_ARRAY: return "byte_array";
     default: return NULL;
@@ -2350,6 +2386,108 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
   return 1;
 }
 
+static int append_metadata_callback_table_signature_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  char register_name[8];
+  char struct_name[64];
+  char context_name[64];
+  char note[64];
+  uint32_t table_offset = 0U;
+  uint32_t entry_count = 0U;
+  uint32_t hunk = 0U;
+  int has_table_offset = 0;
+  int has_entry_count = 0;
+  int has_hunk = 0;
+  uint8_t register_kind;
+  uint8_t register_index;
+  M68kAnalysisCallbackTableSignature *signature;
+  if (policy == NULL || policy->callback_table_signature_count >= M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT ||
+      !json_number_field_local(object_start, object_end, "table_offset", &table_offset, &has_table_offset) ||
+      !json_number_field_local(object_start, object_end, "entry_count", &entry_count, &has_entry_count) ||
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_optional_string_field_local(object_start, object_end, "register", register_name, sizeof(register_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "context_name", context_name, sizeof(context_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "note", note, sizeof(note))) {
+    return 0;
+  }
+  if (!has_table_offset || !has_entry_count || !has_hunk || entry_count == 0U || struct_name[0] == '\0') return 0;
+  if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' &&
+      register_name[1] <= '7' && register_name[2] == '\0') {
+    register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    register_index = (uint8_t)(register_name[1] - '0');
+  } else if ((register_name[0] == 'A' || register_name[0] == 'a') && register_name[1] >= '0' &&
+             register_name[1] <= '7' && register_name[2] == '\0') {
+    register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    register_index = (uint8_t)(register_name[1] - '0');
+  } else {
+    return 0;
+  }
+  signature = &policy->callback_table_signatures[policy->callback_table_signature_count];
+  memset(signature, 0, sizeof(*signature));
+  signature->register_kind = register_kind;
+  signature->register_index = register_index;
+  signature->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  signature->has_section_index = 1U;
+  signature->section_index = hunk;
+  signature->table_offset = table_offset;
+  signature->entry_count = entry_count;
+  if (!copy_policy_text(signature->name, sizeof(signature->name), note) ||
+      !copy_policy_text(signature->type_name, sizeof(signature->type_name), struct_name) ||
+      !copy_policy_text(signature->context_name, sizeof(signature->context_name), context_name)) return 0;
+  policy->callback_table_signature_count += 1U;
+  return 1;
+}
+
+static int append_metadata_function_register_contract_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  char register_name[8];
+  char struct_name[64];
+  char context_name[64];
+  char note[64];
+  uint32_t entry_offset = 0U;
+  uint32_t hunk = 0U;
+  int has_entry_offset = 0;
+  int has_hunk = 0;
+  uint8_t register_kind;
+  uint8_t register_index;
+  M68kAnalysisFunctionRegisterContract *contract;
+  if (policy == NULL || policy->function_register_contract_count >= M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT ||
+      !json_number_field_local(object_start, object_end, "entry_offset", &entry_offset, &has_entry_offset) ||
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_optional_string_field_local(object_start, object_end, "register", register_name, sizeof(register_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "context_name", context_name, sizeof(context_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "note", note, sizeof(note))) {
+    return 0;
+  }
+  if (!has_entry_offset || !has_hunk || struct_name[0] == '\0') return 0;
+  if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' &&
+      register_name[1] <= '7' && register_name[2] == '\0') {
+    register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    register_index = (uint8_t)(register_name[1] - '0');
+  } else if ((register_name[0] == 'A' || register_name[0] == 'a') && register_name[1] >= '0' &&
+             register_name[1] <= '7' && register_name[2] == '\0') {
+    register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    register_index = (uint8_t)(register_name[1] - '0');
+  } else {
+    return 0;
+  }
+  contract = &policy->function_register_contracts[policy->function_register_contract_count];
+  memset(contract, 0, sizeof(*contract));
+  contract->register_kind = register_kind;
+  contract->register_index = register_index;
+  contract->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  contract->has_section_index = 1U;
+  contract->section_index = hunk;
+  contract->entry_offset = entry_offset;
+  if (!copy_policy_text(contract->name, sizeof(contract->name), note) ||
+      !copy_policy_text(contract->type_name, sizeof(contract->type_name), struct_name) ||
+      !copy_policy_text(contract->context_name, sizeof(contract->context_name), context_name)) return 0;
+  policy->function_register_contract_count += 1U;
+  return 1;
+}
+
 static int policy_add_custom_struct_local(M68kAnalysisPolicy *policy, const char *name, uint32_t size,
     const char *fields_start, const char *fields_end) {
   M68kAnalysisCustomStruct *custom_struct;
@@ -2436,7 +2574,8 @@ static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t sec
 }
 
 static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t section_index,
-    uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name) {
+    uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name, uint8_t provenance,
+    uint8_t use_mask) {
   M68kAnalysisRuntimeRange *range;
   uint16_t index;
   uint32_t size;
@@ -2447,7 +2586,8 @@ static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t s
     const M68kAnalysisRuntimeRange *existing = &policy->runtime_ranges[index];
     if (existing->has_section_index && existing->section_index == section_index &&
         existing->offset == source_start && existing->size == size &&
-        existing->runtime_address == base_addr) return 1;
+        existing->runtime_address == base_addr && existing->provenance == provenance &&
+        existing->use_mask == use_mask) return 1;
   }
   range = &policy->runtime_ranges[policy->runtime_range_count++];
   memset(range, 0, sizeof(*range));
@@ -2456,6 +2596,8 @@ static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t s
   range->offset = source_start;
   range->size = size;
   range->runtime_address = base_addr;
+  range->provenance = provenance;
+  range->use_mask = use_mask;
   if (name != NULL && name[0] != '\0' && !copy_policy_text(range->name, sizeof(range->name), name)) return 0;
   return 1;
 }
@@ -2714,21 +2856,44 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   return 1;
 }
 
-static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
-    uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset) {
+static uint8_t policy_runtime_range_supports_use_local(const M68kAnalysisRuntimeRange *range, uint8_t use_mask) {
+  uint8_t effective_mask;
+  if (range == NULL) return 0U;
+  effective_mask = range->use_mask == M68K_ANALYSIS_RUNTIME_RANGE_USE_DEFAULT
+    ? (M68K_ANALYSIS_RUNTIME_RANGE_USE_CONTROL_FLOW | M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET)
+    : range->use_mask;
+  return (uint8_t)((effective_mask & use_mask) == use_mask);
+}
+
+static int policy_runtime_address_to_source_offset_for_use_local(const M68kAnalysisPolicy *policy,
+    uint32_t runtime_address, uint8_t use_mask, uint32_t *out_section_index, uint32_t *out_offset) {
   uint16_t index;
+  uint8_t found = 0U;
+  uint8_t best_provenance = 0U;
+  uint32_t best_size = UINT32_MAX;
   if (policy == NULL || out_section_index == NULL || out_offset == NULL) return 0;
-  for (index = policy->runtime_range_count; index > 0U; --index) {
-    const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[index - 1U];
+  for (index = 0U; index < policy->runtime_range_count; ++index) {
+    const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[index];
     uint32_t delta;
-    if (!range->has_section_index || runtime_address < range->runtime_address) continue;
+    if (!range->has_section_index || !policy_runtime_range_supports_use_local(range, use_mask) ||
+        runtime_address < range->runtime_address) continue;
     delta = runtime_address - range->runtime_address;
     if ((range->size != 0U && delta >= range->size) || range->offset > UINT32_MAX - delta) continue;
+    if (found && (range->provenance < best_provenance ||
+        (range->provenance == best_provenance && range->size >= best_size))) continue;
     *out_section_index = range->section_index;
     *out_offset = range->offset + delta;
-    return 1;
+    best_provenance = range->provenance;
+    best_size = range->size;
+    found = 1U;
   }
-  return 0;
+  return found;
+}
+
+static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
+    uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset) {
+  return policy_runtime_address_to_source_offset_for_use_local(policy, runtime_address,
+    M68K_ANALYSIS_RUNTIME_RANGE_USE_CONTROL_FLOW, out_section_index, out_offset);
 }
 
 static int analysis_range_overlaps_accepted_code(const M68kSectionAnalysisIR *section, uint32_t start,
@@ -6808,7 +6973,7 @@ static uint8_t metadata_seeded_entity_kind_from_ids_local(MetadataSeededEntitySu
 }
 
 static MetadataSeededEntityClassification metadata_seeded_entity_classify_local(const char *entity_type,
-    const char *subtype, const char *unit, const char *pointer_struct) {
+    const char *subtype, const char *unit, const char *pointer_struct, const char *value_kind) {
   MetadataSeededEntityClassification classification;
   classification.type_id = metadata_seeded_entity_type_id_from_text_local(entity_type);
   classification.subtype_id = metadata_seeded_entity_subtype_id_from_text_local(subtype);
@@ -6820,7 +6985,8 @@ static MetadataSeededEntityClassification metadata_seeded_entity_classify_local(
      fact for the renderer so the stored address receives normal data-pointer
      treatment and can resolve to its target label. */
   classification.is_pointer = (uint8_t)(classification.subtype_id == METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE ||
-    (pointer_struct != NULL && pointer_struct[0] != '\0'));
+    (pointer_struct != NULL && pointer_struct[0] != '\0') ||
+    (value_kind != NULL && strcmp(value_kind, "target_pointer") == 0));
   classification.role_flags = metadata_seeded_entity_role_flags_from_subtype_id_local(classification.subtype_id);
   return classification;
 }
@@ -6846,6 +7012,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   char field_type[64];
   char c_type[64];
   char pointer_struct[64];
+  char value_kind[32];
   char value_domain[64];
   MetadataSeededEntityClassification classification;
   entity_type[0] = '\0';
@@ -6860,6 +7027,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   field_type[0] = '\0';
   c_type[0] = '\0';
   pointer_struct[0] = '\0';
+  value_kind[0] = '\0';
   value_domain[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
       !json_number_field_local(object_start, object_end, "end", &end, &has_end) ||
@@ -6876,12 +7044,13 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
       !json_optional_string_field_local(object_start, object_end, "c_type", c_type, sizeof(c_type)) ||
       !json_optional_string_field_local(object_start, object_end, "pointer_struct", pointer_struct,
         sizeof(pointer_struct)) ||
+      !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
       !json_optional_string_field_local(object_start, object_end, "value_domain", value_domain,
         sizeof(value_domain))) {
     return 0;
   }
   if (!has_addr || !has_end || end <= addr) return 1;
-  classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit, pointer_struct);
+  classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit, pointer_struct, value_kind);
   if (classification.type_id != METADATA_SEEDED_ENTITY_TYPE_DATA) return 1;
   snprintf(policy_comment, sizeof(policy_comment), "%s", comment);
   item_index = policy->structured_data_item_count;
@@ -7839,6 +8008,28 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     }
     cursor = object_end;
   }
+  cursor = json_find_array_local(text, "callback_table_signatures", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_callback_table_signature_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata callback table signature");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "function_register_contracts", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_function_register_contract_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata function register contract");
+      return -1;
+    }
+    cursor = object_end;
+  }
   cursor = json_find_array_local(text, "seeded_code_entrypoints", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
@@ -7934,6 +8125,17 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     if (object_start == NULL) break;
     if (!append_metadata_execution_view_local(object_start, object_end, policy)) {
       platform_file_add_error(diagnostics.list, "failed parsing target metadata execution view");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "runtime_observation_views", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_runtime_observation_view_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata runtime observation view");
       return -1;
     }
     cursor = object_end;
@@ -8257,6 +8459,30 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
           seed->entry_offset, "target metadata register seed offset is out of range for source file"))
       return 0;
   }
+  for (index = 0U; index < policy->callback_table_signature_count &&
+       index < M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT; ++index) {
+    const M68kAnalysisCallbackTableSignature *signature = &policy->callback_table_signatures[index];
+    if (!signature->has_section_index || signature->entry_count == 0U ||
+        signature->entry_count > UINT32_MAX / 4U ||
+        !validate_policy_range_local(diagnostics, object, signature->has_section_index, signature->section_index,
+          signature->table_offset, signature->entry_count * 4U)) {
+      platform_file_add_error(diagnostics, "target metadata callback table signature range is invalid");
+      return 0;
+    }
+  }
+  for (index = 0U; index < policy->function_register_contract_count &&
+       index < M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT; ++index) {
+    const M68kAnalysisFunctionRegisterContract *contract = &policy->function_register_contracts[index];
+    if (!contract->has_section_index || contract->register_index >= 8U ||
+        (contract->register_kind != M68K_ANALYSIS_REGISTER_DATA &&
+         contract->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+        contract->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
+        !validate_policy_offset_local(diagnostics, object, contract->has_section_index, contract->section_index,
+          contract->entry_offset, "target metadata function register contract offset is out of range for source file")) {
+      platform_file_add_error(diagnostics, "target metadata function register contract is invalid");
+      return 0;
+    }
+  }
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
@@ -8373,7 +8599,8 @@ static int policy_add_raw_runtime_load_range_local(M68kAnalysisPolicy *policy, c
     return 0;
   }
   if (section_size == 0U) return 1;
-  if (policy_add_runtime_range_local(policy, 0U, 0U, section_size, runtime_load_address, "raw_load")) return 1;
+  if (policy_add_runtime_range_local(policy, 0U, 0U, section_size, runtime_load_address, "raw_load",
+      M68K_ANALYSIS_RUNTIME_RANGE_PROVENANCE_CONFIGURED, M68K_ANALYSIS_RUNTIME_RANGE_USE_DEFAULT)) return 1;
   platform_file_add_error(diagnostics, "failed adding raw runtime load range");
   return 0;
 }
@@ -8779,10 +9006,22 @@ static void enrich_policy_pointer_targets_from_object_local(M68kAnalysisPolicy *
     section = &object->sections[section_index];
     if (section->data == NULL || item->offset > section->data_size || 4U > section->data_size - item->offset) continue;
     target_offset = read_be32_local(section->data + item->offset);
-    if (target_offset != 0U && target_offset < section->size) {
+    if (target_offset != 0U) {
+      uint32_t target_section_index = section_index;
+      uint32_t source_target_offset = target_offset;
+      /* Typed pointer fields contain runtime addresses.  A raw value can be
+       * numerically in the storage extent while still naming a different
+       * source byte through a runtime view, so resolve the address model
+       * before considering a section-storage value. */
+      if (!policy_runtime_address_to_source_offset_for_use_local(policy, target_offset,
+          M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET, &target_section_index, &source_target_offset) &&
+          source_target_offset >= section->size) {
+        continue;
+      }
+      if (target_section_index != section_index || source_target_offset >= section->size) continue;
       item->has_target = 1U;
-      item->target_section = section_index;
-      item->target_offset = target_offset;
+      item->target_section = target_section_index;
+      item->target_offset = source_target_offset;
       m68k_analysis_structured_data_item_refresh_table_metadata(item);
       target_label = resident_pointer_target_label_local(item);
       if (target_label != NULL && target_label[0] != '\0') {
@@ -9095,8 +9334,10 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
     if (append_nullable_u32_json_local(builder, range->has_section_index, range->section_index) != 0) return -1;
-    if (json_builder_appendf(builder, ",\"offset\":%u,\"size\":%u,\"runtime_address\":%u,\"name\":",
-          (unsigned)range->offset, (unsigned)range->size, (unsigned)range->runtime_address) != 0)
+    if (json_builder_appendf(builder,
+          ",\"offset\":%u,\"size\":%u,\"runtime_address\":%u,\"provenance\":%u,\"use_mask\":%u,\"name\":",
+          (unsigned)range->offset, (unsigned)range->size, (unsigned)range->runtime_address,
+          (unsigned)range->provenance, (unsigned)range->use_mask) != 0)
       return -1;
     if (append_nullable_text_json_local(builder, range->name) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;

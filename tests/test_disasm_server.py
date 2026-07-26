@@ -1762,7 +1762,7 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     assert code_seed_action["appends_to_manual_action_log"] is True
     assert code_seed_action["action"] == "create_manual_seed"
     assert code_seed_action["parameter_schema"]["required"] == ["hunk", "addr", "name"]
-    code_seed_remove_action = next(action for action in actions if action["action_id"] == "target.code.seed.remove")
+    code_seed_remove_action = next(action for action in actions if action["action_id"] == "target.seed.remove")
     assert code_seed_remove_action["action"] == "remove_manual_seed"
     assert code_seed_remove_action["parameter_schema"]["required"] == ["seed_id"]
     code_label_action = next(action for action in actions if action["action_id"] == "target.code_label.add")
@@ -2074,6 +2074,7 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
 
     assert any(action["action_id"] == "row.seed.data.string" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.named" for action in row_actions)
+    assert any(action["action_id"] == "row.seed.data.named_string" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.word" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.pointer_table" for action in row_actions)
     assert any(action["action_id"] == "row.data_block.layout.create" for action in row_actions)
@@ -2095,6 +2096,15 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert named_action["default_key_binding"] == "F2"
     assert named_action["interaction_schema"]["type"] == "text"
     assert named_action["interaction_schema"]["primary_field"] == "name"
+    named_string_action = next(action for action in row_actions if action["action_id"] == "row.seed.data.named_string")
+    assert named_string_action["parameters"] == {
+        "seed_kind": "data",
+        "data_role": "string",
+        "unit": "byte",
+        "encoding": "ascii",
+    }
+    assert named_string_action["parameter_schema"]["required"] == ["name"]
+    assert named_string_action["interaction_schema"]["type"] == "text"
     comment_action = next(action for action in row_actions if action["action_id"] == "comment.edit")
     assert comment_action["default_key_binding"] == ";"
     assert comment_action["interaction_schema"]["type"] == "text"
@@ -7264,6 +7274,89 @@ def test_listing_navigation_indexes_unresolved_typed_accesses(monkeypatch: pytes
             "type_provenance_offset": 0x34,
         }
     ]
+
+
+def test_route_unresolved_typed_access_report_groups_executable_listing_contexts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="move.w $0044(a5),d0\n",
+            stable_key="world-access-0",
+            addr=0x120,
+            section_index=0,
+            start_offset=0x120,
+            end_offset=0x124,
+            unresolved_typed_accesses=(
+                PlatformUnresolvedTypedAccess(
+                    operand_index=0,
+                    base_register="A5",
+                    displacement=0x44,
+                    struct_size=0x54,
+                    root_struct_name="world_object_shared_prefix",
+                    classification="field_gap",
+                ),
+            ),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="addq.w #1,$0044(a5)\n",
+            stable_key="world-access-1",
+            addr=0x140,
+            section_index=0,
+            start_offset=0x140,
+            end_offset=0x144,
+            unresolved_typed_accesses=(
+                PlatformUnresolvedTypedAccess(
+                    operand_index=1,
+                    base_register="A5",
+                    displacement=0x44,
+                    struct_size=0x54,
+                    root_struct_name="world_object_shared_prefix",
+                    classification="field_gap",
+                ),
+            ),
+        ),
+    ]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/analysis/typed-accesses/unresolved",
+        {"struct_name": ["world_object_shared_prefix"]},
+    )
+
+    data = cast(dict[str, object], payload["data"])
+    assert data["filters"] == {"struct_name": "world_object_shared_prefix"}
+    assert data["total_group_count"] == 1
+    assert data["total_occurrence_count"] == 2
+    group = cast(dict[str, object], cast(list[dict[str, object]], data["groups"])[0])
+    assert group["root_struct_name"] == "world_object_shared_prefix"
+    assert group["displacement"] == 0x44
+    occurrences = cast(list[dict[str, object]], group["occurrences"])
+    assert [occurrence["element_id"] for occurrence in occurrences] == [
+        "world-access-0:typed_gap:0:field_gap",
+        "world-access-1:typed_gap:1:field_gap",
+    ]
+    assert occurrences[0]["locator"] == {
+        "target_id": "bloodwych",
+        "projection_hash": "cache",
+        "row_key": "world-access-0",
+        "section_index": 0,
+        "start_offset": 0x120,
+        "end_offset": 0x124,
+        "kind": "instruction",
+        "storage_address": 0x120,
+        "runtime_address": None,
+    }
 
 
 def test_route_listing_navigation_indexes_label_definition_and_refs(monkeypatch: pytest.MonkeyPatch) -> None:

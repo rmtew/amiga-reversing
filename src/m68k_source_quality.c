@@ -2789,6 +2789,15 @@ static int source_quality_structured_data_item_is_pointer_table(const M68kAnalys
     (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U;
 }
 
+static int source_quality_structured_data_item_is_target_pointer_field(
+    const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->size == 4U &&
+    item->is_pointer != 0U && item->has_target != 0U &&
+    item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN &&
+    (item->semantic_role_flags & (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE |
+      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) == 0U;
+}
+
 static int source_quality_structured_data_item_is_keyed_long_relative_lookup_table(
     const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target &&
@@ -12801,6 +12810,14 @@ static int append_structured_data_table_entries_for_item(M68kSourceAnalysisIR *s
       if (append_structured_data_table_entry_target(source_analysis, section_analysis, item, entry_index,
           entry_offset, entry_size, raw_long, 4U, item->target_section, target_offset, section, accepted_start,
           accepted_bytes) != 0) {
+        return -1;
+      }
+    } else if (source_quality_structured_data_item_is_target_pointer_field(item)) {
+      uint32_t raw_long = m68k_read_u32be(section->data + entry_offset);
+      uint32_t target_offset = item->target_offset;
+      if (append_structured_data_table_entry_target(source_analysis, section_analysis, item, entry_index,
+          entry_offset, entry_size, raw_long, 4U, item->target_section, target_offset, section,
+          accepted_start, accepted_bytes) != 0) {
         return -1;
       }
     } else if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&

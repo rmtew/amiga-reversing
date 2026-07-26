@@ -200,6 +200,7 @@ def test_effective_metadata_includes_required_manual_code_and_data_seeds(tmp_pat
             "unit": "byte",
             "encoding": "ascii",
             "value_domain": None,
+            "value_kind": None,
         }
     ]
 
@@ -792,6 +793,45 @@ def test_effective_metadata_includes_manual_register_seed_for_semantic_helper(tm
     ]
 
 
+def test_effective_metadata_includes_manual_function_register_contract(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_function_register_contract",
+                function_register_contract={
+                    "function_register_contract_id": "npc-item-trade-a5",
+                    "hunk": 0,
+                    "entry_offset": 0x7BBA,
+                    "register": "A5",
+                    "struct_name": "world_object_shared_prefix",
+                    "context_name": "npc_item_trade_validation",
+                    "note": "Typed function-register contract",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["function_register_contracts"] == [
+        {
+            "hunk": 0,
+            "entry_offset": 0x7BBA,
+            "register": "A5",
+            "struct_name": "world_object_shared_prefix",
+            "context_name": "npc_item_trade_validation",
+            "note": "Typed function-register contract",
+        }
+    ]
+
+
 def test_effective_metadata_ignores_suggested_manual_seeds_until_accepted(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -1231,6 +1271,7 @@ def test_effective_metadata_applies_data_symbol_rename_to_seeded_entity(tmp_path
             "type": "data",
             "unit": "long",
             "value_domain": "node_ref",
+            "value_kind": None,
         }
     ]
 
@@ -1359,7 +1400,19 @@ def test_effective_metadata_carries_runtime_observation_view_without_execution_v
 
     payload = json.loads(effective_metadata_text(target_dir))
 
-    assert payload.get("execution_views", []) == []
+    assert payload["execution_views"] == [
+        {
+            "execution_view_id": "observed-stage",
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "observed_stage",
+            "comment": "debugger observation",
+            "owner_action_id": "a1",
+            "runtime_view_provenance": "observed",
+            "runtime_view_use": "pointer_target",
+        }
+    ]
     assert payload["runtime_observation_views"] == [
         {
             "execution_view_id": "observed-stage",
@@ -1622,6 +1675,7 @@ def test_effective_metadata_applies_manual_data_block_layout_with_elements(tmp_p
             "type": "data",
             "unit": "byte",
             "value_domain": None,
+            "value_kind": None,
         },
         {
             "addr": 0x1472,
@@ -1645,6 +1699,7 @@ def test_effective_metadata_applies_manual_data_block_layout_with_elements(tmp_p
             "type": "data",
             "unit": "byte",
             "value_domain": None,
+            "value_kind": None,
         },
     ]
     assert payload["manual_representations"] == [
@@ -1731,7 +1786,13 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
                     "size": 6,
                     "fields": [
                         {"name": "magic", "type": "UWORD", "offset": 0, "size": 2},
-                        {"name": "next_offset", "type": "APTR", "offset": 2, "size": 4},
+                        {
+                            "name": "next_offset",
+                            "type": "APTR",
+                            "offset": 2,
+                            "size": 4,
+                            "value_kind": "target_pointer",
+                        },
                     ],
                 },
             ),
@@ -1792,6 +1853,7 @@ def test_effective_metadata_projects_data_block_type_binding_owner_to_descendant
     ]
     assert {entity["source_evidence_id"] for entity in typed_entities} == {"prov-header-base"}
     assert {tuple(entity["parent_evidence_ids"]) for entity in typed_entities} == {("prov-root",)}
+    assert [entity["value_kind"] for entity in typed_entities] == ["scalar", "target_pointer"]
 
 
 def test_effective_metadata_projects_pointer_table_pointee_binding(tmp_path: Path) -> None:
@@ -2620,6 +2682,50 @@ def test_effective_metadata_applies_manual_custom_struct_field(tmp_path: Path) -
             "value_kind": "scalar",
         }
     ]
+
+
+def test_effective_metadata_extends_custom_struct_for_projected_field(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            custom_structs=(
+                CustomStructMetadata(
+                    name="InputEvent",
+                    size=22,
+                    fields=(),
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:test",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_custom_struct_field",
+                custom_struct_field={
+                    "struct_name": "InputEvent",
+                    "name": "extended_field",
+                    "type": "ULONG",
+                    "offset": 26,
+                    "size": 4,
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["custom_structs"][0]["size"] == 30
 
 
 def test_effective_metadata_removes_custom_struct_field_by_identity(tmp_path: Path) -> None:

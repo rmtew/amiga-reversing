@@ -2630,13 +2630,29 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
   }
 }
 
-static void render_lookup_materialize_long_table_targets(M68kRenderLookup *lookup,
+static void render_lookup_materialize_structured_pointer_targets(M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const M68kAnalysisStructuredDataItem *item) {
   uint32_t cursor;
+  uint32_t explicit_target_offset;
   uint8_t allow_in_section_source_offset;
   if (lookup == NULL || section == NULL || item == NULL || section->data == NULL ||
-      (!structured_data_item_is_pointer_table(item) && !structured_data_item_is_absolute_long_lookup_table(item)) ||
+      (!structured_data_item_is_pointer_table(item) && !structured_data_item_is_absolute_long_lookup_table(item) &&
+       !(item->is_pointer != 0U && item->has_target != 0U && item->size == 4U)) ||
       item->offset >= section->size) {
+    return;
+  }
+  explicit_target_offset = item->target_offset;
+  if (item->is_pointer != 0U && item->size == 4U && item->has_target != 0U &&
+      item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN &&
+      item->target_section == section->section_index && explicit_target_offset <= lookup->label_extents[section->section_index]) {
+    render_lookup_set_label(lookup, section->section_index, explicit_target_offset);
+    render_lookup_mark_boundary_flag(lookup, section->section_index, explicit_target_offset,
+      M68K_RENDER_BOUNDARY_LONG_TABLE_TARGET);
+    render_lookup_mark_label_target_ref(lookup, section->section_index, explicit_target_offset);
+    /* This pointer is rendered as a symbol expression.  Its destination must
+       therefore retain a concrete label statement even when it is an interior
+       boundary of otherwise contiguous data. */
+    render_lookup_mark_label_statement_ref(lookup, section->section_index, explicit_target_offset);
     return;
   }
   allow_in_section_source_offset = structured_data_item_is_absolute_long_lookup_table(item) ? 1U : 0U;
@@ -2653,6 +2669,7 @@ static void render_lookup_materialize_long_table_targets(M68kRenderLookup *looku
     render_lookup_mark_boundary_flag(lookup, section->section_index, target_offset,
       M68K_RENDER_BOUNDARY_LONG_TABLE_TARGET);
     render_lookup_mark_label_target_ref(lookup, section->section_index, target_offset);
+    render_lookup_mark_label_statement_ref(lookup, section->section_index, target_offset);
   }
 }
 
@@ -2702,7 +2719,7 @@ static int lookup_exact_pointer_value_label_offset(const M68kRenderLookup *looku
 }
 
 static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
-    M68kRenderLookup *lookup, uint32_t offset, const char *comment) {
+    M68kRenderLookup *lookup, const M68kAnalysisStructuredDataItem *item, uint32_t offset, const char *comment) {
   char line[256];
   char name[64];
   uint32_t target;
@@ -2713,12 +2730,21 @@ static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const
   }
   target = m68k_read_u32be(section->data + offset);
   if (target == 0U) return 0;
-  /* A same-section label expression remains a non-relocating local value.
-     Runtime-mapped raw binaries likewise encode in-image pointers as absolute
-     addresses and can use their recovered target labels. */
-  if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, target, 0U,
-      &target_offset)) {
-    return 0;
+  /* A field-level target is the analysis authority.  In particular, it keeps
+     runtime-mapped raw binaries from treating an in-image runtime address as
+     a source offset merely because the numeric value is also in bounds. */
+  if (item != NULL && item->is_pointer != 0U && item->size == 4U && item->has_target != 0U &&
+      item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
+    if (item->target_section != section->section_index) return 0;
+    target_offset = item->target_offset;
+  } else {
+    /* A same-section label expression remains a non-relocating local value.
+       Runtime-mapped raw binaries likewise encode in-image pointers as absolute
+       addresses and can use their recovered target labels. */
+    if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, target, 0U,
+        &target_offset)) {
+      return 0;
+    }
   }
   if (target_offset <= lookup->label_extents[section->section_index]) {
     render_lookup_set_label(lookup, section->section_index, target_offset);
@@ -3403,7 +3429,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   if (out_updated_logical_pc != NULL) *out_updated_logical_pc = 0;
   if (preview == NULL || section == NULL || item == NULL || item->size == 0U) return;
   if (!render_asm_includes_for_structured_data_item(preview, item)) return;
-  render_lookup_materialize_long_table_targets(lookup, section, item);
+    render_lookup_materialize_structured_pointer_targets(lookup, section, item);
   comment[0] = '\0';
   comment_text = structured_data_item_render_comment(section, item, comment, sizeof(comment)) ? comment : NULL;
   if (item->offset >= section->size || section->data == NULL) {
@@ -3461,7 +3487,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       const M68kFact *relocation = lookup_relocation_at(lookup, section->section_index, item->offset + cursor);
       if (relocation != NULL && relocation->size == 4U) {
         render_asm_relocation_expr(preview, lookup, relocation);
-      } else if (render_asm_pointer_table_raw_long(preview, section, lookup, item->offset + cursor,
+      } else if (render_asm_pointer_table_raw_long(preview, section, lookup, item, item->offset + cursor,
           cursor == 0U ? comment_text : NULL)) {
         ;
       } else {
@@ -3477,6 +3503,10 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       else
         render_asm_dc_b_with_policy(preview, section, accepted_start, lookup, tail_offset, tail_size, NULL);
     }
+    return;
+  }
+  if (available == item->size && item->is_pointer != 0U && item->size == 4U &&
+      render_asm_pointer_table_raw_long(preview, section, lookup, item, item->offset, comment_text)) {
     return;
   }
   if (available == item->size && structured_data_item_is_word_relative_lookup_table(item) &&
@@ -5654,8 +5684,11 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
     for (item_index = 0U; item_index < lookup->policy->structured_data_item_count &&
          item_index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++item_index) {
       const M68kAnalysisStructuredDataItem *item = &lookup->policy->structured_data_items[item_index];
-      if (!structured_data_item_is_pointer_table(item) || item->section_index >= decode->section_count) continue;
-      render_lookup_materialize_long_table_targets(lookup, &decode->sections[item->section_index], item);
+      if ((!structured_data_item_is_pointer_table(item) && !structured_data_item_is_absolute_long_lookup_table(item) &&
+           !(item->is_pointer != 0U && item->has_target != 0U && item->size == 4U)) || item->section_index >= decode->section_count) {
+        continue;
+      }
+      render_lookup_materialize_structured_pointer_targets(lookup, &decode->sections[item->section_index], item);
     }
   }
   render_lookup_mark_materialized_runtime_code_operand_patch_labels(lookup, decode, accepted_start);
@@ -5699,21 +5732,95 @@ void m68k_render_lookup_materialize_relocation_target_labels(M68kRenderLookup *l
   }
 }
 
-void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRenderLookup *lookup,
+void m68k_render_lookup_materialize_structured_pointer_target_labels(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode) {
   size_t index;
-  if (lookup == NULL || decode == NULL) return;
+  if (lookup == NULL || decode == NULL || lookup->policy == NULL) return;
+  for (index = 0U; index < lookup->policy->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &lookup->policy->structured_data_items[index];
+    size_t section_index = item->has_section_index ? (size_t)item->section_index : 0U;
+    if ((!structured_data_item_is_pointer_table(item) &&
+         !structured_data_item_is_absolute_long_lookup_table(item) &&
+         !(item->is_pointer != 0U && item->has_target != 0U && item->size == 4U)) ||
+        section_index >= decode->section_count) {
+      continue;
+    }
+    render_lookup_materialize_structured_pointer_targets(lookup, &decode->sections[section_index], item);
+  }
+  /* Source-analysis import can add automatic structured fields after the
+   * policy pass.  Those fields are the same rendering contract and must be
+   * materialized before source emission, including when their target precedes
+   * the containing record in storage order. */
   for (index = 0U; index < lookup->range_ownership_count; ++index) {
     M68kRenderRangeOwnershipView view;
     const M68kAnalysisStructuredDataItem *item;
     size_t section_index = lookup->range_ownerships[index].section_index;
-    if (section_index >= decode->section_count) continue;
-    if (!hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], &view)) continue;
-    if (view.kind != M68K_RANGE_OWNERSHIP_TABLE) continue;
+    if (section_index >= decode->section_count ||
+        !hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], &view)) {
+      continue;
+    }
     item = view.structured_item;
-    if (item == NULL) continue;
-    render_lookup_materialize_long_table_targets(lookup, &decode->sections[section_index], item);
+    if (item == NULL || (!structured_data_item_is_pointer_table(item) &&
+        !structured_data_item_is_absolute_long_lookup_table(item) &&
+        !(item->is_pointer != 0U && item->has_target != 0U && item->size == 4U))) {
+      continue;
+    }
+    render_lookup_materialize_structured_pointer_targets(lookup, &decode->sections[section_index], item);
   }
+  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[index];
+    size_t section_index = item->has_section_index ? (size_t)item->section_index : 0U;
+    if ((!structured_data_item_is_pointer_table(item) &&
+         !structured_data_item_is_absolute_long_lookup_table(item) &&
+         !(item->is_pointer != 0U && item->has_target != 0U && item->size == 4U)) ||
+        section_index >= decode->section_count) {
+      continue;
+    }
+    render_lookup_materialize_structured_pointer_targets(lookup, &decode->sections[section_index], item);
+  }
+}
+
+/* A byte-sized immediate consumes a word extension, but only its low byte is
+ * architectural.  Some originals retain non-zero bits in the ignored high
+ * byte.  No vasm instruction spelling can preserve those bits, so emit the
+ * complete instruction words explicitly instead of presenting an invalid
+ * immediate literal. */
+static int instruction_has_noncanonical_byte_immediate_extension(const M68kInstructionIR *instruction,
+    const uint8_t *raw_bytes, size_t raw_size) {
+  ByteImmediateExtensionSite sites[4];
+  size_t site_count;
+  size_t site_index;
+  if (instruction == NULL || raw_bytes == NULL) return 0;
+  site_count = collect_byte_immediate_extension_sites(instruction, sites, sizeof(sites) / sizeof(sites[0]));
+  for (site_index = 0U; site_index < site_count; ++site_index) {
+    uint8_t operand_index = sites[site_index].operand_index;
+    uint16_t raw_word;
+    if (sites[site_index].byte_offset + 1U >= raw_size || operand_index >= instruction->operand_count) continue;
+    raw_word = m68k_read_u16be(raw_bytes + sites[site_index].byte_offset);
+    if ((raw_word & 0xFF00U) != 0U &&
+        (raw_word & 0x00FFU) == (instruction->operands[operand_index].value.value & 0xFFU)) return 1;
+  }
+  return 0;
+}
+
+static int format_raw_instruction_words(char *out_text, size_t out_text_size, const uint8_t *raw_bytes,
+    size_t raw_size) {
+  size_t used = 0U;
+  size_t byte_offset;
+  int written;
+  if (out_text == NULL || out_text_size == 0U || raw_bytes == NULL || raw_size == 0U || (raw_size & 1U) != 0U)
+    return -1;
+  written = snprintf(out_text, out_text_size, "dc.w ");
+  if (written < 0 || (size_t)written >= out_text_size) return -1;
+  used = (size_t)written;
+  for (byte_offset = 0U; byte_offset < raw_size; byte_offset += 2U) {
+    written = snprintf(out_text + used, out_text_size - used, "%s$%04X", byte_offset == 0U ? "" : ",",
+        (unsigned)m68k_read_u16be(raw_bytes + byte_offset));
+    if (written < 0 || (size_t)written >= out_text_size - used) return -1;
+    used += (size_t)written;
+  }
+  return 0;
 }
 
 const M68kFact *lookup_relocation_at(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
@@ -9550,6 +9657,28 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
     lookup_instruction_comment(lookup, section->section_index, candidate->offset));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment), platform_comment);
   apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);
+  if (instruction_has_noncanonical_byte_immediate_extension(&instruction, section->data + candidate->offset,
+      candidate->byte_count)) {
+    if (format_raw_instruction_words(line, sizeof(line), section->data + candidate->offset,
+        candidate->byte_count) != 0) {
+      ++preview->asm_source_instruction_render_failures;
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section->section_index,
+        candidate->offset, 0U);
+      return 0;
+    }
+    {
+      char raw_line[1200];
+      if (instruction_comment[0] != '\0')
+        snprintf(raw_line, sizeof(raw_line), "\t%s\t; non-canonical byte-immediate encoding; %s\n", line,
+          instruction_comment);
+      else
+        snprintf(raw_line, sizeof(raw_line), "\t%s\t; non-canonical byte-immediate encoding\n", line);
+      snprintf(line, sizeof(line), "%s", raw_line);
+    }
+    hash_asm_text(preview, line);
+    ++preview->asm_source_lines;
+    return 1;
+  }
   mark_cross_org_pc_relative_displacement_exprs(lookup, section->section_index, candidate, &instruction);
   render_instruction = instruction;
   if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&
@@ -9877,6 +10006,11 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();
   if (render_asm_source) {
+    /* The source-analysis import can refine structured fields after the
+     * analysis-phase materialization passes.  Resolve their in-image targets
+     * immediately before the storage-order walk so backward data references
+     * receive a definition before their first use. */
+    m68k_render_lookup_materialize_structured_pointer_target_labels(lookup, decode);
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U);
     render_asm_memory_map_header(out_preview, lookup, decode, source_analysis);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);

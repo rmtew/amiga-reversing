@@ -3,6 +3,7 @@
 #include "m68k_disassembler.h"
 #include "generated/mac_os_runtime.h"
 
+#include <stdlib.h>
 #include <time.h>
 
 /* Shared platform/source-analysis enrichment for M68kRenderLookup. */
@@ -1150,6 +1151,8 @@ static int operand_is_stack_displacement_local(const M68kOperandIR *operand, int
 static int typed_storage_keys_match(const M68kRenderTypedStorageSlot *slot, uint8_t kind, size_t section_index,
     int32_t displacement, uint32_t address);
 static void typed_memory_base_clear(M68kRenderTypedMemoryBaseValue *value);
+static int typed_memory_bases_equal(const M68kRenderTypedMemoryBaseValue *left,
+    const M68kRenderTypedMemoryBaseValue *right);
 static int candidate_loads_data_target_to_address_reg(const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, size_t *out_section_index, uint32_t *out_offset, uint8_t *out_reg);
 static int candidate_data_target_for_operand(const M68kDecodeCandidate *candidate, uint32_t operand_index,
@@ -1171,8 +1174,10 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector
     unsigned depth);
 static int instruction_move_operand_indices_from_metadata(const M68kInstructionIR *instruction,
     size_t *out_source_index, size_t *out_dest_index, const M68kSimFormMetadata **out_metadata);
-static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR *decode, uint8_t **accepted_start,
-    size_t section_index, uint32_t target_offset, uint8_t requested_mask, uint8_t depth);
+static uint16_t lookup_typed_app_slot_struct_id(const M68kRenderLookup *lookup, int16_t displacement);
+static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
+  uint8_t requested_mask, uint8_t depth);
 static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, uint8_t preserved_address);
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
@@ -1794,6 +1799,8 @@ static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *
   uint16_t struct_size, uint8_t access_size, uint8_t classification, uint16_t container_candidate_count,
   const char *container_struct_name, const char *container_field_expr, uint8_t refinement_applied,
   const char *refined_struct_name, const M68kRenderTypedProvenance *provenance);
+static int render_lookup_pointer_value_to_object_source_location(const M68kRenderLookup *lookup, uint32_t value,
+  size_t *out_section_index, uint32_t *out_source_offset);
 
 static int policy_custom_struct_index_from_id(uint16_t struct_id, uint16_t *out_index) {
   uint32_t index;
@@ -1998,6 +2005,93 @@ static void typed_state_apply_policy_register_seeds(M68kRenderTypedState *state,
   }
 }
 
+static void typed_state_apply_callback_table_signatures(M68kRenderTypedState *state,
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  const M68kAnalysisPolicy *policy;
+  uint16_t signature_index;
+  if (state == NULL || lookup == NULL || (policy = lookup->policy) == NULL || lookup->object == NULL) return;
+  for (signature_index = 0U; signature_index < policy->callback_table_signature_count &&
+       signature_index < M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT; ++signature_index) {
+    const M68kAnalysisCallbackTableSignature *signature = &policy->callback_table_signatures[signature_index];
+    const M68kSection *table_section;
+    const char *struct_name;
+    uint16_t struct_id;
+    uint32_t cursor;
+    if (!signature->has_section_index || signature->section_index >= lookup->object->section_count ||
+        signature->entry_count == 0U || signature->register_index >= 8U ||
+        (signature->register_kind != M68K_ANALYSIS_REGISTER_DATA &&
+         signature->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+        signature->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
+      continue;
+    }
+    table_section = &lookup->object->sections[signature->section_index];
+    if (table_section->data == NULL || signature->table_offset > table_section->size ||
+        signature->entry_count > (table_section->size - signature->table_offset) / 4U) {
+      continue;
+    }
+    struct_name = signature->type_name[0] != '\0' ? signature->type_name : signature->name;
+    struct_id = lookup_policy_struct_id_by_name(policy, struct_name);
+    if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
+    for (cursor = 0U; cursor < signature->entry_count; ++cursor) {
+      size_t target_section_index = 0U;
+      uint32_t target_offset = 0U;
+      uint32_t value = m68k_read_u32be(table_section->data + signature->table_offset + cursor * 4U);
+      M68kRenderTypedProvenance provenance;
+      uint16_t range_index;
+      uint8_t resolved = 0U;
+      for (range_index = 0U; range_index < policy->runtime_range_count &&
+           range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+        const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[range_index];
+        uint32_t delta;
+        if (!range->has_section_index || range->section_index >= lookup->object->section_count ||
+            value < range->runtime_address) continue;
+        delta = value - range->runtime_address;
+        if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+        target_section_index = range->section_index;
+        target_offset = range->offset + delta;
+        resolved = 1U;
+        break;
+      }
+      if (!resolved && !render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index,
+            &target_offset)) {
+        continue;
+      }
+      if (target_section_index != section_index || target_offset != offset) {
+        continue;
+      }
+      provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_POLICY_SEED, section_index, offset);
+      typed_state_set_reg_struct_id(state, signature->register_kind, signature->register_index, struct_id,
+        &provenance);
+      break;
+    }
+  }
+}
+
+static void typed_state_apply_function_register_contracts(M68kRenderTypedState *state,
+    const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
+  uint16_t index;
+  if (state == NULL || policy == NULL) return;
+  for (index = 0U; index < policy->function_register_contract_count &&
+       index < M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT; ++index) {
+    const M68kAnalysisFunctionRegisterContract *contract = &policy->function_register_contracts[index];
+    const char *struct_name;
+    uint16_t struct_id;
+    M68kRenderTypedProvenance provenance;
+    if (!contract->has_section_index || contract->section_index != (uint32_t)section_index ||
+        contract->entry_offset != offset || contract->register_index >= 8U ||
+        (contract->register_kind != M68K_ANALYSIS_REGISTER_DATA &&
+         contract->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+        contract->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
+      continue;
+    }
+    struct_name = contract->type_name[0] != '\0' ? contract->type_name : contract->name;
+    struct_id = lookup_policy_struct_id_by_name(policy, struct_name);
+    if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
+    provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_POLICY_SEED, section_index, offset);
+    typed_state_set_reg_struct_id(state, contract->register_kind, contract->register_index, struct_id, &provenance);
+  }
+}
+
 static void typed_state_clear_all(M68kRenderTypedState *state) {
   size_t index;
   if (state == NULL) return;
@@ -2005,6 +2099,19 @@ static void typed_state_clear_all(M68kRenderTypedState *state) {
   for (index = 0U; index < 8U; ++index) {
     state->data_regs[index].struct_id = AMIGA_OS_STRUCT_ID_NONE;
     state->addr_regs[index].struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  }
+}
+
+static void typed_state_clear_non_caller_save_stack_slots(M68kRenderTypedState *state) {
+  size_t index;
+  if (state == NULL) return;
+  for (index = 0U; index < state->stack_slot_count;) {
+    if (state->stack_slots[index].known != 0U && state->stack_slots[index].caller_save_temporary != 0U) {
+      ++index;
+      continue;
+    }
+    state->stack_slots[index] = state->stack_slots[state->stack_slot_count - 1U];
+    --state->stack_slot_count;
   }
 }
 
@@ -2019,6 +2126,7 @@ static void typed_state_apply_platform_call_clobbers(uint8_t platform_kind, M68k
     if ((preserved_data & (uint8_t)(1U << bit)) == 0U) typed_state_clear_reg(state, 1U, bit);
     if ((preserved_address & (uint8_t)(1U << bit)) == 0U) typed_state_clear_reg(state, 2U, bit);
   }
+  typed_state_clear_non_caller_save_stack_slots(state);
 }
 
 static void typed_state_set_app_address(M68kRenderTypedState *state, uint8_t reg_index, int16_t displacement,
@@ -2055,6 +2163,7 @@ static void typed_state_set_memory_base(M68kRenderTypedState *state, uint8_t reg
   else if (reg_kind == 2U) value = &state->memory_base_regs[reg_index];
   else return;
   value->pointer_table_known = 0U;
+  value->pointer_table_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   value->pointer_table_section_index = 0U;
   value->pointer_table_offset = 0U;
   value->pointer_table_size = 0U;
@@ -2118,22 +2227,61 @@ static void typed_memory_base_bind_pointer_table(M68kRenderTypedMemoryBaseValue 
   item = lookup_pointer_table_item_covering_address(lookup, value->section_index, value->offset);
   if (item == NULL) return;
   value->pointer_table_known = 1U;
+  value->pointer_table_struct_id = item->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE
+    ? item->pointer_struct_id : lookup_policy_struct_id_by_name(lookup->policy, item->pointer_struct);
   value->pointer_table_section_index = item->section_index;
   value->pointer_table_offset = item->offset;
   value->pointer_table_size = item->size;
 }
 
+/* A runtime table has no source-section address to bind, but its app slot
+ * still contracts the table's homogeneous longword entry type. */
+static int typed_memory_base_bind_runtime_pointer_table_slot(M68kRenderTypedMemoryBaseValue *value,
+    const M68kRenderLookup *lookup, const M68kRenderPlatformState *platform_state,
+    const M68kOperandIR *operand) {
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  uint16_t index;
+  if (value == NULL || lookup == NULL || lookup->policy == NULL || platform_state == NULL || operand == NULL ||
+      !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
+      !render_state_operand_uses_app_base(platform_state, base_reg, displacement)) {
+    return 0;
+  }
+  for (index = 0U; index < lookup->policy->rsset_layout_region_count &&
+       index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *region = &lookup->policy->rsset_layout_regions[index];
+    const char *layout_name = region->layout_name[0] != '\0' ? region->layout_name : "app";
+    const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_APP_BASE_SYMBOL;
+    uint16_t struct_id;
+    if (!((region->flags & (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT) != 0U ||
+          (strcmp(layout_name, "app") == 0 && strcmp(base_symbol, M68K_APP_BASE_SYMBOL) == 0)) ||
+        strcmp(base_symbol, M68K_APP_BASE_SYMBOL) != 0 || region->offset != (uint32_t)displacement ||
+        region->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE ||
+        region->pointer_struct[0] == '\0') {
+      continue;
+    }
+    struct_id = lookup_policy_struct_id_by_name(lookup->policy, region->pointer_struct);
+    if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
+    typed_memory_base_clear(value);
+    value->pointer_table_known = 1U;
+    value->pointer_table_struct_id = struct_id;
+    return 1;
+  }
+  return 0;
+}
+
 static void typed_memory_base_clear_pointer_table_if_offset_outside(M68kRenderTypedMemoryBaseValue *value) {
-  if (value == NULL || !value->pointer_table_known ||
-      value->offset < value->pointer_table_offset || value->pointer_table_size < 4U ||
+  /* Runtime table contracts have no finite source range. Their homogeneous
+   * entry type remains valid as the cursor advances. */
+  if (value == NULL || !value->pointer_table_known || !value->known) return;
+  if (value->offset < value->pointer_table_offset || value->pointer_table_size < 4U ||
       value->offset - value->pointer_table_offset > value->pointer_table_size - 4U ||
       ((value->offset - value->pointer_table_offset) & 3U) != 0U) {
-    if (value != NULL) {
-      value->pointer_table_known = 0U;
-      value->pointer_table_section_index = 0U;
-      value->pointer_table_offset = 0U;
-      value->pointer_table_size = 0U;
-    }
+    value->pointer_table_known = 0U;
+    value->pointer_table_struct_id = AMIGA_OS_STRUCT_ID_NONE;
+    value->pointer_table_section_index = 0U;
+    value->pointer_table_offset = 0U;
+    value->pointer_table_size = 0U;
   }
 }
 
@@ -2318,19 +2466,72 @@ static void typed_state_clear_stack_slot(M68kRenderTypedState *state, int16_t di
 }
 
 static void typed_state_set_stack_slot(M68kRenderTypedState *state, int16_t displacement,
-    const M68kRenderTypedStoredValue *value) {
+    uint8_t caller_save_temporary, const M68kRenderTypedStoredValue *value,
+    const M68kRenderTypedMemoryBaseValue *memory_base) {
   size_t index;
-  if (state == NULL || value == NULL || !typed_stored_value_has_useful_info(value)) return;
+  if (state == NULL || value == NULL ||
+      (!typed_stored_value_has_useful_info(value) && (memory_base == NULL ||
+       (memory_base->known == 0U && memory_base->pointer_table_known == 0U)))) return;
   for (index = 0U; index < state->stack_slot_count; ++index) {
     if (state->stack_slots[index].known == 0U || state->stack_slots[index].displacement != displacement) continue;
     state->stack_slots[index].value = *value;
+    state->stack_slots[index].caller_save_temporary = caller_save_temporary;
+    if (memory_base != NULL) state->stack_slots[index].memory_base = *memory_base;
+    else typed_memory_base_clear(&state->stack_slots[index].memory_base);
     return;
   }
   if (state->stack_slot_count >= M68K_RENDER_TYPED_STACK_SLOT_LIMIT) return;
   state->stack_slots[state->stack_slot_count].known = 1U;
+  state->stack_slots[state->stack_slot_count].caller_save_temporary = caller_save_temporary;
   state->stack_slots[state->stack_slot_count].displacement = displacement;
   state->stack_slots[state->stack_slot_count].value = *value;
+  if (memory_base != NULL) state->stack_slots[state->stack_slot_count].memory_base = *memory_base;
   ++state->stack_slot_count;
+}
+
+static const M68kRenderTypedMemoryBaseValue *typed_state_stack_slot_memory_base(
+    const M68kRenderTypedState *state, int16_t displacement) {
+  size_t index;
+  if (state == NULL) return NULL;
+  for (index = 0U; index < state->stack_slot_count; ++index) {
+    const M68kRenderTypedStackSlot *slot = &state->stack_slots[index];
+    if (slot->known != 0U && slot->displacement == displacement &&
+        (slot->memory_base.known != 0U || slot->memory_base.pointer_table_known != 0U)) {
+      return &slot->memory_base;
+    }
+  }
+  return NULL;
+}
+
+/* Stack slots are expressed relative to the current A7.  On a caller push,
+ * existing slots move up by four; on a matching pop they move down by four. */
+static void typed_state_rebase_stack_slots(M68kRenderTypedState *state, int16_t adjustment) {
+  size_t index;
+  if (state == NULL) return;
+  for (index = 0U; index < state->stack_slot_count;) {
+    M68kRenderTypedStackSlot *slot = &state->stack_slots[index];
+    int32_t displacement = (int32_t)slot->displacement + adjustment;
+    if (displacement < INT16_MIN || displacement > INT16_MAX || displacement < 0) {
+      state->stack_slots[index] = state->stack_slots[state->stack_slot_count - 1U];
+      --state->stack_slot_count;
+      continue;
+    }
+    slot->displacement = (int16_t)displacement;
+    ++index;
+  }
+}
+
+static void typed_state_preserve_caller_save_stack_slots(M68kRenderTypedState *state) {
+  M68kRenderTypedStackSlot preserved[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
+  size_t preserved_count = 0U, index;
+  if (state == NULL) return;
+  for (index = 0U; index < state->stack_slot_count; ++index) {
+    if (state->stack_slots[index].known != 0U && state->stack_slots[index].caller_save_temporary != 0U)
+      preserved[preserved_count++] = state->stack_slots[index];
+  }
+  typed_state_clear_all(state);
+  for (index = 0U; index < preserved_count; ++index) state->stack_slots[index] = preserved[index];
+  state->stack_slot_count = preserved_count;
 }
 
 static const M68kRenderTypedStoredValue *typed_state_stack_slot_value(const M68kRenderTypedState *state,
@@ -2440,12 +2641,18 @@ static uint16_t typed_struct_id_for_base_slot_operand(const M68kRenderLookup *lo
     if (m68k_bitset_u32_has(platform_state->address_app_base_known, base_reg)) {
       uint16_t output_struct_id = lookup_typed_output_slot_struct_id(lookup, displacement);
       if (output_struct_id != AMIGA_OS_STRUCT_ID_NONE) return output_struct_id;
+      output_struct_id = lookup_typed_app_slot_struct_id(lookup, displacement);
+      if (output_struct_id != AMIGA_OS_STRUCT_ID_NONE) return output_struct_id;
       return lookup_app_base_field_slot_struct_id(lookup, displacement);
     }
     if (m68k_bitset_u32_has(platform_state->address_base_known, base_reg)) {
       return lookup_base_field_slot_struct_id(lookup, platform_state->address_base_library[base_reg], displacement);
     }
-    if (base_reg == 6U) return lookup_app_base_field_slot_struct_id(lookup, displacement);
+    if (base_reg == 6U) {
+      uint16_t output_struct_id = lookup_typed_app_slot_struct_id(lookup, displacement);
+      return output_struct_id != AMIGA_OS_STRUCT_ID_NONE ? output_struct_id :
+        lookup_app_base_field_slot_struct_id(lookup, displacement);
+    }
   } else if (base_reg == 6U) {
     return lookup_app_base_field_slot_struct_id(lookup, displacement);
   }
@@ -2951,6 +3158,20 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
   if (lookup == NULL || state == NULL || operand == NULL || out_value == NULL ||
       access_kind != M68K_SIM_ACCESS_MEMORY_READ) {
     return 0;
+  }
+  if (operand_is_postinc_a7_local(operand)) {
+    value = typed_state_stack_slot_value(state, 0);
+    if (value != NULL) {
+      *out_value = *value;
+      if (out_value->provenance.kind == M68K_RENDER_TYPED_PROVENANCE_NONE)
+        out_value->provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STACK_SLOT,
+          current_section_index, 0U);
+      if (out_origin != NULL) {
+        out_origin->kind = M68K_RENDER_TYPED_ORIGIN_STACK_SLOT;
+        out_origin->displacement = 0;
+      }
+      return 1;
+    }
   }
   if (operand_is_stack_displacement_local(operand, &stack_displacement)) {
     value = typed_state_stack_slot_value(state, stack_displacement);
@@ -3745,7 +3966,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     }
   }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
-    if (typed_stored_value_has_useful_info(&value)) typed_state_set_stack_slot(state, stack_displacement, &value);
+    if (typed_stored_value_has_useful_info(&value))
+      typed_state_set_stack_slot(state, stack_displacement, 0U, &value, NULL);
     else typed_state_clear_stack_slot(state, stack_displacement);
     return 0;
   }
@@ -3864,7 +4086,7 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
   return 0;
 }
 
-static int typed_stored_value_from_static_pointer_table_read(M68kRenderTypedStoredValue *value,
+static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue *value,
     const M68kRenderLookup *lookup, const M68kRenderTypedState *state, const M68kOperandIR *operand,
     size_t section_index, uint32_t offset) {
   M68kRenderTypedMemoryBaseValue memory_base;
@@ -3877,9 +4099,9 @@ static int typed_stored_value_from_static_pointer_table_read(M68kRenderTypedStor
       memory_base.pointer_table_offset, memory_base.pointer_table_size) :
     (memory_base.known ? lookup_pointer_table_item_covering_address(lookup, memory_base.section_index,
       memory_base.offset) : NULL);
-  if (item == NULL) return 0;
-  struct_id = item->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE ? item->pointer_struct_id :
-    lookup_policy_struct_id_by_name(lookup->policy, item->pointer_struct);
+  struct_id = memory_base.pointer_table_struct_id != AMIGA_OS_STRUCT_ID_NONE ?
+    memory_base.pointer_table_struct_id : (item != NULL && item->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE ?
+      item->pointer_struct_id : lookup_policy_struct_id_by_name(lookup->policy, item != NULL ? item->pointer_struct : NULL));
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
   typed_stored_value_clear(value);
   value->struct_id = struct_id;
@@ -3897,32 +4119,34 @@ static uint8_t typed_flow_movem_address_mask(const M68kOperandIR *operand) {
   return mask;
 }
 
-static int typed_flow_instruction_writes_unsaved_address(const M68kInstructionIR *instruction, uint8_t requested_mask,
-    uint8_t saved_mask) {
+static uint8_t typed_flow_instruction_written_unsaved_address_mask(const M68kInstructionIR *instruction,
+    uint8_t requested_mask, uint8_t saved_mask) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
-  if (instruction == NULL) return 1;
+  uint8_t written_mask = 0U;
+  if (instruction == NULL) return requested_mask & (uint8_t)~saved_mask;
   metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return 1;
+  if (metadata == NULL) return requested_mask & (uint8_t)~saved_mask;
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     uint8_t reg = 0U;
     if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
         operand_address_register_index_local(&instruction->operands[operand_index], &reg) && reg < 8U &&
         (requested_mask & (uint8_t)(1U << reg)) != 0U && (saved_mask & (uint8_t)(1U << reg)) == 0U) {
-      return 1;
+      written_mask |= (uint8_t)(1U << reg);
     }
     if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
       uint8_t written = typed_flow_movem_address_mask(&instruction->operands[operand_index]);
-      if ((written & requested_mask & (uint8_t)~saved_mask) != 0U) return 1;
+      written_mask |= written & requested_mask & (uint8_t)~saved_mask;
     }
     if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
         instruction->operands[operand_index].kind == M68K_ASM_OPERAND_EA &&
         instruction->operands[operand_index].value.ea_reg < 8U) {
       reg = instruction->operands[operand_index].value.ea_reg;
-      if ((requested_mask & (uint8_t)(1U << reg)) != 0U && (saved_mask & (uint8_t)(1U << reg)) == 0U) return 1;
+      if ((requested_mask & (uint8_t)(1U << reg)) != 0U && (saved_mask & (uint8_t)(1U << reg)) == 0U)
+        written_mask |= (uint8_t)(1U << reg);
     }
   }
-  return 0;
+  return written_mask;
 }
 
 static int typed_flow_first_local_control_target(const M68kDecodeSectionIR *section,
@@ -3941,19 +4165,71 @@ static int typed_flow_first_local_control_target(const M68kDecodeSectionIR *sect
   return 0;
 }
 
-static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR *decode, uint8_t **accepted_start,
-    size_t section_index, uint32_t target_offset, uint8_t requested_mask, uint8_t depth) {
-  typedef struct M68kTypedLocalCalleeState { uint32_t offset; uint8_t saved_mask; } M68kTypedLocalCalleeState;
+static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M68kDecodeCandidate *candidate,
+    size_t *out_section_index, uint32_t *out_target_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *operand;
+  uint32_t absolute_address;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
+  if (lookup == NULL || candidate == NULL || out_section_index == NULL || out_target_offset == NULL) return 0;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      (metadata = m68k_sim_metadata_for_instruction(&instruction)) == NULL ||
+      metadata->flow_kind != M68K_SIM_FLOW_CALL || metadata->target_operand_index >= instruction.operand_count) {
+    return candidate_direct_target(candidate, out_section_index, out_target_offset);
+  }
+  operand = &instruction.operands[metadata->target_operand_index];
+  if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U || operand->value.ea_reg != 1U)
+    return candidate_direct_target(candidate, out_section_index, out_target_offset);
+  absolute_address = operand->value.value;
+  /* A pointer-only observed view is not generally executable.  An exact
+     runtime code label independently proves this one absolute call target. */
+  if (lookup->policy != NULL) {
+    uint16_t label_index;
+    for (label_index = 0U; label_index < lookup->policy->named_label_count; ++label_index) {
+      const M68kAnalysisNamedLabel *label = &lookup->policy->named_labels[label_index];
+      size_t range_index;
+      if (label->domain != M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME || label->offset != absolute_address) continue;
+      for (range_index = 0U; range_index < lookup->policy->runtime_range_count; ++range_index) {
+        const M68kAnalysisRuntimeRange *range = &lookup->policy->runtime_ranges[range_index];
+        uint32_t delta;
+        size_t section_index = range->has_section_index ? range->section_index : 0U;
+        if ((range->use_mask != M68K_ANALYSIS_RUNTIME_RANGE_USE_DEFAULT &&
+             (range->use_mask & M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET) == 0U) ||
+            section_index >= lookup->section_count || absolute_address < range->runtime_address) continue;
+        delta = absolute_address - range->runtime_address;
+        if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+        *out_section_index = section_index;
+        *out_target_offset = range->offset + delta;
+        return 1;
+      }
+    }
+  }
+  if (render_lookup_pointer_value_to_object_source_location(lookup, absolute_address, out_section_index,
+      out_target_offset)) return 1;
+  return candidate_direct_target(candidate, out_section_index, out_target_offset);
+}
+
+static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
+    uint8_t requested_mask, uint8_t depth) {
+  typedef struct M68kTypedLocalCalleeState {
+    uint32_t offset;
+    uint8_t saved_mask;
+    uint8_t preserved_mask;
+  } M68kTypedLocalCalleeState;
   M68kTypedLocalCalleeState worklist[128];
   M68kTypedLocalCalleeState visited[128];
   const M68kDecodeSectionIR *section;
-  uint8_t work_count = 0U, visited_count = 0U, returned = 0U;
-  if (decode == NULL || accepted_start == NULL || section_index >= decode->section_count ||
+  uint8_t work_count = 0U, visited_count = 0U, returned = 0U, returned_mask = 0U;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || section_index >= decode->section_count ||
       accepted_start[section_index] == NULL || requested_mask == 0U || depth > 4U) return 0U;
   section = &decode->sections[section_index];
   if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0U;
   worklist[work_count].offset = target_offset;
   worklist[work_count++].saved_mask = 0U;
+  worklist[0].preserved_mask = requested_mask;
   while (work_count != 0U) {
     M68kTypedLocalCalleeState state = worklist[--work_count];
     uint8_t step;
@@ -3964,7 +4240,8 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR
       uint32_t branch_target = 0U;
       uint8_t index;
       for (index = 0U; index < visited_count; ++index) {
-        if (visited[index].offset == state.offset && visited[index].saved_mask == state.saved_mask) break;
+        if (visited[index].offset == state.offset && visited[index].saved_mask == state.saved_mask &&
+            visited[index].preserved_mask == state.preserved_mask) break;
       }
       if (index != visited_count) break;
       if (visited_count >= (uint8_t)(sizeof(visited) / sizeof(visited[0]))) return 0U;
@@ -3982,21 +4259,29 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR
                  operand_is_postinc_a7_local(&instruction.operands[0]) &&
                  instruction.operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
         uint8_t restored = typed_flow_movem_address_mask(&instruction.operands[1]) & requested_mask;
-        if ((restored & (uint8_t)~state.saved_mask) != 0U) return 0U;
+        state.preserved_mask &= (uint8_t)~(restored & (uint8_t)~state.saved_mask);
         state.saved_mask &= (uint8_t)~restored;
-      } else if (typed_flow_instruction_writes_unsaved_address(&instruction, requested_mask, state.saved_mask)) {
-        return 0U;
+      } else {
+        state.preserved_mask &= (uint8_t)~typed_flow_instruction_written_unsaved_address_mask(&instruction,
+          requested_mask, state.saved_mask);
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
         size_t callee_section = 0U;
         uint32_t callee_offset = 0U;
-        uint8_t live_mask = requested_mask & (uint8_t)~state.saved_mask;
-        if (live_mask != 0U && (!candidate_direct_target(candidate, &callee_section, &callee_offset) ||
-            typed_flow_local_callee_preserved_address_mask(decode, accepted_start, callee_section, callee_offset,
-              live_mask, (uint8_t)(depth + 1U)) != live_mask)) return 0U;
+        uint8_t live_mask = state.preserved_mask & (uint8_t)~state.saved_mask;
+        if (live_mask != 0U) {
+          uint8_t callee_preserved = 0U;
+          if (typed_flow_local_call_target(lookup, candidate, &callee_section, &callee_offset)) {
+            callee_preserved = typed_flow_local_callee_preserved_address_mask(lookup, decode, accepted_start,
+              callee_section, callee_offset, live_mask, (uint8_t)(depth + 1U));
+          }
+          state.preserved_mask = (state.preserved_mask & state.saved_mask) | callee_preserved;
+        }
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) {
         if (state.saved_mask != 0U) return 0U;
+        if (returned == 0U) returned_mask = state.preserved_mask;
+        else returned_mask &= state.preserved_mask;
         returned = 1U;
         break;
       }
@@ -4009,6 +4294,7 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR
         if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) return 0U;
         worklist[work_count].offset = branch_target;
         worklist[work_count++].saved_mask = state.saved_mask;
+        worklist[work_count - 1U].preserved_mask = state.preserved_mask;
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
           (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U) ||
@@ -4016,7 +4302,85 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kDecodeIR
       state.offset += candidate->byte_count;
     }
   }
-  return returned != 0U ? requested_mask : 0U;
+  return returned != 0U ? returned_mask : 0U;
+}
+
+/* An indirect callback dispatch is local only when the dispatch register still
+ * carries the exact source base of a declared callback table.  In that case,
+ * prove preservation from every possible table target rather than assuming a
+ * calling convention for an arbitrary register-indirect call. */
+static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, const M68kRenderTypedState *state,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint8_t requested_mask) {
+  const M68kAnalysisPolicy *policy;
+  uint8_t dispatch_reg;
+  uint16_t signature_index;
+  size_t table_section_index = 0U;
+  uint32_t table_offset = 0U;
+  uint8_t preserved_mask = requested_mask;
+  uint8_t matched = 0U;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || state == NULL || instruction == NULL ||
+      section == NULL || candidate == NULL || (policy = lookup->policy) == NULL || requested_mask == 0U ||
+      instruction->operand_count != 1U || !operand_is_address_memory_local(&instruction->operands[0], &dispatch_reg,
+        NULL) || dispatch_reg >= 8U) {
+    return 0U;
+  }
+  if (state->memory_base_regs[dispatch_reg].known) {
+    table_section_index = state->memory_base_regs[dispatch_reg].section_index;
+    table_offset = state->memory_base_regs[dispatch_reg].offset;
+  } else {
+    size_t candidate_index;
+    int found = 0;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *previous = &section->candidates[candidate_index];
+      M68kInstructionIR previous_instruction;
+      uint8_t previous_dest_reg;
+      if (previous->byte_count == 0U || previous->offset > candidate->offset ||
+          previous->byte_count != candidate->offset - previous->offset ||
+          m68k_decode_candidate_to_instruction(previous, &previous_instruction) != 0 ||
+          previous_instruction.mnemonic_id != M68K_ASM_MNEMONIC_MOVEA || previous_instruction.operand_count != 2U ||
+          !operand_address_register_index_local(&previous_instruction.operands[1], &previous_dest_reg) ||
+          previous_dest_reg != dispatch_reg ||
+          !candidate_data_target_for_operand(previous, 0U, &table_section_index, &table_offset)) {
+        continue;
+      }
+      found = 1;
+      break;
+    }
+    if (!found) return 0U;
+  }
+  for (signature_index = 0U; signature_index < policy->callback_table_signature_count &&
+       signature_index < M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT; ++signature_index) {
+    const M68kAnalysisCallbackTableSignature *signature = &policy->callback_table_signatures[signature_index];
+    const M68kSection *table_section;
+    uint32_t entry_index;
+    if (!signature->has_section_index || signature->section_index >= lookup->object->section_count ||
+        signature->entry_count == 0U || table_section_index != signature->section_index ||
+        table_offset != signature->table_offset) {
+      continue;
+    }
+    table_section = &lookup->object->sections[signature->section_index];
+    if (table_section->data == NULL || signature->table_offset > table_section->size ||
+        signature->entry_count > (table_section->size - signature->table_offset) / 4U) {
+      return 0U;
+    }
+    for (entry_index = 0U; entry_index < signature->entry_count; ++entry_index) {
+      size_t target_section_index = 0U;
+      uint32_t target_offset = 0U;
+      uint32_t value = m68k_read_u32be(table_section->data + signature->table_offset + entry_index * 4U);
+      uint8_t target_preserved;
+      if (!render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index,
+            &target_offset)) {
+        return 0U;
+      }
+      target_preserved = typed_flow_local_callee_preserved_address_mask(lookup, decode, accepted_start,
+        target_section_index, target_offset, requested_mask, 0U);
+      preserved_mask &= target_preserved;
+      matched = 1U;
+    }
+  }
+  return matched != 0U ? preserved_mask : 0U;
 }
 
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
@@ -4044,16 +4408,16 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   int source_has_memory_base = 0;
   int source_is_direct_addr_reg = 0;
   int source_tracks_plain_addr_alias = 0;
+  int recognized_stack_update = 0;
   if (state == NULL || instruction == NULL) return;
   typed_origin_clear(&source_origin);
   typed_provenance_clear(&source_provenance);
   typed_memory_base_clear(&source_memory_base);
   if (instruction_has_call_flow_local(instruction)) {
-    if (vector != NULL && lookup != NULL && lookup->object != NULL)
+    if (locally_preserved_address != 0U) typed_state_apply_local_call_clobbers(state, locally_preserved_address);
+    else if (vector != NULL && lookup != NULL && lookup->object != NULL)
       typed_state_apply_platform_call_clobbers(lookup->object->platform_backend_kind, state);
-    else if (locally_preserved_address != 0U) typed_state_apply_local_call_clobbers(state, locally_preserved_address);
-    else if (vector != NULL) typed_state_clear_all(state);
-    else typed_state_clear_all(state);
+    else typed_state_preserve_caller_save_stack_slots(state);
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count >= 2U &&
       instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
     for (bit = 0U; bit < 8U; ++bit) {
@@ -4090,6 +4454,18 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     }
     source_is_app_address = typed_state_copy_app_address(state, source_operand, &source_app_displacement);
     source_has_memory_base = typed_state_copy_memory_base(state, source_operand, &source_memory_base);
+    if (!source_has_memory_base && move_metadata != NULL && instruction->size_suffix == 'l' &&
+        move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ) {
+      source_has_memory_base = typed_memory_base_bind_runtime_pointer_table_slot(&source_memory_base, lookup,
+        platform_state, source_operand);
+    }
+    if (!source_has_memory_base && operand_is_postinc_a7_local(source_operand)) {
+      const M68kRenderTypedMemoryBaseValue *stack_memory_base = typed_state_stack_slot_memory_base(state, 0);
+      if (stack_memory_base != NULL) {
+        source_memory_base = *stack_memory_base;
+        source_has_memory_base = 1;
+      }
+    }
     (void)typed_state_origin_for_operand(state, source_operand, &source_origin);
     source_provenance = typed_stored_value_for_operand(state, source_operand).provenance;
     if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE && !typed_stored_value_has_useful_info(&stored_value) &&
@@ -4109,10 +4485,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE && move_metadata != NULL &&
         move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ &&
         instruction->size_suffix == 'l') {
-      /* A static table address is retained as memory-base bookkeeping.  That
-       * bookkeeping is useful, but is not the pointee type of the long read
-       * from the table, so it must not suppress pointer-table propagation. */
-      if (typed_stored_value_from_static_pointer_table_read(&stored_value, lookup, state, source_operand,
+      /* A table base is retained as memory-base bookkeeping. That bookkeeping
+       * is useful, but is not the pointee type of the long read from the
+       * table, so it must not suppress pointer-table propagation. */
+      if (typed_stored_value_from_pointer_table_read(&stored_value, lookup, state, source_operand,
           section_index, offset) ||
           (!typed_stored_value_has_useful_info(&stored_value) &&
            typed_stored_value_from_field_pointer_read(&stored_value, lookup, state, source_operand,
@@ -4182,6 +4558,16 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       typed_state_set_reg_origin(state, 2U, dest_reg, &source_origin);
       if (source_tracks_plain_addr_alias && dest_reg != source_alias_reg)
         typed_state_set_addr_alias(state, dest_reg, source_alias_reg);
+    }
+    if (instruction->size_suffix == 'l' && operand_is_predec_a7_local(dest_operand)) {
+      typed_state_rebase_stack_slots(state, 4);
+      if (typed_stored_value_has_useful_info(&stored_value) || source_has_memory_base)
+        typed_state_set_stack_slot(state, 0, 1U, &stored_value,
+          source_has_memory_base ? &source_memory_base : NULL);
+      recognized_stack_update = 1;
+    } else if (instruction->size_suffix == 'l' && operand_is_postinc_a7_local(source_operand)) {
+      typed_state_rebase_stack_slots(state, -4);
+      recognized_stack_update = 1;
     }
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U) {
     if (operand_address_register_index_local(&instruction->operands[1], &dest_reg)) {
@@ -4403,7 +4789,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       }
     }
   }
-  if (instruction_may_update_stack_pointer_from_metadata(instruction)) typed_state_clear_stack_slots(state);
+  if (instruction_may_update_stack_pointer_from_metadata(instruction) && !recognized_stack_update &&
+      !instruction_has_call_flow_local(instruction))
+    typed_state_clear_stack_slots(state);
   if (vector != NULL && amiga_output_has_typed_info(&vector->output)) {
     M68kRenderTypedProvenance api_provenance =
       typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_API_OUTPUT, section_index, offset);
@@ -4450,6 +4838,7 @@ static int typed_memory_bases_equal(const M68kRenderTypedMemoryBaseValue *left,
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->section_index == right->section_index && left->offset == right->offset &&
     left->pointer_table_known == right->pointer_table_known &&
+    left->pointer_table_struct_id == right->pointer_table_struct_id &&
     left->pointer_table_section_index == right->pointer_table_section_index &&
     left->pointer_table_offset == right->pointer_table_offset &&
     left->pointer_table_size == right->pointer_table_size;
@@ -4473,7 +4862,9 @@ static int typed_io_request_setups_equal(const M68kRenderIoRequestSetup *left,
 static int typed_stack_slots_equal(const M68kRenderTypedStackSlot *left,
     const M68kRenderTypedStackSlot *right) {
   if (left == NULL || right == NULL) return 0;
-  return left->known == right->known && left->displacement == right->displacement &&
+  return left->known == right->known && left->caller_save_temporary == right->caller_save_temporary &&
+    left->displacement == right->displacement &&
+    typed_memory_bases_equal(&left->memory_base, &right->memory_base) &&
     typed_stored_values_equal(&left->value, &right->value);
 }
 
@@ -4674,14 +5065,18 @@ static int typed_state_merge_stack_slots(M68kRenderTypedState *dest, const M68kR
     size_t source_index;
     for (source_index = 0U; source_index < source->stack_slot_count; ++source_index) {
       if (source->stack_slots[source_index].known != 0U &&
+          source->stack_slots[source_index].caller_save_temporary == dest_slot->caller_save_temporary &&
           source->stack_slots[source_index].displacement == dest_slot->displacement) {
         source_slot = &source->stack_slots[source_index];
         break;
       }
     }
-    if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value) ||
-        !typed_stored_value_has_useful_info(&dest_slot->value)) {
-      if (source_slot == NULL || !typed_stored_value_has_useful_info(&dest_slot->value)) {
+    if (source_slot == NULL || !typed_memory_bases_equal(&dest_slot->memory_base, &source_slot->memory_base) ||
+        typed_stored_value_merge(&dest_slot->value, &source_slot->value) ||
+        (!typed_stored_value_has_useful_info(&dest_slot->value) && dest_slot->memory_base.known == 0U &&
+         dest_slot->memory_base.pointer_table_known == 0U)) {
+      if (source_slot == NULL || (!typed_stored_value_has_useful_info(&dest_slot->value) &&
+          dest_slot->memory_base.known == 0U && dest_slot->memory_base.pointer_table_known == 0U)) {
         dest->stack_slots[dest_index] = dest->stack_slots[dest->stack_slot_count - 1U];
         --dest->stack_slot_count;
         changed = 1;
@@ -4752,6 +5147,8 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     }
     if (dest->data_memory_base_regs[index].pointer_table_known == 0U ||
         source->data_memory_base_regs[index].pointer_table_known == 0U ||
+        dest->data_memory_base_regs[index].pointer_table_struct_id !=
+          source->data_memory_base_regs[index].pointer_table_struct_id ||
         dest->data_memory_base_regs[index].pointer_table_section_index !=
           source->data_memory_base_regs[index].pointer_table_section_index ||
         dest->data_memory_base_regs[index].pointer_table_offset !=
@@ -4759,6 +5156,7 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
         dest->data_memory_base_regs[index].pointer_table_size !=
           source->data_memory_base_regs[index].pointer_table_size) {
       dest->data_memory_base_regs[index].pointer_table_known = 0U;
+      dest->data_memory_base_regs[index].pointer_table_struct_id = AMIGA_OS_STRUCT_ID_NONE;
       dest->data_memory_base_regs[index].pointer_table_section_index = 0U;
       dest->data_memory_base_regs[index].pointer_table_offset = 0U;
       dest->data_memory_base_regs[index].pointer_table_size = 0U;
@@ -4773,11 +5171,13 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     }
     if (dest->memory_base_regs[index].pointer_table_known == 0U ||
         source->memory_base_regs[index].pointer_table_known == 0U ||
+        dest->memory_base_regs[index].pointer_table_struct_id != source->memory_base_regs[index].pointer_table_struct_id ||
         dest->memory_base_regs[index].pointer_table_section_index !=
           source->memory_base_regs[index].pointer_table_section_index ||
         dest->memory_base_regs[index].pointer_table_offset != source->memory_base_regs[index].pointer_table_offset ||
         dest->memory_base_regs[index].pointer_table_size != source->memory_base_regs[index].pointer_table_size) {
       dest->memory_base_regs[index].pointer_table_known = 0U;
+      dest->memory_base_regs[index].pointer_table_struct_id = AMIGA_OS_STRUCT_ID_NONE;
       dest->memory_base_regs[index].pointer_table_section_index = 0U;
       dest->memory_base_regs[index].pointer_table_offset = 0U;
       dest->memory_base_regs[index].pointer_table_size = 0U;
@@ -5160,6 +5560,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   const AmigaOsCallOutputInfo *stored_output = NULL;
   int16_t slot_displacement = 0;
   uint8_t locally_preserved_address = 0U;
+  size_t target_section_index = 0U;
+  uint32_t target_offset = 0U;
   if (lookup == NULL || decode == NULL || accepted_start == NULL || section == NULL || node == NULL ||
       out_typed_state == NULL || out_platform_state == NULL || node->candidate == NULL) {
     return -1;
@@ -5168,6 +5570,10 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   *out_platform_state = node->platform_in;
   typed_state_apply_policy_register_seeds(out_typed_state, lookup->policy, section->section_index,
     node->candidate->offset);
+  typed_state_apply_callback_table_signatures(out_typed_state, lookup, section->section_index,
+    node->candidate->offset);
+  typed_state_apply_function_register_contracts(out_typed_state, lookup->policy, section->section_index,
+    node->candidate->offset);
   platform_state_apply_policy_register_seeds(out_platform_state, lookup->policy, section->section_index,
     node->candidate->offset);
   if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) return -1;
@@ -5175,17 +5581,21 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   typed_flow_call_resolution_init(&call_resolution);
   chosen_vector = typed_flow_resolve_vector(lookup, decode, accepted_start, section, node->candidate,
     out_platform_state, &instruction, &call_resolution);
-  if (chosen_vector == NULL && instruction_has_call_flow_local(&instruction)) {
-    size_t target_section_index = 0U;
-    uint32_t target_offset = 0U;
+  if (instruction_has_call_flow_local(&instruction)) {
     uint8_t requested_address = 0U;
     uint8_t reg;
-    if (candidate_direct_target(node->candidate, &target_section_index, &target_offset)) {
+    if (typed_flow_local_call_target(lookup, node->candidate, &target_section_index, &target_offset)) {
       for (reg = 0U; reg < 8U; ++reg) {
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
       }
-      locally_preserved_address = typed_flow_local_callee_preserved_address_mask(decode, accepted_start,
+      locally_preserved_address = typed_flow_local_callee_preserved_address_mask(lookup, decode, accepted_start,
         target_section_index, target_offset, requested_address, 0U);
+    } else {
+      for (reg = 0U; reg < 8U; ++reg) {
+        if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
+      }
+      locally_preserved_address = typed_flow_callback_table_callee_preserved_address_mask(lookup, decode,
+        accepted_start, out_typed_state, section, node->candidate, &instruction, requested_address);
     }
   }
   if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, &instruction,
@@ -5570,7 +5980,9 @@ static int amiga_vector_has_typed_flow_info(const AmigaOsLibraryVectorInfo *vect
 
 static int policy_has_typed_flow_metadata(const M68kAnalysisPolicy *policy) {
   if (policy == NULL) return 0;
-  return policy->register_seed_count != 0U || policy->rsset_layout_region_count != 0U ||
+  return policy->register_seed_count != 0U || policy->callback_table_signature_count != 0U ||
+    policy->function_register_contract_count != 0U ||
+    policy->rsset_layout_region_count != 0U ||
     policy->structured_data_item_count != 0U;
 }
 
@@ -6374,10 +6786,20 @@ static int render_lookup_seed_policy_rsset_layout_regions(M68kRenderLookup *look
   for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
     const M68kAnalysisRssetLayoutRegion *slot = &policy->rsset_layout_regions[index];
     const char *base_symbol = slot->base_symbol[0] != '\0' ? slot->base_symbol : M68K_APP_BASE_SYMBOL;
+    uint16_t pointer_struct_id = AMIGA_OS_STRUCT_ID_NONE;
     if (slot->symbol[0] == '\0' || slot->offset > 0x7FFFU) continue;
     if (render_lookup_add_named_layout_field_slot(lookup, base_symbol, (int16_t)slot->offset, slot->symbol, SIZE_MAX,
         UINT32_MAX) != 0) {
       return -1;
+    }
+    if (slot->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER &&
+        slot->pointer_struct[0] != '\0') {
+      pointer_struct_id = lookup_policy_struct_id_by_name(policy, slot->pointer_struct);
+      if (pointer_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
+          render_lookup_add_typed_app_slot(lookup, (int16_t)slot->offset, pointer_struct_id,
+            (size_t)-1, 0U, NULL) != 0) {
+        return -1;
+      }
     }
   }
   return 0;
@@ -8560,6 +8982,44 @@ int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLook
   return 0;
 }
 
+static int render_lookup_pointer_value_to_object_source_location(const M68kRenderLookup *lookup, uint32_t value,
+    size_t *out_section_index, uint32_t *out_source_offset) {
+  size_t section_index;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (lookup == NULL || lookup->object == NULL || out_section_index == NULL || out_source_offset == NULL) return 0;
+  for (section_index = 0U; section_index < lookup->object->section_count; ++section_index) {
+    const M68kSection *object_section = &lookup->object->sections[section_index];
+    size_t range_index;
+    uint32_t logical_address = 0U;
+    if (object_section->data == NULL || value == 0U) continue;
+    for (range_index = 0U; range_index < lookup->runtime_address_range_count; ++range_index) {
+      const M68kFact *range = lookup->runtime_address_ranges[range_index].fact;
+      uint32_t delta;
+      uint32_t source_offset;
+      if (range == NULL || range->section_index != section_index || !range->has_runtime_address ||
+          value < range->runtime_address) continue;
+      delta = value - range->runtime_address;
+      if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+      source_offset = range->offset + delta;
+      if (source_offset >= object_section->size ||
+          !lookup_source_has_materialized_runtime_address(lookup, section_index, source_offset, value) ||
+          !lookup_source_logical_address(lookup, section_index, source_offset, &logical_address) ||
+          logical_address != value) continue;
+      *out_section_index = section_index;
+      *out_source_offset = source_offset;
+      return 1;
+    }
+    if (value < object_section->size &&
+        lookup_source_logical_address(lookup, section_index, value, &logical_address) && logical_address == value) {
+      *out_section_index = section_index;
+      *out_source_offset = value;
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int typed_flow_build_predecessors(M68kRenderTypedFlowGraph *graph, Arena *arena) {
   size_t *counts = NULL;
   size_t *cursor = NULL;
@@ -8606,9 +9066,15 @@ fail:
 
 static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, uint8_t preserved_address) {
   M68kRenderTypedState old_state;
+  M68kRenderTypedStackSlot preserved_stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
+  size_t preserved_stack_slot_count = 0U;
   uint8_t reg;
   if (state == NULL) return;
   old_state = *state;
+  for (reg = 0U; reg < old_state.stack_slot_count; ++reg) {
+    if (old_state.stack_slots[reg].known != 0U && old_state.stack_slots[reg].caller_save_temporary != 0U)
+      preserved_stack_slots[preserved_stack_slot_count++] = old_state.stack_slots[reg];
+  }
   typed_state_clear_all(state);
   for (reg = 0U; reg < 8U; ++reg) {
     if ((preserved_address & (uint8_t)(1U << reg)) == 0U) continue;
@@ -8620,6 +9086,8 @@ static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, u
       state->addr_reg_alias_source[reg] = old_state.addr_reg_alias_source[reg];
     }
   }
+  for (reg = 0U; reg < preserved_stack_slot_count; ++reg) state->stack_slots[reg] = preserved_stack_slots[reg];
+  state->stack_slot_count = preserved_stack_slot_count;
 }
 
 int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLookup *lookup,

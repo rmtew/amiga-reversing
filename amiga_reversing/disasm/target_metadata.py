@@ -37,6 +37,7 @@ class RssetLayoutStorageKind(StrEnum):
     STRUCT_INSTANCE = "struct_instance"
     STRUCT_POINTER = "struct_pointer"
     POINTER = "pointer"
+    POINTER_TABLE = "pointer_table"
     SCALAR = "scalar"
     BYTE_ARRAY = "byte_array"
 
@@ -272,6 +273,61 @@ class EntryRegisterSeedMetadata:
 
     def __post_init__(self) -> None:
         assert isinstance(self.kind, EntryRegisterSeedKind)
+
+
+@dataclass(frozen=True, slots=True)
+class CallbackTableSignatureMetadata:
+    hunk: int
+    table_offset: int
+    entry_count: int
+    register: str
+    struct_name: str
+    note: str
+    context_name: str | None = None
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> CallbackTableSignatureMetadata:
+        hunk = payload["hunk"]
+        table_offset = payload["table_offset"]
+        entry_count = payload["entry_count"]
+        register = payload["register"]
+        struct_name = payload["struct_name"]
+        note = payload["note"]
+        context_name = payload.get("context_name")
+        assert isinstance(hunk, int)
+        assert isinstance(table_offset, int)
+        assert isinstance(entry_count, int) and entry_count > 0
+        assert isinstance(register, str)
+        assert isinstance(struct_name, str) and struct_name
+        assert isinstance(note, str)
+        assert context_name is None or isinstance(context_name, str)
+        return cls(hunk, table_offset, entry_count, register, struct_name, note, context_name)
+
+
+@dataclass(frozen=True, slots=True)
+class FunctionRegisterContractMetadata:
+    hunk: int
+    entry_offset: int
+    register: str
+    struct_name: str
+    note: str
+    context_name: str | None = None
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> FunctionRegisterContractMetadata:
+        hunk = payload["hunk"]
+        entry_offset = payload["entry_offset"]
+        register = payload["register"]
+        struct_name = payload["struct_name"]
+        note = payload["note"]
+        context_name = payload.get("context_name")
+        assert isinstance(hunk, int)
+        assert isinstance(entry_offset, int)
+        assert isinstance(register, str)
+        assert isinstance(struct_name, str) and struct_name
+        assert isinstance(note, str)
+        assert context_name is None or isinstance(context_name, str)
+        return cls(hunk, entry_offset, register, struct_name, note, context_name)
 
 @dataclass(frozen=True, slots=True)
 class ResidentTargetMetadata:
@@ -661,6 +717,7 @@ class SeededEntityMetadata:
     field_type: str | None = None
     c_type: str | None = None
     pointer_struct: str | None = None
+    value_kind: str | None = None
     value_domain: str | None = None
     owner_action_id: str | None = None
     source_evidence_id: str | None = None
@@ -691,6 +748,7 @@ class SeededEntityMetadata:
         field_type = payload.get("field_type")
         c_type = payload.get("c_type")
         pointer_struct = payload.get("pointer_struct")
+        value_kind = payload.get("value_kind")
         value_domain = payload.get("value_domain")
         owner_action_id = payload.get("owner_action_id")
         source_evidence_id = payload.get("source_evidence_id")
@@ -715,6 +773,7 @@ class SeededEntityMetadata:
         assert field_type is None or isinstance(field_type, str)
         assert c_type is None or isinstance(c_type, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
+        assert value_kind is None or value_kind in {"scalar", "target_pointer", "struct_pointer"}
         assert value_domain is None or isinstance(value_domain, str)
         assert owner_action_id is None or isinstance(owner_action_id, str)
         assert source_evidence_id is None or isinstance(source_evidence_id, str)
@@ -741,6 +800,7 @@ class SeededEntityMetadata:
             field_type=field_type,
             c_type=c_type,
             pointer_struct=pointer_struct,
+            value_kind=value_kind,
             value_domain=value_domain,
             owner_action_id=owner_action_id,
             source_evidence_id=source_evidence_id,
@@ -1351,6 +1411,8 @@ class DataBlockLayoutMetadata:
 class TargetMetadata:
     target_type: str
     entry_register_seeds: tuple[EntryRegisterSeedMetadata, ...]
+    callback_table_signatures: tuple[CallbackTableSignatureMetadata, ...] = ()
+    function_register_contracts: tuple[FunctionRegisterContractMetadata, ...] = ()
     bootblock: BootBlockTargetMetadata | None = None
     resident: ResidentTargetMetadata | None = None
     library: LibraryTargetMetadata | None = None
@@ -1373,6 +1435,8 @@ class TargetMetadata:
     def from_dict(cls, payload: dict[str, object]) -> TargetMetadata:
         target_type = payload["target_type"]
         entry_register_seeds = payload["entry_register_seeds"]
+        callback_table_signatures = payload.get("callback_table_signatures", [])
+        function_register_contracts = payload.get("function_register_contracts", [])
         bootblock = payload["bootblock"]
         resident = payload["resident"]
         library = payload["library"]
@@ -1397,6 +1461,14 @@ class TargetMetadata:
             entry_register_seeds=tuple(
                 EntryRegisterSeedMetadata.from_dict(_json_object(seed))
                 for seed in seeds
+            ),
+            callback_table_signatures=tuple(
+                CallbackTableSignatureMetadata.from_dict(_json_object(signature))
+                for signature in _json_list(callback_table_signatures)
+            ),
+            function_register_contracts=tuple(
+                FunctionRegisterContractMetadata.from_dict(_json_object(contract))
+                for contract in _json_list(function_register_contracts)
             ),
             bootblock=None if bootblock is None else BootBlockTargetMetadata.from_dict(_json_object(bootblock)),
             resident=None if resident is None else ResidentTargetMetadata.from_dict(_json_object(resident)),
@@ -1589,6 +1661,10 @@ def validate_target_seeded_metadata(metadata: TargetMetadata) -> TargetMetadata:
         raise ValueError("target_seeded_metadata.json must not contain library metadata")
     if metadata.entry_register_seeds:
         raise ValueError("target_seeded_metadata.json must not contain entry_register_seeds")
+    if metadata.callback_table_signatures:
+        raise ValueError("target_seeded_metadata.json must not contain callback_table_signatures")
+    if metadata.function_register_contracts:
+        raise ValueError("target_seeded_metadata.json must not contain function_register_contracts")
     if metadata.suppressed_seeded_items:
         raise ValueError("target_seeded_metadata.json must not contain suppressed_seeded_items")
     if metadata.target_equates:
@@ -1651,6 +1727,10 @@ def validate_target_corrections_metadata(metadata: TargetMetadata) -> TargetMeta
         raise ValueError("target_corrections.json must not contain library metadata")
     if metadata.entry_register_seeds:
         raise ValueError("target_corrections.json must not contain entry_register_seeds")
+    if metadata.callback_table_signatures:
+        raise ValueError("target_corrections.json must not contain callback_table_signatures")
+    if metadata.function_register_contracts:
+        raise ValueError("target_corrections.json must not contain function_register_contracts")
     if metadata.custom_structs:
         raise ValueError("target_corrections.json must not contain custom_structs")
     if metadata.rsset_layout_regions:
@@ -1670,6 +1750,8 @@ def apply_suppressed_seeded_items(
     return TargetMetadata(
         target_type=seeded.target_type,
         entry_register_seeds=seeded.entry_register_seeds,
+        callback_table_signatures=seeded.callback_table_signatures,
+        function_register_contracts=seeded.function_register_contracts,
         bootblock=seeded.bootblock,
         resident=seeded.resident,
         library=seeded.library,
@@ -1782,6 +1864,7 @@ def _merge_seeded_entity(manual: SeededEntityMetadata, seeded: SeededEntityMetad
         field_type=manual.field_type if manual.field_type is not None else seeded.field_type,
         c_type=manual.c_type if manual.c_type is not None else seeded.c_type,
         pointer_struct=manual.pointer_struct if manual.pointer_struct is not None else seeded.pointer_struct,
+        value_kind=manual.value_kind if manual.value_kind is not None else seeded.value_kind,
         value_domain=manual.value_domain if manual.value_domain is not None else seeded.value_domain,
         owner_action_id=manual.owner_action_id if manual.owner_action_id is not None else seeded.owner_action_id,
         source_evidence_id=manual.source_evidence_id
@@ -1974,10 +2057,16 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
         raise ValueError("Conflicting target_type between target metadata and seeded target metadata")
     if seeded.entry_register_seeds:
         raise ValueError("Conflicting entry_register_seeds between target metadata and seeded target metadata")
+    if seeded.callback_table_signatures:
+        raise ValueError("Conflicting callback_table_signatures between target metadata and seeded target metadata")
+    if seeded.function_register_contracts:
+        raise ValueError("Conflicting function_register_contracts between target metadata and seeded target metadata")
     seeded = apply_suppressed_seeded_items(seeded, manual.suppressed_seeded_items)
     return TargetMetadata(
         target_type=manual.target_type,
         entry_register_seeds=manual.entry_register_seeds,
+        callback_table_signatures=manual.callback_table_signatures,
+        function_register_contracts=manual.function_register_contracts,
         bootblock=_merge_optional_field(manual.bootblock, seeded.bootblock, what="bootblock metadata"),
         resident=_merge_optional_field(manual.resident, seeded.resident, what="resident metadata"),
         library=_merge_optional_field(manual.library, seeded.library, what="library metadata"),
