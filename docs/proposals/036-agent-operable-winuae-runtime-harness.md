@@ -235,12 +235,14 @@ A diagnostic bootblock which reads a decompressed raw image to its declared
 load address and transfers to its declared entrypoint is tempting, but those
 two fields alone do not prove the image is independently bootable. Pandora
 provided the required distinction on 2026-07-26. Its ByteKiller metadata named
-`$20000` for both load and entry; that transfer entered the image and then
-reset. The byte-identified execution view instead proved the viable contract:
-read the same raw image to `$10000` and jump directly to `$10000`. A custom
-boot disk reached the payload's relocation stub after 13.842 seconds measured
-from GDB continuation to its write-watch handoff marker, without depending on
-the original disk's filesystem metadata.
+`$20000` for both load and entry. The parent decompressor also supplies
+`A1=$20000`; the raw entry relocates itself to `$10000` before continuing into
+the program. A direct contract therefore records both the load/entry addresses
+and explicit entry registers. The generic boot shim materializes that register
+context immediately before its transfer, rather than inheriting its own
+trackdisk request state. The bounded `pandora-relocation-entry` scenario proves
+the resulting cold boot reaches the relocated entry at `$1046A` without
+depending on the original disk's filesystem metadata.
 
 A host-mounted directory was also tested as an alternative payload transport.
 The runner now mounts an explicit host directory as `PAYLOAD:` without
@@ -262,8 +264,8 @@ interface.
 
 The repository now provides this as a generic contract resource. JSON records
 under `runtime/direct_payload_contracts/` bind a target id, decoded-payload
-hash, load/entry addresses, and handoff marker to the shared raw-boot-ADF
-builder. `winuae_session --direct-payload-contract <id>` generates that ADF in
+hash, load/entry addresses, explicit entry-register context, and handoff
+marker to the shared raw-boot-ADF builder. `winuae_session --direct-payload-contract <id>` generates that ADF in
 the caller's isolated state directory and selects it explicitly; it never
 falls back to original media. Pandora is the first contract, not a special
 launcher implementation.

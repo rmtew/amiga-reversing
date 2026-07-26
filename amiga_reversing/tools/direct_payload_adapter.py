@@ -33,6 +33,7 @@ class DirectPayloadContract:
     payload_sha256: str
     load_address: int
     entrypoint: int
+    entry_registers: dict[str, int]
     handoff_marker_address: int
     handoff_marker_value: int
 
@@ -47,6 +48,34 @@ def _integer(record: dict[str, object], name: str) -> int:
         except ValueError as exc:
             raise DirectPayloadContractError(f"{name} must be an integer literal.") from exc
     raise DirectPayloadContractError(f"{name} must be an integer literal.")
+
+
+def _entry_registers(record: dict[str, object]) -> dict[str, int]:
+    raw = record.get("entry_registers")
+    if not isinstance(raw, dict):
+        raise DirectPayloadContractError("entry_registers must be an object.")
+    valid_names = {f"d{index}" for index in range(8)} | {f"a{index}" for index in range(7)}
+    registers: dict[str, int] = {}
+    for name, value in raw.items():
+        if not isinstance(name, str) or name.lower() not in valid_names:
+            raise DirectPayloadContractError("entry_registers contains an unsupported register.")
+        if name.lower() in registers:
+            raise DirectPayloadContractError("entry_registers contains a duplicate register.")
+        registers[name.lower()] = _integer({"value": value}, "value")
+    return registers
+
+
+def entry_context_source(registers: dict[str, int]) -> str:
+    """Render the explicit register state required by a direct-payload entry."""
+
+    lines = ["; Generated direct-payload entry register context."]
+    ordered_names = [f"d{index}" for index in range(8)] + [f"a{index}" for index in range(7)]
+    for name in ordered_names:
+        if name not in registers:
+            continue
+        opcode = "movea.l" if name.startswith("a") else "move.l"
+        lines.append(f"    {opcode} #${registers[name] & 0xFFFFFFFF:08X},{name}")
+    return "\n".join(lines) + "\n"
 
 
 def load_contract(identifier: str, *, directory: Path = CONTRACT_DIRECTORY) -> DirectPayloadContract:
@@ -70,6 +99,7 @@ def load_contract(identifier: str, *, directory: Path = CONTRACT_DIRECTORY) -> D
         payload_sha256=raw["payload_sha256"].lower(),
         load_address=_integer(raw, "load_address"),
         entrypoint=_integer(raw, "entrypoint"),
+        entry_registers=_entry_registers(raw),
         handoff_marker_address=_integer(raw, "handoff_marker_address"),
         handoff_marker_value=_integer(raw, "handoff_marker_value"),
     )
@@ -105,13 +135,18 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
         "HANDOFF_MARKER": contract.handoff_marker_address,
         "HANDOFF_VALUE": contract.handoff_marker_value,
     }
-    command = [str(VASM), "-Fbin", "-m68000", "-I", str(NDK_INCLUDE)]
+    context_path = output_path.parent / "direct_payload_entry_context.i"
+    context_path.write_text(entry_context_source(contract.entry_registers), encoding="ascii")
+    command = [str(VASM), "-Fbin", "-m68000", "-I", str(output_path.parent), "-I", str(NDK_INCLUDE)]
     command.extend(f"-D{name}=${value:X}" for name, value in definitions.items())
     command.extend(("-o", str(output_path), str(BOOT_SOURCE)))
-    completed = subprocess.run(command, capture_output=True, text=True, check=False)
-    if completed.returncode != 0:
-        raise DirectPayloadContractError(completed.stderr.strip() or completed.stdout.strip() or "vasm failed")
-    return output_path.read_bytes()
+    try:
+        completed = subprocess.run(command, capture_output=True, text=True, check=False)
+        if completed.returncode != 0:
+            raise DirectPayloadContractError(completed.stderr.strip() or completed.stdout.strip() or "vasm failed")
+        return output_path.read_bytes()
+    finally:
+        context_path.unlink(missing_ok=True)
 
 
 def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_path: Path) -> dict[str, object]:

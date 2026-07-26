@@ -2,8 +2,11 @@
   "identifier": "pandora",
   "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
   "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
-  "load_address": "0x10000",
-  "entrypoint": "0x10000",
+  "load_address": "0x20000",
+  "entrypoint": "0x20000",
+  "entry_registers": {
+    "a1": "0x20000"
+  },
   "handoff_marker_address": "0xc7fff8",
   "handoff_marker_value": "0x48414e44"
 }

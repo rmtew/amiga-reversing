@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-relocation-entry",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "relocated_payload_entry",
+      "breakpoint_stable_key": "s0:0000046A:instruction:555",
+      "wait_seconds": 20
+    }
+  ],
+  "input_events": []
+}

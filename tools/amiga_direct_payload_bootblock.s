@@ -28,6 +28,7 @@ read_payload:
     bra.b   failed
 
 handoff:
+    INCLUDE "direct_payload_entry_context.i"
     move.l  #HANDOFF_VALUE,HANDOFF_MARKER
     jmp     PAYLOAD_ENTRY.l
 
