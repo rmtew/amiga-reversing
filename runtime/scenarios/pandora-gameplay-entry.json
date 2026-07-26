@@ -22,7 +22,7 @@
       "name": "inventory_input_handler",
       "breakpoint_stable_key": "s0:000028D4:instruction:2461",
       "wait_seconds": 20,
-      "transition": "step_into",
+      "transition": "enter_function",
       "capture": {
         "registers": ["a4", "a5"],
         "memory_reads": [

@@ -943,14 +943,24 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   and memory captures. The pinned fork exposes only `port0`/`port1` fire and
   directional controls through GDB monitor commands; it does not expose raw
   monitor commands, host input, arbitrary memory writes, or target facts.
-  A phase can use an explicit instruction-level `step_into` transition for an
-  adjacent direct call when a normal breakpoint continuation would re-enter a
-  frame wait. On 2026-07-26, `pandora-gameplay-entry` verified handoff, title
+  A phase can use an `enter_function` transition for an adjacent direct call
+  when a normal breakpoint continuation would re-enter a frame wait. It loads
+  a disposable 68K ELF/DWARF artifact only after a phase PC uniquely confirms
+  the payload runtime base. The artifact is generated from canonical manual
+  label origins whose entries exactly coincide with accepted code runs; names
+  with duplicate or unsupported ranges are omitted. It contains no target
+  bytes and is not a maintained target file. The transition resolves the named
+  callee through GDB and sets its symbolic breakpoint; it deliberately does
+  not fall back to instruction stepping or invent a name for an unnamed caller.
+  On 2026-07-26, `pandora-gameplay-entry` verified handoff, title
   (`s0:00000BA8:instruction:1014`), the gameplay call site
   (`s0:000005D6:instruction:640`), and the inventory handler entry
   (`s0:000028D4:instruction:2461`). Its capture recorded `A4=$0000F568`,
   `A5=$00DFF000`, and the declared byte at `A4+$46` as `$00`. This is runtime
-  observation only; it does not promote a player-object type fact.
+  observation only; it does not promote a player-object type fact. The symbol
+  artifact resolved `$000128D4` as `handle_inventory_panel_input`, with its
+  accepted source range `$28D4..$291A`; the source call site remained exactly
+  `$000105D6`.
 
 ## Decision Record
 

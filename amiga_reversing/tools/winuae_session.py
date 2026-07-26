@@ -19,6 +19,7 @@ from pathlib import Path
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
+from amiga_reversing.tools.gdb_symbols import generate_gdb_symbol_artifact
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_HEADLESS_RUNNER = ROOT / "tools" / "run_winuae_headless.ps1"
@@ -161,7 +162,7 @@ def resolve_breakpoint_hit(row: dict[str, object], runner_report: dict[str, obje
     }
 
 
-def compile_scenario(target_id: str, scenario_path: Path, output_path: Path) -> dict[str, object]:
+def compile_scenario(target_id: str, scenario_path: Path, output_path: Path, *, symbol_directory: Path | None = None) -> dict[str, object]:
     """Validate a target scenario and resolve only canonical source rows to PCs."""
 
     scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
@@ -199,8 +200,8 @@ def compile_scenario(target_id: str, scenario_path: Path, output_path: Path) -> 
             raise ValueError("Source-row scenario phases require breakpoint_stable_key and wait_seconds (1..120).")
         if not isinstance(capture, dict):
             raise ValueError("Scenario phase capture must be an object.")
-        if transition not in {"continue", "step_into"}:
-            raise ValueError("Scenario phase transition must be continue or step_into.")
+        if transition not in {"continue", "enter_function"}:
+            raise ValueError("Scenario phase transition must be continue or enter_function.")
         compiled_phases.append({"name": name, "stable_key": stable_key, "wait_seconds": wait_seconds, "transition": transition, "capture": capture})
     compiled_events: list[dict[str, object]] = []
     for event in input_events:
@@ -230,6 +231,8 @@ def compile_scenario(target_id: str, scenario_path: Path, output_path: Path) -> 
     finally:
         artifact.close()
     compiled = {"schema_version": 1, "identifier": identifier, "phases": compiled_phases, "input_events": compiled_events}
+    if symbol_directory is not None:
+        compiled["symbols"] = generate_gdb_symbol_artifact(target_id, symbol_directory).scenario_payload()
     output_path.write_text(json.dumps(compiled, indent=2) + "\n", encoding="utf-8")
     return compiled
 def resolve_paused_pc(target_id: str, runner_report: dict[str, object]) -> dict[str, object]:
@@ -397,7 +400,7 @@ def main(argv: list[str] | None = None) -> int:
     scenario_output = None
     if args.scenario:
         scenario_output = args.state_directory / "runtime-scenario.json"
-        compiled_scenario = compile_scenario(args.target, args.scenario, scenario_output)
+        compiled_scenario = compile_scenario(args.target, args.scenario, scenario_output, symbol_directory=args.state_directory)
     breakpoint_row = resolve_breakpoint_stable_key(args.target, args.breakpoint_stable_key) if args.breakpoint_stable_key else None
     session = HeadlessWinUaeSession(
         rom_path=args.rom,
@@ -419,7 +422,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"status": "planned", "target_id": args.target, "direct_payload": direct_payload, "scenario": compiled_scenario, "breakpoint_stable_key": args.breakpoint_stable_key, "command": session.command()}, indent=2))
         return 0
     report = run_session(session)
-    result = {"runner": report, "direct_payload": direct_payload, "scenario": compiled_scenario, "pc_resolution": resolve_paused_pc(args.target, report)}
+    scenario_summary = None
+    if isinstance(compiled_scenario, dict):
+        symbols = compiled_scenario.get("symbols")
+        scenario_summary = {
+            "identifier": compiled_scenario.get("identifier"),
+            "symbol_artifact": symbols.get("elf_path") if isinstance(symbols, dict) else None,
+        }
+    result = {"runner": report, "direct_payload": direct_payload, "scenario": scenario_summary, "pc_resolution": resolve_paused_pc(args.target, report)}
     if breakpoint_row is not None:
         result["breakpoint"] = resolve_breakpoint_hit(breakpoint_row, report)
     print(json.dumps(result, indent=2))

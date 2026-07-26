@@ -108,6 +108,18 @@ def mi_stop_reason(record: str) -> str | None:
     return match.group(1) if match else None
 
 
+def mi_address(value: str | None) -> int | None:
+    """Parse GDB's address value, which may carry a resolved symbol suffix."""
+
+    if value is None:
+        return None
+    token = value.split(maxsplit=1)[0]
+    try:
+        return int(token, 0)
+    except ValueError:
+        return None
+
+
 def ndk_field_offset(ndk: dict[str, object], struct_name: str, field_name: str) -> int:
     structs = ndk["structs"]
     fields = structs[struct_name]["fields"]
@@ -398,13 +410,52 @@ def wait_for_phase_breakpoint(gdb: MiProcess, address: int, timeout_seconds: int
             pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
             return False, stop, pc, intervening_stops
         pc = mi_value(gdb.command("-data-evaluate-expression $pc"))
-        if mi_stop_reason(stop) == "breakpoint-hit" and pc == f"0x{address:x}":
+        if mi_stop_reason(stop) == "breakpoint-hit" and mi_address(pc) == address:
             return True, stop, pc, intervening_stops
         intervening_stops.append({"stop_reason": mi_stop_reason(stop), "pc": pc})
         gdb.command("-exec-continue")
 
 
-def run_scenario(gdb: MiProcess, scenario: dict[str, object]) -> dict[str, object]:
+def load_scenario_symbols(gdb: MiProcess, symbols: object, target_payload_path: Path) -> dict[str, object]:
+    """Load generated symbols only after a uniquely confirmed payload PC."""
+
+    if not isinstance(symbols, dict):
+        raise MiError("Scenario is missing generated symbol metadata.")
+    elf_path = symbols.get("elf_path")
+    view = symbols.get("runtime_view")
+    if not isinstance(elf_path, str) or not Path(elf_path).is_file() or not isinstance(view, dict):
+        raise MiError("Scenario generated symbol artifact is invalid.")
+    expected_base = view.get("base_addr")
+    if not isinstance(expected_base, int):
+        raise MiError("Scenario generated symbol artifact has no runtime base view.")
+    pc_value = mi_value(gdb.command("-data-evaluate-expression $pc"))
+    if pc_value is None:
+        raise MiError("Could not read PC while confirming the symbol runtime base.")
+    pc = int(pc_value, 0)
+    detection = detect_payload_execution(target_payload_path, pc, read_memory(gdb, pc, 16))
+    if detection.get("status") != "pc_matched" or detection.get("runtime_base") != f"0x{expected_base:08x}":
+        raise MiError("Scenario symbol artifact runtime base was not confirmed from the target payload.")
+    debugger_path = Path(elf_path).as_posix()
+    gdb.command(f'-interpreter-exec console "add-symbol-file {debugger_path} 0x{expected_base:x}"')
+    return {"runtime_base": f"0x{expected_base:08x}", "artifact": elf_path, "function_count": len(symbols.get("functions", []))}
+
+
+def resolved_function(symbols: object, address: int) -> dict[str, object] | None:
+    if not isinstance(symbols, dict) or not isinstance(symbols.get("runtime_view"), dict):
+        return None
+    base = symbols["runtime_view"].get("base_addr")
+    source_start = symbols["runtime_view"].get("source_start")
+    functions = symbols.get("functions")
+    if not isinstance(base, int) or not isinstance(source_start, int) or not isinstance(functions, list):
+        return None
+    source_offset = source_start + address - base
+    for item in functions:
+        if isinstance(item, dict) and isinstance(item.get("name"), str) and isinstance(item.get("source_start"), int) and isinstance(item.get("source_end"), int) and item["source_start"] <= source_offset < item["source_end"]:
+            return {"name": item["name"], "source_start": f"0x{item['source_start']:x}", "source_end": f"0x{item['source_end']:x}"}
+    return None
+
+
+def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_path: Path) -> dict[str, object]:
     """Execute a validated phase sequence after the public handoff checkpoint."""
 
     phases = scenario.get("phases")
@@ -429,7 +480,9 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object]) -> dict[str, objec
             raise MiError("Scenario input duration_seconds must be between 0 and 30.")
         events_by_phase.setdefault(phase_name, []).append(event)
     result_phases: list[dict[str, object]] = []
-    for phase in phases:
+    symbols = scenario.get("symbols")
+    symbols_loaded = None
+    for phase_index, phase in enumerate(phases):
         if not isinstance(phase, dict):
             raise MiError("Scenario phase must be an object.")
         name = phase.get("name")
@@ -441,20 +494,25 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object]) -> dict[str, objec
             raise MiError("Scenario phase requires a name and 24-bit breakpoint_address.")
         if not isinstance(wait_seconds, int) or not 1 <= wait_seconds <= 120:
             raise MiError("Scenario phase wait_seconds must be between 1 and 120.")
-        if transition not in {"continue", "step_into"}:
-            raise MiError("Scenario phase transition must be continue or step_into.")
+        if transition not in {"continue", "enter_function"}:
+            raise MiError("Scenario phase transition must be continue or enter_function.")
         if not isinstance(capture, dict):
             raise MiError("Scenario phase capture must be an object.")
         breakpoint_number = None
-        if transition == "step_into":
-            gdb.command("-exec-step-instruction")
-            stop = gdb.wait_for_stop(wait_seconds)
-            pc_value = mi_value(gdb.command("-data-evaluate-expression $pc"))
-            hit = pc_value == f"0x{address:x}"
-            intervening_stops = []
+        if transition == "enter_function":
+            if symbols_loaded is None:
+                raise MiError("Function entry requires generated symbols loaded after the first confirmed phase.")
+            function = resolved_function(symbols, address)
+            if function is None:
+                raise MiError("Function entry phase must resolve to an accepted named function range.")
+            breakpoint_record = gdb.command(f"-break-insert {function['name']}")
+            breakpoint_number = re.search(r'number=\\?"(\d+)\\?"', breakpoint_record)
+            if breakpoint_number is None:
+                raise MiError(f"Could not identify symbolic breakpoint for scenario phase {name}: {breakpoint_record}")
+            hit, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
         else:
             breakpoint_record = gdb.command(f"-break-insert *0x{address:x}")
-            breakpoint_number = re.search(r'number="(\d+)"', breakpoint_record)
+            breakpoint_number = re.search(r'number=\\?"(\d+)\\?"', breakpoint_record)
             if breakpoint_number is None:
                 raise MiError(f"Could not identify breakpoint for scenario phase {name}: {breakpoint_record}")
             hit, stop, pc_value, intervening_stops = wait_for_phase_breakpoint(gdb, address, wait_seconds)
@@ -469,9 +527,12 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object]) -> dict[str, objec
             "pc": pc_value,
             "intervening_stops": intervening_stops,
             "capture": capture_result,
+            "resolved_function": resolved_function(symbols, address) if hit else None,
         })
         if not hit:
             break
+        if phase_index == 0:
+            symbols_loaded = load_scenario_symbols(gdb, symbols, target_payload_path)
         for event in events_by_phase.get(name, []):
             control = event["control"]
             delay_seconds = float(event["delay_seconds"])
@@ -487,7 +548,7 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object]) -> dict[str, objec
             gdb.command("-exec-interrupt")
             gdb.wait_for_stop(15)
             run_monitor_input(gdb, control, "release")
-    return {"identifier": scenario.get("identifier"), "phases": result_phases}
+    return {"identifier": scenario.get("identifier"), "symbols": symbols_loaded, "phases": result_phases}
 
 
 def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_watch_seconds: int | None, target_payload_path: Path | None, breakpoint_address: int | None, breakpoint_source_offset: int | None, breakpoint_wait_seconds: int, observation_memory_address: int | None, observation_memory_equals: bytes | None, observation_memory_write_watch: bool, scenario_path: Path | None) -> dict[str, object]:
@@ -531,7 +592,9 @@ def run_session(gdb_path: Path, ndk_path: Path, continue_seconds: int, loadseg_w
             "payload": target_detection,
         }
         scenario = json.loads(scenario_path.read_text(encoding="utf-8")) if scenario_path is not None else None
-        scenario_result = run_scenario(gdb, scenario) if isinstance(scenario, dict) else None
+        if isinstance(scenario, dict) and target_payload_path is None:
+            raise MiError("Scenario symbols require a target payload for runtime-base confirmation.")
+        scenario_result = run_scenario(gdb, scenario, target_payload_path) if isinstance(scenario, dict) and target_payload_path is not None else None
         breakpoint = None
         if breakpoint_address is not None and breakpoint_source_offset is not None:
             raise MiError("Specify either a breakpoint address or a source offset, not both.")

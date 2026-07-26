@@ -104,6 +104,21 @@ def test_compile_scenario_resolves_only_canonical_rows_once(monkeypatch, tmp_pat
     assert json.loads(output.read_text(encoding="utf-8"))["identifier"] == "test"
 
 
+def test_compile_scenario_plans_generated_symbols_in_the_public_session(monkeypatch, tmp_path: Path) -> None:
+    scenario = tmp_path / "scenario.json"
+    output = tmp_path / "compiled.json"
+    scenario.write_text(json.dumps({"schema_version": 1, "identifier": "test", "target_id": "pandora", "phases": [{"name": "boot", "observable": "direct_payload_handoff"}, {"name": "title", "breakpoint_stable_key": "s0:00000BA8:instruction:760", "wait_seconds": 10}]}), encoding="utf-8")
+    artifact = _FakeArtifact({"stable_key": "s0:00000BA8:instruction:760", "start_offset": 0xBA8, "runtime_observation_view": {"base_addr": 0x12000, "source_start": 0, "source_end": 0x40000}})
+    artifact._runtime_observation_views = ({"base_addr": 0x12000, "source_start": 0, "source_end": 0x40000},)
+    monkeypatch.setattr(winuae_session, "build_project_listing_artifact_profile", lambda _: (0, {}, artifact))
+    monkeypatch.setattr(winuae_session, "generate_gdb_symbol_artifact", lambda *_: type("Symbols", (), {"scenario_payload": lambda _: {"elf_path": "generated.elf", "runtime_view": {"base_addr": 0x12000}, "functions": []}})())
+
+    compiled = winuae_session.compile_scenario("pandora", scenario, output, symbol_directory=tmp_path)
+
+    assert compiled["phases"][0]["breakpoint_address"] == 0x12BA8
+    assert compiled["symbols"]["runtime_view"]["base_addr"] == 0x12000
+
+
 def test_resolve_breakpoint_stable_key_requires_current_canonical_row(monkeypatch) -> None:
     row = {"stable_key": "s0:00000BA8:instruction:760", "start_offset": 0xBA8}
     artifact = _FakeArtifact(row)
