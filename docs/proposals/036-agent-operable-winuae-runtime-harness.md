@@ -954,6 +954,16 @@ unversioned dependency bundle acceptable for a reproducible implementation.
   bytes and is not a maintained target file. The transition resolves the named
   callee through GDB and sets its symbolic breakpoint; it deliberately does
   not fall back to instruction stepping or invent a name for an unnamed caller.
+
+- Virtual joystick actions are phase-bounded, not wall-clock pulses: an input
+  event declares the verified source-row phase after which it is pressed and
+  the later verified phase at which it is released. This keeps the control
+  asserted while the emulator advances to the named observation and makes the
+  input's duration a reproducible scenario property. The Pandora callback
+  scenario uses `port1 fire` from the title loop through world-callback
+  initialization; the cold-boot probe reaches initialization and
+  `enqueue_world_object_callback` at `$166A0`.
+
   On 2026-07-26, `pandora-gameplay-entry` verified handoff, title
   (`s0:00000BA8:instruction:1014`), the gameplay call site
   (`s0:000005D6:instruction:640`), and the inventory handler entry

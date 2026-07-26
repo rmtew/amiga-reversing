@@ -14,8 +14,8 @@
       "wait_seconds": 20
     },
     {
-      "name": "queue_bootstrap_enqueue_callsite",
-      "breakpoint_stable_key": "s0:00000716:instruction:723",
+      "name": "world_callback_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction:764",
       "wait_seconds": 20
     },
     {
@@ -52,8 +52,7 @@
     {
       "after_phase": "title_menu_loop",
       "control": "port1 fire",
-      "delay_seconds": 3,
-      "duration_seconds": 1
+      "release_after_phase": "world_callback_initialization"
     }
   ]
 }

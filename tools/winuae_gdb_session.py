@@ -483,21 +483,18 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_pat
         raise MiError("Scenario must contain at least one executable phase.")
     if not isinstance(input_events, list):
         raise MiError("Scenario input_events must be a list.")
-    events_by_phase: dict[str, list[dict[str, object]]] = {}
+    press_events_by_phase: dict[str, list[dict[str, object]]] = {}
+    release_events_by_phase: dict[str, list[dict[str, object]]] = {}
     for event in input_events:
         if not isinstance(event, dict):
             raise MiError("Scenario input event must be an object.")
         phase_name = event.get("after_phase")
+        release_phase_name = event.get("release_after_phase")
         control = event.get("control")
-        delay_seconds = event.get("delay_seconds", 0)
-        duration_seconds = event.get("duration_seconds")
-        if not isinstance(phase_name, str) or not isinstance(control, str) or not isinstance(delay_seconds, (int, float)) or not isinstance(duration_seconds, (int, float)):
-            raise MiError("Scenario input event requires after_phase, control, delay_seconds, and duration_seconds.")
-        if not 0 <= delay_seconds <= 30:
-            raise MiError("Scenario input delay_seconds must be between 0 and 30.")
-        if not 0 < duration_seconds <= 30:
-            raise MiError("Scenario input duration_seconds must be between 0 and 30.")
-        events_by_phase.setdefault(phase_name, []).append(event)
+        if not isinstance(phase_name, str) or not isinstance(release_phase_name, str) or not isinstance(control, str):
+            raise MiError("Scenario input event requires after_phase, release_after_phase, and control.")
+        press_events_by_phase.setdefault(phase_name, []).append(event)
+        release_events_by_phase.setdefault(release_phase_name, []).append(event)
     result_phases: list[dict[str, object]] = []
     symbols = scenario.get("symbols")
     symbols_loaded = None
@@ -553,21 +550,10 @@ def run_scenario(gdb: MiProcess, scenario: dict[str, object], target_payload_pat
             break
         if phase_index == 0:
             symbols_loaded = load_scenario_symbols(gdb, symbols, target_payload_path)
-        for event in events_by_phase.get(name, []):
-            control = event["control"]
-            delay_seconds = float(event["delay_seconds"])
-            duration_seconds = float(event["duration_seconds"])
-            if delay_seconds:
-                gdb.command("-exec-continue")
-                time.sleep(delay_seconds)
-                gdb.command("-exec-interrupt")
-                gdb.wait_for_stop(15)
-            run_monitor_input(gdb, control, "press")
-            gdb.command("-exec-continue")
-            time.sleep(duration_seconds)
-            gdb.command("-exec-interrupt")
-            gdb.wait_for_stop(15)
-            run_monitor_input(gdb, control, "release")
+        for event in release_events_by_phase.get(name, []):
+            run_monitor_input(gdb, str(event["control"]), "release")
+        for event in press_events_by_phase.get(name, []):
+            run_monitor_input(gdb, str(event["control"]), "press")
     return {"identifier": scenario.get("identifier"), "symbols": symbols_loaded, "phases": result_phases}
 
 

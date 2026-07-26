@@ -87,7 +87,7 @@ def test_compile_scenario_resolves_only_canonical_rows_once(monkeypatch, tmp_pat
             {"name": "inventory", "breakpoint_stable_key": "s0:00002904:instruction:2473", "wait_seconds": 10,
              "capture": {"registers": ["a4", "a5"], "memory_reads": []}},
         ],
-        "input_events": [{"after_phase": "title", "control": "port1 fire", "delay_seconds": 3, "duration_seconds": 1}],
+        "input_events": [{"after_phase": "title", "control": "port1 fire", "release_after_phase": "inventory"}],
     }), encoding="utf-8")
     artifact = _FakeArtifact({"stable_key": "unused", "runtime_observation_view": {"base_addr": 0x10000, "source_start": 0, "source_end": 0x40000}})
     artifact._runtime_observation_views = ({"base_addr": 0x10000, "source_start": 0, "source_end": 0x40000},)
@@ -101,6 +101,7 @@ def test_compile_scenario_resolves_only_canonical_rows_once(monkeypatch, tmp_pat
     compiled = winuae_session.compile_scenario("pandora", scenario, output)
 
     assert [phase["breakpoint_address"] for phase in compiled["phases"]] == [0x10BA8, 0x12904]
+    assert compiled["input_events"] == [{"after_phase": "title", "release_after_phase": "inventory", "control": "port1 fire"}]
     assert json.loads(output.read_text(encoding="utf-8"))["identifier"] == "test"
 
 

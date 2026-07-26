@@ -203,23 +203,21 @@ def compile_scenario(target_id: str, scenario_path: Path, output_path: Path, *, 
         if transition not in {"continue", "enter_function"}:
             raise ValueError("Scenario phase transition must be continue or enter_function.")
         compiled_phases.append({"name": name, "stable_key": stable_key, "wait_seconds": wait_seconds, "transition": transition, "capture": capture})
+    phase_indexes = {str(phase["name"]): index for index, phase in enumerate(compiled_phases)}
     compiled_events: list[dict[str, object]] = []
     for event in input_events:
         if not isinstance(event, dict):
             raise ValueError("Scenario input event must be an object.")
         after_phase = event.get("after_phase")
+        release_after_phase = event.get("release_after_phase")
         control = event.get("control")
-        delay = event.get("delay_seconds", 0)
-        duration = event.get("duration_seconds")
-        if after_phase not in names or after_phase == phases[0].get("name"):
+        if after_phase not in phase_indexes:
             raise ValueError("Scenario input must be scheduled after a named source-row phase.")
+        if release_after_phase not in phase_indexes or phase_indexes[release_after_phase] <= phase_indexes[after_phase]:
+            raise ValueError("Scenario input release_after_phase must be a later named source-row phase.")
         if control not in {f"port{port} {direction}" for port in range(2) for direction in ("fire", "left", "right", "up", "down")}:
             raise ValueError("Scenario input control is not supported by the virtual joystick bridge.")
-        if not isinstance(delay, (int, float)) or not 0 <= delay <= 30:
-            raise ValueError("Scenario input delay_seconds must be between 0 and 30.")
-        if not isinstance(duration, (int, float)) or not 0 < duration <= 30:
-            raise ValueError("Scenario input duration_seconds must be between 0 and 30.")
-        compiled_events.append({"after_phase": after_phase, "control": control, "delay_seconds": delay, "duration_seconds": duration})
+        compiled_events.append({"after_phase": after_phase, "release_after_phase": release_after_phase, "control": control})
     _, _, artifact = build_project_listing_artifact_profile(target_id)
     try:
         for phase in compiled_phases:
