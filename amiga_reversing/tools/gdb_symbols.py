@@ -10,16 +10,13 @@ inference from rendered assembly or the next label.
 from __future__ import annotations
 
 import re
-import subprocess
+import struct
 from dataclasses import dataclass
 from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
-
-ROOT = Path(__file__).resolve().parents[2]
-M68K_AS = ROOT / "resources" / "clone_amiga" / "vscode-amiga-debug" / "bin" / "win32" / "opt" / "bin" / "m68k-amiga-elf-as.exe"
-M68K_LD = ROOT / "resources" / "clone_amiga" / "vscode-amiga-debug" / "bin" / "win32" / "opt" / "bin" / "m68k-amiga-elf-ld.exe"
-
+from amiga_reversing.disasm.manual_actions import load_manual_projection
+from amiga_reversing.disasm.project_paths import resolve_project_paths
 
 @dataclass(frozen=True, slots=True)
 class FunctionSymbol:
@@ -31,8 +28,6 @@ class FunctionSymbol:
 @dataclass(frozen=True, slots=True)
 class GdbSymbolArtifact:
     elf_path: Path
-    source_path: Path
-    object_path: Path
     runtime_view: dict[str, int]
     functions: tuple[FunctionSymbol, ...]
 
@@ -59,6 +54,21 @@ def _single_runtime_view(artifact: object) -> dict[str, int]:
     return {key: int(valid[0][key]) for key in ("base_addr", "source_start", "source_end")}
 
 
+def _canonical_labels(target_id: str, view: dict[str, int]) -> list[dict[str, object]]:
+    projection = load_manual_projection(resolve_project_paths(target_id).target_dir)
+    return [
+        {
+            "name": item.get("name"),
+            "source_start": (
+                int(item["addr"]) - view["base_addr"] + view["source_start"]
+                if item.get("address_domain") == "runtime" and isinstance(item.get("addr"), int)
+                else None
+            ),
+        }
+        for item in projection.labels
+    ]
+
+
 def _eligible_functions(target_id: str, artifact: object) -> tuple[dict[str, int], tuple[FunctionSymbol, ...]]:
     analysis, _ = artifact.analysis_payload()
     sections = analysis.get("sections")
@@ -76,14 +86,7 @@ def _eligible_functions(target_id: str, artifact: object) -> tuple[dict[str, int
         and isinstance(item.get("end_offset"), int)
         and int(item["start_offset"]) < int(item["end_offset"])
     }
-    symbol_origins = sections[0].get("symbol_origins")
-    if not isinstance(symbol_origins, list):
-        raise ValueError("Canonical analysis has no symbol origins for GDB symbols.")
-    labels = [
-        {"name": item.get("symbol_name"), "source_start": item.get("offset")}
-        for item in symbol_origins
-        if isinstance(item, dict) and item.get("origin_kind") == "manual_label"
-    ]
+    labels = _canonical_labels(target_id, view)
     name_counts: dict[str, int] = {}
     for label in labels:
         name = label.get("name")
@@ -105,40 +108,98 @@ def _eligible_functions(target_id: str, artifact: object) -> tuple[dict[str, int
     return view, tuple(functions)
 
 
-def _assembly_text(functions: tuple[FunctionSymbol, ...]) -> str:
-    lines = ['.file 1 "canonical-analysis"', ".text"]
-    cursor = 0
+def _uleb128(value: int) -> bytes:
+    result = bytearray()
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        result.append(byte | (0x80 if value else 0))
+        if not value:
+            return bytes(result)
+
+
+def _string_table(strings: list[str]) -> tuple[bytes, dict[str, int]]:
+    data = bytearray(b"\0")
+    offsets: dict[str, int] = {}
+    for value in strings:
+        offsets[value] = len(data)
+        data.extend(value.encode("ascii") + b"\0")
+    return bytes(data), offsets
+
+
+def _dwarf_sections(functions: tuple[FunctionSymbol, ...]) -> tuple[bytes, bytes, bytes]:
+    """Return DWARF v2 abbrev, info, and string sections for the symbols."""
+
+    strings, offsets = _string_table(["canonical-analysis", *[item.name for item in functions]])
+    # CU(name, language, low_pc, high_pc), then subprogram(name, low_pc, high_pc).
+    abbrev = bytes((
+        1, 0x11, 1, 0x03, 0x0E, 0x13, 0x05, 0x11, 0x01, 0x12, 0x01, 0, 0,
+        2, 0x2E, 0, 0x03, 0x0E, 0x11, 0x01, 0x12, 0x01, 0, 0, 0,
+    ))
+    highest = max(item.source_end for item in functions)
+    dies = bytearray(_uleb128(1))
+    dies.extend(struct.pack(">I", offsets["canonical-analysis"]))
+    dies.extend(struct.pack(">HII", 0x8001, 0, highest))  # DW_LANG_Mips_Assembler, address range.
     for item in functions:
-        if item.source_start < cursor:
-            raise ValueError(f"Overlapping accepted function range: {item.name}")
-        lines.extend((
-            f".org 0x{item.source_start:x}",
-            f".globl {item.name}",
-            f".type {item.name}, @function",
-            f"{item.name}:",
-            ".loc 1 1 0",
-            f".space 0x{item.source_end - item.source_start:x}",
-            f".size {item.name}, .-{item.name}",
-        ))
-        cursor = item.source_end
-    return "\n".join(lines) + "\n"
+        dies.extend(_uleb128(2))
+        dies.extend(struct.pack(">III", offsets[item.name], item.source_start, item.source_end))
+    dies.append(0)
+    info_body = struct.pack(">H I B", 2, 0, 4) + dies
+    return abbrev, struct.pack(">I", len(info_body)) + info_body, strings
+
+
+def _align(data: bytearray, alignment: int) -> None:
+    data.extend(b"\0" * ((-len(data)) % alignment))
+
+
+def _elf_bytes(functions: tuple[FunctionSymbol, ...]) -> bytes:
+    """Build a self-contained ELF32 big-endian MC68000 symbol object.
+
+    Synthetic zero-filled .text reserves addresses for debugger relocation; it
+    is metadata only and is never written to the target.
+    """
+
+    text_size = max(item.source_end for item in functions)
+    symbol_strings, symbol_offsets = _string_table([item.name for item in functions])
+    symbols = bytearray(16)
+    for item in functions:
+        symbols.extend(struct.pack(">IIIBBH", symbol_offsets[item.name], item.source_start, item.source_end - item.source_start, 0x12, 0, 1))
+    abbrev, info, debug_strings = _dwarf_sections(functions)
+    names = [".text", ".symtab", ".strtab", ".debug_abbrev", ".debug_info", ".debug_str", ".shstrtab"]
+    shstr, shname = _string_table(names)
+    sections = [
+        (".text", 1, 0x6, 0, b"\0" * text_size, 4, 0, 0),
+        (".symtab", 2, 0, 0, bytes(symbols), 4, 3, 16),
+        (".strtab", 3, 0, 0, symbol_strings, 1, 0, 0),
+        (".debug_abbrev", 1, 0, 0, abbrev, 1, 0, 0),
+        (".debug_info", 1, 0, 0, info, 1, 0, 0),
+        (".debug_str", 1, 0, 0, debug_strings, 1, 0, 0),
+        (".shstrtab", 3, 0, 0, shstr, 1, 0, 0),
+    ]
+    data = bytearray(52)
+    headers = [(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)]
+    for name, kind, flags, address, contents, alignment, link, entry_size in sections:
+        _align(data, alignment)
+        offset = len(data)
+        data.extend(contents)
+        headers.append((shname[name], kind, flags, address, offset, len(contents), link, 0, alignment, entry_size))
+    _align(data, 4)
+    section_header_offset = len(data)
+    for header in headers:
+        data.extend(struct.pack(">IIIIIIIIII", *header))
+    data[:52] = struct.pack(">16sHHIIIIIHHHHHH", b"\x7fELF\x01\x02\x01" + b"\0" * 9, 2, 4, 1, 0, 0, section_header_offset, 0, 52, 0, 0, 40, len(headers), 7)
+    return bytes(data)
 
 
 def generate_gdb_symbol_artifact(target_id: str, state_directory: Path) -> GdbSymbolArtifact:
     """Build one disposable, relocatable 68K ELF/DWARF artifact for a target."""
 
-    if not M68K_AS.is_file() or not M68K_LD.is_file():
-        raise RuntimeError("The local vscode-amiga-debug M68K assembler/linker is required for GDB symbol generation.")
     _, _, artifact = build_project_listing_artifact_profile(target_id)
     try:
         view, functions = _eligible_functions(target_id, artifact)
     finally:
         artifact.close()
     state_directory.mkdir(parents=True, exist_ok=True)
-    source_path = state_directory / "canonical-gdb-symbols.s"
-    object_path = state_directory / "canonical-gdb-symbols.o"
     elf_path = state_directory / "canonical-gdb-symbols.elf"
-    source_path.write_text(_assembly_text(functions), encoding="ascii")
-    subprocess.run([str(M68K_AS), "--gdwarf-2", "-m68000", "-o", str(object_path), str(source_path)], check=True, capture_output=True, text=True)
-    subprocess.run([str(M68K_LD), "-m", "m68kelf", "-Ttext", "0", "-o", str(elf_path), str(object_path)], check=True, capture_output=True, text=True)
-    return GdbSymbolArtifact(elf_path, source_path, object_path, view, functions)
+    elf_path.write_bytes(_elf_bytes(functions))
+    return GdbSymbolArtifact(elf_path, view, functions)
