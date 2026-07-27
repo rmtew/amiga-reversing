@@ -20,11 +20,13 @@ from src.scripts.target_usage_manifest import (
     XREF_KIND_TABLE_CONSUMER,
     XREF_KIND_TABLE_DESCRIPTOR,
     XREF_KIND_TABLE_ENTRY,
+    XREF_KIND_POINTER_STORE,
     FeatureBag,
     _add_analysis_features,
     _add_listing_features,
     _analysis_xrefs,
     _listing_xrefs,
+    build_typed_pointer_value_opportunity_report,
 )
 
 
@@ -66,6 +68,47 @@ def test_runtime_copied_entry_stub_feature_and_xref() -> None:
     assert len(copied_entry_xrefs) == 1
     assert copied_entry_xrefs[0]["offset"] == 0x52
     assert copied_entry_xrefs[0]["value"] == 0x100
+
+
+def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
+    analysis = {
+        "sections": [{
+            "section_index": 0,
+            "pointer_stores": [{
+                "offset": 0x120,
+                "source_value": 0x5CF4C,
+                "source_kind": "propagated",
+                "destination_kind": "struct_field",
+                "destination_value_kind": "pointer",
+                "resolution": "resolved",
+                "has_address": 1,
+                "provenance_kind": "register_copy",
+                "destination_struct_name": "world_object_shared_prefix",
+                "destination_field_name": "interaction_data_ptr",
+                "destination_symbol": "world_object_shared_prefix_interaction_data_ptr",
+                "pointee_struct_name": "interaction_data",
+                "target_section_index": 0,
+                "target_offset": 0x5CF4C,
+            }],
+        }],
+    }
+    bag = FeatureBag()
+    _add_analysis_features(analysis, bag)
+    counts, _examples, _tags = bag.row_features()
+    assert counts["analysis:pointer_store"] == 1
+    assert counts["analysis:pointer_store:render:needs_address_value_propagation"] == 1
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    xrefs = _analysis_xrefs(row, analysis, {(0, 0x120): (4, "s0:00000120:instruction:4", "move.l d0,(a5)")})
+    stores = [xref for xref in xrefs if xref.get("kind_id") == XREF_KIND_POINTER_STORE]
+    assert len(stores) == 1
+    assert stores[0]["pointer_store"]["render_outcome"] == "needs_address_value_propagation"
+
+    report = build_typed_pointer_value_opportunity_report(xrefs)
+    assert report["pointer_store_count"] == 1
+    assert report["render_outcome_counts"] == {"needs_address_value_propagation": 1}
+    example = report["examples_by_render_outcome"]["needs_address_value_propagation"][0]
+    assert example["stable_key"] == "s0:00000120:instruction:4"
 
 
 def test_decompression_payload_role_features() -> None:

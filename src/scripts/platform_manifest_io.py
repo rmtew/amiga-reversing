@@ -5,7 +5,7 @@ import hashlib
 import json
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -14,19 +14,31 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def iter_jsonl_manifest(path: Path) -> Iterator[dict[str, Any]]:
+    with path.open(encoding="utf-8") as manifest:
+        for line in manifest:
+            if line.strip():
+                payload = json.loads(line)
+                if isinstance(payload, dict):
+                    yield payload
+
+
 def read_jsonl_manifest(path: Path) -> list[dict[str, Any]]:
-    entries: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            payload = json.loads(line)
-            if isinstance(payload, dict):
-                entries.append(payload)
-    return entries
+    return list(iter_jsonl_manifest(path))
 
 
 def write_jsonl_manifest(path: Path, entries: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("".join(json.dumps(entry, sort_keys=True) + "\n" for entry in entries), encoding="utf-8")
+    temporary_path = path.with_name(f".{path.name}.tmp")
+    try:
+        with temporary_path.open("w", encoding="utf-8", newline="\n") as output:
+            for entry in entries:
+                output.write(json.dumps(entry, sort_keys=True))
+                output.write("\n")
+        temporary_path.replace(path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
 
 
 def decode_archive_member(container_path: Path, member_name: str) -> bytes:

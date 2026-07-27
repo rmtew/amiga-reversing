@@ -153,6 +153,40 @@ fixtures from distinct source/destination/propagation categories and select
 Pandora only as one proof target. Regenerate the same report after each major
 slice and report both resolved gains and any new invalid/ambiguous cases.
 
+### Baseline audit — 2026-07-28
+
+A fresh, read-only full corpus build completed with 428 entries, 3,734,243
+xrefs, 582,446 listing snippet rows, 230 type-flow report rows, and 56
+unresolved typed-field rows. The typed-pointer opportunity report found:
+
+```text
+typed pointer-store rows: 0
+targets with a pointer-store row: 0
+source/destination/resolution/render/provenance categories: none
+```
+
+This is a meaningful baseline, not a zero-opportunity claim. The current
+indexed corpus does not emit any `pointer_store` analysis fact for its
+analysed executable inputs. Pandora is present as a derived raw-binary project
+target, but that project-target catalog row deliberately records reproduction
+and decompression metadata only; it does not run source analysis over the
+reconstructed target. Therefore this corpus cannot yet supply the positive,
+propagated, external, ambiguous, or scalar-negative fixture candidates required
+by this proposal.
+
+The audit command itself is intentionally derived and read-only. It records a
+stable xref/listing locator when a pointer-store fact exists and streams the
+xref artifact, so reporting remains bounded for a full corpus. It does not
+create labels, types, Manual Actions, or source output.
+
+Before implementation may claim corpus coverage, extend the normal corpus
+analysis input model so that analysable reconstructed project targets and typed
+pointer-store facts reach the common corpus stream. That must be a general
+source-analysis path with the same durable facts as executable inputs, not a
+Pandora export, a manual fixture injection, or an inferred operand-text scan.
+Then regenerate this baseline and select the required fixture categories from
+observed rows.
+
 ## Pandora Proof Scope
 
 Use the world-object interaction/callback swath as the first proof, beginning

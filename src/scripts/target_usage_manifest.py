@@ -11,7 +11,7 @@ import tempfile
 import threading
 import zlib
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Iterable, cast
 
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
@@ -24,6 +24,7 @@ from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from src.scripts import amiga_hardware_usage
 from src.scripts.platform_manifest_io import (
     ROOT,
+    iter_jsonl_manifest,
     load_disk_image_bytes,
     read_jsonl_manifest,
     reconstruct_file_bytes,
@@ -221,6 +222,7 @@ XREF_KIND_RUNTIME_ADDRESS_REF = 28
 XREF_KIND_DATA_REFERENCE = 29
 XREF_KIND_ADDRESS_OBSERVATION = 30
 XREF_KIND_PLATFORM_SEMANTIC_USE = 31
+XREF_KIND_POINTER_STORE = 32
 XREF_KIND_IDS = {
     "platform_typed_access": XREF_KIND_PLATFORM_TYPED_ACCESS,
     "typed_storage": XREF_KIND_TYPED_STORAGE,
@@ -253,6 +255,7 @@ XREF_KIND_IDS = {
     "data_reference": XREF_KIND_DATA_REFERENCE,
     "platform_semantic_use": XREF_KIND_PLATFORM_SEMANTIC_USE,
     "address_observation": XREF_KIND_ADDRESS_OBSERVATION,
+    "pointer_store": XREF_KIND_POINTER_STORE,
 }
 XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY = 1
 XREF_FEATURE_TYPED_STORAGE_ANY = 2
@@ -3428,6 +3431,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     _add_memory_layout_view_features(bag, memory_layout_records)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
+        for store in _dict_items(section.get("pointer_stores")):
+            _add_pointer_store_features(bag, section_index, store)
         for ref in _dict_items(section.get("code_start_refs")):
             _add_code_start_ref_features(bag, section_index, ref)
         for origin in _dict_items(section.get("code_origins")):
@@ -5982,6 +5987,77 @@ def _address_observation_xrefs(
     ]
 
 
+def _pointer_store_render_outcome(store: dict[str, Any]) -> str:
+    """Describe current source rendering without pretending propagated values are symbolic."""
+    source_kind = _string_value(store.get("source_kind")) or "unknown"
+    resolution = _string_value(store.get("resolution")) or "unknown"
+    has_address = _bool_value(store.get("has_address")) or (_int_value(store.get("has_address"), 0) or 0) != 0
+    if source_kind == "immediate" and resolution == "resolved" and has_address:
+        return "symbolic_now"
+    if source_kind == "propagated" and resolution == "resolved" and has_address:
+        return "needs_address_value_propagation"
+    if resolution in {"outside_known_address_space", "invalid_target"}:
+        return "external_or_invalid"
+    return "not_symbolic"
+
+
+def _pointer_store_example(section_index: int | None, store: dict[str, Any]) -> dict[str, object]:
+    example = _offset_example(section_index, _int_value(store.get("offset")), "typed pointer store")
+    for key in (
+        "source_kind", "destination_kind", "destination_value_kind", "resolution",
+        "provenance_kind", "destination_struct_name", "destination_field_name",
+        "destination_symbol", "pointee_struct_name",
+    ):
+        value = _string_value(store.get(key))
+        if value:
+            example[key] = value
+    for key in ("source_value", "target_section_index", "target_offset", "provenance_section_index", "provenance_offset"):
+        value = _int_value(store.get(key))
+        if value is not None:
+            example[key] = value
+    example["render_outcome"] = _pointer_store_render_outcome(store)
+    return example
+
+
+def _add_pointer_store_features(bag: FeatureBag, section_index: int | None, store: dict[str, Any]) -> None:
+    example = _pointer_store_example(section_index, store)
+    bag.add("analysis:pointer_store", example=example)
+    for key in ("source_kind", "destination_kind", "destination_value_kind", "resolution", "provenance_kind"):
+        value = _string_value(store.get(key))
+        if value:
+            bag.add(f"analysis:pointer_store:{key}:{_safe_part(value)}", example=example)
+    bag.add(f"analysis:pointer_store:render:{_pointer_store_render_outcome(store)}", example=example)
+
+
+def _pointer_store_xref(
+    row: dict[str, object],
+    store: dict[str, Any],
+    *,
+    section_index: int | None,
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+) -> dict[str, object]:
+    offset = _int_value(store.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+    field_name = _string_value(store.get("destination_field_name"))
+    destination_symbol = _string_value(store.get("destination_symbol"))
+    store_payload = dict(store)
+    store_payload["render_outcome"] = _pointer_store_render_outcome(store)
+    return _xref(
+        row,
+        "analysis:pointer_store",
+        "pointer_store",
+        section=section_index,
+        offset=offset,
+        row_index=row_index,
+        stable_key=stable_key,
+        symbol=field_name or destination_symbol,
+        value=_int_value(store.get("source_value")),
+        text=row_text or field_name or destination_symbol or "typed pointer store",
+        resolution=_string_value(store.get("resolution")),
+        pointer_store=store_payload,
+    )
+
+
 def _analysis_xrefs(
     row: dict[str, object],
     analysis: dict[str, Any],
@@ -6217,6 +6293,8 @@ def _analysis_xrefs(
                 value=record_value, text=row_text or conflict_state, **owner_range_xref))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
+        for store in _dict_items(section.get("pointer_stores")):
+            xrefs.append(_pointer_store_xref(row, store, section_index=section_index, row_locations=row_locations))
         for ref in _dict_items(section.get("code_start_refs")):
             xrefs.extend(_code_start_ref_xrefs(row, ref, row_locations, section_index=section_index))
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -6969,6 +7047,7 @@ def _xref(
     owner_range_start: object = None,
     owner_range_size: object = None,
     owner_range_end: object = None,
+    pointer_store: dict[str, object] | None = None,
 ) -> dict[str, object]:
     target_id = str(target_row.get("id"))
     kind_id = XREF_KIND_IDS.get(kind)
@@ -7031,6 +7110,8 @@ def _xref(
         payload["owner_range_end"] = owner_range_end
     if source_stable_key is not None:
         payload["source_stable_key"] = source_stable_key
+    if pointer_store is not None:
+        payload["pointer_store"] = pointer_store
     payload["id"] = _stable_xref_id(payload)
     return payload
 
@@ -7067,6 +7148,8 @@ def _stable_xref_id(payload: dict[str, object]) -> str:
         keys = (*keys, "type_provenance_kind_id", "type_provenance_section", "type_provenance_offset")
     if payload.get("owner_range_start") is not None:
         keys = (*keys, "owner_range_start", "owner_range_size", "owner_range_end")
+    if payload.get("pointer_store") is not None:
+        keys = (*keys, "pointer_store")
     raw = json.dumps({key: payload.get(key) for key in keys}, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
 
@@ -10071,6 +10154,98 @@ def build_type_flow_opportunity_report(
     }
 
 
+def build_typed_pointer_value_opportunity_report(
+    xrefs: Iterable[dict[str, Any]],
+    *,
+    max_examples: int = 25,
+    platform: str | None = None,
+) -> dict[str, object]:
+    """Summarise typed pointer stores from the corpus without changing analysis facts.
+
+    Each row keeps the original xref id and listing locator, so a later analysis
+    change can be compared against the same concrete instructions.
+    """
+    source_kind_counts: dict[str, int] = {}
+    destination_kind_counts: dict[str, int] = {}
+    pointee_domain_counts: dict[str, int] = {}
+    resolution_counts: dict[str, int] = {}
+    render_outcome_counts: dict[str, int] = {}
+    provenance_counts: dict[str, int] = {}
+    target_counts: dict[str, int] = {}
+    examples_by_outcome: dict[str, list[dict[str, object]]] = {}
+
+    def bump(counts: dict[str, int], key: str) -> None:
+        counts[key] = int(counts.get(key, 0)) + 1
+
+    pointer_store_count = 0
+    for xref in xrefs:
+        if (
+            _xref_kind_id(xref) != XREF_KIND_POINTER_STORE
+            or (platform is not None and xref.get("platform") != platform)
+            or not isinstance(xref.get("pointer_store"), dict)
+        ):
+            continue
+        pointer_store_count += 1
+        store = cast(dict[str, Any], xref["pointer_store"])
+        source_kind = _string_value(store.get("source_kind")) or "unknown"
+        destination_kind = _string_value(store.get("destination_kind")) or "unknown"
+        pointee_domain = _string_value(store.get("pointee_struct_name")) or "untyped"
+        resolution = _string_value(store.get("resolution")) or "unknown"
+        provenance = _string_value(store.get("provenance_kind")) or "unknown"
+        outcome = _string_value(store.get("render_outcome")) or _pointer_store_render_outcome(store)
+        bump(source_kind_counts, source_kind)
+        bump(destination_kind_counts, destination_kind)
+        bump(pointee_domain_counts, pointee_domain)
+        bump(resolution_counts, resolution)
+        bump(render_outcome_counts, outcome)
+        bump(provenance_counts, provenance)
+        target_id = _string_value(xref.get("target_id")) or "unknown"
+        bump(target_counts, target_id)
+        example = {
+            "xref_id": _string_value(xref.get("id")) or "",
+            "target_id": target_id,
+            "platform": _string_value(xref.get("platform")) or "unknown",
+            "section": _int_value(xref.get("section")),
+            "offset": _int_value(xref.get("offset")),
+            "stable_key": _string_value(xref.get("stable_key")),
+            "text": _string_value(xref.get("text")) or "",
+            "source_kind": source_kind,
+            "destination_kind": destination_kind,
+            "destination": _string_value(store.get("destination_field_name"))
+                or _string_value(store.get("destination_symbol")) or "unknown",
+            "pointee_domain": pointee_domain,
+            "resolution": resolution,
+            "provenance_kind": provenance,
+            "render_outcome": outcome,
+        }
+        examples_by_outcome.setdefault(outcome, []).append(example)
+
+    for examples in examples_by_outcome.values():
+        examples.sort(key=lambda item: (
+            str(item["target_id"]),
+            _sort_int(item["section"]),
+            _sort_int(item["offset"]),
+            str(item["xref_id"]),
+        ))
+    return {
+        "schema_version": 1,
+        "scope": "typed_pointer_stores_only",
+        "target_count": len(target_counts),
+        "pointer_store_count": pointer_store_count,
+        "source_kind_counts": dict(sorted(source_kind_counts.items())),
+        "destination_kind_counts": dict(sorted(destination_kind_counts.items())),
+        "pointee_domain_counts": dict(sorted(pointee_domain_counts.items())),
+        "resolution_counts": dict(sorted(resolution_counts.items())),
+        "render_outcome_counts": dict(sorted(render_outcome_counts.items())),
+        "provenance_kind_counts": dict(sorted(provenance_counts.items())),
+        "target_counts": dict(sorted(target_counts.items())),
+        "examples_by_render_outcome": {
+            outcome: examples[:max_examples]
+            for outcome, examples in sorted(examples_by_outcome.items())
+        },
+    }
+
+
 TYPE_FLOW_BASELINE_MIN_TOTALS = (
     "resolved_typed_access",
     "typed_storage",
@@ -10956,6 +11131,13 @@ def main(argv: list[str] | None = None) -> int:
     type_flow_opportunities.add_argument("--platform")
     type_flow_opportunities.add_argument("--json", action="store_true")
 
+    pointer_value_opportunities = subparsers.add_parser("pointer-value-opportunities")
+    pointer_value_opportunities.add_argument("--xrefs", type=Path, default=DEFAULT_XREF_OUTPUT)
+    pointer_value_opportunities.add_argument("--output", type=Path)
+    pointer_value_opportunities.add_argument("--max-examples", type=int, default=25)
+    pointer_value_opportunities.add_argument("--platform")
+    pointer_value_opportunities.add_argument("--json", action="store_true")
+
     type_flow_api_audit = subparsers.add_parser("type-flow-api-audit")
     type_flow_api_audit.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
     type_flow_api_audit.add_argument("--api-feature")
@@ -11115,6 +11297,18 @@ def main(argv: list[str] | None = None) -> int:
         report = build_type_flow_opportunity_report(
             read_type_flow_report(args.type_flow_report),
             max_targets=max(0, int(args.max_targets)),
+            platform=args.platform if isinstance(args.platform, str) else None,
+        )
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json or args.output is None:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    if args.command == "pointer-value-opportunities":
+        report = build_typed_pointer_value_opportunity_report(
+            iter_jsonl_manifest(args.xrefs),
+            max_examples=max(0, int(args.max_examples)),
             platform=args.platform if isinstance(args.platform, str) else None,
         )
         if args.output is not None:
