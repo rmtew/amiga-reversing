@@ -153,7 +153,7 @@ fixtures from distinct source/destination/propagation categories and select
 Pandora only as one proof target. Regenerate the same report after each major
 slice and report both resolved gains and any new invalid/ambiguous cases.
 
-### Baseline audit — 2026-07-28
+### Superseded pre-039 baseline — 2026-07-28
 
 A fresh, read-only full corpus build completed with 428 entries, 3,734,243
 xrefs, 582,446 listing snippet rows, 230 type-flow report rows, and 56
@@ -186,6 +186,29 @@ general source-analysis path with the same durable facts as executable inputs,
 not a Pandora export, a manual fixture injection, or an inferred operand-text
 scan. After that dependency is complete, regenerate this baseline and select
 the required fixture categories from observed rows.
+
+### Post-039 corpus baseline — 2026-07-28
+
+Proposal 039 is complete and the fresh full corpus now includes reconstructed
+raw-binary project targets in normal source analysis. The read-only
+pointer-value opportunity report now contains 45 typed pointer-store rows for
+one target (Pandora):
+
+```text
+source kinds: immediate 4, propagated 41
+destination kinds: app_slot 24, struct_field 21
+resolution: resolved 25, finite_candidate_targets 2, unknown_target 18
+render outcome: symbolic_now 4, needs_address_value_propagation 21,
+                not_symbolic 20
+```
+
+This is the implementation baseline for this proposal. It proves that the
+common audit stream now carries observed positive opportunities, including the
+Pandora world-object pointer-store class, without a target-specific corpus
+path. Before semantic implementation, the audit still must select the required
+positive, scalar-negative, external, ambiguous, and propagated focused
+fixtures from the stable rows rather than treating this aggregate as coverage
+of every category.
 
 ## Pandora Proof Scope
 

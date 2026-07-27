@@ -9,9 +9,11 @@ import os
 import re
 import tempfile
 import threading
+import time
 import zlib
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, cast
+from typing import Any, Iterable, Iterator, cast
 
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
@@ -40,10 +42,262 @@ DEFAULT_SNIPPET_ROWS_OUTPUT = ROOT / "corpus" / "target_usage_snippet_rows"
 DEFAULT_VARIANT_OUTPUT = ROOT / "corpus" / "target_variant_index.jsonl"
 DEFAULT_TYPE_FLOW_REPORT_OUTPUT = ROOT / "corpus" / "target_type_flow_report.jsonl"
 DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT = ROOT / "corpus" / "target_unresolved_typed_fields.jsonl"
+DEFAULT_BUILD_PROFILE_OUTPUT = ROOT / "corpus" / "target_usage_build_profile.json"
+DEFAULT_COVERAGE_REPORT_OUTPUT = ROOT / "corpus" / "target_usage_coverage.json"
 DEFAULT_TYPE_FLOW_SNAPSHOT_DIR = ROOT / "corpus" / "type_flow_snapshots"
 DEFAULT_TYPE_FLOW_BASELINE = ROOT / "src" / "tests" / "fixtures" / "type_flow_baseline.json"
 TARGET_USAGE_WORKERS_ENV = "AMIGA_TARGET_USAGE_WORKERS"
 MAX_EXAMPLES = 5
+
+
+def _process_memory_bytes() -> int | None:
+    """Return current process memory without a third-party dependency."""
+    proc_status = Path("/proc/self/status")
+    if proc_status.exists():
+        for line in proc_status.read_text(encoding="utf-8").splitlines():
+            if line.startswith("VmRSS:"):
+                fields = line.split()
+                if len(fields) >= 2 and fields[1].isdigit():
+                    return int(fields[1]) * 1024
+        return None
+    counters = _windows_process_memory_counters()
+    return counters[0] if counters is not None else None
+
+
+def _process_peak_memory_bytes() -> int | None:
+    """Return the operating system's process high-water mark when available."""
+    proc_status = Path("/proc/self/status")
+    if proc_status.exists():
+        for line in proc_status.read_text(encoding="utf-8").splitlines():
+            if line.startswith("VmHWM:"):
+                fields = line.split()
+                if len(fields) >= 2 and fields[1].isdigit():
+                    return int(fields[1]) * 1024
+        return None
+    counters = _windows_process_memory_counters()
+    return counters[1] if counters is not None else None
+
+
+def _windows_process_memory_counters() -> tuple[int, int] | None:
+    if os.name != "nt":
+        return None
+    import ctypes
+    from ctypes import wintypes
+
+    class ProcessMemoryCountersEx(ctypes.Structure):
+        _fields_ = [
+            ("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+            ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t),
+            ("PrivateUsage", ctypes.c_size_t),
+        ]
+
+    counters = ProcessMemoryCountersEx()
+    counters.cb = ctypes.sizeof(counters)
+    get_current_process = ctypes.windll.kernel32.GetCurrentProcess
+    get_current_process.argtypes = []
+    get_current_process.restype = wintypes.HANDLE
+    get_process_memory_info = ctypes.windll.psapi.GetProcessMemoryInfo
+    get_process_memory_info.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD]
+    get_process_memory_info.restype = wintypes.BOOL
+    if not get_process_memory_info(get_current_process(), ctypes.byref(counters), counters.cb):
+        return None
+    return int(counters.PrivateUsage), int(counters.PeakPagefileUsage)
+
+
+@dataclass
+class CorpusBuildMonitor:
+    """Thread-safe, derived build progress and resource measurements."""
+
+    worker_count: int
+    progress_output: Path | None = None
+    started_at: float = field(default_factory=time.perf_counter)
+    phase_started_at: dict[str, float] = field(default_factory=dict)
+    phase_elapsed_seconds: dict[str, float] = field(default_factory=dict)
+    task_counts: dict[str, int] = field(default_factory=dict)
+    task_elapsed_seconds: dict[str, float] = field(default_factory=dict)
+    active_tasks: dict[str, int] = field(default_factory=dict)
+    max_active_tasks: dict[str, int] = field(default_factory=dict)
+    peak_process_memory_bytes: int = 0
+    current_phase: str = "initializing"
+    progress_sequence: int = 0
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def phase_started(self, phase: str) -> None:
+        with self._lock:
+            self.current_phase = phase
+            self.phase_started_at[phase] = time.perf_counter()
+            self._write_progress_locked()
+
+    def phase_finished(self, phase: str) -> None:
+        with self._lock:
+            started = self.phase_started_at.pop(phase, None)
+            if started is not None:
+                self.phase_elapsed_seconds[phase] = time.perf_counter() - started
+            self._observe_memory_locked()
+            self._write_progress_locked()
+
+    def task_started(self, phase: str) -> float:
+        with self._lock:
+            self.active_tasks[phase] = self.active_tasks.get(phase, 0) + 1
+            self.max_active_tasks[phase] = max(self.max_active_tasks.get(phase, 0), self.active_tasks[phase])
+            self._write_progress_locked()
+        return time.perf_counter()
+
+    def task_finished(self, phase: str, started_at: float) -> None:
+        with self._lock:
+            self.active_tasks[phase] = max(0, self.active_tasks.get(phase, 0) - 1)
+            self.task_counts[phase] = self.task_counts.get(phase, 0) + 1
+            self.task_elapsed_seconds[phase] = self.task_elapsed_seconds.get(phase, 0.0) + (time.perf_counter() - started_at)
+            self._observe_memory_locked()
+            self._write_progress_locked()
+
+    def report(self) -> dict[str, object]:
+        with self._lock:
+            self._observe_memory_locked()
+            return self._report_locked(complete=True)
+
+    def complete(self) -> dict[str, object]:
+        with self._lock:
+            self._observe_memory_locked()
+            report = self._report_locked(complete=True)
+            self._write_progress_locked(report)
+            return report
+
+    def _observe_memory_locked(self) -> None:
+        current = _process_memory_bytes()
+        operating_system_peak = _process_peak_memory_bytes()
+        observed = (value for value in (current, operating_system_peak) if value is not None)
+        self.peak_process_memory_bytes = max(self.peak_process_memory_bytes, *observed)
+
+    def _report_locked(self, *, complete: bool) -> dict[str, object]:
+        phases: dict[str, object] = {}
+        all_phases = sorted(set(self.phase_elapsed_seconds) | set(self.task_counts) | set(self.active_tasks))
+        for phase in all_phases:
+            elapsed = self.phase_elapsed_seconds.get(phase)
+            task_elapsed = self.task_elapsed_seconds.get(phase, 0.0)
+            phases[phase] = {
+                "completed_tasks": self.task_counts.get(phase, 0),
+                "active_tasks": self.active_tasks.get(phase, 0),
+                "max_active_tasks": self.max_active_tasks.get(phase, 0),
+                "task_elapsed_seconds": round(task_elapsed, 6),
+                "elapsed_seconds": round(elapsed, 6) if elapsed is not None else None,
+                "mean_parallelism": round(task_elapsed / elapsed, 6) if elapsed and elapsed > 0 else None,
+            }
+        return {
+            "schema_version": 1,
+            "complete": complete,
+            "current_phase": "complete" if complete else self.current_phase,
+            "worker_count": self.worker_count,
+            "elapsed_seconds": round(time.perf_counter() - self.started_at, 6),
+            "process_memory_bytes": _process_memory_bytes(),
+            "peak_process_memory_bytes": self.peak_process_memory_bytes or None,
+            "progress_snapshot_count": self.progress_sequence,
+            "phases": phases,
+        }
+
+    def _write_progress_locked(self, report: dict[str, object] | None = None) -> None:
+        if self.progress_output is None:
+            return
+        if report is None:
+            report = self._report_locked(complete=False)
+        self.progress_sequence += 1
+        self.progress_output.mkdir(parents=True, exist_ok=True)
+        snapshot_path = self.progress_output / f"{self.progress_sequence:06d}.json"
+        snapshot_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    @staticmethod
+    def _write_json_locked(path: Path, payload: dict[str, object]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = path.with_name(f".{path.name}.tmp")
+        try:
+            temporary_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            temporary_path.replace(path)
+        finally:
+            if temporary_path.exists():
+                temporary_path.unlink()
+
+
+class CorpusBuildStaging:
+    """Bound completed target payloads to disk until deterministic publication."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.path.mkdir(parents=True, exist_ok=True)
+        self._rows: dict[str, dict[str, object]] = {}
+        self._shards: dict[str, tuple[Path, Path]] = {}
+        self._lock = threading.Lock()
+
+    def add(
+        self,
+        row: dict[str, object],
+        xrefs: list[dict[str, object]],
+        snippet_rows: list[dict[str, object]],
+    ) -> None:
+        target_id = _string_value(row.get("id"))
+        if target_id is None:
+            raise ValueError("Corpus row has no stable id")
+        digest = hashlib.sha256(target_id.encode("utf-8")).hexdigest()
+        with self._lock:
+            if target_id in self._rows:
+                raise ValueError(f"Duplicate corpus target id: {target_id}")
+            xref_path = self.path / f"{digest}.xrefs.jsonl"
+            snippet_path = self.path / f"{digest}.snippets.jsonl"
+            _write_jsonl_shard(xref_path, _sorted_usage_xrefs(xrefs))
+            _write_jsonl_shard(snippet_path, _sorted_snippet_rows(snippet_rows))
+            self._rows[target_id] = row
+            self._shards[target_id] = (xref_path, snippet_path)
+
+    def rows(self) -> list[dict[str, object]]:
+        return [self._rows[target_id] for target_id in sorted(self._rows)]
+
+    def records(self) -> Iterator[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]]:
+        for target_id in sorted(self._rows):
+            xref_path, snippet_path = self._shards[target_id]
+            yield self._rows[target_id], _read_jsonl_shard(xref_path), _read_jsonl_shard(snippet_path)
+
+    def iter_xrefs(self) -> Iterator[dict[str, object]]:
+        for _row, xrefs, _snippet_rows in self.records():
+            yield from xrefs
+
+
+def _write_jsonl_shard(path: Path, rows: Iterable[dict[str, object]]) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as output:
+        for row in rows:
+            output.write(json.dumps(row, sort_keys=True, separators=(",", ":")))
+            output.write("\n")
+
+
+def _read_jsonl_shard(path: Path) -> list[dict[str, object]]:
+    with path.open(encoding="utf-8") as source:
+        return [cast(dict[str, object], json.loads(line)) for line in source if line.strip()]
+
+
+def _sorted_usage_xrefs(rows: Iterable[dict[str, object]]) -> list[dict[str, object]]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            str(row.get("target_id")),
+            str(row.get("feature")),
+            _sort_int(row.get("section")),
+            _sort_int(row.get("offset")),
+            _sort_int(row.get("row_index")),
+            str(row.get("id")),
+        ),
+    )
+
+
+def _sorted_snippet_rows(rows: Iterable[dict[str, object]]) -> list[dict[str, object]]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            str(row.get("target_id")),
+            _sort_int(row.get("row_index")),
+            str(row.get("id")),
+        ),
+    )
 CPU_NAMES = {
     0: "68000",
     1: "68010",
@@ -806,6 +1060,20 @@ def _base_row(source_manifest: str, entry: dict[str, Any], bag: FeatureBag) -> d
     return row
 
 
+def _analysis_coverage_record(
+    *,
+    source_kind: str,
+    analysis: dict[str, Any] | None,
+    analysis_error: str | None,
+    reason: str | None,
+) -> dict[str, object]:
+    if analysis is not None:
+        return {"status": "source_analyzed", "source_kind": source_kind, "reason": None}
+    if analysis_error is not None:
+        return {"status": "analysis_failed", "source_kind": source_kind, "reason": analysis_error}
+    return {"status": "catalog_only", "source_kind": source_kind, "reason": reason or "not_analysed"}
+
+
 def _finalize_row_features(row: dict[str, object], bag: FeatureBag) -> None:
     counts, examples, tags = bag.row_features()
     row["feature_counts"] = counts
@@ -839,17 +1107,26 @@ def build_usage_outputs(
     *,
     root: Path = ROOT,
     max_workers: int | None = None,
+    monitor: CorpusBuildMonitor | None = None,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    if monitor is not None:
+        monitor.phase_started("load_manifests")
     disk_entries = read_jsonl_manifest(disk_manifest_path)
     file_entries = read_jsonl_manifest(file_manifest_path)
     resolver = DiskFileResolver(disk_entries, root=root)
+    if monitor is not None:
+        monitor.phase_finished("load_manifests")
     rows: list[dict[str, object]] = []
     xrefs: list[dict[str, object]] = []
     snippet_rows: list[dict[str, object]] = []
+    if monitor is not None:
+        monitor.phase_started("catalog_disk_entries")
     for entry in disk_entries:
         row = _collect_disk_usage_row(entry)
         rows.append(row)
         xrefs.extend(_disk_usage_xrefs(row, entry))
+    if monitor is not None:
+        monitor.phase_finished("catalog_disk_entries")
     build_dir = root / "src" / "build"
     build_dir.mkdir(parents=True, exist_ok=True)
     worker_count = _target_usage_worker_count(max_workers)
@@ -863,10 +1140,16 @@ def build_usage_outputs(
             task_tmp_dir.mkdir()
             return collect_file_usage_catalog_entry(entry, resolver, task_tmp_dir, root=root)
 
-        for row, row_xrefs, row_snippets in _run_usage_tasks(file_tasks, collect_file_task, worker_count):
+        if monitor is not None:
+            monitor.phase_started("analyze_file_entries")
+        for row, row_xrefs, row_snippets in _run_usage_tasks(
+            file_tasks, collect_file_task, worker_count, phase="analyze_file_entries", monitor=monitor
+        ):
             rows.append(row)
             xrefs.extend(row_xrefs)
             snippet_rows.extend(row_snippets)
+        if monitor is not None:
+            monitor.phase_finished("analyze_file_entries")
         project_tasks = list(enumerate(_project_target_dirs(root)))
 
         def collect_project_task(task: tuple[int, Path]) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
@@ -875,10 +1158,18 @@ def build_usage_outputs(
             task_tmp_dir.mkdir()
             return collect_project_usage_catalog_entry(target_dir, task_tmp_dir, root=root)
 
-        for row, row_xrefs, row_snippets in _run_usage_tasks(project_tasks, collect_project_task, worker_count):
+        if monitor is not None:
+            monitor.phase_started("analyze_project_targets")
+        for row, row_xrefs, row_snippets in _run_usage_tasks(
+            project_tasks, collect_project_task, worker_count, phase="analyze_project_targets", monitor=monitor
+        ):
             rows.append(row)
             xrefs.extend(row_xrefs)
             snippet_rows.extend(row_snippets)
+        if monitor is not None:
+            monitor.phase_finished("analyze_project_targets")
+    if monitor is not None:
+        monitor.phase_started("sort_outputs")
     rows = sorted(rows, key=lambda row: str(row["id"]))
     xrefs = sorted(
         xrefs,
@@ -899,7 +1190,76 @@ def build_usage_outputs(
             str(row.get("id")),
         ),
     )
+    if monitor is not None:
+        monitor.phase_finished("sort_outputs")
     return rows, xrefs, snippet_rows
+
+
+def build_usage_staging(
+    staging: CorpusBuildStaging,
+    disk_manifest_path: Path = DEFAULT_DISK_MANIFEST,
+    file_manifest_path: Path = DEFAULT_FILE_MANIFEST,
+    *,
+    root: Path = ROOT,
+    max_workers: int | None = None,
+    monitor: CorpusBuildMonitor | None = None,
+) -> list[dict[str, object]]:
+    """Build corpus facts without retaining completed target payloads in memory."""
+    if monitor is not None:
+        monitor.phase_started("load_manifests")
+    disk_entries = read_jsonl_manifest(disk_manifest_path)
+    file_entries = read_jsonl_manifest(file_manifest_path)
+    resolver = DiskFileResolver(disk_entries, root=root)
+    if monitor is not None:
+        monitor.phase_finished("load_manifests")
+
+    if monitor is not None:
+        monitor.phase_started("catalog_disk_entries")
+    for entry in disk_entries:
+        row = _collect_disk_usage_row(entry)
+        staging.add(row, _disk_usage_xrefs(row, entry), [])
+    if monitor is not None:
+        monitor.phase_finished("catalog_disk_entries")
+
+    build_dir = root / "src" / "build"
+    build_dir.mkdir(parents=True, exist_ok=True)
+    worker_count = _target_usage_worker_count(max_workers)
+    with tempfile.TemporaryDirectory(dir=build_dir) as tmp:
+        tmp_dir = Path(tmp)
+        file_tasks = list(enumerate(file_entries))
+
+        def collect_file_task(task: tuple[int, dict[str, Any]]) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+            index, entry = task
+            task_tmp_dir = tmp_dir / f"file_{index:06d}"
+            task_tmp_dir.mkdir()
+            return collect_file_usage_catalog_entry(entry, resolver, task_tmp_dir, root=root)
+
+        if monitor is not None:
+            monitor.phase_started("analyze_file_entries")
+        for row, row_xrefs, row_snippets in _run_usage_tasks(
+            file_tasks, collect_file_task, worker_count, phase="analyze_file_entries", monitor=monitor
+        ):
+            staging.add(row, row_xrefs, row_snippets)
+        if monitor is not None:
+            monitor.phase_finished("analyze_file_entries")
+
+        project_tasks = list(enumerate(_project_target_dirs(root)))
+
+        def collect_project_task(task: tuple[int, Path]) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+            index, target_dir = task
+            task_tmp_dir = tmp_dir / f"project_{index:06d}"
+            task_tmp_dir.mkdir()
+            return collect_project_usage_catalog_entry(target_dir, task_tmp_dir, root=root)
+
+        if monitor is not None:
+            monitor.phase_started("analyze_project_targets")
+        for row, row_xrefs, row_snippets in _run_usage_tasks(
+            project_tasks, collect_project_task, worker_count, phase="analyze_project_targets", monitor=monitor
+        ):
+            staging.add(row, row_xrefs, row_snippets)
+        if monitor is not None:
+            monitor.phase_finished("analyze_project_targets")
+    return staging.rows()
 
 
 def _target_usage_worker_count(max_workers: int | None) -> int:
@@ -919,15 +1279,31 @@ def _run_usage_tasks(
     tasks: list[Any],
     collect: Any,
     max_workers: int,
-) -> list[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]]:
+    *,
+    phase: str,
+    monitor: CorpusBuildMonitor | None = None,
+) -> Iterator[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]]:
+    def run(task: Any) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+        started_at = monitor.task_started(phase) if monitor is not None else None
+        try:
+            return collect(task)
+        finally:
+            if monitor is not None and started_at is not None:
+                monitor.task_finished(phase, started_at)
+
     if max_workers <= 1 or len(tasks) <= 1:
-        return [collect(task) for task in tasks]
-    results: list[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]] | None] = [None] * len(tasks)
+        for task in tasks:
+            yield run(task)
+        return
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(collect, task): index for index, task in enumerate(tasks)}
-        for future in concurrent.futures.as_completed(futures):
-            results[futures[future]] = future.result()
-    return [cast(tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]], result) for result in results]
+        futures = {executor.submit(run, task) for task in tasks}
+        while futures:
+            completed, futures = concurrent.futures.wait(
+                futures,
+                return_when=concurrent.futures.FIRST_COMPLETED,
+            )
+            for future in completed:
+                yield future.result()
 
 
 def build_variant_index(
@@ -1099,6 +1475,12 @@ def collect_file_usage_catalog_entry(
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     row = _base_row("platform_file_manifest", entry, bag)
+    row["analysis_coverage"] = _analysis_coverage_record(
+        source_kind="manifest_executable",
+        analysis=combined,
+        analysis_error=analysis_error,
+        reason="unsupported_platform" if combined is None and analysis_error is None else None,
+    )
     xrefs = _file_usage_xrefs(row, entry, combined, analysis_error, listing_feature_bag=bag)
     _finalize_row_features(row, bag)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
@@ -1141,16 +1523,9 @@ def collect_project_usage_catalog_entry(
         bag.add("diagnostic:manifest_error", example={"message": expect.get("error") if isinstance(expect, dict) else None})
     combined: dict[str, Any] | None = None
     analysis_error: str | None = None
-    if _status(entry) == "ok" and isinstance(source, HunkFileBinarySource) and platform == "amiga-hunk":
+    if _status(entry) == "ok" and isinstance(source, (DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource)):
         try:
-            combined = analyze_project_hunk_file(platform, source.path, target_dir, root=root)
-            _add_executable_analysis_features(combined, bag, platform=platform, root=root, include_listing=False)
-        except Exception as exc:
-            analysis_error = _stable_analysis_error_message(str(exc))
-            bag.add("diagnostic:analysis_error", example={"message": analysis_error})
-    elif _status(entry) == "ok" and isinstance(source, DiskEntryBinarySource) and platform == "amiga-hunk":
-        try:
-            combined = analyze_executable_file(platform, source.read_bytes(), tmp_dir, root=root)
+            combined = analyze_project_binary_source(source, target_dir, root=root)
             _add_executable_analysis_features(combined, bag, platform=platform, root=root, include_listing=False)
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
@@ -1165,6 +1540,12 @@ def collect_project_usage_catalog_entry(
             if reproduction.get("exact") is True:
                 bag.add("decompression:parent_reproduction_exact", example=reproduction)
     row = _base_row("project_target", entry, bag)
+    row["analysis_coverage"] = _analysis_coverage_record(
+        source_kind=_safe_part(source.kind) if source is not None else "unknown",
+        analysis=combined,
+        analysis_error=analysis_error,
+        reason=("unsupported_source" if source is not None else "missing_source") if combined is None and analysis_error is None else None,
+    )
     xrefs = _project_target_xrefs(row, entry, combined, analysis_error, listing_feature_bag=bag)
     _finalize_row_features(row, bag)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
@@ -1285,16 +1666,31 @@ def _analysis_has_decompression_relationship(analysis: dict[str, Any]) -> bool:
     return False
 
 
-def analyze_project_hunk_file(platform: str, path: Path, target_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
-    include_dir = _include_dir_for_platform(platform, root)
+def analyze_project_binary_source(source: object, target_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
+    """Use the normal listing artifact path for every supported project source."""
     with effective_metadata_file(target_dir) as metadata_path:
-        return _analyze_file_with_listing_artifact(
-            platform,
-            path,
-            str(metadata_path) if metadata_path is not None else "",
-            str(include_dir),
-            root=root,
+        total_rows, summary_profile, artifact = c_backend.build_listing_artifact_profile_from_binary_source(
+            cast(Any, source),
+            metadata_path=metadata_path,
+            project_root=root,
         )
+    try:
+        analysis, analysis_profile = artifact.analysis_payload()
+        navigation, navigation_profile = artifact.navigation_payload()
+        listing, listing_profile = artifact.window_payload(start=0, count=total_rows)
+    finally:
+        artifact.close()
+    profile = {**summary_profile, **analysis_profile, **navigation_profile, **listing_profile}
+    result: dict[str, Any] = {
+        "analysis": analysis,
+        "listing": {"rows": list(listing["rows"])},
+        "profile": profile,
+    }
+    for key in ("app_slot_analysis", "type_flow_analysis", "labels"):
+        value = navigation.get(key)
+        if isinstance(value, (dict, list)):
+            result["listing"][key] = value
+    return result
 
 
 def analyze_executable_file(platform: str, file_bytes: bytes, tmp_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
@@ -1553,7 +1949,14 @@ def _collect_disk_usage_row(entry: dict[str, Any]) -> dict[str, object]:
             bag.add("disk:bootblock")
     if _status(entry) != "ok":
         bag.add("diagnostic:manifest_error")
-    return _base_row("platform_disk_manifest", entry, bag)
+    row = _base_row("platform_disk_manifest", entry, bag)
+    row["analysis_coverage"] = _analysis_coverage_record(
+        source_kind="disk_image",
+        analysis=None,
+        analysis_error=None,
+        reason="container_catalog_only",
+    )
+    return row
 
 
 def _add_file_manifest_features(entry: dict[str, Any], bag: FeatureBag) -> None:
@@ -7393,6 +7796,23 @@ def write_usage_xrefs(path: Path, rows: list[dict[str, object]]) -> None:
     write_jsonl_manifest(path, rows)
 
 
+def write_usage_xrefs_from_staging(path: Path, staging: CorpusBuildStaging) -> int:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = path.with_name(f".{path.name}.tmp")
+    count = 0
+    try:
+        with temporary_path.open("w", encoding="utf-8", newline="\n") as output:
+            for row in staging.iter_xrefs():
+                output.write(json.dumps(row, sort_keys=True))
+                output.write("\n")
+                count += 1
+        temporary_path.replace(path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
+    return count
+
+
 def write_usage_snippet_rows(path: Path, rows: list[dict[str, object]]) -> None:
     index_path = snippet_rows_index_path(path)
     blob_path = snippet_rows_blob_path(path)
@@ -7430,6 +7850,51 @@ def write_usage_snippet_rows(path: Path, rows: list[dict[str, object]]) -> None:
         path.unlink()
 
 
+def write_usage_snippet_rows_from_staging(path: Path, staging: CorpusBuildStaging) -> int:
+    """Write the existing per-target zlib format from sorted staging shards."""
+    index_path = snippet_rows_index_path(path)
+    blob_path = snippet_rows_blob_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_index_path = index_path.with_name(f".{index_path.name}.tmp")
+    temporary_blob_path = blob_path.with_name(f".{blob_path.name}.tmp")
+    compressed_offset = 0
+    count = 0
+    try:
+        with temporary_blob_path.open("wb") as blob, temporary_index_path.open("w", encoding="utf-8", newline="\n") as index:
+            for row, _xrefs, snippet_rows in staging.records():
+                if not snippet_rows:
+                    continue
+                target_id = str(row["id"])
+                raw_bytes = "".join(
+                    json.dumps(snippet, sort_keys=True, separators=(",", ":")) + "\n"
+                    for snippet in snippet_rows
+                ).encode("utf-8")
+                compressed = zlib.compress(raw_bytes, level=6)
+                blob.write(compressed)
+                index.write(json.dumps({
+                    "schema_version": 1,
+                    "target_id": target_id,
+                    "row_count": len(snippet_rows),
+                    "raw_size": len(raw_bytes),
+                    "compressed_offset": compressed_offset,
+                    "compressed_size": len(compressed),
+                    "compression": "zlib",
+                }, sort_keys=True))
+                index.write("\n")
+                compressed_offset += len(compressed)
+                count += len(snippet_rows)
+        temporary_blob_path.replace(blob_path)
+        temporary_index_path.replace(index_path)
+        if path.exists():
+            path.unlink()
+    finally:
+        if temporary_blob_path.exists():
+            temporary_blob_path.unlink()
+        if temporary_index_path.exists():
+            temporary_index_path.unlink()
+    return count
+
+
 def write_variant_index(path: Path, rows: list[dict[str, object]]) -> None:
     write_jsonl_manifest(path, rows)
 
@@ -7440,6 +7905,61 @@ def write_type_flow_report(path: Path, rows: list[dict[str, object]]) -> None:
 
 def write_unresolved_typed_field_report(path: Path, rows: list[dict[str, object]]) -> None:
     write_jsonl_manifest(path, rows)
+
+
+def build_corpus_coverage_report(rows: Iterable[dict[str, object]]) -> dict[str, object]:
+    records: list[dict[str, object]] = []
+    status_counts: dict[str, int] = {}
+    source_kind_counts: dict[str, int] = {}
+    for row in rows:
+        coverage = row.get("analysis_coverage")
+        if not isinstance(coverage, dict):
+            continue
+        status = _string_value(coverage.get("status")) or "unknown"
+        source_kind = _string_value(coverage.get("source_kind")) or "unknown"
+        status_counts[status] = status_counts.get(status, 0) + 1
+        source_kind_counts[source_kind] = source_kind_counts.get(source_kind, 0) + 1
+        records.append(
+            {
+                "id": row.get("id"),
+                "source_manifest": row.get("source_manifest"),
+                "source_id": row.get("source_id"),
+                "platform": row.get("platform"),
+                "analysis_status": status,
+                "source_kind": source_kind,
+                "reason": coverage.get("reason"),
+            }
+        )
+    records.sort(key=lambda record: str(record.get("id")))
+    return {
+        "schema_version": 1,
+        "record_count": len(records),
+        "analysis_status_counts": dict(sorted(status_counts.items())),
+        "source_kind_counts": dict(sorted(source_kind_counts.items())),
+        "records": records,
+    }
+
+
+def write_corpus_coverage_report(path: Path, report: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = path.with_name(f".{path.name}.tmp")
+    try:
+        temporary_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        temporary_path.replace(path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
+
+
+def publish_prepared_artifacts(artifacts: Iterable[tuple[Path, Path]]) -> None:
+    """Publish only a complete, already-written artifact set to its destinations."""
+    prepared = list(artifacts)
+    missing = [str(source) for source, _destination in prepared if not source.is_file()]
+    if missing:
+        raise RuntimeError(f"Refusing incomplete corpus publication: {', '.join(missing)}")
+    for source, destination in prepared:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        source.replace(destination)
 
 
 def type_flow_snapshot_path(output_dir: Path, name: str) -> Path:
@@ -9349,6 +9869,38 @@ def build_type_flow_report(
     )
 
 
+def build_type_flow_report_from_staging(
+    manifest_rows: list[dict[str, object]], staging: CorpusBuildStaging
+) -> list[dict[str, object]]:
+    """Derive target-local type-flow reports without materialising corpus xrefs."""
+    rows: list[dict[str, object]] = []
+    manifest_by_id = {str(row["id"]): row for row in manifest_rows}
+    for manifest_row, xrefs, snippet_rows in staging.records():
+        target_id = str(manifest_row["id"])
+        rows.extend(build_type_flow_report([manifest_by_id[target_id]], xrefs, snippet_rows))
+    return sorted(rows, key=lambda row: str(row.get("target_id")))
+
+
+def build_unresolved_typed_field_report_from_staging(
+    manifest_rows: list[dict[str, object]], staging: CorpusBuildStaging
+) -> list[dict[str, object]]:
+    """Retain only targets that actually contribute unresolved typed fields."""
+    selected_manifest_rows: list[dict[str, Any]] = []
+    selected_xrefs: list[dict[str, Any]] = []
+    selected_snippet_rows: list[dict[str, Any]] = []
+    for manifest_row, xrefs, snippet_rows in staging.records():
+        if not any(
+            _xref_kind_id(xref) == XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS
+            and _xref_feature_id(xref) == XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD
+            for xref in xrefs
+        ):
+            continue
+        selected_manifest_rows.append(cast(dict[str, Any], manifest_row))
+        selected_xrefs.extend(cast(list[dict[str, Any]], xrefs))
+        selected_snippet_rows.extend(cast(list[dict[str, Any]], snippet_rows))
+    return build_unresolved_typed_field_report(selected_manifest_rows, selected_xrefs, selected_snippet_rows)
+
+
 def _type_flow_int(row: dict[str, Any], key: str) -> int:
     value = row.get(key)
     return value if isinstance(value, int) else 0
@@ -11089,6 +11641,10 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--type-flow-report-output", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
     build.add_argument("--unresolved-typed-field-report-output", type=Path,
         default=DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT)
+    build.add_argument("--profile-output", type=Path, default=DEFAULT_BUILD_PROFILE_OUTPUT)
+    build.add_argument("--progress-output", type=Path,
+        help="Directory of immutable in-progress JSON snapshots; defaults beside --profile-output")
+    build.add_argument("--coverage-report-output", type=Path, default=DEFAULT_COVERAGE_REPORT_OUTPUT)
     build.add_argument("--workers", type=int, default=None,
         help=f"Target analysis workers; default uses {TARGET_USAGE_WORKERS_ENV} or up to 8")
 
@@ -11230,16 +11786,55 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "build":
-        rows, xrefs, snippet_rows = build_usage_outputs(args.disk_manifest, args.file_manifest, max_workers=args.workers)
-        variant_rows = build_variant_index(args.file_manifest)
-        type_flow_rows = build_type_flow_report(rows, xrefs, snippet_rows)
-        unresolved_typed_field_rows = build_unresolved_typed_field_report(rows, xrefs, snippet_rows)
-        write_usage_manifest(args.output, rows)
-        write_usage_xrefs(args.xrefs_output, xrefs)
-        write_usage_snippet_rows(args.snippet_rows_output, snippet_rows)
-        write_variant_index(args.variants_output, variant_rows)
-        write_type_flow_report(args.type_flow_report_output, type_flow_rows)
-        write_unresolved_typed_field_report(args.unresolved_typed_field_report_output, unresolved_typed_field_rows)
+        worker_count = _target_usage_worker_count(args.workers)
+        progress_output = args.progress_output or args.profile_output.with_name(
+            f"{args.profile_output.stem}.progress"
+        )
+        monitor = CorpusBuildMonitor(worker_count=worker_count, progress_output=progress_output)
+        build_dir = ROOT / "src" / "build"
+        build_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=build_dir) as temporary_staging_dir:
+            staging = CorpusBuildStaging(Path(temporary_staging_dir))
+            rows = build_usage_staging(
+                staging, args.disk_manifest, args.file_manifest, max_workers=worker_count, monitor=monitor
+            )
+            monitor.phase_started("derive_reports")
+            variant_rows = build_variant_index(args.file_manifest)
+            type_flow_rows = build_type_flow_report_from_staging(rows, staging)
+            unresolved_typed_field_rows = build_unresolved_typed_field_report_from_staging(rows, staging)
+            coverage_report = build_corpus_coverage_report(rows)
+            monitor.phase_finished("derive_reports")
+            prepared_dir = Path(temporary_staging_dir) / "prepared"
+            prepared_dir.mkdir()
+            prepared_output = prepared_dir / "target_usage_manifest.jsonl"
+            prepared_xrefs = prepared_dir / "target_usage_xrefs.jsonl"
+            prepared_snippets = prepared_dir / "target_usage_snippet_rows"
+            prepared_variants = prepared_dir / "target_variant_index.jsonl"
+            prepared_type_flow = prepared_dir / "target_type_flow_report.jsonl"
+            prepared_unresolved = prepared_dir / "target_unresolved_typed_fields.jsonl"
+            prepared_coverage = prepared_dir / "target_usage_coverage.json"
+            monitor.phase_started("prepare_artifacts")
+            write_usage_manifest(prepared_output, rows)
+            xref_count = write_usage_xrefs_from_staging(prepared_xrefs, staging)
+            snippet_row_count = write_usage_snippet_rows_from_staging(prepared_snippets, staging)
+            write_variant_index(prepared_variants, variant_rows)
+            write_type_flow_report(prepared_type_flow, type_flow_rows)
+            write_unresolved_typed_field_report(prepared_unresolved, unresolved_typed_field_rows)
+            write_corpus_coverage_report(prepared_coverage, coverage_report)
+            monitor.phase_finished("prepare_artifacts")
+            monitor.phase_started("publish_artifacts")
+            publish_prepared_artifacts([
+                (prepared_output, args.output),
+                (prepared_xrefs, args.xrefs_output),
+                (snippet_rows_index_path(prepared_snippets), snippet_rows_index_path(args.snippet_rows_output)),
+                (snippet_rows_blob_path(prepared_snippets), snippet_rows_blob_path(args.snippet_rows_output)),
+                (prepared_variants, args.variants_output),
+                (prepared_type_flow, args.type_flow_report_output),
+                (prepared_unresolved, args.unresolved_typed_field_report_output),
+                (prepared_coverage, args.coverage_report_output),
+            ])
+            monitor.phase_finished("publish_artifacts")
+        write_corpus_coverage_report(args.profile_output, monitor.complete())
         print(f"Wrote {args.output}")
         print(f"Wrote {args.xrefs_output}")
         print(f"Wrote {snippet_rows_index_path(args.snippet_rows_output)}")
@@ -11247,9 +11842,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Wrote {args.variants_output}")
         print(f"Wrote {args.type_flow_report_output}")
         print(f"Wrote {args.unresolved_typed_field_report_output}")
+        print(f"Wrote {args.coverage_report_output}")
+        print(f"Wrote {args.profile_output}")
         print(f"Entries: {len(rows)}")
-        print(f"Xrefs: {len(xrefs)}")
-        print(f"Snippet rows: {len(snippet_rows)}")
+        print(f"Xrefs: {xref_count}")
+        print(f"Snippet rows: {snippet_row_count}")
         print(f"Variants: {len(variant_rows)}")
         print(f"Type-flow report rows: {len(type_flow_rows)}")
         print(f"Unresolved typed field report rows: {len(unresolved_typed_field_rows)}")

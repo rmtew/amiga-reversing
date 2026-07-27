@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from src.scripts.target_usage_manifest import (
     CODE_START_REASON_CONTROL_TARGET,
     CODE_START_REASON_PLATFORM_LOADSEG_ENTRY,
@@ -21,12 +24,19 @@ from src.scripts.target_usage_manifest import (
     XREF_KIND_TABLE_DESCRIPTOR,
     XREF_KIND_TABLE_ENTRY,
     XREF_KIND_POINTER_STORE,
+    CorpusBuildMonitor,
+    CorpusBuildStaging,
     FeatureBag,
     _add_analysis_features,
     _add_listing_features,
     _analysis_xrefs,
     _listing_xrefs,
     build_typed_pointer_value_opportunity_report,
+    build_corpus_coverage_report,
+    publish_prepared_artifacts,
+    write_usage_snippet_rows,
+    write_usage_snippet_rows_from_staging,
+    write_usage_xrefs_from_staging,
 )
 
 
@@ -109,6 +119,108 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
     assert report["render_outcome_counts"] == {"needs_address_value_propagation": 1}
     example = report["examples_by_render_outcome"]["needs_address_value_propagation"][0]
     assert example["stable_key"] == "s0:00000120:instruction:4"
+
+
+def test_corpus_build_monitor_reports_parallel_task_progress(tmp_path) -> None:
+    progress_output = tmp_path / "progress"
+    monitor = CorpusBuildMonitor(worker_count=4, progress_output=progress_output)
+    monitor.phase_started("analysis")
+    first = monitor.task_started("analysis")
+    second = monitor.task_started("analysis")
+    monitor.task_finished("analysis", first)
+    monitor.task_finished("analysis", second)
+    monitor.phase_finished("analysis")
+
+    report = monitor.complete()
+
+    assert report["complete"] is True
+    assert report["worker_count"] == 4
+    assert report["phases"]["analysis"]["completed_tasks"] == 2
+    assert report["phases"]["analysis"]["max_active_tasks"] == 2
+    assert len(list(progress_output.glob("*.json"))) >= 1
+
+
+def test_corpus_build_monitor_writes_immutable_progress_snapshots(tmp_path) -> None:
+    progress_output = tmp_path / "progress"
+    monitor = CorpusBuildMonitor(worker_count=1, progress_output=progress_output)
+    monitor.phase_started("analysis")
+    monitor.phase_finished("analysis")
+
+    snapshots = sorted(progress_output.glob("*.json"))
+    assert [path.name for path in snapshots] == ["000001.json", "000002.json"]
+    assert json.loads(snapshots[-1].read_text(encoding="utf-8"))["current_phase"] == "analysis"
+
+
+def test_corpus_coverage_report_distinguishes_analyzed_and_catalog_rows() -> None:
+    report = build_corpus_coverage_report([
+        {
+            "id": "file/a",
+            "source_manifest": "platform_file_manifest",
+            "source_id": "a",
+            "platform": "amiga-hunk",
+            "analysis_coverage": {"status": "source_analyzed", "source_kind": "manifest_executable", "reason": None},
+        },
+        {
+            "id": "disk/a",
+            "source_manifest": "platform_disk_manifest",
+            "source_id": "a",
+            "platform": "amiga-disk",
+            "analysis_coverage": {"status": "catalog_only", "source_kind": "disk_image", "reason": "container_catalog_only"},
+        },
+    ])
+
+    assert report["analysis_status_counts"] == {"catalog_only": 1, "source_analyzed": 1}
+    assert report["records"][0]["id"] == "disk/a"
+    assert report["records"][1]["analysis_status"] == "source_analyzed"
+
+
+def test_corpus_staging_preserves_deterministic_xref_and_snippet_artifacts(tmp_path) -> None:
+    staging = CorpusBuildStaging(tmp_path / "staging")
+    first_row = {"id": "target/b", "source_id": "b", "platform": "amiga-hunk"}
+    second_row = {"id": "target/a", "source_id": "a", "platform": "amiga-hunk"}
+    first_xrefs = [
+        {"id": "b2", "target_id": "target/b", "feature": "b", "section": 0, "offset": 2, "row_index": 2},
+        {"id": "b1", "target_id": "target/b", "feature": "a", "section": 0, "offset": 1, "row_index": 1},
+    ]
+    second_xrefs = [{"id": "a1", "target_id": "target/a", "feature": "z", "section": 0, "offset": 0, "row_index": 0}]
+    first_snippets = [
+        {"id": "b2", "target_id": "target/b", "row_index": 2},
+        {"id": "b1", "target_id": "target/b", "row_index": 1},
+    ]
+    second_snippets = [{"id": "a1", "target_id": "target/a", "row_index": 0}]
+    staging.add(first_row, first_xrefs, first_snippets)
+    staging.add(second_row, second_xrefs, second_snippets)
+
+    staged_xrefs = tmp_path / "staged-xrefs.jsonl"
+    assert write_usage_xrefs_from_staging(staged_xrefs, staging) == 3
+    assert [row["id"] for row in map(json.loads, staged_xrefs.read_text().splitlines())] == ["a1", "b1", "b2"]
+
+    expected_snippets = tmp_path / "expected-snippets"
+    staged_snippets = tmp_path / "staged-snippets"
+    write_usage_snippet_rows(expected_snippets, second_snippets + first_snippets)
+    assert write_usage_snippet_rows_from_staging(staged_snippets, staging) == 3
+    for suffix in (".index.jsonl", ".blob"):
+        assert expected_snippets.with_name(f"{expected_snippets.stem}{suffix}").read_bytes() == \
+            staged_snippets.with_name(f"{staged_snippets.stem}{suffix}").read_bytes()
+
+
+def test_prepared_corpus_artifacts_publish_only_as_a_complete_set(tmp_path) -> None:
+    prepared = tmp_path / "prepared"
+    prepared.mkdir()
+    first = prepared / "first"
+    first.write_text("first", encoding="utf-8")
+    destination = tmp_path / "published" / "first"
+
+    try:
+        publish_prepared_artifacts([(first, destination), (prepared / "missing", tmp_path / "published" / "missing")])
+    except RuntimeError as exc:
+        assert "Refusing incomplete corpus publication" in str(exc)
+    else:
+        raise AssertionError("incomplete publication was accepted")
+    assert not destination.exists()
+
+    publish_prepared_artifacts([(first, destination)])
+    assert destination.read_text(encoding="utf-8") == "first"
 
 
 def test_decompression_payload_role_features() -> None:

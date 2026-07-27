@@ -1,6 +1,6 @@
 # Proposal 039: Corpus Build Observability, Resource Discipline, and Analysis Coverage
 
-Status: Deferred.
+Status: Complete — 2026-07-28.
 
 ## Problem
 
@@ -36,6 +36,43 @@ a deliberate schema extension is required to carry previously omitted facts.
 The solution must identify the actual expensive phases and memory owners,
 then correct their ownership, lifetime, scheduling, or serialization. It must
 not introduce a second reduced-fidelity analysis pipeline.
+
+## Completion Evidence
+
+A fresh full build was run with the normal corpus manifests and eight workers.
+It completed 428 entries in 550.69 seconds: 319 file entries and 59 project
+targets. The measured task-time utilisation was 5.19 for file analysis and
+3.06 for project analysis, with eight active workers in both phases. Its OS
+private-allocation high-water mark was 7,854,493,696 bytes. This is real
+concurrent source analysis, not executor-only parallelism.
+
+The build now gives every completed target a bounded lifetime: its row, xrefs,
+and listing snippets are sorted and written to a private staging shard before
+the next completed result is retained. Aggregate reports replay those shards
+in stable target order. Final artifacts are completely prepared and checked in
+a private directory before any canonical artifact is replaced; each published
+file is an atomic replacement. Progress is an immutable numbered-snapshot
+directory, so a reader can never lock a future writer's file. There is no
+reduced input path, stale-artifact fallback, target exception, or retry path.
+
+The one-worker and eight-worker full builds produced byte-identical SHA-256
+hashes for the manifest, xrefs, snippet index/blob, variant index, type-flow
+report, unresolved-field report, and coverage report. Both produced 428
+entries, 3,842,359 xrefs, 601,480 snippet rows, 249 type-flow rows, and 68
+unresolved typed-field rows.
+
+The coverage report records 293 `source_analyzed`, 106 `catalog_only`, and
+29 `analysis_failed` inputs with stable per-record source kind and reason.
+Pandora's reconstructed raw-binary project targets are now source-analysed by
+the same listing-artifact path as other supported project sources. The fresh
+pointer-value audit consequently found 45 observed typed pointer stores in
+Pandora (4 immediate and 41 propagated), making Proposal 038's corpus audit
+measurable rather than structurally empty.
+
+Focused corpus tests passed (`32 passed`): they cover progress metrics,
+coverage categorisation, deterministic staging xrefs/snippets, and existing
+corpus behavior. The full builds above validate the complete normal artifact
+set.
 
 ## Investigation Required Before Design
 
