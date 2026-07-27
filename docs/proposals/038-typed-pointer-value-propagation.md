@@ -59,6 +59,15 @@ identity, target mapping, a call contract, or a control-flow merge is not
 proven. That boundary makes unknown and ambiguous values durable analysis
 states rather than candidates for a numeric or symbolic fallback.
 
+While implementing the main task, maintain the deferred-extension section
+below. When analysis encounters an indexed address, interior pointer, alias,
+call/return contract, callback signature, table indirection, or composite
+layout concern beyond this boundary, record the concrete evidence, the current
+safe stop condition, the required fact/model extension, and its relationship
+to the address-value representation. Do not silently expand 038 or work
+around the concern in rendering; refine the corresponding deferred task so a
+subsequent proposal can implement it cleanly.
+
 ## Semantic Model
 
 ### Address-valued facts
@@ -265,6 +274,10 @@ without code changes.
 - Focused C fixtures cover a typed pointer-field immediate store, relocation
   pointer store, register copy, stack/global round trip, typed field reload,
   compatible and conflicting joins, call clobbering, and a chained lookup.
+- The deferred-extension section is updated as relevant bounded-analysis
+  concerns are encountered, with concrete trigger evidence and the required
+  future model change; it contains no renderer workaround or unreviewed scope
+  expansion of this proposal.
 - A scalar immediate written to a non-pointer field remains numeric and creates
   no address-value fact or label obligation.
 - A pointer-like immediate with no proven pointer contract remains numeric for
@@ -310,6 +323,13 @@ without code changes.
 These are extension tasks, not hidden completion criteria for this proposal.
 They must consume the address-value facts and render plans established here;
 they must not recreate a second pointer-analysis or symbol mechanism.
+
+For each item encountered during the main task, add a short dated entry under
+its heading or bullet recording: the stable fixture/corpus/Pandora evidence;
+why the main-task transfer rules correctly stop; the additional durable fact or
+analysis model required; the expected render-plan consequence; and any
+dependency on another deferred item. This turns the section into a precise
+handoff design record while preserving the main task's boundary.
 
 1. **Indexed, affine, and interior-address values.** Preserve element type,
    bounds, and addends through scaled indexing and address formation, so an
