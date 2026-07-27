@@ -467,11 +467,19 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
       if (colon != NULL) {
         M68kSourceModelIndexResult label_symbol_result;
         M68kSourceModelIndexResult label_stmt_result;
+        M68kSourceModelIndexResult existing_symbol_result;
         AsmSourceStmt *label_stmt = NULL;
         *colon = '\0';
         if (!m68k_is_symbol_name(m68k_trim_in_place(rest))) {
           source_line_reader_close(reader);
           source_parse_errorf(diagnostics, "bad label at line %u", (unsigned)line_number);
+          return 0;
+        }
+        existing_symbol_result = m68k_source_model_find_symbol_index(source, m68k_trim_in_place(rest));
+        if (existing_symbol_result.ok &&
+            source->symbols[existing_symbol_result.index].kind != ASM_SOURCE_SYMBOL_LABEL) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "label conflicts with constant at line %u", (unsigned)line_number);
           return 0;
         }
         label_symbol_result = m68k_source_model_ensure_symbol(source, m68k_trim_in_place(rest),

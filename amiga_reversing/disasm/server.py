@@ -2954,6 +2954,14 @@ def _manual_action_application_payload(
         region = action_payload.get("rsset_layout_region")
         if isinstance(region, Mapping):
             local_effects.append({"kind": "rsset_layout_region_remove", "rsset_layout_region": dict(region)})
+    elif kind == "create_manual_absolute_storage_slot":
+        slot = action_payload.get("absolute_storage_slot")
+        if isinstance(slot, Mapping):
+            local_effects.append({"kind": "absolute_storage_slot", "absolute_storage_slot": dict(slot)})
+    elif kind == "remove_manual_absolute_storage_slot":
+        slot = action_payload.get("absolute_storage_slot")
+        if isinstance(slot, Mapping):
+            local_effects.append({"kind": "absolute_storage_slot_remove", "absolute_storage_slot": dict(slot)})
     elif kind == "create_manual_rsset_use_site_binding":
         binding = action_payload.get("rsset_use_site_binding")
         if isinstance(binding, Mapping):

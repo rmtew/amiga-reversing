@@ -141,6 +141,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_rsset_layout_region_edit_action(),
         _target_rsset_layout_region_rename_action(),
         _target_rsset_layout_region_remove_action(),
+        _target_absolute_storage_slot_action(),
+        _target_absolute_storage_slot_remove_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
         _target_transient("navigation.follow_reference", "Follow Reference", "follow_reference", "Right"),
@@ -246,6 +248,12 @@ def target_catalog_manual_payload(
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
     if action.get("action") == "remove_manual_rsset_layout_region":
         return "remove_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_identity_payload(params)}
+    if action.get("action") == "create_manual_absolute_storage_slot":
+        return "create_manual_absolute_storage_slot", {"absolute_storage_slot": _absolute_storage_slot_payload(params)}
+    if action.get("action") == "remove_manual_absolute_storage_slot":
+        return "remove_manual_absolute_storage_slot", {
+            "absolute_storage_slot": _absolute_storage_slot_identity_payload(params)
+        }
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
@@ -2691,6 +2699,40 @@ def _rsset_layout_region_identity_payload(params: Mapping[str, object]) -> dict[
     return region
 
 
+def _absolute_storage_slot_payload(params: Mapping[str, object]) -> dict[str, object]:
+    address = _optional_int(params.get("address"))
+    size = _optional_int(params.get("size")) or 4
+    symbol = params.get("symbol")
+    storage_kind = params.get("storage_kind")
+    if address is None or address < 0 or address > 0xFFFFFFFF:
+        raise ValueError("create_manual_absolute_storage_slot requires address in range")
+    if size <= 0 or size > 255:
+        raise ValueError("create_manual_absolute_storage_slot size must be 1..255")
+    if not isinstance(symbol, str) or not symbol.strip():
+        raise ValueError("create_manual_absolute_storage_slot requires parameter symbol")
+    if storage_kind not in {"pointer", "struct_pointer", "pointer_table"}:
+        raise ValueError("create_manual_absolute_storage_slot requires pointer-capable storage_kind")
+    slot: dict[str, object] = {
+        "absolute_storage_slot_id": f"catalog-absolute-storage-{address:08X}",
+        "address": address,
+        "size": size,
+        "symbol": symbol.strip(),
+        "storage_kind": storage_kind,
+    }
+    for field_name in ("pointer_struct", "semantic_type"):
+        value = params.get(field_name)
+        if isinstance(value, str) and value.strip():
+            slot[field_name] = value.strip()
+    return slot
+
+
+def _absolute_storage_slot_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    address = _optional_int(params.get("address"))
+    if address is None or address < 0 or address > 0xFFFFFFFF:
+        raise ValueError("remove_manual_absolute_storage_slot requires address in range")
+    return {"address": address}
+
+
 def _rsset_binding_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
     report_params = _rsset_use_site_binding_parameters(context, require_evidence=False)
     if report_params is None:
@@ -3809,6 +3851,29 @@ def _rsset_layout_region_identity_parameter_schema() -> dict[str, object]:
             "base_symbol": {"type": "string"},
         },
         "required": ["offset"],
+    }
+
+
+def _absolute_storage_slot_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "address": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+            "size": {"type": "integer", "minimum": 1, "maximum": 255, "default": 4},
+            "symbol": {"type": "string"},
+            "storage_kind": {"type": "string", "enum": ["pointer", "struct_pointer", "pointer_table"]},
+            "pointer_struct": {"type": "string"},
+            "semantic_type": {"type": "string"},
+        },
+        "required": ["address", "symbol", "storage_kind"],
+    }
+
+
+def _absolute_storage_slot_identity_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"address": {"type": "integer", "minimum": 0, "maximum": 4294967295}},
+        "required": ["address"],
     }
 
 
@@ -6068,6 +6133,24 @@ def _target_rsset_layout_region_remove_action() -> dict[str, object]:
         "Remove RSSET region",
         "remove_manual_rsset_layout_region",
         _rsset_layout_region_identity_parameter_schema(),
+    )
+
+
+def _target_absolute_storage_slot_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.absolute_storage_slot.add",
+        "Add typed absolute storage slot",
+        "create_manual_absolute_storage_slot",
+        _absolute_storage_slot_parameter_schema(),
+    )
+
+
+def _target_absolute_storage_slot_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.absolute_storage_slot.remove",
+        "Remove typed absolute storage slot",
+        "remove_manual_absolute_storage_slot",
+        _absolute_storage_slot_identity_parameter_schema(),
     )
 
 

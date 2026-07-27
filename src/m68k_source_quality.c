@@ -300,11 +300,25 @@ static int address_identity_supports_generated_absolute_memory_symbol(const M68k
   return 0;
 }
 
-static int source_analysis_assign_absolute_memory_symbols(M68kSourceAnalysisIR *source_analysis) {
+static const M68kAnalysisAbsoluteStorageSlot *source_quality_absolute_storage_slot_for_address(
+    const M68kAnalysisPolicy *policy, uint32_t address) {
+  uint16_t index;
+  if (policy == NULL) return NULL;
+  for (index = 0U; index < policy->absolute_storage_slot_count &&
+      index < M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT; ++index) {
+    const M68kAnalysisAbsoluteStorageSlot *slot = &policy->absolute_storage_slots[index];
+    if (slot->address == address && slot->symbol[0] != '\0') return slot;
+  }
+  return NULL;
+}
+
+static int source_analysis_assign_absolute_memory_symbols(M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisPolicy *policy) {
   size_t identity_index;
   if (source_analysis == NULL || source_analysis->arena == NULL) return -1;
   for (identity_index = 0U; identity_index < source_analysis->address_identity_count; ++identity_index) {
     M68kAddressIdentityIR *identity = &source_analysis->address_identities[identity_index];
+    const M68kAnalysisAbsoluteStorageSlot *slot;
     char symbol[80];
     if (identity->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY ||
         !identity->has_absolute_address ||
@@ -312,8 +326,14 @@ static int source_analysis_assign_absolute_memory_symbols(M68kSourceAnalysisIR *
         !address_identity_supports_generated_absolute_memory_symbol(source_analysis, identity)) {
       continue;
     }
-    if (!format_generated_absolute_memory_symbol(identity->absolute_address, symbol, sizeof(symbol))) return -1;
-    identity->symbol_name = arena_strdup(source_analysis->arena, symbol);
+    slot = source_quality_absolute_storage_slot_for_address(policy, identity->absolute_address);
+    if (slot != NULL) {
+      identity->symbol_name = arena_strdup(source_analysis->arena, slot->symbol);
+    } else if (format_generated_absolute_memory_symbol(identity->absolute_address, symbol, sizeof(symbol))) {
+      identity->symbol_name = arena_strdup(source_analysis->arena, symbol);
+    } else {
+      return -1;
+    }
     if (identity->symbol_name == NULL) return -1;
   }
   for (identity_index = 0U; identity_index < source_analysis->address_identity_count; ++identity_index) {
@@ -390,7 +410,8 @@ static void address_identity_merge_observation(M68kAddressIdentityIR *identity,
   ++identity->observation_count;
 }
 
-static int append_address_identities_and_ranges(M68kSourceAnalysisIR *source_analysis) {
+static int append_address_identities_and_ranges(M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisPolicy *policy) {
   size_t section_index;
   if (source_analysis == NULL) return -1;
   if (source_analysis->address_identity_count != 0U ||
@@ -438,7 +459,7 @@ static int append_address_identities_and_ranges(M68kSourceAnalysisIR *source_ana
     if (m68k_ir_source_analysis_append_absolute_address_range(source_analysis, &range) != 0) return -1;
   }
   source_analysis_sort_and_coalesce_absolute_ranges(source_analysis);
-  if (source_analysis_assign_absolute_memory_symbols(source_analysis) != 0) return -1;
+  if (source_analysis_assign_absolute_memory_symbols(source_analysis, policy) != 0) return -1;
   return 0;
 }
 
@@ -4581,82 +4602,6 @@ static int append_expected_relocated_branch_symbol_accesses_for_section(M68kSour
           (uint32_t)relocation->target_section_index, relocation->target_offset, (uint32_t)operand_index) != 0) {
         return -1;
       }
-    }
-  }
-  return 0;
-}
-
-static int append_expected_label_statement_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis) {
-  size_t label_index;
-  if (section_analysis == NULL) return -1;
-  for (label_index = 0U; label_index < section_analysis->label_count; ++label_index) {
-    const uint32_t offset = section_analysis->label_offsets[label_index];
-    const M68kSymbolOriginIR *origin = source_quality_symbol_origin_at(section_analysis, offset);
-    M68kExpectedSymbolAccessIR access;
-    if (origin == NULL) continue;
-    memset(&access, 0, sizeof(access));
-    access.symbol_name = origin->symbol_name;
-    access.producer = "label_statement";
-    access.offset = offset;
-    access.target_section_index = (uint32_t)section_analysis->section_index;
-    access.target_offset = offset;
-    access.operand_index = UINT32_MAX;
-    access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT;
-    access.confidence = origin->confidence;
-    access.has_target = 1U;
-    if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
-  }
-  return 0;
-}
-
-static int append_expected_label_statement_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
-  size_t section_index;
-  if (source_analysis == NULL) return -1;
-  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
-    if (append_expected_label_statement_symbol_accesses_for_section(
-        &source_analysis->sections[section_index]) != 0) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
-static int append_expected_storage_label_statement_symbol_accesses_for_section(
-    M68kSectionAnalysisIR *section_analysis) {
-  size_t view_index;
-  if (section_analysis == NULL) return -1;
-  for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
-    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
-    const M68kSymbolOriginIR *origin;
-    M68kExpectedSymbolAccessIR access;
-    if (view->materialized == 0U || view->runtime_address == view->storage_offset ||
-        view->storage_offset >= section_analysis->section_size) {
-      continue;
-    }
-    origin = source_quality_symbol_origin_at(section_analysis, view->storage_offset);
-    if (origin == NULL) continue;
-    memset(&access, 0, sizeof(access));
-    access.symbol_name = origin->symbol_name;
-    access.producer = "storage_label_statement";
-    access.offset = view->storage_offset;
-    access.target_section_index = (uint32_t)section_analysis->section_index;
-    access.target_offset = view->storage_offset;
-    access.operand_index = UINT32_MAX;
-    access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_STORAGE_LABEL;
-    access.confidence = origin->confidence;
-    access.has_target = 1U;
-    if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
-  }
-  return 0;
-}
-
-static int append_expected_storage_label_statement_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
-  size_t section_index;
-  if (source_analysis == NULL) return -1;
-  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
-    if (append_expected_storage_label_statement_symbol_accesses_for_section(
-        &source_analysis->sections[section_index]) != 0) {
-      return -1;
     }
   }
   return 0;
@@ -13071,8 +13016,8 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
     SOURCE_QUALITY_CHECK_OK(append_accepted_code_range_ownerships_for_section(section));
     SOURCE_QUALITY_CHECK_OK(append_orphan_conflict_ranges_for_section(section));
   }
-  SOURCE_QUALITY_CHECK_OK(append_expected_label_statement_symbol_accesses(source_analysis));
-  SOURCE_QUALITY_CHECK_OK(append_expected_storage_label_statement_symbol_accesses(source_analysis));
+  /* A label statement is a renderer decision.  Analysis labels and runtime
+   * views may guide resolution, but cannot create a source obligation. */
   SOURCE_QUALITY_CHECK_OK(append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts,
     accepted_start));
   SOURCE_QUALITY_CHECK_OK(append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start));
@@ -13135,9 +13080,11 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_structured_data_table_descriptors(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_structured_data_table_entries(source_analysis, decode, facts, accepted_start,
     accepted_bytes));
-  SOURCE_QUALITY_CHECK_OK(append_expected_table_entry_target_symbol_accesses(source_analysis));
+  /* Table entries are rendered numerically unless the renderer has an
+   * available label expression.  Their symbolic accesses are therefore
+   * renderer evidence, not analysis-time obligations. */
   SOURCE_QUALITY_CHECK_OK(append_immediate_text_tokens(source_analysis, decode, accepted_start));
-  SOURCE_QUALITY_CHECK_OK(append_address_identities_and_ranges(source_analysis));
+  SOURCE_QUALITY_CHECK_OK(append_address_identities_and_ranges(source_analysis, policy));
   SOURCE_QUALITY_CHECK_OK(append_expected_address_observation_symbol_accesses(source_analysis, decode,
     accepted_start));
   SOURCE_QUALITY_CHECK_OK(append_expected_materialized_code_patch_symbol_accesses(source_analysis, decode,

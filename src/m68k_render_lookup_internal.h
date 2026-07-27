@@ -308,8 +308,13 @@ typedef struct M68kRenderTypedRegValue {
   uint8_t type_conflicted;
   uint8_t pointer_value_known;
   uint8_t pointer_candidate_count;
+  uint8_t raw_long_value_known;
+  uint8_t raw_long_candidate_count;
+  uint16_t reserved0;
   uint32_t pointer_value;
   uint32_t pointer_candidates[4];
+  uint32_t raw_long_value;
+  uint32_t raw_long_candidates[4];
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
   uint16_t conflict_struct_id;
@@ -339,9 +344,13 @@ typedef struct M68kRenderTypedStoredValue {
   uint8_t known;
   uint8_t pointer_value_known;
   uint8_t pointer_candidate_count;
-  uint8_t reserved0;
+  uint8_t raw_long_value_known;
+  uint8_t raw_long_candidate_count;
+  uint8_t reserved0[3];
   uint32_t pointer_value;
   uint32_t pointer_candidates[4];
+  uint32_t raw_long_value;
+  uint32_t raw_long_candidates[4];
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
   uint16_t array_element_count;
@@ -753,6 +762,8 @@ int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_i
 int lookup_structured_long_table_targets_offset(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
 int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+int lookup_label_statement_ref_is_semantic_runtime_data(const M68kRenderLookup *lookup,
+  size_t section_index, uint32_t offset);
 int lookup_label_has_statement_ref(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 int lookup_should_emit_label_statement(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, size_t section_index, uint32_t offset);
@@ -795,8 +806,6 @@ size_t base_layout_prepare_groups(M68kBaseLayoutSlot *slots, size_t slot_count,
 void render_asm_org(M68kRenderIRPreview *preview, uint32_t logical_address);
 void render_asm_sync_logical_pc(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
   size_t section_index, uint32_t source_offset, uint32_t *io_logical_pc);
-int render_asm_runtime_alias_labels(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-  size_t section_index, uint32_t offset, uint8_t has_primary_runtime, uint32_t primary_runtime_address);
 void platform_state_clear_data_lvo(M68kRenderPlatformState *state, uint8_t reg_index);
 int platform_state_name_is_app_base(const char *name);
 void platform_state_set_register_library(M68kRenderPlatformState *state, uint8_t reg_index,
@@ -966,12 +975,7 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
   const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count);
 void m68k_render_lookup_destroy(M68kRenderLookup *lookup);
 void m68k_render_lookup_materialize_relocation_target_labels(M68kRenderLookup *lookup);
-void m68k_render_lookup_materialize_structured_pointer_target_labels(M68kRenderLookup *lookup,
-  const M68kDecodeIR *decode);
 int m68k_analysis_render_lookup_import_source_analysis_structured_data(M68kRenderLookup *lookup,
-  const M68kSourceAnalysisIR *source_analysis);
-int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLookup *lookup,
-  const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
   const M68kSourceAnalysisIR *source_analysis);
 int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes);

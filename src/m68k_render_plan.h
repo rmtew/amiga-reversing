@@ -27,6 +27,102 @@ typedef enum M68kRenderPlanRowKind {
   M68K_RENDER_PLAN_ROW_DIAGNOSTIC = 13
 } M68kRenderPlanRowKind;
 
+typedef enum M68kRenderPlannedExpressionKind {
+  M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND = 1,
+  M68K_RENDER_PLANNED_EXPRESSION_RELOCATION = 2,
+  M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER = 3,
+  M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY = 4,
+  M68K_RENDER_PLANNED_EXPRESSION_RELATIVE = 5,
+  M68K_RENDER_PLANNED_EXPRESSION_EQUATE = 6
+} M68kRenderPlannedExpressionKind;
+
+typedef enum M68kRenderPlannedExpressionOutcome {
+  M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC = 1,
+  M68K_RENDER_PLANNED_EXPRESSION_NUMERIC = 2,
+  M68K_RENDER_PLANNED_EXPRESSION_INVALID = 3
+} M68kRenderPlannedExpressionOutcome;
+
+typedef enum M68kRenderPlannedDeclarationKind {
+  M68K_RENDER_PLANNED_DECLARATION_LABEL = 1,
+  M68K_RENDER_PLANNED_DECLARATION_EQUATE = 2,
+  M68K_RENDER_PLANNED_DECLARATION_LAYOUT = 3
+} M68kRenderPlannedDeclarationKind;
+
+typedef struct M68kRenderPlannedExpression {
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t base_section_index;
+  uint32_t base_offset;
+  uint32_t logical_address;
+  int32_t addend;
+  uint32_t operand_index;
+  uint8_t kind;
+  uint8_t outcome;
+  uint8_t has_target;
+  uint8_t has_base_target;
+  uint8_t requires_declaration;
+  uint8_t has_relative_key;
+  char expression[96];
+  char target_symbol[96];
+  char base_symbol[96];
+  char reason[96];
+} M68kRenderPlannedExpression;
+
+typedef struct M68kRenderPlannedDeclaration {
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t logical_address;
+  uint8_t kind;
+  uint8_t has_source_target;
+  uint8_t reserved[2];
+  char name[96];
+  char expression[96];
+} M68kRenderPlannedDeclaration;
+
+typedef struct M68kRenderPlannedSymbolAccess {
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t operand_index;
+  uint8_t access_kind;
+  uint8_t has_target;
+  uint8_t comment_only;
+  uint8_t reserved;
+  char symbol_name[96];
+} M68kRenderPlannedSymbolAccess;
+
+typedef struct M68kRenderPlannedInstruction {
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint8_t rendered_operand_symbol_mask;
+  uint8_t has_noncanonical_byte_immediate;
+  uint8_t symbol_access_count;
+  uint8_t reserved;
+  M68kInstructionIR instruction;
+  M68kInstructionIR render_instruction;
+  char comment[640];
+  M68kRenderPlannedSymbolAccess symbol_accesses[4];
+} M68kRenderPlannedInstruction;
+
+typedef struct M68kRenderPlannedLabel {
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint32_t runtime_address;
+  uint8_t has_runtime_address;
+  uint8_t has_storage_label;
+  uint8_t reserved[2];
+  char name[96];
+  char storage_name[96];
+} M68kRenderPlannedLabel;
+
+typedef struct M68kRenderPlannedRuntimeAlias {
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint32_t runtime_address;
+  char name[96];
+} M68kRenderPlannedRuntimeAlias;
+
 typedef struct M68kRenderPlanRow {
   uint32_t id;
   uint32_t kind;
@@ -71,6 +167,21 @@ typedef struct M68kRenderPlan {
   uint32_t next_row_id;
   uint32_t total_lines;
   size_t total_bytes;
+  M68kRenderPlannedExpression *expressions;
+  size_t expression_count;
+  size_t expression_capacity;
+  M68kRenderPlannedDeclaration *declarations;
+  size_t declaration_count;
+  size_t declaration_capacity;
+  M68kRenderPlannedInstruction *instructions;
+  size_t instruction_count;
+  size_t instruction_capacity;
+  M68kRenderPlannedLabel *labels;
+  size_t label_count;
+  size_t label_capacity;
+  M68kRenderPlannedRuntimeAlias *runtime_aliases;
+  size_t runtime_alias_count;
+  size_t runtime_alias_capacity;
 } M68kRenderPlan;
 
 typedef struct M68kRenderPlanRowBuilder {
@@ -98,6 +209,21 @@ typedef int (*M68kRenderPlanLineVisitor)(const M68kRenderPlanRow *row, uint32_t 
 void m68k_render_plan_init(M68kRenderPlan *plan);
 void m68k_render_plan_destroy(M68kRenderPlan *plan);
 void m68k_render_plan_move(M68kRenderPlan *dest, M68kRenderPlan *src);
+int m68k_render_plan_append_expression(M68kRenderPlan *plan,
+  const M68kRenderPlannedExpression *expression);
+const M68kRenderPlannedExpression *m68k_render_plan_find_expression(const M68kRenderPlan *plan,
+  uint32_t source_section_index, uint32_t source_offset, uint32_t operand_index, uint8_t kind);
+int m68k_render_plan_append_declaration(M68kRenderPlan *plan,
+  const M68kRenderPlannedDeclaration *declaration);
+int m68k_render_plan_append_instruction(M68kRenderPlan *plan,
+  const M68kRenderPlannedInstruction *instruction);
+const M68kRenderPlannedInstruction *m68k_render_plan_find_instruction(const M68kRenderPlan *plan,
+  uint32_t source_section_index, uint32_t source_offset);
+int m68k_render_plan_append_label(M68kRenderPlan *plan, const M68kRenderPlannedLabel *label);
+const M68kRenderPlannedLabel *m68k_render_plan_find_label(const M68kRenderPlan *plan,
+  uint32_t source_section_index, uint32_t source_offset);
+int m68k_render_plan_append_runtime_alias(M68kRenderPlan *plan,
+  const M68kRenderPlannedRuntimeAlias *runtime_alias);
 int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
   const char *text, M68kRenderPlanRow **out_row);
 void m68k_render_plan_row_builder_init(M68kRenderPlanRowBuilder *builder);

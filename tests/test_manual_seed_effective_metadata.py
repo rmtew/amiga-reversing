@@ -1448,6 +1448,29 @@ def test_effective_metadata_carries_typed_runtime_data_range(tmp_path: Path) -> 
     }]
 
 
+def test_effective_metadata_applies_manual_absolute_storage_slot(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(target_dir / MANUAL_ACTION_LOG_FILE_NAME, [
+        {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+        _action("a1", 1, "create_manual_absolute_storage_slot", absolute_storage_slot={
+            "absolute_storage_slot_id": "game-queue-head", "address": 0x64C0, "size": 4,
+            "symbol": "game_queue_head_ptr", "storage_kind": "struct_pointer",
+            "pointer_struct": "world_object_shared_prefix", "semantic_type": "queue_head",
+        }),
+    ])
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["absolute_storage_slots"] == [{
+        "address": 0x64C0, "citation": "manual_action_log:game-queue-head",
+        "pointer_struct": "world_object_shared_prefix", "review_status": "seeded",
+        "seed_origin": "manual_analysis", "semantic_type": "queue_head", "size": 4,
+        "storage_kind": "struct_pointer", "symbol": "game_queue_head_ptr",
+    }]
+
+
 def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

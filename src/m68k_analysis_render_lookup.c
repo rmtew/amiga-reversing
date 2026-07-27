@@ -326,7 +326,7 @@ static int lookup_inferred_runtime_data_class_value(const M68kRenderLookup *look
   return 0;
 }
 
-static int lookup_label_statement_ref_is_semantic_runtime_data(const M68kRenderLookup *lookup,
+int lookup_label_statement_ref_is_semantic_runtime_data(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset) {
   uint32_t runtime_address = 0U;
   if (lookup == NULL) return 0;
@@ -1593,7 +1593,7 @@ static int typed_pointer_candidates_merge(uint8_t *dest_known, uint8_t *dest_cou
 
 static int typed_stored_value_has_payload(const M68kRenderTypedStoredValue *value) {
   return value != NULL && (value->struct_id != AMIGA_OS_STRUCT_ID_NONE || value->app_address_known != 0U ||
-    value->pointer_value_known != 0U);
+    value->pointer_value_known != 0U || value->raw_long_value_known != 0U);
 }
 
 static void typed_stored_value_update_known(M68kRenderTypedStoredValue *value) {
@@ -2017,6 +2017,27 @@ static void typed_state_apply_policy_register_seeds(M68kRenderTypedState *state,
     typed_state_set_reg_struct_id_array(state, seed->reg_kind, seed->reg_index, struct_id,
       seed->array_element_count, 0U, &provenance);
   }
+}
+
+/* A long immediate is not an address merely because it fits the address
+ * space.  Preserve its exact identity through ordinary data flow, then
+ * promote it only when a typed destination proves address intent. */
+static void typed_stored_value_set_raw_long(M68kRenderTypedStoredValue *value, uint32_t raw_value) {
+  if (value == NULL) return;
+  value->raw_long_value_known = 1U;
+  value->raw_long_value = raw_value;
+  value->raw_long_candidate_count = 1U;
+  value->raw_long_candidates[0] = raw_value;
+  typed_stored_value_update_known(value);
+}
+
+static void typed_stored_value_activate_address(M68kRenderTypedStoredValue *value) {
+  if (value == NULL || value->pointer_value_known != 0U || value->raw_long_value_known == 0U) return;
+  value->pointer_value_known = 1U;
+  value->pointer_value = value->raw_long_value;
+  value->pointer_candidate_count = value->raw_long_candidate_count;
+  memcpy(value->pointer_candidates, value->raw_long_candidates, sizeof(value->pointer_candidates));
+  typed_stored_value_update_known(value);
 }
 
 static void typed_state_apply_callback_table_signatures(M68kRenderTypedState *state,
@@ -2445,6 +2466,10 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
     value.pointer_value = state->data_regs[reg].pointer_value;
     value.pointer_candidate_count = state->data_regs[reg].pointer_candidate_count;
     memcpy(value.pointer_candidates, state->data_regs[reg].pointer_candidates, sizeof(value.pointer_candidates));
+    value.raw_long_value_known = state->data_regs[reg].raw_long_value_known;
+    value.raw_long_value = state->data_regs[reg].raw_long_value;
+    value.raw_long_candidate_count = state->data_regs[reg].raw_long_candidate_count;
+    memcpy(value.raw_long_candidates, state->data_regs[reg].raw_long_candidates, sizeof(value.raw_long_candidates));
   } else if (state != NULL && operand_address_register_index_local(operand, &reg)) {
     value.provenance = state->addr_regs[reg].provenance;
     value.array_element_count = state->addr_regs[reg].array_element_count;
@@ -2454,6 +2479,10 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
     value.pointer_value = state->addr_regs[reg].pointer_value;
     value.pointer_candidate_count = state->addr_regs[reg].pointer_candidate_count;
     memcpy(value.pointer_candidates, state->addr_regs[reg].pointer_candidates, sizeof(value.pointer_candidates));
+    value.raw_long_value_known = state->addr_regs[reg].raw_long_value_known;
+    value.raw_long_value = state->addr_regs[reg].raw_long_value;
+    value.raw_long_candidate_count = state->addr_regs[reg].raw_long_candidate_count;
+    memcpy(value.raw_long_candidates, state->addr_regs[reg].raw_long_candidates, sizeof(value.raw_long_candidates));
   }
   if (typed_state_copy_app_address(state, operand, &app_displacement)) {
     value.app_address_known = 1U;
@@ -3904,6 +3933,144 @@ static int instruction_may_update_stack_pointer_from_metadata(const M68kInstruct
   return 0;
 }
 
+static int typed_memory_destination_requires_address_value(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
+    const M68kOperandIR *operand) {
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  uint16_t index;
+  uint32_t absolute_address = 0U;
+  if (lookup == NULL || state == NULL || operand == NULL) return 0;
+  if (operand_is_address_memory_local(operand, &base_reg, &displacement) && base_reg < 8U &&
+      state->addr_regs[base_reg].known && state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE &&
+      lookup_policy_pointer_value_field(lookup->policy, state->addr_regs[base_reg].struct_id,
+        state->addr_regs[base_reg].byte_cursor + displacement, NULL) != NULL) {
+    return 1;
+  }
+  if (operand_absolute_offset_local(operand, &absolute_address) && lookup->policy != NULL) {
+    for (index = 0U; index < lookup->policy->absolute_storage_slot_count &&
+         index < M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT; ++index) {
+      const M68kAnalysisAbsoluteStorageSlot *slot = &lookup->policy->absolute_storage_slots[index];
+      if (slot->address != absolute_address) continue;
+      if (slot->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER ||
+          slot->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER ||
+          slot->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE) {
+        return 1;
+      }
+    }
+  }
+  if (!operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
+      platform_state == NULL || !render_state_operand_uses_app_base(platform_state, base_reg, displacement) ||
+      lookup->policy == NULL) {
+    return 0;
+  }
+  for (index = 0U; index < lookup->policy->rsset_layout_region_count &&
+       index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *region = &lookup->policy->rsset_layout_regions[index];
+    if (region->offset != (uint32_t)displacement) continue;
+    if (region->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER ||
+        region->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER ||
+        region->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static void typed_pointer_store_fact_set_value(M68kPointerStoreIR *fact,
+    const M68kRenderTypedStoredValue *value, const M68kOperandIR *source_operand) {
+  if (fact == NULL || value == NULL || source_operand == NULL) return;
+  fact->source_kind = m68k_ir_operand_immediate_value(source_operand, &fact->source_value) ? 1U : 2U;
+  fact->has_renderable_source_expression = fact->source_kind == 1U;
+  if (value->pointer_value_known != 0U) fact->source_value = value->pointer_value;
+  fact->resolution = value->pointer_value_known != 0U && value->pointer_candidate_count > 1U
+    ? M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET
+    : M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET;
+  fact->candidate_target_count = value->pointer_candidate_count;
+  memcpy(fact->candidate_source_values, value->pointer_candidates, sizeof(fact->candidate_source_values));
+  fact->provenance_kind = value->provenance.kind;
+  fact->provenance_section_index = value->provenance.section_index;
+  fact->provenance_offset = value->provenance.offset;
+}
+
+/* Construct the complete destination-bearing fact in one place.  Additional
+ * typed storage classes use the same public representation once their
+ * renderer/source-quality obligations are installed. */
+static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state, size_t section_index,
+    const M68kInstructionIR *instruction, size_t source_index, size_t dest_index, uint32_t offset,
+    const M68kRenderTypedStoredValue *value) {
+  const M68kOperandIR *source_operand;
+  const M68kOperandIR *dest_operand;
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  uint32_t absolute_address = 0U;
+  uint16_t policy_index;
+  M68kPointerStoreIR fact;
+  if (lookup == NULL || state == NULL || instruction == NULL || value == NULL ||
+      source_index >= instruction->operand_count || dest_index >= instruction->operand_count ||
+      instruction->size_suffix != 'l') {
+    return 0;
+  }
+  source_operand = &instruction->operands[source_index];
+  dest_operand = &instruction->operands[dest_index];
+  memset(&fact, 0, sizeof(fact));
+  fact.offset = offset;
+  fact.source_operand_index = (uint8_t)source_index;
+  fact.destination_operand_index = (uint8_t)dest_index;
+  typed_pointer_store_fact_set_value(&fact, value, source_operand);
+  if (operand_is_address_memory_local(dest_operand, &base_reg, &displacement) && base_reg < 8U &&
+      state->addr_regs[base_reg].known && state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+    const M68kAnalysisCustomStruct *destination_struct = NULL;
+    const M68kAnalysisCustomStructField *destination_field = lookup_policy_pointer_value_field(lookup->policy,
+      state->addr_regs[base_reg].struct_id, state->addr_regs[base_reg].byte_cursor + displacement,
+      &destination_struct);
+    if (destination_field != NULL && destination_struct != NULL) {
+      fact.destination_kind = M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD;
+      fact.destination_field_offset = (uint16_t)destination_field->offset;
+      fact.destination_value_kind = destination_field->value_kind;
+      snprintf(fact.destination_struct_name, sizeof(fact.destination_struct_name), "%s", destination_struct->name);
+      snprintf(fact.destination_field_name, sizeof(fact.destination_field_name), "%s", destination_field->name);
+      snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", destination_field->name);
+      snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", destination_field->pointer_struct);
+      return render_lookup_add_pointer_store(lookup, section_index, &fact);
+    }
+  }
+  if (operand_absolute_offset_local(dest_operand, &absolute_address) && lookup->policy != NULL) {
+    for (policy_index = 0U; policy_index < lookup->policy->absolute_storage_slot_count &&
+         policy_index < M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT; ++policy_index) {
+      const M68kAnalysisAbsoluteStorageSlot *slot = &lookup->policy->absolute_storage_slots[policy_index];
+      if (slot->address != absolute_address ||
+          (slot->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER &&
+           slot->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER &&
+           slot->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE)) continue;
+      fact.destination_kind = M68K_POINTER_STORE_DESTINATION_ABSOLUTE_SLOT;
+      fact.destination_value_kind = slot->storage_kind_id;
+      snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", slot->symbol);
+      snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", slot->pointer_struct);
+      return render_lookup_add_pointer_store(lookup, section_index, &fact);
+    }
+  }
+  if (operand_is_address_memory_local(dest_operand, &base_reg, &displacement) && base_reg < 8U &&
+      platform_state != NULL && render_state_operand_uses_app_base(platform_state, base_reg, displacement) &&
+      lookup->policy != NULL) {
+    for (policy_index = 0U; policy_index < lookup->policy->rsset_layout_region_count &&
+         policy_index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++policy_index) {
+      const M68kAnalysisRssetLayoutRegion *region = &lookup->policy->rsset_layout_regions[policy_index];
+      if (region->offset != (uint32_t)displacement ||
+          (region->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER &&
+           region->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER &&
+           region->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE)) continue;
+      fact.destination_kind = M68K_POINTER_STORE_DESTINATION_APP_SLOT;
+      fact.destination_value_kind = region->storage_kind_id;
+      snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", region->symbol);
+      snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", region->pointer_struct);
+      return render_lookup_add_pointer_store(lookup, section_index, &fact);
+    }
+  }
+  return 0;
+}
+
 static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M68kRenderTypedState *state,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
     const M68kDecodeCandidate *candidate, uint32_t offset, int allow_lookup_storage, int *io_changed) {
@@ -3911,6 +4078,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   size_t source_index = 0U, dest_index = 0U;
   uint8_t base_reg = 0U;
   int16_t base_displacement = 0, stack_displacement = 0;
+  int destination_requires_address = 0;
   if (lookup == NULL || state == NULL || instruction == NULL) return 0;
   if (!instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata))
     return 0;
@@ -3921,23 +4089,26 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   {
     uint32_t immediate_value = 0U;
     if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
-      value.pointer_value_known = 1U;
-      value.pointer_value = immediate_value;
-      value.pointer_candidate_count = 1U;
-      value.pointer_candidates[0] = immediate_value;
-      if (candidate != NULL) {
-        const M68kFact *relocation = analysis_operand_relocation_ref(lookup, section_index, candidate, source_index);
-        uint32_t target_runtime_address = 0U;
-        if (relocation != NULL && relocation->target_section_index < lookup->section_count &&
-            lookup_source_runtime_address(lookup, relocation->target_section_index, relocation->target_offset,
-              &target_runtime_address)) {
-          value.pointer_value = target_runtime_address;
-          value.pointer_candidates[0] = target_runtime_address;
-          value.provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA,
-            relocation->target_section_index, relocation->target_offset);
+      typed_stored_value_set_raw_long(&value, immediate_value);
+    }
+    destination_requires_address = typed_memory_destination_requires_address_value(lookup, state, platform_state,
+      dest_operand);
+    if (destination_requires_address) {
+      typed_stored_value_activate_address(&value);
+      if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
+        if (candidate != NULL) {
+          const M68kFact *relocation = analysis_operand_relocation_ref(lookup, section_index, candidate, source_index);
+          uint32_t target_runtime_address = 0U;
+          if (relocation != NULL && relocation->target_section_index < lookup->section_count &&
+              lookup_source_runtime_address(lookup, relocation->target_section_index, relocation->target_offset,
+                &target_runtime_address)) {
+            value.pointer_value = target_runtime_address;
+            value.pointer_candidates[0] = target_runtime_address;
+            value.provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_STATIC_DATA,
+              relocation->target_section_index, relocation->target_offset);
+          }
         }
       }
-      typed_stored_value_update_known(&value);
     }
   }
   if (!typed_stored_value_has_useful_info(&value) &&
@@ -3947,43 +4118,23 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     if (!typed_stored_value_has_useful_info(&value) && instruction->size_suffix == 'l')
       (void)typed_stored_value_from_field_pointer_read(&value, lookup, state, source_operand, section_index, offset);
   }
-  /* A pointer-field store is an address fact even when its source cannot yet
-   * be resolved.  value carries identity through registers and storage. */
-  if (instruction->size_suffix == 'l' &&
-      operand_is_address_memory_local(dest_operand, &base_reg, &base_displacement) && base_reg < 8U &&
-      state->addr_regs[base_reg].known && state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE) {
-    const M68kAnalysisCustomStruct *destination_struct = NULL;
-    const M68kAnalysisCustomStructField *destination_field = lookup_policy_pointer_value_field(lookup->policy,
-      state->addr_regs[base_reg].struct_id, state->addr_regs[base_reg].byte_cursor + base_displacement,
-      &destination_struct);
-    if (destination_field != NULL && destination_struct != NULL) {
-      M68kPointerStoreIR fact;
-      memset(&fact, 0, sizeof(fact));
-      fact.offset = offset;
-      fact.source_operand_index = (uint8_t)source_index;
-      fact.destination_operand_index = (uint8_t)dest_index;
-      fact.destination_field_offset = (uint16_t)destination_field->offset;
-      fact.destination_value_kind = destination_field->value_kind;
-      fact.source_kind = m68k_ir_operand_immediate_value(source_operand, &fact.source_value) ? 1U : 2U;
-      if (value.pointer_value_known) fact.source_value = value.pointer_value;
-      fact.resolution = value.pointer_value_known && value.pointer_candidate_count <= 1U ?
-        M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET : M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET;
-      fact.candidate_target_count = value.pointer_candidate_count;
-      memcpy(fact.candidate_source_values, value.pointer_candidates, sizeof(fact.candidate_source_values));
-      fact.provenance_kind = value.provenance.kind;
-      fact.provenance_section_index = value.provenance.section_index;
-      fact.provenance_offset = value.provenance.offset;
-      snprintf(fact.destination_struct_name, sizeof(fact.destination_struct_name), "%s", destination_struct->name);
-      snprintf(fact.destination_field_name, sizeof(fact.destination_field_name), "%s", destination_field->name);
-      snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", destination_field->pointer_struct);
-      if (render_lookup_add_pointer_store(lookup, section_index, &fact) != 0) return -1;
-    }
+  if (render_lookup_record_typed_address_store(lookup, state, platform_state, section_index, instruction,
+      source_index, dest_index, offset, &value) != 0) {
+    return -1;
   }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
     if (typed_stored_value_has_useful_info(&value))
       typed_state_set_stack_slot(state, stack_displacement, 0U, &value, NULL);
     else typed_state_clear_stack_slot(state, stack_displacement);
     return 0;
+  }
+  /* Raw scalar identity may cross registers and stack temporaries, where a
+   * later typed parameter or field can establish its meaning.  It must not
+   * turn arbitrary persistent RAM into an inferred pointer slot. */
+  if (!destination_requires_address && value.raw_long_value_known != 0U &&
+      value.pointer_value_known == 0U && value.output == NULL &&
+      value.struct_id == AMIGA_OS_STRUCT_ID_NONE && value.app_address_known == 0U) {
+    typed_stored_value_clear(&value);
   }
   if (operand_is_address_memory_local(dest_operand, &base_reg, &base_displacement) && base_reg < 8U &&
       base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
@@ -4504,11 +4655,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     const M68kOperandIR *dest_operand = &instruction->operands[dest_index];
     typed_stored_value_clear(&stored_value);
     if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
-      stored_value.pointer_value_known = 1U;
-      stored_value.pointer_value = immediate_value;
-      stored_value.pointer_candidate_count = 1U;
-      stored_value.pointer_candidates[0] = immediate_value;
-      typed_stored_value_update_known(&stored_value);
+      typed_stored_value_set_raw_long(&stored_value, immediate_value);
     } else {
       stored_value = typed_stored_value_for_operand(state, source_operand);
     }
@@ -4606,6 +4753,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         memcpy(state->data_regs[dest_reg].pointer_candidates, stored_value.pointer_candidates,
           sizeof(state->data_regs[dest_reg].pointer_candidates));
       }
+      if (stored_value.raw_long_value_known) {
+        state->data_regs[dest_reg].known = 1U;
+        state->data_regs[dest_reg].raw_long_value_known = 1U;
+        state->data_regs[dest_reg].raw_long_value = stored_value.raw_long_value;
+        state->data_regs[dest_reg].raw_long_candidate_count = stored_value.raw_long_candidate_count;
+        memcpy(state->data_regs[dest_reg].raw_long_candidates, stored_value.raw_long_candidates,
+          sizeof(state->data_regs[dest_reg].raw_long_candidates));
+      }
       typed_state_set_reg_origin(state, 1U, dest_reg, &source_origin);
     } else if (operand_address_register_index_local(dest_operand, &dest_reg)) {
       typed_state_clear_reg(state, 2U, dest_reg);
@@ -4627,6 +4782,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         state->addr_regs[dest_reg].pointer_candidate_count = stored_value.pointer_candidate_count;
         memcpy(state->addr_regs[dest_reg].pointer_candidates, stored_value.pointer_candidates,
           sizeof(state->addr_regs[dest_reg].pointer_candidates));
+      }
+      if (stored_value.raw_long_value_known) {
+        state->addr_regs[dest_reg].known = 1U;
+        state->addr_regs[dest_reg].raw_long_value_known = 1U;
+        state->addr_regs[dest_reg].raw_long_value = stored_value.raw_long_value;
+        state->addr_regs[dest_reg].raw_long_candidate_count = stored_value.raw_long_candidate_count;
+        memcpy(state->addr_regs[dest_reg].raw_long_candidates, stored_value.raw_long_candidates,
+          sizeof(state->addr_regs[dest_reg].raw_long_candidates));
       }
       typed_state_set_reg_origin(state, 2U, dest_reg, &source_origin);
       if (source_tracks_plain_addr_alias && dest_reg != source_alias_reg)
@@ -4879,6 +5042,9 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
     left->pointer_candidate_count == right->pointer_candidate_count &&
     memcmp(left->pointer_candidates, right->pointer_candidates, sizeof(left->pointer_candidates)) == 0 &&
+    left->raw_long_value_known == right->raw_long_value_known && left->raw_long_value == right->raw_long_value &&
+    left->raw_long_candidate_count == right->raw_long_candidate_count &&
+    memcmp(left->raw_long_candidates, right->raw_long_candidates, sizeof(left->raw_long_candidates)) == 0 &&
     left->output == right->output && left->struct_id == right->struct_id &&
     left->conflict_struct_id == right->conflict_struct_id &&
     left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
@@ -4894,6 +5060,9 @@ static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
     left->pointer_candidate_count == right->pointer_candidate_count &&
     memcmp(left->pointer_candidates, right->pointer_candidates, sizeof(left->pointer_candidates)) == 0 &&
+    left->raw_long_value_known == right->raw_long_value_known && left->raw_long_value == right->raw_long_value &&
+    left->raw_long_candidate_count == right->raw_long_candidate_count &&
+    memcmp(left->raw_long_candidates, right->raw_long_candidates, sizeof(left->raw_long_candidates)) == 0 &&
     left->array_element_count == right->array_element_count &&
     left->array_element_index == right->array_element_index && left->byte_cursor == right->byte_cursor &&
     left->app_address_known == right->app_address_known && left->app_displacement == right->app_displacement &&
@@ -5011,12 +5180,15 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->pointer_value_known = 0U;
     dest->pointer_value = 0U;
     dest->pointer_candidate_count = 0U;
+    dest->raw_long_value_known = 0U;
+    dest->raw_long_value = 0U;
+    dest->raw_long_candidate_count = 0U;
     typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
   }
   /* The first predecessor initializes this node's input state. */
-  if (dest->known == 0U && source->pointer_value_known != 0U) {
+  if (dest->known == 0U && (source->pointer_value_known != 0U || source->raw_long_value_known != 0U)) {
     *dest = *source;
     return !typed_reg_values_equal(dest, &old_value);
   }
@@ -5026,15 +5198,19 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   }
   if (dest->output == NULL && source->output == NULL &&
       dest->struct_id == AMIGA_OS_STRUCT_ID_NONE && source->struct_id == AMIGA_OS_STRUCT_ID_NONE &&
-      typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+      (typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
         &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
-        source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
+        source->pointer_candidate_count, source->pointer_value, source->pointer_candidates) |
+       typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+        &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
+        source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates))) {
     typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
   }
   if (dest->output == source->output && dest->struct_id == source->struct_id &&
       dest->pointer_value_known == source->pointer_value_known && dest->pointer_value == source->pointer_value &&
+      dest->raw_long_value_known == source->raw_long_value_known && dest->raw_long_value == source->raw_long_value &&
       dest->array_element_count == source->array_element_count &&
       dest->array_element_index == source->array_element_index && dest->byte_cursor == source->byte_cursor) {
     if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
@@ -5056,6 +5232,13 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
         dest->pointer_value = 0U;
         dest->pointer_candidate_count = 0U;
       }
+      if (!typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+          &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
+          source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates)) {
+        dest->raw_long_value_known = 0U;
+        dest->raw_long_value = 0U;
+        dest->raw_long_candidate_count = 0U;
+      }
       if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
       typed_provenance_merge(&dest->provenance, &source->provenance);
       return !typed_reg_values_equal(dest, &old_value);
@@ -5073,6 +5256,13 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
       dest->pointer_value = 0U;
       dest->pointer_candidate_count = 0U;
     }
+    if (!typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+        &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
+        source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates)) {
+      dest->raw_long_value_known = 0U;
+      dest->raw_long_value = 0U;
+      dest->raw_long_candidate_count = 0U;
+    }
     return !typed_reg_values_equal(dest, &old_value);
   }
   dest->known = 0U;
@@ -5085,6 +5275,9 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   dest->pointer_value_known = 0U;
   dest->pointer_value = 0U;
   dest->pointer_candidate_count = 0U;
+  dest->raw_long_value_known = 0U;
+  dest->raw_long_value = 0U;
+  dest->raw_long_candidate_count = 0U;
   typed_origin_clear(&dest->origin);
   typed_provenance_merge(&dest->provenance, &source->provenance);
   return !typed_reg_values_equal(dest, &old_value);
@@ -5119,6 +5312,13 @@ static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
     dest->pointer_value_known = 0U;
     dest->pointer_value = 0U;
     dest->pointer_candidate_count = 0U;
+  }
+  if (!typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+      &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
+      source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates)) {
+    dest->raw_long_value_known = 0U;
+    dest->raw_long_value = 0U;
+    dest->raw_long_candidate_count = 0U;
   }
   if (dest->output != NULL && dest->struct_id != AMIGA_OS_STRUCT_ID_NONE &&
       dest->output->struct_id != dest->struct_id) {
@@ -8903,18 +9103,6 @@ static int accepted_range_has_code_byte(const uint8_t *accepted_bytes, uint32_t 
   return 0;
 }
 
-static uint32_t render_lookup_structured_item_role_flags_local(const M68kAnalysisStructuredDataItem *item) {
-  if (item == NULL) return 0U;
-  return item->semantic_role_flags;
-}
-
-static int render_lookup_structured_item_is_long_label_table_local(const M68kAnalysisStructuredDataItem *item) {
-  uint32_t role_flags = render_lookup_structured_item_role_flags_local(item);
-  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
-    (role_flags & (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) != 0U;
-}
-
 static int render_lookup_mark_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   if (lookup == NULL || section_index >= lookup->section_count || lookup->labels == NULL ||
       lookup->label_extents == NULL || lookup->labels[section_index] == NULL ||
@@ -8990,91 +9178,6 @@ static int render_lookup_pointer_table_target_can_take_auto_label(const M68kRend
   }
   if (lookup_offset_is_inside_relocation_payload(lookup, section->section_index, offset)) return 0;
   return 1;
-}
-
-static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
-    const M68kAnalysisStructuredDataItem *item) {
-  const M68kDecodeSectionIR *section;
-  size_t section_index;
-  uint32_t cursor;
-  uint32_t available;
-  (void)accepted_start;
-  if (lookup == NULL || decode == NULL || accepted_bytes == NULL ||
-      !render_lookup_structured_item_is_long_label_table_local(item)) {
-    return 0;
-  }
-  section_index = item->has_section_index ? (size_t)item->section_index : 0U;
-  if (section_index >= decode->section_count) return 0;
-  section = &decode->sections[section_index];
-  if (section->data == NULL || item->offset >= section->size) return 0;
-  available = section->size - item->offset;
-  if (available > item->size) available = item->size;
-  for (cursor = 0U; cursor + 4U <= available; cursor += 4U) {
-    uint32_t value = m68k_read_u32be(section->data + item->offset + cursor);
-    uint32_t target_offset = 0U;
-    if (value == 0U) continue;
-    if (!render_lookup_pointer_value_to_source_offset(lookup, section, value, &target_offset)) continue;
-    /* A classified pointer table is authoritative data evidence.  Its targets
-       must be materialized before rendering, including targets that the
-       speculative decoder happened to cover as instructions; otherwise a
-       later table expression can introduce an undefined symbol.  Relocation
-       payload remains non-addressable source storage. */
-    if (lookup_offset_is_inside_relocation_payload(lookup, section_index, target_offset)) continue;
-    render_lookup_mark_label(lookup, section_index, target_offset);
-    render_lookup_mark_label_target_ref(lookup, section_index, target_offset);
-    render_lookup_mark_label_statement_ref(lookup, section_index, target_offset);
-  }
-  return 0;
-}
-
-static int render_lookup_add_pointer_table_target_labels(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted_start, uint8_t **accepted_bytes) {
-  size_t index;
-  if (lookup == NULL || decode == NULL || accepted_bytes == NULL) return 0;
-  for (index = 0U; index < lookup->range_ownership_count; ++index) {
-    M68kRenderRangeOwnershipView range;
-    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
-    if (range.kind != M68K_RANGE_OWNERSHIP_TABLE || range.structured_item == NULL) continue;
-    if (render_lookup_add_pointer_table_target_labels_for_item(lookup, decode, accepted_start, accepted_bytes,
-        range.structured_item) != 0) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
-int m68k_analysis_render_lookup_materialize_pointer_table_targets(M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
-    const M68kSourceAnalysisIR *source_analysis) {
-  size_t index;
-  if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
-  if (source_analysis == NULL) return 0;
-  /* A source-analysis item can intentionally supersede a broad policy data
-     range.  Materialize it directly instead of relying on range ownership,
-     whose policy range remains useful for the earlier classification pass. */
-  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
-    if (render_lookup_add_pointer_table_target_labels_for_item(lookup, decode, accepted_start, accepted_bytes,
-        &source_analysis->structured_data_items[index]) != 0) return -1;
-  }
-  for (index = 0U; index < source_analysis->section_count && index < decode->section_count; ++index) {
-    const M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[index];
-    size_t entry_index;
-    for (entry_index = 0U; entry_index < section_analysis->table_entry_count; ++entry_index) {
-      const M68kTableEntryIR *entry = &section_analysis->table_entries[entry_index];
-      if (entry->table_kind_id != M68K_ANALYSIS_TABLE_KIND_POINTER ||
-          entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET ||
-          entry->target_section_index >= lookup->section_count ||
-          entry->target_offset > lookup->label_extents[entry->target_section_index] ||
-          lookup_offset_is_inside_relocation_payload(lookup, entry->target_section_index, entry->target_offset)) {
-        continue;
-      }
-      render_lookup_mark_label(lookup, entry->target_section_index, entry->target_offset);
-      render_lookup_mark_label_target_ref(lookup, entry->target_section_index, entry->target_offset);
-      render_lookup_mark_label_statement_ref(lookup, entry->target_section_index, entry->target_offset);
-    }
-  }
-  return 0;
 }
 
 static int render_lookup_pointer_value_to_object_source_location(const M68kRenderLookup *lookup, uint32_t value,
@@ -9218,6 +9321,9 @@ int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLook
       }
       if (!valid) continue;
       store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS;
+      /* Propagated registers, stack slots, and loads are analysis values, not
+       * source expressions.  They must not manufacture target labels. */
+      if (store->fact.has_renderable_source_expression == 0U) continue;
       for (candidate_index = 0U; candidate_index < store->fact.candidate_target_count; ++candidate_index) {
         target_section_index = store->fact.candidate_target_section_indices[candidate_index];
         target_offset = store->fact.candidate_target_offsets[candidate_index];
@@ -9228,6 +9334,9 @@ int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLook
       continue;
     }
     if (store->fact.resolution != M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET) continue;
+    /* No candidate is unknown, not the numeric address zero.  It has no
+     * source target to validate or render. */
+    if (store->fact.candidate_target_count == 0U) continue;
     if (store->section_index >= decode->section_count) continue;
     if (!render_lookup_pointer_value_to_source_location(lookup, decode, store->fact.source_value,
         &target_section_index, &target_offset)) {
@@ -9246,12 +9355,14 @@ int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLook
     store->fact.target_section_index = target_section_index;
     store->fact.target_offset = target_offset;
     store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_RESOLVED;
-    render_lookup_mark_label(lookup, target_section_index, target_offset);
-    render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
-    /* A resolved store emits a source-level symbol expression.  Its target
-       must therefore be a renderable statement boundary even when it falls
-       inside otherwise coalesced semantic data (for example, a string). */
-    render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+    if (store->fact.has_renderable_source_expression != 0U) {
+      render_lookup_mark_label(lookup, target_section_index, target_offset);
+      render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
+      /* Only an immediate source has a source-level value expression to
+       render.  A propagated register store retains its resolved fact but
+       must not manufacture an otherwise unreferenced target label. */
+      render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+    }
   }
   return 0;
 }
@@ -10809,6 +10920,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   clock_t start;
   clock_t end;
   clock_t pass_start;
+  (void)accepted_bytes;
   pass_start = clock();
   if (stats != NULL) memset(stats, 0, sizeof(*stats));
   start = clock();
@@ -10842,7 +10954,6 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   end = clock();
   if (stats != NULL) stats->hardware_data_seconds = elapsed_seconds_local(start, end);
   start = clock();
-  if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   end = clock();
   if (stats != NULL) {
     stats->generic_data_seconds = elapsed_seconds_local(start, end);

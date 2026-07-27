@@ -265,6 +265,16 @@ static const char *pointer_store_source_kind_name(uint8_t source_kind) {
   }
 }
 
+static const char *pointer_store_destination_kind_name(uint8_t destination_kind) {
+  switch (destination_kind) {
+  case M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD: return "struct_field";
+  case M68K_POINTER_STORE_DESTINATION_APP_SLOT: return "app_slot";
+  case M68K_POINTER_STORE_DESTINATION_ABSOLUTE_SLOT: return "absolute_slot";
+  case M68K_POINTER_STORE_DESTINATION_STACK_PARAMETER: return "stack_parameter";
+  default: return "unknown";
+  }
+}
+
 static const char *struct_field_value_kind_name(uint8_t value_kind) {
   switch (value_kind) {
   case M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER: return "target_pointer";
@@ -4457,11 +4467,14 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
       if (json_builder_appendf(&builder,
             "{\"offset\":%u,\"source_operand_index\":%u,\"destination_operand_index\":%u,"
-            "\"source_value\":%u,\"destination_field_offset\":%u,\"destination_value_kind_id\":%u,"
-            "\"destination_value_kind\":",
+            "\"source_value\":%u,\"destination_kind_id\":%u,\"destination_kind\":",
             (unsigned)store->offset, (unsigned)store->source_operand_index,
             (unsigned)store->destination_operand_index, (unsigned)store->source_value,
-            (unsigned)store->destination_field_offset, (unsigned)store->destination_value_kind) != 0 ||
+            (unsigned)store->destination_kind) != 0 ||
+          json_builder_append_json_string(&builder, pointer_store_destination_kind_name(store->destination_kind)) != 0 ||
+          json_builder_appendf(&builder, ",\"destination_field_offset\":%u,\"destination_value_kind_id\":%u,"
+            "\"destination_value_kind\":", (unsigned)store->destination_field_offset,
+            (unsigned)store->destination_value_kind) != 0 ||
           json_builder_append_json_string(&builder, struct_field_value_kind_name(store->destination_value_kind)) != 0 ||
           json_builder_appendf(&builder,
             ",\"source_kind_id\":%u,\"source_kind\":",
@@ -4482,6 +4495,8 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append_json_string(&builder, store->destination_struct_name) != 0 ||
           json_builder_append(&builder, ",\"destination_field_name\":") != 0 ||
           json_builder_append_json_string(&builder, store->destination_field_name) != 0 ||
+          json_builder_append(&builder, ",\"destination_symbol\":") != 0 ||
+          json_builder_append_json_string(&builder, store->destination_symbol) != 0 ||
           json_builder_append(&builder, ",\"pointee_struct_name\":") != 0 ||
           json_builder_append_json_string(&builder, store->pointee_struct_name) != 0)
         goto oom;
@@ -6368,15 +6383,19 @@ static int append_listing_pointer_stores_json(JsonBuilder *builder, const M68kSt
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
           "{\"source_operand_index\":%u,\"destination_operand_index\":%u,\"source_value\":%u,"
-          "\"destination\":{\"struct\":",
+          "\"destination\":{\"kind\":",
           (unsigned)store->source_operand_index, (unsigned)store->destination_operand_index,
           (unsigned)store->source_value) != 0 ||
+        json_builder_append_json_string(builder, pointer_store_destination_kind_name(store->destination_kind)) != 0 ||
+        json_builder_append(builder, ",\"struct\":") != 0 ||
         json_builder_append_json_string(builder, store->destination_struct_name) != 0 ||
         json_builder_append(builder, ",\"field\":") != 0 ||
         json_builder_append_json_string(builder, store->destination_field_name) != 0 ||
         json_builder_appendf(builder, ",\"field_offset\":%u,\"value_kind\":",
           (unsigned)store->destination_field_offset) != 0 ||
         json_builder_append_json_string(builder, struct_field_value_kind_name(store->destination_value_kind)) != 0 ||
+        json_builder_append(builder, ",\"symbol\":") != 0 ||
+        json_builder_append_json_string(builder, store->destination_symbol) != 0 ||
         json_builder_append(builder, "},\"source_kind\":") != 0 ||
         json_builder_append_json_string(builder, pointer_store_source_kind_name(store->source_kind)) != 0 ||
         json_builder_append(builder, ",\"resolution\":") != 0 ||

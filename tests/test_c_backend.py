@@ -1144,9 +1144,38 @@ class _M68kAnalysisRegisterSeed(ctypes.Structure):
         ("reg_index", ctypes.c_uint8),
         ("has_entry_offset", ctypes.c_uint8),
         ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("array_element_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("section_index", ctypes.c_uint32),
+        ("name", ctypes.c_char * 64),
+        ("type_name", ctypes.c_char * 64),
+        ("context_name", ctypes.c_char * 64),
+    ]
+
+
+class _M68kAnalysisCallbackTableSignature(ctypes.Structure):
+    _fields_ = [
+        ("register_kind", ctypes.c_uint8),
+        ("register_index", ctypes.c_uint8),
+        ("seed_kind", ctypes.c_uint8),
+        ("has_section_index", ctypes.c_uint8),
+        ("section_index", ctypes.c_uint32),
+        ("table_offset", ctypes.c_uint32),
+        ("entry_count", ctypes.c_uint32),
+        ("name", ctypes.c_char * 64),
+        ("type_name", ctypes.c_char * 64),
+        ("context_name", ctypes.c_char * 64),
+    ]
+
+
+class _M68kAnalysisFunctionRegisterContract(ctypes.Structure):
+    _fields_ = [
+        ("register_kind", ctypes.c_uint8),
+        ("register_index", ctypes.c_uint8),
+        ("seed_kind", ctypes.c_uint8),
+        ("has_section_index", ctypes.c_uint8),
+        ("section_index", ctypes.c_uint32),
+        ("entry_offset", ctypes.c_uint32),
         ("name", ctypes.c_char * 64),
         ("type_name", ctypes.c_char * 64),
         ("context_name", ctypes.c_char * 64),
@@ -1261,7 +1290,9 @@ class _M68kAnalysisEntryComment(ctypes.Structure):
 class _M68kAnalysisRuntimeRange(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
+        ("provenance", ctypes.c_uint8),
+        ("use_mask", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint32),
@@ -1291,6 +1322,19 @@ class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
         ("sizeof_symbol", ctypes.c_char * 64),
         ("symbol", ctypes.c_char * 64),
         ("struct_name", ctypes.c_char * 64),
+        ("pointer_struct", ctypes.c_char * 64),
+        ("storage_kind", ctypes.c_char * 32),
+        ("semantic_type", ctypes.c_char * 64),
+    ]
+
+
+class _M68kAnalysisAbsoluteStorageSlot(ctypes.Structure):
+    _fields_ = [
+        ("address", ctypes.c_uint32),
+        ("size", ctypes.c_uint8),
+        ("storage_kind_id", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
+        ("symbol", ctypes.c_char * 64),
         ("pointer_struct", ctypes.c_char * 64),
         ("storage_kind", ctypes.c_char * 32),
         ("semantic_type", ctypes.c_char * 64),
@@ -1366,6 +1410,8 @@ class _M68kAnalysisCustomStructField(ctypes.Structure):
         ("struct_name", ctypes.c_char * 64),
         ("pointer_struct", ctypes.c_char * 64),
         ("named_base", ctypes.c_char * 64),
+        ("value_kind", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
     ]
 
 
@@ -1386,6 +1432,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("disable_implicit_entry_points", ctypes.c_uint8),
         ("reserved0", ctypes.c_uint8 * 1),
         ("register_seed_count", ctypes.c_uint16),
+        ("callback_table_signature_count", ctypes.c_uint16),
+        ("function_register_contract_count", ctypes.c_uint16),
         ("entry_point_count", ctypes.c_uint16),
         ("structured_data_item_count", ctypes.c_uint16),
         ("named_label_count", ctypes.c_uint16),
@@ -1393,13 +1441,18 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_range_count", ctypes.c_uint16),
         ("runtime_entry_point_count", ctypes.c_uint16),
         ("rsset_layout_region_count", ctypes.c_uint16),
+        ("absolute_storage_slot_count", ctypes.c_uint16),
         ("rsset_use_site_binding_count", ctypes.c_uint16),
         ("manual_representation_count", ctypes.c_uint16),
         ("target_equate_count", ctypes.c_uint16),
         ("manual_runtime_address_ref_count", ctypes.c_uint16),
         ("custom_struct_count", ctypes.c_uint16),
         ("custom_struct_capacity", ctypes.c_uint16),
+        ("structured_data_item_capacity", ctypes.c_uint16),
+        ("named_label_capacity", ctypes.c_uint16),
         ("custom_struct_owner", ctypes.c_uint8),
+        ("structured_data_items_owner", ctypes.c_uint8),
+        ("named_labels_owner", ctypes.c_uint8),
         ("reserved1", ctypes.c_uint8 * 1),
         ("entry_offset", ctypes.c_uint32),
         ("source_context_kind", ctypes.c_char * 512),
@@ -1408,13 +1461,18 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("source_context_entry_path", ctypes.c_char * 512),
         ("source_context_parent_disk_id", ctypes.c_char * 512),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
+        ("callback_table_signatures", _M68kAnalysisCallbackTableSignature * 64),
+        ("function_register_contracts", _M68kAnalysisFunctionRegisterContract * 128),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
-        ("structured_data_items", _M68kAnalysisStructuredDataItem * 4096),
-        ("named_labels", _M68kAnalysisNamedLabel * 4096),
+        ("structured_data_items_inline", _M68kAnalysisStructuredDataItem * 4),
+        ("structured_data_items", ctypes.POINTER(_M68kAnalysisStructuredDataItem)),
+        ("named_labels_inline", _M68kAnalysisNamedLabel * 4),
+        ("named_labels", ctypes.POINTER(_M68kAnalysisNamedLabel)),
         ("entry_comments", _M68kAnalysisEntryComment * 128),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
         ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
+        ("absolute_storage_slots", _M68kAnalysisAbsoluteStorageSlot * 128),
         ("rsset_use_site_bindings", _M68kAnalysisRssetUseSiteBinding * 128),
         ("manual_representations", _M68kAnalysisManualRepresentation * 128),
         ("target_equates", _M68kAnalysisTargetEquate * 128),
@@ -9226,6 +9284,16 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                         "citation": "test",
                     }
                 ],
+                "absolute_storage_slots": [
+                    {
+                        "address": 0x64C0,
+                        "size": 4,
+                        "symbol": "game_queue_head_ptr",
+                        "pointer_struct": None,
+                        "storage_kind": "pointer",
+                        "semantic_type": "callback_target",
+                    }
+                ],
                 "custom_structs": [
                     {
                         "name": "Player",
@@ -9263,6 +9331,7 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert generic_policy.runtime_ranges[0].runtime_address == 0x400
     assert generic_policy.structured_data_item_count == 0
     assert generic_policy.rsset_layout_region_count == 0
+    assert generic_policy.absolute_storage_slot_count == 0
     assert generic_policy.named_label_count == 2
     assert generic_policy.named_labels[0].offset == 0x28
     assert generic_policy.named_labels[0].name == b"manual_loop"
@@ -9305,6 +9374,10 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert amiga_policy.rsset_layout_regions[1].base_symbol == b"__game_work_base__"
     assert amiga_policy.rsset_layout_regions[1].sizeof_symbol == b"work_SIZEOF"
     assert amiga_policy.rsset_layout_regions[1].symbol == b"work_counter"
+    assert amiga_policy.absolute_storage_slot_count == 1
+    assert amiga_policy.absolute_storage_slots[0].address == 0x64C0
+    assert amiga_policy.absolute_storage_slots[0].symbol == b"game_queue_head_ptr"
+    assert amiga_policy.absolute_storage_slots[0].storage_kind == b"pointer"
     assert amiga_policy.custom_struct_count == 1
     assert amiga_policy.custom_structs[0].fields[0].name == b"player_score"
     assert amiga_policy.named_label_count > 0

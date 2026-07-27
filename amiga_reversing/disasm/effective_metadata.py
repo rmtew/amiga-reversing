@@ -41,6 +41,7 @@ from amiga_reversing.disasm.target_metadata import (
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
     ManualRuntimeAddressRefMetadata,
+    AbsoluteStorageSlotMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     RssetUseSiteBindingMetadata,
@@ -689,6 +690,36 @@ def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetL
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(region, "rsset_layout_region_id"),
+    )
+
+
+def _manual_absolute_storage_slot_to_metadata(slot: dict[str, object]) -> AbsoluteStorageSlotMetadata | None:
+    address = _manual_seed_int(slot, "address")
+    symbol = _manual_seed_text(slot, "symbol")
+    storage_kind_text = _manual_seed_text(slot, "storage_kind")
+    size = _manual_seed_int(slot, "size") or 4
+    if address is None or address < 0 or address > 0xFFFFFFFF or symbol is None or size <= 0 or size > 255:
+        return None
+    try:
+        storage_kind = RssetLayoutStorageKind(storage_kind_text or "")
+    except ValueError:
+        return None
+    if storage_kind not in {
+        RssetLayoutStorageKind.POINTER,
+        RssetLayoutStorageKind.STRUCT_POINTER,
+        RssetLayoutStorageKind.POINTER_TABLE,
+    }:
+        return None
+    return AbsoluteStorageSlotMetadata(
+        address=address,
+        symbol=symbol,
+        size=size,
+        pointer_struct=_manual_seed_text(slot, "pointer_struct"),
+        storage_kind=storage_kind,
+        semantic_type=_manual_seed_text(slot, "semantic_type"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(slot, "absolute_storage_slot_id"),
     )
 
 
@@ -1792,6 +1823,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     removed_custom_struct_field_projections = projection.removed_custom_struct_fields
     rsset_layout_region_projections = projection.rsset_layout_regions
     removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
+    absolute_storage_slot_projections = projection.absolute_storage_slots
+    removed_absolute_storage_slot_projections = projection.removed_absolute_storage_slots
     rsset_use_site_binding_projections = projection.rsset_use_site_bindings
     removed_rsset_use_site_binding_projections = projection.removed_rsset_use_site_bindings
     data_block_layout_projections = projection.data_block_layouts
@@ -1825,6 +1858,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not removed_custom_struct_field_projections
         and not rsset_layout_region_projections
         and not removed_rsset_layout_region_projections
+        and not absolute_storage_slot_projections
+        and not removed_absolute_storage_slot_projections
         and not rsset_use_site_binding_projections
         and not removed_rsset_use_site_binding_projections
         and not data_block_layout_projections
@@ -1921,6 +1956,14 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             if (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset)
             not in removed_rsset_layout_region_keys
         ]
+    removed_absolute_storage_addresses = {
+        address
+        for slot in removed_absolute_storage_slot_projections
+        if (address := _manual_seed_int(slot, "address")) is not None
+    }
+    absolute_storage_slots = [
+        slot for slot in metadata.absolute_storage_slots if slot.address not in removed_absolute_storage_addresses
+    ]
     removed_rsset_use_site_binding_ids = {
         binding_id
         for binding in removed_rsset_use_site_binding_projections
@@ -2103,6 +2146,11 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset): region
         for region in rsset_layout_regions
     }
+    for slot in absolute_storage_slot_projections:
+        absolute_storage_slot = _manual_absolute_storage_slot_to_metadata(slot)
+        if absolute_storage_slot is not None:
+            absolute_storage_slots.append(absolute_storage_slot)
+    merged_absolute_storage_slots = {slot.address: slot for slot in absolute_storage_slots}
     for binding in rsset_use_site_binding_projections:
         rsset_use_site_binding = _manual_rsset_use_site_binding_to_metadata(binding)
         if rsset_use_site_binding is not None:
@@ -2198,6 +2246,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_runtime_address_refs=tuple(merged_manual_runtime_address_refs.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
+        absolute_storage_slots=tuple(merged_absolute_storage_slots.values()),
         rsset_use_site_bindings=tuple(merged_rsset_use_site_bindings.values()),
         data_block_layouts=tuple(effective_data_block_layouts),
         execution_views=tuple(merged_execution_views.values()),

@@ -1779,6 +1779,37 @@ static int analysis_entry_point_provenance_is_known_local(uint8_t provenance) {
     provenance == M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL;
 }
 
+static int policy_add_absolute_storage_slot_local(M68kAnalysisPolicy *policy, uint32_t address, uint8_t size,
+    const char *symbol, const char *pointer_struct, uint8_t storage_kind_id, const char *storage_kind,
+    const char *semantic_type) {
+  M68kAnalysisAbsoluteStorageSlot *slot;
+  uint16_t index;
+  if (policy == NULL || size == 0U || symbol == NULL || symbol[0] == '\0' ||
+      !asm_symbol_name_is_safe_local(symbol) ||
+      policy->absolute_storage_slot_count >= M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT) {
+    return 0;
+  }
+  for (index = 0U; index < policy->absolute_storage_slot_count; ++index) {
+    const M68kAnalysisAbsoluteStorageSlot *existing = &policy->absolute_storage_slots[index];
+    if (existing->address == address) return strcmp(existing->symbol, symbol) == 0 &&
+      existing->storage_kind_id == storage_kind_id;
+  }
+  slot = &policy->absolute_storage_slots[policy->absolute_storage_slot_count];
+  memset(slot, 0, sizeof(*slot));
+  slot->address = address;
+  slot->size = size;
+  slot->storage_kind_id = storage_kind_id;
+  if (!copy_policy_text(slot->symbol, sizeof(slot->symbol), symbol) ||
+      !copy_policy_text(slot->pointer_struct, sizeof(slot->pointer_struct), pointer_struct) ||
+      !copy_policy_text(slot->storage_kind, sizeof(slot->storage_kind), storage_kind) ||
+      !copy_policy_text(slot->semantic_type, sizeof(slot->semantic_type), semantic_type)) {
+    memset(slot, 0, sizeof(*slot));
+    return 0;
+  }
+  ++policy->absolute_storage_slot_count;
+  return 1;
+}
+
 static const char *analysis_entry_point_provenance_name_local(uint8_t provenance) {
   switch (provenance) {
     case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_TARGET_METADATA:
@@ -2384,6 +2415,41 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
     (strcmp(value_kind, "target_pointer") == 0 ? M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER :
       M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR);
   return 1;
+}
+
+static int append_metadata_absolute_storage_slot_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t address = 0U, explicit_size = 0U;
+  int has_address = 0, has_size = 0;
+  char symbol[64], pointer_struct[64], storage_kind[32], semantic_type[64];
+  symbol[0] = '\0';
+  pointer_struct[0] = '\0';
+  storage_kind[0] = '\0';
+  semantic_type[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "address", &address, &has_address) ||
+      !json_number_field_local(object_start, object_end, "size", &explicit_size, &has_size) ||
+      !json_optional_string_field_local(object_start, object_end, "symbol", symbol, sizeof(symbol)) ||
+      !json_optional_string_field_local(object_start, object_end, "pointer_struct", pointer_struct,
+        sizeof(pointer_struct)) ||
+      !json_optional_string_field_local(object_start, object_end, "storage_kind", storage_kind,
+        sizeof(storage_kind)) ||
+      !json_optional_string_field_local(object_start, object_end, "semantic_type", semantic_type,
+        sizeof(semantic_type))) {
+    return 0;
+  }
+  if (!has_address) return 1;
+  if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
+  {
+    uint8_t storage_kind_id = rsset_layout_region_storage_kind_id_from_text_local(storage_kind);
+    if (storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER &&
+        storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER &&
+        storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE) {
+      return 0;
+    }
+    return policy_add_absolute_storage_slot_local(policy, address,
+      has_size ? (uint8_t)explicit_size : 4U, symbol, pointer_struct, storage_kind_id, storage_kind,
+      semantic_type);
+  }
 }
 
 static int append_metadata_callback_table_signature_local(const char *object_start, const char *object_end,
@@ -8177,6 +8243,17 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
     }
     cursor = object_end;
   }
+  cursor = json_find_array_local(text, "absolute_storage_slots", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_absolute_storage_slot_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata absolute storage slot");
+      return -1;
+    }
+    cursor = object_end;
+  }
   cursor = json_find_array_local(text, "rsset_use_site_bindings", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
@@ -8205,6 +8282,8 @@ static int metadata_text_has_amiga_policy_local(const char *text) {
   if (text == NULL) return 0;
   if (json_find_object_field_local(text, "resident", &resident_end) != NULL) return 1;
   array_start = json_find_array_local(text, "rsset_layout_regions", &array_end);
+  if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
+  array_start = json_find_array_local(text, "absolute_storage_slots", &array_end);
   if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
   array_start = json_find_array_local(text, "rsset_use_site_bindings", &array_end);
   if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
@@ -9151,12 +9230,14 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         "\"entry_point_count\":%u,\"register_seed_count\":%u,"
         "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
         "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"rsset_layout_region_count\":%u,"
+        "\"absolute_storage_slot_count\":%u,"
         "\"manual_representation_count\":%u,\"custom_struct_count\":%u",
         (unsigned)policy->max_cpu, policy->disable_implicit_entry_points ? "false" : "true",
         (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
         (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
         (unsigned)policy->runtime_entry_point_count, (unsigned)policy->rsset_layout_region_count,
+        (unsigned)policy->absolute_storage_slot_count,
         (unsigned)policy->manual_representation_count, (unsigned)policy->custom_struct_count) != 0)
     return -1;
   if (json_builder_append(builder, ",\"entrypoints\":[") != 0) return -1;
@@ -9298,6 +9379,26 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (append_nullable_text_json_local(builder, slot->symbol) != 0) return -1;
     if (json_builder_append(builder, ",\"struct_name\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, slot->struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->pointer_struct) != 0) return -1;
+    if (json_builder_append(builder, ",\"storage_kind\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, storage_kind) != 0) return -1;
+    if (json_builder_append(builder, ",\"semantic_type\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->semantic_type) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  if (json_builder_append(builder, "],\"absolute_storage_slots\":[") != 0) return -1;
+  for (index = 0U; index < policy->absolute_storage_slot_count &&
+       index < M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT; ++index) {
+    const M68kAnalysisAbsoluteStorageSlot *slot = &policy->absolute_storage_slots[index];
+    const char *storage_kind = slot->storage_kind[0] != '\0'
+      ? slot->storage_kind
+      : rsset_layout_region_storage_kind_name_local(slot->storage_kind_id);
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder, "{\"address\":%u,\"size\":%u,\"storage_kind_id\":%u,\"symbol\":",
+          (unsigned)slot->address, (unsigned)slot->size, (unsigned)slot->storage_kind_id) != 0)
+      return -1;
+    if (append_nullable_text_json_local(builder, slot->symbol) != 0) return -1;
     if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, slot->pointer_struct) != 0) return -1;
     if (json_builder_append(builder, ",\"storage_kind\":") != 0) return -1;

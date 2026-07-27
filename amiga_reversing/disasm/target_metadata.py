@@ -695,6 +695,62 @@ class RssetUseSiteBindingMetadata:
             base_evidence_refs=tuple(cast(dict[str, object], ref) for ref in base_evidence_refs if isinstance(ref, dict)),
         )
 
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AbsoluteStorageSlotMetadata:
+    address: int
+    symbol: str
+    storage_kind: RssetLayoutStorageKind
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+    size: int = 4
+    pointer_struct: str | None = None
+    semantic_type: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        assert 0 <= self.address <= 0xFFFFFFFF
+        assert self.symbol
+        assert 0 < self.size <= 255
+        assert self.storage_kind in {
+            RssetLayoutStorageKind.POINTER,
+            RssetLayoutStorageKind.STRUCT_POINTER,
+            RssetLayoutStorageKind.POINTER_TABLE,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> AbsoluteStorageSlotMetadata:
+        address = payload["address"]
+        symbol = payload["symbol"]
+        storage_kind = payload["storage_kind"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        size = payload.get("size", 4)
+        pointer_struct = payload.get("pointer_struct")
+        semantic_type = payload.get("semantic_type")
+        assert isinstance(address, int)
+        assert isinstance(symbol, str)
+        assert isinstance(storage_kind, str)
+        assert isinstance(seed_origin, str)
+        assert isinstance(review_status, str)
+        assert isinstance(citation, str)
+        assert isinstance(size, int)
+        assert pointer_struct is None or isinstance(pointer_struct, str)
+        assert semantic_type is None or isinstance(semantic_type, str)
+        return cls(
+            address=address,
+            symbol=symbol,
+            storage_kind=_rsset_layout_storage_kind(storage_kind),
+            seed_origin=_target_metadata_seed_origin(seed_origin),
+            review_status=_target_metadata_review_status(review_status),
+            citation=citation,
+            size=size,
+            pointer_struct=pointer_struct,
+            semantic_type=semantic_type,
+        )
+
 @dataclass(frozen=True, slots=True)
 class SeededEntityMetadata:
     addr: int
@@ -1418,6 +1474,7 @@ class TargetMetadata:
     library: LibraryTargetMetadata | None = None
     custom_structs: tuple[CustomStructMetadata, ...] = ()
     rsset_layout_regions: tuple[RssetLayoutRegionMetadata, ...] = ()
+    absolute_storage_slots: tuple[AbsoluteStorageSlotMetadata, ...] = ()
     rsset_use_site_bindings: tuple[RssetUseSiteBindingMetadata, ...] = ()
     seeded_entities: tuple[SeededEntityMetadata, ...] = ()
     seeded_code_labels: tuple[SeededCodeLabelMetadata, ...] = ()
@@ -1442,6 +1499,7 @@ class TargetMetadata:
         library = payload["library"]
         custom_structs = payload["custom_structs"]
         rsset_layout_regions = payload["rsset_layout_regions"]
+        absolute_storage_slots = payload.get("absolute_storage_slots", [])
         rsset_use_site_bindings = payload.get("rsset_use_site_bindings", [])
         seeded_entities = payload.get("seeded_entities", [])
         seeded_code_labels = payload.get("seeded_code_labels", [])
@@ -1480,6 +1538,10 @@ class TargetMetadata:
             rsset_layout_regions=tuple(
                 RssetLayoutRegionMetadata.from_dict(_json_object(slot_payload))
                 for slot_payload in _json_list(rsset_layout_regions)
+            ),
+            absolute_storage_slots=tuple(
+                AbsoluteStorageSlotMetadata.from_dict(_json_object(slot_payload))
+                for slot_payload in _json_list(absolute_storage_slots)
             ),
             rsset_use_site_bindings=tuple(
                 RssetUseSiteBindingMetadata.from_dict(_json_object(binding_payload))
@@ -1757,6 +1819,7 @@ def apply_suppressed_seeded_items(
         library=seeded.library,
         custom_structs=seeded.custom_structs,
         rsset_layout_regions=seeded.rsset_layout_regions,
+        absolute_storage_slots=seeded.absolute_storage_slots,
         seeded_entities=tuple(
             entity
             for entity in seeded.seeded_entities
@@ -2081,6 +2144,12 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             seeded.rsset_layout_regions,
             key=lambda region: (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset),
             what="RSSET layout region",
+        ),
+        absolute_storage_slots=_merge_unique_by_key(
+            manual.absolute_storage_slots,
+            seeded.absolute_storage_slots,
+            key=lambda slot: slot.address,
+            what="absolute storage slot",
         ),
         seeded_entities=_merge_seeded_entities(manual.seeded_entities, seeded.seeded_entities),
         seeded_code_labels=_merge_seeded_code_labels(manual.seeded_code_labels, seeded.seeded_code_labels),

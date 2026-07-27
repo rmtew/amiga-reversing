@@ -33,6 +33,7 @@
 #define M68K_FACTS_V2_TRACE_ABSOLUTE_SLOT_LIMIT 16U
 #define M68K_FACTS_V2_TRACE_STACK_SLOT_LIMIT 8U
 #define M68K_FACTS_V2_TRACE_STATE_VARIANT_LIMIT 2U
+
 #define M68K_FACTS_V2_TRACE_INDIRECT_STATE_VARIANT_LIMIT 8U
 /* Word-relative dispatches may fan out across a large routine cluster; each
    entry is still required to map to an even in-section control target. */
@@ -859,6 +860,7 @@ static int label_lookup_create_label(M68kFactsV2LabelLookup *lookup,
   }
   return -1;
 }
+
 
 static int source_analysis_has_structured_data_anchor_label(const M68kSourceAnalysisIR *source_analysis,
     size_t section_index, uint32_t offset) {
@@ -10435,7 +10437,6 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         &platform_analysis_stats) != 0) {
     goto fail;
   }
-  m68k_render_lookup_materialize_structured_pointer_target_labels(&render_lookup, &decode);
   m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   end = clock();
   platform_analysis_stats.pass_seconds = elapsed_seconds_local(start, end);
@@ -10509,16 +10510,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         "facts_v2 source-analysis structured data import failed");
       goto fail;
     }
-    if (render_asm_source) {
-      m68k_render_lookup_materialize_structured_pointer_target_labels(&render_lookup, &decode);
-      m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
-      if (m68k_analysis_render_lookup_materialize_pointer_table_targets(&render_lookup, &decode, accepted_start,
-          accepted_bytes, source_analysis) != 0) {
-        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-          "facts_v2 pointer table target materialization failed");
-        goto fail;
-      }
-    }
+    if (render_asm_source) m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   }
   if ((render_asm_source || mark_source_blockers) && facts_v2_has_source_blockers(out_profile)) {
     out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;

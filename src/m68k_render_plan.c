@@ -68,6 +68,116 @@ static int render_plan_reserve_rows(M68kRenderPlan *plan, size_t needed) {
   return 0;
 }
 
+static int render_plan_reserve_expressions(M68kRenderPlan *plan, size_t needed) {
+  Arena *arena;
+  M68kRenderPlannedExpression *items;
+  size_t capacity;
+  if (plan == NULL) return -1;
+  if (needed <= plan->expression_capacity) return 0;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return -1;
+  capacity = plan->expression_capacity != 0U ? plan->expression_capacity : 16U;
+  while (capacity < needed) {
+    if (capacity > ((size_t)-1) / 2U) return -1;
+    capacity *= 2U;
+  }
+  if (capacity > ((size_t)-1) / sizeof(*items)) return -1;
+  items = (M68kRenderPlannedExpression *)arena_realloc_copy(arena, plan->expressions,
+    plan->expression_count * sizeof(*items), capacity * sizeof(*items));
+  if (items == NULL) return -1;
+  plan->expressions = items;
+  plan->expression_capacity = capacity;
+  return 0;
+}
+
+static int render_plan_reserve_declarations(M68kRenderPlan *plan, size_t needed) {
+  Arena *arena;
+  M68kRenderPlannedDeclaration *items;
+  size_t capacity;
+  if (plan == NULL) return -1;
+  if (needed <= plan->declaration_capacity) return 0;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return -1;
+  capacity = plan->declaration_capacity != 0U ? plan->declaration_capacity : 16U;
+  while (capacity < needed) {
+    if (capacity > ((size_t)-1) / 2U) return -1;
+    capacity *= 2U;
+  }
+  if (capacity > ((size_t)-1) / sizeof(*items)) return -1;
+  items = (M68kRenderPlannedDeclaration *)arena_realloc_copy(arena, plan->declarations,
+    plan->declaration_count * sizeof(*items), capacity * sizeof(*items));
+  if (items == NULL) return -1;
+  plan->declarations = items;
+  plan->declaration_capacity = capacity;
+  return 0;
+}
+
+static int render_plan_reserve_instructions(M68kRenderPlan *plan, size_t needed) {
+  Arena *arena;
+  M68kRenderPlannedInstruction *items;
+  size_t capacity;
+  if (plan == NULL) return -1;
+  if (needed <= plan->instruction_capacity) return 0;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return -1;
+  capacity = plan->instruction_capacity != 0U ? plan->instruction_capacity : 16U;
+  while (capacity < needed) {
+    if (capacity > ((size_t)-1) / 2U) return -1;
+    capacity *= 2U;
+  }
+  if (capacity > ((size_t)-1) / sizeof(*items)) return -1;
+  items = (M68kRenderPlannedInstruction *)arena_realloc_copy(arena, plan->instructions,
+    plan->instruction_count * sizeof(*items), capacity * sizeof(*items));
+  if (items == NULL) return -1;
+  plan->instructions = items;
+  plan->instruction_capacity = capacity;
+  return 0;
+}
+
+static int render_plan_reserve_labels(M68kRenderPlan *plan, size_t needed) {
+  Arena *arena;
+  M68kRenderPlannedLabel *items;
+  size_t capacity;
+  if (plan == NULL) return -1;
+  if (needed <= plan->label_capacity) return 0;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return -1;
+  capacity = plan->label_capacity != 0U ? plan->label_capacity : 32U;
+  while (capacity < needed) {
+    if (capacity > ((size_t)-1) / 2U) return -1;
+    capacity *= 2U;
+  }
+  if (capacity > ((size_t)-1) / sizeof(*items)) return -1;
+  items = (M68kRenderPlannedLabel *)arena_realloc_copy(arena, plan->labels,
+    plan->label_count * sizeof(*items), capacity * sizeof(*items));
+  if (items == NULL) return -1;
+  plan->labels = items;
+  plan->label_capacity = capacity;
+  return 0;
+}
+
+static int render_plan_reserve_runtime_aliases(M68kRenderPlan *plan, size_t needed) {
+  Arena *arena;
+  M68kRenderPlannedRuntimeAlias *items;
+  size_t capacity;
+  if (plan == NULL) return -1;
+  if (needed <= plan->runtime_alias_capacity) return 0;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return -1;
+  capacity = plan->runtime_alias_capacity != 0U ? plan->runtime_alias_capacity : 16U;
+  while (capacity < needed) {
+    if (capacity > ((size_t)-1) / 2U) return -1;
+    capacity *= 2U;
+  }
+  if (capacity > ((size_t)-1) / sizeof(*items)) return -1;
+  items = (M68kRenderPlannedRuntimeAlias *)arena_realloc_copy(arena, plan->runtime_aliases,
+    plan->runtime_alias_count * sizeof(*items), capacity * sizeof(*items));
+  if (items == NULL) return -1;
+  plan->runtime_aliases = items;
+  plan->runtime_alias_capacity = capacity;
+  return 0;
+}
+
 static int render_plan_row_builder_reserve(M68kRenderPlanRowBuilder *builder, size_t needed) {
   char *text;
   size_t capacity;
@@ -110,6 +220,121 @@ void m68k_render_plan_move(M68kRenderPlan *dest, M68kRenderPlan *src) {
   m68k_render_plan_destroy(dest);
   *dest = *src;
   m68k_render_plan_init(src);
+}
+
+int m68k_render_plan_append_expression(M68kRenderPlan *plan,
+    const M68kRenderPlannedExpression *expression) {
+  size_t index;
+  if (plan == NULL || expression == NULL) return -1;
+  for (index = 0U; index < plan->expression_count; ++index) {
+    const M68kRenderPlannedExpression *existing = &plan->expressions[index];
+    if (existing->source_section_index == expression->source_section_index &&
+        existing->source_offset == expression->source_offset &&
+        existing->operand_index == expression->operand_index && existing->kind == expression->kind) {
+      return -1;
+    }
+  }
+  if (render_plan_reserve_expressions(plan, plan->expression_count + 1U) != 0) return -1;
+  plan->expressions[plan->expression_count++] = *expression;
+  return 0;
+}
+
+const M68kRenderPlannedExpression *m68k_render_plan_find_expression(const M68kRenderPlan *plan,
+    uint32_t source_section_index, uint32_t source_offset, uint32_t operand_index, uint8_t kind) {
+  size_t index;
+  if (plan == NULL) return NULL;
+  for (index = 0U; index < plan->expression_count; ++index) {
+    const M68kRenderPlannedExpression *expression = &plan->expressions[index];
+    if (expression->source_section_index == source_section_index && expression->source_offset == source_offset &&
+        expression->operand_index == operand_index && expression->kind == kind) {
+      return expression;
+    }
+  }
+  return NULL;
+}
+
+int m68k_render_plan_append_declaration(M68kRenderPlan *plan,
+    const M68kRenderPlannedDeclaration *declaration) {
+  size_t index;
+  if (plan == NULL || declaration == NULL) return -1;
+  if (declaration->name[0] == '\0') return -1;
+  for (index = 0U; index < plan->declaration_count; ++index) {
+    const M68kRenderPlannedDeclaration *existing = &plan->declarations[index];
+    int same_name = strcmp(existing->name, declaration->name) == 0;
+    int same_target = existing->has_source_target != 0U && declaration->has_source_target != 0U &&
+      existing->section_index == declaration->section_index && existing->offset == declaration->offset;
+    if (!same_name && !same_target) continue;
+    if (same_name && same_target && existing->kind == declaration->kind &&
+        existing->logical_address == declaration->logical_address &&
+        strcmp(existing->expression, declaration->expression) == 0) {
+      return 0;
+    }
+    /* A planned source declaration is a namespace claim, not an aliasing
+     * opportunity.  The caller must resolve a collision before emission. */
+    return -1;
+  }
+  if (render_plan_reserve_declarations(plan, plan->declaration_count + 1U) != 0) return -1;
+  plan->declarations[plan->declaration_count++] = *declaration;
+  return 0;
+}
+
+int m68k_render_plan_append_instruction(M68kRenderPlan *plan,
+    const M68kRenderPlannedInstruction *instruction) {
+  if (plan == NULL || instruction == NULL) return -1;
+  if (m68k_render_plan_find_instruction(plan, instruction->source_section_index, instruction->source_offset) != NULL)
+    return -1;
+  if (render_plan_reserve_instructions(plan, plan->instruction_count + 1U) != 0) return -1;
+  plan->instructions[plan->instruction_count++] = *instruction;
+  return 0;
+}
+
+const M68kRenderPlannedInstruction *m68k_render_plan_find_instruction(const M68kRenderPlan *plan,
+    uint32_t source_section_index, uint32_t source_offset) {
+  size_t index;
+  if (plan == NULL) return NULL;
+  for (index = 0U; index < plan->instruction_count; ++index) {
+    const M68kRenderPlannedInstruction *instruction = &plan->instructions[index];
+    if (instruction->source_section_index == source_section_index && instruction->source_offset == source_offset)
+      return instruction;
+  }
+  return NULL;
+}
+
+int m68k_render_plan_append_label(M68kRenderPlan *plan, const M68kRenderPlannedLabel *label) {
+  if (plan == NULL || label == NULL || label->name[0] == '\0') return -1;
+  if (m68k_render_plan_find_label(plan, label->source_section_index, label->source_offset) != NULL) return -1;
+  if (render_plan_reserve_labels(plan, plan->label_count + 1U) != 0) return -1;
+  plan->labels[plan->label_count++] = *label;
+  return 0;
+}
+
+const M68kRenderPlannedLabel *m68k_render_plan_find_label(const M68kRenderPlan *plan,
+    uint32_t source_section_index, uint32_t source_offset) {
+  size_t index;
+  if (plan == NULL) return NULL;
+  for (index = 0U; index < plan->label_count; ++index) {
+    const M68kRenderPlannedLabel *label = &plan->labels[index];
+    if (label->source_section_index == source_section_index && label->source_offset == source_offset) return label;
+  }
+  return NULL;
+}
+
+int m68k_render_plan_append_runtime_alias(M68kRenderPlan *plan,
+    const M68kRenderPlannedRuntimeAlias *runtime_alias) {
+  size_t index;
+  if (plan == NULL || runtime_alias == NULL || runtime_alias->name[0] == '\0') return -1;
+  for (index = 0U; index < plan->runtime_alias_count; ++index) {
+    const M68kRenderPlannedRuntimeAlias *existing = &plan->runtime_aliases[index];
+    if (existing->source_section_index == runtime_alias->source_section_index &&
+        existing->source_offset == runtime_alias->source_offset &&
+        existing->runtime_address == runtime_alias->runtime_address) {
+      return strcmp(existing->name, runtime_alias->name) == 0 ? 0 : -1;
+    }
+    if (strcmp(existing->name, runtime_alias->name) == 0) return -1;
+  }
+  if (render_plan_reserve_runtime_aliases(plan, plan->runtime_alias_count + 1U) != 0) return -1;
+  plan->runtime_aliases[plan->runtime_alias_count++] = *runtime_alias;
+  return 0;
 }
 
 static int render_plan_append_text_row_impl(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,

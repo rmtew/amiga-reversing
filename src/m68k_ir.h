@@ -49,6 +49,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 4096U
 #define M68K_ANALYSIS_NAMED_LABEL_LIMIT 4096U
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
+#define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
@@ -372,6 +373,20 @@ typedef enum M68kAnalysisRssetLayoutStorageKind {
   M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE = 6U
 } M68kAnalysisRssetLayoutStorageKind;
 
+/* A named RAM location with a durable storage contract.  Unlike an RSSET
+ * region this has no application-base dependency, so it can describe the
+ * absolute globals used by games and resident code. */
+typedef struct M68kAnalysisAbsoluteStorageSlot {
+  uint32_t address;
+  uint8_t size;
+  uint8_t storage_kind_id;
+  uint8_t reserved[2];
+  char symbol[64];
+  char pointer_struct[64];
+  char storage_kind[32];
+  char semantic_type[64];
+} M68kAnalysisAbsoluteStorageSlot;
+
 typedef struct M68kAnalysisRssetUseSiteBinding {
   uint32_t section_index;
   uint32_t offset;
@@ -515,6 +530,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t runtime_range_count;
   uint16_t runtime_entry_point_count;
   uint16_t rsset_layout_region_count;
+  uint16_t absolute_storage_slot_count;
   uint16_t rsset_use_site_binding_count;
   uint16_t manual_representation_count;
   uint16_t target_equate_count;
@@ -547,6 +563,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
   M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
+  M68kAnalysisAbsoluteStorageSlot absolute_storage_slots[M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT];
   M68kAnalysisRssetUseSiteBinding rsset_use_site_bindings[M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT];
   M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
@@ -1395,9 +1412,21 @@ typedef enum M68kPointerStoreResolutionKind {
   M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS = 7
 } M68kPointerStoreResolutionKind;
 
+/* This records the typed destination that establishes address intent.  App
+ * and absolute slots are first-class destinations even when no struct-field
+ * spelling is available. */
+typedef enum M68kPointerStoreDestinationKind {
+  M68K_POINTER_STORE_DESTINATION_UNKNOWN = 0,
+  M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD = 1,
+  M68K_POINTER_STORE_DESTINATION_APP_SLOT = 2,
+  M68K_POINTER_STORE_DESTINATION_ABSOLUTE_SLOT = 3,
+  M68K_POINTER_STORE_DESTINATION_STACK_PARAMETER = 4
+} M68kPointerStoreDestinationKind;
+
 typedef struct M68kPointerStoreIR {
   char destination_struct_name[64];
   char destination_field_name[64];
+  char destination_symbol[64];
   char pointee_struct_name[64];
   uint32_t offset;
   uint32_t source_value;
@@ -1408,6 +1437,8 @@ typedef struct M68kPointerStoreIR {
   uint16_t destination_field_offset;
   uint8_t source_operand_index;
   uint8_t destination_operand_index;
+  uint8_t destination_kind;
+  uint8_t has_renderable_source_expression;
   uint8_t destination_value_kind;
   uint8_t source_kind;
   uint8_t resolution;

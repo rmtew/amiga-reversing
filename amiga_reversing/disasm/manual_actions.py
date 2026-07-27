@@ -166,6 +166,8 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_CUSTOM_STRUCT_FIELD = "remove_manual_custom_struct_field"
     CREATE_MANUAL_RSSET_LAYOUT_REGION = "create_manual_rsset_layout_region"
     REMOVE_MANUAL_RSSET_LAYOUT_REGION = "remove_manual_rsset_layout_region"
+    CREATE_MANUAL_ABSOLUTE_STORAGE_SLOT = "create_manual_absolute_storage_slot"
+    REMOVE_MANUAL_ABSOLUTE_STORAGE_SLOT = "remove_manual_absolute_storage_slot"
     CREATE_MANUAL_RSSET_USE_SITE_BINDING = "create_manual_rsset_use_site_binding"
     REMOVE_MANUAL_RSSET_USE_SITE_BINDING = "remove_manual_rsset_use_site_binding"
     CREATE_MANUAL_DATA_BLOCK_LAYOUT = "create_manual_data_block_layout"
@@ -225,6 +227,8 @@ class ManualActionLogProjection:
     removed_custom_struct_fields: tuple[dict[str, object], ...]
     rsset_layout_regions: tuple[dict[str, object], ...]
     removed_rsset_layout_regions: tuple[dict[str, object], ...]
+    absolute_storage_slots: tuple[dict[str, object], ...]
+    removed_absolute_storage_slots: tuple[dict[str, object], ...]
     rsset_use_site_bindings: tuple[dict[str, object], ...]
     removed_rsset_use_site_bindings: tuple[dict[str, object], ...]
     data_block_layouts: tuple[dict[str, object], ...]
@@ -413,6 +417,8 @@ def _empty_projection(
         removed_custom_struct_fields=(),
         rsset_layout_regions=(),
         removed_rsset_layout_regions=(),
+        absolute_storage_slots=(),
+        removed_absolute_storage_slots=(),
         rsset_use_site_bindings=(),
         removed_rsset_use_site_bindings=(),
         data_block_layouts=(),
@@ -1057,6 +1063,13 @@ def _rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str, int]:
         base_symbol if isinstance(base_symbol, str) and base_symbol else "__amiga_app_base__",
         offset,
     )
+
+
+def _absolute_storage_slot_key(slot: dict[str, object]) -> int:
+    address = _manual_seed_int(slot, "address")
+    if address is None or address < 0 or address > 0xFFFFFFFF:
+        raise ValueError("absolute_storage_slot requires address")
+    return address
 
 
 def _rsset_use_site_binding_key(binding: dict[str, object]) -> str:
@@ -1742,6 +1755,8 @@ def _project_actions(
     removed_custom_struct_fields: dict[tuple[str, int], dict[str, object]] = {}
     rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     removed_rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
+    absolute_storage_slots: dict[int, dict[str, object]] = {}
+    removed_absolute_storage_slots: dict[int, dict[str, object]] = {}
     rsset_use_site_bindings: dict[str, dict[str, object]] = {}
     removed_rsset_use_site_bindings: dict[str, dict[str, object]] = {}
     data_block_layouts: dict[str, dict[str, object]] = {}
@@ -1889,6 +1904,19 @@ def _project_actions(
             region_key = _rsset_layout_region_key(region)
             rsset_layout_regions.pop(region_key, None)
             removed_rsset_layout_regions[region_key] = region
+        elif action.kind is ManualActionKind.CREATE_MANUAL_ABSOLUTE_STORAGE_SLOT:
+            slot = dict(_action_object(action, "absolute_storage_slot"))
+            slot["owner_action_id"] = action.action_id
+            slot_key = _absolute_storage_slot_key(slot)
+            removed_absolute_storage_slots.pop(slot_key, None)
+            absolute_storage_slots[slot_key] = slot
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_ABSOLUTE_STORAGE_SLOT:
+            slot = _action_object(action, "absolute_storage_slot")
+            slot_key = _absolute_storage_slot_key(slot)
+            existing_slot = absolute_storage_slots.pop(slot_key, None)
+            removed = dict(existing_slot or slot)
+            removed["cleanup_action_id"] = action.action_id
+            removed_absolute_storage_slots[slot_key] = removed
         elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_USE_SITE_BINDING:
             binding = _action_object(action, "rsset_use_site_binding")
             binding_key = _rsset_use_site_binding_key(binding)
@@ -2129,6 +2157,8 @@ def _project_actions(
         removed_custom_struct_fields=tuple(removed_custom_struct_fields.values()),
         rsset_layout_regions=tuple(rsset_layout_regions.values()),
         removed_rsset_layout_regions=tuple(removed_rsset_layout_regions.values()),
+        absolute_storage_slots=tuple(absolute_storage_slots.values()),
+        removed_absolute_storage_slots=tuple(removed_absolute_storage_slots.values()),
         rsset_use_site_bindings=tuple(rsset_use_site_bindings.values()),
         removed_rsset_use_site_bindings=tuple(removed_rsset_use_site_bindings.values()),
         data_block_layouts=tuple(data_block_layouts.values()),

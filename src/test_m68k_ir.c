@@ -72,7 +72,6 @@ static int test_render_ir_preview_build_with_source_analysis_mutator(const M68kO
         &platform_analysis_stats) != 0) {
     goto cleanup;
   }
-  m68k_render_lookup_materialize_structured_pointer_target_labels(&lookup, decode);
   m68k_render_lookup_materialize_relocation_target_labels(&lookup);
   if (render_asm_source) {
     if (m68k_ir_source_analysis_create(&source_analysis) != 0) goto cleanup;
@@ -6076,7 +6075,6 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
     int saw_section_row = 0;
     int saw_label_row = 0;
     int saw_instruction_source_row = 0;
-    int saw_expected_target_label_access = 0;
     int saw_rendered_target_label_access = 0;
     int saw_expected_branch_target_access = 0;
     int saw_rendered_branch_target_access = 0;
@@ -6129,14 +6127,6 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
       const M68kSectionAnalysisIR *analysis_section = &source_analysis->sections[0];
       for (access_index = 0U; access_index < analysis_section->expected_symbol_access_count; ++access_index) {
         const M68kExpectedSymbolAccessIR *access = &analysis_section->expected_symbol_accesses[access_index];
-        if (access->offset == 4U &&
-            access->target_section_index == 0U &&
-            access->target_offset == 4U &&
-            access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT &&
-            access->symbol_name != NULL &&
-            strcmp(access->symbol_name, "loc_0_00000004") == 0) {
-          saw_expected_target_label_access = 1;
-        }
         if (access->offset == 0U &&
             access->target_section_index == 0U &&
             access->target_offset == 4U &&
@@ -6152,7 +6142,6 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
     saw_rendered_branch_target_access = test_render_evidence_has_symbol_access(&source_evidence, 0U, 0U, 0U,
       M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET, "loc_0_00000004", 0U, 4U);
     M68K_C_ASSERT(saw_expected_branch_target_access);
-    M68K_C_ASSERT(saw_expected_target_label_access);
     M68K_C_ASSERT(saw_rendered_target_label_access);
     M68K_C_ASSERT(saw_rendered_branch_target_access);
     M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
@@ -12322,7 +12311,7 @@ static int test_source_quality_analyze_accepts_rendered_expected_storage_label_a
   return 0;
 }
 
-static int test_source_quality_analyze_expects_materialized_runtime_storage_label(void) {
+static int test_source_quality_analyze_does_not_expect_materialized_runtime_storage_label(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kSymbolOriginIR origin;
@@ -12351,10 +12340,9 @@ static int test_source_quality_analyze_expects_materialized_runtime_storage_labe
   M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":1") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"abs_0_00000004\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"storage_label_statement\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"storage_label\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"producer\":\"storage_label_statement\"") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"storage_label\"") == NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -14312,17 +14300,15 @@ static int test_source_quality_analyze_resolves_pointer_table_entries_from_label
       M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE |
       M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET,
     (int)source_analysis.sections[0].data_references[0].evidence_flags);
+  /* Table targets remain semantic references.  Whether an entry is rendered
+   * symbolically is decided by the renderer and recorded as render evidence. */
   for (access_index = 0U; access_index < source_analysis.sections[0].expected_symbol_access_count;
        ++access_index) {
     const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[access_index];
-    if (access->offset == 8U && access->target_section_index == 0U && access->target_offset == 24U &&
-        access->operand_index == UINT32_MAX && access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
-        access->symbol_name != NULL && strcmp(access->symbol_name, "ptr_target") == 0 &&
-        access->producer != NULL && strcmp(access->producer, "table_entry_target") == 0) {
+    if (access->producer != NULL && strcmp(access->producer, "table_entry_target") == 0)
       saw_table_entry_target_access = 1;
-    }
   }
-  M68K_C_ASSERT(saw_table_entry_target_access);
+  M68K_C_ASSERT(!saw_table_entry_target_access);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
   return 0;
@@ -14406,14 +14392,10 @@ static int test_source_quality_analyze_resolves_relocation_pointer_table_entry_t
   for (access_index = 0U; access_index < source_analysis.sections[0].expected_symbol_access_count;
        ++access_index) {
     const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[access_index];
-    if (access->offset == 0U && access->target_section_index == 1U && access->target_offset == 4U &&
-        access->operand_index == UINT32_MAX && access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
-        access->symbol_name != NULL && strcmp(access->symbol_name, "section1_ptr_target") == 0 &&
-        access->producer != NULL && strcmp(access->producer, "table_entry_target") == 0) {
+    if (access->producer != NULL && strcmp(access->producer, "table_entry_target") == 0)
       saw_table_entry_target_access = 1;
-    }
   }
-  M68K_C_ASSERT(saw_table_entry_target_access);
+  M68K_C_ASSERT(!saw_table_entry_target_access);
   m68k_fact_ir_destroy(&facts);
   m68k_ir_section_analysis_destroy(&section1);
   m68k_ir_section_analysis_destroy(&section0);
@@ -26401,6 +26383,8 @@ static int test_facts_v2_analysis_propagates_generic_pointer_store_through_stack
   M68K_C_ASSERT_U32(5U, analysis_section->accepted_code_runs[0].instruction_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis_section->pointer_store_count);
   M68K_C_ASSERT_U32(16U, analysis_section->pointer_stores[0].source_value);
+  M68K_C_ASSERT_U32(M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD,
+    analysis_section->pointer_stores[0].destination_kind);
   for (index = 0U; index < analysis_section->pointer_store_count; ++index) {
     const M68kPointerStoreIR *store = &analysis_section->pointer_stores[index];
     if (store->offset == 14U && store->source_value == 16U &&
@@ -26413,12 +26397,94 @@ static int test_facts_v2_analysis_propagates_generic_pointer_store_through_stack
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"pointer_store_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"source_value\":16,\"destination_field_offset\":0,\"destination_value_kind_id\":1,") != NULL);
+    "\"source_value\":16,\"destination_kind_id\":1,\"destination_kind\":\"struct_field\",") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"destination_value_kind\":\"target_pointer\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"resolution\":\"resolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"provenance_kind\":") != NULL);
   free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  const M68kPointerStoreIR *store;
+  uint8_t bytes[18] = {
+    0x20u, 0x3cu, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x21u, 0xc0u, 0x01u, 0x00u,
+    0x22u, 0x38u, 0x01u, 0x00u,
+    0x2au, 0x81u, 0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = 1U;
+  policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "world_object_shared_prefix");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "interaction_data_ptr");
+  custom_structs[0].fields[0].size = 4U;
+  custom_structs[0].fields[0].value_kind = M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER;
+  policy.has_entry_offset = 1U;
+  policy.entry_offset = 0U;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 5U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "world_object_shared_prefix");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
+  store = &analysis.sections[0].pointer_stores[0];
+  M68K_C_ASSERT_U32(14U, store->offset);
+  M68K_C_ASSERT_U32(0U, store->source_value);
+  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET, store->resolution);
+  M68K_C_ASSERT_U32(0U, store->candidate_target_count);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  policy.absolute_storage_slot_count = 1U;
+  policy.absolute_storage_slots[0].address = 0x100U;
+  policy.absolute_storage_slots[0].size = 4U;
+  policy.absolute_storage_slots[0].storage_kind_id = M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER;
+  snprintf(policy.absolute_storage_slots[0].symbol, sizeof(policy.absolute_storage_slots[0].symbol),
+    "test_pointer_slot");
+  snprintf(policy.absolute_storage_slots[0].storage_kind, sizeof(policy.absolute_storage_slots[0].storage_kind),
+    "pointer");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].pointer_store_count);
+  store = &analysis.sections[0].pointer_stores[0];
+  M68K_C_ASSERT_U32(M68K_POINTER_STORE_DESTINATION_ABSOLUTE_SLOT, store->destination_kind);
+  M68K_C_ASSERT(strcmp(store->destination_symbol, "test_pointer_slot") == 0);
+  M68K_C_ASSERT_U32(16U, store->source_value);
+  M68K_C_ASSERT_U32(1U, store->candidate_target_count);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
@@ -26638,8 +26704,10 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
   }
   M68K_C_ASSERT(saw_first_target);
   M68K_C_ASSERT(saw_second_target);
-  M68K_C_ASSERT(strstr(source, "abs_0_00000120:") != NULL);
-  M68K_C_ASSERT(strstr(source, "abs_0_00000124:") != NULL);
+  /* Candidate targets remain analysis facts. The rendered source operand is
+   * d0, so neither target may be introduced as a source label. */
+  M68K_C_ASSERT(strstr(source, "abs_0_00000120:") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000124:") == NULL);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
@@ -29624,6 +29692,52 @@ static int test_facts_v2_render_asm_source_symbols_low_absolute_memory_slots(voi
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_render_asm_source_uses_declared_absolute_storage_slot_symbol(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[] = {
+    0x20U, 0x3CU, 0x00U, 0x00U, 0x12U, 0x34U,
+    0x21U, 0xC0U, 0x64U, 0xC0U,
+    0x22U, 0x78U, 0x64U, 0xC0U,
+    0x4EU, 0x75U
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.absolute_storage_slot_count = 1U;
+  policy.absolute_storage_slots[0].address = 0x64C0U;
+  policy.absolute_storage_slots[0].size = 4U;
+  policy.absolute_storage_slots[0].storage_kind_id = M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER;
+  snprintf(policy.absolute_storage_slots[0].symbol, sizeof(policy.absolute_storage_slots[0].symbol),
+    "game_queue_head_ptr");
+  snprintf(policy.absolute_storage_slots[0].storage_kind, sizeof(policy.absolute_storage_slots[0].storage_kind),
+    "pointer");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "game_queue_head_ptr\tEQU\t$64C0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d0,game_queue_head_ptr.w\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l game_queue_head_ptr.w,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "absolute_slot_000064C0") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -33540,7 +33654,7 @@ int m68k_c_ir_tests(void) {
     {"source_quality_analyze_accepts_rendered_expected_storage_label_access",
       test_source_quality_analyze_accepts_rendered_expected_storage_label_access},
     {"source_quality_analyze_expects_materialized_runtime_storage_label",
-      test_source_quality_analyze_expects_materialized_runtime_storage_label},
+      test_source_quality_analyze_does_not_expect_materialized_runtime_storage_label},
     {"source_quality_analyze_uses_render_evidence_without_section_mutation",
       test_source_quality_analyze_uses_render_evidence_without_section_mutation},
     {"source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access",
@@ -33797,6 +33911,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute},
     {"facts_v2_render_asm_source_symbols_low_absolute_memory_slots",
       test_facts_v2_render_asm_source_symbols_low_absolute_memory_slots},
+    {"facts_v2_render_asm_source_uses_declared_absolute_storage_slot_symbol",
+      test_facts_v2_render_asm_source_uses_declared_absolute_storage_slot_symbol},
     {"facts_v2_render_asm_source_symbols_absolute_address_uses",
       test_facts_v2_render_asm_source_symbols_absolute_address_uses},
     {"facts_v2_render_asm_source_expects_materialized_code_patch_addend",
@@ -33986,6 +34102,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_propagates_custom_field_pointer_type},
     {"facts_v2_analysis_propagates_generic_pointer_store_through_stack_reload",
       test_facts_v2_analysis_propagates_generic_pointer_store_through_stack_reload},
+    {"facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store",
+      test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store},
     {"facts_v2_render_asm_source_resolves_generic_pointer_field_store",
       test_facts_v2_render_asm_source_resolves_generic_pointer_field_store},
     {"facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge",

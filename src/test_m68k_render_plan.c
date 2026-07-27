@@ -476,6 +476,89 @@ static int test_render_plan_splits_multiline_data_source_ranges(void) {
   return 0;
 }
 
+static int test_render_plan_moves_and_finds_symbolic_expression(void) {
+  M68kRenderPlan source;
+  M68kRenderPlan dest;
+  M68kRenderPlannedExpression expression;
+  const M68kRenderPlannedExpression *found;
+  m68k_render_plan_init(&source);
+  m68k_render_plan_init(&dest);
+  memset(&expression, 0, sizeof(expression));
+  expression.source_section_index = 2U;
+  expression.source_offset = 0x40U;
+  expression.target_section_index = 1U;
+  expression.target_offset = 0x80U;
+  expression.operand_index = 0U;
+  expression.kind = M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY;
+  expression.outcome = M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC;
+  snprintf(expression.expression, sizeof(expression.expression), "table_target");
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_expression(&source, &expression));
+  found = m68k_render_plan_find_expression(&source, 2U, 0x40U, 0U,
+    M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY);
+  M68K_C_ASSERT(found != NULL);
+  M68K_C_ASSERT_STR("table_target", found->expression);
+  M68K_C_ASSERT(m68k_render_plan_find_expression(&source, 2U, 0x44U, 0U,
+    M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY) == NULL);
+  m68k_render_plan_move(&dest, &source);
+  found = m68k_render_plan_find_expression(&dest, 2U, 0x40U, 0U,
+    M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY);
+  M68K_C_ASSERT(found != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)dest.expression_count);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source.expression_count);
+  m68k_render_plan_destroy(&source);
+  m68k_render_plan_destroy(&dest);
+  return 0;
+}
+
+static int test_render_plan_declaration_namespace_rejects_aliases(void) {
+  M68kRenderPlan plan;
+  M68kRenderPlannedDeclaration declaration;
+  m68k_render_plan_init(&plan);
+  memset(&declaration, 0, sizeof(declaration));
+  declaration.kind = M68K_RENDER_PLANNED_DECLARATION_LABEL;
+  declaration.has_source_target = 1U;
+  declaration.section_index = 0U;
+  declaration.offset = 0x40U;
+  snprintf(declaration.name, sizeof(declaration.name), "source_label");
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_declaration(&plan, &declaration));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_declaration(&plan, &declaration));
+  snprintf(declaration.name, sizeof(declaration.name), "source_alias");
+  M68K_C_ASSERT_INT(-1, m68k_render_plan_append_declaration(&plan, &declaration));
+  snprintf(declaration.name, sizeof(declaration.name), "source_label");
+  declaration.kind = M68K_RENDER_PLANNED_DECLARATION_EQUATE;
+  M68K_C_ASSERT_INT(-1, m68k_render_plan_append_declaration(&plan, &declaration));
+  M68K_C_ASSERT_U32(1U, (uint32_t)plan.declaration_count);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
+static int test_render_plan_runtime_aliases_are_unique_and_move_with_plan(void) {
+  M68kRenderPlan source;
+  M68kRenderPlan dest;
+  M68kRenderPlannedRuntimeAlias runtime_alias;
+  m68k_render_plan_init(&source);
+  m68k_render_plan_init(&dest);
+  memset(&runtime_alias, 0, sizeof(runtime_alias));
+  runtime_alias.source_section_index = 2U;
+  runtime_alias.source_offset = 0x40U;
+  runtime_alias.runtime_address = 0x40040U;
+  snprintf(runtime_alias.name, sizeof(runtime_alias.name), "abs_2_00040040");
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_runtime_alias(&source, &runtime_alias));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_runtime_alias(&source, &runtime_alias));
+  snprintf(runtime_alias.name, sizeof(runtime_alias.name), "conflicting_alias");
+  M68K_C_ASSERT_INT(-1, m68k_render_plan_append_runtime_alias(&source, &runtime_alias));
+  snprintf(runtime_alias.name, sizeof(runtime_alias.name), "abs_2_00040040");
+  runtime_alias.runtime_address = 0x50040U;
+  M68K_C_ASSERT_INT(-1, m68k_render_plan_append_runtime_alias(&source, &runtime_alias));
+  m68k_render_plan_move(&dest, &source);
+  M68K_C_ASSERT_U32(1U, (uint32_t)dest.runtime_alias_count);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source.runtime_alias_count);
+  M68K_C_ASSERT_STR("abs_2_00040040", dest.runtime_aliases[0].name);
+  m68k_render_plan_destroy(&source);
+  m68k_render_plan_destroy(&dest);
+  return 0;
+}
+
 int m68k_c_render_plan_tests(void) {
   static const M68kCTestCase cases[] = {
     {"line_counts_and_order", test_render_plan_line_counts_and_order},
@@ -490,6 +573,9 @@ int m68k_c_render_plan_tests(void) {
     {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines},
     {"hoists_typed_header_rows", test_render_plan_hoists_typed_header_rows},
     {"move_transfers_arena_owned_rows", test_render_plan_move_transfers_arena_owned_rows},
+    {"moves_and_finds_symbolic_expression", test_render_plan_moves_and_finds_symbolic_expression},
+    {"declaration_namespace_rejects_aliases", test_render_plan_declaration_namespace_rejects_aliases},
+    {"runtime_aliases_are_unique_and_move_with_plan", test_render_plan_runtime_aliases_are_unique_and_move_with_plan},
     {"arena_owned_rows_survive_growth", test_render_plan_arena_owned_rows_survive_growth},
     {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture},
     {"splits_multiline_data_source_ranges", test_render_plan_splits_multiline_data_source_ranges}

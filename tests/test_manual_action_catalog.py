@@ -127,6 +127,31 @@ def test_data_block_pointer_struct_binding_requires_long_aligned_elements() -> N
         })
 
 
+def test_target_absolute_storage_slot_catalog_payloads() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.absolute_storage_slot.add",
+        {
+            "address": 0x64C0,
+            "symbol": "game_queue_head_ptr",
+            "storage_kind": "struct_pointer",
+            "pointer_struct": "world_object_shared_prefix",
+        },
+    )
+
+    assert kind == "create_manual_absolute_storage_slot"
+    assert payload == {"absolute_storage_slot": {
+        "absolute_storage_slot_id": "catalog-absolute-storage-000064C0",
+        "address": 0x64C0,
+        "size": 4,
+        "symbol": "game_queue_head_ptr",
+        "storage_kind": "struct_pointer",
+        "pointer_struct": "world_object_shared_prefix",
+    }}
+    kind, payload = target_catalog_manual_payload("target.absolute_storage_slot.remove", {"address": 0x64C0})
+    assert kind == "remove_manual_absolute_storage_slot"
+    assert payload == {"absolute_storage_slot": {"address": 0x64C0}}
+
+
 def test_target_equate_catalog_payloads() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.equate.add",
