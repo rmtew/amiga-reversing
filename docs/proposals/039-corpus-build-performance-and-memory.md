@@ -1,4 +1,4 @@
-# Proposal 039: Corpus Build Performance and Memory Discipline
+# Proposal 039: Corpus Build Observability, Resource Discipline, and Analysis Coverage
 
 Status: Deferred.
 
@@ -11,16 +11,27 @@ single-process CPU work and large transient private-memory growth (roughly
 also writes its artifacts only after the expensive analysis phase, so the
 operator has no durable progress or phase information while waiting.
 
-This is a corpus-tooling performance and resource-lifecycle concern. It is
-not evidence that the typed-pointer analysis is incorrect, and it must not be
-worked around by silently analysing a smaller corpus, publishing stale corpus
-artifacts as fresh, reducing scope, or adding retry/fallback paths.
+This is a corpus-tooling observability, resource-lifecycle, and coverage
+concern. It is not evidence that the typed-pointer analysis is incorrect, and
+it must not be worked around by silently analysing a smaller corpus,
+publishing stale corpus artifacts as fresh, reducing scope, or adding
+retry/fallback paths.
+
+The Proposal 038 baseline also found zero emitted typed-pointer-store facts.
+That does **not** mean the corpus contains no pointer writes. It means the
+common corpus build has insufficient source-analysis coverage for this audit:
+most executable inputs lack recovered typed destination contracts, and
+reconstructed raw project targets such as Pandora are catalogued as project
+metadata rather than passed through their normal source-analysis projection.
+An audit cannot measure facts that its input model discards.
 
 ## Goal
 
 Make a full indexed-corpus build predictably bounded, observable, and
-meaningfully parallel where analysis permits it, while preserving exactly the
-same deterministic corpus facts and artifact schemas.
+meaningfully parallel where analysis permits it, while ensuring that every
+analysable target contributes its normal source-analysis facts to the common
+corpus. Preserve deterministic corpus facts and artifact schemas except where
+a deliberate schema extension is required to carry previously omitted facts.
 
 The solution must identify the actual expensive phases and memory owners,
 then correct their ownership, lifetime, scheduling, or serialization. It must
@@ -39,6 +50,11 @@ memory to concrete operations, including:
 - compression and artifact writes; and
 - retained Python and C allocations between target analyses.
 
+Also inventory corpus input kinds against the source-analysis paths available
+to them. For each kind, establish whether the corpus receives only catalog
+metadata or the same analysis facts, listing locators, and durable type
+contracts available to a normal reconstructed target.
+
 Establish whether the observed low parallelism is caused by the Python
 executor, a backend lock, global backend state, allocator retention, or a
 particular class of target. Do not assume that garbage collection, lower worker
@@ -54,6 +70,13 @@ counts, process restarts, or a larger machine is a fix.
 - Progress reports identify phase, completed/total targets, elapsed time,
   worker utilisation, and current/high-water memory without changing corpus
   contents.
+- Every analysable reconstructed project target enters the common source
+  analysis path. Its typed fields, pointer stores, and other durable analysis
+  facts are represented with the same stable target and listing identity as
+  executable corpus inputs.
+- Inputs that genuinely cannot be source-analysed state that explicit reason
+  in a stable coverage record; they are not silently represented as if their
+  catalog metadata were analysis evidence.
 - Output remains deterministic across worker counts, including stable row ids,
   ordering, compressed snippet indexes, and all existing report schemas.
 - A failed build leaves no partially published corpus in the canonical output
@@ -79,14 +102,22 @@ counts, process restarts, or a larger machine is a fix.
   byte-stability guarantee.
 - Peak memory is bounded by the configured concurrency and measured input
   size, rather than monotonically retaining completed-target state.
+- A coverage report identifies every corpus input kind, its analysis status,
+  and the reason for any unavailable analysis. Reconstructed Pandora is
+  included as a source-analysed target, not only a decompression/reproduction
+  catalog row.
+- A regenerated typed-pointer audit contains observed pointer-store rows when
+  the underlying analysed targets have proven pointer destination contracts;
+  an empty result is acceptable only when the coverage report proves there are
+  no such contracts, not because a target class was omitted.
 - Existing corpus-tool tests pass, and a fresh full build completes with all
   normal manifest, xref, snippet, variant, type-flow, and unresolved-field
   artifacts validated.
 
 ## Non-Goals
 
-- Changing analysis facts, pointer propagation, renderer behaviour, or target
-  Manual Actions.
+- Changing pointer propagation semantics, renderer behaviour, or target Manual
+  Actions.
 - Making an incomplete or selectively rebuilt corpus appear fresh.
 - Replacing the corpus format solely to evade a measurable lifecycle problem.
 
