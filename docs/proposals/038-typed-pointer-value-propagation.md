@@ -114,6 +114,45 @@ typed address-value fact and the frozen render plan.
 6. Remove any old scalar-immediate special cases made redundant by the common
    typed address-value path.
 
+## Corpus Opportunity Audit
+
+Start implementation with a fresh indexed-corpus audit. The existing pointer
+store facts and type-flow reports already expose much of the needed evidence,
+but the corpus must gain a first-class, stable row for this proposal's complete
+opportunity shape:
+
+```text
+typed pointer destination
+  + address-valued producer
+  + target-resolution result
+  + render result
+  + downstream propagation summary
+```
+
+Each row must identify the source/target by stable corpus identity and include:
+
+- source kind: immediate, relocation, register, stack, field, return value,
+  or table element;
+- destination kind: struct field, app slot, absolute slot, or stack
+  parameter, with its declared pointee domain;
+- resolution: resolved, finite candidates, ambiguous, invalid, external, or
+  no proven pointer contract;
+- render outcome: symbolic, explicitly non-source, or invalid;
+- propagation depth and terminal reason; and
+- whether the record is a positive fixture candidate, a negative scalar case,
+  or an unresolved review opportunity.
+
+The audit is a measurement and fixture-selection surface, not an automatic
+mutation mechanism. It must not create labels, types, Manual Actions, or
+source changes. Corpus rows are derived from durable analysis facts and retain
+the provenance needed to reproduce their classification.
+
+Regenerate the corpus before implementation and save its aggregate counts and
+representative stable rows as the Proposal 038 baseline. Select focused C
+fixtures from distinct source/destination/propagation categories and select
+Pandora only as one proof target. Regenerate the same report after each major
+slice and report both resolved gains and any new invalid/ambiguous cases.
+
 ## Pandora Proof Scope
 
 Use the world-object interaction/callback swath as the first proof, beginning
@@ -129,6 +168,12 @@ without code changes.
 
 ## Acceptance Criteria
 
+- A fresh corpus baseline and post-change report expose the typed-pointer
+  opportunity rows above, with stable identity, provenance, aggregate counts,
+  and no source mutation side effect.
+- The corpus contains representative positive, negative-scalar, external,
+  ambiguous, and propagated cases; focused fixtures are selected from those
+  categories rather than solely from Pandora.
 - Focused C fixtures cover a typed pointer-field immediate store, relocation
   pointer store, register copy, stack/global round trip, typed field reload,
   compatible and conflicting joins, call clobbering, and a chained lookup.
