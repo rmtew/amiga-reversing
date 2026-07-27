@@ -148,10 +148,14 @@ source changes. Corpus rows are derived from durable analysis facts and retain
 the provenance needed to reproduce their classification.
 
 Regenerate the corpus before implementation and save its aggregate counts and
-representative stable rows as the Proposal 038 baseline. Select focused C
-fixtures from distinct source/destination/propagation categories and select
-Pandora only as one proof target. Regenerate the same report after each major
-slice and report both resolved gains and any new invalid/ambiguous cases.
+representative stable rows as the Proposal 038 baseline. Use observed rows as
+real-target regression and integration evidence; do not treat a category's
+absence as evidence that it has no valid semantics, because a target may lack
+the durable pointer contract needed to emit it. Select focused C fixtures for
+the complete source/destination/propagation matrix, including categories not
+yet observed in the corpus, and select Pandora only as one proof target.
+Regenerate the same report after each major slice and report both resolved
+gains and any new invalid/ambiguous cases.
 
 ### Superseded pre-039 baseline — 2026-07-28
 
@@ -205,10 +209,11 @@ render outcome: symbolic_now 4, needs_address_value_propagation 21,
 This is the implementation baseline for this proposal. It proves that the
 common audit stream now carries observed positive opportunities, including the
 Pandora world-object pointer-store class, without a target-specific corpus
-path. Before semantic implementation, the audit still must select the required
-positive, scalar-negative, external, ambiguous, and propagated focused
-fixtures from the stable rows rather than treating this aggregate as coverage
-of every category.
+path. It does not cover every semantic category: the current corpus has no
+emitted relocation, stack, return-value, scalar-negative, or conflicting-join
+pointer-store fixture. Those gaps are missing durable input contracts, not
+negative evidence. Focused C fixtures must cover the full semantic matrix;
+observed corpus rows remain the real-target integration and regression set.
 
 ## Pandora Proof Scope
 
@@ -230,9 +235,14 @@ without code changes.
 - A fresh corpus baseline and post-change report expose the typed-pointer
   opportunity rows above, with stable identity, provenance, aggregate counts,
   and no source mutation side effect.
-- The corpus contains representative positive, negative-scalar, external,
-  ambiguous, and propagated cases; focused fixtures are selected from those
-  categories rather than solely from Pandora.
+- The corpus audit records every observed pointer-store opportunity with its
+  stable identity and classification. A category omitted because no analysed
+  target has the required durable contract is reported as unavailable, never
+  treated as a negative case or used to narrow the implementation.
+- Focused C fixtures cover representative positive, negative-scalar, external,
+  ambiguous, and propagated cases. Corpus rows are selected as real-target
+  integration cases where available, rather than requiring the corpus alone to
+  supply every category or relying solely on Pandora.
 - Focused C fixtures cover a typed pointer-field immediate store, relocation
   pointer store, register copy, stack/global round trip, typed field reload,
   compatible and conflicting joins, call clobbering, and a chained lookup.
