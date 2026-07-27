@@ -1,6 +1,6 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: Proposed.
+Status: Proposed. Depends on Proposal 039 for corpus audit coverage.
 
 ## Problem
 
@@ -179,13 +179,13 @@ stable xref/listing locator when a pointer-store fact exists and streams the
 xref artifact, so reporting remains bounded for a full corpus. It does not
 create labels, types, Manual Actions, or source output.
 
-Before implementation may claim corpus coverage, extend the normal corpus
-analysis input model so that analysable reconstructed project targets and typed
-pointer-store facts reach the common corpus stream. That must be a general
-source-analysis path with the same durable facts as executable inputs, not a
-Pandora export, a manual fixture injection, or an inferred operand-text scan.
-Then regenerate this baseline and select the required fixture categories from
-observed rows.
+Before implementation may claim corpus coverage, Proposal 039 must provide the
+normal corpus analysis input model: analysable reconstructed project targets
+and typed pointer-store facts must reach the common corpus stream. That is a
+general source-analysis path with the same durable facts as executable inputs,
+not a Pandora export, a manual fixture injection, or an inferred operand-text
+scan. After that dependency is complete, regenerate this baseline and select
+the required fixture categories from observed rows.
 
 ## Pandora Proof Scope
 
@@ -202,6 +202,8 @@ without code changes.
 
 ## Acceptance Criteria
 
+- Proposal 039's corpus coverage and observability acceptance criteria pass
+  before this proposal claims corpus audit coverage or selects corpus fixtures.
 - A fresh corpus baseline and post-change report expose the typed-pointer
   opportunity rows above, with stable identity, provenance, aggregate counts,
   and no source mutation side effect.
