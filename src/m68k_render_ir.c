@@ -177,27 +177,13 @@ static void set_asm_source_plan_row_statement_from_section(M68kRenderPlanRow *ro
   m68k_render_plan_row_set_statement_metadata(row, statement_kind, instruction, source_bytes, source_byte_count);
 }
 
-static int store_asm_source_declaration_line(M68kRenderIRPreview *preview, const char *line) {
-  char *copy;
-  if (preview == NULL || line == NULL ||
-      preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT)
-    return 0;
-  if (preview->asm_source_header_arena == NULL) {
-    preview->asm_source_header_arena = arena_create(4096U);
-    if (preview->asm_source_header_arena == NULL) return 0;
-  }
-  copy = arena_strdup(preview->asm_source_header_arena, line);
-  if (copy == NULL) return 0;
-  preview->asm_source_declaration_lines[preview->asm_source_declaration_count] = copy;
-  return 1;
-}
-
 static int asm_source_symbol_is_declared_equate(const M68kRenderIRPreview *preview, const char *symbol_name) {
-  uint16_t index;
+  size_t index;
   if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 0;
-  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
-    if (preview->asm_source_declaration_is_equate[index] != 0U &&
-        strcmp(preview->asm_source_declarations[index], symbol_name) == 0) {
+  for (index = 0U; index < preview->asm_source_plan.declaration_count; ++index) {
+    const M68kRenderPlannedDeclaration *declaration = &preview->asm_source_plan.declarations[index];
+    if (declaration->kind == M68K_RENDER_PLANNED_DECLARATION_EQUATE &&
+        strcmp(declaration->name, symbol_name) == 0) {
       return 1;
     }
   }
@@ -211,12 +197,6 @@ static Arena *render_preview_scratch_arena(M68kRenderIRPreview *preview) {
     if (preview->scratch_arena == NULL) return NULL;
   }
   return preview->scratch_arena;
-}
-
-static int compare_asm_source_include_paths(const void *left, const void *right) {
-  const char *const *left_path = (const char *const *)left;
-  const char *const *right_path = (const char *const *)right;
-  return strcmp(*left_path, *right_path);
 }
 
 static void recompute_asm_source_plan_metrics(M68kRenderIRPreview *preview, const M68kRenderPlan *plan);
@@ -455,13 +435,51 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, Arena *scratch_
   return 1;
 }
 
+static int append_planned_header_declarations(M68kRenderPlan *dest, const M68kRenderPlan *source,
+    uint8_t kind, uint32_t row_kind, uint32_t *out_count) {
+  char previous_name[sizeof(source->declarations[0].name)];
+  uint32_t count = 0U;
+  int have_previous = 0;
+  if (out_count != NULL) *out_count = 0U;
+  if (dest == NULL || source == NULL) return 0;
+  for (;;) {
+    const M68kRenderPlannedDeclaration *selected = NULL;
+    size_t index;
+    for (index = 0U; index < source->declaration_count; ++index) {
+      const M68kRenderPlannedDeclaration *candidate = &source->declarations[index];
+      if (candidate->kind != kind || candidate->emits_header_text == 0U ||
+          (have_previous && strcmp(candidate->name, previous_name) <= 0)) continue;
+      if (selected == NULL || strcmp(candidate->name, selected->name) < 0) selected = candidate;
+    }
+    if (selected == NULL) break;
+    if (kind == M68K_RENDER_PLANNED_DECLARATION_INCLUDE) {
+      char line[128];
+      int length = snprintf(line, sizeof(line), "    INCLUDE \"%s\"\n", selected->name);
+      if (length <= 0 || (size_t)length >= sizeof(line) ||
+          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+    } else if (kind == M68K_RENDER_PLANNED_DECLARATION_EQUATE) {
+      char line[224];
+      int length = snprintf(line, sizeof(line), "%s\tEQU\t%s\n", selected->name, selected->expression);
+      if (length <= 0 || (size_t)length >= sizeof(line) ||
+          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+    } else {
+      return 0;
+    }
+    snprintf(previous_name, sizeof(previous_name), "%s", selected->name);
+    have_previous = 1;
+    ++count;
+  }
+  if (out_count != NULL) *out_count = count;
+  return 1;
+}
+
 static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int emit_source_text) {
   M68kRenderPlan final_plan;
   Arena *scratch_arena;
-  char *include_paths[M68K_RENDER_ASM_INCLUDE_LIMIT];
   char *source_text = NULL;
   size_t row_index;
-  uint16_t index;
+  uint32_t include_count = 0U;
+  uint32_t equate_count = 0U;
   if (preview == NULL) return 0;
   scratch_arena = render_preview_scratch_arena(preview);
   if (scratch_arena == NULL) return 0;
@@ -514,19 +532,12 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
       return 0;
     }
   }
-  for (index = 0U; index < preview->asm_source_include_count; ++index)
-    include_paths[index] = preview->asm_source_includes[index];
-  qsort(include_paths, preview->asm_source_include_count, sizeof(include_paths[0]), compare_asm_source_include_paths);
-  for (index = 0U; index < preview->asm_source_include_count; ++index) {
-    char line[128];
-    int length = snprintf(line, sizeof(line), "    INCLUDE \"%s\"\n", include_paths[index]);
-    if (length <= 0 || (size_t)length >= sizeof(line) ||
-        m68k_render_plan_append_text_row(&final_plan, M68K_RENDER_PLAN_ROW_INCLUDE, 0U, line, NULL) != 0) {
-      m68k_render_plan_destroy(&final_plan);
-      return 0;
-    }
+  if (!append_planned_header_declarations(&final_plan, &preview->asm_source_plan,
+      M68K_RENDER_PLANNED_DECLARATION_INCLUDE, M68K_RENDER_PLAN_ROW_INCLUDE, &include_count)) {
+    m68k_render_plan_destroy(&final_plan);
+    return 0;
   }
-  if (preview->asm_source_include_count != 0U &&
+  if (include_count != 0U &&
       m68k_render_plan_append_text_row(&final_plan, M68K_RENDER_PLAN_ROW_BLANK, 0U, "\n", NULL) != 0) {
     m68k_render_plan_destroy(&final_plan);
     return 0;
@@ -540,14 +551,12 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
       return 0;
     }
   }
-  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
-    if (m68k_render_plan_append_text_row(&final_plan, M68K_RENDER_PLAN_ROW_EQUATE, 0U,
-        preview->asm_source_declaration_lines[index], NULL) != 0) {
-      m68k_render_plan_destroy(&final_plan);
-      return 0;
-    }
+  if (!append_planned_header_declarations(&final_plan, &preview->asm_source_plan,
+      M68K_RENDER_PLANNED_DECLARATION_EQUATE, M68K_RENDER_PLAN_ROW_EQUATE, &equate_count)) {
+    m68k_render_plan_destroy(&final_plan);
+    return 0;
   }
-  if ((preview->asm_source_include_count != 0U || preview->asm_source_declaration_count != 0U) &&
+  if ((include_count != 0U || equate_count != 0U) &&
       m68k_render_plan_append_text_row(&final_plan, M68K_RENDER_PLAN_ROW_BLANK, 0U, "\n", NULL) != 0) {
     m68k_render_plan_destroy(&final_plan);
     return 0;
@@ -672,126 +681,64 @@ static int runtime_address_ref_targets_policy_materialized_source(const M68kRend
     const M68kFact *ref);
 
 static int render_asm_include_once(M68kRenderIRPreview *preview, const char *include_path) {
-  uint16_t index;
-  char line[128];
+  M68kRenderPlannedDeclaration declaration;
   if (preview == NULL || include_path == NULL || include_path[0] == '\0') return 1;
   if (preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
       preview->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS) return 1;
-  for (index = 0U; index < preview->asm_source_include_count; ++index) {
-    if (strcmp(preview->asm_source_includes[index], include_path) == 0) return 1;
-  }
-  if (preview->asm_source_include_count >= M68K_RENDER_ASM_INCLUDE_LIMIT) {
-    ++preview->asm_source_instruction_render_failures;
-    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
-    return 0;
-  }
-  snprintf(preview->asm_source_includes[preview->asm_source_include_count],
-    sizeof(preview->asm_source_includes[preview->asm_source_include_count]), "%s", include_path);
-  ++preview->asm_source_include_count;
-  snprintf(line, sizeof(line), "    INCLUDE \"%s\"\n", include_path);
-  if (preview->collect_asm_source_text) return 1;
-  hash_asm_text(preview, line);
-  ++preview->asm_source_lines;
-  return 1;
-}
-
-static int render_asm_declare_symbol_once(M68kRenderIRPreview *preview, const char *symbol_name, int32_t value) {
-  uint16_t index;
-  char line[160];
-  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
-  if (preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 1;
-  if (!asm_symbol_name_is_safe_local(symbol_name)) {
-    ++preview->asm_source_instruction_render_failures;
-    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
-    return 0;
-  }
-  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
-    if (strcmp(preview->asm_source_declarations[index], symbol_name) == 0) return 1;
-  }
-  if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
-    ++preview->asm_source_instruction_render_failures;
-    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
-    return 0;
-  }
-  snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
-    sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
-  preview->asm_source_declaration_is_equate[preview->asm_source_declaration_count] = 1U;
-  snprintf(line, sizeof(line), "%s\tEQU\t%d\n", symbol_name, (int)value);
-  if (preview->collect_asm_source_text) {
-    if (!store_asm_source_declaration_line(preview, line)) return 0;
-    ++preview->asm_source_declaration_count;
-    return 1;
-  }
-  ++preview->asm_source_declaration_count;
-  hash_asm_text(preview, line);
-  ++preview->asm_source_lines;
-  return 1;
-}
-
-static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, const char *symbol_name, uint32_t value) {
-  uint16_t index;
-  char line[160];
-  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
-  if (!asm_symbol_name_is_safe_local(symbol_name)) {
-    ++preview->asm_source_instruction_render_failures;
-    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
-    return 0;
-  }
-  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
-    if (strcmp(preview->asm_source_declarations[index], symbol_name) == 0) return 1;
-  }
-  if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
-    ++preview->asm_source_instruction_render_failures;
-    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
-    return 0;
-  }
-  snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
-    sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
-  preview->asm_source_declaration_is_equate[preview->asm_source_declaration_count] = 1U;
-  snprintf(line, sizeof(line), "%s\tEQU\t$%X\n", symbol_name, (unsigned)value);
-  if (preview->collect_asm_source_text) {
-    if (!store_asm_source_declaration_line(preview, line)) return 0;
-    ++preview->asm_source_declaration_count;
-    return 1;
-  }
-  ++preview->asm_source_declaration_count;
-  hash_asm_text(preview, line);
-  ++preview->asm_source_lines;
-  return 1;
+  memset(&declaration, 0, sizeof(declaration));
+  declaration.kind = M68K_RENDER_PLANNED_DECLARATION_INCLUDE;
+  declaration.emits_header_text = 1U;
+  snprintf(declaration.name, sizeof(declaration.name), "%s", include_path);
+  if (m68k_render_plan_append_declaration(&preview->asm_source_plan, &declaration) == 0) return 1;
+  ++preview->asm_source_instruction_render_failures;
+  record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
+  return 0;
 }
 
 static int render_asm_declare_symbol_expr_once(M68kRenderIRPreview *preview, const char *symbol_name,
     const char *expr) {
-  uint16_t index;
-  char line[192];
-  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0' || expr == NULL || expr[0] == '\0')
-    return 1;
+  M68kRenderPlannedDeclaration declaration;
+  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
+  if (expr == NULL || expr[0] == '\0') return 0;
   if (!asm_symbol_name_is_safe_local(symbol_name)) {
     ++preview->asm_source_instruction_render_failures;
     record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
-  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
-    if (strcmp(preview->asm_source_declarations[index], symbol_name) == 0) return 1;
-  }
-  if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
+  memset(&declaration, 0, sizeof(declaration));
+  declaration.kind = M68K_RENDER_PLANNED_DECLARATION_EQUATE;
+  declaration.emits_header_text = 1U;
+  snprintf(declaration.name, sizeof(declaration.name), "%s", symbol_name);
+  snprintf(declaration.expression, sizeof(declaration.expression), "%s", expr);
+  if (m68k_render_plan_append_declaration(&preview->asm_source_plan, &declaration) != 0) {
     ++preview->asm_source_instruction_render_failures;
     record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
-  snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
-    sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
-  preview->asm_source_declaration_is_equate[preview->asm_source_declaration_count] = 1U;
-  snprintf(line, sizeof(line), "%s\tEQU\t%s\n", symbol_name, expr);
-  if (preview->collect_asm_source_text) {
-    if (!store_asm_source_declaration_line(preview, line)) return 0;
-    ++preview->asm_source_declaration_count;
-    return 1;
-  }
-  ++preview->asm_source_declaration_count;
-  hash_asm_text(preview, line);
-  ++preview->asm_source_lines;
   return 1;
+}
+
+static int render_asm_declare_symbol_once(M68kRenderIRPreview *preview, const char *symbol_name, int32_t value) {
+  char expression[32];
+  if (preview != NULL && preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 1;
+  snprintf(expression, sizeof(expression), "%d", (int)value);
+  return render_asm_declare_symbol_expr_once(preview, symbol_name, expression);
+}
+
+static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, const char *symbol_name, uint32_t value) {
+  char expression[32];
+  snprintf(expression, sizeof(expression), "$%X", (unsigned)value);
+  return render_asm_declare_symbol_expr_once(preview, symbol_name, expression);
+}
+
+static int plan_asm_layout_symbol_once(M68kRenderIRPreview *preview, const char *symbol_name) {
+  M68kRenderPlannedDeclaration declaration;
+  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  if (!asm_symbol_name_is_safe_local(symbol_name)) return 0;
+  memset(&declaration, 0, sizeof(declaration));
+  declaration.kind = M68K_RENDER_PLANNED_DECLARATION_LAYOUT;
+  snprintf(declaration.name, sizeof(declaration.name), "%s", symbol_name);
+  return m68k_render_plan_append_declaration(&preview->asm_source_plan, &declaration) == 0;
 }
 
 static int byte_is_quoted_character_safe(uint8_t value);
@@ -933,6 +880,8 @@ static int render_asm_declare_custom_struct_layouts(M68kRenderIRPreview *preview
     uint32_t cursor = 0U;
     char line[192];
     if (custom_struct->name[0] == '\0' || custom_struct->size == 0U) continue;
+    snprintf(line, sizeof(line), "%s_SIZEOF", custom_struct->name);
+    if (!plan_asm_layout_symbol_once(preview, line)) return 0;
     hash_asm_text(preview, "; STRUCT ");
     hash_asm_text(preview, custom_struct->name);
     hash_asm_text(preview, "\n    RSRESET\n");
@@ -961,6 +910,8 @@ static int render_asm_declare_custom_struct_layouts(M68kRenderIRPreview *preview
         ++preview->asm_source_lines;
       }
       directive = field->size == 4U ? "RS.L" : field->size == 2U ? "RS.W" : "RS.B";
+      snprintf(line, sizeof(line), "%s_%s", custom_struct->name, field->name);
+      if (!plan_asm_layout_symbol_once(preview, line)) return 0;
       snprintf(line, sizeof(line), "%s_%s %s %u\n", custom_struct->name, field->name, directive,
         (unsigned)(field->size == 4U || field->size == 2U ? 1U : field->size));
       hash_asm_text(preview, line);
@@ -8180,6 +8131,10 @@ void render_asm_base_layout_rs(M68kRenderIRPreview *preview, const M68kRenderLoo
       hash_asm_text(preview, line);
       ++preview->asm_source_lines;
     }
+    if (!plan_asm_layout_symbol_once(preview, "app_SIZEOF")) {
+      preview->asm_source_allocation_failed = 1U;
+      goto cleanup;
+    }
     hash_asm_text(preview, "app_SIZEOF EQU __RS\n\n");
     preview->asm_source_lines += 2U;
     goto cleanup;
@@ -8217,6 +8172,10 @@ void render_asm_base_layout_rs(M68kRenderIRPreview *preview, const M68kRenderLoo
       if (slot->alias != 0U) {
         continue;
       } else {
+        if (!plan_asm_layout_symbol_once(preview, slot->name)) {
+          preview->asm_source_allocation_failed = 1U;
+          goto cleanup;
+        }
         render_asm_base_layout_format_slot_directive(slot, line, sizeof(line));
         cursor += slot->size;
       }
@@ -8226,6 +8185,10 @@ void render_asm_base_layout_rs(M68kRenderIRPreview *preview, const M68kRenderLoo
     for (slot_index = layout->start_index; slot_index < layout->end_index; ++slot_index) {
       const M68kBaseLayoutSlot *slot = &slots[slot_index];
       if (slot->alias == 0U) continue;
+      if (!plan_asm_layout_symbol_once(preview, slot->name)) {
+        preview->asm_source_allocation_failed = 1U;
+        goto cleanup;
+      }
       snprintf(line, sizeof(line), "    RSSET $%04X\n",
         (unsigned)((uint32_t)slot->displacement & 0xFFFFU));
       hash_asm_text(preview, line);
@@ -8248,6 +8211,10 @@ void render_asm_base_layout_rs(M68kRenderIRPreview *preview, const M68kRenderLoo
       snprintf(line, sizeof(line), "    RS.B %d\n", (int)(layout->sizeof_value - cursor));
       hash_asm_text(preview, line);
       ++preview->asm_source_lines;
+    }
+    if (!plan_asm_layout_symbol_once(preview, layout->sizeof_symbol)) {
+      preview->asm_source_allocation_failed = 1U;
+      goto cleanup;
     }
     snprintf(line, sizeof(line), "%s EQU __RS\n", layout->sizeof_symbol);
     hash_asm_text(preview, line);
@@ -9834,10 +9801,10 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
   }
 }
 
-static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
+static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
     M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask,
-    int append_plan_expression, int record_evidence, M68kRenderPlannedInstruction *out_planned_instruction);
+    M68kRenderPlannedInstruction *out_planned_instruction);
 
 /* This is the planning counterpart of instruction emission.  It deliberately
  * follows the accepted-candidate walk, including platform-state transitions,
@@ -9946,8 +9913,8 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
         (void)append_comment_part_local(planned_instruction.comment, sizeof(planned_instruction.comment),
           platform_comment);
         if (m68k_diag_has_errors(&diagnostics) || rendered.text[0] == '\0' ||
-            record_rendered_instruction_symbol_accesses(preview, lookup, section->section_index, candidate,
-              &render_instruction, rendered.rendered_operand_symbol_mask, 1, 0, &planned_instruction) != 0 ||
+            plan_rendered_instruction_symbol_accesses(preview, lookup, section->section_index, candidate,
+              &render_instruction, rendered.rendered_operand_symbol_mask, &planned_instruction) != 0 ||
             m68k_render_plan_append_instruction(&preview->asm_source_plan, &planned_instruction) != 0) return -1;
       } else {
         memset(&planned_instruction, 0, sizeof(planned_instruction));
@@ -10207,10 +10174,10 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
   return m68k_render_plan_append_expression(&preview->asm_source_plan, &expression);
 }
 
-static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
+static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
     M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask,
-    int append_plan_expression, int record_evidence, M68kRenderPlannedInstruction *out_planned_instruction) {
+    M68kRenderPlannedInstruction *out_planned_instruction) {
   size_t operand_index;
   if (candidate == NULL || instruction == NULL) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
@@ -10274,8 +10241,7 @@ static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *prev
       access.target_offset = runtime_ref->target_offset;
       access.has_target = 1U;
     }
-    if (append_plan_expression &&
-        append_rendered_instruction_expression(preview, section_index, candidate, &access, relocation != NULL) != 0)
+    if (append_rendered_instruction_expression(preview, section_index, candidate, &access, relocation != NULL) != 0)
       return -1;
     if (out_planned_instruction != NULL) {
       size_t access_index = out_planned_instruction->symbol_access_count;
@@ -10291,7 +10257,6 @@ static int record_rendered_instruction_symbol_accesses(M68kRenderIRPreview *prev
         sizeof(out_planned_instruction->symbol_accesses[access_index].symbol_name), "%s", access.symbol_name);
       ++out_planned_instruction->symbol_access_count;
     }
-    if (record_evidence && record_rendered_symbol_access(preview, section_index, &access) != 0) return -1;
   }
   return 0;
 }
@@ -10314,7 +10279,6 @@ void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
 
 void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
-  arena_destroy(preview->asm_source_header_arena);
   arena_destroy(preview->scratch_arena);
   if (preview->render_evidence != NULL) {
     m68k_ir_render_evidence_destroy(preview->render_evidence);

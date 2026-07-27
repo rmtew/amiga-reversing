@@ -10,11 +10,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define M68K_RENDER_ASM_INCLUDE_LIMIT 64U
-#define M68K_RENDER_ASM_INCLUDE_PATH_SIZE 64U
-#define M68K_RENDER_ASM_DECLARATION_LIMIT 1024U
-#define M68K_RENDER_ASM_SYMBOL_NAME_SIZE 64U
-
 typedef struct Arena Arena;
 typedef struct M68kAnalysisPolicy M68kAnalysisPolicy;
 typedef struct M68kRenderEvidenceIR M68kRenderEvidenceIR;
@@ -59,15 +54,8 @@ typedef struct M68kRenderIRPreview {
   M68kRenderPlan asm_source_plan;
   M68kRenderPlanRowBuilder asm_source_row_builder;
   M68kRenderEvidenceIR *render_evidence;
-  Arena *asm_source_header_arena;
   Arena *scratch_arena;
-  char asm_source_includes[M68K_RENDER_ASM_INCLUDE_LIMIT][M68K_RENDER_ASM_INCLUDE_PATH_SIZE];
-  char asm_source_declarations[M68K_RENDER_ASM_DECLARATION_LIMIT][M68K_RENDER_ASM_SYMBOL_NAME_SIZE];
-  char *asm_source_declaration_lines[M68K_RENDER_ASM_DECLARATION_LIMIT];
-  uint8_t asm_source_declaration_is_equate[M68K_RENDER_ASM_DECLARATION_LIMIT];
   uint32_t asm_source_body_start_byte;
-  uint16_t asm_source_include_count;
-  uint16_t asm_source_declaration_count;
   uint8_t platform_backend_kind;
   const M68kAnalysisPolicy *analysis_policy;
   uint8_t collect_asm_source_text;

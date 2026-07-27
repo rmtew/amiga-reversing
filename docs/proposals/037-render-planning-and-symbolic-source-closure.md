@@ -1,6 +1,7 @@
 # Proposal 037: Render Planning and Symbolic Source Closure
 
-Status: Proposed.
+Status: In progress. Source-body expression and label planning is implemented;
+header declaration closure remains required before this proposal is complete.
 
 ## Problem
 
@@ -54,7 +55,8 @@ concrete source expression renders it.
 ### Planned declaration
 
 Each emitted label, equate, or layout declaration has one planned declaration
-with a canonical identity. A name cannot denote incompatible declaration kinds.
+with a canonical identity, an origin, and its complete rendered form or
+rendered-form inputs. A name cannot denote incompatible declaration kinds.
 
 When a target equate and a rendered source label describe the same logical
 object, the source label is canonical and the equate is omitted. No alias is
@@ -85,6 +87,40 @@ The resolver result is a tagged outcome, not a nullable name:
 An `invalid` outcome refuses source export. It is never converted to a numeric
 expression merely to complete a build.
 
+## Required Completion: Header Declaration Closure
+
+The current implementation plans body expressions and source labels, but the
+header still has a second, preview-local declaration path. Target/platform
+equates, generated runtime-address helpers, RS/layout output, and some runtime
+aliases are collected or deduplicated while header text is being prepared.
+That is not a render plan and cannot validate collisions against planned source
+labels. This proposal is not complete until that path is removed.
+
+The completed design has one plan-owned declaration collection with these
+rules:
+
+- declarations carry a kind, canonical identity, origin, ordering class, and
+  sufficient structured payload to render them without consulting mutable
+  preview declaration state;
+- source labels, runtime aliases, `EQU` symbols, RS/layout symbols, and
+  generated helper symbols claim names through the same namespace operation;
+- include requirements are plan-owned header requirements with canonical
+  identity and deterministic ordering; they are not accumulated in preview
+  side storage;
+- a source label supersedes a target equate only when both describe the same
+  logical object. All other duplicate names, including an alias colliding with
+  a source declaration, are planning errors that report both origins; and
+- after plan freeze, header emission is a pure traversal of ordered plan
+  records. It neither declares, deduplicates, resolves, nor conditionally
+  suppresses a symbol.
+
+The existing declaration kind model must therefore be used for `EQU` and
+layout records rather than reserving those kinds unused beside a text-line
+side channel. Runtime aliases are declarations in this model, not a parallel
+array with an independent collision check. The instruction-access helper is
+split into a planning operation and an emission/evidence-copy operation; no
+boolean mode flags remain to select a legacy renderer path.
+
 ## Ownership and Ordering
 
 `M68kRenderLookup` remains a read-only query/index over analysis, policy,
@@ -114,6 +150,12 @@ boundaries: a typed renderer may retain its form only when it can emit that
 label at a valid element boundary; otherwise the body is split into safe data
 rows. A body walk must never consume a structured range across a planned label.
 
+The declaration namespace covers every emitted declaration category, not only
+source-storage labels. `EQU`, RS/layout, include-dependent symbolic support,
+storage labels, and runtime aliases all have plan records before their text is
+emitted. No preview-local declaration list is an authority for naming,
+deduplication, collision handling, or output ordering.
+
 ## Invariants
 
 - Every emitted symbolic expression has exactly one planned expression.
@@ -138,6 +180,13 @@ rows. A body walk must never consume a structured range across a planned label.
    evidence and emitted rows.
 6. Delete the mutable label/reference machinery from render-time paths and
    remove target-equate aliases superseded by source labels.
+7. Move all header declarations into the plan namespace: target and platform
+   equates, generated runtime-address helper equates, RS/layout declarations,
+   and every emitted runtime alias. Emit their rows solely from the frozen
+   plan, then remove preview-local declaration storage and its parallel
+   deduplication rules.
+8. Make instruction-access planning a single planning operation with no
+   renderer-mode switches. Emission copies its planned evidence only.
 
 No compatibility or fallback rendering path is retained.
 
@@ -149,10 +198,14 @@ The completed implementation removes, rather than retains beside the plan:
   `render_lookup_set_label` for source-expression discovery;
 - renderer-time traversal of runtime-address facts to discover or format
   alias labels;
+- preview-local declaration arrays and declaration-line storage used as a
+  second declaration namespace;
+- separate runtime-alias collision handling that does not consult the common
+  declaration namespace;
 - semantic runtime-reference and broad table label prepasses;
 - ad hoc structured-pointer label planners;
-- renderer-time `record_rendered_*symbol_accesses` decisions that duplicate
-  resolver logic;
+- dual-mode renderer/planner symbol-access helpers and renderer-time evidence
+  decisions that duplicate resolver logic;
 - source-quality producers derived directly from runtime or typed-flow facts;
 - target-equate emission that aliases a rendered source label; and
 - parser diagnostics that classify declaration-kind conflicts as allocation
@@ -174,6 +227,13 @@ row it emitted. It cannot alter the plan or lookup.
 - Each planned `symbolic` result produces one matching emitted expression and
   every planned declaration is emitted exactly once; each `numeric` result is
   emitted numerically with its audited reason.
+- Every emitted `EQU`, RS/layout declaration, source/storage label, and
+  runtime alias is represented in one shared plan namespace. Cross-kind or
+  alias/name conflicts fail planning with both origins; no preview-local
+  declaration deduplication remains.
+- Header rows are emitted solely from frozen plan records. A focused fixture
+  covers a source label superseding a target equate, a runtime alias collision
+  with a source declaration, and generated runtime-address helper equates.
 - Pandora proves the model with the world-object data: `active_world_object_ptr_table`
   is a canonical source label rather than an `EQU` alias; world-object typed
   pointer fields such as `behavior_script_ptr` have declared symbolic targets;

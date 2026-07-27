@@ -536,6 +536,7 @@ static int test_render_plan_runtime_aliases_are_unique_and_move_with_plan(void) 
   M68kRenderPlan source;
   M68kRenderPlan dest;
   M68kRenderPlannedRuntimeAlias runtime_alias;
+  M68kRenderPlannedDeclaration source_declaration;
   m68k_render_plan_init(&source);
   m68k_render_plan_init(&dest);
   memset(&runtime_alias, 0, sizeof(runtime_alias));
@@ -550,8 +551,19 @@ static int test_render_plan_runtime_aliases_are_unique_and_move_with_plan(void) 
   snprintf(runtime_alias.name, sizeof(runtime_alias.name), "abs_2_00040040");
   runtime_alias.runtime_address = 0x50040U;
   M68K_C_ASSERT_INT(-1, m68k_render_plan_append_runtime_alias(&source, &runtime_alias));
+  memset(&source_declaration, 0, sizeof(source_declaration));
+  source_declaration.kind = M68K_RENDER_PLANNED_DECLARATION_LABEL;
+  source_declaration.has_source_target = 1U;
+  source_declaration.section_index = 3U;
+  source_declaration.offset = 0x20U;
+  snprintf(source_declaration.name, sizeof(source_declaration.name), "source_storage");
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_declaration(&source, &source_declaration));
+  snprintf(runtime_alias.name, sizeof(runtime_alias.name), "source_storage");
+  runtime_alias.runtime_address = 0x40020U;
+  M68K_C_ASSERT_INT(-1, m68k_render_plan_append_runtime_alias(&source, &runtime_alias));
   m68k_render_plan_move(&dest, &source);
   M68K_C_ASSERT_U32(1U, (uint32_t)dest.runtime_alias_count);
+  M68K_C_ASSERT_U32(2U, (uint32_t)dest.declaration_count);
   M68K_C_ASSERT_U32(0U, (uint32_t)source.runtime_alias_count);
   M68K_C_ASSERT_STR("abs_2_00040040", dest.runtime_aliases[0].name);
   m68k_render_plan_destroy(&source);

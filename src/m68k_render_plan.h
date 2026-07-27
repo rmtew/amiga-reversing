@@ -45,7 +45,8 @@ typedef enum M68kRenderPlannedExpressionOutcome {
 typedef enum M68kRenderPlannedDeclarationKind {
   M68K_RENDER_PLANNED_DECLARATION_LABEL = 1,
   M68K_RENDER_PLANNED_DECLARATION_EQUATE = 2,
-  M68K_RENDER_PLANNED_DECLARATION_LAYOUT = 3
+  M68K_RENDER_PLANNED_DECLARATION_LAYOUT = 3,
+  M68K_RENDER_PLANNED_DECLARATION_INCLUDE = 4
 } M68kRenderPlannedDeclarationKind;
 
 typedef struct M68kRenderPlannedExpression {
@@ -74,9 +75,11 @@ typedef struct M68kRenderPlannedDeclaration {
   uint32_t section_index;
   uint32_t offset;
   uint32_t logical_address;
+  uint32_t runtime_address;
   uint8_t kind;
   uint8_t has_source_target;
-  uint8_t reserved[2];
+  uint8_t has_runtime_target;
+  uint8_t emits_header_text;
   char name[96];
   char expression[96];
 } M68kRenderPlannedDeclaration;

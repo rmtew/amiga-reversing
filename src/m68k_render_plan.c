@@ -263,9 +263,16 @@ int m68k_render_plan_append_declaration(M68kRenderPlan *plan,
     int same_name = strcmp(existing->name, declaration->name) == 0;
     int same_target = existing->has_source_target != 0U && declaration->has_source_target != 0U &&
       existing->section_index == declaration->section_index && existing->offset == declaration->offset;
-    if (!same_name && !same_target) continue;
-    if (same_name && same_target && existing->kind == declaration->kind &&
+    int same_runtime_target = existing->has_runtime_target != 0U && declaration->has_runtime_target != 0U &&
+      existing->runtime_address == declaration->runtime_address;
+    if (!same_name && !same_target && !same_runtime_target) continue;
+    if (same_name && existing->kind == declaration->kind &&
+        existing->has_source_target == declaration->has_source_target &&
+        existing->has_runtime_target == declaration->has_runtime_target &&
+        (!existing->has_source_target || same_target) &&
+        (!existing->has_runtime_target || same_runtime_target) &&
         existing->logical_address == declaration->logical_address &&
+        existing->emits_header_text == declaration->emits_header_text &&
         strcmp(existing->expression, declaration->expression) == 0) {
       return 0;
     }
@@ -321,16 +328,24 @@ const M68kRenderPlannedLabel *m68k_render_plan_find_label(const M68kRenderPlan *
 
 int m68k_render_plan_append_runtime_alias(M68kRenderPlan *plan,
     const M68kRenderPlannedRuntimeAlias *runtime_alias) {
+  M68kRenderPlannedDeclaration declaration;
   size_t index;
   if (plan == NULL || runtime_alias == NULL || runtime_alias->name[0] == '\0') return -1;
+  memset(&declaration, 0, sizeof(declaration));
+  declaration.kind = M68K_RENDER_PLANNED_DECLARATION_LABEL;
+  declaration.section_index = runtime_alias->source_section_index;
+  declaration.offset = runtime_alias->source_offset;
+  declaration.runtime_address = runtime_alias->runtime_address;
+  declaration.has_runtime_target = 1U;
+  snprintf(declaration.name, sizeof(declaration.name), "%s", runtime_alias->name);
+  if (m68k_render_plan_append_declaration(plan, &declaration) != 0) return -1;
   for (index = 0U; index < plan->runtime_alias_count; ++index) {
     const M68kRenderPlannedRuntimeAlias *existing = &plan->runtime_aliases[index];
     if (existing->source_section_index == runtime_alias->source_section_index &&
         existing->source_offset == runtime_alias->source_offset &&
         existing->runtime_address == runtime_alias->runtime_address) {
-      return strcmp(existing->name, runtime_alias->name) == 0 ? 0 : -1;
+      return 0;
     }
-    if (strcmp(existing->name, runtime_alias->name) == 0) return -1;
   }
   if (render_plan_reserve_runtime_aliases(plan, plan->runtime_alias_count + 1U) != 0) return -1;
   plan->runtime_aliases[plan->runtime_alias_count++] = *runtime_alias;
