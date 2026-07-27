@@ -9,7 +9,7 @@ treating an immediate written to it as an untyped scalar. For example, the
 Pandora instruction:
 
 ```asm
-move.l #$5CF4C,world_object_shared_prefix_interaction_data_ptr(a5)
+move.l #$5CF4C,world_object_shared_prefix_interaction_message_ptr(a5)
 ```
 
 writes a value to a known pointer field, yet the immediate can remain numeric
@@ -44,6 +44,20 @@ a failed symbolic representation of a value that analysis has classified as a
 renderable typed pointer. Such a failure is an export diagnostic. Immediates
 without pointer semantics remain numeric by an explicit semantic decision;
 they are not speculative pointers.
+
+### Main-task boundary
+
+This proposal preserves proven address identity and pointee domain from value
+creation through valid analysis transfer rules to a frozen render plan. It is
+not a renderer-side operand rewrite: rendering consumes the planned expression
+and must not rediscover pointer meaning from instruction text.
+
+The completed path includes a direct source pointer, its lossless register and
+storage transfers, a later reload, and at least one typed consumer or indirect
+callback use when the relevant contract is proven. It deliberately stops when
+identity, target mapping, a call contract, or a control-flow merge is not
+proven. That boundary makes unknown and ambiguous values durable analysis
+states rather than candidates for a numeric or symbolic fallback.
 
 ## Semantic Model
 
@@ -113,6 +127,11 @@ typed address-value fact and the frozen render plan.
    never a one-off instruction rendering.
 6. Remove any old scalar-immediate special cases made redundant by the common
    typed address-value path.
+
+The address-value fact is a pre-render analysis fact. It is available to
+typed-flow reporting, object/data xrefs, field and table consumers, and
+indirect-call/callback recovery before render planning consumes it. No second
+renderer-only pointer inference path may be introduced.
 
 ## Corpus Opportunity Audit
 
@@ -258,9 +277,9 @@ without code changes.
   invalidated by conflicts and clobbers.
 - Renderer/source-quality evidence comes from the planned expression, not from
   a separate typed-flow-to-label path.
-- Pandora renders the verified world-object pointer store symbolically and
-  follows at least one downstream reload/callback use using the same general
-  machinery.
+- Pandora renders the verified world-object pointer store as the planned source
+  expression and follows the same address-value fact through at least one
+  downstream reload and typed consumer or proven callback use.
 - Pandora has no duplicate declaration, synthetic label, dangling symbolic
   expression, or source-quality workaround introduced by the change.
 - Focused C and relevant Python tests pass; Pandora source analysis, internal
@@ -283,12 +302,29 @@ without code changes.
 - Inventing target objects for unmapped runtime/external addresses.
 - Replacing the shared render planner or adding a second symbol mechanism.
 - Recovering full composite object layouts in this proposal.
+- Whole-program alias inference, speculative call summaries, or retaining an
+  address value across an unknown clobber.
 
-## Follow-Up After Completion
+## Deferred Composable Extensions After Completion
 
-The next proposal should cover **composable struct-instance and embedded-layout
-recovery**. It will model a single source range as ordered typed elements:
-prefixes, gaps, embedded records, arrays, and explicit overlays. That work is
-intentionally deferred until pointer-value propagation is complete, because
-its field access and object edges must be based on the same reliable typed
-pointer model rather than a target-specific layout renderer.
+These are extension tasks, not hidden completion criteria for this proposal.
+They must consume the address-value facts and render plans established here;
+they must not recreate a second pointer-analysis or symbol mechanism.
+
+1. **Indexed, affine, and interior-address values.** Preserve element type,
+   bounds, and addends through scaled indexing and address formation, so an
+   address can resolve as an array element, field, or interior source range
+   rather than only `symbol+offset`.
+2. **Function summaries and callback contracts.** Derive proven typed pointer
+   parameters, returns, escapes, clobbers, and indirect callback signatures;
+   apply summaries interprocedurally only when their contract is durable.
+3. **Alias and control-flow refinement.** Distinguish identical object
+   identity, compatible but unknown pointer domains, finite candidate sets,
+   and invalidated aliases across joins and calls.
+4. **Pointer-table and chained-dereference recovery.** Carry the same facts
+   through pointer tables, dispatch tables, object arrays, and repeated loads
+   so typed indirect calls and data accesses compose.
+5. **Composable struct-instance and embedded-layout recovery.** Model one
+   source range as ordered typed elements—prefixes, gaps, embedded records,
+   arrays, and explicit overlays—using the reliable object edges from this
+   proposal rather than a target-specific layout renderer.
