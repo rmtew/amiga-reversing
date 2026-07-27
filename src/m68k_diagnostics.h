@@ -4,7 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define M68K_DIAG_MESSAGE_SIZE 160U
+/* Source-export diagnostics carry the invariant, producer, operand, and
+ * target. Keep the complete evidence available to the normal C/Python error
+ * path instead of truncating it before the actionable fields. */
+#define M68K_DIAG_MESSAGE_SIZE 512U
 #define M68K_DIAG_LIST_CAPACITY 8U
 
 typedef enum M68kDiagSeverity {

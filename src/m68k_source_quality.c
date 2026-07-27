@@ -1064,9 +1064,10 @@ static int section_has_rendered_symbol_access(const M68kRenderedSymbolAccessOffs
 }
 
 static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisIR *section,
-    const M68kExpectedSymbolAccessIR *access) {
+    const M68kExpectedSymbolAccessIR *access,
+    const M68kRenderEvidenceSectionIR *render_evidence_section) {
   M68kSourceQualityDiagnosticIR diagnostic;
-  char evidence_source[256];
+  char evidence_source[M68K_DIAG_MESSAGE_SIZE];
   const char *producer;
   const char *symbol_name;
   if (section == NULL || access == NULL) return -1;
@@ -1083,6 +1084,25 @@ static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisI
       "expected_symbol_access:producer=%s access=%s symbol=%s operand=%u",
       producer, m68k_expected_symbol_access_kind_name(access->access_kind), symbol_name,
       (unsigned)access->operand_index);
+  }
+  if (render_evidence_section != NULL) {
+    size_t index;
+    size_t shown = 0U;
+    for (index = 0U; index < render_evidence_section->rendered_symbol_access_count && shown < 3U; ++index) {
+      const M68kRenderedSymbolAccessIR *rendered = &render_evidence_section->rendered_symbol_accesses[index];
+      size_t used;
+      if (rendered->offset != access->offset || rendered->symbol_name == NULL) continue;
+      used = strlen(evidence_source);
+      snprintf(evidence_source + used, sizeof(evidence_source) - used,
+        "%srendered=%s:%s:operand=%u", shown == 0U ? " observed=" : ",",
+        m68k_rendered_symbol_access_kind_name(rendered->access_kind), rendered->symbol_name,
+        (unsigned)rendered->operand_index);
+      ++shown;
+    }
+    if (shown == 0U) {
+      size_t used = strlen(evidence_source);
+      snprintf(evidence_source + used, sizeof(evidence_source) - used, " observed=none");
+    }
   }
   memset(&diagnostic, 0, sizeof(diagnostic));
   diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_MISSING_EXPECTED_SYMBOL_ACCESS;
@@ -1236,7 +1256,8 @@ static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSec
       continue;
     }
     if (!section_has_rendered_symbol_access(&rendered_index, access)) {
-      if (append_missing_expected_symbol_access_diagnostic(section, access) != 0) goto done;
+      if (append_missing_expected_symbol_access_diagnostic(section, access,
+            render_evidence_section) != 0) goto done;
     }
   }
   result = 0;

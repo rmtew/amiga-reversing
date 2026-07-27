@@ -6391,11 +6391,17 @@ def _address_observation_xrefs(
 
 
 def _pointer_store_render_outcome(store: dict[str, Any]) -> str:
-    """Describe current source rendering without pretending propagated values are symbolic."""
+    """Describe the source expression selected by the durable address-value fact."""
     source_kind = _string_value(store.get("source_kind")) or "unknown"
     resolution = _string_value(store.get("resolution")) or "unknown"
     has_address = _bool_value(store.get("has_address")) or (_int_value(store.get("has_address"), 0) or 0) != 0
-    if source_kind == "immediate" and resolution == "resolved" and has_address:
+    has_renderable_source_expression = (
+        _bool_value(store.get("has_renderable_source_expression")) or
+        (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
+    )
+    if resolution == "resolved" and has_address and (
+        source_kind == "immediate" or has_renderable_source_expression
+    ):
         return "symbolic_now"
     if source_kind == "propagated" and resolution == "resolved" and has_address:
         return "needs_address_value_propagation"
@@ -6414,11 +6420,18 @@ def _pointer_store_example(section_index: int | None, store: dict[str, Any]) -> 
         value = _string_value(store.get(key))
         if value:
             example[key] = value
-    for key in ("source_value", "target_section_index", "target_offset", "provenance_section_index", "provenance_offset"):
+    for key in (
+        "source_value", "target_section_index", "target_offset", "provenance_section_index",
+        "provenance_offset", "provenance_operand_index",
+    ):
         value = _int_value(store.get(key))
         if value is not None:
             example[key] = value
     example["render_outcome"] = _pointer_store_render_outcome(store)
+    example["has_renderable_source_expression"] = bool(
+        _bool_value(store.get("has_renderable_source_expression")) or
+        (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
+    )
     return example
 
 
@@ -6444,6 +6457,10 @@ def _pointer_store_xref(
     field_name = _string_value(store.get("destination_field_name"))
     destination_symbol = _string_value(store.get("destination_symbol"))
     store_payload = dict(store)
+    store_payload["has_renderable_source_expression"] = bool(
+        _bool_value(store.get("has_renderable_source_expression")) or
+        (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
+    )
     store_payload["render_outcome"] = _pointer_store_render_outcome(store)
     return _xref(
         row,
@@ -10768,6 +10785,11 @@ def build_typed_pointer_value_opportunity_report(
             "pointee_domain": pointee_domain,
             "resolution": resolution,
             "provenance_kind": provenance,
+            "provenance_operand_index": _int_value(store.get("provenance_operand_index")),
+            "has_renderable_source_expression": bool(
+                _bool_value(store.get("has_renderable_source_expression")) or
+                (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
+            ),
             "render_outcome": outcome,
         }
         examples_by_outcome.setdefault(outcome, []).append(example)

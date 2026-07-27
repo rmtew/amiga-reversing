@@ -9388,25 +9388,31 @@ static int attach_existing_materialized_runtime_immediate_symbols(M68kRenderIRPr
   return 1;
 }
 
-/* A resolved typed address store is direct evidence that its source operand
- * denotes the recorded target.  Attach that source expression explicitly;
- * relying on the target label alone is insufficient for absolute/app storage
- * destinations, whose destination operand has no source-image location. */
-static void attach_resolved_pointer_store_source_symbols(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+/* Address-value facts identify the immediate that produced a typed pointer,
+ * even when lossless register or storage transfers separate it from the typed
+ * destination. Rendering consumes source analysis and attaches a symbol only
+ * to that producer; it never rewrites an intervening register transfer. */
+static void attach_planned_address_value_source_symbols(const M68kRenderLookup *lookup,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  const M68kSectionAnalysisIR *analysis_section;
   size_t index;
   uint32_t immediate_value;
-  if (lookup == NULL || section == NULL || candidate == NULL || instruction == NULL) return;
-  for (index = 0U; index < lookup->pointer_store_count; ++index) {
-    const M68kRenderPointerStore *store = &lookup->pointer_stores[index];
-    const M68kPointerStoreIR *fact = &store->fact;
-    if (store->section_index != section->section_index || fact->offset != candidate->offset ||
+  if (lookup == NULL || source_analysis == NULL || section == NULL || candidate == NULL || instruction == NULL)
+    return;
+  analysis_section = source_analysis_section_for_render(source_analysis, section->section_index);
+  if (analysis_section == NULL) return;
+  for (index = 0U; index < analysis_section->pointer_store_count; ++index) {
+    const M68kPointerStoreIR *fact = &analysis_section->pointer_stores[index];
+    if (fact->provenance_section_index != section->section_index || fact->provenance_offset != candidate->offset ||
         fact->resolution != M68K_POINTER_STORE_RESOLUTION_RESOLVED || fact->has_target == 0U ||
-        fact->source_operand_index >= instruction->operand_count ||
-        !m68k_ir_operand_immediate_value(&instruction->operands[fact->source_operand_index], &immediate_value)) {
+        fact->has_renderable_source_expression == 0U ||
+        fact->provenance_operand_index >= instruction->operand_count ||
+        !m68k_ir_operand_immediate_value(&instruction->operands[fact->provenance_operand_index], &immediate_value) ||
+        immediate_value != fact->source_value) {
       continue;
     }
-    attach_operand_label_symbol(lookup, instruction, fact->source_operand_index, section->section_index,
+    attach_operand_label_symbol(lookup, instruction, fact->provenance_operand_index, section->section_index,
       candidate->offset, fact->target_section_index, fact->target_offset);
   }
 }
@@ -9803,7 +9809,8 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
 
 static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
     M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask,
+    const M68kSourceAnalysisIR *source_analysis, const M68kInstructionIR *instruction,
+    uint8_t rendered_operand_symbol_mask,
     M68kRenderPlannedInstruction *out_planned_instruction);
 
 /* This is the planning counterpart of instruction emission.  It deliberately
@@ -9868,7 +9875,7 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
             candidate, &instruction) ||
           !attach_existing_materialized_runtime_immediate_symbols(preview, lookup, section->section_index,
             &instruction)) return -1;
-      attach_resolved_pointer_store_source_symbols(lookup, section, candidate, &instruction);
+      attach_planned_address_value_source_symbols(lookup, source_analysis, section, candidate, &instruction);
       if (!attach_materialized_runtime_absolute_storage_symbols(lookup, section, accepted_start_all[section_index],
             accepted_bytes[section_index], candidate, &instruction) ||
           !attach_absolute_memory_slot_symbols(preview, lookup, source_analysis, section, candidate, &instruction)) {
@@ -9914,8 +9921,10 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
           platform_comment);
         if (m68k_diag_has_errors(&diagnostics) || rendered.text[0] == '\0' ||
             plan_rendered_instruction_symbol_accesses(preview, lookup, section->section_index, candidate,
-              &render_instruction, rendered.rendered_operand_symbol_mask, &planned_instruction) != 0 ||
-            m68k_render_plan_append_instruction(&preview->asm_source_plan, &planned_instruction) != 0) return -1;
+              source_analysis, &render_instruction, rendered.rendered_operand_symbol_mask,
+              &planned_instruction) != 0 ||
+            m68k_render_plan_append_instruction(&preview->asm_source_plan, &planned_instruction) != 0)
+          return -1;
       } else {
         memset(&planned_instruction, 0, sizeof(planned_instruction));
         planned_instruction.source_section_index = (uint32_t)section->section_index;
@@ -10065,7 +10074,13 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   ++preview->asm_source_symbolic_instructions;
-  if (record_planned_instruction_symbol_accesses(preview, section->section_index, planned_instruction) != 0) {
+  /* Emit evidence from the frozen plan only after this exact instruction
+   * representation has passed the byte-preservation gate. */
+  if (record_planned_instruction_symbol_accesses(preview, section->section_index,
+        planned_instruction) != 0) {
+    ++preview->asm_source_instruction_render_failures;
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER,
+      section->section_index, candidate->offset, 0U);
     return 0;
   }
   if (out_listing_instruction != NULL) *out_listing_instruction = render_instruction;
@@ -10174,12 +10189,32 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
   return m68k_render_plan_append_expression(&preview->asm_source_plan, &expression);
 }
 
+static int source_analysis_has_platform_operand_expression(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset, size_t operand_index, const char *symbol_name) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (source_analysis == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  section = source_analysis_section_for_render(source_analysis, section_index);
+  if (section == NULL) return 0;
+  for (index = 0U; index < section->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[index];
+    if (use->offset == offset && use->has_operand_expr != 0U &&
+        use->operand_index == operand_index && use->operand_expr != NULL &&
+        strcmp(use->operand_expr, symbol_name) == 0) return 1;
+  }
+  return 0;
+}
+
 static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *preview,
     M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t rendered_operand_symbol_mask,
+    const M68kSourceAnalysisIR *source_analysis, const M68kInstructionIR *instruction,
+    uint8_t rendered_operand_symbol_mask,
     M68kRenderPlannedInstruction *out_planned_instruction) {
   size_t operand_index;
   if (candidate == NULL || instruction == NULL) return 0;
+  /* The frozen operand representation is the render-plan contract. The
+   * renderer's mask is telemetry, not authority for analysis expressions. */
+  (void)rendered_operand_symbol_mask;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kDecodeTarget *control_target;
@@ -10189,13 +10224,14 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
     const M68kFact *runtime_ref;
     M68kRenderedSymbolAccessIR access;
     if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') continue;
-    if ((rendered_operand_symbol_mask & (uint8_t)(1U << operand_index)) == 0U) continue;
     memset(&access, 0, sizeof(access));
     access.symbol_name = (char *)operand->symbol_ref.name;
     access.offset = candidate->offset;
     access.operand_index = (uint32_t)operand_index;
     access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
-    if (asm_source_symbol_is_declared_equate(preview, operand->symbol_ref.name)) {
+    if (asm_source_symbol_is_declared_equate(preview, operand->symbol_ref.name) ||
+        source_analysis_has_platform_operand_expression(source_analysis, section_index, candidate->offset,
+          operand_index, operand->symbol_ref.name)) {
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
     }
     representation = lookup_manual_operand_representation(lookup, section_index, candidate->offset, operand_index);

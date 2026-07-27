@@ -1,6 +1,6 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: Proposed. Depends on Proposal 039 for corpus audit coverage.
+Status: Implemented. Depends on Proposal 039 for corpus audit coverage.
 
 ## Problem
 
@@ -242,6 +242,38 @@ emitted relocation, stack, return-value, scalar-negative, or conflicting-join
 pointer-store fixture. Those gaps are missing durable input contracts, not
 negative evidence. Focused C fixtures must cover the full semantic matrix;
 observed corpus rows remain the real-target integration and regression set.
+
+### Post-implementation corpus audit — 2026-07-28
+
+The same full, read-only build completed after the address-value implementation:
+378 analysed inputs (319 file entries and 59 reconstructed project targets),
+45 Pandora pointer-store rows, and stable xref identities for every row. The
+source/destination/resolution counts are unchanged because this work preserves
+analysis facts rather than inventing target evidence. Their producer facts are
+now explicit:
+
+```text
+immediate provenance and renderable producer expression: 4
+other provenance: unknown 28, field_pointer 9, app_slot 3, static_data 1
+render outcome: symbolic_now 4, needs_address_value_propagation 21,
+                not_symbolic 20
+```
+
+The four `symbolic_now` rows are the four direct immediate pointer stores.
+They now expose `provenance_kind: immediate`, `provenance_operand_index: 0`,
+and `has_renderable_source_expression: true`; this includes Pandora's
+`interaction_message_ptr` store at stable key `s0:0004D3D2:instruction`.
+The remaining propagated stores retain their actual non-immediate provenance
+and remain non-symbolic when no renderable producer expression is proven. They
+are unresolved review opportunities, not numeric renderer fallbacks.
+
+Pandora also supplies the required downstream proof: `interact_with_chemist`
+writes `abs_0_0005CF4C` to
+`world_object_shared_prefix_interaction_message_ptr(a5)`, then transfers to
+`interact_with_hooligan_or_robomechanic`, which reloads that typed field into
+`a0` and passes it to `enqueue_status_message`. This is a field-store/reload/
+typed-call-consumer chain; the direct producer is rendered only at its proven
+immediate origin.
 
 ## Pandora Proof Scope
 

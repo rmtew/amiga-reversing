@@ -26325,6 +26325,7 @@ static int test_facts_v2_analysis_propagates_generic_pointer_store_through_stack
   M68kAnalysisCustomStruct *custom_structs = NULL;
   const M68kSectionAnalysisIR *analysis_section;
   char *analysis_json = NULL;
+  char *source = NULL;
   size_t index;
   int saw_pointer_store = 0;
   uint8_t bytes[20] = {
@@ -26401,7 +26402,25 @@ static int test_facts_v2_analysis_propagates_generic_pointer_store_through_stack
   M68K_C_ASSERT(strstr(analysis_json, "\"destination_value_kind\":\"target_pointer\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"resolution\":\"resolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"provenance_kind\":") != NULL);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE,
+    analysis_section->pointer_stores[0].provenance_kind);
+  M68K_C_ASSERT_U32(0U, analysis_section->pointer_stores[0].provenance_offset);
+  M68K_C_ASSERT_U32(0U, analysis_section->pointer_stores[0].provenance_operand_index);
+  M68K_C_ASSERT_U32(1U, analysis_section->pointer_stores[0].has_renderable_source_expression);
+  M68K_C_ASSERT(strstr(analysis_json, "\"provenance_kind\":\"immediate\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"provenance_operand_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"has_renderable_source_expression\":1") != NULL);
   free(analysis_json);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #loc_0_00000010,d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.l d1,world_object_shared_prefix_interaction_data_ptr(a5)\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
@@ -26500,6 +26519,7 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   M68kAnalysisCustomStruct *custom_structs = NULL;
   const M68kPointerStoreIR *store;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[0x20] = {0};
   bytes[0] = 0x2au; bytes[1] = 0xbcu;
   bytes[4] = 0x01u; bytes[5] = 0x10u;
@@ -26562,6 +26582,17 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_RESOLVED, store->resolution);
   M68K_C_ASSERT_U32(1U, store->has_target);
   M68K_C_ASSERT_U32(0x10U, store->target_offset);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE, store->provenance_kind);
+  M68K_C_ASSERT_U32(0U, store->provenance_offset);
+  M68K_C_ASSERT_U32(0U, store->provenance_operand_index);
+  M68K_C_ASSERT_U32(1U, store->has_renderable_source_expression);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"provenance_kind\":\"immediate\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"provenance_operand_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"has_renderable_source_expression\":1") != NULL);
+  free(analysis_json);
+  analysis_json = NULL;
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
@@ -26837,6 +26868,12 @@ static int test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_sto
   M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_RESOLVED, analysis.sections[0].pointer_stores[0].resolution);
   M68K_C_ASSERT_U32(1U, analysis.sections[0].pointer_stores[0].target_section_index);
   M68K_C_ASSERT_U32(4U, analysis.sections[0].pointer_stores[0].target_offset);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE,
+    analysis.sections[0].pointer_stores[0].provenance_kind);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].pointer_stores[0].provenance_section_index);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].pointer_stores[0].provenance_offset);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].pointer_stores[0].provenance_operand_index);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].pointer_stores[0].has_renderable_source_expression);
   m68k_ir_source_analysis_destroy(&analysis); m68k_analysis_policy_destroy(&policy); m68k_object_destroy(&object);
   return 0;
 }

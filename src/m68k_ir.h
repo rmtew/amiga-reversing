@@ -1022,7 +1022,10 @@ typedef enum M68kPlatformTypeProvenanceKind {
   M68K_PLATFORM_TYPE_PROVENANCE_FIELD_ADDRESS = 9,
   M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT = 10,
   M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED = 11,
-  M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA = 12
+  M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA = 12,
+  /* A concrete immediate is the source expression for a value that may be
+   * promoted to an address only after it reaches a typed destination. */
+  M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE = 13
 } M68kPlatformTypeProvenanceKind;
 
 typedef struct M68kRecoveredPlatformUnresolvedTypedAccessIR {
@@ -1445,6 +1448,11 @@ typedef struct M68kPointerStoreIR {
   uint8_t has_target;
   uint8_t has_address;
   uint8_t provenance_kind;
+  /* The source operand can be a register or memory transfer.  When the
+   * value was produced by an immediate, this identifies the earlier
+   * instruction operand that owns the only semantically valid symbolic
+   * expression. */
+  uint8_t provenance_operand_index;
   uint8_t candidate_target_count;
   size_t target_section_index;
   size_t provenance_section_index;
