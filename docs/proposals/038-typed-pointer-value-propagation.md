@@ -687,6 +687,22 @@ whether or not its present index domain is sufficient to render symbolically.
 turns raw address arithmetic into typed provenance and enables safe symbolic
 indexed/interior operands without relaxing unsupported cases.
 
+**Implementation progress (2026-07-29).** The first A slice now exports a
+canonical `indexed_table` address-expression fact from source analysis.  It
+links its consumer instruction and operand to the existing table descriptor by
+stable section/offset coordinates, carries normalized table-relative addend,
+decoded index register/scale, and element stride, and deliberately leaves
+range, entry kind, and index-domain evidence owned by the descriptor and its
+consumer.  It has no renderer-time reconstruction path.  The recovery merge
+enriches an authoritative seeded pointer-table range with the decoded consumer
+and index evidence while retaining that range's original entry-count proof.
+Pandora now proves the intended four-longword table at `s0:0004D416`, its
+`d0` mask domain `0..12`, a four-byte stride, and a zero normalized addend;
+its exact full-file round trip passes.  Focused fixtures cover a local indexed
+pointer table and a finite loop-bounded PC-relative table expression.  The
+interior-address, invalid/out-of-range, transfer, and planner-rendering parts
+of A remain required work; this is not an A completion claim.
+
 #### B. Function summaries and callback contracts
 
 **Evidence and boundary.** Pandora `s0:000004B2:instruction` stores `a0` to

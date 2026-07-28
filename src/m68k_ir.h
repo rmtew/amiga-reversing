@@ -1831,6 +1831,31 @@ typedef struct M68kTableConsumerIR {
   uint32_t index_loop_max;
 } M68kTableConsumerIR;
 
+/* A canonical address expression links a dynamic address use to the existing
+ * recovered table contract.  It deliberately stores stable identities and
+ * expression terms only; table bounds, entry type, and index-domain proof
+ * remain owned by M68kTableDescriptorIR/M68kTableConsumerIR. */
+typedef enum M68kAddressExpressionKind {
+  M68K_ADDRESS_EXPRESSION_INDEXED_TABLE = 1
+} M68kAddressExpressionKind;
+
+typedef struct M68kAddressExpressionIR {
+  uint32_t id;
+  uint32_t consumer_section_index;
+  uint32_t consumer_offset;
+  uint32_t table_section_index;
+  uint32_t table_start_offset;
+  int32_t signed_addend;
+  uint8_t kind;
+  uint8_t operand_index;
+  uint8_t index_register_kind;
+  uint8_t index_register;
+  uint8_t index_scale;
+  uint8_t element_stride;
+  uint8_t has_index_register;
+  uint8_t reserved[1];
+} M68kAddressExpressionIR;
+
 typedef enum M68kTableEntryTargetStatus {
   M68K_TABLE_ENTRY_TARGET_STATUS_UNKNOWN = 0,
   M68K_TABLE_ENTRY_TARGET_STATUS_NUMERIC_EXACT = 1,
@@ -2175,6 +2200,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kTableConsumerIR *table_consumers;
   size_t table_consumer_count;
   size_t table_consumer_capacity;
+  M68kAddressExpressionIR *address_expressions;
+  size_t address_expression_count;
+  size_t address_expression_capacity;
   M68kTableEntryIR *table_entries;
   size_t table_entry_count;
   size_t table_entry_capacity;
@@ -2446,6 +2474,8 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
     const M68kTableDescriptorIR *descriptor);
 int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *section_analysis,
     const M68kTableConsumerIR *consumer);
+int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *section_analysis,
+    const M68kAddressExpressionIR *expression);
 int m68k_ir_section_analysis_append_table_entry(M68kSectionAnalysisIR *section_analysis,
     const M68kTableEntryIR *entry);
 int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *section_analysis,

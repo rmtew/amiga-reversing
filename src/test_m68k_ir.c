@@ -2204,6 +2204,7 @@ static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   const M68kTableConsumerIR *table_consumer = NULL;
+  const M68kAddressExpressionIR *address_expression = NULL;
   size_t index;
   uint8_t bytes[18] = {
     0x70u, 0x02u,
@@ -2248,6 +2249,18 @@ static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
   M68K_C_ASSERT_U32(0U, table_consumer->index_loop_min);
   M68K_C_ASSERT_U32(2U, table_consumer->index_loop_max);
   M68K_C_ASSERT_U32(M68K_ASM_MNEMONIC_DBF, table_consumer->index_loop_mnemonic_id);
+  for (index = 0U; index < source_analysis.sections[0].address_expression_count; ++index) {
+    const M68kAddressExpressionIR *expression = &source_analysis.sections[0].address_expressions[index];
+    if (expression->table_start_offset == 12U) {
+      address_expression = expression;
+      break;
+    }
+  }
+  M68K_C_ASSERT(address_expression != NULL);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_EXPRESSION_INDEXED_TABLE, address_expression->kind);
+  M68K_C_ASSERT_U32(0U, address_expression->signed_addend);
+  M68K_C_ASSERT_U32(2U, address_expression->element_stride);
+  M68K_C_ASSERT_U32(0U, address_expression->index_register);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -2537,6 +2550,7 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  const M68kAddressExpressionIR *address_expression = NULL;
   char *source = NULL;
   uint32_t data_ref_targets = 0U;
   uint16_t index;
@@ -2589,6 +2603,17 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_LONGS, auto_item->kind);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ,
     auto_item->source_pattern_id);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_expression_count);
+  address_expression = &source_analysis.sections[0].address_expressions[0];
+  M68K_C_ASSERT_U32(M68K_ADDRESS_EXPRESSION_INDEXED_TABLE, address_expression->kind);
+  M68K_C_ASSERT_U32(0U, address_expression->consumer_section_index);
+  M68K_C_ASSERT_U32(0U, address_expression->table_section_index);
+  M68K_C_ASSERT_U32(auto_item->offset, address_expression->table_start_offset);
+  M68K_C_ASSERT_U32(1U, address_expression->has_index_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, address_expression->index_register_kind);
+  M68K_C_ASSERT_U32(0U, address_expression->index_register);
+  M68K_C_ASSERT_U32(1U, address_expression->index_scale);
+  M68K_C_ASSERT_U32(4U, address_expression->element_stride);
   for (index = 0U; index < source_analysis.sections[0].data_reference_count; ++index) {
     const M68kDataReferenceIR *ref = &source_analysis.sections[0].data_references[index];
     if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY &&
@@ -11462,6 +11487,7 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kTableDescriptorIR descriptor;
+  M68kAddressExpressionIR expression;
   char *analysis_json = NULL;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
@@ -11518,10 +11544,28 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   M68K_C_ASSERT_U32(0U, section_analysis.table_consumers[0].index_compare_min);
   M68K_C_ASSERT_U32(3U, section_analysis.table_consumers[0].index_compare_max);
   M68K_C_ASSERT_U32(M68K_ASM_MNEMONIC_BHI, section_analysis.table_consumers[0].index_domain_branch_mnemonic_id);
+  memset(&expression, 0, sizeof(expression));
+  expression.kind = M68K_ADDRESS_EXPRESSION_INDEXED_TABLE;
+  expression.consumer_section_index = 0U;
+  expression.consumer_offset = 0x0CU;
+  expression.table_section_index = 0U;
+  expression.table_start_offset = 0x20U;
+  expression.operand_index = 1U;
+  expression.index_register_kind = M68K_ANALYSIS_REGISTER_DATA;
+  expression.index_register = 2U;
+  expression.index_scale = 4U;
+  expression.element_stride = 4U;
+  expression.has_index_register = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_expression(&section_analysis, &expression));
+  M68K_C_ASSERT_U32(1U, (uint32_t)section_analysis.address_expression_count);
+  M68K_C_ASSERT_U32(1U, section_analysis.address_expressions[0].id);
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_consumer_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"address_expression_count\":1,\"address_expressions\":[{\"id\":1,\"kind_id\":1,"
+    "\"kind\":\"indexed_table\",\"consumer_section_index\":0,\"consumer_offset\":12,") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_consumers\":[{\"consumer_offset\":12,\"table_section_index\":0,"
     "\"table_start_offset\":32,\"table_end_offset\":48,\"access_width\":4,\"entry_count\":4,"

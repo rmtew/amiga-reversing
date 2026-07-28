@@ -2259,6 +2259,36 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
   return 0;
 }
 
+int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *section_analysis,
+    const M68kAddressExpressionIR *expression) {
+  size_t index;
+  M68kAddressExpressionIR copy;
+  if (section_analysis == NULL || expression == NULL || section_analysis->arena == NULL) return -1;
+  if (expression->kind != M68K_ADDRESS_EXPRESSION_INDEXED_TABLE || expression->has_index_register == 0U ||
+      expression->index_scale == 0U) {
+    return 0;
+  }
+  for (index = 0U; index < section_analysis->address_expression_count; ++index) {
+    const M68kAddressExpressionIR *existing = &section_analysis->address_expressions[index];
+    if (existing->kind == expression->kind &&
+        existing->consumer_section_index == expression->consumer_section_index &&
+        existing->consumer_offset == expression->consumer_offset &&
+        existing->operand_index == expression->operand_index &&
+        existing->table_section_index == expression->table_section_index &&
+        existing->table_start_offset == expression->table_start_offset) {
+      return 0;
+    }
+  }
+  copy = *expression;
+  copy.id = (uint32_t)section_analysis->address_expression_count + 1U;
+  section_analysis->address_expressions = (M68kAddressExpressionIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->address_expressions, section_analysis->address_expression_count,
+      &section_analysis->address_expression_capacity, 8U, sizeof(*section_analysis->address_expressions));
+  if (section_analysis->address_expressions == NULL) return -1;
+  section_analysis->address_expressions[section_analysis->address_expression_count++] = copy;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_table_entry(M68kSectionAnalysisIR *section_analysis,
     const M68kTableEntryIR *entry) {
   size_t index;
@@ -5149,6 +5179,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->table_descriptor_count; ++index) {
     if (m68k_ir_section_analysis_append_table_descriptor(&copy,
           &section_analysis->table_descriptors[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->address_expression_count; ++index) {
+    if (m68k_ir_section_analysis_append_address_expression(&copy,
+          &section_analysis->address_expressions[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
