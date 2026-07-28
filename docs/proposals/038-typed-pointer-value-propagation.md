@@ -1,6 +1,6 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: Implemented. Depends on Proposal 039 for corpus audit coverage.
+Status: In progress. Depends on Proposal 039 for corpus audit coverage.
 
 ## Problem
 
@@ -341,6 +341,44 @@ without code changes.
 - Manual actions or comments whose only purpose is to force an instruction's
   printed operand text.
 
+## Remaining Main-Task Completion Slice
+
+The first implementation slice established the important common path: a typed
+destination can promote a concrete immediate to an address value, preserve its
+producer provenance through supported transfers, and let the render plan attach
+one exact symbolic source expression. It is not yet the complete durable
+address-value model promised above. Complete this remaining slice before
+marking the proposal implemented:
+
+1. Replace the pointer-store-only provenance marker and
+   `has_renderable_source_expression` Boolean with one durable address-value
+   fact. For each supported value it must identify source value, address
+   identity/domain, pointee domain, producer operand, and a bounded transfer
+   chain from producer to typed destination or consumer.
+2. Preserve that fact through the existing supported register, stack, global,
+   typed-field, relocation, compatible-join, and known-call transfer rules.
+   Record an explicit terminal state when a value is invalidated, ambiguous,
+   external, unrepresentable, or lacks a proven transfer contract. Do not
+   infer a chain from rendered source text.
+3. Make source-analysis JSON and the corpus row expose the complete stable
+   fact: source/destination identity, value/domain, target resolution,
+   propagation depth, terminal state/reason, render outcome, and fixture or
+   review classification. `needs_address_value_propagation` is not a render
+   outcome and must be removed or replaced by a precise terminal state.
+4. Have the render planner consume the address-value fact by identity. A
+   renderable source target must plan exactly one source expression and
+   declaration; a contradictory source-render promise must produce the
+   explicit export diagnostic, never a numeric operand. Add focused proof of
+   that invalid-plan path.
+5. Strengthen the C fixture matrix so each supported transfer and invalidation
+   asserts the durable fact and terminal state, not only the final pointer
+   store or rendered text. Regenerate the full read-only corpus report and
+   demonstrate the Pandora direct-store/reload/consumer chain from that same
+   fact.
+6. Replace the post-implementation audit claim with a post-completion report
+   only after these conditions pass. Keep the current report as an interim
+   baseline and preserve every unresolved row as a review opportunity.
+
 ## Non-Goals
 
 - Treating every large or aligned immediate as a pointer.
@@ -367,15 +405,47 @@ handoff design record while preserving the main task's boundary.
    bounds, and addends through scaled indexing and address formation, so an
    address can resolve as an array element, field, or interior source range
    rather than only `symbol+offset`.
+
+   *2026-07-28 handoff:* Pandora `s0:0004D3F0:instruction` reads an indexed
+   pointer-table element (`abs_0_0005D416(pc,d0.w)`) before storing it in
+   `interaction_message_ptr`. The current main path correctly stops because
+   the scaled index does not prove a single address identity. A future fact
+   needs table identity, element type, index domain/bounds, and addend; the
+   render-plan consequence is a typed table-element expression only when that
+   proof exists. This composes with pointer-table recovery below.
+
 2. **Function summaries and callback contracts.** Derive proven typed pointer
    parameters, returns, escapes, clobbers, and indirect callback signatures;
    apply summaries interprocedurally only when their contract is durable.
+
+   *2026-07-28 handoff:* resolved callback-slot stores such as
+   `s0:000004B2:instruction` (`move.l a0,app_vertical_blank_callback(a6)`) do
+   not retain a producer expression. The current main path correctly leaves
+   them non-symbolic: no call/return or callback contract proves where `a0`
+   came from. A future summary must carry return identity, escapes, clobbers,
+   and callback signature; only then may the common render plan express the
+   originating source value.
+
 3. **Alias and control-flow refinement.** Distinguish identical object
    identity, compatible but unknown pointer domains, finite candidate sets,
    and invalidated aliases across joins and calls.
+
+   *2026-07-28 handoff:* Pandora `s0:0004D410:instruction` and
+   `s0:0004D560:instruction` store finite candidate values to
+   `interaction_message_ptr`. The current main path preserves the candidates
+   and does not invent a label or select one. A future model needs durable
+   candidate-set identity and alias/join refinement; its render consequence is
+   a symbolic expression only after a single compatible identity is proven.
+
 4. **Pointer-table and chained-dereference recovery.** Carry the same facts
    through pointer tables, dispatch tables, object arrays, and repeated loads
    so typed indirect calls and data accesses compose.
+
+   *2026-07-28 handoff:* the `s0:0004D3F0:instruction` indexed table read is
+   also the concrete pointer-table trigger. It must consume the table/index
+   fact from the indexed-address extension rather than introducing a renderer
+   exception or a second source-symbol mechanism.
+
 5. **Composable struct-instance and embedded-layout recovery.** Model one
    source range as ordered typed elements—prefixes, gaps, embedded records,
    arrays, and explicit overlays—using the reliable object edges from this
