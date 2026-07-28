@@ -4975,7 +4975,12 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     }
     else if (vector != NULL && lookup != NULL && lookup->object != NULL)
       typed_state_apply_platform_call_clobbers(lookup->object->platform_backend_kind, state);
-    else typed_state_preserve_caller_save_stack_slots(state);
+    else {
+      /* An unresolved direct/indirect call has no preservation contract.
+       * Keeping register-held source identities here would turn an unknown
+       * callee into an unsound affine transfer. */
+      typed_state_apply_local_call_clobbers(state, 0U);
+    }
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
       instruction->operand_count == 2U && instruction->operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
       operand_is_predec_a7_local(&instruction->operands[1])) {

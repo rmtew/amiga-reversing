@@ -726,11 +726,14 @@ source-data owner. This keeps derivation, ownership, and render planning in
 one ordered graph without renderer reconstruction. A focused fixture proves
 `lea` + `adda` + `(aN)` produces both evidence and an owned `base+2`
 expression; a negative `adda #-1` fixture exports its evidence but cannot
-materialise an out-of-range expression. Pandora now exports 278 affine-use
-evidence records and 67 validated static-interior expressions; its full-file
-reassembly remains exact. Indexed-operand rendering and the remaining
-arithmetic/call-clobber negative fixtures remain required work; this is not an
-A completion claim.
+materialise an out-of-range expression. Further negative fixtures prove that
+signed-addend overflow and an unknown call both invalidate the affine identity;
+the latter also fixed the pre-existing unsound behaviour in which an unknown
+call retained typed registers without a preservation contract. Pandora now
+exports 278 affine-use evidence records and 67 validated static-interior
+expressions; its full-file reassembly remains exact. Indexed-operand rendering
+and the remaining copy/subtract/CFG-join coverage remain required work; this
+is not an A completion claim.
 
 **Planner progress (2026-07-29).** Every selected instruction expression now
 retains the stable `address_expression` identity consumed from source analysis.
