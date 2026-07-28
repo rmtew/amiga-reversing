@@ -296,8 +296,8 @@ fixture supplies the required same-object field-store/reload/consumer proof.
 
 ### Current consumer-model corpus audit — 2026-07-28
 
-After the common consumer model was added, a fresh normal eight-worker corpus
-build completed all 428 entries in 552.1 seconds. It produced 3,095,963 xrefs,
+After the common consumer model was added, the final fresh normal eight-worker
+corpus build completed all 428 entries in 524.8 seconds. It produced 3,095,963 xrefs,
 460,240 listing snippet rows, 241 type-flow rows, and 65 unresolved typed-field
 rows. The read-only pointer-value report now reads consumer facts rather than
 using pointer-store records as a proxy:
@@ -399,8 +399,8 @@ other pointer-field types without code changes.
 
 The initial slices established durable address-value facts for typed pointer
 stores, explicit terminal/render states, planned-expression validation, and
-same-object typed-field propagation. The following completion slice added the
-common consumer model and passed all listed evidence gates:
+same-object typed-field propagation. The common consumer model, its shared
+target materialisation, and all evidence gates are now complete:
 
 1. Introduce a durable typed-consumer record that is independent of
    `M68kPointerStoreIR`, and make it the sole common consumption surface for

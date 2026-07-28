@@ -9900,68 +9900,12 @@ int m68k_analysis_render_lookup_materialize_typed_address_targets(M68kRenderLook
   if (lookup == NULL || decode == NULL || accepted_bytes == NULL) return -1;
   for (index = 0U; index < lookup->pointer_store_count; ++index) {
     M68kRenderPointerStore *store = &lookup->pointer_stores[index];
-    const M68kDecodeSectionIR *section;
-    size_t target_section_index = 0U;
-    uint32_t target_offset = 0U;
-    if (store->fact.resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET &&
-        store->fact.candidate_target_count > 1U) {
-      uint8_t candidate_index;
-      int valid = 1;
-      for (candidate_index = 0U; candidate_index < store->fact.candidate_target_count; ++candidate_index) {
-        if (!render_lookup_pointer_value_to_source_location(lookup, decode,
-            store->fact.candidate_source_values[candidate_index], &target_section_index, &target_offset)) {
-          store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
-          valid = 0;
-          break;
-        }
-        section = &decode->sections[target_section_index];
-        if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section,
-            accepted_start != NULL ? accepted_start[target_section_index] : NULL,
-            accepted_bytes[target_section_index], target_offset)) {
-          store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET;
-          valid = 0;
-          break;
-        }
-        store->fact.candidate_target_section_indices[candidate_index] = target_section_index;
-        store->fact.candidate_target_offsets[candidate_index] = target_offset;
-      }
-      if (!valid) continue;
-      store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS;
-      /* A finite candidate set is a durable ambiguous address value, not a
-       * symbolic expression. No label can represent all of its possible
-       * targets without inventing a false identity. */
-      continue;
-    }
-    if (store->fact.resolution != M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET) continue;
-    /* No candidate is unknown, not the numeric address zero.  It has no
-     * source target to validate or render. */
-    if (store->fact.candidate_target_count == 0U) continue;
-    if (store->section_index >= decode->section_count) continue;
-    if (!render_lookup_pointer_value_to_source_location(lookup, decode, store->fact.source_value,
-        &target_section_index, &target_offset)) {
-      store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
-      continue;
-    }
-    section = &decode->sections[target_section_index];
-    if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section,
-        accepted_start != NULL ? accepted_start[target_section_index] : NULL,
-        accepted_bytes[target_section_index], target_offset)) {
-      store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET;
-      continue;
-    }
-    store->fact.has_address = 1U;
-    store->fact.has_target = 1U;
-    store->fact.target_section_index = target_section_index;
-    store->fact.target_offset = target_offset;
-    store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_RESOLVED;
-    if (store->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE) {
-      render_lookup_mark_label(lookup, target_section_index, target_offset);
-      render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
-      /* Only an immediate source has a source-level value expression to
-       render.  A propagated register store retains its resolved fact but
-       must not manufacture an otherwise unreferenced target label. */
-      render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
-    }
+    render_lookup_materialize_typed_address_target(lookup, decode, accepted_start, accepted_bytes,
+      store->section_index, store->fact.source_value, &store->provenance, &store->fact.resolution,
+      &store->fact.has_target, &store->fact.target_section_index, &store->fact.target_offset,
+      store->fact.candidate_target_count, store->fact.candidate_source_values,
+      store->fact.candidate_target_section_indices, store->fact.candidate_target_offsets);
+    store->fact.has_address = store->fact.has_target;
   }
   for (index = 0U; index < lookup->address_value_consumer_count; ++index) {
     M68kRenderTypedAddressConsumer *consumer = &lookup->address_value_consumers[index];
