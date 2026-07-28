@@ -646,3 +646,121 @@ handoff design record while preserving the main task's boundary.
    source range as ordered typed elements—prefixes, gaps, embedded records,
    arrays, and explicit overlays—using the reliable object edges from this
    proposal rather than a target-specific layout renderer.
+
+### Implementation-ready extension subtasks
+
+Every subtask extends the canonical address-value facts and the existing
+render-plan path. None may add compatibility fields, heuristic recovery,
+target-specific renderer exceptions, numeric fallback rendering, or a parallel
+symbol mechanism.
+
+#### A. Indexed, affine, and interior-address values
+
+**Evidence and boundary.** Pandora `s0:0004D3F0:instruction` reads an indexed
+pointer-table element (`abs_0_0005D416(pc,d0.w)`) before storing it in
+`interaction_message_ptr`. The current model correctly stops because the
+scaled index does not prove one source address.
+
+**Work.** Add a durable address-expression fact containing base-object
+identity, signed addend, element stride/type, and an index-domain proof. Add
+transfer rules for effective-address formation, scaled indexes, and compatible
+add/subtract operations. Validate bounds, alignment, overflow, and code/data
+ownership before materialising a target.
+
+**Acceptance.** Fixtures cover one indexed element, an in-range finite set, an
+interior field address, and invalid/out-of-range cases. Rendering produces a
+typed table-element or interior expression only for a proven identity; every
+other case remains explicitly non-source. Pandora exports the table/index fact,
+whether or not its present index domain is sufficient to render symbolically.
+
+**Dependency and benefit.** This is the prerequisite for indexed work in D. It
+turns raw address arithmetic into typed provenance and enables safe symbolic
+indexed/interior operands without relaxing unsupported cases.
+
+#### B. Function summaries and callback contracts
+
+**Evidence and boundary.** Pandora `s0:000004B2:instruction` stores `a0` to
+`app_vertical_blank_callback(a6)`, but no fact proves the origin of `a0`; its
+non-symbolic output is therefore correct.
+
+**Work.** Define durable function-summary facts for proven input contracts,
+return identities, register preservation/clobbers, pointer escapes, and
+callback signatures. Derive or accept them through the normal analysis/action
+surface and apply them only at direct local calls and proven callback edges.
+Unknown calls remain clobbers and create no inferred summary.
+
+**Acceptance.** Fixtures prove a typed parameter, return, preserved value, and
+escaped callback value, plus unknown-call, conflicting-summary, and missing-
+signature negatives. A planned expression appears only when its complete call
+chain is proven. Pandora retains the current callback-store result unless a
+durable summary supplies the missing proof.
+
+**Dependency and benefit.** Independent of A; composes with C and D. It makes
+interprocedural pointer flow explicit and safely improves call, return, and
+callback rendering.
+
+#### C. Alias and control-flow refinement
+
+**Evidence and boundary.** Pandora `s0:0004D410:instruction` and
+`s0:0004D560:instruction` have finite candidate values for
+`interaction_message_ptr`; the current model correctly does not select one.
+
+**Work.** Introduce an identity/alias lattice distinguishing one proven object,
+compatible unknown objects, finite candidate identities, candidate overflow,
+and invalidated values. Refine register, stack, global-slot, field, and call
+joins only from durable path evidence. Preserve provenance, cardinality, and
+invalidation in canonical address-value facts.
+
+**Acceptance.** Fixtures cover same-identity and compatible-domain joins,
+finite candidates, predicate-refined resolution, clobber invalidation, and
+candidate overflow. Only a single proven identity is rendered symbolically;
+finite and overflow results never receive a symbolic target. Corpus reports
+each lattice outcome distinctly.
+
+**Dependency and benefit.** Composes with A and B but can start independently.
+It reduces avoidable ambiguity while retaining the completed no-speculation
+rule.
+
+#### D. Pointer-table and chained-dereference recovery
+
+**Evidence and boundary.** `s0:0004D3F0:instruction` is both an
+address-expression and pointer-table case. Current analysis does not carry its
+pointee identity through the load to the typed store.
+
+**Work.** Define table facts containing storage range, entry width, pointee
+type, null/invalid-entry policy, and index domain. Connect existing table and
+xref facts to typed load transfer rules for object arrays, dispatch tables, and
+repeated field loads. Validate table bounds, entry representation, and pointee
+ownership before every dereference.
+
+**Acceptance.** Fixtures cover direct and indexed loads, null/invalid entries,
+pointer-to-pointer chains, typed indirect calls, and dispatch targets. Rendering
+uses the existing table/object symbols only for proven links. Pandora gets a
+table-to-store proof or a precise missing-fact report.
+
+**Dependency and benefit.** Indexed table loads require A; a direct-load slice
+may stand alone. This enables readable table, object-array, dispatch, and
+chained field reconstruction.
+
+#### E. Composable struct-instance and embedded-layout recovery
+
+**Evidence and boundary.** Pointer and field facts exist, but source ranges
+need one general representation for prefixes, explicit gaps, embedded records,
+arrays, and overlays. Pandora's world-position/world-object families are the
+intended proof domain.
+
+**Work.** Extend structured-data/layout facts with composition trees of
+ordered, non-overlapping owned elements and explicitly declared overlays. Each
+element carries source range, type/size, ownership, and evidence. Make pointer
+and field analysis resolve through those elements; unknown bytes remain gaps.
+
+**Acceptance.** Fixtures cover prefix-plus-gap, embedded record, instance
+array, permitted overlay, rejected conflicting overlap, and embedded
+pointer/field resolution. Pandora proves one composed layout with exact byte
+coverage and exact reassembly; source uses existing struct declarations and
+data bindings without redundant labels.
+
+**Dependency and benefit.** It consumes the canonical value/consumer model and
+composes strongly with D, but can otherwise proceed independently. It converts
+isolated field facts into accurate, readable object instances without inventing
+layout.
