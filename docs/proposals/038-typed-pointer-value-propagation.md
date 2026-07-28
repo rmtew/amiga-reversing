@@ -1,6 +1,6 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: In progress. Depends on Proposal 039 for corpus audit coverage.
+Status: In progress. Proposal 039 corpus coverage is complete.
 
 ## Problem
 
@@ -53,11 +53,13 @@ not a renderer-side operand rewrite: rendering consumes the planned expression
 and must not rediscover pointer meaning from instruction text.
 
 The completed path includes a direct source pointer, its lossless register and
-storage transfers, a later reload, and at least one typed consumer or indirect
-callback use when the relevant contract is proven. It deliberately stops when
-identity, target mapping, a call contract, or a control-flow merge is not
-proven. That boundary makes unknown and ambiguous values durable analysis
-states rather than candidates for a numeric or symbolic fallback.
+storage transfers, a later reload, and at least one typed consumer. Consumers
+are first-class analysis facts: a typed storage write, a proven local-function
+argument, a proven platform/API input, or a proven indirect-callback input.
+It deliberately stops when identity, target mapping, a call contract, or a
+control-flow merge is not proven. That boundary makes unknown and ambiguous
+values durable analysis states rather than candidates for a numeric or
+symbolic fallback.
 
 While implementing the main task, maintain the deferred-extension section
 below. When analysis encounters an indexed address, interior pointer, alias,
@@ -79,7 +81,8 @@ render planning. It records:
   slot, pointer field, return value, or table element;
 - address value or source/runtime mapping, addend, and address domain;
 - pointee type/domain and pointer width;
-- producing instruction and destination storage identity; and
+- producing instruction and consumer identity, including consumer kind and
+  the durable storage or call-input contract that proves its pointee domain;
 - confidence and the complete chain of propagation provenance.
 
 A pointer value is distinct from a numeric constant even when both have the
@@ -98,7 +101,9 @@ The analyser must interpret writes before discarding immediate semantics:
    and ownership model.
 4. Propagate the value through lossless register copies, address formation,
    stack/global stores and reloads, typed field loads/stores, and known
-   function/API contracts.
+   function/API contracts. Observe a proven call input before its call can
+   clobber the value; a locally preserved register is a transfer across that
+   call, not a substitute consumer record.
 5. Merge only equivalent address values and compatible pointee domains.
 
 Conflicting values or incompatible types produce an explicit ambiguous value
@@ -127,14 +132,18 @@ typed address-value fact and the frozen render plan.
 2. Extend typed-flow state, joins, invalidation, and provenance export to
    carry address values and pointee domains across registers, stack slots,
    globals, fields, table elements, calls, and returns.
-3. Make the source-analysis export expose these facts and their producer/
+3. Introduce one common typed-consumer model for pointer stores and proven
+   call inputs. It must retain the contract that justified consumption rather
+   than encoding a call as a synthetic store or using a store as proxy
+   evidence for a call.
+4. Make the source-analysis export expose these facts and their producer/
    consumer chain without relying on rendered text.
-4. Teach the shared symbolic resolver to consume address-value facts for
+5. Teach the shared symbolic resolver to consume address-value facts for
    instructions, relocations, structured fields, and chained lookups.
-5. Add normal Manual Action command support only where a reviewer must supply
+6. Add normal Manual Action command support only where a reviewer must supply
    a missing durable type/field contract. Manual actions record the contract,
    never a one-off instruction rendering.
-6. Remove any old scalar-immediate special cases made redundant by the common
+7. Remove any old scalar-immediate special cases made redundant by the common
    typed address-value path.
 
 The address-value fact is a pre-render analysis fact. It is available to
@@ -150,7 +159,7 @@ but the corpus must gain a first-class, stable row for this proposal's complete
 opportunity shape:
 
 ```text
-typed pointer destination
+typed pointer consumer
   + address-valued producer
   + target-resolution result
   + render result
@@ -161,8 +170,9 @@ Each row must identify the source/target by stable corpus identity and include:
 
 - source kind: immediate, relocation, register, stack, field, return value,
   or table element;
-- destination kind: struct field, app slot, absolute slot, or stack
-  parameter, with its declared pointee domain;
+- consumer kind: typed struct field, app slot, absolute slot, stack parameter,
+  local-function argument, platform/API input, or indirect callback input,
+  with its declared pointee domain and durable contract identity;
 - resolution: resolved, finite candidates, ambiguous, invalid, external, or
   no proven pointer contract;
 - render outcome: symbolic, explicitly non-source, or invalid;
@@ -296,17 +306,19 @@ other pointer-field types without code changes.
 - A fresh corpus baseline and post-change report expose the typed-pointer
   opportunity rows above, with stable identity, provenance, aggregate counts,
   and no source mutation side effect.
-- The corpus audit records every observed pointer-store opportunity with its
-  stable identity and classification. A category omitted because no analysed
-  target has the required durable contract is reported as unavailable, never
-  treated as a negative case or used to narrow the implementation.
+- The corpus audit records every observed typed-consumer opportunity with its
+  stable identity, consumer contract, and classification. Pointer-store rows
+  remain one consumer category. A category omitted because no analysed target
+  has the required durable contract is reported as unavailable, never treated
+  as a negative case or used to narrow the implementation.
 - Focused C fixtures cover representative positive, negative-scalar, external,
   ambiguous, and propagated cases. Corpus rows are selected as real-target
   integration cases where available, rather than requiring the corpus alone to
   supply every category or relying solely on Pandora.
 - Focused C fixtures cover a typed pointer-field immediate store, relocation
   pointer store, register copy, stack/global round trip, typed field reload,
-  compatible and conflicting joins, call clobbering, and a chained lookup.
+  compatible and conflicting joins, a preserved local-call input, a proven
+  platform/API input or callback input, call clobbering, and a chained lookup.
 - The deferred-extension section is updated as relevant bounded-analysis
   concerns are encountered, with concrete trigger evidence and the required
   future model change; it contains no renderer workaround or unreviewed scope
@@ -324,9 +336,10 @@ other pointer-field types without code changes.
 - Renderer/source-quality evidence comes from the planned expression, not from
   a separate typed-flow-to-label path.
 - Pandora renders the verified world-object pointer store as the planned source
-  expression. A focused same-object CFG fixture follows the same address value
-  through a typed-field reload and typed consumer; it must reject a changed or
-  unproven base-object identity rather than creating an interprocedural alias.
+  expression. Focused fixtures follow the same address value through a
+  same-object field reload to a typed consumer and through a proven call-input
+  consumer. They must reject a changed or unproven base-object identity or
+  call contract rather than creating an interprocedural alias.
 - Pandora has no duplicate declaration, synthetic label, dangling symbolic
   expression, or source-quality workaround introduced by the change.
 - Focused C and relevant Python tests pass; Pandora source analysis, internal
@@ -338,6 +351,8 @@ other pointer-field types without code changes.
 - Renderer-time tests that infer pointer meaning from raw immediate values.
 - Scalar-only typed-flow paths that discard a compatible pointer value at a
   typed destination.
+- Pointer-store-only consumer assumptions, including any representation that
+  encodes a proven call input as a synthetic storage write.
 - Numeric fallback after a typed, renderable source-pointer classification has
   been made.
 - Manual actions or comments whose only purpose is to force an instruction's
@@ -345,42 +360,55 @@ other pointer-field types without code changes.
 
 ## Remaining Main-Task Completion Slice
 
-The first implementation slice established the important common path: a typed
-destination can promote a concrete immediate to an address value, preserve its
-producer provenance through supported transfers, and let the render plan attach
-one exact symbolic source expression. It is not yet the complete durable
-address-value model promised above. Complete this remaining slice before
-marking the proposal implemented:
+The completed slices established a durable address-value fact for typed pointer
+stores, explicit terminal/render states, planned-expression validation, and
+same-object typed-field propagation. They do not yet provide the common
+consumer model promised by this proposal: a pointer store is currently the
+only address-value consumer represented in source analysis. Complete this
+remaining slice before marking the proposal implemented:
 
-1. Replace the pointer-store-only provenance marker and
-   `has_renderable_source_expression` Boolean with one durable address-value
-   fact. For each supported value it must identify source value, address
-   identity/domain, pointee domain, producer operand, and a bounded transfer
-   chain from producer to typed destination or consumer.
-2. Preserve that fact through the existing supported register, stack, global,
-   typed-field, relocation, compatible-join, and known-call transfer rules.
-   Record an explicit terminal state when a value is invalidated, ambiguous,
-   external, unrepresentable, or lacks a proven transfer contract. Do not
-   infer a chain from rendered source text.
-3. Make source-analysis JSON and the corpus row expose the complete stable
-   fact: source/destination identity, value/domain, target resolution,
-   propagation depth, terminal state/reason, render outcome, and fixture or
-   review classification. `needs_address_value_propagation` is not a render
-   outcome and must be removed or replaced by a precise terminal state.
-4. Have the render planner consume the address-value fact by identity. A
-   renderable source target must plan exactly one source expression and
-   declaration; a contradictory source-render promise must produce the
-   explicit export diagnostic, never a numeric operand. Add focused proof of
-   that invalid-plan path.
-5. Strengthen the C fixture matrix so each supported transfer and invalidation
-   asserts the durable fact and terminal state, not only the final pointer
-   store or rendered text. Regenerate the full read-only corpus report and
+1. Introduce a durable typed-consumer record that is independent of
+   `M68kPointerStoreIR`. It must identify the consumer instruction operand,
+   consumer kind, pointee domain, and the exact durable contract that proved
+   the consumption. Storage writes remain storage-specific records linked to
+   the common address-value fact; local-function arguments, platform/API
+   inputs, and callback inputs must not be encoded as synthetic stores.
+2. Observe only contract-proven call consumers before call invalidation. Use
+   the existing durable local-function register contracts, generated platform
+   call-input contracts, and accepted callback signatures where they prove a
+   pointer input. Unknown calls, untyped inputs, and unresolved indirect calls
+   create no consumer and invalidate state under the existing clobber rules.
+   Do not introduce heuristic call summaries, register-name conventions, or
+   caller/callee fallbacks.
+3. Link every address-value fact to exactly one explicit consumer record and
+   preserve its bounded producer-to-consumer transfer chain through the
+   supported register, stack, global, typed-field, relocation,
+   compatible-join, and known-call rules. Record an explicit terminal state
+   when a value is invalidated, ambiguous, external, unrepresentable, or lacks
+   a proven transfer contract. Do not infer a chain from rendered source text.
+4. Extend source-analysis JSON and the corpus audit to expose the complete
+   stable fact and its consumer: producer/consumer identities, consumer kind
+   and contract, value/domain, target resolution, propagation depth, terminal
+   state/reason, render outcome, and fixture/review classification.
+   `needs_address_value_propagation` is not a render outcome and must not
+   survive in the post-completion report.
+5. Keep one render-plan path. A consumer operand with a mapped, representable
+   source target receives the expression planned from its linked address-value
+   fact; a non-source consumer remains explicitly non-source. A contradictory
+   source-render promise must produce the explicit export diagnostic, never a
+   numeric operand. No renderer may discover consumer semantics from operand
+   text or duplicate the analysis resolver.
+6. Strengthen the focused C fixture matrix so every supported transfer and
+   invalidation asserts the durable value and consumer records, terminal state,
+   and planned output where applicable. Include a proven local call input and
+   a generated platform/API or callback input, plus negative untyped and
+   unknown-call cases. Regenerate the full read-only corpus report and
    demonstrate Pandora's direct symbolic store plus the focused same-object
    field-store/reload/consumer chain; do not manufacture an interprocedural
    Pandora chain that its control flow does not prove.
-6. Replace the post-implementation audit claim with a post-completion report
-   only after these conditions pass. Keep the current report as an interim
-   baseline and preserve every unresolved row as a review opportunity.
+7. Replace the interim audit claim with a post-completion report only after
+   these conditions pass. Preserve unresolved rows as review opportunities and
+   report unavailable consumer categories explicitly rather than hiding them.
 
 ## Non-Goals
 
@@ -420,6 +448,11 @@ handoff design record while preserving the main task's boundary.
 2. **Function summaries and callback contracts.** Derive proven typed pointer
    parameters, returns, escapes, clobbers, and indirect callback signatures;
    apply summaries interprocedurally only when their contract is durable.
+
+   The main task consumes an already durable local-function, platform/API, or
+   callback input contract as a consumer. This extension begins only where the
+   framework must derive a new contract, preserve a return identity, or infer
+   an escape; it must not be smuggled into the main task as a fallback summary.
 
    *2026-07-28 handoff:* resolved callback-slot stores such as
    `s0:000004B2:instruction` (`move.l a0,app_vertical_blank_callback(a6)`) do
