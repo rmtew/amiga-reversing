@@ -52,6 +52,8 @@ typedef enum M68kRenderPlannedDeclarationKind {
 typedef struct M68kRenderPlannedExpression {
   uint32_t source_section_index;
   uint32_t source_offset;
+  uint32_t address_value_section_index;
+  uint32_t address_value_id;
   uint32_t target_section_index;
   uint32_t target_offset;
   uint32_t base_section_index;
@@ -62,6 +64,7 @@ typedef struct M68kRenderPlannedExpression {
   uint8_t kind;
   uint8_t outcome;
   uint8_t has_target;
+  uint8_t has_address_value;
   uint8_t has_base_target;
   uint8_t requires_declaration;
   uint8_t has_relative_key;

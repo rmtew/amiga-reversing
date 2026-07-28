@@ -26904,6 +26904,222 @@ static int test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_sto
   return 0;
 }
 
+static int test_facts_v2_analysis_records_local_function_address_value_consumer(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs;
+  uint8_t bytes[0x24] = {0};
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  /* movea.l #callee,a0; jsr callee; rts; callee: rts */
+  bytes[0] = 0x20u; bytes[1] = 0x7cu; bytes[4] = 0x01u; bytes[5] = 0x20u;
+  bytes[6] = 0x4eu; bytes[7] = 0xb9u; bytes[10] = 0x01u; bytes[11] = 0x20u;
+  bytes[12] = 0x4eu; bytes[13] = 0x75u;
+  bytes[0x20] = 0x4eu; bytes[0x21] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "callback_context");
+  custom_structs[0].size = 4U;
+  policy.function_register_contract_count = 1U;
+  policy.function_register_contracts[0].has_section_index = 1U;
+  policy.function_register_contracts[0].section_index = 0U;
+  policy.function_register_contracts[0].entry_offset = 0x20U;
+  policy.function_register_contracts[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_register_contracts[0].register_index = 0U;
+  policy.function_register_contracts[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_register_contracts[0].name,
+    sizeof(policy.function_register_contracts[0].name), "callback_context_arg");
+  snprintf(policy.function_register_contracts[0].type_name,
+    sizeof(policy.function_register_contracts[0].type_name), "callback_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].pointer_store_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT,
+    analysis.sections[0].address_value_consumers[0].kind);
+  M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
+  M68K_C_ASSERT_U32(analysis.sections[0].address_values[0].id,
+    analysis.sections[0].address_value_consumers[0].address_value_id);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_analysis_records_platform_api_address_value_consumer(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  int16_t open_device_lvo = 0;
+  uint8_t bytes[0x22] = {0};
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  /* movea.l #request,a1; jsr _LVOOpenDevice(a6); rts; request: rts */
+  bytes[0] = 0x22u; bytes[1] = 0x7cu; bytes[4] = 0x01u; bytes[5] = 0x20u;
+  bytes[6] = 0x4eu; bytes[7] = 0xaeu;
+  bytes[10] = 0x4eu; bytes[11] = 0x75u;
+  bytes[0x20] = 0x4eu; bytes[0x21] = 0x75u;
+  M68K_C_ASSERT(platform_facts_v2_library_vector_lvo_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "_LVOOpenDevice", &open_device_lvo));
+  bytes[8] = (uint8_t)((uint16_t)open_device_lvo >> 8);
+  bytes[9] = (uint8_t)open_device_lvo;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "exec.library");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT,
+    analysis.sections[0].address_value_consumers[0].kind);
+  M68K_C_ASSERT_STR("iORequest", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_analysis_records_callback_address_value_consumer(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs;
+  uint8_t bytes[28] = {
+    0x2au, 0x7cu, 0x00u, 0x00u, 0x10u, 0x10u, /* movea.l #callback,a5 */
+    0x20u, 0x7au, 0x00u, 0x10u,               /* movea.l callback_table(pc),a0 */
+    0x4eu, 0x90u,                             /* jsr (a0) */
+    0x30u, 0x2du, 0x00u, 0x02u,               /* move.w $02(a5),d0 */
+    0x4eu, 0x75u,                             /* callback: rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u,               /* alignment */
+    0x4eu, 0x75u,                             /* spare entry */
+    0x00u, 0x00u, 0x10u, 0x10u                /* callback table entry */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x1000U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "callback_context");
+  custom_structs[0].size = 4U;
+  policy.callback_table_signature_count = 1U;
+  policy.callback_table_signatures[0].has_section_index = 1U;
+  policy.callback_table_signatures[0].section_index = 0U;
+  policy.callback_table_signatures[0].table_offset = 24U;
+  policy.callback_table_signatures[0].entry_count = 1U;
+  policy.callback_table_signatures[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.callback_table_signatures[0].register_index = 5U;
+  policy.callback_table_signatures[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.callback_table_signatures[0].name, sizeof(policy.callback_table_signatures[0].name),
+    "callback_context_table");
+  snprintf(policy.callback_table_signatures[0].type_name, sizeof(policy.callback_table_signatures[0].type_name),
+    "callback_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT,
+    analysis.sections[0].address_value_consumers[0].kind);
+  M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_analysis_does_not_record_untyped_unknown_call_consumer(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[0x22] = {0};
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  /* movea.l #target,a0; jsr (a1); rts; target: rts */
+  bytes[0] = 0x20u; bytes[1] = 0x7cu; bytes[4] = 0x01u; bytes[5] = 0x20u;
+  bytes[6] = 0x4eu; bytes[7] = 0x91u;
+  bytes[8] = 0x4eu; bytes[9] = 0x75u;
+  bytes[0x20] = 0x4eu; bytes[0x21] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].address_value_consumer_count);
+  M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].address_value_count);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(void) {
   M68kObject object;
   M68kSection section;
@@ -34175,6 +34391,14 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_propagates_static_array_address_to_generic_pointer_store},
     {"facts_v2_analysis_uses_relocation_target_for_generic_pointer_store",
       test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_store},
+    {"facts_v2_analysis_records_local_function_address_value_consumer",
+      test_facts_v2_analysis_records_local_function_address_value_consumer},
+    {"facts_v2_analysis_records_platform_api_address_value_consumer",
+      test_facts_v2_analysis_records_platform_api_address_value_consumer},
+    {"facts_v2_analysis_records_callback_address_value_consumer",
+      test_facts_v2_analysis_records_callback_address_value_consumer},
+    {"facts_v2_analysis_does_not_record_untyped_unknown_call_consumer",
+      test_facts_v2_analysis_does_not_record_untyped_unknown_call_consumer},
     {"facts_v2_render_asm_source_propagates_static_struct_data_type",
       test_facts_v2_render_asm_source_propagates_static_struct_data_type},
     {"facts_v2_render_asm_source_propagates_pointer_table_pointee_type",

@@ -9,6 +9,7 @@ from src.scripts.target_usage_manifest import (
     XREF_KIND_ACCEPTED_CODE_RUN,
     XREF_KIND_ADDRESS_IDENTITY,
     XREF_KIND_ADDRESS_OBSERVATION,
+    XREF_KIND_ADDRESS_VALUE_CONSUMER,
     XREF_KIND_CODE_ORIGIN,
     XREF_KIND_CODE_START_REF,
     XREF_KIND_DATA_REFERENCE,
@@ -117,6 +118,17 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
                 "target_section_index": 0,
                 "target_offset": 0x5CF4C,
             }],
+            "address_value_consumers": [{
+                "id": 1, "offset": 0x120, "operand_index": 0,
+                "kind": "storage", "address_value_id": 1,
+                "contract_name": "world_object_shared_prefix_interaction_data_ptr",
+                "pointee_struct_name": "interaction_data",
+            }, {
+                "id": 2, "offset": 0x124, "operand_index": 0,
+                "kind": "storage", "address_value_id": 2,
+                "contract_name": "world_object_shared_prefix_interaction_data_ptr",
+                "pointee_struct_name": "interaction_data",
+            }],
             "address_values": [{
                 "id": 1, "origin_kind": "immediate", "producer_section_index": 0,
                 "producer_offset": 0x100, "producer_operand_index": 0, "propagation_depth": 2,
@@ -136,6 +148,7 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
     assert counts["analysis:pointer_store"] == 2
     assert counts["analysis:pointer_store:render:non_source"] == 1
     assert counts["analysis:pointer_store:render:symbolic"] == 1
+    assert counts["analysis:address_value_consumer"] == 2
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
     xrefs = _analysis_xrefs(row, analysis, {
@@ -148,9 +161,13 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
     assert outcomes[0x120]["render_outcome"] == "non_source"
     assert outcomes[0x124]["render_outcome"] == "symbolic"
     assert outcomes[0x124]["address_value"]["producer_operand_index"] == 0
+    consumers = [xref for xref in xrefs if xref.get("kind_id") == XREF_KIND_ADDRESS_VALUE_CONSUMER]
+    assert len(consumers) == 2
 
     report = build_typed_pointer_value_opportunity_report(xrefs)
-    assert report["pointer_store_count"] == 2
+    assert report["scope"] == "typed_address_value_consumers"
+    assert report["consumer_count"] == 2
+    assert report["consumer_kind_counts"] == {"storage": 2}
     assert report["render_outcome_counts"] == {
         "non_source": 1,
         "symbolic": 1,

@@ -523,6 +523,25 @@ typedef struct M68kRenderPointerStore {
   size_t section_index;
 } M68kRenderPointerStore;
 
+/* Pre-render observation of a non-storage typed address consumer.  The public
+ * consumer record carries its contract; this transient value is resolved by
+ * the same source-address machinery as a typed storage write. */
+typedef struct M68kRenderTypedAddressConsumer {
+  M68kAddressValueConsumerIR fact;
+  M68kRenderTypedStoredValue value;
+  M68kRenderTypedProvenance provenance;
+  size_t section_index;
+  size_t target_section_index;
+  size_t candidate_target_section_indices[4];
+  uint32_t source_value;
+  uint32_t target_offset;
+  uint32_t candidate_source_values[4];
+  uint32_t candidate_target_offsets[4];
+  uint8_t resolution;
+  uint8_t has_target;
+  uint8_t candidate_target_count;
+} M68kRenderTypedAddressConsumer;
+
 typedef struct M68kRenderDataPointerValue {
   uint8_t known;
   uint8_t exact;
@@ -691,6 +710,9 @@ struct M68kRenderLookup {
   M68kRenderPointerStore *pointer_stores;
   size_t pointer_store_count;
   size_t pointer_store_capacity;
+  M68kRenderTypedAddressConsumer *address_value_consumers;
+  size_t address_value_consumer_count;
+  size_t address_value_consumer_capacity;
   M68kRenderBootblockDiskRead *bootblock_disk_reads;
   size_t bootblock_disk_read_count;
   size_t bootblock_disk_read_capacity;
@@ -980,7 +1002,7 @@ void m68k_render_lookup_destroy(M68kRenderLookup *lookup);
 void m68k_render_lookup_materialize_relocation_target_labels(M68kRenderLookup *lookup);
 int m68k_analysis_render_lookup_import_source_analysis_structured_data(M68kRenderLookup *lookup,
   const M68kSourceAnalysisIR *source_analysis);
-int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLookup *lookup,
+int m68k_analysis_render_lookup_materialize_typed_address_targets(M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes);
 int m68k_analysis_render_lookup_append_base_layout_fields(Arena *scratch_arena,
   const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);

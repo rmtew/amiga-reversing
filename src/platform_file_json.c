@@ -320,6 +320,16 @@ static const char *address_value_review_class_name(uint8_t review_class) {
   }
 }
 
+static const char *address_value_consumer_kind_name(uint8_t kind) {
+  switch (kind) {
+  case M68K_ADDRESS_VALUE_CONSUMER_STORAGE: return "storage";
+  case M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT: return "local_function_input";
+  case M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT: return "platform_api_input";
+  case M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT: return "callback_input";
+  default: return "unknown";
+  }
+}
+
 static const char *pointer_store_destination_kind_name(uint8_t destination_kind) {
   switch (destination_kind) {
   case M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD: return "struct_field";
@@ -4569,6 +4579,28 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       }
       if (json_builder_append(&builder, "}") != 0) goto oom;
     }
+    if (json_builder_appendf(&builder, "],\"address_value_consumer_count\":%u,\"address_value_consumers\":[",
+          (unsigned)section->address_value_consumer_count) != 0) goto oom;
+    for (address_observation_index = 0U; address_observation_index < section->address_value_consumer_count;
+        ++address_observation_index) {
+      const M68kAddressValueConsumerIR *consumer = &section->address_value_consumers[address_observation_index];
+      if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"id\":%u,\"offset\":%u,\"operand_index\":%u,\"kind_id\":%u,\"kind\":",
+          (unsigned)consumer->id, (unsigned)consumer->offset, (unsigned)consumer->operand_index,
+          (unsigned)consumer->kind) != 0 ||
+          json_builder_append_json_string(&builder, address_value_consumer_kind_name(consumer->kind)) != 0 ||
+          json_builder_appendf(&builder,
+          ",\"address_value_id\":%u,\"register_kind\":%u,\"register_index\":%u,"
+          "\"contract_section_index\":%u,\"contract_offset\":%u,\"pointee_struct_name\":",
+          (unsigned)consumer->address_value_id, (unsigned)consumer->register_kind,
+          (unsigned)consumer->register_index, (unsigned)consumer->contract_section_index,
+          (unsigned)consumer->contract_offset) != 0 ||
+          json_builder_append_json_string(&builder, consumer->pointee_struct_name) != 0 ||
+          json_builder_append(&builder, ",\"contract_name\":") != 0 ||
+          json_builder_append_json_string(&builder, consumer->contract_name) != 0 ||
+          json_builder_append(&builder, "}") != 0) goto oom;
+    }
     if (json_builder_appendf(&builder, "],\"address_value_count\":%u,\"address_values\":[",
           (unsigned)section->address_value_count) != 0) goto oom;
     for (address_observation_index = 0U; address_observation_index < section->address_value_count;
@@ -4582,12 +4614,10 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append_json_string(&builder, pointer_store_provenance_kind_name(value->origin_kind)) != 0 ||
           json_builder_appendf(&builder,
           ",\"producer_section_index\":%u,\"producer_offset\":%u,\"producer_operand_index\":%u,"
-          "\"consumer_section_index\":%u,\"consumer_offset\":%u,\"consumer_operand_index\":%u,"
           "\"pointer_width\":%u,\"resolution_id\":%u,\"resolution\":",
           (unsigned)value->producer_section_index, (unsigned)value->producer_offset,
-          (unsigned)value->producer_operand_index, (unsigned)value->consumer_section_index,
-          (unsigned)value->consumer_offset, (unsigned)value->consumer_operand_index,
-          (unsigned)value->pointer_width, (unsigned)value->resolution) != 0 ||
+          (unsigned)value->producer_operand_index, (unsigned)value->pointer_width,
+          (unsigned)value->resolution) != 0 ||
           json_builder_append_json_string(&builder, pointer_store_resolution_name(value->resolution)) != 0 ||
           json_builder_appendf(&builder, ",\"terminal_state\":") != 0 ||
           json_builder_append_json_string(&builder, address_value_terminal_kind_name(value->terminal_kind)) != 0 ||

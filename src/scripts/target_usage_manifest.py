@@ -477,6 +477,7 @@ XREF_KIND_DATA_REFERENCE = 29
 XREF_KIND_ADDRESS_OBSERVATION = 30
 XREF_KIND_PLATFORM_SEMANTIC_USE = 31
 XREF_KIND_POINTER_STORE = 32
+XREF_KIND_ADDRESS_VALUE_CONSUMER = 33
 XREF_KIND_IDS = {
     "platform_typed_access": XREF_KIND_PLATFORM_TYPED_ACCESS,
     "typed_storage": XREF_KIND_TYPED_STORAGE,
@@ -510,6 +511,7 @@ XREF_KIND_IDS = {
     "platform_semantic_use": XREF_KIND_PLATFORM_SEMANTIC_USE,
     "address_observation": XREF_KIND_ADDRESS_OBSERVATION,
     "pointer_store": XREF_KIND_POINTER_STORE,
+    "address_value_consumer": XREF_KIND_ADDRESS_VALUE_CONSUMER,
 }
 XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY = 1
 XREF_FEATURE_TYPED_STORAGE_ANY = 2
@@ -3842,6 +3844,14 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         for store in _dict_items(section.get("pointer_stores")):
             _add_pointer_store_features(bag, section_index, store,
                 address_values.get(_int_value(store.get("address_value_id"))))
+        for consumer in _dict_items(section.get("address_value_consumers")):
+            address_value = address_values.get(_int_value(consumer.get("address_value_id")))
+            kind = _string_value(consumer.get("kind")) or "unknown"
+            bag.add("analysis:address_value_consumer")
+            bag.add(f"analysis:address_value_consumer:kind:{_safe_part(kind)}")
+            if isinstance(address_value, dict):
+                outcome = _address_value_render_outcome(address_value)
+                bag.add(f"analysis:address_value_consumer:render:{outcome}")
         for ref in _dict_items(section.get("code_start_refs")):
             _add_code_start_ref_features(bag, section_index, ref)
         for origin in _dict_items(section.get("code_origins")):
@@ -6396,7 +6406,7 @@ def _address_observation_xrefs(
     ]
 
 
-def _pointer_store_render_outcome(address_value: dict[str, Any] | None) -> str:
+def _address_value_render_outcome(address_value: dict[str, Any] | None) -> str:
     """The render outcome is owned by the referenced durable address-value fact."""
     if not isinstance(address_value, dict):
         return "invalid"
@@ -6432,7 +6442,7 @@ def _pointer_store_example(section_index: int | None, store: dict[str, Any],
             value = _int_value(address_value.get(key))
             if value is not None:
                 example[key] = value
-    example["render_outcome"] = _pointer_store_render_outcome(address_value)
+    example["render_outcome"] = _address_value_render_outcome(address_value)
     return example
 
 
@@ -6444,7 +6454,7 @@ def _add_pointer_store_features(bag: FeatureBag, section_index: int | None, stor
         value = _string_value(store.get(key))
         if value:
             bag.add(f"analysis:pointer_store:{key}:{_safe_part(value)}", example=example)
-    bag.add(f"analysis:pointer_store:render:{_pointer_store_render_outcome(address_value)}", example=example)
+    bag.add(f"analysis:pointer_store:render:{_address_value_render_outcome(address_value)}", example=example)
 
 
 def _pointer_store_xref(
@@ -6467,7 +6477,7 @@ def _pointer_store_xref(
                     "propagation_depth", "transfer_truncated"):
             if key in address_value:
                 store_payload[key] = address_value[key]
-    store_payload["render_outcome"] = _pointer_store_render_outcome(address_value)
+    store_payload["render_outcome"] = _address_value_render_outcome(address_value)
     return _xref(
         row,
         "analysis:pointer_store",
@@ -6481,6 +6491,45 @@ def _pointer_store_xref(
         text=row_text or field_name or destination_symbol or "typed pointer store",
         resolution=_string_value(store.get("resolution")),
         pointer_store=store_payload,
+    )
+
+
+def _address_value_consumer_xref(
+    row: dict[str, object],
+    consumer: dict[str, Any],
+    address_value: dict[str, Any] | None,
+    *,
+    section_index: int | None,
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+) -> dict[str, object]:
+    offset = _int_value(consumer.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+    payload = dict(consumer)
+    if isinstance(address_value, dict):
+        payload["address_value"] = dict(address_value)
+        for key in (
+            "source_value", "origin_kind", "resolution", "terminal_state", "render_outcome",
+            "review_class", "terminal_reason", "producer_section_index", "producer_offset",
+            "producer_operand_index", "propagation_depth", "transfer_truncated",
+        ):
+            if key in address_value:
+                payload[key] = address_value[key]
+    kind = _string_value(consumer.get("kind")) or "unknown"
+    contract = _string_value(consumer.get("contract_name")) or "typed address consumer"
+    return _xref(
+        row,
+        "analysis:address_value_consumer",
+        "address_value_consumer",
+        section=section_index,
+        offset=offset,
+        row_index=row_index,
+        stable_key=stable_key,
+        symbol=contract,
+        value=_int_value(payload.get("source_value")),
+        text=row_text or contract,
+        resolution=_string_value(payload.get("resolution")),
+        address_value_consumer=payload,
+        consumer_kind=kind,
     )
 
 
@@ -6726,6 +6775,10 @@ def _analysis_xrefs(
         }
         for store in _dict_items(section.get("pointer_stores")):
             xrefs.append(_pointer_store_xref(row, store, address_values.get(_int_value(store.get("address_value_id"))),
+                section_index=section_index, row_locations=row_locations))
+        for consumer in _dict_items(section.get("address_value_consumers")):
+            xrefs.append(_address_value_consumer_xref(
+                row, consumer, address_values.get(_int_value(consumer.get("address_value_id"))),
                 section_index=section_index, row_locations=row_locations))
         for ref in _dict_items(section.get("code_start_refs")):
             xrefs.extend(_code_start_ref_xrefs(row, ref, row_locations, section_index=section_index))
@@ -7480,6 +7533,8 @@ def _xref(
     owner_range_size: object = None,
     owner_range_end: object = None,
     pointer_store: dict[str, object] | None = None,
+    address_value_consumer: dict[str, object] | None = None,
+    consumer_kind: str | None = None,
 ) -> dict[str, object]:
     target_id = str(target_row.get("id"))
     kind_id = XREF_KIND_IDS.get(kind)
@@ -7544,6 +7599,10 @@ def _xref(
         payload["source_stable_key"] = source_stable_key
     if pointer_store is not None:
         payload["pointer_store"] = pointer_store
+    if address_value_consumer is not None:
+        payload["address_value_consumer"] = address_value_consumer
+    if consumer_kind is not None:
+        payload["consumer_kind"] = consumer_kind
     payload["id"] = _stable_xref_id(payload)
     return payload
 
@@ -10741,13 +10800,9 @@ def build_typed_pointer_value_opportunity_report(
     max_examples: int = 25,
     platform: str | None = None,
 ) -> dict[str, object]:
-    """Summarise typed pointer stores from the corpus without changing analysis facts.
-
-    Each row keeps the original xref id and listing locator, so a later analysis
-    change can be compared against the same concrete instructions.
-    """
+    """Summarise durable typed address-value consumers without changing facts."""
     source_kind_counts: dict[str, int] = {}
-    destination_kind_counts: dict[str, int] = {}
+    consumer_kind_counts: dict[str, int] = {}
     pointee_domain_counts: dict[str, int] = {}
     resolution_counts: dict[str, int] = {}
     render_outcome_counts: dict[str, int] = {}
@@ -10758,24 +10813,24 @@ def build_typed_pointer_value_opportunity_report(
     def bump(counts: dict[str, int], key: str) -> None:
         counts[key] = int(counts.get(key, 0)) + 1
 
-    pointer_store_count = 0
+    consumer_count = 0
     for xref in xrefs:
         if (
-            _xref_kind_id(xref) != XREF_KIND_POINTER_STORE
+            _xref_kind_id(xref) != XREF_KIND_ADDRESS_VALUE_CONSUMER
             or (platform is not None and xref.get("platform") != platform)
-            or not isinstance(xref.get("pointer_store"), dict)
+            or not isinstance(xref.get("address_value_consumer"), dict)
         ):
             continue
-        pointer_store_count += 1
-        store = cast(dict[str, Any], xref["pointer_store"])
-        source_kind = _string_value(store.get("source_kind")) or "unknown"
-        destination_kind = _string_value(store.get("destination_kind")) or "unknown"
-        pointee_domain = _string_value(store.get("pointee_struct_name")) or "untyped"
-        resolution = _string_value(store.get("resolution")) or "unknown"
-        origin_kind = _string_value(store.get("origin_kind")) or "unknown"
-        outcome = _string_value(store.get("render_outcome")) or _pointer_store_render_outcome(None)
+        consumer_count += 1
+        consumer = cast(dict[str, Any], xref["address_value_consumer"])
+        origin_kind = _string_value(consumer.get("origin_kind")) or "unknown"
+        source_kind = origin_kind
+        consumer_kind = _string_value(consumer.get("kind")) or "unknown"
+        pointee_domain = _string_value(consumer.get("pointee_struct_name")) or "untyped"
+        resolution = _string_value(consumer.get("resolution")) or "unknown"
+        outcome = _string_value(consumer.get("render_outcome")) or _address_value_render_outcome(None)
         bump(source_kind_counts, source_kind)
-        bump(destination_kind_counts, destination_kind)
+        bump(consumer_kind_counts, consumer_kind)
         bump(pointee_domain_counts, pointee_domain)
         bump(resolution_counts, resolution)
         bump(render_outcome_counts, outcome)
@@ -10791,15 +10846,14 @@ def build_typed_pointer_value_opportunity_report(
             "stable_key": _string_value(xref.get("stable_key")),
             "text": _string_value(xref.get("text")) or "",
             "source_kind": source_kind,
-            "destination_kind": destination_kind,
-            "destination": _string_value(store.get("destination_field_name"))
-                or _string_value(store.get("destination_symbol")) or "unknown",
+            "consumer_kind": consumer_kind,
+            "consumer_contract": _string_value(consumer.get("contract_name")) or "unknown",
             "pointee_domain": pointee_domain,
             "resolution": resolution,
             "origin_kind": origin_kind,
-            "terminal_state": _string_value(store.get("terminal_state")) or "unknown",
-            "producer_operand_index": _int_value(store.get("producer_operand_index")),
-            "propagation_depth": _int_value(store.get("propagation_depth")),
+            "terminal_state": _string_value(consumer.get("terminal_state")) or "unknown",
+            "producer_operand_index": _int_value(consumer.get("producer_operand_index")),
+            "propagation_depth": _int_value(consumer.get("propagation_depth")),
             "render_outcome": outcome,
         }
         examples_by_outcome.setdefault(outcome, []).append(example)
@@ -10813,11 +10867,11 @@ def build_typed_pointer_value_opportunity_report(
         ))
     return {
         "schema_version": 1,
-        "scope": "typed_pointer_stores_only",
+        "scope": "typed_address_value_consumers",
         "target_count": len(target_counts),
-        "pointer_store_count": pointer_store_count,
+        "consumer_count": consumer_count,
         "source_kind_counts": dict(sorted(source_kind_counts.items())),
-        "destination_kind_counts": dict(sorted(destination_kind_counts.items())),
+        "consumer_kind_counts": dict(sorted(consumer_kind_counts.items())),
         "pointee_domain_counts": dict(sorted(pointee_domain_counts.items())),
         "resolution_counts": dict(sorted(resolution_counts.items())),
         "render_outcome_counts": dict(sorted(render_outcome_counts.items())),

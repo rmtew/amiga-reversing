@@ -2987,14 +2987,30 @@ int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section
   return 0;
 }
 
+int m68k_ir_section_analysis_append_address_value_consumer(M68kSectionAnalysisIR *section_analysis,
+    const M68kAddressValueConsumerIR *consumer) {
+  size_t index;
+  if (section_analysis == NULL || consumer == NULL || section_analysis->arena == NULL) return -1;
+  for (index = 0U; index < section_analysis->address_value_consumer_count; ++index) {
+    const M68kAddressValueConsumerIR *existing = &section_analysis->address_value_consumers[index];
+    if (existing->id == consumer->id && existing->offset == consumer->offset &&
+        existing->operand_index == consumer->operand_index && existing->kind == consumer->kind) return 0;
+  }
+  section_analysis->address_value_consumers = (M68kAddressValueConsumerIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->address_value_consumers, section_analysis->address_value_consumer_count,
+    &section_analysis->address_value_consumer_capacity, 8U, sizeof(*section_analysis->address_value_consumers));
+  if (section_analysis->address_value_consumers == NULL) return -1;
+  section_analysis->address_value_consumers[section_analysis->address_value_consumer_count++] = *consumer;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressValueIR *address_value) {
   size_t index;
   if (section_analysis == NULL || address_value == NULL || section_analysis->arena == NULL) return -1;
   for (index = 0U; index < section_analysis->address_value_count; ++index) {
     const M68kAddressValueIR *existing = &section_analysis->address_values[index];
-    if (existing->id == address_value->id && existing->consumer_offset == address_value->consumer_offset &&
-        existing->consumer_operand_index == address_value->consumer_operand_index) return 0;
+    if (existing->id == address_value->id) return 0;
   }
   section_analysis->address_values = (M68kAddressValueIR *)arena_grow_array(section_analysis->arena,
     section_analysis->address_values, section_analysis->address_value_count,
@@ -4764,6 +4780,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->pointer_store_count; ++index) {
     if (m68k_ir_section_analysis_append_pointer_store(&copy,
           &section_analysis->pointer_stores[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->address_value_consumer_count; ++index) {
+    if (m68k_ir_section_analysis_append_address_value_consumer(&copy,
+          &section_analysis->address_value_consumers[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

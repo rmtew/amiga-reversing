@@ -1447,6 +1447,30 @@ typedef enum M68kAddressValueReviewClass {
   M68K_ADDRESS_VALUE_REVIEW_INVALID = 3
 } M68kAddressValueReviewClass;
 
+/* A consumer is the durable contract that permits an address-valued fact to
+ * exist.  Storage writes and call inputs share this model, but retain their
+ * distinct semantics rather than pretending every input is a memory store. */
+typedef enum M68kAddressValueConsumerKind {
+  M68K_ADDRESS_VALUE_CONSUMER_STORAGE = 1,
+  M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT = 2,
+  M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT = 3,
+  M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT = 4
+} M68kAddressValueConsumerKind;
+
+typedef struct M68kAddressValueConsumerIR {
+  char pointee_struct_name[64];
+  char contract_name[96];
+  uint32_t id;
+  uint32_t offset;
+  uint32_t address_value_id;
+  uint32_t contract_section_index;
+  uint32_t contract_offset;
+  uint8_t operand_index;
+  uint8_t kind;
+  uint8_t register_kind;
+  uint8_t register_index;
+} M68kAddressValueConsumerIR;
+
 typedef struct M68kAddressValueTransferIR {
   uint32_t section_index;
   uint32_t offset;
@@ -1454,9 +1478,9 @@ typedef struct M68kAddressValueTransferIR {
   uint8_t destination_operand_index;
 } M68kAddressValueTransferIR;
 
-/* A durable, pre-render address-value fact.  Pointer stores name their
- * consumer/destination and refer here; render planning consumes this fact by
- * identity and never re-infers pointer meaning from operand text. */
+/* A durable, pre-render address-value fact. Typed consumers refer here;
+ * render planning consumes this fact by identity and never re-infers pointer
+ * meaning from operand text. */
 typedef struct M68kAddressValueIR {
   char pointee_struct_name[64];
   char terminal_reason[96];
@@ -1464,8 +1488,6 @@ typedef struct M68kAddressValueIR {
   uint32_t source_value;
   uint32_t producer_section_index;
   uint32_t producer_offset;
-  uint32_t consumer_section_index;
-  uint32_t consumer_offset;
   uint32_t target_section_index;
   uint32_t target_offset;
   uint32_t candidate_source_values[4];
@@ -1473,7 +1495,6 @@ typedef struct M68kAddressValueIR {
   uint32_t candidate_target_offsets[4];
   M68kAddressValueTransferIR transfers[8];
   uint8_t producer_operand_index;
-  uint8_t consumer_operand_index;
   uint8_t origin_kind;
   uint8_t pointer_width;
   uint8_t resolution;
@@ -2258,6 +2279,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kPointerStoreIR *pointer_stores;
   size_t pointer_store_count;
   size_t pointer_store_capacity;
+  M68kAddressValueConsumerIR *address_value_consumers;
+  size_t address_value_consumer_count;
+  size_t address_value_consumer_capacity;
   M68kAddressValueIR *address_values;
   size_t address_value_count;
   size_t address_value_capacity;
@@ -2514,6 +2538,8 @@ int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *s
     const M68kAddressObservationIR *observation);
 int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section_analysis,
     const M68kPointerStoreIR *pointer_store);
+int m68k_ir_section_analysis_append_address_value_consumer(M68kSectionAnalysisIR *section_analysis,
+    const M68kAddressValueConsumerIR *consumer);
 int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressValueIR *address_value);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,

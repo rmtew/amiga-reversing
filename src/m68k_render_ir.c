@@ -10185,6 +10185,28 @@ static const M68kAddressValueIR *source_analysis_address_value_for_producer(
   return NULL;
 }
 
+static int source_analysis_address_value_has_consumer(const M68kSectionAnalysisIR *section,
+    const M68kAddressValueIR *value) {
+  size_t consumer_index;
+  if (section == NULL || value == NULL || value->id == 0U) return 0;
+  for (consumer_index = 0U; consumer_index < section->address_value_consumer_count; ++consumer_index) {
+    if (section->address_value_consumers[consumer_index].address_value_id == value->id) return 1;
+  }
+  return 0;
+}
+
+static const M68kAddressValueIR *source_analysis_address_value_by_id(
+    const M68kSourceAnalysisIR *source_analysis, uint32_t section_index, uint32_t id) {
+  const M68kSectionAnalysisIR *section;
+  size_t value_index;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count || id == 0U) return NULL;
+  section = &source_analysis->sections[section_index];
+  for (value_index = 0U; value_index < section->address_value_count; ++value_index) {
+    if (section->address_values[value_index].id == id) return &section->address_values[value_index];
+  }
+  return NULL;
+}
+
 static int validate_planned_address_value_expressions(M68kRenderIRPreview *preview,
     const M68kSourceAnalysisIR *source_analysis) {
   size_t section_index, value_index, expression_index;
@@ -10194,7 +10216,9 @@ static int validate_planned_address_value_expressions(M68kRenderIRPreview *previ
     for (value_index = 0U; value_index < section->address_value_count; ++value_index) {
       const M68kAddressValueIR *value = &section->address_values[value_index];
       int found = 0;
-      if (value->render_outcome == M68K_ADDRESS_VALUE_RENDER_INVALID && value->has_source_expression != 0U) {
+      if ((value->render_outcome == M68K_ADDRESS_VALUE_RENDER_INVALID && value->has_source_expression != 0U) ||
+          (value->render_outcome == M68K_ADDRESS_VALUE_RENDER_SYMBOLIC &&
+           !source_analysis_address_value_has_consumer(section, value))) {
         ++preview->asm_source_instruction_render_failures;
         record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_ADDRESS_VALUE,
           value->producer_section_index, value->producer_offset, value->source_value);
@@ -10205,11 +10229,15 @@ static int validate_planned_address_value_expressions(M68kRenderIRPreview *previ
           ++expression_index) {
         const M68kRenderPlannedExpression *expression = &preview->asm_source_plan.expressions[expression_index];
         if (expression->outcome == M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC &&
-            expression->source_section_index == value->producer_section_index &&
-            expression->source_offset == value->producer_offset &&
-            expression->operand_index == value->producer_operand_index) {
-          found = 1;
-          break;
+            expression->has_address_value != 0U) {
+          const M68kAddressValueIR *planned_value = source_analysis_address_value_by_id(source_analysis,
+            expression->address_value_section_index, expression->address_value_id);
+          if (planned_value != NULL && planned_value->producer_section_index == value->producer_section_index &&
+              planned_value->producer_offset == value->producer_offset &&
+              planned_value->producer_operand_index == value->producer_operand_index) {
+            found = 1;
+            break;
+          }
         }
       }
       if (!found) {
@@ -10239,8 +10267,16 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
   expression.kind = is_relocation ? M68K_RENDER_PLANNED_EXPRESSION_RELOCATION :
     M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND;
   expression.outcome = M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC;
-  address_value = source_analysis_address_value_for_producer(source_analysis, source_section_index,
-    candidate->offset, access->operand_index, NULL);
+  {
+    size_t address_value_section_index = SIZE_MAX;
+    address_value = source_analysis_address_value_for_producer(source_analysis, source_section_index,
+      candidate->offset, access->operand_index, &address_value_section_index);
+    if (address_value != NULL) {
+      expression.address_value_section_index = (uint32_t)address_value_section_index;
+      expression.address_value_id = address_value->id;
+      expression.has_address_value = 1U;
+    }
+  }
   snprintf(expression.expression, sizeof(expression.expression), "%s", access->symbol_name);
   if (access->has_target != 0U) {
     expression.target_section_index = access->target_section_index;

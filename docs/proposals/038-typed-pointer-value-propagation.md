@@ -54,8 +54,9 @@ and must not rediscover pointer meaning from instruction text.
 
 The completed path includes a direct source pointer, its lossless register and
 storage transfers, a later reload, and at least one typed consumer. Consumers
-are first-class analysis facts: a typed storage write, a proven local-function
-argument, a proven platform/API input, or a proven indirect-callback input.
+are first-class analysis facts, not test assertions or renderer heuristics: a
+typed storage write, a proven local-function argument, a proven platform/API
+input, or a proven indirect-callback input.
 It deliberately stops when identity, target mapping, a call contract, or a
 control-flow merge is not proven. That boundary makes unknown and ambiguous
 values durable analysis states rather than candidates for a numeric or
@@ -75,14 +76,19 @@ subsequent proposal can implement it cleanly.
 ### Address-valued facts
 
 Introduce one durable address-value representation used by both analysis and
-render planning. It records:
+render planning, plus a separate durable consumer representation. The value
+represents identity and provenance; the consumer records the independently
+proven place at which that value is used. A value may have multiple consumers,
+and a consumer references exactly one address-value fact, including a fact
+whose terminal state is non-source, ambiguous, or invalid. They record:
 
 - value origin: immediate, relocation, register, stack slot, static/global
   slot, pointer field, return value, or table element;
 - address value or source/runtime mapping, addend, and address domain;
 - pointee type/domain and pointer width;
-- producing instruction and consumer identity, including consumer kind and
-  the durable storage or call-input contract that proves its pointee domain;
+- producing instruction and transfer provenance on the value; and
+- consumer identity, kind, operand, pointee domain, and the durable storage or
+  call-input contract that proves consumption, on the consumer record;
 - confidence and the complete chain of propagation provenance.
 
 A pointer value is distinct from a numeric constant even when both have the
@@ -135,7 +141,9 @@ typed address-value fact and the frozen render plan.
 3. Introduce one common typed-consumer model for pointer stores and proven
    call inputs. It must retain the contract that justified consumption rather
    than encoding a call as a synthetic store or using a store as proxy
-   evidence for a call.
+   evidence for a call. This is the framework mechanism used by analysis,
+   reporting, and render planning; fixtures verify it but are not a substitute
+   for it.
 4. Make the source-analysis export expose these facts and their producer/
    consumer chain without relying on rendered text.
 5. Teach the shared symbolic resolver to consume address-value facts for
@@ -286,6 +294,34 @@ path, so treating it as the same value would be a false interprocedural alias.
 Pandora remains the real-target direct symbolic-store proof. A focused CFG
 fixture supplies the required same-object field-store/reload/consumer proof.
 
+### Current consumer-model corpus audit — 2026-07-28
+
+After the common consumer model was added, a fresh normal eight-worker corpus
+build completed all 428 entries in 552.1 seconds. It produced 3,095,963 xrefs,
+460,240 listing snippet rows, 241 type-flow rows, and 65 unresolved typed-field
+rows. The read-only pointer-value report now reads consumer facts rather than
+using pointer-store records as a proxy:
+
+```text
+typed address-value consumers: 71 across 8 targets
+consumer kinds: storage 45, local_function_input 18, platform_api_input 8
+callback_input: unavailable in the current corpus
+producer origins: immediate 11, field_pointer 9, app_slot 3,
+                  static_data 1, unknown 47
+resolution: resolved 48, finite candidates 2, unknown target 18,
+            external 2, invalid target 1
+render outcome: symbolic 9, non-source 61, invalid 1
+Pandora: 63 consumers, including the direct interaction_message_ptr store
+```
+
+The unavailable callback category is a corpus-coverage result, not a narrowed
+semantic boundary: focused C fixtures exercise an accepted bounded callback
+table contract, alongside local-function, generated platform/API, storage, and
+unknown-call-negative consumers. The report has no
+`needs_address_value_propagation` outcome. Its non-source, ambiguous, external,
+and invalid rows retain their explicit terminal state rather than receiving a
+numeric rendering fallback.
+
 ## Pandora Proof Scope
 
 Use the world-object interaction/callback swath as the real-target direct
@@ -301,8 +337,6 @@ other pointer-field types without code changes.
 
 ## Acceptance Criteria
 
-- Proposal 039's corpus coverage and observability acceptance criteria pass
-  before this proposal claims corpus audit coverage or selects corpus fixtures.
 - A fresh corpus baseline and post-change report expose the typed-pointer
   opportunity rows above, with stable identity, provenance, aggregate counts,
   and no source mutation side effect.
@@ -318,7 +352,10 @@ other pointer-field types without code changes.
 - Focused C fixtures cover a typed pointer-field immediate store, relocation
   pointer store, register copy, stack/global round trip, typed field reload,
   compatible and conflicting joins, a preserved local-call input, a proven
-  platform/API input or callback input, call clobbering, and a chained lookup.
+  generated platform/API input, a proven accepted callback input, call
+  clobbering, and a chained lookup. The fixtures assert the shared consumer
+  facts and the planner's stable-identity linkage; rendered text alone is not
+  evidence of either.
 - The deferred-extension section is updated as relevant bounded-analysis
   concerns are encountered, with concrete trigger evidence and the required
   future model change; it contains no renderer workaround or unreviewed scope
@@ -368,11 +405,15 @@ only address-value consumer represented in source analysis. Complete this
 remaining slice before marking the proposal implemented:
 
 1. Introduce a durable typed-consumer record that is independent of
-   `M68kPointerStoreIR`. It must identify the consumer instruction operand,
-   consumer kind, pointee domain, and the exact durable contract that proved
-   the consumption. Storage writes remain storage-specific records linked to
-   the common address-value fact; local-function arguments, platform/API
-   inputs, and callback inputs must not be encoded as synthetic stores.
+   `M68kPointerStoreIR`, and make it the sole common consumption surface for
+   analysis export, corpus reporting, and render planning. It must identify
+   the consumer instruction operand, consumer kind, pointee domain, and the
+   exact durable contract that proved consumption. Storage writes remain
+   storage-specific records linked to the common address-value fact;
+   local-function arguments, platform/API inputs, and callback inputs must
+   not be encoded as synthetic stores. Address-value identity/provenance and
+   consumer identity are separate: one value may feed several consumers, but
+   each consumer links to one concrete or explicitly terminal address value.
 2. Observe only contract-proven call consumers before call invalidation. Use
    the existing durable local-function register contracts, generated platform
    call-input contracts, and accepted callback signatures where they prove a
@@ -380,8 +421,8 @@ remaining slice before marking the proposal implemented:
    create no consumer and invalidate state under the existing clobber rules.
    Do not introduce heuristic call summaries, register-name conventions, or
    caller/callee fallbacks.
-3. Link every address-value fact to exactly one explicit consumer record and
-   preserve its bounded producer-to-consumer transfer chain through the
+3. Link every supported typed consumption to an explicit consumer record and
+   preserve the bounded producer-to-consumer transfer chain through the
    supported register, stack, global, typed-field, relocation,
    compatible-join, and known-call rules. Record an explicit terminal state
    when a value is invalidated, ambiguous, external, unrepresentable, or lacks
@@ -392,17 +433,20 @@ remaining slice before marking the proposal implemented:
    state/reason, render outcome, and fixture/review classification.
    `needs_address_value_propagation` is not a render outcome and must not
    survive in the post-completion report.
-5. Keep one render-plan path. A consumer operand with a mapped, representable
-   source target receives the expression planned from its linked address-value
-   fact; a non-source consumer remains explicitly non-source. A contradictory
-   source-render promise must produce the explicit export diagnostic, never a
-   numeric operand. No renderer may discover consumer semantics from operand
-   text or duplicate the analysis resolver.
+5. Keep one render-plan path. The planner consumes the durable consumer and
+   its linked address-value fact by stable identity, rather than recovering
+   pointer meaning from instruction text, store records, or test-only side
+   channels. A consumer operand with a mapped, representable source target
+   receives that single planned expression; a non-source consumer remains
+   explicitly non-source. A contradictory source-render promise must produce
+   the explicit export diagnostic, never a numeric operand. No renderer may
+   discover consumer semantics from operand text or duplicate the analysis
+   resolver.
 6. Strengthen the focused C fixture matrix so every supported transfer and
    invalidation asserts the durable value and consumer records, terminal state,
-   and planned output where applicable. Include a proven local call input and
-   a generated platform/API or callback input, plus negative untyped and
-   unknown-call cases. Regenerate the full read-only corpus report and
+   and planned output where applicable. Include a proven local call input, a
+   generated platform/API input, and an accepted callback input, plus negative
+   untyped and unknown-call cases. Regenerate the full read-only corpus report and
    demonstrate Pandora's direct symbolic store plus the focused same-object
    field-store/reload/consumer chain; do not manufacture an interprocedural
    Pandora chain that its control flow does not prove.
