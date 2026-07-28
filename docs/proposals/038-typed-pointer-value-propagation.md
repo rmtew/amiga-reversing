@@ -717,6 +717,11 @@ signature negatives. A planned expression appears only when its complete call
 chain is proven. Pandora retains the current callback-store result unless a
 durable summary supplies the missing proof.
 
+Function-pointer fields and dispatch-table entries are callable contracts, not
+untyped pointer exceptions. The summary representation must therefore cover
+their parameter domains, return domain where proven, and call-clobber effects
+through the same target-summary identity used by direct and callback calls.
+
 **Dependency and benefit.** Independent of A; composes with C and D. It makes
 interprocedural pointer flow explicit and safely improves call, return, and
 callback rendering.
@@ -777,6 +782,11 @@ any specialised value propagation made redundant by the common transfer.
 pointer-to-pointer chains, typed indirect calls, and dispatch targets. Rendering
 uses the existing table/object symbols only for proven links. Pandora gets a
 table-to-store proof or a precise missing-fact report.
+
+Null, sentinel, and invalid-entry semantics are part of the table-entry
+contract. They are explicit terminal values, not absent target mappings, and
+must remain non-symbolic unless a target's durable type contract assigns a
+specific source-visible representation.
 
 **Dependency and benefit.** Indexed table loads require A; a direct-load slice
 may stand alone. This enables readable table, object-array, dispatch, and
@@ -839,7 +849,10 @@ model.  Its members must describe proof boundaries, not renderer symptoms:
 - unknown, conflicting, or clobbering call/callback contract;
 - identity conflict, finite candidate set, candidate overflow, or absent path
   predicate; and
-- missing composition ownership, illegal overlap, or untyped/invalid pointee.
+- missing composition ownership, illegal overlap, or untyped/invalid pointee;
+  and
+- null/sentinel semantics, an incompatible address space, or invalidated
+  dependent evidence.
 
 Each terminal value and blocked expression carries exactly one primary reason;
 optional evidence links identify every contributing fact.  Existing free-form
@@ -877,6 +890,15 @@ licenses a symbolic target.  Conversely, an identity is not usable through a
 dereference until the edge supplies compatible pointer width, type, ownership,
 null/invalid-entry semantics where relevant, and bounds evidence.
 
+Every address identity and expression also carries one canonical address-space
+classification: source image, target runtime RAM, hardware, OS/library, or
+external/unmapped. The classification is a proof constraint, not a rendering
+preference. Only source-image identities with representable ownership may
+create source symbols; the other spaces receive their existing explicit,
+non-source treatment unless a later proposal supplies a proven source-visible
+mapping. This prevents a runtime or platform address from acquiring a false
+source-storage identity merely because it has pointer type.
+
 #### Review and Manual Action surface
 
 The normal command/catalog path must be designed with B and E, rather than
@@ -887,8 +909,11 @@ They may not attach a desired expression, force a value resolved, or suppress
 a stop reason.  Each action requires a fact-specific verifier that checks its
 identity, conflict/range rules, projection into analysis metadata, and its
 effect on the canonical graph.  Removing or changing a fact must use the same
-action model and invalidate dependent graph edges normally; it must not retain
-an obsolete compatibility projection.
+action model and atomically invalidate/recompute every dependent graph edge,
+planned expression, xref, and aggregate row; it must not retain an obsolete
+compatibility projection. The action result must report the invalidated stable
+identities, so review can distinguish an evidence change from an unrelated
+rendering change.
 
 #### Metrics and completion evidence
 
@@ -899,6 +924,12 @@ supported), consumer kinds, terminal kinds, primary stop reasons, and
 propagation/dereference depth.  It must also report invalid and conflicting
 facts separately from unresolved ones.  Aggregates are for regression and
 fixture selection only; no metric may cause automatic target mutation.
+
+Each report regeneration must additionally provide a stable-identity
+before/after diff: added, removed, and changed proof chains; symbolic outcome
+changes; and stop-reason changes. A gain is attributable only when the diff
+names the new or modified proof edge. Aggregate movement without that link is
+diagnostic data, not evidence that rendering improved correctly.
 
 For every newly symbolic result, export the shortest complete proof chain from
 value producer through its expression, consumer, and any later dereference to
@@ -917,7 +948,10 @@ duplicated semantic state.  Fixtures must demonstrate the positive graph edge,
 the relevant explicit stop reason, deletion of the superseded special case,
 and exact reassembly.  Corpus output must distinguish the new expression shape
 or stop reason from pre-existing categories rather than silently folding it
-into `resolved` or `unknown`.
+into `resolved` or `unknown`. Negative fixtures must also prove that numeric
+values in typed-adjacent code, address-like scalars without a pointer contract,
+null/sentinel values, and values invalidated by a clobber do not acquire an
+address identity or a symbolic rendering.
 
 ### Research-backed sequencing and common completion gate
 
