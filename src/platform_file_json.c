@@ -314,7 +314,6 @@ static const char *address_value_render_outcome_name(uint8_t outcome) {
 static const char *address_value_review_class_name(uint8_t review_class) {
   switch (review_class) {
   case M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE: return "positive_fixture";
-  case M68K_ADDRESS_VALUE_REVIEW_FIXTURE_NEGATIVE_SCALAR: return "negative_scalar_fixture";
   case M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY: return "review_opportunity";
   case M68K_ADDRESS_VALUE_REVIEW_INVALID: return "invalid";
   default: return "unknown";
