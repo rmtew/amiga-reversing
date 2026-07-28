@@ -2965,12 +2965,34 @@ static int append_static_interior_address_expressions(M68kSourceAnalysisIR *sour
         uint32_t target_offset;
         const M68kAnalysisStructuredDataItem *item;
         M68kAddressExpressionIR expression;
-        if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
-            !source_quality_candidate_data_target_for_operand(candidate, (uint32_t)operand_index,
+          if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+              /* Indexed operands are represented only by their table/index
+               * contract.  They must not acquire a competing static target
+               * fact from a decoded candidate. */
+              (candidate->operands[operand_index].ea_mode == 6U ||
+               (candidate->operands[operand_index].ea_mode == 7U &&
+                candidate->operands[operand_index].ea_reg == 3U)) ||
+              !source_quality_candidate_data_target_for_operand(candidate, (uint32_t)operand_index,
               &target_section_index, &target_offset)) {
           continue;
         }
-        item = source_quality_structured_data_item_covering_offset(source_analysis, target_section_index,
+          /* An indexed/table expression is already the canonical identity for
+           * this operand.  Do not add a second static interpretation. */
+          {
+            size_t expression_index;
+            int has_existing_expression = 0;
+            for (expression_index = 0U; expression_index < consumer_section->address_expression_count;
+                 ++expression_index) {
+              const M68kAddressExpressionIR *existing = &consumer_section->address_expressions[expression_index];
+              if (existing->consumer_section_index == (uint32_t)section->section_index &&
+                  existing->consumer_offset == candidate->offset && existing->operand_index == operand_index) {
+                has_existing_expression = 1;
+                break;
+              }
+            }
+            if (has_existing_expression) continue;
+          }
+          item = source_quality_structured_data_item_covering_offset(source_analysis, target_section_index,
           target_offset);
         if (item == NULL || !item->has_section_index || item->table_conflicted || item->size == 0U ||
             item->offset > UINT32_MAX - item->size || target_offset <= item->offset ||
@@ -2987,6 +3009,68 @@ static int append_static_interior_address_expressions(M68kSourceAnalysisIR *sour
         expression.signed_addend = (int32_t)(target_offset - item->offset);
         if (m68k_ir_section_analysis_append_address_expression(consumer_section, &expression) != 0) return -1;
       }
+    }
+  }
+  return 0;
+}
+
+static int source_quality_add_signed_offset(uint32_t base, int32_t addend, uint32_t *out_offset) {
+  int64_t value;
+  if (out_offset == NULL) return 0;
+  value = (int64_t)base + (int64_t)addend;
+  if (value < 0 || value > UINT32_MAX) return 0;
+  *out_offset = (uint32_t)value;
+  return 1;
+}
+
+static int append_affine_static_interior_address_expressions(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *consumer_section = &source_analysis->sections[section_index];
+    size_t evidence_index;
+    for (evidence_index = 0U; evidence_index < consumer_section->affine_address_evidence_count; ++evidence_index) {
+      const M68kAffineAddressEvidenceIR *evidence = &consumer_section->affine_address_evidence[evidence_index];
+      const M68kAnalysisStructuredDataItem *item;
+      M68kAddressExpressionIR expression;
+      uint32_t expected_target;
+      if (evidence->consumer_section_index != consumer_section->section_index ||
+          evidence->origin_section_index != evidence->target_section_index ||
+          !source_quality_add_signed_offset(evidence->origin_offset, evidence->signed_addend, &expected_target) ||
+          expected_target != evidence->target_offset) {
+        continue;
+      }
+      {
+        size_t expression_index;
+        int has_existing_expression = 0;
+        for (expression_index = 0U; expression_index < consumer_section->address_expression_count;
+             ++expression_index) {
+          const M68kAddressExpressionIR *existing = &consumer_section->address_expressions[expression_index];
+          if (existing->consumer_section_index == evidence->consumer_section_index &&
+              existing->consumer_offset == evidence->consumer_offset &&
+              existing->operand_index == evidence->operand_index) {
+            has_existing_expression = 1;
+            break;
+          }
+        }
+        if (has_existing_expression) continue;
+      }
+      item = source_quality_structured_data_item_covering_offset(source_analysis, evidence->target_section_index,
+        evidence->target_offset);
+      if (item == NULL || !item->has_section_index || item->table_conflicted || item->size == 0U ||
+          item->offset > UINT32_MAX - item->size || evidence->target_offset <= item->offset ||
+          evidence->target_offset >= item->offset + item->size) {
+        continue;
+      }
+      memset(&expression, 0, sizeof(expression));
+      expression.kind = M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR;
+      expression.consumer_section_index = evidence->consumer_section_index;
+      expression.consumer_offset = evidence->consumer_offset;
+      expression.operand_index = evidence->operand_index;
+      expression.base_section_index = item->section_index;
+      expression.base_offset = item->offset;
+      expression.signed_addend = (int32_t)(evidence->target_offset - item->offset);
+      if (m68k_ir_section_analysis_append_address_expression(consumer_section, &expression) != 0) return -1;
     }
   }
   return 0;
@@ -13309,8 +13393,9 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start,
     policy, effective_seed_items, effective_seed_count));
   SOURCE_QUALITY_CHECK_OK(append_structured_data_table_descriptors(source_analysis));
-  SOURCE_QUALITY_CHECK_OK(append_indexed_table_address_expressions(source_analysis, decode));
-  SOURCE_QUALITY_CHECK_OK(append_static_interior_address_expressions(source_analysis, decode, accepted_start));
+    SOURCE_QUALITY_CHECK_OK(append_indexed_table_address_expressions(source_analysis, decode));
+    SOURCE_QUALITY_CHECK_OK(append_static_interior_address_expressions(source_analysis, decode, accepted_start));
+    SOURCE_QUALITY_CHECK_OK(append_affine_static_interior_address_expressions(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_structured_data_table_entries(source_analysis, decode, facts, accepted_start,
     accepted_bytes));
   /* Table entries are rendered numerically unless the renderer has an

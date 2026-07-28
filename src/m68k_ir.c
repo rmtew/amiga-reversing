@@ -2279,7 +2279,13 @@ int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *se
         existing->consumer_offset == expression->consumer_offset &&
         existing->operand_index == expression->operand_index &&
         existing->base_section_index == expression->base_section_index &&
-        existing->base_offset == expression->base_offset) {
+        existing->base_offset == expression->base_offset &&
+        existing->signed_addend == expression->signed_addend &&
+        existing->has_index_register == expression->has_index_register &&
+        existing->index_register_kind == expression->index_register_kind &&
+        existing->index_register == expression->index_register &&
+        existing->index_scale == expression->index_scale &&
+        existing->element_stride == expression->element_stride) {
       return 0;
     }
   }
@@ -2290,6 +2296,34 @@ int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *se
       &section_analysis->address_expression_capacity, 8U, sizeof(*section_analysis->address_expressions));
   if (section_analysis->address_expressions == NULL) return -1;
   section_analysis->address_expressions[section_analysis->address_expression_count++] = copy;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_affine_address_evidence(M68kSectionAnalysisIR *section_analysis,
+    const M68kAffineAddressEvidenceIR *evidence) {
+  size_t index;
+  if (section_analysis == NULL || evidence == NULL || section_analysis->arena == NULL ||
+      evidence->consumer_section_index != section_analysis->section_index) {
+    return -1;
+  }
+  for (index = 0U; index < section_analysis->affine_address_evidence_count; ++index) {
+    const M68kAffineAddressEvidenceIR *existing = &section_analysis->affine_address_evidence[index];
+    if (existing->consumer_offset == evidence->consumer_offset &&
+        existing->operand_index == evidence->operand_index &&
+        existing->origin_section_index == evidence->origin_section_index &&
+        existing->origin_offset == evidence->origin_offset &&
+        existing->target_section_index == evidence->target_section_index &&
+        existing->target_offset == evidence->target_offset &&
+        existing->signed_addend == evidence->signed_addend) {
+      return 0;
+    }
+  }
+  section_analysis->affine_address_evidence = (M68kAffineAddressEvidenceIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->affine_address_evidence,
+    section_analysis->affine_address_evidence_count, &section_analysis->affine_address_evidence_capacity,
+    8U, sizeof(*section_analysis->affine_address_evidence));
+  if (section_analysis->affine_address_evidence == NULL) return -1;
+  section_analysis->affine_address_evidence[section_analysis->affine_address_evidence_count++] = *evidence;
   return 0;
 }
 
@@ -5190,6 +5224,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->address_expression_count; ++index) {
     if (m68k_ir_section_analysis_append_address_expression(&copy,
           &section_analysis->address_expressions[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->affine_address_evidence_count; ++index) {
+    if (m68k_ir_section_analysis_append_affine_address_evidence(&copy,
+          &section_analysis->affine_address_evidence[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

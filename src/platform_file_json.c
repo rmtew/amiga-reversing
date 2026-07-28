@@ -5310,6 +5310,25 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           (unsigned)expression->index_scale, (unsigned)expression->element_stride) != 0)
         goto oom;
     }
+    if (json_builder_appendf(&builder, "],\"affine_address_evidence_count\":%u,\"affine_address_evidence\":[",
+          (unsigned)section->affine_address_evidence_count) != 0)
+      goto oom;
+    for (table_entry_index = 0; table_entry_index < section->affine_address_evidence_count;
+        ++table_entry_index) {
+      const M68kAffineAddressEvidenceIR *evidence = &section->affine_address_evidence[table_entry_index];
+      if (table_entry_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"consumer_section_index\":%u,\"consumer_offset\":%u,\"operand_index\":%u,"
+          "\"base_register\":%u,\"origin_section_index\":%u,\"origin_offset\":%u,"
+          "\"target_section_index\":%u,\"target_offset\":%u,\"signed_addend\":%d}",
+          (unsigned)evidence->consumer_section_index, (unsigned)evidence->consumer_offset,
+          (unsigned)evidence->operand_index, (unsigned)evidence->base_register,
+          (unsigned)evidence->origin_section_index, (unsigned)evidence->origin_offset,
+          (unsigned)evidence->target_section_index, (unsigned)evidence->target_offset,
+          (int)evidence->signed_addend) != 0)
+        goto oom;
+    }
     if (json_builder_appendf(&builder, "],\"table_entry_count\":%u,\"table_entries\":[",
           (unsigned)section->table_entry_count) != 0)
       goto oom;

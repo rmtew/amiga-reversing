@@ -1164,6 +1164,10 @@ static int operand_is_stack_displacement_local(const M68kOperandIR *operand, int
 static int typed_storage_keys_match(const M68kRenderTypedStorageSlot *slot, uint8_t kind, size_t section_index,
     int32_t displacement, uint32_t address);
 static void typed_memory_base_clear(M68kRenderTypedMemoryBaseValue *value);
+static int typed_memory_base_offset_add(uint32_t base_offset, int32_t displacement, uint32_t *out_offset);
+static void typed_memory_base_clear_pointer_table_if_offset_outside(M68kRenderTypedMemoryBaseValue *value);
+static int render_lookup_record_affine_address_uses(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset);
 static int typed_memory_bases_equal(const M68kRenderTypedMemoryBaseValue *left,
     const M68kRenderTypedMemoryBaseValue *right);
 static int candidate_loads_data_target_to_address_reg(const M68kDecodeCandidate *candidate,
@@ -2232,6 +2236,43 @@ static void typed_state_set_memory_base(M68kRenderTypedState *state, uint8_t reg
   value->known = 1U;
   value->section_index = section_index;
   value->offset = offset;
+  value->affine_known = 1U;
+  value->affine_origin_section_index = section_index;
+  value->affine_origin_offset = offset;
+  value->affine_signed_addend = 0;
+}
+
+static int typed_memory_base_apply_affine_delta(M68kRenderTypedMemoryBaseValue *value, int32_t delta) {
+  uint32_t next_offset;
+  int64_t next_addend;
+  if (value == NULL || !value->known || !value->affine_known ||
+      !typed_memory_base_offset_add(value->offset, delta, &next_offset)) {
+    return 0;
+  }
+  next_addend = (int64_t)value->affine_signed_addend + (int64_t)delta;
+  if (next_addend < INT32_MIN || next_addend > INT32_MAX) return 0;
+  value->offset = next_offset;
+  value->affine_signed_addend = (int32_t)next_addend;
+  typed_memory_base_clear_pointer_table_if_offset_outside(value);
+  return 1;
+}
+
+static int typed_memory_base_with_displacement(const M68kRenderTypedMemoryBaseValue *source,
+    int32_t displacement, M68kRenderTypedMemoryBaseValue *out_value) {
+  if (source == NULL || out_value == NULL || !source->known || !source->affine_known) return 0;
+  *out_value = *source;
+  return typed_memory_base_apply_affine_delta(out_value, displacement);
+}
+
+static void typed_state_clear_address_reg_preserving_affine(M68kRenderTypedState *state, uint8_t reg_index,
+    int32_t delta) {
+  M68kRenderTypedMemoryBaseValue affine_base;
+  if (state == NULL || reg_index >= 8U) return;
+  affine_base = state->memory_base_regs[reg_index];
+  typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg_index);
+  if (typed_memory_base_apply_affine_delta(&affine_base, delta)) {
+    state->memory_base_regs[reg_index] = affine_base;
+  }
 }
 
 static const M68kAnalysisStructuredDataItem *lookup_pointer_table_item_covering_address(
@@ -2328,6 +2369,62 @@ static int typed_memory_base_bind_runtime_pointer_table_slot(M68kRenderTypedMemo
     value->pointer_table_known = 1U;
     value->pointer_table_struct_id = struct_id;
     return 1;
+  }
+  return 0;
+}
+
+static int render_lookup_add_affine_address_use(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    uint8_t operand_index, uint8_t base_register, const M68kRenderTypedMemoryBaseValue *base,
+    int32_t displacement) {
+  M68kRenderAffineAddressUse *grown;
+  size_t index, next_capacity;
+  uint32_t target_offset;
+  int64_t signed_addend;
+  if (lookup == NULL || base == NULL || !base->known || !base->affine_known || operand_index >= 4U ||
+      base_register >= 8U || !typed_memory_base_offset_add(base->offset, displacement, &target_offset)) return 0;
+  signed_addend = (int64_t)base->affine_signed_addend + (int64_t)displacement;
+  if (signed_addend < INT32_MIN || signed_addend > INT32_MAX) return 0;
+  for (index = 0U; index < lookup->affine_address_use_count; ++index) {
+    const M68kRenderAffineAddressUse *existing = &lookup->affine_address_uses[index];
+    if (existing->section_index == section_index && existing->offset == offset &&
+        existing->operand_index == operand_index && existing->origin_section_index == base->affine_origin_section_index &&
+        existing->origin_offset == base->affine_origin_offset && existing->target_section_index == base->section_index &&
+        existing->target_offset == target_offset && existing->signed_addend == (int32_t)signed_addend) return 0;
+  }
+  if (lookup->affine_address_use_count == lookup->affine_address_use_capacity) {
+    next_capacity = lookup->affine_address_use_capacity == 0U ? 32U : lookup->affine_address_use_capacity * 2U;
+    grown = (M68kRenderAffineAddressUse *)render_lookup_grow_array(lookup, lookup->affine_address_uses,
+      lookup->affine_address_use_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->affine_address_uses = grown;
+    lookup->affine_address_use_capacity = next_capacity;
+  }
+  memset(&lookup->affine_address_uses[lookup->affine_address_use_count], 0,
+    sizeof(lookup->affine_address_uses[lookup->affine_address_use_count]));
+  lookup->affine_address_uses[lookup->affine_address_use_count].section_index = section_index;
+  lookup->affine_address_uses[lookup->affine_address_use_count].offset = offset;
+  lookup->affine_address_uses[lookup->affine_address_use_count].operand_index = operand_index;
+  lookup->affine_address_uses[lookup->affine_address_use_count].base_register = base_register;
+  lookup->affine_address_uses[lookup->affine_address_use_count].origin_section_index = base->affine_origin_section_index;
+  lookup->affine_address_uses[lookup->affine_address_use_count].origin_offset = base->affine_origin_offset;
+  lookup->affine_address_uses[lookup->affine_address_use_count].target_section_index = base->section_index;
+  lookup->affine_address_uses[lookup->affine_address_use_count].target_offset = target_offset;
+  lookup->affine_address_uses[lookup->affine_address_use_count].signed_addend = (int32_t)signed_addend;
+  ++lookup->affine_address_use_count;
+  return 0;
+}
+
+static int render_lookup_record_affine_address_uses(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset) {
+  size_t operand_index;
+  if (lookup == NULL || state == NULL || instruction == NULL) return -1;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t base_register;
+    int16_t displacement;
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    if (!operand_is_address_memory_local(operand, &base_register, &displacement) || base_register >= 8U) continue;
+    if (render_lookup_add_affine_address_use(lookup, section_index, offset, (uint8_t)operand_index, base_register,
+        &state->memory_base_regs[base_register], displacement) != 0) return -1;
   }
   return 0;
 }
@@ -5219,11 +5316,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         }
       } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
           &source_displacement) && source_base_reg < 8U && state->memory_base_regs[source_base_reg].known) {
-        uint32_t next_offset = 0U;
-        if (typed_memory_base_offset_add(state->memory_base_regs[source_base_reg].offset, source_displacement,
-            &next_offset)) {
-          typed_state_set_memory_base(state, 2U, dest_reg, state->memory_base_regs[source_base_reg].section_index,
-            next_offset);
+        M68kRenderTypedMemoryBaseValue derived_base;
+        if (typed_memory_base_with_displacement(&state->memory_base_regs[source_base_reg], source_displacement,
+            &derived_base)) {
+          state->memory_base_regs[dest_reg] = derived_base;
           typed_memory_base_bind_pointer_table(&state->memory_base_regs[dest_reg], lookup);
         }
       } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
@@ -5257,37 +5353,31 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     if (value->known != 0U && (value->array_element_count == 0U || struct_size == 0U ||
         delta % (int32_t)struct_size != 0)) {
       int64_t next_cursor = (int64_t)value->byte_cursor + (int64_t)delta;
-      uint32_t next_offset;
       if (next_cursor < INT32_MIN || next_cursor > INT32_MAX) {
-        typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg);
+        typed_state_clear_address_reg_preserving_affine(state, dest_reg, delta);
       } else {
         value->output = NULL;
         value->byte_cursor = (int32_t)next_cursor;
         if (state->memory_base_regs[dest_reg].known &&
-            typed_memory_base_offset_add(state->memory_base_regs[dest_reg].offset, delta, &next_offset)) {
-          state->memory_base_regs[dest_reg].offset = next_offset;
-          typed_memory_base_clear_pointer_table_if_offset_outside(&state->memory_base_regs[dest_reg]);
+            typed_memory_base_apply_affine_delta(&state->memory_base_regs[dest_reg], delta)) {
         } else if (state->memory_base_regs[dest_reg].known) {
           typed_memory_base_clear(&state->memory_base_regs[dest_reg]);
         }
       }
     } else if (value->known == 0U || value->array_element_count == 0U || struct_size == 0U ||
                delta % (int32_t)struct_size != 0) {
-      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg);
+      typed_state_clear_address_reg_preserving_affine(state, dest_reg, delta);
     } else {
       next_index = (int32_t)value->array_element_index + delta / (int32_t)struct_size;
       if (next_index < 0 || next_index >= (int32_t)value->array_element_count) {
-        typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg);
+        typed_state_clear_address_reg_preserving_affine(state, dest_reg, delta);
       } else {
-        uint32_t next_offset;
         value->output = NULL;
         value->array_element_index = (uint16_t)next_index;
         state->app_addr_regs[dest_reg].known = 0U;
         state->app_addr_regs[dest_reg].displacement = 0;
         if (state->memory_base_regs[dest_reg].known &&
-            typed_memory_base_offset_add(state->memory_base_regs[dest_reg].offset, delta, &next_offset)) {
-          state->memory_base_regs[dest_reg].offset = next_offset;
-          typed_memory_base_clear_pointer_table_if_offset_outside(&state->memory_base_regs[dest_reg]);
+            typed_memory_base_apply_affine_delta(&state->memory_base_regs[dest_reg], delta)) {
         } else if (state->memory_base_regs[dest_reg].known) {
           typed_memory_base_clear(&state->memory_base_regs[dest_reg]);
         }
@@ -5314,16 +5404,13 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       }
       {
         M68kRenderTypedMemoryBaseValue memory_base = state->memory_base_regs[operand->value.ea_reg];
-        uint32_t next_offset = 0U;
         int32_t access_size = (int32_t)instruction_size_suffix_bytes_local(instruction->size_suffix);
         int32_t delta = operand->value.ea_mode == 3U ? access_size :
           (operand->value.ea_mode == 4U ? -access_size : 0);
         typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg);
         if (delta == 0 || (!memory_base.known && !memory_base.pointer_table_known)) continue;
         if (memory_base.known) {
-          if (!typed_memory_base_offset_add(memory_base.offset, delta, &next_offset)) continue;
-          memory_base.offset = next_offset;
-          typed_memory_base_clear_pointer_table_if_offset_outside(&memory_base);
+          if (!typed_memory_base_apply_affine_delta(&memory_base, delta)) continue;
         }
         state->memory_base_regs[operand->value.ea_reg] = memory_base;
       }
@@ -5385,6 +5472,10 @@ static int typed_memory_bases_equal(const M68kRenderTypedMemoryBaseValue *left,
     const M68kRenderTypedMemoryBaseValue *right) {
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->section_index == right->section_index && left->offset == right->offset &&
+    left->affine_known == right->affine_known &&
+    left->affine_origin_section_index == right->affine_origin_section_index &&
+    left->affine_origin_offset == right->affine_origin_offset &&
+    left->affine_signed_addend == right->affine_signed_addend &&
     left->pointer_table_known == right->pointer_table_known &&
     left->pointer_table_struct_id == right->pointer_table_struct_id &&
     left->pointer_table_section_index == right->pointer_table_section_index &&
@@ -5829,6 +5920,10 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
       dest->data_memory_base_regs[index].known = 0U;
       dest->data_memory_base_regs[index].section_index = 0U;
       dest->data_memory_base_regs[index].offset = 0U;
+      dest->data_memory_base_regs[index].affine_known = 0U;
+      dest->data_memory_base_regs[index].affine_origin_section_index = 0U;
+      dest->data_memory_base_regs[index].affine_origin_offset = 0U;
+      dest->data_memory_base_regs[index].affine_signed_addend = 0;
     }
     if (dest->data_memory_base_regs[index].pointer_table_known == 0U ||
         source->data_memory_base_regs[index].pointer_table_known == 0U ||
@@ -5853,6 +5948,10 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
       dest->memory_base_regs[index].known = 0U;
       dest->memory_base_regs[index].section_index = 0U;
       dest->memory_base_regs[index].offset = 0U;
+      dest->memory_base_regs[index].affine_known = 0U;
+      dest->memory_base_regs[index].affine_origin_section_index = 0U;
+      dest->memory_base_regs[index].affine_origin_offset = 0U;
+      dest->memory_base_regs[index].affine_signed_addend = 0;
     }
     if (dest->memory_base_regs[index].pointer_table_known == 0U ||
         source->memory_base_regs[index].pointer_table_known == 0U ||
@@ -6285,6 +6384,10 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       locally_preserved_address = typed_flow_callback_table_callee_preserved_address_mask(lookup, decode,
         accepted_start, out_typed_state, section, node->candidate, &instruction, requested_address);
     }
+  }
+  if (record_typed_accesses && render_lookup_record_affine_address_uses(lookup, section->section_index,
+      out_typed_state, &instruction, node->candidate->offset) != 0) {
+    return -1;
   }
   if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, &instruction,
       node->candidate->offset, record_typed_accesses, io_changed) != 0) {
@@ -6754,6 +6857,23 @@ static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, 
       decode_has_library_base_operand_use(lookup, decode, accepted_start)) {
     return 1;
   }
+  /* Affine source-address propagation is itself a typed-flow source.  Do not
+   * make it depend on an unrelated OS/base metadata seed. */
+  if (decode != NULL && accepted_start != NULL) {
+    for (index = 0U; index < decode->section_count; ++index) {
+      const M68kDecodeSectionIR *section = &decode->sections[index];
+      size_t candidate_index;
+      for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+        const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+        M68kInstructionIR instruction;
+        if (accepted_start[index] == NULL || candidate->offset >= section->size ||
+            accepted_start[index][candidate->offset] == 0U ||
+            m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+        if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction.operand_count == 2U &&
+            operand_address_register_index_local(&instruction.operands[1], NULL)) return 1;
+      }
+    }
+  }
   for (index = 0U; index < lookup->global_base_slot_count; ++index) {
     if (lookup->global_base_slots[index].has_library_id != 0U &&
         lookup->global_base_slots[index].conflicted == 0U) return 1;
@@ -6792,7 +6912,10 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
   for (pass = 0; pass < 5; ++pass) {
     int final_pass = pass == 4;
     changed = 0;
-    if (final_pass) lookup->typed_access_count = 0U;
+    if (final_pass) {
+      lookup->typed_access_count = 0U;
+      lookup->affine_address_use_count = 0U;
+    }
     for (section_index = 0U; section_index < decode->section_count; ++section_index) {
       if (render_lookup_analyze_amiga_typed_refs_for_section(lookup, decode, accepted_start,
           &decode->sections[section_index], &graphs[section_index], final_pass,
@@ -7143,6 +7266,29 @@ static int append_render_lookup_typed_accesses_for_section(const M68kRenderLooku
         access->provenance.offset) != 0) {
       return -1;
     }
+  }
+  return 0;
+}
+
+static int append_render_lookup_affine_address_evidence_for_section(const M68kRenderLookup *lookup,
+    M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (lookup == NULL || section_analysis == NULL) return -1;
+  for (index = 0U; index < lookup->affine_address_use_count; ++index) {
+    const M68kRenderAffineAddressUse *use = &lookup->affine_address_uses[index];
+    M68kAffineAddressEvidenceIR evidence;
+    if (use->section_index != section_analysis->section_index) continue;
+    memset(&evidence, 0, sizeof(evidence));
+    evidence.consumer_section_index = (uint32_t)use->section_index;
+    evidence.consumer_offset = use->offset;
+    evidence.operand_index = use->operand_index;
+    evidence.base_register = use->base_register;
+    evidence.origin_section_index = (uint32_t)use->origin_section_index;
+    evidence.origin_offset = use->origin_offset;
+    evidence.target_section_index = (uint32_t)use->target_section_index;
+    evidence.target_offset = use->target_offset;
+    evidence.signed_addend = use->signed_addend;
+    if (m68k_ir_section_analysis_append_affine_address_evidence(section_analysis, &evidence) != 0) return -1;
   }
   return 0;
 }
@@ -12072,6 +12218,7 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   if (append_render_lookup_recovered_local_call_summaries_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_recovered_function_args_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
+  if (append_render_lookup_affine_address_evidence_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_unresolved_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_address_value_consumers_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_bootblock_disk_reads_for_section(lookup, section_analysis) != 0) return -1;

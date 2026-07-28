@@ -1857,6 +1857,24 @@ typedef struct M68kAddressExpressionIR {
   uint8_t reserved[1];
 } M68kAddressExpressionIR;
 
+/* A CFG-proven affine address derivation.  This is evidence, rather than a
+ * renderable expression: source-quality later binds its final address to an
+ * owned source range.  Keeping that boundary explicit prevents typed flow
+ * from guessing range ownership and prevents rendering from rediscovering
+ * arithmetic. */
+typedef struct M68kAffineAddressEvidenceIR {
+  uint32_t consumer_section_index;
+  uint32_t consumer_offset;
+  uint32_t origin_section_index;
+  uint32_t origin_offset;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  int32_t signed_addend;
+  uint8_t operand_index;
+  uint8_t base_register;
+  uint8_t reserved[2];
+} M68kAffineAddressEvidenceIR;
+
 typedef enum M68kTableEntryTargetStatus {
   M68K_TABLE_ENTRY_TARGET_STATUS_UNKNOWN = 0,
   M68K_TABLE_ENTRY_TARGET_STATUS_NUMERIC_EXACT = 1,
@@ -2204,6 +2222,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kAddressExpressionIR *address_expressions;
   size_t address_expression_count;
   size_t address_expression_capacity;
+  M68kAffineAddressEvidenceIR *affine_address_evidence;
+  size_t affine_address_evidence_count;
+  size_t affine_address_evidence_capacity;
   M68kTableEntryIR *table_entries;
   size_t table_entry_count;
   size_t table_entry_capacity;
@@ -2477,6 +2498,8 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
     const M68kTableConsumerIR *consumer);
 int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressExpressionIR *expression);
+int m68k_ir_section_analysis_append_affine_address_evidence(M68kSectionAnalysisIR *section_analysis,
+    const M68kAffineAddressEvidenceIR *evidence);
 int m68k_ir_section_analysis_append_table_entry(M68kSectionAnalysisIR *section_analysis,
     const M68kTableEntryIR *entry);
 int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *section_analysis,

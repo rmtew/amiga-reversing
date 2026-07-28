@@ -329,6 +329,14 @@ typedef struct M68kRenderTypedMemoryBaseValue {
   uint8_t known;
   size_t section_index;
   uint32_t offset;
+  /* Immutable origin plus accumulated delta are the CFG-owned affine value.
+   * offset is retained as the resolved current address for existing typed-flow
+   * clients; it must always equal origin + signed_addend when affine_known. */
+  uint8_t affine_known;
+  uint8_t reserved_affine[3];
+  size_t affine_origin_section_index;
+  uint32_t affine_origin_offset;
+  int32_t affine_signed_addend;
   /* A homogeneous pointer table remains a useful type source when a loop
    * merges several concrete cursor positions.  Keep its declared range
    * separately from the exact address, which is intentionally cleared at
@@ -339,6 +347,18 @@ typedef struct M68kRenderTypedMemoryBaseValue {
   uint32_t pointer_table_offset;
   uint32_t pointer_table_size;
 } M68kRenderTypedMemoryBaseValue;
+
+typedef struct M68kRenderAffineAddressUse {
+  size_t section_index;
+  uint32_t offset;
+  size_t origin_section_index;
+  uint32_t origin_offset;
+  size_t target_section_index;
+  uint32_t target_offset;
+  int32_t signed_addend;
+  uint8_t operand_index;
+  uint8_t base_register;
+} M68kRenderAffineAddressUse;
 
 typedef struct M68kRenderTypedStoredValue {
   uint8_t known;
@@ -717,6 +737,9 @@ struct M68kRenderLookup {
   M68kRenderTypedAccess *typed_accesses;
   size_t typed_access_count;
   size_t typed_access_capacity;
+  M68kRenderAffineAddressUse *affine_address_uses;
+  size_t affine_address_use_count;
+  size_t affine_address_use_capacity;
   M68kRenderUnresolvedTypedAccess *unresolved_typed_accesses;
   size_t unresolved_typed_access_count;
   size_t unresolved_typed_access_capacity;

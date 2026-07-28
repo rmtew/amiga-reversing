@@ -705,14 +705,32 @@ target strictly inside an accepted structured-data range may produce it; the
 fact stores that range's generic base coordinates and a non-zero addend.  A
 PC-relative `lea` fixture proves `base+2`; the producer rejects boundary,
 zero-addend, unowned, conflicted, overflowing, or non-code candidates.
-Pandora currently exports no static-interior fact, which is a normal absence
-of an accepted source-range proof rather than a rendering fallback. The frozen
-render plan now consumes a matching `static_interior` fact, declares the base
+At that point Pandora exported no direct `static_interior` fact, which was a
+normal absence of an accepted direct source-range proof rather than a rendering
+fallback. The frozen render plan now consumes a matching `static_interior` fact, declares the base
 range label, and renders `base+addend`; the former renderer-side accepted-code
 anchor search has been removed. A fixture verifies both the rendered
-`lea.l loc_0_00000006+2(pc),a1` and the planned base/addend. Affine transfer,
-indexed-operand rendering, and the remaining negative fixtures remain required
-work; this is not an A completion claim.
+`lea.l loc_0_00000006+2(pc),a1` and the planned base/addend. The affine
+transfer slice now uses the shared CFG typed state rather than a back-scan: a
+source-address register carries immutable origin coordinates plus one signed
+accumulated addend, while retaining its resolved current target for existing
+typed-flow clients. `lea`, compatible address-register copies, immediate
+add/subtract, auto-update, and CFG joins transfer that one state; an
+incompatible join, arithmetic overflow, or ordinary clobber clears it. Type
+loss no longer incorrectly clears a still-proven source identity. The final
+typed-flow pass exports `affine_address_evidence` (consumer, origin, target,
+signed addend, and base register) into source-analysis JSON. Only the
+source-quality pass may turn that evidence into `static_interior`, after it
+verifies exact arithmetic and an accepted, unconflicted, strictly interior
+source-data owner. This keeps derivation, ownership, and render planning in
+one ordered graph without renderer reconstruction. A focused fixture proves
+`lea` + `adda` + `(aN)` produces both evidence and an owned `base+2`
+expression; a negative `adda #-1` fixture exports its evidence but cannot
+materialise an out-of-range expression. Pandora now exports 278 affine-use
+evidence records and 67 validated static-interior expressions; its full-file
+reassembly remains exact. Indexed-operand rendering and the remaining
+arithmetic/call-clobber negative fixtures remain required work; this is not an
+A completion claim.
 
 **Planner progress (2026-07-29).** Every selected instruction expression now
 retains the stable `address_expression` identity consumed from source analysis.
