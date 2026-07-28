@@ -66,6 +66,7 @@ typedef struct M68kRenderPlannedExpression {
   uint8_t has_target;
   uint8_t has_address_value;
   uint8_t has_base_target;
+  uint8_t has_base_addend;
   uint8_t requires_declaration;
   uint8_t has_relative_key;
   char expression[96];

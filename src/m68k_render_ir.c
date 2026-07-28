@@ -4311,7 +4311,10 @@ static int derive_rendered_pointer_declarations(M68kRenderLookup *lookup, M68kRe
       (void)format_rendered_asm_label_with_generation(lookup, expression->base_symbol,
         sizeof(expression->base_symbol), expression->base_section_index, expression->base_offset);
       if (expression->base_symbol[0] == '\0') return -1;
-      if (expression->has_relative_key != 0U)
+      if (expression->has_base_addend != 0U)
+        snprintf(expression->expression, sizeof(expression->expression), "%s%+d",
+          expression->base_symbol, expression->addend);
+      else if (expression->has_relative_key != 0U)
         snprintf(expression->expression, sizeof(expression->expression), "%s-%s,$%04X",
           expression->target_symbol, expression->base_symbol, (unsigned)(uint16_t)expression->addend);
       else
@@ -4320,8 +4323,9 @@ static int derive_rendered_pointer_declarations(M68kRenderLookup *lookup, M68kRe
     } else {
       snprintf(expression->expression, sizeof(expression->expression), "%s", expression->target_symbol);
     }
-    if (append_planned_source_label_declaration(lookup, plan, expression->target_section_index,
-        expression->target_offset, expression->target_symbol) != 0) return -1;
+    if (expression->has_base_addend == 0U &&
+        append_planned_source_label_declaration(lookup, plan, expression->target_section_index,
+          expression->target_offset, expression->target_symbol) != 0) return -1;
     if (expression->has_base_target != 0U &&
         append_planned_source_label_declaration(lookup, plan, expression->base_section_index,
           expression->base_offset, expression->base_symbol) != 0) return -1;
@@ -9023,51 +9027,6 @@ static const M68kDecodeCandidate *accepted_candidate_covering_offset_local(const
 static const M68kDecodeCandidate *find_previous_accepted_candidate_local(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const M68kDecodeCandidate *candidate);
 
-static int attach_pc_relative_interior_data_anchor_symbols(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
-    M68kInstructionIR *instruction) {
-  size_t target_index;
-  if (lookup == NULL || section == NULL || accepted_start == NULL || candidate == NULL || instruction == NULL)
-    return 0;
-  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-    const M68kDecodeTarget *target = &candidate->targets[target_index];
-    const M68kDecodeCandidate *anchor;
-    M68kOperandIR *operand;
-    int64_t addend;
-    if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section ||
-        target->section_index != section->section_index || !target->has_operand ||
-        target->operand_index >= instruction->operand_count) {
-      continue;
-    }
-    operand = &instruction->operands[target->operand_index];
-    if ((operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA) ||
-        operand->value.ea_mode != 7U || operand->value.ea_reg != 2U ||
-        operand->symbol_ref.has_name != 0U ||
-        symbol_ref_kind_for_operand(operand) != M68K_IR_SYMBOL_REF_PC_REL) {
-      continue;
-    }
-    anchor = accepted_candidate_covering_offset_local(section, accepted_start, target->offset);
-    if (anchor == NULL) continue;
-    while (anchor != NULL && !lookup_has_renderable_label(lookup, section->section_index, anchor->offset)) {
-      anchor = find_previous_accepted_candidate_local(section, accepted_start, anchor);
-    }
-    if (anchor == NULL) continue;
-    addend = (int64_t)(uint64_t)target->offset - (int64_t)(uint64_t)anchor->offset;
-    if (addend < INT32_MIN || addend > INT32_MAX) continue;
-    m68k_ir_symbol_ref_init(&operand->symbol_ref);
-    operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_PC_REL;
-    operand->symbol_ref.has_name = 1U;
-    operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
-      operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section->section_index, anchor->offset);
-    operand->symbol_ref.has_section = 1;
-    operand->symbol_ref.section_index = section->section_index;
-    operand->symbol_ref.has_section_offset = 1;
-    operand->symbol_ref.section_offset = anchor->offset;
-    operand->symbol_ref.addend = (int32_t)addend;
-  }
-  return 0;
-}
-
 static const M68kDecodeCandidate *find_previous_accepted_candidate_local(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const M68kDecodeCandidate *candidate) {
   size_t index;
@@ -9812,6 +9771,11 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
     const M68kSourceAnalysisIR *source_analysis, const M68kInstructionIR *instruction,
     uint8_t rendered_operand_symbol_mask,
     M68kRenderPlannedInstruction *out_planned_instruction);
+static const M68kDecodeTarget *candidate_data_target_for_operand(const M68kDecodeCandidate *candidate,
+    size_t operand_index);
+static void attach_source_analysis_static_interior_expression_symbols(const M68kRenderLookup *lookup,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction);
 
 /* This is the planning counterpart of instruction emission.  It deliberately
  * follows the accepted-candidate walk, including platform-state transitions,
@@ -9867,8 +9831,8 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
       (void)attach_absolute_word_control_symbols(lookup, section->section_index, candidate, &instruction);
       (void)attach_platform_pc_relative_section_anchor_symbols(lookup, section->section_index, candidate,
         &instruction);
-      (void)attach_pc_relative_interior_data_anchor_symbols(lookup, section, accepted_start_all[section_index],
-        candidate, &instruction);
+      attach_source_analysis_static_interior_expression_symbols(lookup, source_analysis, section, candidate,
+        &instruction);
       if (!attach_amiga_loadseg_segment_link_slot_symbol(preview, lookup, section, accepted_start_all[section_index],
             candidate, &instruction) ||
           !attach_runtime_address_ref_symbols(preview, lookup, source_analysis, section, accepted_bytes[section_index],
@@ -9954,6 +9918,39 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
   preview->asm_source_first_failure_aux_offset = metric_baseline.asm_source_first_failure_aux_offset;
   preview->asm_source_allocation_failed = metric_baseline.asm_source_allocation_failed;
   return 0;
+}
+
+/* A static interior reference is established by source analysis: one
+ * structured-data owner, a strict interior target, and a signed addend. */
+static void attach_source_analysis_static_interior_expression_symbols(const M68kRenderLookup *lookup,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  const M68kSectionAnalysisIR *analysis_section;
+  size_t index;
+  if (lookup == NULL || source_analysis == NULL || section == NULL || candidate == NULL || instruction == NULL)
+    return;
+  analysis_section = source_analysis_section_for_render(source_analysis, section->section_index);
+  if (analysis_section == NULL) return;
+  for (index = 0U; index < analysis_section->address_expression_count; ++index) {
+    const M68kAddressExpressionIR *expression = &analysis_section->address_expressions[index];
+    const M68kDecodeTarget *target;
+    M68kOperandIR *operand;
+    int64_t resolved_target;
+    if (expression->kind != M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR ||
+        expression->consumer_section_index != section->section_index ||
+        expression->consumer_offset != candidate->offset ||
+        expression->operand_index >= instruction->operand_count ||
+        expression->base_section_index != section->section_index) continue;
+    operand = &instruction->operands[expression->operand_index];
+    if ((operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA) ||
+        operand->value.ea_mode != 7U || operand->value.ea_reg != 2U) continue;
+    target = candidate_data_target_for_operand(candidate, expression->operand_index);
+    resolved_target = (int64_t)expression->base_offset + (int64_t)expression->signed_addend;
+    if (target == NULL || !target->has_section || target->section_index != section->section_index ||
+        resolved_target < 0 || resolved_target > UINT32_MAX || target->offset != (uint32_t)resolved_target) continue;
+    attach_operand_label_addend_symbol(lookup, instruction, expression->operand_index,
+      expression->base_section_index, expression->base_offset, expression->signed_addend);
+  }
 }
 
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
@@ -10185,6 +10182,24 @@ static const M68kAddressValueIR *source_analysis_address_value_for_producer(
   return NULL;
 }
 
+static const M68kAddressExpressionIR *source_analysis_address_expression_for_consumer(
+    const M68kSourceAnalysisIR *source_analysis, size_t consumer_section_index, uint32_t consumer_offset,
+    uint32_t operand_index) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (source_analysis == NULL) return NULL;
+  section = source_analysis_section_for_render(source_analysis, consumer_section_index);
+  if (section == NULL) return NULL;
+  for (index = 0U; index < section->address_expression_count; ++index) {
+    const M68kAddressExpressionIR *expression = &section->address_expressions[index];
+    if (expression->consumer_section_index == consumer_section_index &&
+        expression->consumer_offset == consumer_offset && expression->operand_index == operand_index) {
+      return expression;
+    }
+  }
+  return NULL;
+}
+
 static int source_analysis_address_value_has_consumer(const M68kSectionAnalysisIR *section,
     const M68kAddressValueIR *value) {
   size_t consumer_index;
@@ -10256,6 +10271,7 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
     const M68kRenderedSymbolAccessIR *access, int is_relocation) {
   M68kRenderPlannedExpression expression;
   const M68kAddressValueIR *address_value;
+  const M68kAddressExpressionIR *address_expression;
   if (preview == NULL || candidate == NULL || access == NULL || access->symbol_name == NULL ||
       access->symbol_name[0] == '\0') {
     return -1;
@@ -10284,6 +10300,19 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
     expression.has_target = 1U;
     expression.requires_declaration = access->access_kind != M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
     snprintf(expression.target_symbol, sizeof(expression.target_symbol), "%s", access->symbol_name);
+  }
+  address_expression = source_analysis_address_expression_for_consumer(source_analysis, source_section_index,
+    candidate->offset, access->operand_index);
+  if (address_expression != NULL && address_expression->kind == M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR &&
+      expression.has_target != 0U && expression.target_section_index == address_expression->base_section_index) {
+    int64_t resolved_target = (int64_t)address_expression->base_offset + (int64_t)address_expression->signed_addend;
+    if (resolved_target >= 0 && resolved_target <= UINT32_MAX && expression.target_offset == (uint32_t)resolved_target) {
+      expression.base_section_index = address_expression->base_section_index;
+      expression.base_offset = address_expression->base_offset;
+      expression.addend = address_expression->signed_addend;
+      expression.has_base_target = 1U;
+      expression.has_base_addend = 1U;
+    }
   }
   return m68k_render_plan_append_expression(&preview->asm_source_plan, &expression);
 }

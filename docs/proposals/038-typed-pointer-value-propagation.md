@@ -706,9 +706,13 @@ fact stores that range's generic base coordinates and a non-zero addend.  A
 PC-relative `lea` fixture proves `base+2`; the producer rejects boundary,
 zero-addend, unowned, conflicted, overflowing, or non-code candidates.
 Pandora currently exports no static-interior fact, which is a normal absence
-of an accepted source-range proof rather than a rendering fallback.  The
-affine transfer and planner-rendering parts of A remain required work; this is
-not an A completion claim.
+of an accepted source-range proof rather than a rendering fallback. The frozen
+render plan now consumes a matching `static_interior` fact, declares the base
+range label, and renders `base+addend`; the former renderer-side accepted-code
+anchor search has been removed. A fixture verifies both the rendered
+`lea.l loc_0_00000006+2(pc),a1` and the planned base/addend. Affine transfer,
+indexed-operand rendering, and the remaining negative fixtures remain required
+work; this is not an A completion claim.
 
 #### B. Function summaries and callback contracts
 

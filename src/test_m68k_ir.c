@@ -6299,6 +6299,7 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   M68kRenderPlan source_plan;
+  const M68kRenderPlannedExpression *planned_expression;
   M68kRenderEvidenceIR render_evidence;
   char *source = NULL;
   int saw_expected_operand_access = 0;
@@ -6323,9 +6324,16 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
     &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000008(pc),a1\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000008:\n\tdc.b") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000006+2(pc),a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000006:\n\tdc.b") != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l $4(pc),a1\n") == NULL);
+  planned_expression = m68k_render_plan_find_expression(&source_plan, 0U, 0U, 0U,
+    M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND);
+  M68K_C_ASSERT(planned_expression != NULL);
+  M68K_C_ASSERT_U32(1U, planned_expression->has_base_target);
+  M68K_C_ASSERT_U32(1U, planned_expression->has_base_addend);
+  M68K_C_ASSERT_U32(6U, planned_expression->base_offset);
+  M68K_C_ASSERT_INT(2, planned_expression->addend);
   if (source_analysis.section_count > 0U) {
     const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
     size_t access_index;
@@ -6343,7 +6351,7 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
     }
   }
   saw_rendered_operand_access = test_render_evidence_has_symbol_access(&render_evidence, 0U, 0U, 0U,
-    M68K_RENDERED_SYMBOL_ACCESS_OPERAND, "loc_0_00000008", 0U, 8U);
+    M68K_RENDERED_SYMBOL_ACCESS_OPERAND, "loc_0_00000006", 0U, 8U);
   M68K_C_ASSERT(saw_expected_operand_access);
   M68K_C_ASSERT(saw_rendered_operand_access);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_expression_count);
