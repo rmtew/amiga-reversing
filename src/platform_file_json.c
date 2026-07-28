@@ -277,6 +277,7 @@ static const char *address_value_resolution_name(uint8_t resolution) {
   case M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE: return "outside_known_address_space";
   case M68K_ADDRESS_VALUE_RESOLUTION_TYPE_CONFLICT: return "type_conflict";
   case M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS: return "finite_candidate_targets";
+  case M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW: return "candidate_overflow";
   default: return "unknown";
   }
 }
@@ -289,6 +290,7 @@ static const char *address_value_terminal_kind_name(uint8_t kind) {
   case M68K_ADDRESS_VALUE_TERMINAL_INVALID: return "invalid";
   case M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT: return "no_proven_transfer_contract";
   case M68K_ADDRESS_VALUE_TERMINAL_UNREPRESENTABLE: return "unrepresentable";
+  case M68K_ADDRESS_VALUE_TERMINAL_CANDIDATE_OVERFLOW: return "candidate_overflow";
   default: return "unknown";
   }
 }

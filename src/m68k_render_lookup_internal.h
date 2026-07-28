@@ -23,6 +23,17 @@
 #include <string.h>
 
 typedef struct M68kRenderLookup M68kRenderLookup;
+
+typedef enum M68kRenderPointerCandidateMergeResult {
+  M68K_RENDER_POINTER_CANDIDATE_MERGE_NONE = 0,
+  M68K_RENDER_POINTER_CANDIDATE_MERGE_EXACT = 1,
+  M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW = 2
+} M68kRenderPointerCandidateMergeResult;
+
+M68kRenderPointerCandidateMergeResult m68k_render_pointer_candidates_merge(
+  uint8_t *dest_known, uint8_t *dest_count, uint32_t *dest_value, uint32_t dest_candidates[4],
+  uint8_t source_known, uint8_t source_count, uint32_t source_value, const uint32_t source_candidates[4]);
+
 typedef struct M68kAnalysisLabelPoint {
   size_t section_index;
   uint32_t offset;
@@ -298,7 +309,8 @@ typedef struct M68kRenderTypedRegValue {
   uint8_t pointer_candidate_count;
   uint8_t raw_long_value_known;
   uint8_t raw_long_candidate_count;
-  uint16_t reserved0;
+  uint8_t address_value_candidate_overflow;
+  uint8_t reserved0;
   uint32_t pointer_value;
   uint32_t pointer_candidates[4];
   uint32_t raw_long_value;
@@ -334,7 +346,8 @@ typedef struct M68kRenderTypedStoredValue {
   uint8_t pointer_candidate_count;
   uint8_t raw_long_value_known;
   uint8_t raw_long_candidate_count;
-  uint8_t reserved0[3];
+  uint8_t address_value_candidate_overflow;
+  uint8_t reserved0[2];
   uint32_t pointer_value;
   uint32_t pointer_candidates[4];
   uint32_t raw_long_value;
@@ -538,6 +551,9 @@ typedef struct M68kRenderTypedAddressConsumer {
   uint8_t candidate_target_count;
   uint8_t has_storage;
 } M68kRenderTypedAddressConsumer;
+
+void m68k_render_typed_address_consumer_mark_candidate_overflow(
+  M68kRenderTypedAddressConsumer *consumer);
 
 typedef struct M68kRenderDataPointerValue {
   uint8_t known;

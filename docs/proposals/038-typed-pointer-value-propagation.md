@@ -1,7 +1,7 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: Complete — 2026-07-28. The consumer model, canonical address-value ownership, and
-Proposal 039 corpus coverage are complete.
+Status: Complete — 2026-07-29. The consumer model, canonical address-value ownership,
+Proposal 039 corpus coverage, and bounded candidate-merge soundness are complete.
 
 ## Problem
 
@@ -371,6 +371,10 @@ other pointer-field types without code changes.
   source export with a diagnostic; it does not regress to a numeric fallback.
 - Address-valued facts propagate only through valid transfer rules and are
   invalidated by conflicts and clobbers.
+- A candidate-set merge that exceeds the representable bounded set must clear
+  the concrete address identity and produce an explicit non-symbolic terminal
+  state. It must never retain a subset of candidates or preserve a previously
+  resolved target as though the omitted paths did not exist.
 - Renderer/source-quality evidence comes from the planned expression, not from
   a separate typed-flow-to-label path.
 - Pandora renders the verified world-object pointer store as the planned source
@@ -403,6 +407,7 @@ other pointer-field types without code changes.
   source values, resolution, targets, candidate sets, provenance, or render
   state.
 - Pointer-store naming or types in the shared address-value resolution model.
+- Partial candidate-set retention after a bounded merge overflow.
 - Numeric fallback after a typed, renderable source-pointer classification has
   been made.
 - Manual actions or comments whose only purpose is to force an instruction's
@@ -526,7 +531,44 @@ observation once before the canonical analysis facts are emitted.
   present in the current corpus, while the focused callback fixture remains
   coverage for that supported contract.
 
-The main task is closed. The following extensions remain separate.
+## Completion: Bounded Candidate-Merge Soundness — 2026-07-29
+
+Review of the canonical migration found a soundness gap in the transient
+consumer observation: `typed_pointer_candidates_merge` reported failure when a
+join exceeded its four-value exact-candidate capacity, but the unified consumer
+path ignored that result. It could therefore retain an earlier subset, which
+could falsely appear resolved or less ambiguous than the control flow proved.
+This was neither a compatibility concern nor an acceptable numeric fallback:
+it was an incomplete analysis fact that required an explicit terminal state.
+
+The completion implementation:
+
+1. Defines one safe overflow transfer outcome for an address-valued
+   candidate set: clear concrete identity, target, and candidate locations;
+   retain no subset; and record a durable non-source terminal state/reason
+   that states the bounded candidate merge exceeded analysis capacity.
+2. Applies that outcome in every address-value candidate merge path, including
+   the unified storage/call consumer observation and typed-flow joins. Do not
+   introduce a larger hidden cap, keep an arbitrary first candidate, or add a
+   renderer-side recovery path.
+3. Ensures planning, JSON export, source-quality validation, and corpus audit
+   distinguish this terminal state from a resolved, finite, external, invalid,
+   or ordinary unknown target. It must receive no symbolic expression, label,
+   declaration, or numeric rendering workaround.
+4. Adds a focused fixture for a five-way compatible pointer join that
+   reaches a storage consumer and a proven call consumer. Assert that neither
+   consumer retains a concrete source target or candidate subset, that the
+   terminal reason is durable, and that rendering remains exact without a
+   symbolic expression for the unproven value.
+5. Passed the release C suite (including 582 IR tests), 30 manifest tests, a
+   fresh exact Pandora regeneration with zero diff ranges, and a fresh
+   eight-worker corpus build in 437.6 seconds. The corpus audit reports 70
+   consumers across seven targets (45 storage, 18 local-function inputs, and
+   seven platform/API inputs), with no production candidate-overflow row and
+   no partially retained candidate outcome.
+
+This is a correctness completion, not an extension task. The following
+extensions remain separate.
 
 ## Non-Goals
 

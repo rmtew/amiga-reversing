@@ -1572,16 +1572,16 @@ static void typed_pointer_candidates_normalize(uint8_t *known, uint8_t *count,
   *value = candidates[0];
 }
 
-static int typed_pointer_candidates_merge(uint8_t *dest_known, uint8_t *dest_count,
+M68kRenderPointerCandidateMergeResult m68k_render_pointer_candidates_merge(uint8_t *dest_known, uint8_t *dest_count,
     uint32_t *dest_value, uint32_t dest_candidates[4], uint8_t source_known,
     uint8_t source_count, uint32_t source_value, const uint32_t source_candidates[4]) {
   uint32_t merged[4];
   size_t count = 0U, index, candidate_index;
   if (dest_known == NULL || dest_count == NULL || dest_value == NULL || dest_candidates == NULL ||
-      source_candidates == NULL) return 0;
+      source_candidates == NULL) return M68K_RENDER_POINTER_CANDIDATE_MERGE_NONE;
   memset(merged, 0, sizeof(merged));
   typed_pointer_candidates_normalize(dest_known, dest_count, dest_value, dest_candidates);
-  if (source_known == 0U) return 0;
+  if (source_known == 0U) return M68K_RENDER_POINTER_CANDIDATE_MERGE_NONE;
   if (source_count == 0U) source_count = 1U;
   for (index = 0U; index < *dest_count; ++index) merged[count++] = dest_candidates[index];
   for (index = 0U; index < source_count; ++index) {
@@ -1589,7 +1589,7 @@ static int typed_pointer_candidates_merge(uint8_t *dest_known, uint8_t *dest_cou
     for (candidate_index = 0U; candidate_index < count; ++candidate_index)
       if (merged[candidate_index] == candidate) break;
     if (candidate_index == count) {
-      if (count == sizeof(merged) / sizeof(merged[0])) return 0;
+      if (count == sizeof(merged) / sizeof(merged[0])) return M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW;
       merged[count++] = candidate;
     }
   }
@@ -1597,12 +1597,13 @@ static int typed_pointer_candidates_merge(uint8_t *dest_known, uint8_t *dest_cou
   *dest_count = (uint8_t)count;
   *dest_value = merged[0];
   *dest_known = 1U;
-  return 1;
+  return M68K_RENDER_POINTER_CANDIDATE_MERGE_EXACT;
 }
 
 static int typed_stored_value_has_payload(const M68kRenderTypedStoredValue *value) {
   return value != NULL && (value->struct_id != AMIGA_OS_STRUCT_ID_NONE || value->app_address_known != 0U ||
-    value->pointer_value_known != 0U || value->raw_long_value_known != 0U);
+    value->pointer_value_known != 0U || value->raw_long_value_known != 0U ||
+    value->address_value_candidate_overflow != 0U);
 }
 
 static void typed_stored_value_update_known(M68kRenderTypedStoredValue *value) {
@@ -2491,6 +2492,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
     value.pointer_value_known = state->data_regs[reg].pointer_value_known;
     value.pointer_value = state->data_regs[reg].pointer_value;
     value.pointer_candidate_count = state->data_regs[reg].pointer_candidate_count;
+    value.address_value_candidate_overflow = state->data_regs[reg].address_value_candidate_overflow;
     memcpy(value.pointer_candidates, state->data_regs[reg].pointer_candidates, sizeof(value.pointer_candidates));
     value.raw_long_value_known = state->data_regs[reg].raw_long_value_known;
     value.raw_long_value = state->data_regs[reg].raw_long_value;
@@ -2504,6 +2506,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
     value.pointer_value_known = state->addr_regs[reg].pointer_value_known;
     value.pointer_value = state->addr_regs[reg].pointer_value;
     value.pointer_candidate_count = state->addr_regs[reg].pointer_candidate_count;
+    value.address_value_candidate_overflow = state->addr_regs[reg].address_value_candidate_overflow;
     memcpy(value.pointer_candidates, state->addr_regs[reg].pointer_candidates, sizeof(value.pointer_candidates));
     value.raw_long_value_known = state->addr_regs[reg].raw_long_value_known;
     value.raw_long_value = state->addr_regs[reg].raw_long_value;
@@ -4036,6 +4039,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_address_register(
   value.known = state->addr_regs[reg_index].known;
   value.pointer_value_known = state->addr_regs[reg_index].pointer_value_known;
   value.pointer_candidate_count = state->addr_regs[reg_index].pointer_candidate_count;
+  value.address_value_candidate_overflow = state->addr_regs[reg_index].address_value_candidate_overflow;
   value.raw_long_value_known = state->addr_regs[reg_index].raw_long_value_known;
   value.raw_long_candidate_count = state->addr_regs[reg_index].raw_long_candidate_count;
   value.pointer_value = state->addr_regs[reg_index].pointer_value;
@@ -4048,6 +4052,30 @@ static M68kRenderTypedStoredValue typed_stored_value_for_address_register(
   value.byte_cursor = state->addr_regs[reg_index].byte_cursor;
   value.provenance = state->addr_regs[reg_index].provenance;
   return value;
+}
+
+void m68k_render_typed_address_consumer_mark_candidate_overflow(
+    M68kRenderTypedAddressConsumer *consumer) {
+  if (consumer == NULL) return;
+  consumer->value.pointer_value_known = 0U;
+  consumer->value.pointer_value = 0U;
+  consumer->value.pointer_candidate_count = 0U;
+  memset(consumer->value.pointer_candidates, 0, sizeof(consumer->value.pointer_candidates));
+  consumer->value.raw_long_value_known = 0U;
+  consumer->value.raw_long_value = 0U;
+  consumer->value.raw_long_candidate_count = 0U;
+  memset(consumer->value.raw_long_candidates, 0, sizeof(consumer->value.raw_long_candidates));
+  consumer->value.address_value_candidate_overflow = 1U;
+  consumer->provenance = consumer->value.provenance;
+  consumer->source_value = 0U;
+  consumer->has_target = 0U;
+  consumer->target_section_index = 0U;
+  consumer->target_offset = 0U;
+  consumer->candidate_target_count = 0U;
+  memset(consumer->candidate_source_values, 0, sizeof(consumer->candidate_source_values));
+  memset(consumer->candidate_target_section_indices, 0, sizeof(consumer->candidate_target_section_indices));
+  memset(consumer->candidate_target_offsets, 0, sizeof(consumer->candidate_target_offsets));
+  consumer->resolution = M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW;
 }
 
 static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, size_t section_index,
@@ -4065,20 +4093,27 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
     /* The fixed-point state may become more precise or merge distinct static
      * values. Preserve the complete bounded candidate set on the one shared
      * consumer observation; a storage write has no private value copy. */
-    if (existing->value.pointer_value_known == 0U && value->pointer_value_known != 0U) {
+    if (existing->value.address_value_candidate_overflow != 0U ||
+        value->address_value_candidate_overflow != 0U) {
+      m68k_render_typed_address_consumer_mark_candidate_overflow(existing);
+    } else if (existing->value.pointer_value_known == 0U && value->pointer_value_known != 0U) {
       existing->value = *value;
     } else if (existing->value.pointer_value_known != 0U && value->pointer_value_known != 0U) {
-      (void)typed_pointer_candidates_merge(&existing->value.pointer_value_known,
+      if (m68k_render_pointer_candidates_merge(&existing->value.pointer_value_known,
         &existing->value.pointer_candidate_count, &existing->value.pointer_value,
         existing->value.pointer_candidates, value->pointer_value_known, value->pointer_candidate_count,
-        value->pointer_value, value->pointer_candidates);
+        value->pointer_value, value->pointer_candidates) == M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
+        m68k_render_typed_address_consumer_mark_candidate_overflow(existing);
+      }
     }
     existing->provenance = existing->value.provenance;
     existing->source_value = existing->value.pointer_value;
     existing->candidate_target_count = existing->value.pointer_candidate_count;
     memcpy(existing->candidate_source_values, existing->value.pointer_candidates,
       sizeof(existing->candidate_source_values));
-    existing->resolution = existing->value.pointer_value_known != 0U &&
+    existing->resolution = existing->value.address_value_candidate_overflow != 0U
+      ? M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW
+      : existing->value.pointer_value_known != 0U &&
         existing->value.pointer_candidate_count > 1U
       ? M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET
       : M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET;
@@ -4109,12 +4144,17 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
   lookup->address_value_consumers[lookup->address_value_consumer_count].provenance = value->provenance;
   lookup->address_value_consumers[lookup->address_value_consumer_count].source_value = value->pointer_value;
   lookup->address_value_consumers[lookup->address_value_consumer_count].resolution =
+    value->address_value_candidate_overflow != 0U ? M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW :
     value->pointer_value_known != 0U && value->pointer_candidate_count > 1U ?
       M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET : M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET;
   lookup->address_value_consumers[lookup->address_value_consumer_count].candidate_target_count =
     value->pointer_candidate_count;
   memcpy(lookup->address_value_consumers[lookup->address_value_consumer_count].candidate_source_values,
     value->pointer_candidates, sizeof(value->pointer_candidates));
+  if (value->address_value_candidate_overflow != 0U) {
+    m68k_render_typed_address_consumer_mark_candidate_overflow(
+      &lookup->address_value_consumers[lookup->address_value_consumer_count]);
+  }
   ++lookup->address_value_consumer_count;
   return 0;
 }
@@ -4128,7 +4168,8 @@ static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, si
   if (lookup == NULL || state == NULL || pointee_struct_name == NULL || pointee_struct_name[0] == '\0' ||
       reg_kind != AMIGA_OS_REGISTER_ADDRESS || reg_index >= 8U) return 0;
   value = typed_stored_value_for_address_register(state, reg_index);
-  if (value.raw_long_value_known == 0U && value.pointer_value_known == 0U) return 0;
+  if (value.raw_long_value_known == 0U && value.pointer_value_known == 0U &&
+      value.address_value_candidate_overflow == 0U) return 0;
   typed_stored_value_activate_address(&value);
   memset(&fact, 0, sizeof(fact));
   fact.offset = offset;
@@ -5006,6 +5047,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         memcpy(state->data_regs[dest_reg].pointer_candidates, stored_value.pointer_candidates,
           sizeof(state->data_regs[dest_reg].pointer_candidates));
       }
+      state->data_regs[dest_reg].address_value_candidate_overflow =
+        stored_value.address_value_candidate_overflow;
       if (stored_value.raw_long_value_known) {
         state->data_regs[dest_reg].known = 1U;
         state->data_regs[dest_reg].raw_long_value_known = 1U;
@@ -5039,6 +5082,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         memcpy(state->addr_regs[dest_reg].pointer_candidates, stored_value.pointer_candidates,
           sizeof(state->addr_regs[dest_reg].pointer_candidates));
       }
+      state->addr_regs[dest_reg].address_value_candidate_overflow =
+        stored_value.address_value_candidate_overflow;
       if (stored_value.raw_long_value_known) {
         state->addr_regs[dest_reg].known = 1U;
         state->addr_regs[dest_reg].raw_long_value_known = 1U;
@@ -5300,6 +5345,7 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
   return left->known == right->known && left->type_conflicted == right->type_conflicted &&
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
     left->pointer_candidate_count == right->pointer_candidate_count &&
+    left->address_value_candidate_overflow == right->address_value_candidate_overflow &&
     memcmp(left->pointer_candidates, right->pointer_candidates, sizeof(left->pointer_candidates)) == 0 &&
     left->raw_long_value_known == right->raw_long_value_known && left->raw_long_value == right->raw_long_value &&
     left->raw_long_candidate_count == right->raw_long_candidate_count &&
@@ -5318,6 +5364,7 @@ static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
   return left->known == right->known && left->output == right->output && left->struct_id == right->struct_id &&
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
     left->pointer_candidate_count == right->pointer_candidate_count &&
+    left->address_value_candidate_overflow == right->address_value_candidate_overflow &&
     memcmp(left->pointer_candidates, right->pointer_candidates, sizeof(left->pointer_candidates)) == 0 &&
     left->raw_long_value_known == right->raw_long_value_known && left->raw_long_value == right->raw_long_value &&
     left->raw_long_candidate_count == right->raw_long_candidate_count &&
@@ -5438,6 +5485,32 @@ static int platform_states_equal(const M68kRenderPlatformState *left, const M68k
   return memcmp(left, right, sizeof(*left)) == 0;
 }
 
+static void typed_reg_value_mark_address_value_candidate_overflow(M68kRenderTypedRegValue *value) {
+  if (value == NULL) return;
+  value->pointer_value_known = 0U;
+  value->pointer_value = 0U;
+  value->pointer_candidate_count = 0U;
+  memset(value->pointer_candidates, 0, sizeof(value->pointer_candidates));
+  value->raw_long_value_known = 0U;
+  value->raw_long_value = 0U;
+  value->raw_long_candidate_count = 0U;
+  memset(value->raw_long_candidates, 0, sizeof(value->raw_long_candidates));
+  value->address_value_candidate_overflow = 1U;
+}
+
+static void typed_stored_value_mark_address_value_candidate_overflow(M68kRenderTypedStoredValue *value) {
+  if (value == NULL) return;
+  value->pointer_value_known = 0U;
+  value->pointer_value = 0U;
+  value->pointer_candidate_count = 0U;
+  memset(value->pointer_candidates, 0, sizeof(value->pointer_candidates));
+  value->raw_long_value_known = 0U;
+  value->raw_long_value = 0U;
+  value->raw_long_candidate_count = 0U;
+  memset(value->raw_long_candidates, 0, sizeof(value->raw_long_candidates));
+  value->address_value_candidate_overflow = 1U;
+}
+
 static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedRegValue *source) {
   M68kRenderTypedRegValue old_value;
   if (dest == NULL || source == NULL) return 0;
@@ -5456,6 +5529,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->raw_long_value_known = 0U;
     dest->raw_long_value = 0U;
     dest->raw_long_candidate_count = 0U;
+    dest->address_value_candidate_overflow |= source->address_value_candidate_overflow;
     typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
@@ -5469,17 +5543,36 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     typed_reg_value_clear(dest);
     return !typed_reg_values_equal(dest, &old_value);
   }
-  if (dest->output == NULL && source->output == NULL &&
-      dest->struct_id == AMIGA_OS_STRUCT_ID_NONE && source->struct_id == AMIGA_OS_STRUCT_ID_NONE &&
-      (typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
-        &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
-        source->pointer_candidate_count, source->pointer_value, source->pointer_candidates) |
-       typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
-        &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
-        source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates))) {
+  if (dest->address_value_candidate_overflow != 0U || source->address_value_candidate_overflow != 0U) {
+    typed_reg_value_mark_address_value_candidate_overflow(dest);
     typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
+  }
+  if (dest->output == NULL && source->output == NULL &&
+      dest->struct_id == AMIGA_OS_STRUCT_ID_NONE && source->struct_id == AMIGA_OS_STRUCT_ID_NONE &&
+      dest->address_value_candidate_overflow == 0U && source->address_value_candidate_overflow == 0U) {
+    M68kRenderPointerCandidateMergeResult pointer_merged = m68k_render_pointer_candidates_merge(
+      &dest->pointer_value_known, &dest->pointer_candidate_count,
+      &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
+      source->pointer_candidate_count, source->pointer_value, source->pointer_candidates);
+    M68kRenderPointerCandidateMergeResult raw_merged = m68k_render_pointer_candidates_merge(
+      &dest->raw_long_value_known, &dest->raw_long_candidate_count,
+      &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
+      source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates);
+    if (pointer_merged == M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW ||
+        raw_merged == M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
+      typed_reg_value_mark_address_value_candidate_overflow(dest);
+      typed_origin_clear(&dest->origin);
+      typed_provenance_merge(&dest->provenance, &source->provenance);
+      return !typed_reg_values_equal(dest, &old_value);
+    }
+    if (pointer_merged == M68K_RENDER_POINTER_CANDIDATE_MERGE_EXACT ||
+        raw_merged == M68K_RENDER_POINTER_CANDIDATE_MERGE_EXACT) {
+      typed_origin_clear(&dest->origin);
+      typed_provenance_merge(&dest->provenance, &source->provenance);
+      return !typed_reg_values_equal(dest, &old_value);
+    }
   }
   if (dest->output == source->output && dest->struct_id == source->struct_id &&
       dest->pointer_value_known == source->pointer_value_known && dest->pointer_value == source->pointer_value &&
@@ -5498,19 +5591,26 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
       dest->array_element_count = 0U;
       dest->array_element_index = 0U;
       dest->byte_cursor = 0;
-      if (!typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+      if (m68k_render_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
           &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
-          source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
+          source->pointer_candidate_count, source->pointer_value, source->pointer_candidates) ==
+          M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
         dest->pointer_value_known = 0U;
         dest->pointer_value = 0U;
         dest->pointer_candidate_count = 0U;
+        dest->address_value_candidate_overflow = 1U;
       }
-      if (!typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+      if (m68k_render_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
           &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
-          source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates)) {
+          source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates) ==
+          M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
         dest->raw_long_value_known = 0U;
         dest->raw_long_value = 0U;
         dest->raw_long_candidate_count = 0U;
+        dest->address_value_candidate_overflow = 1U;
+      }
+      if (dest->address_value_candidate_overflow != 0U) {
+        typed_reg_value_mark_address_value_candidate_overflow(dest);
       }
       if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
       typed_provenance_merge(&dest->provenance, &source->provenance);
@@ -5522,19 +5622,26 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     dest->array_element_count = 0U;
     dest->array_element_index = 0U;
     dest->byte_cursor = 0;
-    if (!typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+    if (m68k_render_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
         &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
-        source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
+        source->pointer_candidate_count, source->pointer_value, source->pointer_candidates) ==
+        M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
       dest->pointer_value_known = 0U;
       dest->pointer_value = 0U;
       dest->pointer_candidate_count = 0U;
+      dest->address_value_candidate_overflow = 1U;
     }
-    if (!typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+    if (m68k_render_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
         &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
-        source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates)) {
+        source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates) ==
+        M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
       dest->raw_long_value_known = 0U;
       dest->raw_long_value = 0U;
       dest->raw_long_candidate_count = 0U;
+      dest->address_value_candidate_overflow = 1U;
+    }
+    if (dest->address_value_candidate_overflow != 0U) {
+      typed_reg_value_mark_address_value_candidate_overflow(dest);
     }
     return !typed_reg_values_equal(dest, &old_value);
   }
@@ -5551,6 +5658,7 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   dest->raw_long_value_known = 0U;
   dest->raw_long_value = 0U;
   dest->raw_long_candidate_count = 0U;
+  dest->address_value_candidate_overflow |= source->address_value_candidate_overflow;
   typed_origin_clear(&dest->origin);
   typed_provenance_merge(&dest->provenance, &source->provenance);
   return !typed_reg_values_equal(dest, &old_value);
@@ -5571,6 +5679,7 @@ static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
     dest->app_displacement = 0;
   }
   if (dest->output != source->output) dest->output = NULL;
+  dest->address_value_candidate_overflow |= source->address_value_candidate_overflow;
   typed_provenance_merge(&dest->provenance, &source->provenance);
   dest->struct_id = typed_struct_id_common_merge(dest->struct_id, source->struct_id);
   if (dest->array_element_count != source->array_element_count ||
@@ -5579,19 +5688,26 @@ static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
     dest->array_element_index = 0U;
     dest->byte_cursor = 0;
   }
-  if (!typed_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
+  if (m68k_render_pointer_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
       &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
-      source->pointer_candidate_count, source->pointer_value, source->pointer_candidates)) {
+      source->pointer_candidate_count, source->pointer_value, source->pointer_candidates) ==
+      M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
     dest->pointer_value_known = 0U;
     dest->pointer_value = 0U;
     dest->pointer_candidate_count = 0U;
+    dest->address_value_candidate_overflow = 1U;
   }
-  if (!typed_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+  if (m68k_render_pointer_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
       &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
-      source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates)) {
+      source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates) ==
+      M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) {
     dest->raw_long_value_known = 0U;
     dest->raw_long_value = 0U;
     dest->raw_long_candidate_count = 0U;
+    dest->address_value_candidate_overflow = 1U;
+  }
+  if (dest->address_value_candidate_overflow != 0U) {
+    typed_stored_value_mark_address_value_candidate_overflow(dest);
   }
   if (dest->output != NULL && dest->struct_id != AMIGA_OS_STRUCT_ID_NONE &&
       dest->output->struct_id != dest->struct_id) {
@@ -7265,6 +7381,12 @@ static int append_render_lookup_address_value_consumers_for_section(const M68kRe
       address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_INVALID;
       snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason),
         "mapped target is not representable source storage");
+    } else if (observed->resolution == M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW) {
+      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_CANDIDATE_OVERFLOW;
+      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
+      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
+      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason),
+        "candidate merge exceeded exact analysis capacity");
     } else {
       address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT;
       address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;

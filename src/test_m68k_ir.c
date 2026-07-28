@@ -26661,7 +26661,53 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   return 0;
 }
 
-static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge(void) {
+static int test_render_pointer_candidates_merge_reports_overflow_without_mutating_destination(void) {
+  uint8_t known = 1U, count = 4U;
+  uint32_t value = 0x100U;
+  uint32_t candidates[4] = {0x100U, 0x104U, 0x108U, 0x10cU};
+  const uint32_t source_candidates[4] = {0x110U, 0U, 0U, 0U};
+  M68K_C_ASSERT_U32(M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW,
+    m68k_render_pointer_candidates_merge(&known, &count, &value, candidates, 1U, 1U, 0x110U,
+      source_candidates));
+  M68K_C_ASSERT_U32(1U, known);
+  M68K_C_ASSERT_U32(4U, count);
+  M68K_C_ASSERT_U32(0x100U, value);
+  M68K_C_ASSERT_U32(0x100U, candidates[0]);
+  M68K_C_ASSERT_U32(0x10cU, candidates[3]);
+  return 0;
+}
+
+static int test_typed_address_consumers_clear_candidates_on_overflow(void) {
+  M68kRenderTypedAddressConsumer consumers[2];
+  size_t index;
+  memset(consumers, 0, sizeof(consumers));
+  consumers[0].fact.kind = M68K_ADDRESS_VALUE_CONSUMER_STORAGE;
+  consumers[1].fact.kind = M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT;
+  for (index = 0U; index < 2U; ++index) {
+    consumers[index].value.pointer_value_known = 1U;
+    consumers[index].value.pointer_value = 0x100U;
+    consumers[index].value.pointer_candidate_count = 4U;
+    consumers[index].value.pointer_candidates[0] = 0x100U;
+    consumers[index].value.pointer_candidates[3] = 0x10cU;
+    consumers[index].value.raw_long_value_known = 1U;
+    consumers[index].value.raw_long_candidate_count = 4U;
+    consumers[index].candidate_target_count = 4U;
+    consumers[index].candidate_source_values[0] = 0x100U;
+    consumers[index].candidate_source_values[3] = 0x10cU;
+    consumers[index].has_target = 1U;
+    m68k_render_typed_address_consumer_mark_candidate_overflow(&consumers[index]);
+    M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW, consumers[index].resolution);
+    M68K_C_ASSERT_U32(0U, consumers[index].value.pointer_value_known);
+    M68K_C_ASSERT_U32(0U, consumers[index].value.pointer_candidate_count);
+    M68K_C_ASSERT_U32(0U, consumers[index].candidate_target_count);
+    M68K_C_ASSERT_U32(0U, consumers[index].has_target);
+    M68K_C_ASSERT_U32(0U, consumers[index].candidate_source_values[0]);
+    M68K_C_ASSERT_U32(0U, consumers[index].candidate_source_values[3]);
+  }
+  return 0;
+}
+
+static int test_facts_v2_analysis_marks_candidate_overflow_at_five_way_branch_merge(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -26671,20 +26717,27 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
   M68kAnalysisCustomStruct *custom_structs = NULL;
   const M68kPointerStoreIR *store;
   char *source = NULL;
-  int saw_first_target = 0, saw_second_target = 0;
-  size_t index;
-  uint8_t bytes[0x30] = {0};
-  /* tst.b d1; beq.s second; move.l #$120,d0; bra.s join;
-     second: move.l #$124,d0; join: move.l d0,(0,a5); rts */
+  uint8_t bytes[0x80] = {0};
+  /* Five predecessor values join at move.l d0,(a5). */
   bytes[0] = 0x4au; bytes[1] = 0x01u;
-  bytes[2] = 0x67u; bytes[3] = 0x08u;
-  bytes[4] = 0x20u; bytes[5] = 0x3cu;
-  bytes[8] = 0x01u; bytes[9] = 0x20u;
-  bytes[10] = 0x60u; bytes[11] = 0x06u;
-  bytes[12] = 0x20u; bytes[13] = 0x3cu;
-  bytes[16] = 0x01u; bytes[17] = 0x24u;
-  bytes[18] = 0x2bu; bytes[19] = 0x40u;
-  bytes[22] = 0x4eu; bytes[23] = 0x75u;
+  bytes[2] = 0x67u; bytes[3] = 0x1cu;
+  bytes[4] = 0x4au; bytes[5] = 0x02u; bytes[6] = 0x67u; bytes[7] = 0x20u;
+  bytes[8] = 0x4au; bytes[9] = 0x03u; bytes[10] = 0x67u; bytes[11] = 0x24u;
+  bytes[12] = 0x4au; bytes[13] = 0x04u; bytes[14] = 0x67u; bytes[15] = 0x28u;
+  bytes[16] = 0x20u; bytes[17] = 0x3cu; bytes[20] = 0x01u; bytes[21] = 0x70u;
+  bytes[22] = 0x60u; bytes[23] = 0x26u;
+  bytes[0x20] = 0x20u; bytes[0x21] = 0x3cu; bytes[0x24] = 0x01u; bytes[0x25] = 0x60u;
+  bytes[0x26] = 0x60u; bytes[0x27] = 0x16u;
+  bytes[0x28] = 0x20u; bytes[0x29] = 0x3cu; bytes[0x2c] = 0x01u; bytes[0x2d] = 0x64u;
+  bytes[0x2e] = 0x60u; bytes[0x2f] = 0x0eu;
+  bytes[0x30] = 0x20u; bytes[0x31] = 0x3cu; bytes[0x34] = 0x01u; bytes[0x35] = 0x68u;
+  bytes[0x36] = 0x60u; bytes[0x37] = 0x06u;
+  bytes[0x38] = 0x20u; bytes[0x39] = 0x3cu; bytes[0x3c] = 0x01u; bytes[0x3d] = 0x6cu;
+  bytes[0x3e] = 0x2bu; bytes[0x3f] = 0x40u;
+  bytes[0x42] = 0x20u; bytes[0x43] = 0x40u;
+  bytes[0x44] = 0x4eu; bytes[0x45] = 0xb9u; bytes[0x48] = 0x01u; bytes[0x49] = 0x62u;
+  bytes[0x4a] = 0x4eu; bytes[0x4b] = 0x75u;
+  bytes[0x62] = 0x4eu; bytes[0x63] = 0x75u;
   memset(&section, 0, sizeof(section));
   memset(&analysis, 0, sizeof(analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -26717,12 +26770,7 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
   policy.runtime_ranges[0].offset = 0U;
   policy.runtime_ranges[0].size = sizeof(bytes);
   policy.runtime_ranges[0].runtime_address = 0x100U;
-  policy.structured_data_item_count = 1U;
-  policy.structured_data_items[0].has_section_index = 1U;
-  policy.structured_data_items[0].section_index = 0U;
-  policy.structured_data_items[0].offset = 0x20U;
-  policy.structured_data_items[0].size = 8U;
-  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  policy.structured_data_item_count = 0U;
   policy.register_seed_count = 1U;
   policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
@@ -26733,6 +26781,17 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
   policy.register_seeds[0].section_index = 0U;
   snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
     "world_object_shared_prefix");
+  policy.function_register_contract_count = 1U;
+  policy.function_register_contracts[0].has_section_index = 1U;
+  policy.function_register_contracts[0].section_index = 0U;
+  policy.function_register_contracts[0].entry_offset = 0x62U;
+  policy.function_register_contracts[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_register_contracts[0].register_index = 0U;
+  policy.function_register_contracts[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_register_contracts[0].name,
+    sizeof(policy.function_register_contracts[0].name), "overflow_callback_arg");
+  snprintf(policy.function_register_contracts[0].type_name,
+    sizeof(policy.function_register_contracts[0].type_name), "world_object_shared_prefix");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -26740,29 +26799,34 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
     "\tmove.l d0,world_object_shared_prefix_interaction_data_ptr.w(a5)\n") != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   store = &analysis.sections[0].pointer_stores[0];
-  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS,
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW,
     analysis.sections[0].address_values[0].resolution);
   M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].has_target);
-  M68K_C_ASSERT_U32(2U, analysis.sections[0].address_values[0].candidate_target_count);
-  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
-  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS,
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].candidate_target_count);
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].address_value_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_TERMINAL_CANDIDATE_OVERFLOW,
     analysis.sections[0].address_values[0].terminal_kind);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_NON_SOURCE,
     analysis.sections[0].address_values[0].render_outcome);
-  for (index = 0U; index < analysis.sections[0].address_values[0].candidate_target_count; ++index) {
-    if (analysis.sections[0].address_values[0].candidate_source_values[index] == 0x120U &&
-        analysis.sections[0].address_values[0].candidate_target_offsets[index] == 0x20U)
-      saw_first_target = 1;
-    if (analysis.sections[0].address_values[0].candidate_source_values[index] == 0x124U &&
-        analysis.sections[0].address_values[0].candidate_target_offsets[index] == 0x24U)
-      saw_second_target = 1;
-  }
-  M68K_C_ASSERT(saw_first_target);
-  M68K_C_ASSERT(saw_second_target);
-  /* Candidate targets remain analysis facts. The rendered source operand is
-   * d0, so neither target may be introduced as a source label. */
-  M68K_C_ASSERT(strstr(source, "abs_0_00000120:") == NULL);
-  M68K_C_ASSERT(strstr(source, "abs_0_00000124:") == NULL);
+  M68K_C_ASSERT_STR("candidate merge exceeded exact analysis capacity",
+    analysis.sections[0].address_values[0].terminal_reason);
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].address_value_consumer_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_STORAGE,
+    analysis.sections[0].address_value_consumers[0].kind);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT,
+    analysis.sections[0].address_value_consumers[1].kind);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW,
+    analysis.sections[0].address_values[1].resolution);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_TERMINAL_CANDIDATE_OVERFLOW,
+    analysis.sections[0].address_values[1].terminal_kind);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_NON_SOURCE,
+    analysis.sections[0].address_values[1].render_outcome);
+  /* Overflow has no exact target, so none may be introduced as a source label. */
+  M68K_C_ASSERT(strstr(source, "abs_0_00000160:") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000164:") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000168:") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_0000016c:") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000170:") == NULL);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
@@ -34388,8 +34452,12 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store},
     {"facts_v2_render_asm_source_resolves_generic_pointer_field_store",
       test_facts_v2_render_asm_source_resolves_generic_pointer_field_store},
-    {"facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge",
-      test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_branch_merge},
+    {"render_pointer_candidates_merge_reports_overflow_without_mutating_destination",
+      test_render_pointer_candidates_merge_reports_overflow_without_mutating_destination},
+    {"typed_address_consumers_clear_candidates_on_overflow",
+      test_typed_address_consumers_clear_candidates_on_overflow},
+    {"facts_v2_analysis_marks_candidate_overflow_at_five_way_branch_merge",
+      test_facts_v2_analysis_marks_candidate_overflow_at_five_way_branch_merge},
     {"facts_v2_analysis_propagates_static_array_address_to_generic_pointer_store",
       test_facts_v2_analysis_propagates_static_array_address_to_generic_pointer_store},
     {"facts_v2_analysis_uses_relocation_target_for_generic_pointer_store",
