@@ -9921,6 +9921,7 @@ static const char *facts_v2_source_export_failure_kind_name(M68kSourceExportFail
     case M68K_SOURCE_EXPORT_FAILURE_REQUIRED_INSTRUCTION: return "required_instruction";
     case M68K_SOURCE_EXPORT_FAILURE_TABLE_TARGET_SET_LIMIT: return "table_target_set_limit";
     case M68K_SOURCE_EXPORT_FAILURE_SOURCE_QUALITY: return "source_quality";
+    case M68K_SOURCE_EXPORT_FAILURE_ADDRESS_VALUE: return "address_value";
     default: return "";
   }
 }

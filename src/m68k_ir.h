@@ -1426,6 +1426,69 @@ typedef enum M68kPointerStoreDestinationKind {
   M68K_POINTER_STORE_DESTINATION_STACK_PARAMETER = 4
 } M68kPointerStoreDestinationKind;
 
+typedef enum M68kAddressValueTerminalKind {
+  M68K_ADDRESS_VALUE_TERMINAL_RESOLVED = 1,
+  M68K_ADDRESS_VALUE_TERMINAL_EXTERNAL = 2,
+  M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS = 3,
+  M68K_ADDRESS_VALUE_TERMINAL_INVALID = 4,
+  M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT = 5,
+  M68K_ADDRESS_VALUE_TERMINAL_UNREPRESENTABLE = 6
+} M68kAddressValueTerminalKind;
+
+typedef enum M68kAddressValueRenderOutcome {
+  M68K_ADDRESS_VALUE_RENDER_SYMBOLIC = 1,
+  M68K_ADDRESS_VALUE_RENDER_NON_SOURCE = 2,
+  M68K_ADDRESS_VALUE_RENDER_INVALID = 3
+} M68kAddressValueRenderOutcome;
+
+typedef enum M68kAddressValueReviewClass {
+  M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE = 1,
+  M68K_ADDRESS_VALUE_REVIEW_FIXTURE_NEGATIVE_SCALAR = 2,
+  M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY = 3,
+  M68K_ADDRESS_VALUE_REVIEW_INVALID = 4
+} M68kAddressValueReviewClass;
+
+typedef struct M68kAddressValueTransferIR {
+  uint32_t section_index;
+  uint32_t offset;
+  uint8_t source_operand_index;
+  uint8_t destination_operand_index;
+} M68kAddressValueTransferIR;
+
+/* A durable, pre-render address-value fact.  Pointer stores name their
+ * consumer/destination and refer here; render planning consumes this fact by
+ * identity and never re-infers pointer meaning from operand text. */
+typedef struct M68kAddressValueIR {
+  char pointee_struct_name[64];
+  char terminal_reason[96];
+  uint32_t id;
+  uint32_t source_value;
+  uint32_t producer_section_index;
+  uint32_t producer_offset;
+  uint32_t consumer_section_index;
+  uint32_t consumer_offset;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t candidate_source_values[4];
+  uint32_t candidate_target_section_indices[4];
+  uint32_t candidate_target_offsets[4];
+  M68kAddressValueTransferIR transfers[8];
+  uint8_t producer_operand_index;
+  uint8_t consumer_operand_index;
+  uint8_t origin_kind;
+  uint8_t pointer_width;
+  uint8_t resolution;
+  uint8_t terminal_kind;
+  uint8_t render_outcome;
+  uint8_t review_class;
+  uint8_t has_target;
+  uint8_t has_source_expression;
+  uint8_t candidate_target_count;
+  uint8_t propagation_depth;
+  uint8_t transfer_count;
+  uint8_t transfer_truncated;
+} M68kAddressValueIR;
+
 typedef struct M68kPointerStoreIR {
   char destination_struct_name[64];
   char destination_field_name[64];
@@ -1438,24 +1501,17 @@ typedef struct M68kPointerStoreIR {
   uint32_t candidate_source_values[4];
   uint32_t candidate_target_offsets[4];
   uint16_t destination_field_offset;
+  uint32_t address_value_id;
   uint8_t source_operand_index;
   uint8_t destination_operand_index;
   uint8_t destination_kind;
-  uint8_t has_renderable_source_expression;
   uint8_t destination_value_kind;
   uint8_t source_kind;
   uint8_t resolution;
   uint8_t has_target;
   uint8_t has_address;
-  uint8_t provenance_kind;
-  /* The source operand can be a register or memory transfer.  When the
-   * value was produced by an immediate, this identifies the earlier
-   * instruction operand that owns the only semantically valid symbolic
-   * expression. */
-  uint8_t provenance_operand_index;
   uint8_t candidate_target_count;
   size_t target_section_index;
-  size_t provenance_section_index;
   size_t candidate_target_section_indices[4];
 } M68kPointerStoreIR;
 
@@ -2203,6 +2259,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kPointerStoreIR *pointer_stores;
   size_t pointer_store_count;
   size_t pointer_store_capacity;
+  M68kAddressValueIR *address_values;
+  size_t address_value_count;
+  size_t address_value_capacity;
   M68kPlatformAddressUseIR *platform_address_uses;
   size_t platform_address_use_count;
   size_t platform_address_use_capacity;
@@ -2456,6 +2515,8 @@ int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *s
     const M68kAddressObservationIR *observation);
 int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section_analysis,
     const M68kPointerStoreIR *pointer_store);
+int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
+    const M68kAddressValueIR *address_value);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use);
 int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR *section_analysis,

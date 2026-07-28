@@ -9395,25 +9395,25 @@ static int attach_existing_materialized_runtime_immediate_symbols(M68kRenderIRPr
 static void attach_planned_address_value_source_symbols(const M68kRenderLookup *lookup,
     const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
-  const M68kSectionAnalysisIR *analysis_section;
-  size_t index;
+  size_t section_index, index;
   uint32_t immediate_value;
   if (lookup == NULL || source_analysis == NULL || section == NULL || candidate == NULL || instruction == NULL)
     return;
-  analysis_section = source_analysis_section_for_render(source_analysis, section->section_index);
-  if (analysis_section == NULL) return;
-  for (index = 0U; index < analysis_section->pointer_store_count; ++index) {
-    const M68kPointerStoreIR *fact = &analysis_section->pointer_stores[index];
-    if (fact->provenance_section_index != section->section_index || fact->provenance_offset != candidate->offset ||
-        fact->resolution != M68K_POINTER_STORE_RESOLUTION_RESOLVED || fact->has_target == 0U ||
-        fact->has_renderable_source_expression == 0U ||
-        fact->provenance_operand_index >= instruction->operand_count ||
-        !m68k_ir_operand_immediate_value(&instruction->operands[fact->provenance_operand_index], &immediate_value) ||
-        immediate_value != fact->source_value) {
-      continue;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *analysis_section = &source_analysis->sections[section_index];
+    for (index = 0U; index < analysis_section->address_value_count; ++index) {
+      const M68kAddressValueIR *fact = &analysis_section->address_values[index];
+      if (fact->producer_section_index != section->section_index || fact->producer_offset != candidate->offset ||
+          fact->terminal_kind != M68K_ADDRESS_VALUE_TERMINAL_RESOLVED || fact->has_target == 0U ||
+          fact->render_outcome != M68K_ADDRESS_VALUE_RENDER_SYMBOLIC || fact->has_source_expression == 0U ||
+          fact->producer_operand_index >= instruction->operand_count ||
+          !m68k_ir_operand_immediate_value(&instruction->operands[fact->producer_operand_index], &immediate_value) ||
+          immediate_value != fact->source_value) {
+        continue;
+      }
+      attach_operand_label_symbol(lookup, instruction, fact->producer_operand_index, section->section_index,
+        candidate->offset, fact->target_section_index, fact->target_offset);
     }
-    attach_operand_label_symbol(lookup, instruction, fact->provenance_operand_index, section->section_index,
-      candidate->offset, fact->target_section_index, fact->target_offset);
   }
 }
 
@@ -10164,9 +10164,70 @@ static const M68kFact *candidate_relocation_for_operand(const M68kRenderLookup *
   return match;
 }
 
+static const M68kAddressValueIR *source_analysis_address_value_for_producer(
+    const M68kSourceAnalysisIR *source_analysis, size_t producer_section_index, uint32_t producer_offset,
+    uint32_t producer_operand_index, size_t *out_section_index) {
+  size_t section_index, value_index;
+  if (out_section_index != NULL) *out_section_index = SIZE_MAX;
+  if (source_analysis == NULL) return NULL;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    for (value_index = 0U; value_index < section->address_value_count; ++value_index) {
+      const M68kAddressValueIR *value = &section->address_values[value_index];
+      if (value->producer_section_index == producer_section_index && value->producer_offset == producer_offset &&
+          value->producer_operand_index == producer_operand_index &&
+          value->render_outcome == M68K_ADDRESS_VALUE_RENDER_SYMBOLIC) {
+        if (out_section_index != NULL) *out_section_index = section_index;
+        return value;
+      }
+    }
+  }
+  return NULL;
+}
+
+static int validate_planned_address_value_expressions(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index, value_index, expression_index;
+  if (preview == NULL || source_analysis == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    for (value_index = 0U; value_index < section->address_value_count; ++value_index) {
+      const M68kAddressValueIR *value = &section->address_values[value_index];
+      int found = 0;
+      if (value->render_outcome == M68K_ADDRESS_VALUE_RENDER_INVALID && value->has_source_expression != 0U) {
+        ++preview->asm_source_instruction_render_failures;
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_ADDRESS_VALUE,
+          value->producer_section_index, value->producer_offset, value->source_value);
+        return 0;
+      }
+      if (value->render_outcome != M68K_ADDRESS_VALUE_RENDER_SYMBOLIC) continue;
+      for (expression_index = 0U; expression_index < preview->asm_source_plan.expression_count;
+          ++expression_index) {
+        const M68kRenderPlannedExpression *expression = &preview->asm_source_plan.expressions[expression_index];
+        if (expression->outcome == M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC &&
+            expression->source_section_index == value->producer_section_index &&
+            expression->source_offset == value->producer_offset &&
+            expression->operand_index == value->producer_operand_index) {
+          found = 1;
+          break;
+        }
+      }
+      if (!found) {
+        ++preview->asm_source_instruction_render_failures;
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_ADDRESS_VALUE,
+          value->producer_section_index, value->producer_offset, value->source_value);
+        return 0;
+      }
+    }
+  }
+  return 1;
+}
+
 static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, size_t source_section_index,
-    const M68kDecodeCandidate *candidate, const M68kRenderedSymbolAccessIR *access, int is_relocation) {
+    const M68kDecodeCandidate *candidate, const M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderedSymbolAccessIR *access, int is_relocation) {
   M68kRenderPlannedExpression expression;
+  const M68kAddressValueIR *address_value;
   if (preview == NULL || candidate == NULL || access == NULL || access->symbol_name == NULL ||
       access->symbol_name[0] == '\0') {
     return -1;
@@ -10178,6 +10239,8 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
   expression.kind = is_relocation ? M68K_RENDER_PLANNED_EXPRESSION_RELOCATION :
     M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND;
   expression.outcome = M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC;
+  address_value = source_analysis_address_value_for_producer(source_analysis, source_section_index,
+    candidate->offset, access->operand_index, NULL);
   snprintf(expression.expression, sizeof(expression.expression), "%s", access->symbol_name);
   if (access->has_target != 0U) {
     expression.target_section_index = access->target_section_index;
@@ -10277,7 +10340,8 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
       access.target_offset = runtime_ref->target_offset;
       access.has_target = 1U;
     }
-    if (append_rendered_instruction_expression(preview, section_index, candidate, &access, relocation != NULL) != 0)
+    if (append_rendered_instruction_expression(preview, section_index, candidate, source_analysis,
+        &access, relocation != NULL) != 0)
       return -1;
     if (out_planned_instruction != NULL) {
       size_t access_index = out_planned_instruction->symbol_access_count;
@@ -10668,6 +10732,11 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   if (render_asm_source && collect_asm_source_text &&
       render_asm_os_compatibility_summary_row(out_preview, source_analysis,
         object->platform_backend_kind) != 0) {
+    out_preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
+  if (render_asm_source && collect_asm_source_text &&
+      !validate_planned_address_value_expressions(out_preview, source_analysis)) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }

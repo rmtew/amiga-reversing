@@ -1530,6 +1530,15 @@ static void typed_state_clear_base_slots_for_base(M68kRenderTypedState *state, u
     state->base_slots[index] = state->base_slots[state->base_slot_count - 1U];
     --state->base_slot_count;
   }
+  index = 0U;
+  while (index < state->field_slot_count) {
+    if (state->field_slots[index].known == 0U || state->field_slots[index].base_reg != base_reg) {
+      ++index;
+      continue;
+    }
+    state->field_slots[index] = state->field_slots[state->field_slot_count - 1U];
+    --state->field_slot_count;
+  }
 }
 
 static void typed_origin_clear(M68kRenderTypedStorageOrigin *origin) {
@@ -1610,6 +1619,21 @@ static M68kRenderTypedProvenance typed_provenance_make(uint8_t kind, size_t sect
   return provenance;
 }
 
+static void typed_provenance_append_transfer(M68kRenderTypedProvenance *provenance,
+    size_t section_index, uint32_t offset, uint8_t source_operand_index, uint8_t destination_operand_index) {
+  M68kAddressValueTransferIR *transfer;
+  if (provenance == NULL || provenance->kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE) return;
+  if (provenance->transfer_count >= sizeof(provenance->transfers) / sizeof(provenance->transfers[0])) {
+    provenance->transfer_truncated = 1U;
+    return;
+  }
+  transfer = &provenance->transfers[provenance->transfer_count++];
+  transfer->section_index = (uint32_t)section_index;
+  transfer->offset = offset;
+  transfer->source_operand_index = source_operand_index;
+  transfer->destination_operand_index = destination_operand_index;
+}
+
 static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
     const M68kRenderTypedProvenance *right);
 
@@ -1667,7 +1691,9 @@ static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
     const M68kRenderTypedProvenance *right) {
   if (left == NULL || right == NULL) return 0;
   return left->kind == right->kind && left->section_index == right->section_index &&
-    left->offset == right->offset;
+    left->offset == right->offset && left->producer_operand_index == right->producer_operand_index &&
+    left->transfer_count == right->transfer_count && left->transfer_truncated == right->transfer_truncated &&
+    memcmp(left->transfers, right->transfers, sizeof(left->transfers)) == 0;
 }
 
 static void typed_state_clear_addr_alias_for_reg(M68kRenderTypedState *state, uint8_t reg_index) {
@@ -2656,6 +2682,44 @@ static const M68kRenderTypedStoredValue *typed_state_base_slot_value(const M68kR
   return NULL;
 }
 
+static const M68kRenderTypedFieldSlot *typed_state_field_slot_entry(const M68kRenderTypedState *state,
+    uint8_t base_reg, uint16_t struct_id, int32_t displacement) {
+  size_t index;
+  if (state == NULL || base_reg >= 8U || struct_id == AMIGA_OS_STRUCT_ID_NONE) return NULL;
+  for (index = 0U; index < state->field_slot_count; ++index) {
+    const M68kRenderTypedFieldSlot *slot = &state->field_slots[index];
+    if (slot->known != 0U && slot->base_reg == base_reg && slot->struct_id == struct_id &&
+        slot->displacement == displacement) return slot;
+  }
+  return NULL;
+}
+
+static void typed_state_set_field_slot(M68kRenderTypedState *state, uint8_t base_reg, uint16_t struct_id,
+    int32_t displacement, const M68kRenderTypedStoredValue *value) {
+  const M68kRenderTypedFieldSlot *existing;
+  size_t index;
+  if (state == NULL || base_reg >= 8U || struct_id == AMIGA_OS_STRUCT_ID_NONE || value == NULL ||
+      !typed_stored_value_has_useful_info(value)) return;
+  existing = typed_state_field_slot_entry(state, base_reg, struct_id, displacement);
+  if (existing != NULL) {
+    state->field_slots[existing - state->field_slots].value = *value;
+    return;
+  }
+  if (state->field_slot_count >= M68K_RENDER_TYPED_FIELD_SLOT_LIMIT) return;
+  index = state->field_slot_count++;
+  state->field_slots[index].known = 1U;
+  state->field_slots[index].base_reg = base_reg;
+  state->field_slots[index].struct_id = struct_id;
+  state->field_slots[index].displacement = displacement;
+  state->field_slots[index].value = *value;
+}
+
+static const M68kRenderTypedStoredValue *typed_state_field_slot_value(const M68kRenderTypedState *state,
+    uint8_t base_reg, uint16_t struct_id, int32_t displacement) {
+  const M68kRenderTypedFieldSlot *slot = typed_state_field_slot_entry(state, base_reg, struct_id, displacement);
+  return slot != NULL && typed_stored_value_has_useful_info(&slot->value) ? &slot->value : NULL;
+}
+
 static uint16_t lookup_typed_output_slot_struct_id(const M68kRenderLookup *lookup, int16_t displacement) {
   size_t index;
   uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
@@ -2861,7 +2925,7 @@ static void pointer_store_merge_candidate_targets(M68kPointerStoreIR *dest, cons
 }
 
 static int render_lookup_add_pointer_store(M68kRenderLookup *lookup, size_t section_index,
-    const M68kPointerStoreIR *fact) {
+    const M68kPointerStoreIR *fact, const M68kRenderTypedProvenance *provenance) {
   M68kRenderPointerStore *grown;
   size_t index, next_capacity;
   if (lookup == NULL || fact == NULL) return -1;
@@ -2885,13 +2949,16 @@ static int render_lookup_add_pointer_store(M68kRenderLookup *lookup, size_t sect
         if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET &&
             fact->resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET) {
           mutable_existing->fact = *fact;
+          if (provenance != NULL) mutable_existing->provenance = *provenance;
         } else if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_RESOLVED &&
             fact->resolution == M68K_POINTER_STORE_RESOLUTION_RESOLVED) {
           mutable_existing->fact = *fact;
+          if (provenance != NULL) mutable_existing->provenance = *provenance;
         } else if (mutable_existing->fact.source_value == 0U && fact->source_value != 0U &&
                    mutable_existing->fact.resolution == M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET &&
                    fact->resolution == M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET) {
           mutable_existing->fact = *fact;
+          if (provenance != NULL) mutable_existing->provenance = *provenance;
         }
         return 0;
       }
@@ -2905,7 +2972,8 @@ static int render_lookup_add_pointer_store(M68kRenderLookup *lookup, size_t sect
     lookup->pointer_store_capacity = next_capacity;
   }
   lookup->pointer_stores[lookup->pointer_store_count].section_index = section_index;
-  lookup->pointer_stores[lookup->pointer_store_count].fact = *fact;
+      lookup->pointer_stores[lookup->pointer_store_count].fact = *fact;
+      if (provenance != NULL) lookup->pointer_stores[lookup->pointer_store_count].provenance = *provenance;
   ++lookup->pointer_store_count;
   return 0;
 }
@@ -3231,6 +3299,20 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
   }
   if (operand_is_address_memory_local(operand, &base_reg, &base_displacement) && base_reg < 8U && base_reg != 7U &&
       !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
+    if (state->addr_regs[base_reg].known && state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+      int32_t field_displacement = state->addr_regs[base_reg].byte_cursor + (int32_t)base_displacement;
+      value = typed_state_field_slot_value(state, base_reg, state->addr_regs[base_reg].struct_id,
+        field_displacement);
+      if (value != NULL) {
+        *out_value = *value;
+        if (out_origin != NULL) {
+          out_origin->kind = M68K_RENDER_TYPED_ORIGIN_BASE_SLOT;
+          out_origin->base_reg = base_reg;
+          out_origin->displacement = field_displacement;
+        }
+        return 1;
+      }
+    }
     value = typed_state_base_slot_value(state, base_reg, base_displacement);
     if (value != NULL) {
       *out_value = *value;
@@ -3981,19 +4063,12 @@ static void typed_pointer_store_fact_set_value(M68kPointerStoreIR *fact,
     const M68kRenderTypedStoredValue *value, const M68kOperandIR *source_operand) {
   if (fact == NULL || value == NULL || source_operand == NULL) return;
   fact->source_kind = m68k_ir_operand_immediate_value(source_operand, &fact->source_value) ? 1U : 2U;
-  fact->has_renderable_source_expression = fact->source_kind == 1U ||
-    value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
   if (value->pointer_value_known != 0U) fact->source_value = value->pointer_value;
   fact->resolution = value->pointer_value_known != 0U && value->pointer_candidate_count > 1U
     ? M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET
     : M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET;
   fact->candidate_target_count = value->pointer_candidate_count;
   memcpy(fact->candidate_source_values, value->pointer_candidates, sizeof(fact->candidate_source_values));
-  fact->provenance_kind = value->provenance.kind;
-  fact->provenance_section_index = value->provenance.section_index;
-  fact->provenance_offset = value->provenance.offset;
-  fact->provenance_operand_index = value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE ? 0U :
-    fact->source_operand_index;
 }
 
 /* Construct the complete destination-bearing fact in one place.  Additional
@@ -4036,7 +4111,7 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
       snprintf(fact.destination_field_name, sizeof(fact.destination_field_name), "%s", destination_field->name);
       snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", destination_field->name);
       snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", destination_field->pointer_struct);
-      return render_lookup_add_pointer_store(lookup, section_index, &fact);
+      return render_lookup_add_pointer_store(lookup, section_index, &fact, &value->provenance);
     }
   }
   if (operand_absolute_offset_local(dest_operand, &absolute_address) && lookup->policy != NULL) {
@@ -4051,7 +4126,7 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
       fact.destination_value_kind = slot->storage_kind_id;
       snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", slot->symbol);
       snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", slot->pointer_struct);
-      return render_lookup_add_pointer_store(lookup, section_index, &fact);
+      return render_lookup_add_pointer_store(lookup, section_index, &fact, &value->provenance);
     }
   }
   if (operand_is_address_memory_local(dest_operand, &base_reg, &displacement) && base_reg < 8U &&
@@ -4068,7 +4143,7 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
       fact.destination_value_kind = region->storage_kind_id;
       snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", region->symbol);
       snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", region->pointer_struct);
-      return render_lookup_add_pointer_store(lookup, section_index, &fact);
+      return render_lookup_add_pointer_store(lookup, section_index, &fact, &value->provenance);
     }
   }
   return 0;
@@ -4095,6 +4170,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       typed_stored_value_set_raw_long(&value, immediate_value);
       value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE,
         section_index, offset);
+      value.provenance.producer_operand_index = (uint8_t)source_index;
     }
     destination_requires_address = typed_memory_destination_requires_address_value(lookup, state, platform_state,
       dest_operand);
@@ -4121,6 +4197,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     if (!typed_stored_value_has_useful_info(&value) && instruction->size_suffix == 'l')
       (void)typed_stored_value_from_field_pointer_read(&value, lookup, state, source_operand, section_index, offset);
   }
+  typed_provenance_append_transfer(&value.provenance, section_index, offset,
+    (uint8_t)source_index, (uint8_t)dest_index);
   if (render_lookup_record_typed_address_store(lookup, state, platform_state, section_index, instruction,
       source_index, dest_index, offset, &value) != 0) {
     return -1;
@@ -4141,6 +4219,12 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   }
   if (operand_is_address_memory_local(dest_operand, &base_reg, &base_displacement) && base_reg < 8U &&
       base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
+    if (destination_requires_address && state->addr_regs[base_reg].known &&
+        state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE &&
+        typed_stored_value_has_useful_info(&value)) {
+      typed_state_set_field_slot(state, base_reg, state->addr_regs[base_reg].struct_id,
+        state->addr_regs[base_reg].byte_cursor + (int32_t)base_displacement, &value);
+    }
     if (typed_stored_value_has_useful_info(&value)) typed_state_set_base_slot(state, base_reg, base_displacement,
       &value);
     else typed_state_clear_base_slot(state, base_reg, base_displacement);
@@ -4661,6 +4745,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       typed_stored_value_set_raw_long(&stored_value, immediate_value);
       stored_value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE,
         section_index, offset);
+      stored_value.provenance.producer_operand_index = (uint8_t)source_index;
     } else {
       stored_value = typed_stored_value_for_operand(state, source_operand);
     }
@@ -4740,6 +4825,12 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       source_struct_id == AMIGA_OS_STRUCT_ID_NONE && source_is_app_address == 0 && source_has_memory_base == 0 &&
       !state->addr_regs[source_addr_reg].known && !state->app_addr_regs[source_addr_reg].known &&
       !state->memory_base_regs[source_addr_reg].known;
+    /* Retain the lossless transfer path with the value itself.  It remains
+     * transient until a typed pointer consumer promotes it to a durable
+     * address-value fact. */
+    typed_provenance_append_transfer(&stored_value.provenance, section_index, offset,
+      (uint8_t)source_index, (uint8_t)dest_index);
+    source_provenance = stored_value.provenance;
     if (operand_is_data_register_local(dest_operand, &dest_reg)) {
       typed_state_clear_reg(state, 1U, dest_reg);
       if (source_output != NULL &&
@@ -5142,10 +5233,23 @@ static int typed_base_slot_sets_equal(const M68kRenderTypedState *left, const M6
   return 1;
 }
 
+static int typed_field_slot_sets_equal(const M68kRenderTypedState *left, const M68kRenderTypedState *right) {
+  size_t index;
+  if (left == NULL || right == NULL || left->field_slot_count != right->field_slot_count) return 0;
+  for (index = 0U; index < left->field_slot_count; ++index) {
+    const M68kRenderTypedFieldSlot *left_slot = &left->field_slots[index];
+    const M68kRenderTypedFieldSlot *right_slot = typed_state_field_slot_entry(right, left_slot->base_reg,
+      left_slot->struct_id, left_slot->displacement);
+    if (right_slot == NULL || right_slot->known != left_slot->known ||
+        !typed_stored_values_equal(&left_slot->value, &right_slot->value)) return 0;
+  }
+  return 1;
+}
+
 static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderTypedState *right) {
   size_t index;
   if (left == NULL || right == NULL || left->stack_slot_count != right->stack_slot_count ||
-      left->base_slot_count != right->base_slot_count) {
+      left->base_slot_count != right->base_slot_count || left->field_slot_count != right->field_slot_count) {
     return 0;
   }
   for (index = 0U; index < 8U; ++index) {
@@ -5170,6 +5274,7 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
     if (!typed_stack_slots_equal(&left->stack_slots[index], &right->stack_slots[index])) return 0;
   }
   if (!typed_base_slot_sets_equal(left, right)) return 0;
+  if (!typed_field_slot_sets_equal(left, right)) return 0;
   return 1;
 }
 
@@ -5398,6 +5503,29 @@ static int typed_state_merge_base_slots(M68kRenderTypedState *dest, const M68kRe
   return changed;
 }
 
+static int typed_state_merge_field_slots(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
+  size_t dest_index;
+  int changed = 0;
+  if (dest == NULL || source == NULL) return 0;
+  for (dest_index = 0U; dest_index < dest->field_slot_count;) {
+    M68kRenderTypedFieldSlot *dest_slot = &dest->field_slots[dest_index];
+    const M68kRenderTypedFieldSlot *source_slot = typed_state_field_slot_entry(source, dest_slot->base_reg,
+      dest_slot->struct_id, dest_slot->displacement);
+    if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value) ||
+        !typed_stored_value_has_useful_info(&dest_slot->value)) {
+      if (source_slot == NULL || !typed_stored_value_has_useful_info(&dest_slot->value)) {
+        dest->field_slots[dest_index] = dest->field_slots[dest->field_slot_count - 1U];
+        --dest->field_slot_count;
+        changed = 1;
+        continue;
+      }
+      changed = 1;
+    }
+    ++dest_index;
+  }
+  return changed;
+}
+
 static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
   size_t index;
   int changed = 0;
@@ -5487,6 +5615,7 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
   }
   if (typed_state_merge_stack_slots(dest, source)) changed = 1;
   if (typed_state_merge_base_slots(dest, source)) changed = 1;
+  if (typed_state_merge_field_slots(dest, source)) changed = 1;
   return changed;
 }
 
@@ -6877,8 +7006,76 @@ static int append_render_lookup_pointer_stores_for_section(const M68kRenderLooku
   if (lookup == NULL || section_analysis == NULL) return 0;
   for (index = 0U; index < lookup->pointer_store_count; ++index) {
     const M68kRenderPointerStore *store = &lookup->pointer_stores[index];
+    M68kPointerStoreIR pointer_store;
+    M68kAddressValueIR address_value;
     if (store->section_index != section_analysis->section_index) continue;
-    if (m68k_ir_section_analysis_append_pointer_store(section_analysis, &store->fact) != 0) return -1;
+    pointer_store = store->fact;
+    memset(&address_value, 0, sizeof(address_value));
+    address_value.id = (uint32_t)section_analysis->address_value_count + 1U;
+    address_value.source_value = pointer_store.source_value;
+    address_value.producer_section_index = (uint32_t)store->provenance.section_index;
+    address_value.producer_offset = store->provenance.offset;
+    address_value.consumer_section_index = (uint32_t)store->section_index;
+    address_value.consumer_offset = pointer_store.offset;
+    address_value.producer_operand_index = store->provenance.producer_operand_index;
+    address_value.consumer_operand_index = pointer_store.source_operand_index;
+    address_value.origin_kind = store->provenance.kind;
+    address_value.pointer_width = 4U;
+    address_value.resolution = pointer_store.resolution;
+    address_value.has_target = pointer_store.has_target;
+    address_value.target_section_index = (uint32_t)pointer_store.target_section_index;
+    address_value.target_offset = pointer_store.target_offset;
+    address_value.candidate_target_count = pointer_store.candidate_target_count;
+    memcpy(address_value.candidate_source_values, pointer_store.candidate_source_values,
+      sizeof(address_value.candidate_source_values));
+    memcpy(address_value.candidate_target_section_indices, pointer_store.candidate_target_section_indices,
+      sizeof(address_value.candidate_target_section_indices));
+    memcpy(address_value.candidate_target_offsets, pointer_store.candidate_target_offsets,
+      sizeof(address_value.candidate_target_offsets));
+    memcpy(address_value.transfers, store->provenance.transfers, sizeof(address_value.transfers));
+    address_value.transfer_count = store->provenance.transfer_count;
+    address_value.transfer_truncated = store->provenance.transfer_truncated;
+    address_value.propagation_depth = store->provenance.transfer_count;
+    snprintf(address_value.pointee_struct_name, sizeof(address_value.pointee_struct_name), "%s",
+      pointer_store.pointee_struct_name);
+    if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_RESOLVED) {
+      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
+      address_value.has_source_expression =
+        store->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
+      address_value.render_outcome = address_value.has_source_expression != 0U ?
+        M68K_ADDRESS_VALUE_RENDER_SYMBOLIC : M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
+      address_value.review_class = address_value.has_source_expression != 0U ?
+        M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE : M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
+      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "%s",
+        address_value.has_source_expression != 0U ? "mapped source producer" : "no renderable source producer");
+    } else if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS ||
+        pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET ||
+        pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT) {
+      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS;
+      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
+      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
+      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "ambiguous target identity");
+    } else if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE) {
+      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_EXTERNAL;
+      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
+      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
+      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "target outside source address space");
+    } else if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET) {
+      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_INVALID;
+      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_INVALID;
+      address_value.has_source_expression =
+        store->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
+      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_INVALID;
+      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "mapped target is not representable source storage");
+    } else {
+      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT;
+      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
+      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
+      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "no proven transfer contract");
+    }
+    pointer_store.address_value_id = address_value.id;
+    if (m68k_ir_section_analysis_append_address_value(section_analysis, &address_value) != 0 ||
+        m68k_ir_section_analysis_append_pointer_store(section_analysis, &pointer_store) != 0) return -1;
   }
   return 0;
 }
@@ -9361,7 +9558,7 @@ int m68k_analysis_render_lookup_materialize_pointer_store_targets(M68kRenderLook
     store->fact.target_section_index = target_section_index;
     store->fact.target_offset = target_offset;
     store->fact.resolution = M68K_POINTER_STORE_RESOLUTION_RESOLVED;
-    if (store->fact.has_renderable_source_expression != 0U) {
+    if (store->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE) {
       render_lookup_mark_label(lookup, target_section_index, target_offset);
       render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
       /* Only an immediate source has a source-level value expression to

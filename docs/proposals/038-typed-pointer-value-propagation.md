@@ -243,9 +243,9 @@ pointer-store fixture. Those gaps are missing durable input contracts, not
 negative evidence. Focused C fixtures must cover the full semantic matrix;
 observed corpus rows remain the real-target integration and regression set.
 
-### Post-implementation corpus audit — 2026-07-28
+### Interim first-slice corpus audit — 2026-07-28
 
-The same full, read-only build completed after the address-value implementation:
+The same full, read-only build completed after the first implementation slice:
 378 analysed inputs (319 file entries and 59 reconstructed project targets),
 45 Pandora pointer-store rows, and stable xref identities for every row. The
 source/destination/resolution counts are unchanged because this work preserves
@@ -253,40 +253,41 @@ analysis facts rather than inventing target evidence. Their producer facts are
 now explicit:
 
 ```text
-immediate provenance and renderable producer expression: 4
-other provenance: unknown 28, field_pointer 9, app_slot 3, static_data 1
-render outcome: symbolic_now 4, needs_address_value_propagation 21,
-                not_symbolic 20
+immediate producer provenance: 4
+other producer provenance: unknown 28, field_pointer 9, app_slot 3, static_data 1
+render outcome: symbolic 4; non-source 41; invalid 0
 ```
 
-The four `symbolic_now` rows are the four direct immediate pointer stores.
-They now expose `provenance_kind: immediate`, `provenance_operand_index: 0`,
-and `has_renderable_source_expression: true`; this includes Pandora's
+The four symbolic rows are the four immediate pointer stores. The report now
+reads each outcome, origin, terminal state, and transfer depth from the durable
+address-value fact; pointer-store-local producer markers have been deleted. It
+includes Pandora's
 `interaction_message_ptr` store at stable key `s0:0004D3D2:instruction`.
 The remaining propagated stores retain their actual non-immediate provenance
-and remain non-symbolic when no renderable producer expression is proven. They
-are unresolved review opportunities, not numeric renderer fallbacks.
+and remain unresolved review opportunities when no producer expression is
+proven. They are not numeric renderer fallbacks.
 
-Pandora also supplies the required downstream proof: `interact_with_chemist`
-writes `abs_0_0005CF4C` to
-`world_object_shared_prefix_interaction_message_ptr(a5)`, then transfers to
-`interact_with_hooligan_or_robomechanic`, which reloads that typed field into
-`a0` and passes it to `enqueue_status_message`. This is a field-store/reload/
-typed-call-consumer chain; the direct producer is rendered only at its proven
-immediate origin.
+The concrete Pandora branch is narrower than an earlier review description:
+`interact_with_chemist` writes `abs_0_0005CF4C` to
+`world_object_shared_prefix_interaction_message_ptr(a5)` and branches to
+`interact_with_hooligan_or_robomechanic`, but that destination does not reload
+the field. The separately observed reload belongs to a different control-flow
+path, so treating it as the same value would be a false interprocedural alias.
+Pandora remains the real-target direct symbolic-store proof. A focused CFG
+fixture supplies the required same-object field-store/reload/consumer proof.
 
 ## Pandora Proof Scope
 
-Use the world-object interaction/callback swath as the first proof, beginning
-with `world_object_shared_prefix_interaction_data_ptr` in
-`interact_with_chemist` and following its stores, reloads, consumers, and
-indirect callback uses. Establish the target object/range only from existing
-mapping, xrefs, and typed-flow evidence; do not manufacture a name because an
-immediate is present.
+Use the world-object interaction/callback swath as the real-target direct
+symbolic-store proof, beginning with
+`world_object_shared_prefix_interaction_message_ptr` in
+`interact_with_chemist`. Establish the target object/range only from existing
+mapping, xrefs, and typed-flow evidence; do not manufacture a reload or a
+consumer relationship when control flow does not prove it.
 
-The proof must demonstrate both a direct typed pointer store and at least one
-subsequent propagated use. It must remain valid for other pointer-field types
-without code changes.
+The combined proof must demonstrate Pandora's direct typed pointer store and a
+focused same-object CFG field store/reload/consumer. It must remain valid for
+other pointer-field types without code changes.
 
 ## Acceptance Criteria
 
@@ -323,8 +324,9 @@ without code changes.
 - Renderer/source-quality evidence comes from the planned expression, not from
   a separate typed-flow-to-label path.
 - Pandora renders the verified world-object pointer store as the planned source
-  expression and follows the same address-value fact through at least one
-  downstream reload and typed consumer or proven callback use.
+  expression. A focused same-object CFG fixture follows the same address value
+  through a typed-field reload and typed consumer; it must reject a changed or
+  unproven base-object identity rather than creating an interprocedural alias.
 - Pandora has no duplicate declaration, synthetic label, dangling symbolic
   expression, or source-quality workaround introduced by the change.
 - Focused C and relevant Python tests pass; Pandora source analysis, internal

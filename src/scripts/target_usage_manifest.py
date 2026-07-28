@@ -3834,8 +3834,14 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     _add_memory_layout_view_features(bag, memory_layout_records)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
+        address_values = {
+            _int_value(value.get("id")): value
+            for value in _dict_items(section.get("address_values"))
+            if _int_value(value.get("id")) is not None
+        }
         for store in _dict_items(section.get("pointer_stores")):
-            _add_pointer_store_features(bag, section_index, store)
+            _add_pointer_store_features(bag, section_index, store,
+                address_values.get(_int_value(store.get("address_value_id"))))
         for ref in _dict_items(section.get("code_start_refs")):
             _add_code_start_ref_features(bag, section_index, ref)
         for origin in _dict_items(section.get("code_origins")):
@@ -6390,64 +6396,61 @@ def _address_observation_xrefs(
     ]
 
 
-def _pointer_store_render_outcome(store: dict[str, Any]) -> str:
-    """Describe the source expression selected by the durable address-value fact."""
-    source_kind = _string_value(store.get("source_kind")) or "unknown"
-    resolution = _string_value(store.get("resolution")) or "unknown"
-    has_address = _bool_value(store.get("has_address")) or (_int_value(store.get("has_address"), 0) or 0) != 0
-    has_renderable_source_expression = (
-        _bool_value(store.get("has_renderable_source_expression")) or
-        (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
-    )
-    if resolution == "resolved" and has_address and (
-        source_kind == "immediate" or has_renderable_source_expression
-    ):
-        return "symbolic_now"
-    if source_kind == "propagated" and resolution == "resolved" and has_address:
-        return "needs_address_value_propagation"
-    if resolution in {"outside_known_address_space", "invalid_target"}:
-        return "external_or_invalid"
-    return "not_symbolic"
+def _pointer_store_render_outcome(address_value: dict[str, Any] | None) -> str:
+    """The render outcome is owned by the referenced durable address-value fact."""
+    if not isinstance(address_value, dict):
+        return "invalid"
+    outcome = _string_value(address_value.get("render_outcome"))
+    return outcome if outcome in {"symbolic", "non_source", "invalid"} else "invalid"
 
 
-def _pointer_store_example(section_index: int | None, store: dict[str, Any]) -> dict[str, object]:
+def _pointer_store_example(section_index: int | None, store: dict[str, Any],
+                           address_value: dict[str, Any] | None) -> dict[str, object]:
     example = _offset_example(section_index, _int_value(store.get("offset")), "typed pointer store")
     for key in (
         "source_kind", "destination_kind", "destination_value_kind", "resolution",
-        "provenance_kind", "destination_struct_name", "destination_field_name",
+        "destination_struct_name", "destination_field_name",
         "destination_symbol", "pointee_struct_name",
     ):
         value = _string_value(store.get(key))
         if value:
             example[key] = value
     for key in (
-        "source_value", "target_section_index", "target_offset", "provenance_section_index",
-        "provenance_offset", "provenance_operand_index",
+        "source_value", "target_section_index", "target_offset", "address_value_id",
     ):
         value = _int_value(store.get(key))
         if value is not None:
             example[key] = value
-    example["render_outcome"] = _pointer_store_render_outcome(store)
-    example["has_renderable_source_expression"] = bool(
-        _bool_value(store.get("has_renderable_source_expression")) or
-        (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
-    )
+    if isinstance(address_value, dict):
+        for key in ("origin_kind", "terminal_state", "render_outcome", "review_class", "terminal_reason",
+                    "pointee_struct_name"):
+            value = _string_value(address_value.get(key))
+            if value:
+                example[key] = value
+        for key in ("producer_section_index", "producer_offset", "producer_operand_index",
+                    "propagation_depth", "transfer_truncated"):
+            value = _int_value(address_value.get(key))
+            if value is not None:
+                example[key] = value
+    example["render_outcome"] = _pointer_store_render_outcome(address_value)
     return example
 
 
-def _add_pointer_store_features(bag: FeatureBag, section_index: int | None, store: dict[str, Any]) -> None:
-    example = _pointer_store_example(section_index, store)
+def _add_pointer_store_features(bag: FeatureBag, section_index: int | None, store: dict[str, Any],
+                               address_value: dict[str, Any] | None) -> None:
+    example = _pointer_store_example(section_index, store, address_value)
     bag.add("analysis:pointer_store", example=example)
-    for key in ("source_kind", "destination_kind", "destination_value_kind", "resolution", "provenance_kind"):
+    for key in ("source_kind", "destination_kind", "destination_value_kind", "resolution"):
         value = _string_value(store.get(key))
         if value:
             bag.add(f"analysis:pointer_store:{key}:{_safe_part(value)}", example=example)
-    bag.add(f"analysis:pointer_store:render:{_pointer_store_render_outcome(store)}", example=example)
+    bag.add(f"analysis:pointer_store:render:{_pointer_store_render_outcome(address_value)}", example=example)
 
 
 def _pointer_store_xref(
     row: dict[str, object],
     store: dict[str, Any],
+    address_value: dict[str, Any] | None,
     *,
     section_index: int | None,
     row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
@@ -6457,11 +6460,14 @@ def _pointer_store_xref(
     field_name = _string_value(store.get("destination_field_name"))
     destination_symbol = _string_value(store.get("destination_symbol"))
     store_payload = dict(store)
-    store_payload["has_renderable_source_expression"] = bool(
-        _bool_value(store.get("has_renderable_source_expression")) or
-        (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
-    )
-    store_payload["render_outcome"] = _pointer_store_render_outcome(store)
+    if isinstance(address_value, dict):
+        store_payload["address_value"] = dict(address_value)
+        for key in ("origin_kind", "terminal_state", "review_class", "terminal_reason",
+                    "producer_section_index", "producer_offset", "producer_operand_index",
+                    "propagation_depth", "transfer_truncated"):
+            if key in address_value:
+                store_payload[key] = address_value[key]
+    store_payload["render_outcome"] = _pointer_store_render_outcome(address_value)
     return _xref(
         row,
         "analysis:pointer_store",
@@ -6713,8 +6719,14 @@ def _analysis_xrefs(
                 value=record_value, text=row_text or conflict_state, **owner_range_xref))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
+        address_values = {
+            _int_value(value.get("id")): value
+            for value in _dict_items(section.get("address_values"))
+            if _int_value(value.get("id")) is not None
+        }
         for store in _dict_items(section.get("pointer_stores")):
-            xrefs.append(_pointer_store_xref(row, store, section_index=section_index, row_locations=row_locations))
+            xrefs.append(_pointer_store_xref(row, store, address_values.get(_int_value(store.get("address_value_id"))),
+                section_index=section_index, row_locations=row_locations))
         for ref in _dict_items(section.get("code_start_refs")):
             xrefs.extend(_code_start_ref_xrefs(row, ref, row_locations, section_index=section_index))
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -10739,7 +10751,7 @@ def build_typed_pointer_value_opportunity_report(
     pointee_domain_counts: dict[str, int] = {}
     resolution_counts: dict[str, int] = {}
     render_outcome_counts: dict[str, int] = {}
-    provenance_counts: dict[str, int] = {}
+    origin_kind_counts: dict[str, int] = {}
     target_counts: dict[str, int] = {}
     examples_by_outcome: dict[str, list[dict[str, object]]] = {}
 
@@ -10760,14 +10772,14 @@ def build_typed_pointer_value_opportunity_report(
         destination_kind = _string_value(store.get("destination_kind")) or "unknown"
         pointee_domain = _string_value(store.get("pointee_struct_name")) or "untyped"
         resolution = _string_value(store.get("resolution")) or "unknown"
-        provenance = _string_value(store.get("provenance_kind")) or "unknown"
-        outcome = _string_value(store.get("render_outcome")) or _pointer_store_render_outcome(store)
+        origin_kind = _string_value(store.get("origin_kind")) or "unknown"
+        outcome = _string_value(store.get("render_outcome")) or _pointer_store_render_outcome(None)
         bump(source_kind_counts, source_kind)
         bump(destination_kind_counts, destination_kind)
         bump(pointee_domain_counts, pointee_domain)
         bump(resolution_counts, resolution)
         bump(render_outcome_counts, outcome)
-        bump(provenance_counts, provenance)
+        bump(origin_kind_counts, origin_kind)
         target_id = _string_value(xref.get("target_id")) or "unknown"
         bump(target_counts, target_id)
         example = {
@@ -10784,12 +10796,10 @@ def build_typed_pointer_value_opportunity_report(
                 or _string_value(store.get("destination_symbol")) or "unknown",
             "pointee_domain": pointee_domain,
             "resolution": resolution,
-            "provenance_kind": provenance,
-            "provenance_operand_index": _int_value(store.get("provenance_operand_index")),
-            "has_renderable_source_expression": bool(
-                _bool_value(store.get("has_renderable_source_expression")) or
-                (_int_value(store.get("has_renderable_source_expression"), 0) or 0) != 0
-            ),
+            "origin_kind": origin_kind,
+            "terminal_state": _string_value(store.get("terminal_state")) or "unknown",
+            "producer_operand_index": _int_value(store.get("producer_operand_index")),
+            "propagation_depth": _int_value(store.get("propagation_depth")),
             "render_outcome": outcome,
         }
         examples_by_outcome.setdefault(outcome, []).append(example)
@@ -10811,7 +10821,7 @@ def build_typed_pointer_value_opportunity_report(
         "pointee_domain_counts": dict(sorted(pointee_domain_counts.items())),
         "resolution_counts": dict(sorted(resolution_counts.items())),
         "render_outcome_counts": dict(sorted(render_outcome_counts.items())),
-        "provenance_kind_counts": dict(sorted(provenance_counts.items())),
+        "origin_kind_counts": dict(sorted(origin_kind_counts.items())),
         "target_counts": dict(sorted(target_counts.items())),
         "examples_by_render_outcome": {
             outcome: examples[:max_examples]

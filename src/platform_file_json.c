@@ -290,6 +290,37 @@ static const char *pointer_store_source_kind_name(uint8_t source_kind) {
   }
 }
 
+static const char *address_value_terminal_kind_name(uint8_t kind) {
+  switch (kind) {
+  case M68K_ADDRESS_VALUE_TERMINAL_RESOLVED: return "resolved";
+  case M68K_ADDRESS_VALUE_TERMINAL_EXTERNAL: return "external";
+  case M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS: return "ambiguous";
+  case M68K_ADDRESS_VALUE_TERMINAL_INVALID: return "invalid";
+  case M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT: return "no_proven_transfer_contract";
+  case M68K_ADDRESS_VALUE_TERMINAL_UNREPRESENTABLE: return "unrepresentable";
+  default: return "unknown";
+  }
+}
+
+static const char *address_value_render_outcome_name(uint8_t outcome) {
+  switch (outcome) {
+  case M68K_ADDRESS_VALUE_RENDER_SYMBOLIC: return "symbolic";
+  case M68K_ADDRESS_VALUE_RENDER_NON_SOURCE: return "non_source";
+  case M68K_ADDRESS_VALUE_RENDER_INVALID: return "invalid";
+  default: return "unknown";
+  }
+}
+
+static const char *address_value_review_class_name(uint8_t review_class) {
+  switch (review_class) {
+  case M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE: return "positive_fixture";
+  case M68K_ADDRESS_VALUE_REVIEW_FIXTURE_NEGATIVE_SCALAR: return "negative_scalar_fixture";
+  case M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY: return "review_opportunity";
+  case M68K_ADDRESS_VALUE_REVIEW_INVALID: return "invalid";
+  default: return "unknown";
+  }
+}
+
 static const char *pointer_store_destination_kind_name(uint8_t destination_kind) {
   switch (destination_kind) {
   case M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD: return "struct_field";
@@ -4510,16 +4541,8 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
             (unsigned)store->resolution) != 0 ||
           json_builder_append_json_string(&builder, pointer_store_resolution_name(store->resolution)) != 0 ||
           json_builder_appendf(&builder,
-            ",\"has_address\":%u,\"has_renderable_source_expression\":%u,"
-            "\"provenance_kind_id\":%u,\"provenance_kind\":",
-            (unsigned)store->has_address, (unsigned)store->has_renderable_source_expression,
-            (unsigned)store->provenance_kind) != 0 ||
-          json_builder_append_json_string(&builder, pointer_store_provenance_kind_name(store->provenance_kind)) != 0 ||
-          json_builder_appendf(&builder,
-            ",\"provenance_section_index\":%u,\"provenance_offset\":%u,\"provenance_operand_index\":%u,"
-            "\"destination_struct_name\":",
-            (unsigned)store->provenance_section_index, (unsigned)store->provenance_offset,
-            (unsigned)store->provenance_operand_index) != 0 ||
+            ",\"has_address\":%u,\"address_value_id\":%u,\"destination_struct_name\":",
+            (unsigned)store->has_address, (unsigned)store->address_value_id) != 0 ||
           json_builder_append_json_string(&builder, store->destination_struct_name) != 0 ||
           json_builder_append(&builder, ",\"destination_field_name\":") != 0 ||
           json_builder_append_json_string(&builder, store->destination_field_name) != 0 ||
@@ -4545,6 +4568,54 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         }
         if (json_builder_append(&builder, "]") != 0) goto oom;
       }
+      if (json_builder_append(&builder, "}") != 0) goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"address_value_count\":%u,\"address_values\":[",
+          (unsigned)section->address_value_count) != 0) goto oom;
+    for (address_observation_index = 0U; address_observation_index < section->address_value_count;
+        ++address_observation_index) {
+      const M68kAddressValueIR *value = &section->address_values[address_observation_index];
+      uint8_t transfer_index;
+      if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"id\":%u,\"source_value\":%u,\"origin_kind_id\":%u,\"origin_kind\":",
+          (unsigned)value->id, (unsigned)value->source_value, (unsigned)value->origin_kind) != 0 ||
+          json_builder_append_json_string(&builder, pointer_store_provenance_kind_name(value->origin_kind)) != 0 ||
+          json_builder_appendf(&builder,
+          ",\"producer_section_index\":%u,\"producer_offset\":%u,\"producer_operand_index\":%u,"
+          "\"consumer_section_index\":%u,\"consumer_offset\":%u,\"consumer_operand_index\":%u,"
+          "\"pointer_width\":%u,\"resolution_id\":%u,\"resolution\":",
+          (unsigned)value->producer_section_index, (unsigned)value->producer_offset,
+          (unsigned)value->producer_operand_index, (unsigned)value->consumer_section_index,
+          (unsigned)value->consumer_offset, (unsigned)value->consumer_operand_index,
+          (unsigned)value->pointer_width, (unsigned)value->resolution) != 0 ||
+          json_builder_append_json_string(&builder, pointer_store_resolution_name(value->resolution)) != 0 ||
+          json_builder_appendf(&builder, ",\"terminal_state\":") != 0 ||
+          json_builder_append_json_string(&builder, address_value_terminal_kind_name(value->terminal_kind)) != 0 ||
+          json_builder_appendf(&builder, ",\"render_outcome\":") != 0 ||
+          json_builder_append_json_string(&builder, address_value_render_outcome_name(value->render_outcome)) != 0 ||
+          json_builder_appendf(&builder, ",\"propagation_depth\":%u,\"transfer_truncated\":%u,"
+          "\"has_source_expression\":%u,\"review_class\":",
+          (unsigned)value->propagation_depth, (unsigned)value->transfer_truncated,
+          (unsigned)value->has_source_expression) != 0 ||
+          json_builder_append_json_string(&builder, address_value_review_class_name(value->review_class)) != 0 ||
+          json_builder_append(&builder, ",\"terminal_reason\":") != 0 ||
+          json_builder_append_json_string(&builder, value->terminal_reason) != 0 ||
+          json_builder_append(&builder, ",\"pointee_struct_name\":") != 0 ||
+          json_builder_append_json_string(&builder, value->pointee_struct_name) != 0 ||
+          json_builder_append(&builder, ",\"transfers\":[") != 0) goto oom;
+      for (transfer_index = 0U; transfer_index < value->transfer_count; ++transfer_index) {
+        const M68kAddressValueTransferIR *transfer = &value->transfers[transfer_index];
+        if (transfer_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+        if (json_builder_appendf(&builder, "{\"section_index\":%u,\"offset\":%u,"
+            "\"source_operand_index\":%u,\"destination_operand_index\":%u}",
+            (unsigned)transfer->section_index, (unsigned)transfer->offset,
+            (unsigned)transfer->source_operand_index, (unsigned)transfer->destination_operand_index) != 0) goto oom;
+      }
+      if (json_builder_append(&builder, "]") != 0) goto oom;
+      if (value->has_target && json_builder_appendf(&builder,
+          ",\"target_section_index\":%u,\"target_offset\":%u",
+          (unsigned)value->target_section_index, (unsigned)value->target_offset) != 0) goto oom;
       if (json_builder_append(&builder, "}") != 0) goto oom;
     }
     if (json_builder_appendf(&builder,
@@ -6426,13 +6497,10 @@ static int append_listing_pointer_stores_json(JsonBuilder *builder, const M68kSt
         json_builder_append_json_string(builder, store->destination_symbol) != 0 ||
         json_builder_append(builder, "},\"source_kind\":") != 0 ||
         json_builder_append_json_string(builder, pointer_store_source_kind_name(store->source_kind)) != 0 ||
+        json_builder_append(builder, ",\"address_value_id\":") != 0 ||
+        json_builder_appendf(builder, "%u", (unsigned)store->address_value_id) != 0 ||
         json_builder_append(builder, ",\"resolution\":") != 0 ||
-        json_builder_append_json_string(builder, pointer_store_resolution_name(store->resolution)) != 0 ||
-        json_builder_append(builder, ",\"provenance\":{\"kind\":") != 0 ||
-        json_builder_append_json_string(builder, pointer_store_provenance_kind_name(store->provenance_kind)) != 0 ||
-        json_builder_appendf(builder, ",\"section_index\":%u,\"offset\":%u,\"operand_index\":%u}",
-          (unsigned)store->provenance_section_index, (unsigned)store->provenance_offset,
-          (unsigned)store->provenance_operand_index) != 0)
+        json_builder_append_json_string(builder, pointer_store_resolution_name(store->resolution)) != 0)
       return -1;
     if (store->has_target && json_builder_appendf(builder,
           ",\"target\":{\"section_index\":%u,\"offset\":%u}",

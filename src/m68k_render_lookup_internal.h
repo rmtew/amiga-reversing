@@ -283,8 +283,12 @@ typedef struct M68kRenderTypedStorageOrigin {
 
 typedef struct M68kRenderTypedProvenance {
   uint8_t kind;
+  uint8_t producer_operand_index;
+  uint8_t transfer_count;
+  uint8_t transfer_truncated;
   size_t section_index;
   uint32_t offset;
+  M68kAddressValueTransferIR transfers[8];
 } M68kRenderTypedProvenance;
 
 typedef struct M68kRenderTypedRegValue {
@@ -381,8 +385,20 @@ typedef struct M68kRenderTypedBaseSlot {
   M68kRenderTypedStoredValue value;
 } M68kRenderTypedBaseSlot;
 
+/* A field slot is local control-flow state, not a global alias claim.  Its
+ * base register remains the object-identity contract; clearing or merging that
+ * register drops the value rather than conflating equal-typed objects. */
+typedef struct M68kRenderTypedFieldSlot {
+  uint8_t known;
+  uint8_t base_reg;
+  uint16_t struct_id;
+  int32_t displacement;
+  M68kRenderTypedStoredValue value;
+} M68kRenderTypedFieldSlot;
+
 #define M68K_RENDER_TYPED_STACK_SLOT_LIMIT 32U
 #define M68K_RENDER_TYPED_BASE_SLOT_LIMIT 32U
+#define M68K_RENDER_TYPED_FIELD_SLOT_LIMIT 32U
 
 typedef struct M68kRenderTypedState {
   M68kRenderTypedRegValue data_regs[8];
@@ -398,6 +414,8 @@ typedef struct M68kRenderTypedState {
   size_t stack_slot_count;
   M68kRenderTypedBaseSlot base_slots[M68K_RENDER_TYPED_BASE_SLOT_LIMIT];
   size_t base_slot_count;
+  M68kRenderTypedFieldSlot field_slots[M68K_RENDER_TYPED_FIELD_SLOT_LIMIT];
+  size_t field_slot_count;
 } M68kRenderTypedState;
 
 typedef struct M68kRenderTypedFlowNode {
@@ -501,6 +519,7 @@ typedef struct M68kRenderTypedStorageSlot {
 
 typedef struct M68kRenderPointerStore {
   M68kPointerStoreIR fact;
+  M68kRenderTypedProvenance provenance;
   size_t section_index;
 } M68kRenderPointerStore;
 

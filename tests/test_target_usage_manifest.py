@@ -92,7 +92,7 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
                 "destination_value_kind": "pointer",
                 "resolution": "resolved",
                 "has_address": 1,
-                "provenance_kind": "register_copy",
+                "address_value_id": 1,
                 "destination_struct_name": "world_object_shared_prefix",
                 "destination_field_name": "interaction_data_ptr",
                 "destination_symbol": "world_object_shared_prefix_interaction_data_ptr",
@@ -109,9 +109,7 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
                 "destination_value_kind": "pointer",
                 "resolution": "resolved",
                 "has_address": 1,
-                "has_renderable_source_expression": 1,
-                "provenance_kind": "immediate",
-                "provenance_operand_index": 0,
+                "address_value_id": 2,
                 "destination_struct_name": "world_object_shared_prefix",
                 "destination_field_name": "interaction_data_ptr",
                 "destination_symbol": "world_object_shared_prefix_interaction_data_ptr",
@@ -119,14 +117,25 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
                 "target_section_index": 0,
                 "target_offset": 0x5CF4C,
             }],
+            "address_values": [{
+                "id": 1, "origin_kind": "immediate", "producer_section_index": 0,
+                "producer_offset": 0x100, "producer_operand_index": 0, "propagation_depth": 2,
+                "terminal_state": "resolved", "render_outcome": "non_source",
+                "pointee_struct_name": "interaction_data",
+            }, {
+                "id": 2, "origin_kind": "immediate", "producer_section_index": 0,
+                "producer_offset": 0x124, "producer_operand_index": 0, "propagation_depth": 0,
+                "terminal_state": "resolved", "render_outcome": "symbolic",
+                "pointee_struct_name": "interaction_data",
+            }],
         }],
     }
     bag = FeatureBag()
     _add_analysis_features(analysis, bag)
     counts, _examples, _tags = bag.row_features()
     assert counts["analysis:pointer_store"] == 2
-    assert counts["analysis:pointer_store:render:needs_address_value_propagation"] == 1
-    assert counts["analysis:pointer_store:render:symbolic_now"] == 1
+    assert counts["analysis:pointer_store:render:non_source"] == 1
+    assert counts["analysis:pointer_store:render:symbolic"] == 1
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
     xrefs = _analysis_xrefs(row, analysis, {
@@ -136,22 +145,21 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
     stores = [xref for xref in xrefs if xref.get("kind_id") == XREF_KIND_POINTER_STORE]
     assert len(stores) == 2
     outcomes = {store["pointer_store"]["offset"]: store["pointer_store"] for store in stores}
-    assert outcomes[0x120]["render_outcome"] == "needs_address_value_propagation"
-    assert outcomes[0x124]["render_outcome"] == "symbolic_now"
-    assert outcomes[0x124]["has_renderable_source_expression"] is True
-    assert outcomes[0x124]["provenance_operand_index"] == 0
+    assert outcomes[0x120]["render_outcome"] == "non_source"
+    assert outcomes[0x124]["render_outcome"] == "symbolic"
+    assert outcomes[0x124]["address_value"]["producer_operand_index"] == 0
 
     report = build_typed_pointer_value_opportunity_report(xrefs)
     assert report["pointer_store_count"] == 2
     assert report["render_outcome_counts"] == {
-        "needs_address_value_propagation": 1,
-        "symbolic_now": 1,
+        "non_source": 1,
+        "symbolic": 1,
     }
-    example = report["examples_by_render_outcome"]["needs_address_value_propagation"][0]
+    example = report["examples_by_render_outcome"]["non_source"][0]
     assert example["stable_key"] == "s0:00000120:instruction:4"
-    symbolic_example = report["examples_by_render_outcome"]["symbolic_now"][0]
+    symbolic_example = report["examples_by_render_outcome"]["symbolic"][0]
     assert symbolic_example["stable_key"] == "s0:00000124:instruction:5"
-    assert symbolic_example["has_renderable_source_expression"] is True
+    assert symbolic_example["producer_operand_index"] == 0
 
 
 def test_corpus_build_monitor_reports_parallel_task_progress(tmp_path) -> None:

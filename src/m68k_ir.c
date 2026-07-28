@@ -2987,6 +2987,23 @@ int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section
   return 0;
 }
 
+int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
+    const M68kAddressValueIR *address_value) {
+  size_t index;
+  if (section_analysis == NULL || address_value == NULL || section_analysis->arena == NULL) return -1;
+  for (index = 0U; index < section_analysis->address_value_count; ++index) {
+    const M68kAddressValueIR *existing = &section_analysis->address_values[index];
+    if (existing->id == address_value->id && existing->consumer_offset == address_value->consumer_offset &&
+        existing->consumer_operand_index == address_value->consumer_operand_index) return 0;
+  }
+  section_analysis->address_values = (M68kAddressValueIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->address_values, section_analysis->address_value_count,
+    &section_analysis->address_value_capacity, 8U, sizeof(*section_analysis->address_values));
+  if (section_analysis->address_values == NULL) return -1;
+  section_analysis->address_values[section_analysis->address_value_count++] = *address_value;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use) {
   M68kPlatformAddressUseIR copy;
@@ -4747,6 +4764,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->pointer_store_count; ++index) {
     if (m68k_ir_section_analysis_append_pointer_store(&copy,
           &section_analysis->pointer_stores[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->address_value_count; ++index) {
+    if (m68k_ir_section_analysis_append_address_value(&copy,
+          &section_analysis->address_values[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
