@@ -2975,7 +2975,7 @@ int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section
         existing->source_operand_index == pointer_store->source_operand_index &&
         existing->destination_operand_index == pointer_store->destination_operand_index &&
         existing->destination_field_offset == pointer_store->destination_field_offset &&
-        existing->source_value == pointer_store->source_value) {
+        existing->address_value_id == pointer_store->address_value_id) {
       return 0;
     }
   }

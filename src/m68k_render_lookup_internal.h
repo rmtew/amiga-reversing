@@ -517,17 +517,13 @@ typedef struct M68kRenderTypedStorageSlot {
   M68kRenderTypedStoredValue value;
 } M68kRenderTypedStorageSlot;
 
-typedef struct M68kRenderPointerStore {
-  M68kPointerStoreIR fact;
-  M68kRenderTypedProvenance provenance;
-  size_t section_index;
-} M68kRenderPointerStore;
-
-/* Pre-render observation of a non-storage typed address consumer.  The public
- * consumer record carries its contract; this transient value is resolved by
- * the same source-address machinery as a typed storage write. */
+/* Pre-render observation of a typed address consumer. The public consumer
+ * record carries the contract; the optional storage record carries only the
+ * destination-specific detail. The transient value is resolved once through
+ * the common source-address machinery before canonical analysis facts exist. */
 typedef struct M68kRenderTypedAddressConsumer {
   M68kAddressValueConsumerIR fact;
+  M68kPointerStoreIR storage;
   M68kRenderTypedStoredValue value;
   M68kRenderTypedProvenance provenance;
   size_t section_index;
@@ -540,6 +536,7 @@ typedef struct M68kRenderTypedAddressConsumer {
   uint8_t resolution;
   uint8_t has_target;
   uint8_t candidate_target_count;
+  uint8_t has_storage;
 } M68kRenderTypedAddressConsumer;
 
 typedef struct M68kRenderDataPointerValue {
@@ -707,9 +704,6 @@ struct M68kRenderLookup {
   M68kRenderUnresolvedTypedAccess *unresolved_typed_accesses;
   size_t unresolved_typed_access_count;
   size_t unresolved_typed_access_capacity;
-  M68kRenderPointerStore *pointer_stores;
-  size_t pointer_store_count;
-  size_t pointer_store_capacity;
   M68kRenderTypedAddressConsumer *address_value_consumers;
   size_t address_value_consumer_count;
   size_t address_value_consumer_capacity;

@@ -1,6 +1,7 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: Complete — 2026-07-28. Proposal 039 corpus coverage is complete.
+Status: Complete — 2026-07-28. The consumer model, canonical address-value ownership, and
+Proposal 039 corpus coverage are complete.
 
 ## Problem
 
@@ -379,6 +380,14 @@ other pointer-field types without code changes.
   call contract rather than creating an interprocedural alias.
 - Pandora has no duplicate declaration, synthetic label, dangling symbolic
   expression, or source-quality workaround introduced by the change.
+- `M68kAddressValueIR` is the sole durable owner of an address value's source
+  value, provenance, resolution, target, candidate set, terminal state, and
+  render outcome. A storage record owns only its storage-specific destination
+  contract and its link to that value; it cannot retain a second mutable copy
+  of address-value state.
+- Resolution is represented by a generically named address-value model. No
+  call consumer, render-plan path, or generic resolver depends on a
+  pointer-store-named type or enum.
 - Focused C and relevant Python tests pass; Pandora source analysis, internal
   assembly, source quality, and exact full-file round trip pass.
 
@@ -390,17 +399,21 @@ other pointer-field types without code changes.
   typed destination.
 - Pointer-store-only consumer assumptions, including any representation that
   encodes a proven call input as a synthetic storage write.
+- Duplicated address-value facts in `M68kPointerStoreIR`, including copied
+  source values, resolution, targets, candidate sets, provenance, or render
+  state.
+- Pointer-store naming or types in the shared address-value resolution model.
 - Numeric fallback after a typed, renderable source-pointer classification has
   been made.
 - Manual actions or comments whose only purpose is to force an instruction's
   printed operand text.
 
-## Completed Main-Task Completion Slice
+## Completed Consumer-Model Slice
 
 The initial slices established durable address-value facts for typed pointer
 stores, explicit terminal/render states, planned-expression validation, and
-same-object typed-field propagation. The common consumer model, its shared
-target materialisation, and all evidence gates are now complete:
+same-object typed-field propagation. The common consumer model and its shared
+target materialisation are complete:
 
 1. Introduce a durable typed-consumer record that is independent of
    `M68kPointerStoreIR`, and make it the sole common consumption surface for
@@ -451,6 +464,69 @@ target materialisation, and all evidence gates are now complete:
 7. Replace the interim audit claim with a post-completion report only after
    these conditions pass. Preserve unresolved rows as review opportunities and
    report unavailable consumer categories explicitly rather than hiding them.
+
+## Completed Main-Task Slice: Canonical Address-Value Ownership
+
+The completed consumer-model slice exposed one remaining transitional shape:
+`M68kPointerStoreIR` still persists a duplicate copy of source-value,
+resolution, target, and candidate facts already owned by `M68kAddressValueIR`.
+The shared resolver currently operates over both representations. That is not
+backwards compatibility to retain: it is redundant mutable state, permits
+drift, and leaves generic call consumers coupled to pointer-store terminology.
+
+The final migration made the address-value model canonical end to end:
+
+1. Introduce a generic address-value resolution enum/type, move all generic
+   consumer, value, resolver, planner, JSON, and corpus code to it, and remove
+   the pointer-store-named resolution type. Preserve semantic states and their
+   explicit terminal meanings; this is a representation migration, not a
+   change in evidence policy.
+2. Reduce `M68kPointerStoreIR` to a storage-consumer detail: destination
+   identity/type/contract, source and destination operand identity as needed
+   for the storage instruction, and `address_value_id`. Delete its duplicated
+   address-value provenance, resolution, mapped target, candidate, and render
+   fields. Do not add adapters, aliases, deprecated fields, or compatibility
+   serializers.
+3. Construct the canonical address value once, then link the storage consumer
+   and storage detail to that identity. General call consumers and storage
+   consumers must follow the same construction and target-materialisation
+   path. The resolver may visit each canonical value once; it must not
+   materialise a parallel store copy.
+4. Make JSON export, source-quality validation, render planning, and the
+   corpus audit read canonical address values through consumers. Retain a
+   storage-specific JSON projection only where it describes the destination
+   contract; it must reference the value by stable id rather than repeat its
+   facts.
+5. Update focused C fixtures to assert one canonical value linked to one or
+   more consumers, including storage plus call consumers. Add regression
+   checks that no pointer-store-specific resolution type or duplicated
+   address-value field remains. Regenerate the Pandora source and rerun the
+   full exact round trip, source-quality export, relevant Python tests, and the
+   read-only corpus report.
+
+This migration introduced no compatibility support. `M68kPointerStoreIR` is
+now only a storage-destination record linked by `address_value_id`; all value
+facts are owned by `M68kAddressValueIR`, and all consumers use the generic
+resolution model. The resolver visits the unified transient consumer
+observation once before the canonical analysis facts are emitted.
+
+### Completion evidence — 2026-07-28
+
+- `src/build.bat` and all 580 C unit tests passed. The focused branch-merge
+  fixture verifies candidate-set merging on the unified consumer observation;
+  the storage record retains no candidate or resolution state.
+- `tests/test_target_usage_manifest.py` passed (30 tests).
+- Pandora regenerated with exact full-file round trip and zero diff ranges.
+  Its source-quality export reports 45 canonical address values, 63 consumers,
+  45 storage details, zero blockers, and no source refusal.
+- A fresh normal eight-worker corpus build completed 428 entries in 544.5
+  seconds. The read-only consumer report contains 71 consumers across 8
+  targets: 45 storage, 18 local-function inputs, and 8 platform/API inputs;
+  outcomes are 9 symbolic, 61 non-source, and 1 invalid. No callback input is
+  present in the current corpus, while the focused callback fixture remains
+  coverage for that supported contract.
+
+The main task is closed. The following extensions remain separate.
 
 ## Non-Goals
 

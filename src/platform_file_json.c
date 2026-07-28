@@ -20,8 +20,7 @@ static const char *range_ownership_status_name(uint8_t status);
 static const char *unresolved_typed_access_classification_name(uint8_t classification);
 static const char *type_provenance_kind_name(uint8_t kind);
 static const char *pointer_store_provenance_kind_name(uint8_t kind);
-static const char *pointer_store_resolution_name(uint8_t resolution);
-static const char *pointer_store_source_kind_name(uint8_t source_kind);
+static const char *address_value_resolution_name(uint8_t resolution);
 static const char *struct_field_value_kind_name(uint8_t value_kind);
 static const char *runtime_view_materialization_reason_name(uint8_t reason);
 static const char *runtime_view_relationship_kind_name(uint8_t kind);
@@ -269,23 +268,15 @@ static const char *pointer_store_provenance_kind_name(uint8_t kind) {
   }
 }
 
-static const char *pointer_store_resolution_name(uint8_t resolution) {
+static const char *address_value_resolution_name(uint8_t resolution) {
   switch (resolution) {
-  case M68K_POINTER_STORE_RESOLUTION_RESOLVED: return "resolved";
-  case M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET: return "unknown_target";
-  case M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET: return "ambiguous_target";
-  case M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET: return "invalid_target";
-  case M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE: return "outside_known_address_space";
-  case M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT: return "type_conflict";
-  case M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS: return "finite_candidate_targets";
-  default: return "unknown";
-  }
-}
-
-static const char *pointer_store_source_kind_name(uint8_t source_kind) {
-  switch (source_kind) {
-  case 1U: return "immediate";
-  case 2U: return "propagated";
+  case M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED: return "resolved";
+  case M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET: return "unknown_target";
+  case M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET: return "ambiguous_target";
+  case M68K_ADDRESS_VALUE_RESOLUTION_INVALID_TARGET: return "invalid_target";
+  case M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE: return "outside_known_address_space";
+  case M68K_ADDRESS_VALUE_RESOLUTION_TYPE_CONFLICT: return "type_conflict";
+  case M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS: return "finite_candidate_targets";
   default: return "unknown";
   }
 }
@@ -4532,26 +4523,16 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
       if (json_builder_appendf(&builder,
             "{\"offset\":%u,\"source_operand_index\":%u,\"destination_operand_index\":%u,"
-            "\"source_value\":%u,\"destination_kind_id\":%u,\"destination_kind\":",
+            "\"address_value_id\":%u,\"destination_kind_id\":%u,\"destination_kind\":",
             (unsigned)store->offset, (unsigned)store->source_operand_index,
-            (unsigned)store->destination_operand_index, (unsigned)store->source_value,
+            (unsigned)store->destination_operand_index, (unsigned)store->address_value_id,
             (unsigned)store->destination_kind) != 0 ||
           json_builder_append_json_string(&builder, pointer_store_destination_kind_name(store->destination_kind)) != 0 ||
           json_builder_appendf(&builder, ",\"destination_field_offset\":%u,\"destination_value_kind_id\":%u,"
             "\"destination_value_kind\":", (unsigned)store->destination_field_offset,
             (unsigned)store->destination_value_kind) != 0 ||
           json_builder_append_json_string(&builder, struct_field_value_kind_name(store->destination_value_kind)) != 0 ||
-          json_builder_appendf(&builder,
-            ",\"source_kind_id\":%u,\"source_kind\":",
-            (unsigned)store->source_kind) != 0 ||
-          json_builder_append_json_string(&builder, pointer_store_source_kind_name(store->source_kind)) != 0 ||
-          json_builder_appendf(&builder,
-            ",\"resolution_id\":%u,\"resolution\":",
-            (unsigned)store->resolution) != 0 ||
-          json_builder_append_json_string(&builder, pointer_store_resolution_name(store->resolution)) != 0 ||
-          json_builder_appendf(&builder,
-            ",\"has_address\":%u,\"address_value_id\":%u,\"destination_struct_name\":",
-            (unsigned)store->has_address, (unsigned)store->address_value_id) != 0 ||
+          json_builder_append(&builder, ",\"destination_struct_name\":") != 0 ||
           json_builder_append_json_string(&builder, store->destination_struct_name) != 0 ||
           json_builder_append(&builder, ",\"destination_field_name\":") != 0 ||
           json_builder_append_json_string(&builder, store->destination_field_name) != 0 ||
@@ -4560,23 +4541,6 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append(&builder, ",\"pointee_struct_name\":") != 0 ||
           json_builder_append_json_string(&builder, store->pointee_struct_name) != 0)
         goto oom;
-      if (store->has_target && json_builder_appendf(&builder,
-          ",\"target_section_index\":%u,\"target_offset\":%u",
-          (unsigned)store->target_section_index, (unsigned)store->target_offset) != 0)
-        goto oom;
-      if (store->candidate_target_count != 0U) {
-        uint8_t candidate_index;
-        if (json_builder_append(&builder, ",\"candidate_targets\":[") != 0) goto oom;
-        for (candidate_index = 0U; candidate_index < store->candidate_target_count; ++candidate_index) {
-          if (candidate_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-          if (json_builder_appendf(&builder,
-              "{\"source_value\":%u,\"section_index\":%u,\"offset\":%u}",
-              (unsigned)store->candidate_source_values[candidate_index],
-              (unsigned)store->candidate_target_section_indices[candidate_index],
-              (unsigned)store->candidate_target_offsets[candidate_index]) != 0) goto oom;
-        }
-        if (json_builder_append(&builder, "]") != 0) goto oom;
-      }
       if (json_builder_append(&builder, "}") != 0) goto oom;
     }
     if (json_builder_appendf(&builder, "],\"address_value_consumer_count\":%u,\"address_value_consumers\":[",
@@ -4618,7 +4582,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           (unsigned)value->producer_section_index, (unsigned)value->producer_offset,
           (unsigned)value->producer_operand_index, (unsigned)value->pointer_width,
           (unsigned)value->resolution) != 0 ||
-          json_builder_append_json_string(&builder, pointer_store_resolution_name(value->resolution)) != 0 ||
+          json_builder_append_json_string(&builder, address_value_resolution_name(value->resolution)) != 0 ||
           json_builder_appendf(&builder, ",\"terminal_state\":") != 0 ||
           json_builder_append_json_string(&builder, address_value_terminal_kind_name(value->terminal_kind)) != 0 ||
           json_builder_appendf(&builder, ",\"render_outcome\":") != 0 ||
@@ -6510,10 +6474,10 @@ static int append_listing_pointer_stores_json(JsonBuilder *builder, const M68kSt
     if (store->offset != stmt->offset) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
-          "{\"source_operand_index\":%u,\"destination_operand_index\":%u,\"source_value\":%u,"
+          "{\"source_operand_index\":%u,\"destination_operand_index\":%u,\"address_value_id\":%u,"
           "\"destination\":{\"kind\":",
           (unsigned)store->source_operand_index, (unsigned)store->destination_operand_index,
-          (unsigned)store->source_value) != 0 ||
+          (unsigned)store->address_value_id) != 0 ||
         json_builder_append_json_string(builder, pointer_store_destination_kind_name(store->destination_kind)) != 0 ||
         json_builder_append(builder, ",\"struct\":") != 0 ||
         json_builder_append_json_string(builder, store->destination_struct_name) != 0 ||
@@ -6524,16 +6488,7 @@ static int append_listing_pointer_stores_json(JsonBuilder *builder, const M68kSt
         json_builder_append_json_string(builder, struct_field_value_kind_name(store->destination_value_kind)) != 0 ||
         json_builder_append(builder, ",\"symbol\":") != 0 ||
         json_builder_append_json_string(builder, store->destination_symbol) != 0 ||
-        json_builder_append(builder, "},\"source_kind\":") != 0 ||
-        json_builder_append_json_string(builder, pointer_store_source_kind_name(store->source_kind)) != 0 ||
-        json_builder_append(builder, ",\"address_value_id\":") != 0 ||
-        json_builder_appendf(builder, "%u", (unsigned)store->address_value_id) != 0 ||
-        json_builder_append(builder, ",\"resolution\":") != 0 ||
-        json_builder_append_json_string(builder, pointer_store_resolution_name(store->resolution)) != 0)
-      return -1;
-    if (store->has_target && json_builder_appendf(builder,
-          ",\"target\":{\"section_index\":%u,\"offset\":%u}",
-          (unsigned)store->target_section_index, (unsigned)store->target_offset) != 0)
+        json_builder_append(builder, "}") != 0)
       return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
     emitted = 1;

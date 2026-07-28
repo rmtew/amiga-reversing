@@ -2909,75 +2909,6 @@ static const M68kAnalysisCustomStructField *lookup_policy_pointer_value_field(co
   return NULL;
 }
 
-static void pointer_store_merge_candidate_targets(M68kPointerStoreIR *dest, const M68kPointerStoreIR *source) {
-  uint8_t merged_count = 0U, index, source_index;
-  if (dest == NULL || source == NULL) return;
-  for (index = 0U; index < dest->candidate_target_count; ++index)
-    dest->candidate_source_values[merged_count++] = dest->candidate_source_values[index];
-  for (source_index = 0U; source_index < source->candidate_target_count; ++source_index) {
-    for (index = 0U; index < merged_count; ++index)
-      if (dest->candidate_source_values[index] == source->candidate_source_values[source_index]) break;
-    if (index == merged_count && merged_count < 4U)
-      dest->candidate_source_values[merged_count++] = source->candidate_source_values[source_index];
-  }
-  dest->candidate_target_count = merged_count;
-  dest->source_value = merged_count == 1U ? dest->candidate_source_values[0] : 0U;
-}
-
-static int render_lookup_add_pointer_store(M68kRenderLookup *lookup, size_t section_index,
-    const M68kPointerStoreIR *fact, const M68kRenderTypedProvenance *provenance) {
-  M68kRenderPointerStore *grown;
-  size_t index, next_capacity;
-  if (lookup == NULL || fact == NULL) return -1;
-  for (index = 0U; index < lookup->pointer_store_count; ++index) {
-    const M68kRenderPointerStore *existing = &lookup->pointer_stores[index];
-      if (existing->section_index == section_index && existing->fact.offset == fact->offset &&
-          existing->fact.source_operand_index == fact->source_operand_index &&
-          existing->fact.destination_operand_index == fact->destination_operand_index) {
-        /* The instruction can be revisited while its incoming fixed-point
-         * state becomes more precise or merges incompatible predecessors.
-         * A merged ambiguity is authoritative: retaining a first-path
-         * resolution would falsely claim a unique stored address. */
-        M68kRenderPointerStore *mutable_existing = &lookup->pointer_stores[index];
-        if (fact->candidate_target_count != 0U &&
-            (mutable_existing->fact.candidate_target_count != 0U ||
-             fact->resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET)) {
-          pointer_store_merge_candidate_targets(&mutable_existing->fact, fact);
-          if (mutable_existing->fact.candidate_target_count > 1U)
-            mutable_existing->fact.resolution = M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET;
-        }
-        if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET &&
-            fact->resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET) {
-          mutable_existing->fact = *fact;
-          if (provenance != NULL) mutable_existing->provenance = *provenance;
-        } else if (mutable_existing->fact.resolution != M68K_POINTER_STORE_RESOLUTION_RESOLVED &&
-            fact->resolution == M68K_POINTER_STORE_RESOLUTION_RESOLVED) {
-          mutable_existing->fact = *fact;
-          if (provenance != NULL) mutable_existing->provenance = *provenance;
-        } else if (mutable_existing->fact.source_value == 0U && fact->source_value != 0U &&
-                   mutable_existing->fact.resolution == M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET &&
-                   fact->resolution == M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET) {
-          mutable_existing->fact = *fact;
-          if (provenance != NULL) mutable_existing->provenance = *provenance;
-        }
-        return 0;
-      }
-  }
-  if (lookup->pointer_store_count == lookup->pointer_store_capacity) {
-    next_capacity = lookup->pointer_store_capacity == 0U ? 32U : lookup->pointer_store_capacity * 2U;
-    grown = (M68kRenderPointerStore *)render_lookup_grow_array(lookup, lookup->pointer_stores,
-      lookup->pointer_store_count, sizeof(*grown), next_capacity);
-    if (grown == NULL) return -1;
-    lookup->pointer_stores = grown;
-    lookup->pointer_store_capacity = next_capacity;
-  }
-  lookup->pointer_stores[lookup->pointer_store_count].section_index = section_index;
-      lookup->pointer_stores[lookup->pointer_store_count].fact = *fact;
-      if (provenance != NULL) lookup->pointer_stores[lookup->pointer_store_count].provenance = *provenance;
-  ++lookup->pointer_store_count;
-  return 0;
-}
-
 static uint16_t lookup_policy_nested_struct_id_for_field(const M68kAnalysisPolicy *policy, uint16_t struct_id,
     int16_t displacement) {
   const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
@@ -4120,7 +4051,8 @@ static M68kRenderTypedStoredValue typed_stored_value_for_address_register(
 }
 
 static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, size_t section_index,
-    const M68kAddressValueConsumerIR *fact, const M68kRenderTypedStoredValue *value) {
+    const M68kAddressValueConsumerIR *fact, const M68kRenderTypedStoredValue *value,
+    const M68kPointerStoreIR *storage) {
   M68kRenderTypedAddressConsumer *grown;
   size_t index, next_capacity;
   if (lookup == NULL || fact == NULL || value == NULL) return -1;
@@ -4130,10 +4062,30 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
         existing->fact.operand_index != fact->operand_index || existing->fact.kind != fact->kind ||
         existing->fact.register_kind != fact->register_kind || existing->fact.register_index != fact->register_index)
       continue;
-    /* The fixed-point state may become more precise.  Keep the observation
-     * carrying a concrete address over an earlier unbound raw value. */
-    if (existing->value.pointer_value_known == 0U && value->pointer_value_known != 0U)
+    /* The fixed-point state may become more precise or merge distinct static
+     * values. Preserve the complete bounded candidate set on the one shared
+     * consumer observation; a storage write has no private value copy. */
+    if (existing->value.pointer_value_known == 0U && value->pointer_value_known != 0U) {
       existing->value = *value;
+    } else if (existing->value.pointer_value_known != 0U && value->pointer_value_known != 0U) {
+      (void)typed_pointer_candidates_merge(&existing->value.pointer_value_known,
+        &existing->value.pointer_candidate_count, &existing->value.pointer_value,
+        existing->value.pointer_candidates, value->pointer_value_known, value->pointer_candidate_count,
+        value->pointer_value, value->pointer_candidates);
+    }
+    existing->provenance = existing->value.provenance;
+    existing->source_value = existing->value.pointer_value;
+    existing->candidate_target_count = existing->value.pointer_candidate_count;
+    memcpy(existing->candidate_source_values, existing->value.pointer_candidates,
+      sizeof(existing->candidate_source_values));
+    existing->resolution = existing->value.pointer_value_known != 0U &&
+        existing->value.pointer_candidate_count > 1U
+      ? M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET
+      : M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET;
+    if (storage != NULL) {
+      existing->storage = *storage;
+      existing->has_storage = 1U;
+    }
     return 0;
   }
   if (lookup->address_value_consumer_count == lookup->address_value_consumer_capacity) {
@@ -4149,12 +4101,16 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
     sizeof(lookup->address_value_consumers[lookup->address_value_consumer_count]));
   lookup->address_value_consumers[lookup->address_value_consumer_count].section_index = section_index;
   lookup->address_value_consumers[lookup->address_value_consumer_count].fact = *fact;
+  if (storage != NULL) {
+    lookup->address_value_consumers[lookup->address_value_consumer_count].storage = *storage;
+    lookup->address_value_consumers[lookup->address_value_consumer_count].has_storage = 1U;
+  }
   lookup->address_value_consumers[lookup->address_value_consumer_count].value = *value;
   lookup->address_value_consumers[lookup->address_value_consumer_count].provenance = value->provenance;
   lookup->address_value_consumers[lookup->address_value_consumer_count].source_value = value->pointer_value;
   lookup->address_value_consumers[lookup->address_value_consumer_count].resolution =
     value->pointer_value_known != 0U && value->pointer_candidate_count > 1U ?
-      M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET : M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET;
+      M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET : M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET;
   lookup->address_value_consumers[lookup->address_value_consumer_count].candidate_target_count =
     value->pointer_candidate_count;
   memcpy(lookup->address_value_consumers[lookup->address_value_consumer_count].candidate_source_values,
@@ -4184,7 +4140,7 @@ static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, si
   fact.contract_offset = contract_offset;
   snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", pointee_struct_name);
   snprintf(fact.contract_name, sizeof(fact.contract_name), "%s", contract_name != NULL ? contract_name : "");
-  return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, &value);
+  return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, &value, NULL);
 }
 
 static int typed_memory_destination_requires_address_value(const M68kRenderLookup *lookup,
@@ -4231,18 +4187,6 @@ static int typed_memory_destination_requires_address_value(const M68kRenderLooku
   return 0;
 }
 
-static void typed_pointer_store_fact_set_value(M68kPointerStoreIR *fact,
-    const M68kRenderTypedStoredValue *value, const M68kOperandIR *source_operand) {
-  if (fact == NULL || value == NULL || source_operand == NULL) return;
-  fact->source_kind = m68k_ir_operand_immediate_value(source_operand, &fact->source_value) ? 1U : 2U;
-  if (value->pointer_value_known != 0U) fact->source_value = value->pointer_value;
-  fact->resolution = value->pointer_value_known != 0U && value->pointer_candidate_count > 1U
-    ? M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET
-    : M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET;
-  fact->candidate_target_count = value->pointer_candidate_count;
-  memcpy(fact->candidate_source_values, value->pointer_candidates, sizeof(fact->candidate_source_values));
-}
-
 /* Construct the complete destination-bearing fact in one place.  Additional
  * typed storage classes use the same public representation once their
  * renderer/source-quality obligations are installed. */
@@ -4257,6 +4201,7 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
   uint32_t absolute_address = 0U;
   uint16_t policy_index;
   M68kPointerStoreIR fact;
+  M68kAddressValueConsumerIR consumer;
   if (lookup == NULL || state == NULL || instruction == NULL || value == NULL ||
       source_index >= instruction->operand_count || dest_index >= instruction->operand_count ||
       instruction->size_suffix != 'l') {
@@ -4265,10 +4210,13 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
   source_operand = &instruction->operands[source_index];
   dest_operand = &instruction->operands[dest_index];
   memset(&fact, 0, sizeof(fact));
+  memset(&consumer, 0, sizeof(consumer));
   fact.offset = offset;
   fact.source_operand_index = (uint8_t)source_index;
   fact.destination_operand_index = (uint8_t)dest_index;
-  typed_pointer_store_fact_set_value(&fact, value, source_operand);
+  consumer.offset = offset;
+  consumer.kind = M68K_ADDRESS_VALUE_CONSUMER_STORAGE;
+  consumer.operand_index = (uint8_t)source_index;
   if (operand_is_address_memory_local(dest_operand, &base_reg, &displacement) && base_reg < 8U &&
       state->addr_regs[base_reg].known && state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE) {
     const M68kAnalysisCustomStruct *destination_struct = NULL;
@@ -4283,7 +4231,9 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
       snprintf(fact.destination_field_name, sizeof(fact.destination_field_name), "%s", destination_field->name);
       snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", destination_field->name);
       snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", destination_field->pointer_struct);
-      return render_lookup_add_pointer_store(lookup, section_index, &fact, &value->provenance);
+      snprintf(consumer.pointee_struct_name, sizeof(consumer.pointee_struct_name), "%s", fact.pointee_struct_name);
+      snprintf(consumer.contract_name, sizeof(consumer.contract_name), "%s", fact.destination_symbol);
+      return render_lookup_add_typed_address_consumer(lookup, section_index, &consumer, value, &fact);
     }
   }
   if (operand_absolute_offset_local(dest_operand, &absolute_address) && lookup->policy != NULL) {
@@ -4298,7 +4248,9 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
       fact.destination_value_kind = slot->storage_kind_id;
       snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", slot->symbol);
       snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", slot->pointer_struct);
-      return render_lookup_add_pointer_store(lookup, section_index, &fact, &value->provenance);
+      snprintf(consumer.pointee_struct_name, sizeof(consumer.pointee_struct_name), "%s", fact.pointee_struct_name);
+      snprintf(consumer.contract_name, sizeof(consumer.contract_name), "%s", fact.destination_symbol);
+      return render_lookup_add_typed_address_consumer(lookup, section_index, &consumer, value, &fact);
     }
   }
   if (operand_is_address_memory_local(dest_operand, &base_reg, &displacement) && base_reg < 8U &&
@@ -4315,7 +4267,9 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
       fact.destination_value_kind = region->storage_kind_id;
       snprintf(fact.destination_symbol, sizeof(fact.destination_symbol), "%s", region->symbol);
       snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", region->pointer_struct);
-      return render_lookup_add_pointer_store(lookup, section_index, &fact, &value->provenance);
+      snprintf(consumer.pointee_struct_name, sizeof(consumer.pointee_struct_name), "%s", fact.pointee_struct_name);
+      snprintf(consumer.contract_name, sizeof(consumer.contract_name), "%s", fact.destination_symbol);
+      return render_lookup_add_typed_address_consumer(lookup, section_index, &consumer, value, &fact);
     }
   }
   return 0;
@@ -7245,100 +7199,10 @@ static M68kAddressValueIR *section_analysis_find_equivalent_address_value(
   return NULL;
 }
 
-static int append_render_lookup_pointer_stores_for_section(const M68kRenderLookup *lookup,
+static int append_render_lookup_address_value_consumers_for_section(const M68kRenderLookup *lookup,
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
   if (lookup == NULL || section_analysis == NULL) return 0;
-  for (index = 0U; index < lookup->pointer_store_count; ++index) {
-    const M68kRenderPointerStore *store = &lookup->pointer_stores[index];
-    M68kPointerStoreIR pointer_store;
-    M68kAddressValueConsumerIR consumer;
-    M68kAddressValueIR address_value;
-    M68kAddressValueIR *existing_address_value;
-    if (store->section_index != section_analysis->section_index) continue;
-    pointer_store = store->fact;
-    memset(&consumer, 0, sizeof(consumer));
-    consumer.id = (uint32_t)section_analysis->address_value_consumer_count + 1U;
-    consumer.offset = pointer_store.offset;
-    consumer.kind = M68K_ADDRESS_VALUE_CONSUMER_STORAGE;
-    consumer.operand_index = pointer_store.source_operand_index;
-    consumer.address_value_id = (uint32_t)section_analysis->address_value_count + 1U;
-    snprintf(consumer.pointee_struct_name, sizeof(consumer.pointee_struct_name), "%s",
-      pointer_store.pointee_struct_name);
-    snprintf(consumer.contract_name, sizeof(consumer.contract_name), "%s", pointer_store.destination_symbol);
-    memset(&address_value, 0, sizeof(address_value));
-    address_value.id = (uint32_t)section_analysis->address_value_count + 1U;
-    address_value.source_value = pointer_store.source_value;
-    address_value.producer_section_index = (uint32_t)store->provenance.section_index;
-    address_value.producer_offset = store->provenance.offset;
-    address_value.producer_operand_index = store->provenance.producer_operand_index;
-    address_value.origin_kind = store->provenance.kind;
-    address_value.pointer_width = 4U;
-    address_value.resolution = pointer_store.resolution;
-    address_value.has_target = pointer_store.has_target;
-    address_value.target_section_index = (uint32_t)pointer_store.target_section_index;
-    address_value.target_offset = pointer_store.target_offset;
-    address_value.candidate_target_count = pointer_store.candidate_target_count;
-    memcpy(address_value.candidate_source_values, pointer_store.candidate_source_values,
-      sizeof(address_value.candidate_source_values));
-    memcpy(address_value.candidate_target_section_indices, pointer_store.candidate_target_section_indices,
-      sizeof(address_value.candidate_target_section_indices));
-    memcpy(address_value.candidate_target_offsets, pointer_store.candidate_target_offsets,
-      sizeof(address_value.candidate_target_offsets));
-    memcpy(address_value.transfers, store->provenance.transfers, sizeof(address_value.transfers));
-    address_value.transfer_count = store->provenance.transfer_count;
-    address_value.transfer_truncated = store->provenance.transfer_truncated;
-    address_value.propagation_depth = store->provenance.transfer_count;
-    snprintf(address_value.pointee_struct_name, sizeof(address_value.pointee_struct_name), "%s",
-      pointer_store.pointee_struct_name);
-    if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_RESOLVED) {
-      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
-      address_value.has_source_expression =
-        store->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
-      address_value.render_outcome = address_value.has_source_expression != 0U ?
-        M68K_ADDRESS_VALUE_RENDER_SYMBOLIC : M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
-      address_value.review_class = address_value.has_source_expression != 0U ?
-        M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE : M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
-      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "%s",
-        address_value.has_source_expression != 0U ? "mapped source producer" : "no renderable source producer");
-    } else if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS ||
-        pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET ||
-        pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT) {
-      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS;
-      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
-      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
-      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "ambiguous target identity");
-    } else if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE) {
-      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_EXTERNAL;
-      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
-      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
-      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "target outside source address space");
-    } else if (pointer_store.resolution == M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET) {
-      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_INVALID;
-      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_INVALID;
-      address_value.has_source_expression =
-        store->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
-      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_INVALID;
-      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "mapped target is not representable source storage");
-    } else {
-      address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT;
-      address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
-      address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
-      snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "no proven transfer contract");
-    }
-    existing_address_value = section_analysis_find_equivalent_address_value(section_analysis, &address_value);
-    if (existing_address_value != NULL) {
-      consumer.address_value_id = existing_address_value->id;
-      pointer_store.address_value_id = existing_address_value->id;
-      if (m68k_ir_section_analysis_append_address_value_consumer(section_analysis, &consumer) != 0 ||
-          m68k_ir_section_analysis_append_pointer_store(section_analysis, &pointer_store) != 0) return -1;
-      continue;
-    }
-    pointer_store.address_value_id = address_value.id;
-    if (m68k_ir_section_analysis_append_address_value_consumer(section_analysis, &consumer) != 0 ||
-        m68k_ir_section_analysis_append_address_value(section_analysis, &address_value) != 0 ||
-        m68k_ir_section_analysis_append_pointer_store(section_analysis, &pointer_store) != 0) return -1;
-  }
   for (index = 0U; index < lookup->address_value_consumer_count; ++index) {
     const M68kRenderTypedAddressConsumer *observed = &lookup->address_value_consumers[index];
     M68kAddressValueConsumerIR consumer;
@@ -7373,7 +7237,7 @@ static int append_render_lookup_pointer_stores_for_section(const M68kRenderLooku
     address_value.propagation_depth = observed->provenance.transfer_count;
     snprintf(address_value.pointee_struct_name, sizeof(address_value.pointee_struct_name), "%s",
       consumer.pointee_struct_name);
-    if (observed->resolution == M68K_POINTER_STORE_RESOLUTION_RESOLVED) {
+    if (observed->resolution == M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED) {
       address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
       address_value.has_source_expression = observed->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
       address_value.render_outcome = address_value.has_source_expression != 0U ?
@@ -7382,19 +7246,19 @@ static int append_render_lookup_pointer_stores_for_section(const M68kRenderLooku
         M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE : M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
       snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "%s",
         address_value.has_source_expression != 0U ? "mapped source producer" : "no renderable source producer");
-    } else if (observed->resolution == M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS ||
-        observed->resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET ||
-        observed->resolution == M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT) {
+    } else if (observed->resolution == M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS ||
+        observed->resolution == M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET ||
+        observed->resolution == M68K_ADDRESS_VALUE_RESOLUTION_TYPE_CONFLICT) {
       address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS;
       address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
       address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
       snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "ambiguous target identity");
-    } else if (observed->resolution == M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE) {
+    } else if (observed->resolution == M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE) {
       address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_EXTERNAL;
       address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
       address_value.review_class = M68K_ADDRESS_VALUE_REVIEW_OPPORTUNITY;
       snprintf(address_value.terminal_reason, sizeof(address_value.terminal_reason), "target outside source address space");
-    } else if (observed->resolution == M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET) {
+    } else if (observed->resolution == M68K_ADDRESS_VALUE_RESOLUTION_INVALID_TARGET) {
       address_value.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_INVALID;
       address_value.render_outcome = M68K_ADDRESS_VALUE_RENDER_INVALID;
       address_value.has_source_expression = observed->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
@@ -7410,8 +7274,18 @@ static int append_render_lookup_pointer_stores_for_section(const M68kRenderLooku
     existing_address_value = section_analysis_find_equivalent_address_value(section_analysis, &address_value);
     if (existing_address_value != NULL) {
       consumer.address_value_id = existing_address_value->id;
+      if (observed->has_storage != 0U) {
+        M68kPointerStoreIR storage = observed->storage;
+        storage.address_value_id = existing_address_value->id;
+        if (m68k_ir_section_analysis_append_pointer_store(section_analysis, &storage) != 0) return -1;
+      }
       if (m68k_ir_section_analysis_append_address_value_consumer(section_analysis, &consumer) != 0) return -1;
       continue;
+    }
+    if (observed->has_storage != 0U) {
+      M68kPointerStoreIR storage = observed->storage;
+      storage.address_value_id = address_value.id;
+      if (m68k_ir_section_analysis_append_pointer_store(section_analysis, &storage) != 0) return -1;
     }
     if (m68k_ir_section_analysis_append_address_value_consumer(section_analysis, &consumer) != 0 ||
         m68k_ir_section_analysis_append_address_value(section_analysis, &address_value) != 0) return -1;
@@ -9848,45 +9722,45 @@ static void render_lookup_materialize_typed_address_target(M68kRenderLookup *loo
   uint32_t target_offset = 0U;
   if (lookup == NULL || decode == NULL || accepted_bytes == NULL || resolution == NULL ||
       has_target == NULL || target_section_index_out == NULL || target_offset_out == NULL) return;
-  if (*resolution == M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET && candidate_target_count > 1U) {
+  if (*resolution == M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET && candidate_target_count > 1U) {
     uint8_t candidate_index;
     for (candidate_index = 0U; candidate_index < candidate_target_count; ++candidate_index) {
       if (!render_lookup_pointer_value_to_source_location(lookup, decode, candidate_source_values[candidate_index],
           &target_section_index, &target_offset)) {
-        *resolution = M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
+        *resolution = M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
         return;
       }
       section = &decode->sections[target_section_index];
       if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section,
           accepted_start != NULL ? accepted_start[target_section_index] : NULL,
           accepted_bytes[target_section_index], target_offset)) {
-        *resolution = M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET;
+        *resolution = M68K_ADDRESS_VALUE_RESOLUTION_INVALID_TARGET;
         return;
       }
       candidate_target_section_indices[candidate_index] = target_section_index;
       candidate_target_offsets[candidate_index] = target_offset;
     }
-    *resolution = M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS;
+    *resolution = M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS;
     return;
   }
-  if (*resolution != M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET || candidate_target_count == 0U ||
+  if (*resolution != M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET || candidate_target_count == 0U ||
       source_section_index >= decode->section_count) return;
   if (!render_lookup_pointer_value_to_source_location(lookup, decode, source_value,
       &target_section_index, &target_offset)) {
-    *resolution = M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
+    *resolution = M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE;
     return;
   }
   section = &decode->sections[target_section_index];
   if (!render_lookup_pointer_table_target_can_take_auto_label(lookup, section,
       accepted_start != NULL ? accepted_start[target_section_index] : NULL,
       accepted_bytes[target_section_index], target_offset)) {
-    *resolution = M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET;
+    *resolution = M68K_ADDRESS_VALUE_RESOLUTION_INVALID_TARGET;
     return;
   }
   *has_target = 1U;
   *target_section_index_out = target_section_index;
   *target_offset_out = target_offset;
-  *resolution = M68K_POINTER_STORE_RESOLUTION_RESOLVED;
+  *resolution = M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED;
   if (provenance != NULL && provenance->kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE) {
     render_lookup_mark_label(lookup, target_section_index, target_offset);
     render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
@@ -9898,15 +9772,6 @@ int m68k_analysis_render_lookup_materialize_typed_address_targets(M68kRenderLook
     const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes) {
   size_t index;
   if (lookup == NULL || decode == NULL || accepted_bytes == NULL) return -1;
-  for (index = 0U; index < lookup->pointer_store_count; ++index) {
-    M68kRenderPointerStore *store = &lookup->pointer_stores[index];
-    render_lookup_materialize_typed_address_target(lookup, decode, accepted_start, accepted_bytes,
-      store->section_index, store->fact.source_value, &store->provenance, &store->fact.resolution,
-      &store->fact.has_target, &store->fact.target_section_index, &store->fact.target_offset,
-      store->fact.candidate_target_count, store->fact.candidate_source_values,
-      store->fact.candidate_target_section_indices, store->fact.candidate_target_offsets);
-    store->fact.has_address = store->fact.has_target;
-  }
   for (index = 0U; index < lookup->address_value_consumer_count; ++index) {
     M68kRenderTypedAddressConsumer *consumer = &lookup->address_value_consumers[index];
     render_lookup_materialize_typed_address_target(lookup, decode, accepted_start, accepted_bytes,
@@ -12086,7 +11951,7 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   if (append_render_lookup_recovered_function_args_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_unresolved_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
-  if (append_render_lookup_pointer_stores_for_section(lookup, section_analysis) != 0) return -1;
+  if (append_render_lookup_address_value_consumers_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_bootblock_disk_reads_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_bootblock_runtime_copies_for_section(lookup, section_analysis) != 0) return -1;
   return 0;

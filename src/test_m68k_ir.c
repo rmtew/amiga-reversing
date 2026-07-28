@@ -26382,12 +26382,12 @@ static int test_facts_v2_analysis_propagates_generic_pointer_store_through_typed
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis_section->accepted_code_run_count);
   M68K_C_ASSERT_U32(4U, analysis_section->accepted_code_runs[0].instruction_count);
   M68K_C_ASSERT_U32(2U, (uint32_t)analysis_section->pointer_store_count);
-  M68K_C_ASSERT_U32(16U, analysis_section->pointer_stores[0].source_value);
+  M68K_C_ASSERT_U32(16U, analysis_section->address_values[0].source_value);
   M68K_C_ASSERT_U32(M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD,
     analysis_section->pointer_stores[0].destination_kind);
   for (index = 0U; index < analysis_section->pointer_store_count; ++index) {
     const M68kPointerStoreIR *store = &analysis_section->pointer_stores[index];
-    if (store->offset == 10U && store->source_value == 16U &&
+    if (store->offset == 10U && store->address_value_id != 0U &&
         store->destination_value_kind == M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER) {
       saw_pointer_store = 1;
     }
@@ -26397,7 +26397,7 @@ static int test_facts_v2_analysis_propagates_generic_pointer_store_through_typed
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"pointer_store_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"source_value\":16,\"destination_kind_id\":1,\"destination_kind\":\"struct_field\",") != NULL);
+    "\"address_value_id\":1,\"destination_kind_id\":1,\"destination_kind\":\"struct_field\",") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"destination_value_kind\":\"target_pointer\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"resolution\":\"resolved\"") != NULL);
   M68K_C_ASSERT_U32(2U, (uint32_t)analysis_section->address_value_count);
@@ -26488,9 +26488,9 @@ static int test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   store = &analysis.sections[0].pointer_stores[0];
   M68K_C_ASSERT_U32(14U, store->offset);
-  M68K_C_ASSERT_U32(0U, store->source_value);
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET, store->resolution);
-  M68K_C_ASSERT_U32(0U, store->candidate_target_count);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].source_value);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET, analysis.sections[0].address_values[0].resolution);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].candidate_target_count);
   m68k_ir_source_analysis_destroy(&analysis);
   memset(&analysis, 0, sizeof(analysis));
   policy.absolute_storage_slot_count = 1U;
@@ -26507,8 +26507,8 @@ static int test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store
   store = &analysis.sections[0].pointer_stores[0];
   M68K_C_ASSERT_U32(M68K_POINTER_STORE_DESTINATION_ABSOLUTE_SLOT, store->destination_kind);
   M68K_C_ASSERT(strcmp(store->destination_symbol, "test_pointer_slot") == 0);
-  M68K_C_ASSERT_U32(16U, store->source_value);
-  M68K_C_ASSERT_U32(1U, store->candidate_target_count);
+  M68K_C_ASSERT_U32(16U, analysis.sections[0].address_values[0].source_value);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].address_values[0].candidate_target_count);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
@@ -26584,9 +26584,9 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
     "\tmove.l #chemist_interaction_text,world_object_shared_prefix_interaction_data_ptr(a5)\n") != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   store = &analysis.sections[0].pointer_stores[0];
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_RESOLVED, store->resolution);
-  M68K_C_ASSERT_U32(1U, store->has_target);
-  M68K_C_ASSERT_U32(0x10U, store->target_offset);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED, analysis.sections[0].address_values[0].resolution);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].address_values[0].has_target);
+  M68K_C_ASSERT_U32(0x10U, analysis.sections[0].address_values[0].target_offset);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE, analysis.sections[0].address_values[0].origin_kind);
   M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].producer_offset);
@@ -26629,10 +26629,10 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
     &profile, &analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "abs_0_00009999") == NULL);
-  M68K_C_ASSERT_U32(0x9999U, analysis.sections[0].pointer_stores[0].source_value);
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE,
-    analysis.sections[0].pointer_stores[0].resolution);
-  M68K_C_ASSERT_U32(0U, analysis.sections[0].pointer_stores[0].has_target);
+  M68K_C_ASSERT_U32(0x9999U, analysis.sections[0].address_values[0].source_value);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE,
+    analysis.sections[0].address_values[0].resolution);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].has_target);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
   source = NULL;
@@ -26648,10 +26648,10 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   memset(&analysis, 0, sizeof(analysis));
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_U32(0x101U, analysis.sections[0].pointer_stores[0].source_value);
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET,
-    analysis.sections[0].pointer_stores[0].resolution);
-  M68K_C_ASSERT_U32(0U, analysis.sections[0].pointer_stores[0].has_target);
+  M68K_C_ASSERT_U32(0x101U, analysis.sections[0].address_values[0].source_value);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_INVALID_TARGET,
+    analysis.sections[0].address_values[0].resolution);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].has_target);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_INVALID, analysis.sections[0].address_values[0].render_outcome);
   M68K_C_ASSERT_U32(1U, analysis.sections[0].address_values[0].has_source_expression);
@@ -26740,18 +26740,21 @@ static int test_facts_v2_analysis_marks_conflicting_pointer_values_ambiguous_at_
     "\tmove.l d0,world_object_shared_prefix_interaction_data_ptr.w(a5)\n") != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   store = &analysis.sections[0].pointer_stores[0];
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS, store->resolution);
-  M68K_C_ASSERT_U32(0U, store->has_target);
-  M68K_C_ASSERT_U32(2U, store->candidate_target_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS,
+    analysis.sections[0].address_values[0].resolution);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].has_target);
+  M68K_C_ASSERT_U32(2U, analysis.sections[0].address_values[0].candidate_target_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS,
     analysis.sections[0].address_values[0].terminal_kind);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_NON_SOURCE,
     analysis.sections[0].address_values[0].render_outcome);
-  for (index = 0U; index < store->candidate_target_count; ++index) {
-    if (store->candidate_source_values[index] == 0x120U && store->candidate_target_offsets[index] == 0x20U)
+  for (index = 0U; index < analysis.sections[0].address_values[0].candidate_target_count; ++index) {
+    if (analysis.sections[0].address_values[0].candidate_source_values[index] == 0x120U &&
+        analysis.sections[0].address_values[0].candidate_target_offsets[index] == 0x20U)
       saw_first_target = 1;
-    if (store->candidate_source_values[index] == 0x124U && store->candidate_target_offsets[index] == 0x24U)
+    if (analysis.sections[0].address_values[0].candidate_source_values[index] == 0x124U &&
+        analysis.sections[0].address_values[0].candidate_target_offsets[index] == 0x24U)
       saw_second_target = 1;
   }
   M68K_C_ASSERT(saw_first_target);
@@ -26827,9 +26830,9 @@ static int test_facts_v2_analysis_propagates_static_array_address_to_generic_poi
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_RESOLVED, analysis.sections[0].pointer_stores[0].resolution);
-  M68K_C_ASSERT_U32(0x114U, analysis.sections[0].pointer_stores[0].source_value);
-  M68K_C_ASSERT_U32(0x14U, analysis.sections[0].pointer_stores[0].target_offset);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED, analysis.sections[0].address_values[0].resolution);
+  M68K_C_ASSERT_U32(0x114U, analysis.sections[0].address_values[0].source_value);
+  M68K_C_ASSERT_U32(0x14U, analysis.sections[0].address_values[0].target_offset);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
@@ -26885,10 +26888,10 @@ static int test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_sto
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
-  M68K_C_ASSERT_U32(0x204U, analysis.sections[0].pointer_stores[0].source_value);
-  M68K_C_ASSERT_U32(M68K_POINTER_STORE_RESOLUTION_RESOLVED, analysis.sections[0].pointer_stores[0].resolution);
-  M68K_C_ASSERT_U32(1U, analysis.sections[0].pointer_stores[0].target_section_index);
-  M68K_C_ASSERT_U32(4U, analysis.sections[0].pointer_stores[0].target_offset);
+  M68K_C_ASSERT_U32(0x204U, analysis.sections[0].address_values[0].source_value);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED, analysis.sections[0].address_values[0].resolution);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].address_values[0].target_section_index);
+  M68K_C_ASSERT_U32(4U, analysis.sections[0].address_values[0].target_offset);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE,
     analysis.sections[0].address_values[0].origin_kind);

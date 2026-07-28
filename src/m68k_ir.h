@@ -1405,15 +1405,15 @@ typedef struct M68kAddressObservationIR {
   uint8_t confidence;
 } M68kAddressObservationIR;
 
-typedef enum M68kPointerStoreResolutionKind {
-  M68K_POINTER_STORE_RESOLUTION_RESOLVED = 1,
-  M68K_POINTER_STORE_RESOLUTION_UNKNOWN_TARGET = 2,
-  M68K_POINTER_STORE_RESOLUTION_AMBIGUOUS_TARGET = 3,
-  M68K_POINTER_STORE_RESOLUTION_INVALID_TARGET = 4,
-  M68K_POINTER_STORE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE = 5,
-  M68K_POINTER_STORE_RESOLUTION_TYPE_CONFLICT = 6,
-  M68K_POINTER_STORE_RESOLUTION_FINITE_CANDIDATE_TARGETS = 7
-} M68kPointerStoreResolutionKind;
+typedef enum M68kAddressValueResolutionKind {
+  M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED = 1,
+  M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET = 2,
+  M68K_ADDRESS_VALUE_RESOLUTION_AMBIGUOUS_TARGET = 3,
+  M68K_ADDRESS_VALUE_RESOLUTION_INVALID_TARGET = 4,
+  M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE = 5,
+  M68K_ADDRESS_VALUE_RESOLUTION_TYPE_CONFLICT = 6,
+  M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS = 7
+} M68kAddressValueResolutionKind;
 
 /* This records the typed destination that establishes address intent.  App
  * and absolute slots are first-class destinations even when no struct-field
@@ -1515,24 +1515,12 @@ typedef struct M68kPointerStoreIR {
   char destination_symbol[64];
   char pointee_struct_name[64];
   uint32_t offset;
-  uint32_t source_value;
-  uint32_t target_offset;
-  uint32_t provenance_offset;
-  uint32_t candidate_source_values[4];
-  uint32_t candidate_target_offsets[4];
   uint16_t destination_field_offset;
   uint32_t address_value_id;
   uint8_t source_operand_index;
   uint8_t destination_operand_index;
   uint8_t destination_kind;
   uint8_t destination_value_kind;
-  uint8_t source_kind;
-  uint8_t resolution;
-  uint8_t has_target;
-  uint8_t has_address;
-  uint8_t candidate_target_count;
-  size_t target_section_index;
-  size_t candidate_target_section_indices[4];
 } M68kPointerStoreIR;
 
 typedef enum M68kAddressIdentityRoleKind {
