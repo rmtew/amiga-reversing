@@ -5297,14 +5297,15 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (table_entry_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
-          "{\"id\":%u,\"kind_id\":%u,\"kind\":\"indexed_table\","
+          "{\"id\":%u,\"kind_id\":%u,\"kind\":\"%s\","
           "\"consumer_section_index\":%u,\"consumer_offset\":%u,\"operand_index\":%u,"
-          "\"table_section_index\":%u,\"table_start_offset\":%u,\"signed_addend\":%d,"
+          "\"base_section_index\":%u,\"base_offset\":%u,\"signed_addend\":%d,"
           "\"index_register_kind\":%u,\"index_register\":%u,\"index_scale\":%u,\"element_stride\":%u}",
           (unsigned)expression->id, (unsigned)expression->kind,
+          expression->kind == M68K_ADDRESS_EXPRESSION_INDEXED_TABLE ? "indexed_table" : "static_interior",
           (unsigned)expression->consumer_section_index, (unsigned)expression->consumer_offset,
-          (unsigned)expression->operand_index, (unsigned)expression->table_section_index,
-          (unsigned)expression->table_start_offset, (int)expression->signed_addend,
+          (unsigned)expression->operand_index, (unsigned)expression->base_section_index,
+          (unsigned)expression->base_offset, (int)expression->signed_addend,
           (unsigned)expression->index_register_kind, (unsigned)expression->index_register,
           (unsigned)expression->index_scale, (unsigned)expression->element_stride) != 0)
         goto oom;

@@ -2251,7 +2251,7 @@ static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
   M68K_C_ASSERT_U32(M68K_ASM_MNEMONIC_DBF, table_consumer->index_loop_mnemonic_id);
   for (index = 0U; index < source_analysis.sections[0].address_expression_count; ++index) {
     const M68kAddressExpressionIR *expression = &source_analysis.sections[0].address_expressions[index];
-    if (expression->table_start_offset == 12U) {
+    if (expression->base_offset == 12U) {
       address_expression = expression;
       break;
     }
@@ -2607,8 +2607,8 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   address_expression = &source_analysis.sections[0].address_expressions[0];
   M68K_C_ASSERT_U32(M68K_ADDRESS_EXPRESSION_INDEXED_TABLE, address_expression->kind);
   M68K_C_ASSERT_U32(0U, address_expression->consumer_section_index);
-  M68K_C_ASSERT_U32(0U, address_expression->table_section_index);
-  M68K_C_ASSERT_U32(auto_item->offset, address_expression->table_start_offset);
+  M68K_C_ASSERT_U32(0U, address_expression->base_section_index);
+  M68K_C_ASSERT_U32(auto_item->offset, address_expression->base_offset);
   M68K_C_ASSERT_U32(1U, address_expression->has_index_register);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, address_expression->index_register_kind);
   M68K_C_ASSERT_U32(0U, address_expression->index_register);
@@ -6303,7 +6303,7 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   char *source = NULL;
   int saw_expected_operand_access = 0;
   int saw_rendered_operand_access = 0;
-  uint8_t bytes[10] = {0x43u, 0xfau, 0x00u, 0x04u, 0x4eu, 0x75u, 'd', 'o', 's', 0x00u};
+  uint8_t bytes[10] = {0x43u, 0xfau, 0x00u, 0x06u, 0x4eu, 0x75u, 'd', 'o', 's', 0x00u};
   memset(&section, 0, sizeof(section));
   memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -6314,11 +6314,17 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 6U;
+  policy.structured_data_items[0].size = 4U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
     &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000006(pc),a1\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000006:\n\tdc.b") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000008(pc),a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000008:\n\tdc.b") != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l $4(pc),a1\n") == NULL);
   if (source_analysis.section_count > 0U) {
     const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
@@ -6327,19 +6333,24 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
       const M68kExpectedSymbolAccessIR *access = &analysis_section->expected_symbol_accesses[access_index];
       if (access->offset == 0U &&
           access->target_section_index == 0U &&
-          access->target_offset == 6U &&
+          access->target_offset == 8U &&
           access->operand_index == 0U &&
           access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
           access->symbol_name != NULL &&
-          strcmp(access->symbol_name, "loc_0_00000006") == 0) {
+          strcmp(access->symbol_name, "loc_0_00000008") == 0) {
         saw_expected_operand_access = 1;
       }
     }
   }
   saw_rendered_operand_access = test_render_evidence_has_symbol_access(&render_evidence, 0U, 0U, 0U,
-    M68K_RENDERED_SYMBOL_ACCESS_OPERAND, "loc_0_00000006", 0U, 6U);
+    M68K_RENDERED_SYMBOL_ACCESS_OPERAND, "loc_0_00000008", 0U, 8U);
   M68K_C_ASSERT(saw_expected_operand_access);
   M68K_C_ASSERT(saw_rendered_operand_access);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_expression_count);
+  M68K_C_ASSERT_U32(M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR,
+    source_analysis.sections[0].address_expressions[0].kind);
+  M68K_C_ASSERT_U32(6U, source_analysis.sections[0].address_expressions[0].base_offset);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].address_expressions[0].signed_addend);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_ir_render_evidence_destroy(&render_evidence);
@@ -11548,8 +11559,8 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   expression.kind = M68K_ADDRESS_EXPRESSION_INDEXED_TABLE;
   expression.consumer_section_index = 0U;
   expression.consumer_offset = 0x0CU;
-  expression.table_section_index = 0U;
-  expression.table_start_offset = 0x20U;
+  expression.base_section_index = 0U;
+  expression.base_offset = 0x20U;
   expression.operand_index = 1U;
   expression.index_register_kind = M68K_ANALYSIS_REGISTER_DATA;
   expression.index_register = 2U;
@@ -11559,13 +11570,29 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_expression(&section_analysis, &expression));
   M68K_C_ASSERT_U32(1U, (uint32_t)section_analysis.address_expression_count);
   M68K_C_ASSERT_U32(1U, section_analysis.address_expressions[0].id);
+  memset(&expression, 0, sizeof(expression));
+  expression.kind = M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR;
+  expression.consumer_section_index = 0U;
+  expression.consumer_offset = 0x10U;
+  expression.base_section_index = 0U;
+  expression.base_offset = 0x20U;
+  expression.signed_addend = 4;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_expression(&section_analysis, &expression));
+  M68K_C_ASSERT_U32(2U, (uint32_t)section_analysis.address_expression_count);
+  M68K_C_ASSERT_U32(2U, section_analysis.address_expressions[1].id);
+  expression.signed_addend = 0;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_expression(&section_analysis, &expression));
+  M68K_C_ASSERT_U32(2U, (uint32_t)section_analysis.address_expression_count);
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_consumer_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"address_expression_count\":1,\"address_expressions\":[{\"id\":1,\"kind_id\":1,"
+    "\"address_expression_count\":2,\"address_expressions\":[{\"id\":1,\"kind_id\":1,"
     "\"kind\":\"indexed_table\",\"consumer_section_index\":0,\"consumer_offset\":12,") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"id\":2,\"kind_id\":2,\"kind\":\"static_interior\",\"consumer_section_index\":0,"
+    "\"consumer_offset\":16") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_consumers\":[{\"consumer_offset\":12,\"table_section_index\":0,"
     "\"table_start_offset\":32,\"table_end_offset\":48,\"access_width\":4,\"entry_count\":4,"

@@ -2066,6 +2066,10 @@ static int source_quality_any_runtime_address_source_offset(const M68kSectionAna
     uint32_t runtime_address, uint32_t section_size, uint32_t *out_source_offset);
 static const M68kAnalysisStructuredDataItem *source_quality_structured_data_item_covering_offset(
     const M68kSourceAnalysisIR *source_analysis, uint32_t section_index, uint32_t offset);
+static int source_quality_candidate_data_target_for_operand(const M68kDecodeCandidate *candidate,
+    uint32_t operand_index, uint32_t *out_section_index, uint32_t *out_offset);
+static int source_quality_candidate_is_accepted_start(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate);
 static int source_quality_structured_data_item_is_untyped_bytes_placeholder(
     const M68kAnalysisStructuredDataItem *item);
 static const M68kDecodeCandidate *source_quality_previous_accepted_candidate(
@@ -2925,8 +2929,8 @@ static int append_indexed_table_address_expressions(M68kSourceAnalysisIR *source
         expression.kind = M68K_ADDRESS_EXPRESSION_INDEXED_TABLE;
         expression.consumer_section_index = descriptor->consumer_section_index;
         expression.consumer_offset = descriptor->consumer_offset;
-        expression.table_section_index = (uint32_t)table_section->section_index;
-        expression.table_start_offset = descriptor->start_offset;
+        expression.base_section_index = (uint32_t)table_section->section_index;
+        expression.base_offset = descriptor->start_offset;
         expression.operand_index = (uint8_t)operand_index;
         expression.has_index_register = 1U;
         expression.index_register_kind = operand->index_is_address ? M68K_ANALYSIS_REGISTER_ADDRESS :
@@ -2935,6 +2939,52 @@ static int append_indexed_table_address_expressions(M68kSourceAnalysisIR *source
         expression.index_scale = operand->scale != 0U ? operand->scale : 1U;
         expression.element_stride = (uint8_t)descriptor->entry_size;
         expression.signed_addend = 0;
+        if (m68k_ir_section_analysis_append_address_expression(consumer_section, &expression) != 0) return -1;
+      }
+    }
+  }
+  return 0;
+}
+
+static int append_static_interior_address_expressions(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t decode_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (decode_index = 0U; decode_index < decode->section_count; ++decode_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[decode_index];
+    M68kSectionAnalysisIR *consumer_section =
+      source_analysis_section_by_index(source_analysis, (uint32_t)section->section_index);
+    size_t candidate_index;
+    if (consumer_section == NULL || accepted_start[decode_index] == NULL) continue;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      size_t operand_index;
+      if (!source_quality_candidate_is_accepted_start(section, accepted_start[decode_index], candidate)) continue;
+      for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
+        uint32_t target_section_index;
+        uint32_t target_offset;
+        const M68kAnalysisStructuredDataItem *item;
+        M68kAddressExpressionIR expression;
+        if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+            !source_quality_candidate_data_target_for_operand(candidate, (uint32_t)operand_index,
+              &target_section_index, &target_offset)) {
+          continue;
+        }
+        item = source_quality_structured_data_item_covering_offset(source_analysis, target_section_index,
+          target_offset);
+        if (item == NULL || !item->has_section_index || item->table_conflicted || item->size == 0U ||
+            item->offset > UINT32_MAX - item->size || target_offset <= item->offset ||
+            target_offset >= item->offset + item->size) {
+          continue;
+        }
+        memset(&expression, 0, sizeof(expression));
+        expression.kind = M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR;
+        expression.consumer_section_index = (uint32_t)section->section_index;
+        expression.consumer_offset = candidate->offset;
+        expression.operand_index = (uint8_t)operand_index;
+        expression.base_section_index = item->section_index;
+        expression.base_offset = item->offset;
+        expression.signed_addend = (int32_t)(target_offset - item->offset);
         if (m68k_ir_section_analysis_append_address_expression(consumer_section, &expression) != 0) return -1;
       }
     }
@@ -13260,6 +13310,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
     policy, effective_seed_items, effective_seed_count));
   SOURCE_QUALITY_CHECK_OK(append_structured_data_table_descriptors(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_indexed_table_address_expressions(source_analysis, decode));
+  SOURCE_QUALITY_CHECK_OK(append_static_interior_address_expressions(source_analysis, decode, accepted_start));
   SOURCE_QUALITY_CHECK_OK(append_structured_data_table_entries(source_analysis, decode, facts, accepted_start,
     accepted_bytes));
   /* Table entries are rendered numerically unless the renderer has an

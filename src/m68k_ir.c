@@ -2264,8 +2264,12 @@ int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *se
   size_t index;
   M68kAddressExpressionIR copy;
   if (section_analysis == NULL || expression == NULL || section_analysis->arena == NULL) return -1;
-  if (expression->kind != M68K_ADDRESS_EXPRESSION_INDEXED_TABLE || expression->has_index_register == 0U ||
-      expression->index_scale == 0U) {
+  if ((expression->kind == M68K_ADDRESS_EXPRESSION_INDEXED_TABLE &&
+       (expression->has_index_register == 0U || expression->index_scale == 0U)) ||
+      (expression->kind == M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR &&
+       (expression->has_index_register != 0U || expression->signed_addend == 0)) ||
+      (expression->kind != M68K_ADDRESS_EXPRESSION_INDEXED_TABLE &&
+       expression->kind != M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR)) {
     return 0;
   }
   for (index = 0U; index < section_analysis->address_expression_count; ++index) {
@@ -2274,8 +2278,8 @@ int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *se
         existing->consumer_section_index == expression->consumer_section_index &&
         existing->consumer_offset == expression->consumer_offset &&
         existing->operand_index == expression->operand_index &&
-        existing->table_section_index == expression->table_section_index &&
-        existing->table_start_offset == expression->table_start_offset) {
+        existing->base_section_index == expression->base_section_index &&
+        existing->base_offset == expression->base_offset) {
       return 0;
     }
   }

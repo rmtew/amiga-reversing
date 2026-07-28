@@ -1836,15 +1836,16 @@ typedef struct M68kTableConsumerIR {
  * expression terms only; table bounds, entry type, and index-domain proof
  * remain owned by M68kTableDescriptorIR/M68kTableConsumerIR. */
 typedef enum M68kAddressExpressionKind {
-  M68K_ADDRESS_EXPRESSION_INDEXED_TABLE = 1
+  M68K_ADDRESS_EXPRESSION_INDEXED_TABLE = 1,
+  M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR = 2
 } M68kAddressExpressionKind;
 
 typedef struct M68kAddressExpressionIR {
   uint32_t id;
   uint32_t consumer_section_index;
   uint32_t consumer_offset;
-  uint32_t table_section_index;
-  uint32_t table_start_offset;
+  uint32_t base_section_index;
+  uint32_t base_offset;
   int32_t signed_addend;
   uint8_t kind;
   uint8_t operand_index;

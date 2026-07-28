@@ -699,9 +699,16 @@ and index evidence while retaining that range's original entry-count proof.
 Pandora now proves the intended four-longword table at `s0:0004D416`, its
 `d0` mask domain `0..12`, a four-byte stride, and a zero normalized addend;
 its exact full-file round trip passes.  Focused fixtures cover a local indexed
-pointer table and a finite loop-bounded PC-relative table expression.  The
-interior-address, invalid/out-of-range, transfer, and planner-rendering parts
-of A remain required work; this is not an A completion claim.
+pointer table and a finite loop-bounded PC-relative table expression.  A
+second completed slice adds `static_interior`: only an accepted decoded data
+target strictly inside an accepted structured-data range may produce it; the
+fact stores that range's generic base coordinates and a non-zero addend.  A
+PC-relative `lea` fixture proves `base+2`; the producer rejects boundary,
+zero-addend, unowned, conflicted, overflowing, or non-code candidates.
+Pandora currently exports no static-interior fact, which is a normal absence
+of an accepted source-range proof rather than a rendering fallback.  The
+affine transfer and planner-rendering parts of A remain required work; this is
+not an A completion claim.
 
 #### B. Function summaries and callback contracts
 
