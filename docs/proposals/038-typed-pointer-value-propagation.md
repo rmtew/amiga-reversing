@@ -375,8 +375,9 @@ marking the proposal implemented:
 5. Strengthen the C fixture matrix so each supported transfer and invalidation
    asserts the durable fact and terminal state, not only the final pointer
    store or rendered text. Regenerate the full read-only corpus report and
-   demonstrate the Pandora direct-store/reload/consumer chain from that same
-   fact.
+   demonstrate Pandora's direct symbolic store plus the focused same-object
+   field-store/reload/consumer chain; do not manufacture an interprocedural
+   Pandora chain that its control flow does not prove.
 6. Replace the post-implementation audit claim with a post-completion report
    only after these conditions pass. Keep the current report as an interim
    baseline and preserve every unresolved row as a review opportunity.
