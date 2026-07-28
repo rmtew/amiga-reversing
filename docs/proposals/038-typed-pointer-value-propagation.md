@@ -714,6 +714,17 @@ anchor search has been removed. A fixture verifies both the rendered
 indexed-operand rendering, and the remaining negative fixtures remain required
 work; this is not an A completion claim.
 
+**Planner progress (2026-07-29).** Every selected instruction expression now
+retains the stable `address_expression` identity consumed from source analysis.
+For a PC-indexed table expression, the planner verifies the exact base,
+register class/index, scale, and decoded base target before attaching the table
+label; it does not infer a selected element or copy table-domain state. The
+finite loop-bounded fixture verifies that plan link, and the Pandora
+`s0:0004D3F0` expression reaches the same common path. A structured-range
+boundary fixture verifies that a zero-addend target cannot be materialised as
+`static_interior`. The remaining affine-transfer work must extend this same
+expression identity rather than create a transfer-local representation.
+
 #### B. Function summaries and callback contracts
 
 **Evidence and boundary.** Pandora `s0:000004B2:instruction` stores `a0` to

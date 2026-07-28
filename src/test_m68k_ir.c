@@ -2202,9 +2202,12 @@ static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
+  M68kRenderEvidenceIR render_evidence;
   char *source = NULL;
   const M68kTableConsumerIR *table_consumer = NULL;
   const M68kAddressExpressionIR *address_expression = NULL;
+  const M68kRenderPlannedExpression *planned_expression;
   size_t index;
   uint8_t bytes[18] = {
     0x70u, 0x02u,
@@ -2226,8 +2229,8 @@ static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
   policy.entry_points[0].has_section_index = 1U;
   policy.entry_points[0].section_index = 0U;
   policy.entry_points[0].offset = 0U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
-    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(&object, &policy,
+    &source, &source_plan, &profile, &source_analysis, &render_evidence, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_0000000C(pc,d0.w),a0\n") != NULL);
   for (index = 0U; index < source_analysis.sections[0].table_consumer_count; ++index) {
@@ -2261,7 +2264,15 @@ static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
   M68K_C_ASSERT_U32(0U, address_expression->signed_addend);
   M68K_C_ASSERT_U32(2U, address_expression->element_stride);
   M68K_C_ASSERT_U32(0U, address_expression->index_register);
+  planned_expression = m68k_render_plan_find_expression(&source_plan, 0U, 2U, 0U,
+    M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND);
+  M68K_C_ASSERT(planned_expression != NULL);
+  M68K_C_ASSERT_U32(1U, planned_expression->has_address_expression);
+  M68K_C_ASSERT_U32(address_expression->id, planned_expression->address_expression_id);
+  M68K_C_ASSERT_U32(0U, planned_expression->address_expression_section_index);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_render_evidence_destroy(&render_evidence);
+  m68k_render_plan_destroy(&source_plan);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -6363,6 +6374,42 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_ir_render_evidence_destroy(&render_evidence);
   m68k_render_plan_destroy(&source_plan);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_static_interior_expression_rejects_range_boundary(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[10] = {0x43u, 0xfau, 0x00u, 0x04u, 0x4eu, 0x75u, 'd', 'o', 's', 0x00u};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 6U;
+  policy.structured_data_items[0].size = 4U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].address_expression_count);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -33889,6 +33936,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_policy_entry_point_preserves_manual_provenance},
     {"facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target",
       test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target},
+    {"facts_v2_static_interior_expression_rejects_range_boundary",
+      test_facts_v2_static_interior_expression_rejects_range_boundary},
     {"facts_v2_render_asm_source_records_manual_equate_access",
       test_facts_v2_render_asm_source_records_manual_equate_access},
     {"facts_v2_render_asm_source_accepts_reachable_68030_pmmu",

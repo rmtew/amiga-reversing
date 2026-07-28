@@ -54,6 +54,8 @@ typedef struct M68kRenderPlannedExpression {
   uint32_t source_offset;
   uint32_t address_value_section_index;
   uint32_t address_value_id;
+  uint32_t address_expression_section_index;
+  uint32_t address_expression_id;
   uint32_t target_section_index;
   uint32_t target_offset;
   uint32_t base_section_index;
@@ -65,6 +67,7 @@ typedef struct M68kRenderPlannedExpression {
   uint8_t outcome;
   uint8_t has_target;
   uint8_t has_address_value;
+  uint8_t has_address_expression;
   uint8_t has_base_target;
   uint8_t has_base_addend;
   uint8_t requires_declaration;

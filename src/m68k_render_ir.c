@@ -9776,6 +9776,9 @@ static const M68kDecodeTarget *candidate_data_target_for_operand(const M68kDecod
 static void attach_source_analysis_static_interior_expression_symbols(const M68kRenderLookup *lookup,
     const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction);
+static void attach_source_analysis_indexed_table_expression_symbols(const M68kRenderLookup *lookup,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction);
 
 /* This is the planning counterpart of instruction emission.  It deliberately
  * follows the accepted-candidate walk, including platform-state transitions,
@@ -9832,6 +9835,8 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
       (void)attach_platform_pc_relative_section_anchor_symbols(lookup, section->section_index, candidate,
         &instruction);
       attach_source_analysis_static_interior_expression_symbols(lookup, source_analysis, section, candidate,
+        &instruction);
+      attach_source_analysis_indexed_table_expression_symbols(lookup, source_analysis, section, candidate,
         &instruction);
       if (!attach_amiga_loadseg_segment_link_slot_symbol(preview, lookup, section, accepted_start_all[section_index],
             candidate, &instruction) ||
@@ -9950,6 +9955,44 @@ static void attach_source_analysis_static_interior_expression_symbols(const M68k
         resolved_target < 0 || resolved_target > UINT32_MAX || target->offset != (uint32_t)resolved_target) continue;
     attach_operand_label_addend_symbol(lookup, instruction, expression->operand_index,
       expression->base_section_index, expression->base_offset, expression->signed_addend);
+  }
+}
+
+/* The table descriptor remains the owner of bounds and index-domain proof.
+ * This only turns its already canonical indexed expression into the operand's
+ * source label; it does not select or enumerate a table entry. */
+static void attach_source_analysis_indexed_table_expression_symbols(const M68kRenderLookup *lookup,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  const M68kSectionAnalysisIR *analysis_section;
+  size_t index;
+  if (lookup == NULL || source_analysis == NULL || section == NULL || candidate == NULL || instruction == NULL)
+    return;
+  analysis_section = source_analysis_section_for_render(source_analysis, section->section_index);
+  if (analysis_section == NULL) return;
+  for (index = 0U; index < analysis_section->address_expression_count; ++index) {
+    const M68kAddressExpressionIR *expression = &analysis_section->address_expressions[index];
+    const M68kDecodeTarget *target;
+    M68kOperandIR *operand;
+    int64_t resolved_base;
+    if (expression->kind != M68K_ADDRESS_EXPRESSION_INDEXED_TABLE ||
+        expression->consumer_section_index != section->section_index ||
+        expression->consumer_offset != candidate->offset ||
+        expression->operand_index >= instruction->operand_count ||
+        expression->base_section_index != section->section_index || expression->has_index_register == 0U) continue;
+    operand = &instruction->operands[expression->operand_index];
+    if ((operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA) ||
+        operand->value.ea_mode != 7U || operand->value.ea_reg != 3U ||
+        operand->value.index_is_address !=
+          (expression->index_register_kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 1U : 0U) ||
+        operand->value.index_reg != expression->index_register ||
+        (operand->value.scale != 0U ? operand->value.scale : 1U) != expression->index_scale) continue;
+    target = candidate_data_target_for_operand(candidate, expression->operand_index);
+    resolved_base = (int64_t)expression->base_offset + (int64_t)expression->signed_addend;
+    if (target == NULL || !target->has_section || target->section_index != section->section_index ||
+        resolved_base < 0 || resolved_base > UINT32_MAX || target->offset != (uint32_t)resolved_base) continue;
+    attach_operand_label_symbol(lookup, instruction, expression->operand_index, section->section_index,
+      candidate->offset, expression->base_section_index, expression->base_offset);
   }
 }
 
@@ -10184,9 +10227,10 @@ static const M68kAddressValueIR *source_analysis_address_value_for_producer(
 
 static const M68kAddressExpressionIR *source_analysis_address_expression_for_consumer(
     const M68kSourceAnalysisIR *source_analysis, size_t consumer_section_index, uint32_t consumer_offset,
-    uint32_t operand_index) {
+    uint32_t operand_index, size_t *out_section_index) {
   const M68kSectionAnalysisIR *section;
   size_t index;
+  if (out_section_index != NULL) *out_section_index = SIZE_MAX;
   if (source_analysis == NULL) return NULL;
   section = source_analysis_section_for_render(source_analysis, consumer_section_index);
   if (section == NULL) return NULL;
@@ -10194,6 +10238,7 @@ static const M68kAddressExpressionIR *source_analysis_address_expression_for_con
     const M68kAddressExpressionIR *expression = &section->address_expressions[index];
     if (expression->consumer_section_index == consumer_section_index &&
         expression->consumer_offset == consumer_offset && expression->operand_index == operand_index) {
+      if (out_section_index != NULL) *out_section_index = section->section_index;
       return expression;
     }
   }
@@ -10301,8 +10346,16 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
     expression.requires_declaration = access->access_kind != M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
     snprintf(expression.target_symbol, sizeof(expression.target_symbol), "%s", access->symbol_name);
   }
-  address_expression = source_analysis_address_expression_for_consumer(source_analysis, source_section_index,
-    candidate->offset, access->operand_index);
+  {
+    size_t address_expression_section_index = SIZE_MAX;
+    address_expression = source_analysis_address_expression_for_consumer(source_analysis, source_section_index,
+      candidate->offset, access->operand_index, &address_expression_section_index);
+    if (address_expression != NULL) {
+      expression.address_expression_section_index = (uint32_t)address_expression_section_index;
+      expression.address_expression_id = address_expression->id;
+      expression.has_address_expression = 1U;
+    }
+  }
   if (address_expression != NULL && address_expression->kind == M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR &&
       expression.has_target != 0U && expression.target_section_index == address_expression->base_section_index) {
     int64_t resolved_target = (int64_t)address_expression->base_offset + (int64_t)address_expression->signed_addend;
