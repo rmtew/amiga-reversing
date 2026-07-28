@@ -667,6 +667,14 @@ transfer rules for effective-address formation, scaled indexes, and compatible
 add/subtract operations. Validate bounds, alignment, overflow, and code/data
 ownership before materialising a target.
 
+**Investigation result (2026-07-29).** `M68kTableDescriptorIR`,
+`M68kTableConsumerIR`, and `M68kTableEntryIR` already retain table range,
+entry width/count, kind, target/consumer linkage, and mask/compare/loop index
+domains; JSON already exports those facts. The new expression fact must link to
+that existing table identity and its stable source coordinates, not copy table
+bounds or introduce a second index classifier. Pandora's `andi.w #12,d0` plus
+the four longword entries at `abs_0_0005D416` is the positive fixture.
+
 **Acceptance.** Fixtures cover one indexed element, an in-range finite set, an
 interior field address, and invalid/out-of-range cases. Rendering produces a
 typed table-element or interior expression only for a proven identity; every
@@ -688,6 +696,20 @@ return identities, register preservation/clobbers, pointer escapes, and
 callback signatures. Derive or accept them through the normal analysis/action
 surface and apply them only at direct local calls and proven callback edges.
 Unknown calls remain clobbers and create no inferred summary.
+
+**Investigation result (2026-07-29).** The current policy already has durable
+`M68kAnalysisFunctionRegisterContract` and
+`M68kAnalysisCallbackTableSignature` facts; the Manual Action catalog projects
+both into effective metadata. Typed flow applies those facts at function entry,
+records their consumers before invalidation, and has conservative local,
+platform, and callback-table clobber paths. It also exports narrowly recovered
+local-call summaries for known Amiga OS-vector wrapper effects, but those are
+inferred platform-effect records rather than durable target function
+interfaces; they do not model pointer return identity, escapes, or a general
+preservation contract. This subtask must add one target summary
+fact/action/projection pipeline and, where the common representation subsumes
+the wrapper-specific record, migrate it rather than extending input contracts
+or retaining parallel summary models.
 
 **Acceptance.** Fixtures prove a typed parameter, return, preserved value, and
 escaped callback value, plus unknown-call, conflicting-summary, and missing-
@@ -711,6 +733,15 @@ and invalidated values. Refine register, stack, global-slot, field, and call
 joins only from durable path evidence. Preserve provenance, cardinality, and
 invalidation in canonical address-value facts.
 
+**Investigation result (2026-07-29).** The current lattice is distributed
+through `M68kRenderTypedRegValue`, `M68kRenderTypedStoredValue`,
+`typed_reg_merge`, `typed_stored_value_merge`, and the stack/global/field-slot
+merge callers. It already represents finite candidates and the explicit
+overflow terminal, but not a first-class identity relation or a path predicate.
+The extension must centralise the new relation in the shared typed value model
+and make every existing merge/clobber path transfer it; it must not bolt a
+second alias pass onto rendering.
+
 **Acceptance.** Fixtures cover same-identity and compatible-domain joins,
 finite candidates, predicate-refined resolution, clobber invalidation, and
 candidate overflow. Only a single proven identity is rendered symbolically;
@@ -727,11 +758,20 @@ rule.
 address-expression and pointer-table case. Current analysis does not carry its
 pointee identity through the load to the typed store.
 
-**Work.** Define table facts containing storage range, entry width, pointee
-type, null/invalid-entry policy, and index domain. Connect existing table and
-xref facts to typed load transfer rules for object arrays, dispatch tables, and
-repeated field loads. Validate table bounds, entry representation, and pointee
-ownership before every dereference.
+**Work.** Consume the existing descriptor, consumer, entry, range-ownership,
+and data-reference facts as one table-entry contract. Add typed load transfer
+rules for object arrays, dispatch tables, and repeated field loads. Add only
+the missing table-entry pointee and null/invalid-entry semantics, and validate
+table bounds, entry representation, and pointee ownership before every
+dereference.
+
+**Investigation result (2026-07-29).** The renderer already recognises
+pointer-table structured items and runtime pointer-table slots, and callback
+dispatch has a narrow table-identity proof. Those paths are specialised and do
+not yet yield a canonical address value for a general table load. The extension
+must generalise that one proven table-entry-to-value transfer, then have the
+existing consumer/planner path render it; it must remove rather than duplicate
+any specialised value propagation made redundant by the common transfer.
 
 **Acceptance.** Fixtures cover direct and indexed loads, null/invalid entries,
 pointer-to-pointer chains, typed indirect calls, and dispatch targets. Rendering
@@ -754,6 +794,16 @@ ordered, non-overlapping owned elements and explicitly declared overlays. Each
 element carries source range, type/size, ownership, and evidence. Make pointer
 and field analysis resolve through those elements; unknown bytes remain gaps.
 
+**Investigation result (2026-07-29).** Current Manual Actions and effective
+metadata already support flat data-block layouts, typed elements, custom
+struct bindings, fixed-stride arrays, custom fields, generated gaps, and
+range-ownership conflict checks. They do not represent parent/child element
+identity, an embedded-instance edge, or a validated explicit overlay. Pandora
+already contains the suitable minimum proof: the 12-byte world-position
+descriptor records have the eight-byte `world_position_descriptor_prefix` and
+an explicit remaining four-byte gap. The new model must extend those existing
+layout identities with composition, not replace the data-block or RS renderer.
+
 **Acceptance.** Fixtures cover prefix-plus-gap, embedded record, instance
 array, permitted overlay, rejected conflicting overlap, and embedded
 pointer/field resolution. Pandora proves one composed layout with exact byte
@@ -764,3 +814,29 @@ data bindings without redundant labels.
 composes strongly with D, but can otherwise proceed independently. It converts
 isolated field facts into accurate, readable object instances without inventing
 layout.
+
+### Research-backed sequencing and common completion gate
+
+1. Start A with the Pandora four-entry masked pointer table, because its
+   descriptor, entry range, and index domain are already independently proven.
+   First establish a canonical expression that references those facts; do not
+   attempt general chained loads in the same slice.
+2. Run C as the companion typed-flow cleanup: centralise identity-state joins
+   before A or B adds another source of propagated identity. Its fixtures must
+   preserve the completed candidate-overflow behaviour.
+3. Start D only after A has supplied the table-entry expression contract. A
+   direct non-indexed table-load fixture may be implemented first, but its
+   representation must be the same one used by the indexed Pandora proof.
+4. B can proceed independently once its durable target-summary action and
+   projection are designed. Reconcile the existing recovered OS-wrapper effect
+   summary during that design instead of adding a second general call model.
+5. E can proceed independently from one existing flat data-block layout. Its
+   first slice is prefix plus explicit gap; embedded layouts and overlays follow
+   only after that ownership model is exact.
+
+Every completed subtask must retain exact source reassembly, pass focused C and
+Python projection tests, export the new durable fact in source analysis JSON,
+and demonstrate one real target result or an explicit evidence-backed reason
+that the selected Pandora example remains non-symbolic. The full corpus audit
+must show the new outcome category separately; it must not reclassify an
+unsupported case as resolved to improve reporting.
