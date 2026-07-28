@@ -1,6 +1,6 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: In progress. Proposal 039 corpus coverage is complete.
+Status: Complete — 2026-07-28. Proposal 039 corpus coverage is complete.
 
 ## Problem
 
@@ -395,14 +395,12 @@ other pointer-field types without code changes.
 - Manual actions or comments whose only purpose is to force an instruction's
   printed operand text.
 
-## Remaining Main-Task Completion Slice
+## Completed Main-Task Completion Slice
 
-The completed slices established a durable address-value fact for typed pointer
+The initial slices established durable address-value facts for typed pointer
 stores, explicit terminal/render states, planned-expression validation, and
-same-object typed-field propagation. They do not yet provide the common
-consumer model promised by this proposal: a pointer store is currently the
-only address-value consumer represented in source analysis. Complete this
-remaining slice before marking the proposal implemented:
+same-object typed-field propagation. The following completion slice added the
+common consumer model and passed all listed evidence gates:
 
 1. Introduce a durable typed-consumer record that is independent of
    `M68kPointerStoreIR`, and make it the sole common consumption surface for
