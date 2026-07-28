@@ -825,6 +825,196 @@ composes strongly with D, but can otherwise proceed independently. It converts
 isolated field facts into accurate, readable object instances without inventing
 layout.
 
+### Additional evidence-backed extension tasks
+
+The following tasks were investigated after A--E. They are deliberately
+grouped by their shared durable model, rather than added as one-off support for
+the Pandora examples. They remain deferred work: the completed main task does
+not imply any of these transfers.
+
+#### F. Canonical relative/relocated expressions and storage access properties
+
+**Evidence and boundary.** Facts-v2 already recognises relocation anchors,
+`lea` PC-relative targets, platform PC-relative section anchors, and
+PC-relative interior-data anchors. The renderer already has separate
+PC-relative and base-relative spelling support. Those are decode/render facts,
+however; `M68kAddressValueIR` currently has a scalar source value/target and
+does not own a durable expression tree. Custom struct fields carry scalar or
+pointer value kind, but no read/write/volatile/immutability property. Existing
+platform range metadata also distinguishes runtime mappings without supplying
+a unified object-access contract.
+
+**Work.** Add one canonical address-expression node referenced by address
+values. It expresses a source or runtime base identity, relocation provenance
+where present, signed addend, PC/base-relative origin, and optional affine
+index proof from A. Reuse existing decoder relocation/PC-target and range
+ownership identities; delete renderer-only expression recovery when the common
+node subsumes it. Add a storage-property fact to the same identity graph with
+access intent (`read_only`, `write_only`, `read_write`, `volatile`) and lifetime
+class (`immutable_source`, `persistent_state`, `transient_runtime`,
+`hardware_or_platform`). A pointer type, address space, and storage property
+remain distinct facts.
+
+**Proof rule.** The expression is symbolic only if all of its terms map to one
+representable source identity with valid signed arithmetic and ownership. A
+runtime, hardware, external, volatile, mutable, or unclassified identity may
+still be typed but cannot be constant-folded, made into source storage, or
+treated as immutable. Relocation itself proves a link, not pointee type or
+mutability.
+
+**Acceptance.** Fixtures cover PC-relative, relocation-derived, base-relative,
+and signed interior expressions; representable and non-source address spaces;
+and read-only, mutable, and volatile stores/loads. They prove that the existing
+PC-relative spelling comes from the canonical expression after migration, that
+mutable/volatile values never receive immutable propagation, and that an
+address-like scalar without an expression contract remains numeric. Pandora's
+existing PC-relative `lea` sites provide a real-target migration regression.
+
+**Dependency and benefit.** Extends A and the cross-cutting address-space rule.
+It removes duplicate expression recovery while making relative references,
+relocations, and access intent available to D/E and source-quality analysis.
+
+#### G. Object-instance identity, alias lifetime, and write provenance
+
+**Evidence and boundary.** Current typed flow preserves pointee struct names,
+finite candidates, and explicit candidate overflow, but has no first-class
+identity relation for a particular object instance or a mutation generation.
+Pandora has a named `world_object_shared_prefix` and a `player_world_object`
+data-block layout, but these prove type/range facts rather than that two
+register paths name the same live instance. Existing clobber logic invalidates
+register state conservatively; it does not record which object write made an
+alias stale.
+
+**Work.** Extend C's identity lattice with stable instance identities for a
+proven static object, a proven array/table element, or a named runtime storage
+slot. Attach a monotonically derived write-provenance generation to each
+mutable storage identity and carry alias edges only through lossless transfers.
+Loads may reuse a value only when their storage identity and generation match;
+stores create a new generation and invalidate dependent cached facts. Do not
+invent heap allocation/lifetime recovery: unknown allocation, escaping pointer,
+or opaque write produces an explicit invalidated/unknown state.
+
+**Proof rule.** Same type never means same instance. A field chain may render
+with a coherent instance base only after an instance edge and compatible
+generation are proven. An object mutation invalidates aliases according to the
+declared storage property from F; immutable source storage is the only class
+whose generation is stable by definition.
+
+**Acceptance.** Fixtures cover two distinct same-typed objects, a lossless
+copy retaining one identity, a mutable field write invalidating a prior loaded
+pointer, an immutable source pointer retaining identity, and an unknown call
+or escaped pointer invalidating it. Pandora must either demonstrate one
+world-object instance chain or export the exact missing instance/lifetime
+proof; it may not conflate all `world_object_shared_prefix` values.
+
+**Dependency and benefit.** Requires C and F. It makes repeated object access
+and stale-pointer prevention more accurate without speculative object recovery.
+
+#### H. Interprocedural summary fixed point
+
+**Evidence and boundary.** The framework has a reachable-code fixed point, and
+typed flow has a bounded local callee preservation walk (depth four with fixed
+work/visited limits). It also has durable register contracts and callback-table
+signatures, plus a narrow recovered Amiga-wrapper effect record. It has no
+call-graph/SCC summary solver, so recursive or mutually recursive pointer
+return, escape, and preservation facts cannot converge as one general model.
+
+**Work.** B's target summary becomes a monotone interface over canonical value
+identities: typed inputs, returned identity transform, escapes, writes,
+preserved/clobbered registers, and callback/indirect-call signature. Build a
+direct/proven callback call graph from existing facts, condense it into SCCs,
+and iterate summaries to a declared finite lattice fixed point. A summary is
+usable only after its SCC reaches convergence; unresolved indirect edges,
+unknown callees, or lattice-cap overflow yield explicit stop reasons. Migrate
+the overlapping wrapper record into this representation rather than keeping a
+parallel effect model.
+
+**Proof rule.** No provisional result from an in-progress recursive summary may
+reach rendering. Summary joins retain only identities valid on every returning
+path, and any unmodelled write/escape invalidates the relevant value. SCC size,
+iteration, and value-set limits are explicit terminal evidence, never silent
+depth cutoffs or retained subsets.
+
+**Acceptance.** Fixtures cover self recursion, mutual recursion, a convergent
+typed return, an escaping callback, an SCC with one unknown callee, and a limit
+overflow. JSON records the summary/SCC proof chain and terminal reason.
+Existing direct/callback contract fixtures retain their results through the
+common solver, and the old bounded-preservation result is removed or subsumed.
+
+**Dependency and benefit.** Extends B and C. It converts presently local call
+contracts into sound reusable interprocedural gains without a compatibility
+summary path.
+
+#### I. Relational path constraints and discriminated layout variants
+
+**Evidence and boundary.** Table descriptors already preserve mask, compare,
+and loop index domains, but they do not attach a predicate to a CFG edge or
+relate `index`, stride, count, and a later access. The CFG carries only edge
+kind. Custom structs and structured layouts are flat; they have no discriminant
+field, legal variant set, or edge linking a tag comparison to an active layout.
+Pandora's extensive shared world-object prefix makes this a plausible future
+proof domain, but it presently supplies no accepted subtype/tag contract.
+
+**Work.** Add canonical predicate facts tied to a CFG edge and originating
+instruction: signed/unsigned equality or range, masked domain, affine relation,
+and discriminant equality. Compose only predicates that dominate a consumer on
+the same proven path. Add a discriminated-layout fact whose stable base layout,
+tag field, legal tag/range, and variant layout identities are explicit. A
+variant access resolves only when the active predicate proves exactly one legal
+variant; otherwise it remains a base-layout/gap access or an explicit ambiguous
+variant state.
+
+**Proof rule.** A compare nearby in listing text is not a predicate proof.
+Predicate scope ends at joins, writes to its inputs, calls that may clobber
+them, or CFG paths not dominated by the condition. Overlaps are legal only as
+declared variants selected by a discriminant; generic overlays do not imply a
+union and cannot select a field.
+
+**Acceptance.** Fixtures cover `index < count` plus stride, mask-derived
+domain, predicate loss at a join, a tag-selected variant, unknown tag, invalid
+tag, and overlap rejection. Rendering obtains a table element or variant field
+only on the dominated path. Pandora reports a candidate only if an existing
+tag/prefix/table fact supplies the complete durable contract; otherwise the
+report names the missing discriminant evidence.
+
+**Dependency and benefit.** Extends A, C, D, and E. It resolves avoidable
+finite ambiguity and renders subtype-specific fields while preserving the
+no-speculation rule.
+
+#### J. Evidence-assisted unlock queue
+
+**Evidence and boundary.** The corpus opportunity report already exposes
+consumer outcomes and stop reasons, while Manual Actions can record several
+durable facts. It does not compute which smallest missing fact would improve
+the largest set of blocked canonical graph paths. Existing report aggregates
+therefore measure work but do not prioritise the best review investment.
+
+**Work.** Add a read-only derived report over canonical stop-reason evidence.
+For each missing durable fact identity, group blocked values/consumers and
+calculate the exact downstream renderable opportunities unlocked if that fact
+were accepted. Rank only by stable, auditable measures such as affected
+consumer count, direct xref count, expression depth, and target coverage; do
+not predict semantics or mutate target state. Each row links to the normal
+catalog action only when that action, its durable identity, and its verifier
+already exist. Otherwise it reports a missing command-surface capability.
+
+**Proof rule.** The queue proposes evidence to investigate, never an inferred
+field name, type, table bound, signature, tag, or rendering. A row disappears
+only when reanalysis removes its stop reason; accepting a fact that still fails
+the graph proof produces a changed stop reason, not a claimed gain.
+
+**Acceptance.** Fixtures construct several blocked consumers sharing one
+missing table/domain or callable/layout fact, plus independent blockers and an
+unsupported action. The report groups only the shared stable identity, gives a
+reproducible rank and prospective impact, creates no Manual Action/output
+change, and its before/after diff attributes each actual gain to the accepted
+fact. A corpus run demonstrates at least one real grouped opportunity or
+explicitly reports that no current corpus fact has multiple blocked dependents.
+
+**Dependency and benefit.** Consumes the stop-reason, xref, action, and corpus
+contracts above. It is the safe mechanism for converting analysis evidence
+into fewer, higher-leverage manual fact decisions.
+
 ### Cross-cutting expression graph, review, and measurement contract
 
 The extensions must improve one evidence graph, not independently make more
@@ -971,6 +1161,22 @@ address identity or a symbolic rendering.
 5. E can proceed independently from one existing flat data-block layout. Its
    first slice is prefix plus explicit gap; embedded layouts and overlays follow
    only after that ownership model is exact.
+6. F follows A's canonical expression identity. Migrate an existing
+   PC-relative `lea` proof before adding relocation/base-relative or access
+   property forms, so the renderer has one expression source from the first
+   slice.
+7. G follows F and C. Start with a static or table-element instance and a
+   single mutable write generation; do not begin with heap or allocator
+   recovery.
+8. H follows B and C. Build the summary lattice and SCC solver around existing
+   direct/callback contracts, migrate the wrapper-specific effect, then admit
+   recursive summaries only after the non-recursive fixed-point proof is exact.
+9. I follows the relevant A/C/D/E edges. Establish CFG-edge predicate scope
+   before connecting it to an indexed table or discriminated layout; no
+   variant rendering begins from a merely nearby comparison.
+10. J can start once the normalised stop-reason and bidirectional xref exports
+    exist. It remains read-only and must use the normal action catalog rather
+    than growing an agent-only recommendation or mutation path.
 
 Every completed subtask must retain exact source reassembly, pass focused C and
 Python projection tests, export the new durable fact in source analysis JSON,
