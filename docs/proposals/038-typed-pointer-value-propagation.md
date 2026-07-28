@@ -815,6 +815,110 @@ composes strongly with D, but can otherwise proceed independently. It converts
 isolated field facts into accurate, readable object instances without inventing
 layout.
 
+### Cross-cutting expression graph, review, and measurement contract
+
+The extensions must improve one evidence graph, not independently make more
+operands look symbolic.  The canonical address value remains the value node;
+the extension-specific facts supply the proof edges that explain its identity,
+type, range, and permitted transfers.  Render planning consumes that graph
+once.  No extension may derive equivalent state again from rendered text or
+from a target-specific scan.
+
+#### Normalised stop reasons
+
+The present terminal kind is deliberately coarse enough to preserve sound
+output.  The extensions need a stable *why-not-further* classification beneath
+it, so an unresolved row directs review to the missing fact rather than
+presenting an undifferentiated "unresolved pointer".  Define one closed,
+versioned stop-reason enum owned by the canonical address-value/expression
+model.  Its members must describe proof boundaries, not renderer symptoms:
+
+- missing or incompatible pointer/type contract;
+- missing table descriptor, entry typing, index domain, bounds, alignment, or
+  ownership proof;
+- unknown, conflicting, or clobbering call/callback contract;
+- identity conflict, finite candidate set, candidate overflow, or absent path
+  predicate; and
+- missing composition ownership, illegal overlap, or untyped/invalid pointee.
+
+Each terminal value and blocked expression carries exactly one primary reason;
+optional evidence links identify every contributing fact.  Existing free-form
+`terminal_reason` text becomes a generated explanation of this canonical
+reason, not a second classification channel.  The design must migrate current
+terminal outcomes to the enum and delete any duplicate per-report stop-reason
+logic.  A well-typed expression may therefore remain explicitly non-symbolic;
+that is a successful sound-analysis result, never a numeric rendering fallback
+or a source-quality failure by itself.
+
+#### Identity, type, and xref edges
+
+New facts must reference stable existing identities rather than copy mutable
+names, bounds, descriptions, or rendered spellings.  Add only the following
+edge kinds as the applicable subtasks need them:
+
+```text
+address value -> expression proof -> table descriptor / entry / index-domain
+address value -> consumer -> durable storage or callable contract
+address value -> pointee identity -> later proven dereference or call target
+layout instance -> ordered element -> embedded layout / gap / declared overlay
+```
+
+The source-analysis JSON and corpus rows derive their human-readable labels
+from those identities at export time.  They must expose both directions of an
+edge (producer-to-consumer and consumer-to-producer; table/layout-to-use and
+use-to-table/layout) without denormalised arrays of copied descriptions.  A
+missing reverse edge is a data-model defect, not something the renderer may
+recover by scanning operands.
+
+Pointee type and pointer value identity are separate: a type restricts valid
+transfers and dereferences, while an identity names the one proven object,
+table entry, interior range, or finite candidate set.  A type alone never
+licenses a symbolic target.  Conversely, an identity is not usable through a
+dereference until the edge supplies compatible pointer width, type, ownership,
+null/invalid-entry semantics where relevant, and bounds evidence.
+
+#### Review and Manual Action surface
+
+The normal command/catalog path must be designed with B and E, rather than
+retrofitted after analysis state exists.  A reviewer may add only durable
+source facts: a callable interface/summary, callback signature, table entry
+typing or index-domain proof, or a layout-composition/overlay declaration.
+They may not attach a desired expression, force a value resolved, or suppress
+a stop reason.  Each action requires a fact-specific verifier that checks its
+identity, conflict/range rules, projection into analysis metadata, and its
+effect on the canonical graph.  Removing or changing a fact must use the same
+action model and invalidate dependent graph edges normally; it must not retain
+an obsolete compatibility projection.
+
+#### Metrics and completion evidence
+
+Extend the read-only opportunity report from the canonical graph, not an
+extension-specific side channel.  It must count expression shapes (direct,
+indexed, interior, table-load, returned, and composed-field as they become
+supported), consumer kinds, terminal kinds, primary stop reasons, and
+propagation/dereference depth.  It must also report invalid and conflicting
+facts separately from unresolved ones.  Aggregates are for regression and
+fixture selection only; no metric may cause automatic target mutation.
+
+For every newly symbolic result, export the shortest complete proof chain from
+value producer through its expression, consumer, and any later dereference to
+the source identity.  For every non-symbolic result, export its primary stop
+reason and the stable identities of the missing or conflicting evidence.  This
+gives review prioritisation, bidirectional navigation, and source-quality
+diagnostics without lowering the proof threshold.
+
+#### Migration invariants
+
+Each subtask is complete only when its old specialised transfer, report
+projection, and renderer inference have either become the common graph path or
+been deleted.  There is no adapter that maintains both representations, no
+fallback expression source, and no compatibility JSON field carrying
+duplicated semantic state.  Fixtures must demonstrate the positive graph edge,
+the relevant explicit stop reason, deletion of the superseded special case,
+and exact reassembly.  Corpus output must distinguish the new expression shape
+or stop reason from pre-existing categories rather than silently folding it
+into `resolved` or `unknown`.
+
 ### Research-backed sequencing and common completion gate
 
 1. Start A with the Pandora four-entry masked pointer table, because its
