@@ -1,7 +1,9 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: Complete — 2026-07-29. The consumer model, canonical address-value ownership,
-Proposal 039 corpus coverage, and bounded candidate-merge soundness are complete.
+Status: In progress — 2026-07-29. The consumer model, canonical address-value
+ownership, Proposal 039 corpus coverage, and bounded candidate-merge soundness
+are complete. Extension A (canonical indexed-address expressions) is the active
+implementation slice; B--J remain ordered follow-on work.
 
 ## Problem
 
