@@ -4679,7 +4679,18 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   typed_provenance_clear(&source_provenance);
   typed_memory_base_clear(&source_memory_base);
   if (instruction_has_call_flow_local(instruction)) {
-    if (locally_preserved_address != 0U) typed_state_apply_local_call_clobbers(state, locally_preserved_address);
+    if (locally_preserved_address != 0U) {
+      uint8_t preserved_reg;
+      typed_state_apply_local_call_clobbers(state, locally_preserved_address);
+      /* A locally proven preserved register is a real value-flow edge across
+       * this call.  Source and destination are the same physical register;
+       * the call instruction offset identifies the contract boundary. */
+      for (preserved_reg = 0U; preserved_reg < 8U; ++preserved_reg) {
+        if ((locally_preserved_address & (uint8_t)(1U << preserved_reg)) == 0U) continue;
+        typed_provenance_append_transfer(&state->addr_regs[preserved_reg].provenance, section_index, offset,
+          preserved_reg, preserved_reg);
+      }
+    }
     else if (vector != NULL && lookup != NULL && lookup->object != NULL)
       typed_state_apply_platform_call_clobbers(lookup->object->platform_backend_kind, state);
     else typed_state_preserve_caller_save_stack_slots(state);
