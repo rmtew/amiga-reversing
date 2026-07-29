@@ -2165,6 +2165,100 @@ static void typed_state_apply_function_summaries(M68kRenderTypedState *state,
   }
 }
 
+/* A target-declared result is deliberately narrower than an inferred callee
+ * effect: it only applies at the exact direct-call boundary named by the
+ * policy.  Keep the lookup separate from effect-summary selection so a
+ * transient inferred effect can never manufacture a configured return. */
+static const M68kAnalysisFunctionSummary *lookup_configured_direct_function_summary(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t entry_offset) {
+  uint16_t summary_index;
+  const M68kAnalysisPolicy *policy;
+  if (lookup == NULL || (policy = lookup->policy) == NULL) return NULL;
+  for (summary_index = 0U; summary_index < policy->function_summary_count &&
+       summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
+    const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[summary_index];
+    if (summary->has_section_index &&
+        summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+        summary->section_index == section_index && summary->entry_offset == entry_offset) {
+      return summary;
+    }
+  }
+  return NULL;
+}
+
+static const M68kRenderTypedRegValue *typed_state_register_value(const M68kRenderTypedState *state,
+    uint8_t register_kind, uint8_t register_index) {
+  if (state == NULL || register_index >= 8U) return NULL;
+  if (register_kind == M68K_ANALYSIS_REGISTER_DATA) return &state->data_regs[register_index];
+  if (register_kind == M68K_ANALYSIS_REGISTER_ADDRESS) return &state->addr_regs[register_index];
+  return NULL;
+}
+
+static void typed_state_copy_register_identity_result(M68kRenderTypedState *state,
+    const M68kRenderTypedState *before_call, uint8_t destination_kind, uint8_t destination_index,
+    uint8_t source_kind, uint8_t source_index, uint16_t input_struct_id) {
+  const M68kRenderTypedRegValue *source;
+  if (state == NULL || before_call == NULL || destination_index >= 8U || source_index >= 8U ||
+      (destination_kind != M68K_ANALYSIS_REGISTER_DATA && destination_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+      (source_kind != M68K_ANALYSIS_REGISTER_DATA && source_kind != M68K_ANALYSIS_REGISTER_ADDRESS)) return;
+  source = typed_state_register_value(before_call, source_kind, source_index);
+  if (source == NULL) return;
+  typed_state_clear_reg(state, destination_kind, destination_index);
+  if (destination_kind == M68K_ANALYSIS_REGISTER_DATA) {
+    state->data_regs[destination_index] = *source;
+    state->data_app_addr_regs[destination_index] = source_kind == M68K_ANALYSIS_REGISTER_DATA ?
+      before_call->data_app_addr_regs[source_index] : before_call->app_addr_regs[source_index];
+    state->data_memory_base_regs[destination_index] = source_kind == M68K_ANALYSIS_REGISTER_DATA ?
+      before_call->data_memory_base_regs[source_index] : before_call->memory_base_regs[source_index];
+  } else {
+    state->addr_regs[destination_index] = *source;
+    state->app_addr_regs[destination_index] = source_kind == M68K_ANALYSIS_REGISTER_DATA ?
+      before_call->data_app_addr_regs[source_index] : before_call->app_addr_regs[source_index];
+    state->memory_base_regs[destination_index] = source_kind == M68K_ANALYSIS_REGISTER_DATA ?
+      before_call->data_memory_base_regs[source_index] : before_call->memory_base_regs[source_index];
+  }
+  /* The result has the input value, but it is not an alias claim about a
+   * register that the callee may have clobbered. */
+  if (destination_kind == M68K_ANALYSIS_REGISTER_ADDRESS)
+    typed_state_clear_addr_alias_for_reg(state, destination_index);
+  typed_state_set_reg_struct_id(state, destination_kind, destination_index, input_struct_id,
+    &source->provenance);
+}
+
+static void typed_state_apply_direct_function_summary_results(M68kRenderTypedState *state,
+    const M68kRenderTypedState *before_call, const M68kRenderLookup *lookup,
+    size_t target_section_index, uint32_t target_offset) {
+  const M68kAnalysisFunctionSummary *summary;
+  uint8_t result_index;
+  if (state == NULL || before_call == NULL || lookup == NULL || lookup->policy == NULL) return;
+  summary = lookup_configured_direct_function_summary(lookup, target_section_index, target_offset);
+  if (summary == NULL || summary->result_contract_invalid != 0U) return;
+  for (result_index = 0U; result_index < summary->result_count &&
+       result_index < M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT; ++result_index) {
+    const M68kAnalysisFunctionSummaryResult *result = &summary->results[result_index];
+    const M68kAnalysisFunctionSummaryInput *input;
+    const M68kRenderTypedRegValue *source_value;
+    uint16_t input_struct_id;
+    if (result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT ||
+        result->input_index >= summary->input_count ||
+        result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+        result->location.width != 4U || result->location.register_count != 1U) continue;
+    input = &summary->inputs[result->input_index];
+    if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
+        input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER || input->location.width != 4U ||
+        input->location.register_count != 1U) continue;
+    input_struct_id = lookup_policy_struct_id_by_name(lookup->policy, input->struct_name);
+    if (input_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
+    source_value = typed_state_register_value(before_call, input->location.registers[0].register_kind,
+      input->location.registers[0].register_index);
+    if (source_value == NULL || source_value->type_conflicted != 0U ||
+        (source_value->struct_id != AMIGA_OS_STRUCT_ID_NONE && source_value->struct_id != input_struct_id)) continue;
+    typed_state_copy_register_identity_result(state, before_call, result->location.registers[0].register_kind,
+      result->location.registers[0].register_index, input->location.registers[0].register_kind,
+      input->location.registers[0].register_index, input_struct_id);
+  }
+}
+
 static void typed_state_clear_all(M68kRenderTypedState *state) {
   size_t index;
   if (state == NULL) return;
@@ -6708,6 +6802,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   int16_t slot_displacement = 0;
   M68kAnalysisFunctionSummary local_effects;
   const M68kAnalysisFunctionSummary *selected_local_effects = NULL;
+  M68kRenderTypedState call_input_state;
   uint8_t local_call_target_known = 0U;
   size_t target_section_index = 0U;
   uint32_t target_offset = 0U;
@@ -6802,8 +6897,13 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
         slot_displacement, stored_output) != 0) {
     return -1;
   }
+  if (instruction_has_call_flow_local(&instruction) && local_call_target_known != 0U)
+    call_input_state = *out_typed_state;
   typed_state_update_after_instruction(out_typed_state, lookup, out_platform_state, section->section_index,
     &instruction, node->candidate, chosen_vector, selected_local_effects, node->candidate->offset);
+  if (instruction_has_call_flow_local(&instruction) && local_call_target_known != 0U)
+    typed_state_apply_direct_function_summary_results(out_typed_state, &call_input_state, lookup,
+      target_section_index, target_offset);
   if (call_resolution.output_reg_known && call_resolution.vector != NULL &&
       amiga_output_has_typed_info(&call_resolution.vector->output)) {
     M68kRenderTypedProvenance api_provenance =

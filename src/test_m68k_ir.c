@@ -27447,13 +27447,16 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68kSourceAnalysisIR analysis;
   M68kAnalysisCustomStruct *custom_structs;
   char *analysis_json = NULL;
+  size_t index;
+  int result_access_found = 0;
   uint8_t bytes[0x24] = {0};
   memset(&section, 0, sizeof(section));
   memset(&analysis, 0, sizeof(analysis));
-  /* movea.l #callee,a0; jsr callee; rts; callee: rts */
+  /* movea.l #callee,a0; jsr callee; move.w $02(a1),d0; rts; callee: rts */
   bytes[0] = 0x20u; bytes[1] = 0x7cu; bytes[4] = 0x01u; bytes[5] = 0x20u;
   bytes[6] = 0x4eu; bytes[7] = 0xb9u; bytes[10] = 0x01u; bytes[11] = 0x20u;
-  bytes[12] = 0x4eu; bytes[13] = 0x75u;
+  bytes[12] = 0x30u; bytes[13] = 0x29u; bytes[14] = 0x00u; bytes[15] = 0x02u;
+  bytes[16] = 0x4eu; bytes[17] = 0x75u;
   bytes[0x20] = 0x4eu; bytes[0x21] = 0x75u;
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
@@ -27474,6 +27477,10 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   policy.custom_struct_owner = 1U;
   snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "callback_context");
   custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].offset = 2U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "result_word");
   policy.function_summary_count = 1U;
   policy.function_summaries[0].has_section_index = 1U;
   policy.function_summaries[0].section_index = 0U;
@@ -27519,6 +27526,15 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68K_C_ASSERT_U32(6U, analysis.sections[0].function_summary_uses[0].caller_offset);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_USE_CALL, analysis.sections[0].function_summary_uses[0].kind);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_USE_INPUT, analysis.sections[0].function_summary_uses[1].kind);
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 12U && access->base_reg == 1U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "callback_context") == 0 &&
+        strcmp(access->field_name, "result_word") == 0) {
+      result_access_found = 1;
+    }
+  }
+  M68K_C_ASSERT(result_access_found);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_id\":\"callback_context_arg\"") != NULL);
