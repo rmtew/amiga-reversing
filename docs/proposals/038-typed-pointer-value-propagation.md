@@ -1248,6 +1248,18 @@ aggregation must then intersect those materialized entry summaries and retain
 its own table identity and terminal reason.  Only after that may typed flow
 look up the stable fact rather than receiving a stack-local summary.
 
+**Materialization lifecycle constraint (2026-07-29).** A direct-callee cache
+prototype that was populated from inside the typed-flow fixed-point and
+immediately appended call-use edges did compile, but caused eleven existing
+source-analysis fixtures to fail.  The lookup arena is able to own the
+collection; the unsafe part is mutating the source-analysis summary/use graph
+while the flow and section export lifecycles are still converging.  The durable
+writer must therefore be a dedicated post-flow collection phase: first finish
+typed-flow discovery, then compute/cache each stable direct callee and table
+identity, then append their facts and reverse uses in one final source-analysis
+export pass.  It must not add a new summary or use from
+`typed_flow_process_node`.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references, but the strict metadata reader currently
