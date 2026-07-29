@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from amiga_reversing.disasm.target_metadata import FunctionSummaryMetadata
 
 _LEGACY_CREATE_CALLBACK = "create_manual_callback_table_signature"
 _LEGACY_REMOVE_CALLBACK = "remove_manual_callback_table_signature"
@@ -18,6 +19,36 @@ _LEGACY_KINDS = {
     _LEGACY_CREATE_DIRECT,
     _LEGACY_REMOVE_DIRECT,
 }
+_FUNCTION_SUMMARY_CREATE = "create_manual_function_summary"
+
+
+def _unknown_effects() -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "registers": {"state": "unknown"},
+        "memory": {"state": "unknown"},
+        "escapes": {"state": "unknown"},
+    }
+
+
+def _migrate_legacy_effects(summary: dict[str, Any]) -> dict[str, Any]:
+    """Replace exactly the retired all-unknown triple with the v1 object.
+
+    A migrated record is deliberately rejected instead of being silently
+    passed through: this command is an auditable one-shot conversion, not a
+    compatibility reader.
+    """
+    if "effects" in summary:
+        raise ValueError("function summary already uses the canonical effects schema")
+    retired = ("return_contract", "register_effects", "memory_effects")
+    if any(summary.get(name) != "unknown" for name in retired):
+        raise ValueError("function summary has unsupported legacy effect payload")
+    converted = dict(summary)
+    for name in retired:
+        del converted[name]
+    converted["effects"] = _unknown_effects()
+    FunctionSummaryMetadata.from_dict(converted)
+    return converted
 
 
 @dataclass(frozen=True)
@@ -104,6 +135,7 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
     """
     active: OrderedDict[str, _LegacyFact] = OrderedDict()
     legacy_history: list[dict[str, Any]] = []
+    summary_schema_migrations: list[dict[str, Any]] = []
     retained: list[dict[str, Any]] = []
     max_sequence = -1
     previous_sequence = -1
@@ -115,6 +147,14 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
         if record.get("kind") in _LEGACY_KINDS
         if isinstance(action_id := record.get("action_id"), str) and action_id
     }
+    legacy_summary_action_ids = {
+        action_id
+        for record in records
+        if record.get("record") == "manual_action"
+        if record.get("kind") == _FUNCTION_SUMMARY_CREATE
+        if isinstance(action_id := record.get("action_id"), str) and action_id
+    }
+    active_summary_action_ids: OrderedDict[str, str] = OrderedDict()
     for record in records:
         if record.get("record") != "manual_action":
             retained.append(record)
@@ -133,12 +173,36 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             raise ValueError("manual action log sequences must be strictly increasing")
         previous_sequence = sequence
         max_sequence = max(max_sequence, sequence)
+        if kind == _FUNCTION_SUMMARY_CREATE:
+            summary = record.get("function_summary")
+            if not isinstance(summary, dict):
+                raise ValueError(f"manual action {action_id} lacks function_summary")
+            converted_record = dict(record)
+            converted_summary = _migrate_legacy_effects(summary)
+            converted_record["function_summary"] = converted_summary
+            summary_id = _required_string(converted_summary, "function_summary_id")
+            if summary_id in active_summary_action_ids:
+                raise ValueError(f"function summary {summary_id} is created more than once without removal")
+            active_summary_action_ids[summary_id] = action_id
+            retained.append(converted_record)
+            summary_schema_migrations.append({
+                "action_id": action_id,
+                "sequence": sequence,
+                "function_summary_id": summary_id,
+            })
+            continue
+        if kind == "remove_manual_function_summary":
+            summary_id = _required_string(record, "function_summary_id")
+            if active_summary_action_ids.pop(summary_id, None) is None:
+                raise ValueError(f"manual action {action_id} removes unknown function summary {summary_id}")
+            retained.append(record)
+            continue
         if kind not in _LEGACY_KINDS:
             if kind in {"undo_action", "redo_action"}:
                 reference_name = "undoes_action_id" if kind == "undo_action" else "redoes_action_id"
                 reference = record.get(reference_name)
-                if reference in legacy_action_ids:
-                    raise ValueError("legacy callable actions referenced by undo/redo require explicit resolution")
+                if reference in legacy_action_ids or reference in legacy_summary_action_ids:
+                    raise ValueError("migrated callable actions referenced by undo/redo require explicit resolution")
             retained.append(record)
             continue
         if kind in {_LEGACY_CREATE_CALLBACK, _LEGACY_CREATE_DIRECT}:
@@ -191,9 +255,7 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             "hunk": key[1],
             "callable_kind": key[0],
             "inputs": inputs,
-            "return_contract": "unknown",
-            "register_effects": "unknown",
-            "memory_effects": "unknown",
+            "effects": _unknown_effects(),
             "note": first.payload.get("note", "Migrated function summary"),
             "context_name": first.payload.get("context_name", ""),
         }
@@ -212,6 +274,8 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
     converted = list(retained)
     for summary_index, item in enumerate(summaries, start=1):
         summary = item["summary"]
+        if summary["function_summary_id"] in active_summary_action_ids:
+            raise ValueError(f"legacy callable migration conflicts with active function summary {summary['function_summary_id']}")
         converted.append({
             "record": "manual_action",
             "action_id": f"migration-{summary['function_summary_id']}",
@@ -221,7 +285,7 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             "function_summary": summary,
         })
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "retired_action_history": legacy_history,
         "active_summary_mappings": [
             {
@@ -231,6 +295,7 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             }
             for item in summaries
         ],
+        "summary_schema_migrations": summary_schema_migrations,
     }
     return converted, report
 

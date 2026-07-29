@@ -293,14 +293,47 @@ class FunctionSummaryInputMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class FunctionSummaryEffectsMetadata:
+    """The persisted callable-effect boundary.
+
+    B3 currently permits only an explicitly tagged unknown partition.  The
+    tag is intentional: later explicit register, memory, and escape members
+    extend this one object, rather than reviving independent string fields.
+    """
+
+    schema_version: int
+    registers_state: str
+    memory_state: str
+    escapes_state: str
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryEffectsMetadata:
+        schema_version = payload["schema_version"]
+        registers = _json_object(payload["registers"])
+        memory = _json_object(payload["memory"])
+        escapes = _json_object(payload["escapes"])
+        registers_state = registers["state"]
+        memory_state = memory["state"]
+        escapes_state = escapes["state"]
+        assert schema_version == 1
+        assert registers_state == "unknown"
+        assert memory_state == "unknown"
+        assert escapes_state == "unknown"
+        return cls(
+            schema_version=schema_version,
+            registers_state=registers_state,
+            memory_state=memory_state,
+            escapes_state=escapes_state,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class FunctionSummaryMetadata:
     function_summary_id: str
     hunk: int
     callable_kind: str
     inputs: tuple[FunctionSummaryInputMetadata, ...]
-    return_contract: str
-    register_effects: str
-    memory_effects: str
+    effects: FunctionSummaryEffectsMetadata
     note: str
     context_name: str | None = None
     entry_offset: int | None = None
@@ -313,9 +346,7 @@ class FunctionSummaryMetadata:
         hunk = payload["hunk"]
         callable_kind = payload["callable_kind"]
         inputs = payload["inputs"]
-        return_contract = payload["return_contract"]
-        register_effects = payload["register_effects"]
-        memory_effects = payload["memory_effects"]
+        effects = FunctionSummaryEffectsMetadata.from_dict(_json_object(payload["effects"]))
         note = payload["note"]
         context_name = payload.get("context_name")
         entry_offset = payload.get("entry_offset")
@@ -324,9 +355,6 @@ class FunctionSummaryMetadata:
         assert isinstance(function_summary_id, str) and function_summary_id
         assert isinstance(hunk, int) and hunk >= 0
         assert callable_kind in {"direct", "callback_table"}
-        assert isinstance(return_contract, str) and return_contract == "unknown"
-        assert isinstance(register_effects, str) and register_effects == "unknown"
-        assert isinstance(memory_effects, str) and memory_effects == "unknown"
         assert isinstance(note, str)
         assert context_name is None or isinstance(context_name, str)
         parsed_inputs = tuple(
@@ -347,9 +375,7 @@ class FunctionSummaryMetadata:
             hunk=hunk,
             callable_kind=callable_kind,
             inputs=parsed_inputs,
-            return_contract=return_contract,
-            register_effects=register_effects,
-            memory_effects=memory_effects,
+            effects=effects,
             note=note,
             context_name=context_name,
             entry_offset=entry_offset,
@@ -1693,6 +1719,15 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
             for key in ("entry_offset", "table_offset", "entry_count", "context_name"):
                 if summary.get(key) is None:
                     summary.pop(key, None)
+            effects = summary.get("effects")
+            if isinstance(effects, dict):
+                registers_state = effects.pop("registers_state", None)
+                memory_state = effects.pop("memory_state", None)
+                escapes_state = effects.pop("escapes_state", None)
+                if isinstance(registers_state, str) and isinstance(memory_state, str) and isinstance(escapes_state, str):
+                    effects["registers"] = {"state": registers_state}
+                    effects["memory"] = {"state": memory_state}
+                    effects["escapes"] = {"state": escapes_state}
     bootblock = payload.get("bootblock")
     if isinstance(bootblock, dict) and bootblock.get("bootcode_has_code") is None:
         bootblock.pop("bootcode_has_code", None)

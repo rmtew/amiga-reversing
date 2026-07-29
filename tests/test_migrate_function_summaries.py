@@ -1,6 +1,15 @@
 from amiga_reversing.tools.migrate_function_summaries import migrate_records
 
 
+def _unknown_effects() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "registers": {"state": "unknown"},
+        "memory": {"state": "unknown"},
+        "escapes": {"state": "unknown"},
+    }
+
+
 def _direct(action_id: str, sequence: int, entry_offset: int, register: str) -> dict[str, object]:
     return {
         "record": "manual_action",
@@ -30,6 +39,7 @@ def test_migration_groups_inputs_by_direct_callable_and_preserves_history() -> N
         {"location": "A1", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"},
         {"location": "A2", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"},
     ]
+    assert summary["effects"] == _unknown_effects()
     assert report["active_summary_mappings"][0]["source_action_ids"] == ["first", "second"]
 
 
@@ -75,6 +85,7 @@ def test_migration_converts_callback_table_and_retains_nonlegacy_records() -> No
     assert summary["table_offset"] == 0x1432
     assert summary["entry_count"] == 33
     assert summary["inputs"][0]["location"] == "A5"
+    assert summary["effects"] == _unknown_effects()
     assert report["active_summary_mappings"][0]["source_fact_ids"] == ["old-callback"]
 
 
@@ -97,3 +108,48 @@ def test_migration_rejects_undo_of_retired_action() -> None:
         assert "undo/redo" in str(exc)
     else:
         raise AssertionError("expected undo rejection")
+
+
+def test_migration_replaces_retired_effect_triple_in_existing_summary() -> None:
+    legacy_summary = {
+        "record": "manual_action",
+        "action_id": "summary",
+        "sequence": 2,
+        "kind": "create_manual_function_summary",
+        "function_summary": {
+            "function_summary_id": "summary-id",
+            "hunk": 0,
+            "callable_kind": "direct",
+            "entry_offset": 0x807C,
+            "inputs": [{"location": "A1", "value_kind": "struct_ptr", "struct_name": "world_object"}],
+            "return_contract": "unknown",
+            "register_effects": "unknown",
+            "memory_effects": "unknown",
+            "note": "legacy",
+            "context_name": "",
+        },
+    }
+    converted, report = migrate_records([legacy_summary])
+
+    assert converted[0]["action_id"] == "summary"
+    assert converted[0]["function_summary"]["effects"] == _unknown_effects()
+    assert "return_contract" not in converted[0]["function_summary"]
+    assert report["summary_schema_migrations"] == [
+        {"action_id": "summary", "sequence": 2, "function_summary_id": "summary-id"}
+    ]
+
+
+def test_migration_rejects_mixed_or_previously_migrated_summary_schema() -> None:
+    record = {
+        "record": "manual_action",
+        "action_id": "summary",
+        "sequence": 2,
+        "kind": "create_manual_function_summary",
+        "function_summary": {"function_summary_id": "summary-id", "effects": _unknown_effects()},
+    }
+    try:
+        migrate_records([record])
+    except ValueError as exc:
+        assert "canonical effects schema" in str(exc)
+    else:
+        raise AssertionError("expected mixed-schema rejection")

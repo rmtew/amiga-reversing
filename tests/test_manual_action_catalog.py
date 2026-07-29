@@ -298,9 +298,12 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
             "callable_kind": "direct",
             "entry_offset": 0x7BBA,
             "inputs": [{"location": "A5", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
-            "return_contract": "unknown",
-            "register_effects": "unknown",
-            "memory_effects": "unknown",
+                "effects": {
+                    "schema_version": 1,
+                    "registers": {"state": "unknown"},
+                    "memory": {"state": "unknown"},
+                    "escapes": {"state": "unknown"},
+                },
             "context_name": "npc_item_trade_validation",
             "note": "Typed function summary",
         }

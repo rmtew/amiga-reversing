@@ -4592,27 +4592,28 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append_json_string(&builder, callable_kind) != 0 ||
           json_builder_appendf(&builder,
             ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,"
-            "\"return_contract\":\"%s\",\"register_effects\":\"%s\",\"memory_effects\":\"%s\","
-            "\"escape_effects\":\"%s\",\"effects_invalid\":%u,\"data_register_effects\":[",
+            "\"effects\":{\"schema_version\":1,\"registers\":{\"state\":\"%s\","
+            "\"data\":[",
             (unsigned)summary->callable_section_index, (unsigned)summary->entry_offset,
             (unsigned)summary->table_offset, (unsigned)summary->entry_count,
-            summary->return_contract_unknown != 0U ? "unknown" : "invalid",
-            summary->register_effects_unknown != 0U ? "unknown" : "explicit",
-            summary->memory_effects_unknown != 0U ? "unknown" : "explicit",
-            summary->escape_effects_unknown != 0U ? "unknown" : "explicit",
-            (unsigned)summary->effects_invalid) != 0) goto oom;
+            summary->register_effects_unknown != 0U ? "unknown" : "explicit") != 0) goto oom;
       for (input_index = 0U; input_index < 8U; ++input_index) {
         if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
         if (json_builder_appendf(&builder, "%u", (unsigned)summary->data_register_effects[input_index]) != 0)
           goto oom;
       }
-      if (json_builder_append(&builder, "],\"address_register_effects\":[") != 0) goto oom;
+      if (json_builder_append(&builder, "],\"address\":[") != 0) goto oom;
       for (input_index = 0U; input_index < 8U; ++input_index) {
         if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
         if (json_builder_appendf(&builder, "%u", (unsigned)summary->address_register_effects[input_index]) != 0)
           goto oom;
       }
-      if (json_builder_append(&builder, "],\"inputs\":[") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+          "]},\"memory\":{\"state\":\"%s\"},\"escapes\":{\"state\":\"%s\"},"
+          "\"invalid\":%u},\"inputs\":[",
+          summary->memory_effects_unknown != 0U ? "unknown" : "explicit",
+          summary->escape_effects_unknown != 0U ? "unknown" : "explicit",
+          (unsigned)summary->effects_invalid) != 0) goto oom;
       for (input_index = 0U; input_index < summary->input_count; ++input_index) {
         const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
         if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;

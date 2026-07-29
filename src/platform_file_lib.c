@@ -2178,6 +2178,55 @@ static const char *json_array_field_local(const char *object_start, const char *
   return NULL;
 }
 
+static const char *json_object_field_local(const char *object_start, const char *object_end, const char *key,
+    const char **out_end) {
+  const char *value = json_find_key_local(object_start, object_end, key);
+  const char *parsed_end = NULL;
+  if (out_end != NULL) *out_end = NULL;
+  if (value == NULL) return NULL;
+  value = json_skip_ws_local(value, object_end);
+  if (value >= object_end || *value != '{') return NULL;
+  if (json_next_object_local(value, object_end, &parsed_end) != value || parsed_end == NULL) return NULL;
+  if (out_end != NULL) *out_end = parsed_end;
+  return value;
+}
+
+static int append_metadata_function_summary_unknown_effects_local(const char *object_start, const char *object_end,
+    M68kAnalysisFunctionSummary *summary) {
+  const char *effects_end;
+  const char *effects = json_object_field_local(object_start, object_end, "effects", &effects_end);
+  const char *registers_end;
+  const char *memory_end;
+  const char *escapes_end;
+  const char *registers;
+  const char *memory;
+  const char *escapes;
+  uint32_t schema_version = 0U;
+  int has_schema_version = 0;
+  char state[16];
+  if (effects == NULL || summary == NULL ||
+      json_find_key_local(object_start, object_end, "return_contract") != NULL ||
+      json_find_key_local(object_start, object_end, "register_effects") != NULL ||
+      json_find_key_local(object_start, object_end, "memory_effects") != NULL ||
+      !json_number_field_local(effects, effects_end, "schema_version", &schema_version, &has_schema_version) ||
+      !has_schema_version || schema_version != 1U) return 0;
+  registers = json_object_field_local(effects, effects_end, "registers", &registers_end);
+  memory = json_object_field_local(effects, effects_end, "memory", &memory_end);
+  escapes = json_object_field_local(effects, effects_end, "escapes", &escapes_end);
+  if (registers == NULL || memory == NULL || escapes == NULL ||
+      !json_optional_string_field_local(registers, registers_end, "state", state, sizeof(state)) ||
+      strcmp(state, "unknown") != 0 ||
+      !json_optional_string_field_local(memory, memory_end, "state", state, sizeof(state)) ||
+      strcmp(state, "unknown") != 0 ||
+      !json_optional_string_field_local(escapes, escapes_end, "state", state, sizeof(state)) ||
+      strcmp(state, "unknown") != 0) return 0;
+  summary->return_contract_unknown = 1U;
+  summary->register_effects_unknown = 1U;
+  summary->memory_effects_unknown = 1U;
+  summary->escape_effects_unknown = 1U;
+  return 1;
+}
+
 static int append_metadata_seeded_code_label_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t offset = 0U;
@@ -2506,9 +2555,6 @@ static int append_metadata_function_summary_local(const char *object_start, cons
   char callable_kind[32];
   char function_summary_id[96];
   char context_name[64];
-  char return_contract[32];
-  char register_effects[32];
-  char memory_effects[32];
   uint32_t hunk = 0U, entry_offset = 0U, table_offset = 0U, entry_count = 0U;
   int has_hunk = 0, has_entry_offset = 0, has_table_offset = 0, has_entry_count = 0;
   const char *inputs_end;
@@ -2522,18 +2568,12 @@ static int append_metadata_function_summary_local(const char *object_start, cons
       !json_optional_string_field_local(object_start, object_end, "callable_kind", callable_kind, sizeof(callable_kind)) ||
       !json_optional_string_field_local(object_start, object_end, "function_summary_id", function_summary_id, sizeof(function_summary_id)) ||
       !json_optional_string_field_local(object_start, object_end, "context_name", context_name, sizeof(context_name)) ||
-      !json_optional_string_field_local(object_start, object_end, "return_contract", return_contract, sizeof(return_contract)) ||
-      !json_optional_string_field_local(object_start, object_end, "register_effects", register_effects, sizeof(register_effects)) ||
-      !json_optional_string_field_local(object_start, object_end, "memory_effects", memory_effects, sizeof(memory_effects)) ||
-      !has_hunk || function_summary_id[0] == '\0' || strcmp(return_contract, "unknown") != 0 ||
-      strcmp(register_effects, "unknown") != 0 || strcmp(memory_effects, "unknown") != 0) return 0;
+      !has_hunk || function_summary_id[0] == '\0') return 0;
   summary = &policy->function_summaries[policy->function_summary_count];
   memset(summary, 0, sizeof(*summary));
   summary->has_section_index = 1U;
   summary->section_index = hunk;
-  summary->return_contract_unknown = 1U;
-  summary->register_effects_unknown = 1U;
-  summary->memory_effects_unknown = 1U;
+  if (!append_metadata_function_summary_unknown_effects_local(object_start, object_end, summary)) return 0;
   if (strcmp(callable_kind, "direct") == 0 && has_entry_offset && !has_table_offset && !has_entry_count) {
     summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
     summary->entry_offset = entry_offset;

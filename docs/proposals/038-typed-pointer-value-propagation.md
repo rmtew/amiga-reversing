@@ -5,8 +5,9 @@ ownership, Proposal 039 corpus coverage, bounded candidate-merge soundness, and
 Extension A (canonical indexed, affine, and interior-address expressions) are
 complete. Extension B's input-contract/common-summary configuration, callable-result
 migration, and source-analysis graph export are complete. Its effect lattice
-is introduced in the common IR, but the persisted effect schema,
-projection/import, effect writers, and common call transfer remain. C--J
+and strict unknown-state persisted schema migration are in the common model,
+but explicit effect projection/import, effect writers, and common call transfer
+remain. C--J
 remain ordered follow-on work.
 
 ## Problem
@@ -938,7 +939,7 @@ paths, the export does not yet expose the memory/escape members, and no
 persisted target schema can describe the new collection. Therefore this
 commit makes no preservation or rendering claim.
 
-**B3 next atomic slice: canonical persisted effect schema (2026-07-29).**
+**B3 canonical persisted effect-schema migration (2026-07-29).**
 The next change is not to add a second parser branch or make old strings mean
 the new lattice. The current target metadata, Manual Action payload, and
 existing summary migration tool still carry the retired triple
@@ -969,6 +970,24 @@ a register-only array is not a completion of the promised stack partition,
 and an escape record without a durable sink identity is not an escape
 contract.
 
+**Completed unknown-state replacement (2026-07-29).** The first implementation
+of this migration deliberately accepts only the canonical all-unknown state:
+`effects.schema_version == 1` and each component has `{ "state": "unknown" }`.
+It removes the three strings from the Python model, catalog payload, C target
+metadata parser, source-analysis JSON export, converter output, and fixtures.
+This is a strict schema replacement, not a compatibility shim: the C/Python
+runtime rejects the retired fields and the converter rejects a mixed or already
+migrated record. The local Pandora action log was converted in full (eighteen
+active summaries), with its pre-conversion log and deterministic migration
+report retained locally; regenerated Pandora source remains full-file exact.
+
+This is intentionally not the complete explicit-effect surface. It establishes
+the one durable owner and proves the migration boundary before a reviewer or a
+writer may assert a preservation fact. The next B3 implementation slice must
+widen this same object to the explicit forms below and complete the matching C
+IR locations and identities in the same change. It may not introduce a second
+schema, revive the strings, or treat an omitted explicit component as unknown.
+
 Provide one explicit offline migration command for every affected local action
 log. It validates the complete log and summary state first, converts each
 retired all-unknown triple into the canonical all-unknown `effects` object,
@@ -983,11 +1002,11 @@ successful conversion, full-log atomic refusal, rejection of legacy input by
 the new runtime, and identical effective all-unknown semantics before an
 explicit effect is introduced.
 
-Only after that schema lands may the following B3 slice add complete
-source-analysis JSON import/export for memory and escape members, generated
-platform summary writers, local-body/callback aggregation writers, and the
-single common effect application reader. No specialised typed-flow reader may
-be retained after that final migration.
+The next B3 slice adds the explicit forms, complete source-analysis JSON
+import/export for memory and escape members, generated platform summary
+writers, local-body/callback aggregation writers, and the single common effect
+application reader. No specialised typed-flow reader may be retained after
+that final migration.
 
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
