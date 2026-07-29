@@ -1266,6 +1266,20 @@ collector receives the completed decode/accepted-start inputs and must not
 depend on transient graph-node state, whose workflow arena is released when
 the typed-flow pass returns.
 
+**Direct-callee materialization increment (2026-07-29).** The first durable
+writer now scans already accepted direct call targets after the initial
+typed-flow pass, computes one complete-domain summary per stable callee
+coordinate, records its reverse call uses, and runs typed flow once more so
+direct call transfer reads the stable summary rather than a newly constructed
+value.  Inferred identities are exported as
+`inferred_local_s<section>_o<offset>` at their owning section, with the same
+closed component state and exhaustive Dn/An partition as the transient proof.
+This is deliberately limited to admitted direct calls; callback-table identity
+still depends on completed typed state and remains the next writer increment.
+The full C suite passes for this staged lifecycle.  It does not yet satisfy
+the required callback, failure-reason, stack/memory/escape, or complete
+fixture gates.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references, but the strict metadata reader currently

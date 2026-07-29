@@ -213,6 +213,12 @@ typedef struct M68kRenderPlatformDerivedSummary {
   const AmigaOsLibraryVectorInfo *vector;
 } M68kRenderPlatformDerivedSummary;
 
+/* Derived after typed-flow convergence and before source-analysis export.
+ * These are callable-owned facts, not target-policy inputs. */
+typedef struct M68kRenderInferredFunctionSummary {
+  M68kAnalysisFunctionSummary summary;
+} M68kRenderInferredFunctionSummary;
+
 typedef struct M68kRenderTypedSlotEffect {
   size_t section_index;
   uint32_t offset;
@@ -733,6 +739,9 @@ struct M68kRenderLookup {
   M68kRenderPlatformDerivedSummary *platform_derived_summaries;
   size_t platform_derived_summary_count;
   size_t platform_derived_summary_capacity;
+  M68kRenderInferredFunctionSummary *inferred_function_summaries;
+  size_t inferred_function_summary_count;
+  size_t inferred_function_summary_capacity;
   M68kRenderTypedSlotEffect *typed_slot_effects;
   size_t typed_slot_effect_count;
   size_t typed_slot_effect_capacity;

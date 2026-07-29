@@ -1195,6 +1195,8 @@ static uint16_t lookup_typed_app_slot_struct_id(const M68kRenderLookup *lookup, 
 static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
   uint8_t requested_mask, uint8_t depth, M68kAnalysisFunctionSummary *out_summary);
+static const M68kAnalysisFunctionSummary *lookup_inferred_direct_function_summary(
+  const M68kRenderLookup *lookup, size_t section_index, uint32_t entry_offset);
 static void typed_state_apply_function_summary_effects(M68kRenderTypedState *state,
     const M68kAnalysisFunctionSummary *summary);
 static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAnalysisFunctionSummary *out_summary);
@@ -4954,6 +4956,82 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
   return 1;
 }
 
+static const M68kAnalysisFunctionSummary *lookup_inferred_direct_function_summary(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t entry_offset) {
+  size_t index;
+  if (lookup == NULL) return NULL;
+  for (index = 0U; index < lookup->inferred_function_summary_count; ++index) {
+    const M68kAnalysisFunctionSummary *summary = &lookup->inferred_function_summaries[index].summary;
+    if (summary->has_section_index != 0U &&
+        summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+        summary->section_index == section_index && summary->entry_offset == entry_offset) return summary;
+  }
+  return NULL;
+}
+
+static int render_lookup_append_inferred_direct_function_summary(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t entry_offset) {
+  M68kRenderInferredFunctionSummary *grown;
+  M68kRenderInferredFunctionSummary *record;
+  size_t next_capacity;
+  if (lookup == NULL || lookup_inferred_direct_function_summary(lookup, section_index, entry_offset) != NULL) return 0;
+  if (lookup->inferred_function_summary_count == lookup->inferred_function_summary_capacity) {
+    next_capacity = lookup->inferred_function_summary_capacity == 0U ? 16U :
+      lookup->inferred_function_summary_capacity * 2U;
+    grown = (M68kRenderInferredFunctionSummary *)render_lookup_grow_array(lookup,
+      lookup->inferred_function_summaries, lookup->inferred_function_summary_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->inferred_function_summaries = grown;
+    lookup->inferred_function_summary_capacity = next_capacity;
+  }
+  record = &lookup->inferred_function_summaries[lookup->inferred_function_summary_count++];
+  memset(record, 0, sizeof(*record));
+  record->summary.callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  record->summary.has_section_index = 1U;
+  record->summary.section_index = (uint32_t)section_index;
+  record->summary.entry_offset = entry_offset;
+  record->summary.return_contract_unknown = 1U;
+  snprintf(record->summary.function_summary_id, sizeof(record->summary.function_summary_id),
+    "inferred_local_s%u_o%08X", (unsigned)section_index, (unsigned)entry_offset);
+  if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, section_index, entry_offset,
+      0xffU, 0U, &record->summary)) {
+    record->summary.effects_invalid = 1U;
+    record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+  }
+  return 0;
+}
+
+static int render_lookup_collect_inferred_direct_function_summaries(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start) {
+  size_t section_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      size_t target_section_index;
+      uint32_t target_offset;
+      M68kFunctionSummaryUseIR use;
+      if (candidate->offset >= section->size || accepted_start[section_index] == NULL ||
+          accepted_start[section_index][candidate->offset] == 0U ||
+          !typed_flow_local_call_target(lookup, candidate, &target_section_index, &target_offset)) continue;
+      if (render_lookup_append_inferred_direct_function_summary(lookup, decode, accepted_start,
+          target_section_index, target_offset) != 0) return -1;
+      memset(&use, 0, sizeof(use));
+      snprintf(use.function_summary_id, sizeof(use.function_summary_id), "inferred_local_s%u_o%08X",
+        (unsigned)target_section_index, (unsigned)target_offset);
+      use.caller_section_index = (uint32_t)section_index;
+      use.caller_offset = candidate->offset;
+      use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
+      if (render_lookup_add_function_summary_use(lookup, &use) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 /* Resolve the callback table backing an indirect dispatch.  A preceding
  * MOVEA table load is an equally durable table identity when normal typed
  * state cannot preserve the load's source base. */
@@ -6510,11 +6588,14 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     uint8_t reg;
     if (typed_flow_local_call_target(lookup, node->candidate, &target_section_index, &target_offset)) {
       local_call_target_known = 1U;
-      for (reg = 0U; reg < 8U; ++reg) {
-        if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
+      selected_local_effects = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset);
+      if (selected_local_effects == NULL) {
+        for (reg = 0U; reg < 8U; ++reg) {
+          if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
+        }
+        if (typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, target_section_index,
+              target_offset, requested_address, 0U, &local_effects)) selected_local_effects = &local_effects;
       }
-      if (typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, target_section_index,
-            target_offset, requested_address, 0U, &local_effects)) selected_local_effects = &local_effects;
     } else {
       for (reg = 0U; reg < 8U; ++reg) {
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
@@ -7440,6 +7521,36 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
         if (strcmp(use->function_summary_id, configured->function_summary_id) != 0) continue;
         if (m68k_ir_section_analysis_append_function_summary_use(section_analysis, use) != 0) return -1;
       }
+    }
+  }
+  for (index = 0U; index < lookup->inferred_function_summary_count; ++index) {
+    const M68kAnalysisFunctionSummary *inferred = &lookup->inferred_function_summaries[index].summary;
+    M68kFunctionSummaryIR summary;
+    size_t use_index;
+    if (!inferred->has_section_index || inferred->section_index != section_analysis->section_index) continue;
+    memset(&summary, 0, sizeof(summary));
+    snprintf(summary.function_summary_id, sizeof(summary.function_summary_id), "%s", inferred->function_summary_id);
+    summary.callable_section_index = inferred->section_index;
+    summary.entry_offset = inferred->entry_offset;
+    summary.callable_kind = inferred->callable_kind;
+    summary.input_count = inferred->input_count;
+    summary.return_contract_unknown = inferred->return_contract_unknown;
+    summary.register_effects_unknown = inferred->register_effects_unknown;
+    summary.memory_effects_unknown = inferred->memory_effects_unknown;
+    summary.escape_effects_unknown = inferred->escape_effects_unknown;
+    summary.register_effect_state = inferred->register_effect_state;
+    summary.memory_effect_state = inferred->memory_effect_state;
+    summary.escape_effect_state = inferred->escape_effect_state;
+    summary.memory_effect_count = inferred->memory_effect_count;
+    summary.escape_count = inferred->escape_count;
+    summary.effects_invalid = inferred->effects_invalid;
+    summary.location_effect_count = inferred->location_effect_count;
+    memcpy(summary.location_effects, inferred->location_effects, sizeof(summary.location_effects));
+    if (m68k_ir_section_analysis_append_function_summary(section_analysis, &summary) != 0) return -1;
+    for (use_index = 0U; use_index < lookup->function_summary_use_count; ++use_index) {
+      const M68kFunctionSummaryUseIR *use = &lookup->function_summary_uses[use_index];
+      if (strcmp(use->function_summary_id, inferred->function_summary_id) != 0) continue;
+      if (m68k_ir_section_analysis_append_function_summary_use(section_analysis, use) != 0) return -1;
     }
   }
   return 0;
@@ -11856,6 +11967,12 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (stats != NULL) stats->app_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
+  /* The first fixed point discovers direct callees.  Materialize their
+   * complete-domain summaries only after it has converged, then run the flow
+   * once more so transfer reads the stable callable facts. */
+  if (render_lookup_collect_inferred_direct_function_summaries(lookup, decode, accepted_start) != 0) return -1;
+  if (lookup->inferred_function_summary_count != 0U &&
+      render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
