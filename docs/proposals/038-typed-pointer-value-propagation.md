@@ -851,7 +851,10 @@ tagged union, not three booleans or copied presentation strings:
   source analysis rather than the retired record's payload shape.
 
 Every result declares its register, stack, or ordered multi-register ABI
-location and width. A summary also owns a complete preservation/clobber
+location and width. A callable owns a finite ordered collection of such
+results; distinct proven output locations are not competing summaries and may
+not be collapsed into one arbitrary return. Conflicting claims for the same
+result location invalidate that location explicitly. A summary also owns a complete preservation/clobber
 partition, escapes, and an explicit memory-effect set. `unknown` is a valid
 closed-lattice value for each component, but it is never interpreted as
 preservation, non-escape, non-aliasing, or a return value. A malformed,
