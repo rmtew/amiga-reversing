@@ -4697,8 +4697,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         }
         if (json_builder_append(&builder, "]") != 0) goto oom;
       }
-      if (json_builder_appendf(&builder, "},\"invalid\":%u},\"inputs\":[",
-          (unsigned)summary->effects_invalid) != 0) goto oom;
+      if (json_builder_append(&builder, "}},\"inputs\":[") != 0) goto oom;
       for (input_index = 0U; input_index < summary->input_count; ++input_index) {
         const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
         if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
