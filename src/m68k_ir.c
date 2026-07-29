@@ -53,6 +53,10 @@ int m68k_function_summary_abi_location_is_valid(const M68kFunctionSummaryAbiLoca
       location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) {
     if (location->register_count == 0U || location->register_count > M68K_FUNCTION_SUMMARY_ABI_REGISTER_TUPLE_LIMIT ||
         (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER && location->register_count != 1U) ||
+        /* A tuple is a distinct multi-register ABI identity.  Accepting a
+         * one-member tuple would give a register two persisted spellings and
+         * violate the canonical Python/C schema contract. */
+        (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE && location->register_count < 2U) ||
         location->stack_convention != M68K_FUNCTION_SUMMARY_ABI_STACK_NONE || location->stack_offset != 0) return 0;
     for (index = 0U; index < location->register_count; ++index) {
       const M68kFunctionSummaryAbiRegisterMember *member = &location->registers[index];

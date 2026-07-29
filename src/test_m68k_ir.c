@@ -34139,6 +34139,10 @@ static int test_function_summary_effect_identities_are_canonical(void) {
   location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
   location.registers[1].register_kind = M68K_ANALYSIS_REGISTER_DATA;
   M68K_C_ASSERT(!m68k_function_summary_abi_location_is_valid(&location));
+  location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+  location.registers[1].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  location.register_count = 1U;
+  M68K_C_ASSERT(!m68k_function_summary_abi_location_is_valid(&location));
   memset(&subject, 0, sizeof(subject));
   subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT;
   subject.input_index = 0U;
