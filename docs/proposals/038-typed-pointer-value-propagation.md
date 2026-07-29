@@ -1297,20 +1297,30 @@ entry summaries remains required.
 
 The callback’s second typed-flow pass now makes both call-use and
 input-consumer edges name that durable table identity; the initial discovery
-pass emits neither, so no stale declared-interface edge survives.  This still
-does not complete remaining-work item 1: the collector enumerates declared
-tables, while a table identity discovered only from completed typed state is
-not yet retained for post-flow materialization.  It also still needs
+pass emits neither, so no stale declared-interface edge survives. The
+collector now records only stable section/table coordinates while typed flow
+converges, and materializes a callback summary only for a table identity that
+was actually proven at an indirect dispatch. A focused fixture contains an
+additional declared-but-unobserved table and proves it remains policy-only,
+while the observed table yields the single inferred summary. It still needs
 terminal-reason fixtures for unresolved entries and incompatible entry
 summaries.
+
+**Callback failure-reason increment (2026-07-29).** Inferred callback
+summaries now export one closed terminal reason: an entry is either
+`callback_entry_unresolved` when its table value has no source callable
+identity, or `callback_entry_incompatible` when the identified entry cannot
+supply a usable complete summary. The existing callback fixture proves the
+latter through an unaccepted direct-entry summary; the unresolved-entry
+fixture remains the next focused case. These reasons are source-analysis
+facts and never preservation fallbacks.
 
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Complete callback-table materialization by retaining identities discovered
-   only from completed typed state for post-flow collection, then add terminal
-   failure fixtures for unresolved entries and incompatible entry summaries.
-   Table summary/intersection/export and reverse-use lifecycle are complete.
+1. Add the callback-table unresolved-entry terminal-failure fixture. The
+   incompatible-entry summary fixture, table-identity collection,
+   summary/intersection/export, and reverse-use lifecycle are complete.
 2. Migrate callable result declarations into the common persisted/source-
    analysis summary shape, then add the closed escape `source_kind` field so
    input- and result-origin escapes validate and round-trip losslessly.

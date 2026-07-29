@@ -245,6 +245,14 @@ typedef struct M68kAnalysisFunctionSummary {
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
 } M68kAnalysisFunctionSummary;
 
+/* A callable summary can be deliberately unusable.  This reason is durable
+ * source-analysis evidence, not a renderer diagnostic or a fallback hint. */
+typedef enum M68kFunctionSummaryTerminalReason {
+  M68K_FUNCTION_SUMMARY_TERMINAL_NONE = 0,
+  M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED = 1,
+  M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE = 2
+} M68kFunctionSummaryTerminalReason;
+
 typedef enum M68kAnalysisEntryPointProvenance {
   M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DEFAULT = 0,
   M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_TARGET_METADATA = 1,
@@ -1638,6 +1646,8 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t escape_count;
   uint8_t effects_invalid;
   uint8_t location_effect_count;
+  uint8_t terminal_reason;
+  uint8_t reserved0[3];
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
   M68kFunctionSummaryResultIR results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
   M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];

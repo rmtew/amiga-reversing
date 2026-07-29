@@ -217,7 +217,17 @@ typedef struct M68kRenderPlatformDerivedSummary {
  * These are callable-owned facts, not target-policy inputs. */
 typedef struct M68kRenderInferredFunctionSummary {
   M68kAnalysisFunctionSummary summary;
+  uint8_t terminal_reason;
+  uint8_t reserved[3];
 } M68kRenderInferredFunctionSummary;
+
+/* A callback-table identity observed by completed typed flow.  It is kept
+ * separate from source-analysis uses because discovery runs during the CFG
+ * fixed point; the post-flow collector owns durable summary/use emission. */
+typedef struct M68kRenderObservedCallbackTable {
+  size_t section_index;
+  uint32_t table_offset;
+} M68kRenderObservedCallbackTable;
 
 typedef struct M68kRenderTypedSlotEffect {
   size_t section_index;
@@ -743,6 +753,9 @@ struct M68kRenderLookup {
   size_t inferred_function_summary_count;
   size_t inferred_function_summary_capacity;
   uint8_t inferred_function_summaries_ready;
+  M68kRenderObservedCallbackTable *observed_callback_tables;
+  size_t observed_callback_table_count;
+  size_t observed_callback_table_capacity;
   M68kRenderTypedSlotEffect *typed_slot_effects;
   size_t typed_slot_effect_count;
   size_t typed_slot_effect_capacity;

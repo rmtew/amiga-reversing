@@ -5163,6 +5163,34 @@ static const M68kAnalysisFunctionSummary *lookup_inferred_callback_table_functio
   return NULL;
 }
 
+/* Keep only stable table coordinates while flow converges.  Appending a
+ * summary or reverse use here would make source-analysis ownership depend on
+ * CFG worklist order. */
+static int render_lookup_record_observed_callback_table(M68kRenderLookup *lookup,
+    size_t section_index, uint32_t table_offset) {
+  M68kRenderObservedCallbackTable *grown;
+  size_t index;
+  size_t next_capacity;
+  if (lookup == NULL) return -1;
+  for (index = 0U; index < lookup->observed_callback_table_count; ++index) {
+    const M68kRenderObservedCallbackTable *observed = &lookup->observed_callback_tables[index];
+    if (observed->section_index == section_index && observed->table_offset == table_offset) return 0;
+  }
+  if (lookup->observed_callback_table_count == lookup->observed_callback_table_capacity) {
+    next_capacity = lookup->observed_callback_table_capacity == 0U ? 8U :
+      lookup->observed_callback_table_capacity * 2U;
+    grown = (M68kRenderObservedCallbackTable *)render_lookup_grow_array(lookup,
+      lookup->observed_callback_tables, lookup->observed_callback_table_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->observed_callback_tables = grown;
+    lookup->observed_callback_table_capacity = next_capacity;
+  }
+  lookup->observed_callback_tables[lookup->observed_callback_table_count].section_index = section_index;
+  lookup->observed_callback_tables[lookup->observed_callback_table_count].table_offset = table_offset;
+  lookup->observed_callback_table_count += 1U;
+  return 0;
+}
+
 static int render_lookup_append_inferred_callback_table_function_summary(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, const M68kAnalysisFunctionSummary *declared) {
   M68kRenderInferredFunctionSummary *grown;
@@ -5207,11 +5235,17 @@ static int render_lookup_append_inferred_callback_table_function_summary(M68kRen
     const M68kAnalysisFunctionSummary *target;
     uint8_t reg;
     uint32_t value = m68k_read_u32be(table_section->data + declared->table_offset + entry_index * 4U);
-    if (!render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index, &target_offset) ||
-        render_lookup_append_inferred_direct_function_summary(lookup, decode, accepted_start,
+    if (!render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index, &target_offset)) {
+      record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED;
+      goto invalid;
+    }
+    if (render_lookup_append_inferred_direct_function_summary(lookup, decode, accepted_start,
           target_section_index, target_offset) != 0 ||
         (target = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset)) == NULL ||
-        target->effects_invalid != 0U) goto invalid;
+        target->effects_invalid != 0U) {
+      record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE;
+      goto invalid;
+    }
     for (reg = 0U; reg < 8U; ++reg) {
       if (function_summary_register_effect(target, M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
           M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) preserved_mask &= (uint8_t)~(1U << reg);
@@ -5229,14 +5263,21 @@ invalid:
 
 static int render_lookup_collect_inferred_callback_table_function_summaries(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start) {
-  uint16_t index;
+  size_t observed_index;
   if (lookup == NULL || lookup->policy == NULL) return 0;
-  for (index = 0U; index < lookup->policy->function_summary_count &&
-       index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++index) {
-    const M68kAnalysisFunctionSummary *declared = &lookup->policy->function_summaries[index];
-    if (declared->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE &&
-        render_lookup_append_inferred_callback_table_function_summary(lookup, decode, accepted_start, declared) != 0)
-      return -1;
+  for (observed_index = 0U; observed_index < lookup->observed_callback_table_count; ++observed_index) {
+    const M68kRenderObservedCallbackTable *observed = &lookup->observed_callback_tables[observed_index];
+    uint16_t summary_index;
+    for (summary_index = 0U; summary_index < lookup->policy->function_summary_count &&
+         summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
+      const M68kAnalysisFunctionSummary *declared = &lookup->policy->function_summaries[summary_index];
+      if (!declared->has_section_index ||
+          declared->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE ||
+          declared->section_index != observed->section_index || declared->table_offset != observed->table_offset) continue;
+      if (render_lookup_append_inferred_callback_table_function_summary(lookup, decode, accepted_start, declared) != 0)
+        return -1;
+      break;
+    }
   }
   return 0;
 }
@@ -6706,9 +6747,11 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
       }
       if (typed_flow_callback_table_identity(out_typed_state, section, node->candidate, &instruction,
-            &table_section_index, &table_offset))
+            &table_section_index, &table_offset)) {
+        if (render_lookup_record_observed_callback_table(lookup, table_section_index, table_offset) != 0) return -1;
         selected_local_effects = lookup_inferred_callback_table_function_summary(lookup, table_section_index,
           table_offset);
+      }
       if (selected_local_effects != NULL && selected_local_effects->effects_invalid != 0U)
         selected_local_effects = NULL;
       if (selected_local_effects == NULL && typed_flow_callback_table_callee_effect_summary(lookup, decode, accepted_start, out_typed_state,
@@ -7658,6 +7701,7 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.escape_count = inferred->escape_count;
     summary.effects_invalid = inferred->effects_invalid;
     summary.location_effect_count = inferred->location_effect_count;
+    summary.terminal_reason = lookup->inferred_function_summaries[index].terminal_reason;
     memcpy(summary.inputs, inferred->inputs, sizeof(summary.inputs));
     memcpy(summary.location_effects, inferred->location_effects, sizeof(summary.location_effects));
     memcpy(summary.memory_effects, inferred->memory_effects, sizeof(summary.memory_effects));

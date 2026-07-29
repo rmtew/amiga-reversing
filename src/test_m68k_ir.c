@@ -27623,6 +27623,12 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_table");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "callback_context");
+  /* A declared but unobserved table remains policy only.  The collector must
+   * not materialize a durable inferred summary merely by scanning declarations. */
+  policy.function_summaries[1] = policy.function_summaries[0];
+  policy.function_summaries[1].table_offset = 20U;
+  snprintf(policy.function_summaries[1].function_summary_id, sizeof(policy.function_summaries[1].function_summary_id), "unused_callback_context_table");
+  policy.function_summary_count = 2U;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
@@ -27631,10 +27637,13 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68K_C_ASSERT_STR("", analysis.sections[0].address_value_consumers[0].contract_name);
   M68K_C_ASSERT_STR("inferred_callback_s0_o00000018_n1",
     analysis.sections[0].address_value_consumers[0].function_summary_id);
-  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(3U, (uint32_t)analysis.sections[0].function_summary_count);
   M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_STR("unused_callback_context_table", analysis.sections[0].function_summaries[1].function_summary_id);
   M68K_C_ASSERT_STR("inferred_callback_s0_o00000018_n1",
-    analysis.sections[0].function_summaries[1].function_summary_id);
+    analysis.sections[0].function_summaries[2].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE,
+    analysis.sections[0].function_summaries[2].terminal_reason);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE,
     analysis.sections[0].function_summaries[0].callable_kind);
   M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_use_count);

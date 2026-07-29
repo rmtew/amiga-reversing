@@ -91,6 +91,15 @@ static const char *function_summary_effect_component_state_name(uint8_t state, u
   return legacy_unknown != 0U ? "unknown" : "explicit";
 }
 
+static const char *function_summary_terminal_reason_name(uint8_t reason) {
+  switch (reason) {
+    case M68K_FUNCTION_SUMMARY_TERMINAL_NONE: return "none";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED: return "callback_entry_unresolved";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE: return "callback_entry_incompatible";
+    default: return "invalid";
+  }
+}
+
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
   if (kind == M68K_PLATFORM_FILE_OBJECT) return "object";
@@ -4643,10 +4652,11 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_appendf(&builder, ",\"callable_kind\":") != 0 ||
           json_builder_append_json_string(&builder, callable_kind) != 0 ||
           json_builder_appendf(&builder,
-            ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,"
+            ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,\"terminal_reason\":\"%s\","
             "\"effects\":{\"schema_version\":1,\"registers\":{\"state\":\"%s\"",
             (unsigned)summary->callable_section_index, (unsigned)summary->entry_offset,
             (unsigned)summary->table_offset, (unsigned)summary->entry_count,
+            function_summary_terminal_reason_name(summary->terminal_reason),
             function_summary_effect_component_state_name(summary->register_effect_state,
               summary->register_effects_unknown)) != 0) goto oom;
       if (function_summary_effect_component_state_name(summary->register_effect_state,
