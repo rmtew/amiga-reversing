@@ -1195,7 +1195,8 @@ static uint16_t lookup_typed_app_slot_struct_id(const M68kRenderLookup *lookup, 
 static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
   uint8_t requested_mask, uint8_t depth);
-static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, uint8_t preserved_address);
+static void typed_state_apply_function_summary_effects(M68kRenderTypedState *state,
+    const M68kAnalysisFunctionSummary *summary);
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
@@ -2167,17 +2168,22 @@ static void typed_state_clear_non_caller_save_stack_slots(M68kRenderTypedState *
 }
 
 static void typed_state_apply_platform_call_clobbers(uint8_t platform_kind, M68kRenderTypedState *state) {
+  M68kAnalysisFunctionSummary summary;
   uint8_t preserved_data = 0U;
   uint8_t preserved_address = 0U;
   uint8_t bit;
   if (state == NULL) return;
+  memset(&summary, 0, sizeof(summary));
   (void)platform_facts_v2_calling_convention_preserved_data_mask(platform_kind, &preserved_data);
   (void)platform_facts_v2_calling_convention_preserved_address_mask(platform_kind, &preserved_address);
   for (bit = 0U; bit < 8U; ++bit) {
-    if ((preserved_data & (uint8_t)(1U << bit)) == 0U) typed_state_clear_reg(state, 1U, bit);
-    if ((preserved_address & (uint8_t)(1U << bit)) == 0U) typed_state_clear_reg(state, 2U, bit);
+    summary.data_register_effects[bit] = (preserved_data & (uint8_t)(1U << bit)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    summary.address_register_effects[bit] = (preserved_address & (uint8_t)(1U << bit)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
   }
-  typed_state_clear_non_caller_save_stack_slots(state);
+  summary.register_effects_unknown = 0U;
+  typed_state_apply_function_summary_effects(state, &summary);
 }
 
 static void typed_state_set_app_address(M68kRenderTypedState *state, uint8_t reg_index, int16_t displacement,
@@ -4994,6 +5000,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   int source_is_direct_addr_reg = 0;
   int source_tracks_plain_addr_alias = 0;
   int recognized_stack_update = 0;
+  M68kAnalysisFunctionSummary call_effects;
   if (state == NULL || instruction == NULL) return;
   typed_origin_clear(&source_origin);
   typed_provenance_clear(&source_provenance);
@@ -5001,7 +5008,15 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   if (instruction_has_call_flow_local(instruction)) {
     if (locally_preserved_address != 0U) {
       uint8_t preserved_reg;
-      typed_state_apply_local_call_clobbers(state, locally_preserved_address);
+      memset(&call_effects, 0, sizeof(call_effects));
+      call_effects.register_effects_unknown = 0U;
+      for (preserved_reg = 0U; preserved_reg < 8U; ++preserved_reg) {
+        call_effects.data_register_effects[preserved_reg] = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+        call_effects.address_register_effects[preserved_reg] =
+          (locally_preserved_address & (uint8_t)(1U << preserved_reg)) != 0U
+            ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+      }
+      typed_state_apply_function_summary_effects(state, &call_effects);
       /* A locally proven preserved register is a real value-flow edge across
        * this call.  Source and destination are the same physical register;
        * the call instruction offset identifies the contract boundary. */
@@ -5017,7 +5032,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       /* An unresolved direct/indirect call has no preservation contract.
        * Keeping register-held source identities here would turn an unknown
        * callee into an unsound affine transfer. */
-      typed_state_apply_local_call_clobbers(state, 0U);
+      typed_state_apply_function_summary_effects(state, NULL);
     }
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
       instruction->operand_count == 2U && instruction->operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
@@ -10028,7 +10043,8 @@ fail:
   return -1;
 }
 
-static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, uint8_t preserved_address) {
+static void typed_state_apply_function_summary_effects(M68kRenderTypedState *state,
+    const M68kAnalysisFunctionSummary *summary) {
   M68kRenderTypedState old_state;
   M68kRenderTypedStackSlot preserved_stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t preserved_stack_slot_count = 0U;
@@ -10039,19 +10055,19 @@ static void typed_state_apply_local_call_clobbers(M68kRenderTypedState *state, u
     if (old_state.stack_slots[reg].known != 0U && old_state.stack_slots[reg].caller_save_temporary != 0U)
       preserved_stack_slots[preserved_stack_slot_count++] = old_state.stack_slots[reg];
   }
-  typed_state_clear_all(state);
-  for (reg = 0U; reg < 8U; ++reg) {
-    if ((preserved_address & (uint8_t)(1U << reg)) == 0U) continue;
-    state->addr_regs[reg] = old_state.addr_regs[reg];
-    state->app_addr_regs[reg] = old_state.app_addr_regs[reg];
-    state->memory_base_regs[reg] = old_state.memory_base_regs[reg];
-    if (m68k_bitset_u32_has(old_state.addr_reg_alias_known, reg)) {
-      m68k_bitset_u32_set(&state->addr_reg_alias_known, reg);
-      state->addr_reg_alias_source[reg] = old_state.addr_reg_alias_source[reg];
-    }
+  if (summary == NULL || summary->effects_invalid != 0U || summary->register_effects_unknown != 0U) {
+    typed_state_clear_all(state);
+    for (reg = 0U; reg < preserved_stack_slot_count; ++reg) state->stack_slots[reg] = preserved_stack_slots[reg];
+    state->stack_slot_count = preserved_stack_slot_count;
+    return;
   }
-  for (reg = 0U; reg < preserved_stack_slot_count; ++reg) state->stack_slots[reg] = preserved_stack_slots[reg];
-  state->stack_slot_count = preserved_stack_slot_count;
+  for (reg = 0U; reg < 8U; ++reg) {
+    if (summary->data_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_DATA, reg);
+    if (summary->address_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
+  }
+  typed_state_clear_non_caller_save_stack_slots(state);
 }
 
 static void render_lookup_materialize_typed_address_target(M68kRenderLookup *lookup,

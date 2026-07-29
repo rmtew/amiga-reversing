@@ -1051,6 +1051,21 @@ claims, all-path local-return join, callback-table component join, each finite
 collection overflow, and every explicit terminal reason. Only after those
 fixtures pass may a platform or local body writer create a `preserved` effect.
 
+**Common transfer bridge (2026-07-29).** The first reader migration is now in
+place. `typed_state_apply_function_summary_effects` is the sole typed-state
+register application routine for an explicit partition: it preserves only
+locations marked `preserved`, clears every other Dn/An through the normal
+per-register invalidation routine, and applies the existing caller-temporary
+stack policy. Unknown or invalid partitions clear caller-visible typed state.
+The generated platform ABI mask is currently translated into a transient
+complete partition immediately before this routine, and the bounded local
+address proof likewise constructs a complete (data-clobbered/address-partition)
+transient summary. The prior local clobber reader has been deleted. This is a
+bridge, not B3 completion: platform and local/callback discovery still use
+their specialised writers and no durable explicit memory, escape, or stack
+effect is yet admitted. The full C suite and Pandora full-file round trip pass
+with no rendering difference.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
