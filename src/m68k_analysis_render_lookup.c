@@ -1581,6 +1581,32 @@ static void typed_state_invalidate_static_storage_subject(M68kRenderTypedState *
   }
 }
 
+static void typed_state_invalidate_input_subject(M68kRenderTypedState *state,
+    const M68kAnalysisFunctionSummary *summary, uint8_t input_index) {
+  const M68kAnalysisFunctionSummaryInput *input;
+  uint8_t member_index;
+  if (state == NULL || summary == NULL || input_index >= summary->input_count) return;
+  input = &summary->inputs[input_index];
+  if (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+      input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) return;
+  for (member_index = 0U; member_index < input->location.register_count; ++member_index) {
+    uint8_t base_reg = input->location.registers[member_index].register_index;
+    uint8_t candidate;
+    if (input->location.registers[member_index].register_kind != M68K_ANALYSIS_REGISTER_ADDRESS || base_reg >= 8U)
+      continue;
+    /* Field/base slots are indexed by the physical base register.  Include
+     * directly tracked aliases of the ABI input; the underlying pointer can
+     * be preserved while values cached through either spelling become stale. */
+    for (candidate = 0U; candidate < 8U; ++candidate) {
+      if (candidate == base_reg ||
+          (m68k_bitset_u32_has(state->addr_reg_alias_known, candidate) &&
+           state->addr_reg_alias_source[candidate] == base_reg)) {
+        typed_state_clear_base_slots_for_base(state, candidate);
+      }
+    }
+  }
+}
+
 static void typed_origin_clear(M68kRenderTypedStorageOrigin *origin) {
   if (origin == NULL) return;
   memset(origin, 0, sizeof(*origin));
@@ -10603,9 +10629,11 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
       const M68kFunctionSummaryEffectSubjectIR *subject = &summary->memory_effects[reg].subject;
       if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE) {
         typed_state_invalidate_static_storage_subject(state, subject);
+      } else if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT &&
+          subject->input_index < summary->input_count) {
+        typed_state_invalidate_input_subject(state, summary, subject->input_index);
       } else {
-        /* Input and abstract-region writes still lack a stable caller-side
-         * storage identity.  Retain the conservative boundary for them. */
+        /* Abstract regions still lack a stable caller-side storage identity. */
         typed_state_clear_all(state);
         return;
       }
