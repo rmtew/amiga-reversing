@@ -2938,6 +2938,9 @@ static int append_metadata_function_summary_result_local(const char *object_star
   result = &summary->results[summary->result_count];
   memset(result, 0, sizeof(*result));
   if (!append_metadata_function_summary_abi_location_local(location, location_end, &result->location)) return 0;
+  if (result->location.kind != summary->inputs[input_index].location.kind ||
+      result->location.width != summary->inputs[input_index].location.width ||
+      result->location.register_count != summary->inputs[input_index].location.register_count) return 0;
   for (prior = 0U; prior < summary->result_count; ++prior) {
     if (m68k_function_summary_abi_location_equal(&summary->results[prior].location, &result->location)) {
       summary->result_contract_invalid = 1U;
@@ -9000,11 +9003,10 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
     }
     for (input_index = 0U; input_index < summary->input_count; ++input_index) {
       const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
-      if (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
-          input->location.width != 4U || input->location.register_count != 1U ||
-          input->location.registers[0].register_index >= 8U ||
-          (input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_DATA &&
-           input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+      if (!m68k_function_summary_abi_location_is_valid(&input->location) ||
+          (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+           input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE &&
+           input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK) ||
           input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR || input->struct_name[0] == '\0') {
         platform_file_add_error(diagnostics, "target metadata function summary input is invalid");
         return 0;

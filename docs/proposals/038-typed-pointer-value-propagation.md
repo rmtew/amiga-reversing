@@ -1319,15 +1319,13 @@ fallbacks.
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Represent and transfer ordered register-tuple ABI values; parsed tuple
-   locations are not yet typed-state values.
-2. Apply explicit stack, memory, and escape effects with a stable
+1. Apply explicit stack, memory, and escape effects with a stable
    subject-to-storage index.  Until that index exists, conservative clearing
    remains sound but does not provide the required precise effect transfer.
-3. Add the complete focused matrix: direct/callback success and every terminal
+2. Add the complete focused matrix: direct/callback success and every terminal
    failure, stack/memory/escape effects, result-origin escapes, tuple values,
    conflicting summaries, and unknown/incompatible negatives.
-4. Regenerate the required read-only corpus evidence and run the Pandora
+3. Regenerate the required read-only corpus evidence and run the Pandora
    source-analysis, source-quality, assembly, and exact round-trip gates.  The
    current checkout does not expose Pandora as a rendered-source verifier
    target, so that gate remains unclaimed.
@@ -1365,6 +1363,17 @@ effects or retain an alias to a clobberable input register. The C flow fixture
 proves a subsequent typed field access through the output register; the
 DLL-backed C target-metadata fixture proves a `source_kind: "result"` escape
 is parsed and exported only when its location matches the declared result.
+
+**Ordered tuple-result transfer completion (2026-07-29).** `register_tuple`
+locations now require canonical Dn/An order and an aggregate width of exactly
+four bytes per member in both metadata readers. A target-declared identity
+result must have the same location kind, aggregate width, and member count as
+its input. Typed flow seeds each tuple member at the callee boundary, validates
+every input member before writing any output, then transfers the ordered tuple
+atomically from the pre-call snapshot. The C fixture proves a tuple result
+survives an otherwise-invalid call effect and supplies the base for a typed
+field access; the DLL-backed reader fixture also covers tuple result-origin
+escapes.
 
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources

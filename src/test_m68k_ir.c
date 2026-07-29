@@ -27553,6 +27553,94 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   return 0;
 }
 
+static int test_facts_v2_analysis_transfers_tuple_identity_result(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs;
+  size_t index;
+  int result_access_found = 0;
+  uint8_t bytes[0x32] = {0};
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  /* movea.l #callee,a0; movea.l #callee,a1; jsr callee;
+   * move.w $02(a2),d0; rts; callee: rts */
+  bytes[0] = 0x20u; bytes[1] = 0x7cu; bytes[4] = 0x01u; bytes[5] = 0x30u;
+  bytes[6] = 0x22u; bytes[7] = 0x7cu; bytes[10] = 0x01u; bytes[11] = 0x30u;
+  bytes[12] = 0x4eu; bytes[13] = 0xb9u; bytes[16] = 0x01u; bytes[17] = 0x30u;
+  bytes[18] = 0x30u; bytes[19] = 0x2au; bytes[20] = 0x00u; bytes[21] = 0x02u;
+  bytes[22] = 0x4eu; bytes[23] = 0x75u;
+  bytes[0x30] = 0x4eu; bytes[0x31] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "tuple_context");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].offset = 2U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "result_word");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].entry_offset = 0x30U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
+  policy.function_summaries[0].inputs[0].location.width = 8U;
+  policy.function_summaries[0].inputs[0].location.register_count = 2U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
+  policy.function_summaries[0].inputs[0].location.registers[1].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[1].register_index = 1U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].inputs[0].struct_name,
+    sizeof(policy.function_summaries[0].inputs[0].struct_name), "tuple_context");
+  policy.function_summaries[0].result_count = 1U;
+  policy.function_summaries[0].results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  policy.function_summaries[0].results[0].input_index = 0U;
+  policy.function_summaries[0].results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
+  policy.function_summaries[0].results[0].location.width = 8U;
+  policy.function_summaries[0].results[0].location.register_count = 2U;
+  policy.function_summaries[0].results[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].results[0].location.registers[0].register_index = 2U;
+  policy.function_summaries[0].results[0].location.registers[1].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].results[0].location.registers[1].register_index = 3U;
+  policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+  policy.function_summaries[0].effects_invalid = 1U;
+  snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id),
+    "tuple_identity_result");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 18U && access->base_reg == 2U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "tuple_context") == 0 && strcmp(access->field_name, "result_word") == 0)
+      result_access_found = 1;
+  }
+  M68K_C_ASSERT(result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_analysis_records_platform_api_address_value_consumer(void) {
   M68kObject object;
   M68kSection section;
@@ -35097,6 +35185,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_store},
     {"facts_v2_analysis_records_local_function_address_value_consumer",
       test_facts_v2_analysis_records_local_function_address_value_consumer},
+    {"facts_v2_analysis_transfers_tuple_identity_result",
+      test_facts_v2_analysis_transfers_tuple_identity_result},
     {"facts_v2_analysis_records_platform_api_address_value_consumer",
       test_facts_v2_analysis_records_platform_api_address_value_consumer},
     {"facts_v2_analysis_records_callback_address_value_consumer",

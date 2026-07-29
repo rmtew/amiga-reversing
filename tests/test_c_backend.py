@@ -8461,8 +8461,9 @@ def test_real_dll_analysis_api_exposes_source_free_render_index_profile(tmp_path
 def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "identity-result.bin"
-    # movea.l #callee,a0; jsr callee; move.w $02(a1),d0; rts; callee: rts
-    binary_path.write_bytes(bytes.fromhex("207c000000204eb900000020302900024e75") + b"\0" * 14 + b"\x4e\x75")
+    # movea.l #callee,a0; movea.l #callee,a1; jsr callee;
+    # move.w $02(a2),d0; rts; callee: rts
+    binary_path.write_bytes(bytes.fromhex("207c00000030227c000000304eb900000030302a00024e75") + b"\0" * 24 + b"\x4e\x75")
     metadata_path = tmp_path / "target_metadata.json"
     metadata_path.write_text(
         json.dumps(
@@ -8486,7 +8487,7 @@ def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path)
                         "hunk": 0,
                         "inputs": [
                             {
-                                "location": {"kind": "register", "register": "A0", "width": 4},
+                                "location": {"kind": "register_tuple", "registers": ["A0", "A1"], "width": 8},
                                 "struct_name": "callback_context",
                                 "value_kind": "struct_ptr",
                             }
@@ -8494,7 +8495,7 @@ def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path)
                         "results": [
                             {
                                 "kind": "identity_input",
-                                "location": {"kind": "register", "register": "A1", "width": 4},
+                                "location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8},
                                 "input_index": 0,
                             }
                         ],
@@ -8507,7 +8508,7 @@ def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path)
                                 "escapes": [
                                     {
                                         "source_kind": "result",
-                                        "source_location": {"kind": "register", "register": "A1", "width": 4},
+                                        "source_location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8},
                                         "sink_subject": {"kind": "input", "input_index": 0},
                                     }
                                 ],
@@ -8541,14 +8542,14 @@ def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path)
     ]
     assert len(summaries) == 1
     assert summaries[0]["results"] == [
-        {"kind": "identity_input", "location": {"kind": "register", "register": "A1", "width": 4}, "input_index": 0}
+        {"kind": "identity_input", "location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8}, "input_index": 0}
     ]
     assert summaries[0]["effects"]["escapes"] == {
         "state": "explicit",
         "escapes": [
             {
                 "source_kind": "result",
-                "source_location": {"kind": "register", "register": "A1", "width": 4},
+                "source_location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8},
                 "sink_subject": {"kind": "input", "input_index": 0},
             }
         ],

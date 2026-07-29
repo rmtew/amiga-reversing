@@ -57,6 +57,9 @@ int m68k_function_summary_abi_location_is_valid(const M68kFunctionSummaryAbiLoca
          * one-member tuple would give a register two persisted spellings and
          * violate the canonical Python/C schema contract. */
         (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE && location->register_count < 2U) ||
+        (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER && location->width != 4U) ||
+        (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE &&
+         location->width != (uint32_t)location->register_count * 4U) ||
         location->stack_convention != M68K_FUNCTION_SUMMARY_ABI_STACK_NONE || location->stack_offset != 0) return 0;
     for (index = 0U; index < location->register_count; ++index) {
       const M68kFunctionSummaryAbiRegisterMember *member = &location->registers[index];
@@ -3185,6 +3188,22 @@ static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
     for (prior = 0U; prior < index; ++prior)
       if (m68k_function_summary_abi_location_equal(&summary->inputs[prior].location,
           &summary->inputs[index].location)) return 0;
+  }
+  for (index = 0U; index < summary->result_count; ++index) {
+    const M68kFunctionSummaryResultIR *result = &summary->results[index];
+    if (!m68k_function_summary_abi_location_is_valid(&result->location) ||
+        result->kind < M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER ||
+        result->kind > M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) return 0;
+    if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
+      const M68kFunctionSummaryAbiLocation *input_location;
+      if (result->identity_input_index >= summary->input_count) return 0;
+      input_location = &summary->inputs[result->identity_input_index].location;
+      if (result->location.kind != input_location->kind || result->location.width != input_location->width ||
+          result->location.register_count != input_location->register_count) return 0;
+    }
+    for (prior = 0U; prior < index; ++prior)
+      if (m68k_function_summary_abi_location_equal(&summary->results[prior].location,
+          &result->location)) return 0;
   }
   for (index = 0U; index < summary->location_effect_count; ++index) {
     const M68kFunctionSummaryLocationEffectIR *effect = &summary->location_effects[index];

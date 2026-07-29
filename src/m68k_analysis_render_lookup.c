@@ -2094,12 +2094,17 @@ static void typed_state_apply_function_summary_inputs(M68kRenderTypedState *stat
     if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) continue;
     struct_id = lookup_policy_struct_id_by_name(policy, input->struct_name);
     if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
-    if (input->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
-        input->location.register_count == 1U && input->location.registers[0].register_index < 8U &&
-        (input->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ||
-         input->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_ADDRESS)) {
-      typed_state_set_reg_struct_id(state, input->location.registers[0].register_kind,
-        input->location.registers[0].register_index, struct_id, &provenance);
+    if ((input->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+         input->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) &&
+        input->location.register_count != 0U) {
+      uint8_t member_index;
+      for (member_index = 0U; member_index < input->location.register_count; ++member_index) {
+        const M68kFunctionSummaryAbiRegisterMember *member = &input->location.registers[member_index];
+        if (member->register_index >= 8U ||
+            (member->register_kind != M68K_ANALYSIS_REGISTER_DATA &&
+             member->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS)) continue;
+        typed_state_set_reg_struct_id(state, member->register_kind, member->register_index, struct_id, &provenance);
+      }
     } else if (input->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK && input->location.width == 4U &&
         input->location.stack_offset >= INT16_MIN && input->location.stack_offset <= INT16_MAX) {
       M68kRenderTypedStoredValue value;
@@ -2237,25 +2242,31 @@ static void typed_state_apply_direct_function_summary_results(M68kRenderTypedSta
        result_index < M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT; ++result_index) {
     const M68kAnalysisFunctionSummaryResult *result = &summary->results[result_index];
     const M68kAnalysisFunctionSummaryInput *input;
-    const M68kRenderTypedRegValue *source_value;
+    uint8_t member_index;
     uint16_t input_struct_id;
     if (result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT ||
-        result->input_index >= summary->input_count ||
-        result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
-        result->location.width != 4U || result->location.register_count != 1U) continue;
+        result->input_index >= summary->input_count) continue;
     input = &summary->inputs[result->input_index];
     if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-        input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER || input->location.width != 4U ||
-        input->location.register_count != 1U) continue;
+        (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+         input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) ||
+        input->location.kind != result->location.kind || input->location.width != result->location.width ||
+        input->location.register_count != result->location.register_count) continue;
     input_struct_id = lookup_policy_struct_id_by_name(lookup->policy, input->struct_name);
     if (input_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
-    source_value = typed_state_register_value(before_call, input->location.registers[0].register_kind,
-      input->location.registers[0].register_index);
-    if (source_value == NULL || source_value->type_conflicted != 0U ||
-        (source_value->struct_id != AMIGA_OS_STRUCT_ID_NONE && source_value->struct_id != input_struct_id)) continue;
-    typed_state_copy_register_identity_result(state, before_call, result->location.registers[0].register_kind,
-      result->location.registers[0].register_index, input->location.registers[0].register_kind,
-      input->location.registers[0].register_index, input_struct_id);
+    for (member_index = 0U; member_index < input->location.register_count; ++member_index) {
+      const M68kRenderTypedRegValue *source_value = typed_state_register_value(before_call,
+        input->location.registers[member_index].register_kind, input->location.registers[member_index].register_index);
+      if (source_value == NULL || source_value->type_conflicted != 0U ||
+          (source_value->struct_id != AMIGA_OS_STRUCT_ID_NONE && source_value->struct_id != input_struct_id)) break;
+    }
+    if (member_index != input->location.register_count) continue;
+    for (member_index = 0U; member_index < input->location.register_count; ++member_index) {
+      typed_state_copy_register_identity_result(state, before_call,
+        result->location.registers[member_index].register_kind, result->location.registers[member_index].register_index,
+        input->location.registers[member_index].register_kind, input->location.registers[member_index].register_index,
+        input_struct_id);
+    }
   }
 }
 
@@ -4176,17 +4187,18 @@ static int typed_flow_record_local_call_input_consumers(M68kRenderLookup *lookup
     for (input_index = 0U; input_index < summary->input_count; ++input_index) {
       const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
       if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-          input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
-          input->location.register_count != 1U ||
-          input->location.registers[0].register_kind != AMIGA_OS_REGISTER_ADDRESS ||
-          input->location.registers[0].register_index >= 8U ||
+          (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+           input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) ||
           lookup_policy_struct_id_by_name(lookup->policy, input->struct_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
-      if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
-            M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, input->location.registers[0].register_kind,
-            input->location.registers[0].register_index,
-            input->struct_name, NULL, summary->function_summary_id,
-            (uint32_t)target_section_index, target_offset, state) != 0)
-        return -1;
+      for (uint8_t member_index = 0U; member_index < input->location.register_count; ++member_index) {
+        const M68kFunctionSummaryAbiRegisterMember *member = &input->location.registers[member_index];
+        if (member->register_kind != AMIGA_OS_REGISTER_ADDRESS || member->register_index >= 8U) continue;
+        if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
+              M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, member->register_kind, member->register_index,
+              input->struct_name, NULL, summary->function_summary_id,
+              (uint32_t)target_section_index, target_offset, state) != 0)
+          return -1;
+      }
     }
   }
   return 0;

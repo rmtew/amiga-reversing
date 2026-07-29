@@ -310,6 +310,7 @@ class FunctionSummaryAbiLocationMetadata:
         canonical = tuple(register.upper() for register in registers)
         assert canonical == tuple(sorted(canonical, key=lambda value: (0 if value[0] == "D" else 1, value[1])))
         assert len(set(canonical)) == len(canonical)
+        assert width == len(canonical) * 4
         assert set(payload) == {"kind", "registers", "width"}
         return cls(kind=kind, width=width, registers=canonical)
 
@@ -351,6 +352,10 @@ class FunctionSummaryResultMetadata:
         input_index = payload["input_index"]
         assert kind == "identity_input"
         assert isinstance(input_index, int) and 0 <= input_index < len(inputs)
+        input_location = inputs[input_index].location
+        assert location.kind == input_location.kind
+        assert location.width == input_location.width
+        assert len(location.registers) == len(input_location.registers)
         assert set(payload) == {"kind", "location", "input_index"}
         return cls(kind=kind, location=location, input_index=input_index)
 
