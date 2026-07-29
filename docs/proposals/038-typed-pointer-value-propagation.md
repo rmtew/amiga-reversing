@@ -1008,6 +1008,49 @@ writers, local-body/callback aggregation writers, and the single common effect
 application reader. No specialised typed-flow reader may be retained after
 that final migration.
 
+**B3 writer migration design derived from the implementation (2026-07-29).**
+The remaining three readers cannot be relabelled as summary writers:
+
+- `typed_state_apply_platform_call_clobbers` obtains two generated preserved
+  masks directly from the platform calling-convention API and clears the rest
+  of typed state. The generated platform layer must instead construct a
+  complete platform-summary effect partition, including its stack policy,
+  before typed flow sees the call. The typed-flow reader must receive only the
+  selected summary; it may not retain an ABI-mask query as a fallback.
+- `typed_flow_local_callee_preserved_address_mask` is a bounded reachability
+  walk (depth four, fixed work and visited sets) that returns only an
+  address-register bit mask or zero. It has no data-register result, stack
+  partition, memory/escape observations, identity, or terminal-limit reason.
+  Replace it with a local-body summary analyser whose output is a complete
+  common effect partition plus one explicit invalid/unknown reason. Reaching
+  a work, path, recursion, or unsupported-instruction bound invalidates the
+  complete local result; it must not look like a valid empty preservation
+  mask.
+- `typed_flow_callback_table_callee_preserved_address_mask` intersects those
+  masks across table entries. The replacement resolves the existing proved
+  callback-table identity, obtains one complete common summary per entry, and
+  performs the lattice join over every component. A missing entry, unresolved
+  table target, invalid member, or disagreement makes the aggregate unusable;
+  it cannot preserve the coincident register subset while discarding the
+  disagreement.
+
+The explicit-effect IR therefore needs three structural additions before the
+writer migration begins: declared stack-location effects, a reusable stable
+effect-subject record (input, static storage, or named abstract region), and a
+separate escape record with both source location and sink subject. The current
+memory-effect-shaped escape array is insufficient because it cannot name an
+escape sink. Add these to policy and source-analysis IR together, then make
+the persisted `effects` object, C parser, JSON export/import, and fixtures
+describe exactly those identities. Do not implement a partial data/address
+mask parser first: that would create a configuration form the common analyser
+cannot faithfully apply.
+
+The first explicit fixtures must establish the closed-lattice operations before
+the call transfer changes: equality/idempotence, conflicting same-location
+claims, all-path local-return join, callback-table component join, each finite
+collection overflow, and every explicit terminal reason. Only after those
+fixtures pass may a platform or local body writer create a `preserved` effect.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
