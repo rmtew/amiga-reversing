@@ -4689,7 +4689,8 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         for (input_index = 0U; input_index < summary->escape_count; ++input_index) {
           const M68kFunctionSummaryEscapeIR *escape = &summary->escapes[input_index];
           if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-          if (json_builder_append(&builder, "{\"source_location\":") != 0 ||
+          if (json_builder_appendf(&builder, "{\"source_kind\":\"%s\",\"source_location\":",
+                escape->source_kind == M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_RESULT ? "result" : "input") != 0 ||
               append_function_summary_abi_location_json(&builder, &escape->source_location) != 0 ||
               json_builder_append(&builder, ",\"sink_subject\":") != 0 ||
               append_function_summary_effect_subject_json(&builder, &escape->sink_subject) != 0 ||

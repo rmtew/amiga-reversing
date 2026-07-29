@@ -1325,6 +1325,16 @@ subtasks are, in dependency order:
    current checkout does not expose Pandora as a rendered-source verifier
    target, so that gate remains unclaimed.
 
+**Escape-source schema increment (2026-07-29).** The strict target-metadata
+reader and Python metadata projection now require the closed
+`source_kind: "input"` member on every explicit input-origin escape, and the
+source-analysis JSON exporter emits the same member.  The focused metadata
+suite passes (116 tests).  This removes the prior silent input default but is
+not result-origin escape support: target metadata still has no persisted common
+result collection, so `source_kind: "result"` is rejected until result
+declarations are migrated and validation can prove the referenced result
+location.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references, but the strict metadata reader currently

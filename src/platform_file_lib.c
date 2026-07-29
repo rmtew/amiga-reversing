@@ -2399,7 +2399,7 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
   static const char *const escape_explicit_keys[] = {"state", "escapes"};
   static const char *const location_effect_keys[] = {"location", "effect"};
   static const char *const memory_effect_keys[] = {"kind", "subject"};
-  static const char *const escape_keys[] = {"source_location", "sink_subject"};
+  static const char *const escape_keys[] = {"source_kind", "source_location", "sink_subject"};
   const char *effects_end;
   const char *effects = json_object_field_local(object_start, object_end, "effects", &effects_end);
   const char *registers_end;
@@ -2559,7 +2559,9 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       const char *location, *sink;
       M68kFunctionSummaryEscapeIR *escape;
       uint8_t input_index, prior;
+      char source_kind[16];
       if (item == NULL || summary->escape_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT ||
+          !json_optional_string_field_local(item, item_end, "source_kind", source_kind, sizeof(source_kind)) ||
           (location = json_object_field_local(item, item_end, "source_location", &location_end)) == NULL ||
           (sink = json_object_field_local(item, item_end, "sink_subject", &sink_end)) == NULL) return 0;
       if (!json_object_has_only_keys_local(item, item_end, escape_keys,
@@ -2568,6 +2570,7 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       if (!append_metadata_function_summary_abi_location_local(location, location_end, &escape->source_location) ||
           !append_metadata_function_summary_effect_subject_local(sink, sink_end, summary->input_count,
             &escape->sink_subject)) return 0;
+      if (strcmp(source_kind, "input") != 0) return 0;
       escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
       for (input_index = 0U; input_index < summary->input_count; ++input_index) {
         if (m68k_function_summary_abi_location_equal(&escape->source_location, &summary->inputs[input_index].location))

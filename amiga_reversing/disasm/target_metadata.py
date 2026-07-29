@@ -346,7 +346,7 @@ class FunctionSummaryEffectsMetadata:
     escapes_state: str
     register_locations: tuple[tuple[FunctionSummaryAbiLocationMetadata, str], ...] = ()
     memory_effects: tuple[tuple[str, tuple[object, ...]], ...] = ()
-    escapes: tuple[tuple[FunctionSummaryAbiLocationMetadata, tuple[object, ...]], ...] = ()
+    escapes: tuple[tuple[str, FunctionSummaryAbiLocationMetadata, tuple[object, ...]], ...] = ()
 
     @classmethod
     def from_dict(cls, payload: dict[str, object], inputs: tuple[FunctionSummaryInputMetadata, ...]) -> FunctionSummaryEffectsMetadata:
@@ -415,15 +415,16 @@ class FunctionSummaryEffectsMetadata:
             assert len(set(memory_effects)) == len(memory_effects)
         else:
             assert set(memory) == {"state"}
-        escape_records: list[tuple[FunctionSummaryAbiLocationMetadata, tuple[object, ...]]] = []
+        escape_records: list[tuple[str, FunctionSummaryAbiLocationMetadata, tuple[object, ...]]] = []
         if escapes_state == "explicit":
             items = escapes["escapes"]
             assert isinstance(items, list) and set(escapes) == {"state", "escapes"}
             allowed_sources = {item.location for item in inputs}
             for item in items:
                 item_object = _json_object(item); location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(item_object["source_location"]))
-                assert location in allowed_sources and set(item_object) == {"source_location", "sink_subject"}
-                escape_records.append((location, subject(item_object["sink_subject"])))
+                source_kind = item_object["source_kind"]
+                assert source_kind == "input" and location in allowed_sources and set(item_object) == {"source_kind", "source_location", "sink_subject"}
+                escape_records.append((source_kind, location, subject(item_object["sink_subject"])))
             assert len(set(escape_records)) == len(escape_records)
         else:
             assert set(escapes) == {"state"}
@@ -1895,9 +1896,10 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
                     escapes: dict[str, object] = {"state": escapes_state}
                     if escapes_state == "explicit" and isinstance(escape_records, list | tuple):
                         escapes["escapes"] = [
-                            {"source_location": _function_summary_location_payload(location),
+                            {"source_kind": source_kind,
+                             "source_location": _function_summary_location_payload(location),
                              "sink_subject": _function_summary_effect_subject_payload(subject)}
-                            for location, subject in escape_records
+                            for source_kind, location, subject in escape_records
                         ]
                     effects["registers"] = registers
                     effects["memory"] = memory

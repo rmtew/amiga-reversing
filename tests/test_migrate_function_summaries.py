@@ -214,6 +214,7 @@ def test_explicit_effect_schema_round_trips_stack_memory_and_escape_identities()
                 {"kind": "nonaliasing_write", "subject": {"kind": "static_storage", "section_index": 1, "offset": 16}},
             ]},
             "escapes": {"state": "explicit", "escapes": [{
+                "source_kind": "input",
                 "source_location": {"kind": "stack", "offset": 4, "width": 4, "convention": "caller_argument"},
                 "sink_subject": {"kind": "abstract_region", "region_id": "retained_callback_context"},
             }]},
