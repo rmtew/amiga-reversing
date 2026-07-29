@@ -10149,6 +10149,22 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
         M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
       typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
   }
+  for (reg = 0U; reg < summary->memory_effect_count; ++reg) {
+    uint8_t kind = summary->memory_effects[reg].kind;
+    if (kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE ||
+        kind == M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE) {
+      /* The current typed-state store has no stable subject-to-slot index.
+       * Clearing is therefore the only sound application of a proven write;
+       * a later storage-identity index may narrow this without changing the
+       * callable effect contract. */
+      typed_state_clear_all(state);
+      return;
+    }
+  }
+  if (summary->escape_count != 0U) {
+    typed_state_clear_all(state);
+    return;
+  }
   if (summary->location_effect_count == 0U) {
     typed_state_clear_non_caller_save_stack_slots(state);
   } else {
