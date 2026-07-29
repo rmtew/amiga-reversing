@@ -1258,7 +1258,13 @@ writer must therefore be a dedicated post-flow collection phase: first finish
 typed-flow discovery, then compute/cache each stable direct callee and table
 identity, then append their facts and reverse uses in one final source-analysis
 export pass.  It must not add a new summary or use from
-`typed_flow_process_node`.
+`typed_flow_process_node`.  The concrete hook is immediately after
+`render_lookup_analyze_amiga_typed_refs` completes inside
+`m68k_analysis_render_lookup_run_platform_passes`; it precedes the later
+`m68k_analysis_render_lookup_build_source_analysis` section-export pass.  The
+collector receives the completed decode/accepted-start inputs and must not
+depend on transient graph-node state, whose workflow arena is released when
+the typed-flow pass returns.
 
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
