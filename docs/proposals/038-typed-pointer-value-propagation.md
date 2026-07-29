@@ -1045,6 +1045,84 @@ describe exactly those identities. Do not implement a partial data/address
 mask parser first: that would create a configuration form the common analyser
 cannot faithfully apply.
 
+**Required B3 location/identity completion (2026-07-29).** Inspection of the
+implemented B1/B2 IR found a further prerequisite hidden by the earlier
+register-oriented surface: `M68kAnalysisFunctionSummaryInput` and
+`M68kFunctionSummaryResultIR` currently encode only a Dn/An location. A
+separate stack-effect array would therefore still leave a stack input, a stack
+result, and an escape source without the same durable ABI identity. B3 must
+replace those ad-hoc location fields with one closed `FunctionSummaryAbiLocation`
+record used by inputs, results, register/stack effects, and escape sources.
+It has exactly these forms:
+
+- `register`: register class, index, and width;
+- `stack`: signed ABI-relative byte displacement, width, and an explicit
+  ownership/cleanup convention; and
+- `register_tuple`: an ordered non-overlapping set of register members and a
+  total width, for the already-promised multi-register values.
+
+There is no implicit current-SP meaning, omitted width, inferred ownership, or
+anonymous stack slot. A stack location is caller-visible only when its ABI
+convention says so; stack bookkeeping that belongs solely to the callee is not
+an effect fact. Inputs and results must use this record directly, rather than
+retaining register fields beside a stack exception. The existing register-only
+target syntax is replaced in the same schema migration; it is not retained as
+a parser shorthand or compatibility form.
+
+`FunctionSummaryEffectSubject` is likewise one tagged value, not parallel
+input-index and section/offset fields: `input` names an ordered summary input,
+`static_storage` names a section/offset storage owner, and `abstract_region`
+names a non-empty stable region identifier. A memory effect is `{kind,
+subject}`. An escape is `{source_location, sink_subject}` where the source is
+one of the summary's declared ABI locations (including a result) and the sink
+is that same subject type. Memory effect kinds are limited to `read`, `write`,
+`nonaliasing_read`, and `nonaliasing_write`; `escape` is removed from the
+memory-effect enum because an escape is a different relation. Every identity
+has exact equality and validation rules, and duplicates/conflicts are rejected
+at parsing and writer construction rather than normalised late by a renderer.
+
+The canonical explicit persisted shape remains `effects.schema_version: 1` and
+is exhaustive:
+
+```json
+{
+  "registers": {
+    "state": "explicit",
+    "locations": [
+      {"location": {"kind": "register", "register": "A5", "width": 4},
+       "effect": "preserved"},
+      {"location": {"kind": "stack", "offset": 4, "width": 4,
+                    "convention": "caller_argument"}, "effect": "clobbered"}
+    ]
+  },
+  "memory": {"state": "explicit", "effects": []},
+  "escapes": {"state": "explicit", "escapes": []}
+}
+```
+
+For an explicit register component, every caller-visible Dn/An and every
+declared caller-visible ABI stack location must appear exactly once. A result
+location may be declared separately from a preservation location, but no
+location may be contradicted. Explicit memory/escape components list all known
+members and carry their own terminal `invalid` or `overflow` state; their empty
+lists mean proven none, never unknown. The parser must reject unknown keys,
+unknown location kinds, duplicate locations, noncanonical tuple ordering,
+bad input indexes, unknown static owners, empty abstract-region IDs, and a
+mix of an explicit member list with a terminal state. Source-analysis export
+must reproduce this shape losslessly, so source-parser import can construct
+the same IR without a presentation-specific conversion.
+
+This is a replacement of the current register arrays and memory-shaped escape
+array, not an additive wrapper. The implementation order is: first introduce
+the shared ABI-location, subject, memory-effect, and escape records in policy
+and analysis IR with equality/join/validation helpers; then migrate all B1/B2
+input/result readers, writers, copy paths, and tests to those records; then
+widen the one strict `effects` object and its Python/C projection and JSON
+round trip. Only after those foundations pass may the platform, local-body,
+and callback writers populate an explicit partition. This prevents a
+short-lived parser shape that the common model cannot represent and avoids a
+second compatibility model during B3.
+
 The first explicit fixtures must establish the closed-lattice operations before
 the call transfer changes: equality/idempotence, conflicting same-location
 claims, all-path local-return join, callback-table component join, each finite
