@@ -1,9 +1,9 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
 Status: In progress — 2026-07-29. The consumer model, canonical address-value
-ownership, Proposal 039 corpus coverage, and bounded candidate-merge soundness
-are complete. Extension A (canonical indexed-address expressions) is the active
-implementation slice; B--J remain ordered follow-on work.
+ownership, Proposal 039 corpus coverage, bounded candidate-merge soundness, and
+Extension A (canonical indexed, affine, and interior-address expressions) are
+complete. B--J remain ordered follow-on work.
 
 ## Problem
 
@@ -731,9 +731,14 @@ signed-addend overflow and an unknown call both invalidate the affine identity;
 the latter also fixed the pre-existing unsound behaviour in which an unknown
 call retained typed registers without a preservation contract. Pandora now
 exports 278 affine-use evidence records and 67 validated static-interior
-expressions; its full-file reassembly remains exact. Indexed-operand rendering
-and the remaining copy/subtract/CFG-join coverage remain required work; this
-is not an A completion claim.
+expressions; its full-file reassembly remains exact. A separate copy/subtract
+fixture proves that `movea` carries
+the same origin and that `suba` derives the correct negative transfer addend
+before source-quality normalises the final owned interior offset. Companion CFG
+fixtures prove that an identical origin/addend survives a join and that
+different addends invalidate the state. Together with the existing indexed
+table planner fixture, this completes Extension A's expression and rendering
+boundary; no renderer fallback or transfer-local representation remains.
 
 **Planner progress (2026-07-29).** Every selected instruction expression now
 retains the stable `address_expression` identity consumed from source analysis.
@@ -743,8 +748,8 @@ label; it does not infer a selected element or copy table-domain state. The
 finite loop-bounded fixture verifies that plan link, and the Pandora
 `s0:0004D3F0` expression reaches the same common path. A structured-range
 boundary fixture verifies that a zero-addend target cannot be materialised as
-`static_interior`. The remaining affine-transfer work must extend this same
-expression identity rather than create a transfer-local representation.
+`static_interior`. The affine transfer implementation extends this same
+expression identity; it does not create a transfer-local representation.
 
 #### B. Function summaries and callback contracts
 

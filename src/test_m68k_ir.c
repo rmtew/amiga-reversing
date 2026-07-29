@@ -6591,6 +6591,162 @@ static int test_facts_v2_affine_static_interior_expression_addend_overflow_clobb
   return 0;
 }
 
+static int test_facts_v2_affine_static_interior_expression_survives_copy_and_subtract(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[22] = {0x43u, 0xfau, 0x00u, 0x10u, 0x24u, 0x49u, 0x94u, 0xfcu, 0x00u, 0x02u,
+    0x10u, 0x12u, 0x4eu, 0x75u, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 14U;
+  policy.structured_data_items[0].size = 8U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].affine_address_evidence_count);
+  M68K_C_ASSERT_U32(18U, source_analysis.sections[0].affine_address_evidence[0].origin_offset);
+  M68K_C_ASSERT_U32(16U, source_analysis.sections[0].affine_address_evidence[0].target_offset);
+  M68K_C_ASSERT_INT(-2, source_analysis.sections[0].affine_address_evidence[0].signed_addend);
+  {
+    const M68kAddressExpressionIR *expression = NULL;
+    size_t expression_index;
+    for (expression_index = 0U; expression_index < source_analysis.sections[0].address_expression_count;
+         ++expression_index) {
+      const M68kAddressExpressionIR *candidate = &source_analysis.sections[0].address_expressions[expression_index];
+      if (candidate->consumer_offset == 10U && candidate->operand_index == 0U) {
+        expression = candidate;
+        break;
+      }
+    }
+    M68K_C_ASSERT(expression != NULL);
+    M68K_C_ASSERT_U32(14U, expression->base_offset);
+    M68K_C_ASSERT_INT(2, expression->signed_addend);
+  }
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_affine_static_interior_expression_conflicting_join_clobbers(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[28] = {0x43u, 0xfau, 0x00u, 0x12u, 0x67u, 0x06u, 0xd2u, 0xfcu, 0x00u, 0x02u,
+    0x60u, 0x04u, 0xd2u, 0xfcu, 0x00u, 0x04u, 0x10u, 0x11u, 0x4eu, 0x75u,
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 20U;
+  policy.structured_data_items[0].size = 8U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].affine_address_evidence_count);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].address_expression_count);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_affine_static_interior_expression_same_identity_join_survives(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[24] = {0x43u, 0xfau, 0x00u, 0x10u, 0x67u, 0x04u, 0x4eu, 0x71u,
+    0x60u, 0x02u, 0x4eu, 0x71u, 0x10u, 0x11u, 0x4eu, 0x75u,
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 16U;
+  policy.structured_data_items[0].size = 8U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].affine_address_evidence_count);
+  M68K_C_ASSERT_U32(18U, source_analysis.sections[0].affine_address_evidence[0].origin_offset);
+  M68K_C_ASSERT_U32(18U, source_analysis.sections[0].affine_address_evidence[0].target_offset);
+  M68K_C_ASSERT_INT(0, source_analysis.sections[0].affine_address_evidence[0].signed_addend);
+  {
+    const M68kAddressExpressionIR *expression = NULL;
+    size_t expression_index;
+    for (expression_index = 0U; expression_index < source_analysis.sections[0].address_expression_count;
+         ++expression_index) {
+      const M68kAddressExpressionIR *candidate = &source_analysis.sections[0].address_expressions[expression_index];
+      if (candidate->consumer_offset == 12U && candidate->operand_index == 0U) {
+        expression = candidate;
+        break;
+      }
+    }
+    M68K_C_ASSERT(expression != NULL);
+    M68K_C_ASSERT_U32(16U, expression->base_offset);
+    M68K_C_ASSERT_INT(2, expression->signed_addend);
+  }
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
   M68kObject object;
   M68kSection section;
@@ -34121,6 +34277,12 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_affine_static_interior_expression_unknown_call_clobbers},
     {"facts_v2_affine_static_interior_expression_addend_overflow_clobbers",
       test_facts_v2_affine_static_interior_expression_addend_overflow_clobbers},
+    {"facts_v2_affine_static_interior_expression_survives_copy_and_subtract",
+      test_facts_v2_affine_static_interior_expression_survives_copy_and_subtract},
+    {"facts_v2_affine_static_interior_expression_conflicting_join_clobbers",
+      test_facts_v2_affine_static_interior_expression_conflicting_join_clobbers},
+    {"facts_v2_affine_static_interior_expression_same_identity_join_survives",
+      test_facts_v2_affine_static_interior_expression_same_identity_join_survives},
     {"facts_v2_render_asm_source_records_manual_equate_access",
       test_facts_v2_render_asm_source_records_manual_equate_access},
     {"facts_v2_render_asm_source_accepts_reachable_68030_pmmu",
