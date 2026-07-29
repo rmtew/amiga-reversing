@@ -829,6 +829,14 @@ wrapper-specific record. Migrate the current recovered local-wrapper output
 record and its JSON/export path only when this common call-use and return
 representation is present; do not retain it as an adapter or fallback.
 
+The migration is end-to-end: the render lookup's inferred wrapper record, the
+source-analysis IR record, JSON serialization, IR copy/import, and Amiga
+source-parser local-success reconstruction presently share the legacy
+`recovered_local_call_summary` shape. Replace all of those in one change with
+the common summary-return fact. Leaving any one reader or writer on the old
+shape would create a hidden compatibility projection and make source import
+and fresh analysis disagree about the callable's effect.
+
 **Required common summary shape.** One stable callable-summary identity owns
 all of the following, and every direct or indirect call refers to that identity
 rather than copying interface text into a call-site record:
