@@ -81,6 +81,16 @@ static int append_function_summary_effect_subject_json(JsonBuilder *builder,
   return -1;
 }
 
+static const char *function_summary_effect_component_state_name(uint8_t state, uint8_t legacy_unknown) {
+  /* Policy summaries constructed by older in-process writers have no state
+   * field.  Preserve their established boolean semantics while all persisted
+   * metadata and new writers retain the exact terminal state. */
+  if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT) return "explicit";
+  if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID) return "invalid";
+  if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW) return "overflow";
+  return legacy_unknown != 0U ? "unknown" : "explicit";
+}
+
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
   if (kind == M68K_PLATFORM_FILE_OBJECT) return "object";
@@ -4637,8 +4647,10 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
             "\"effects\":{\"schema_version\":1,\"registers\":{\"state\":\"%s\"",
             (unsigned)summary->callable_section_index, (unsigned)summary->entry_offset,
             (unsigned)summary->table_offset, (unsigned)summary->entry_count,
-            summary->register_effects_unknown != 0U ? "unknown" : "explicit") != 0) goto oom;
-      if (summary->register_effects_unknown == 0U) {
+            function_summary_effect_component_state_name(summary->register_effect_state,
+              summary->register_effects_unknown)) != 0) goto oom;
+      if (function_summary_effect_component_state_name(summary->register_effect_state,
+          summary->register_effects_unknown)[0] == 'e') {
         if (json_builder_append(&builder, ",\"locations\":[") != 0) goto oom;
         for (input_index = 0U; input_index < summary->location_effect_count; ++input_index) {
           const M68kFunctionSummaryLocationEffectIR *effect = &summary->location_effects[input_index];
@@ -4651,8 +4663,10 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         if (json_builder_append(&builder, "]") != 0) goto oom;
       }
       if (json_builder_appendf(&builder, "},\"memory\":{\"state\":\"%s\"",
-          summary->memory_effects_unknown != 0U ? "unknown" : "explicit") != 0) goto oom;
-      if (summary->memory_effects_unknown == 0U) {
+          function_summary_effect_component_state_name(summary->memory_effect_state,
+            summary->memory_effects_unknown)) != 0) goto oom;
+      if (function_summary_effect_component_state_name(summary->memory_effect_state,
+          summary->memory_effects_unknown)[0] == 'e') {
         if (json_builder_append(&builder, ",\"effects\":[") != 0) goto oom;
         for (input_index = 0U; input_index < summary->memory_effect_count; ++input_index) {
           const M68kFunctionSummaryMemoryEffectIR *effect = &summary->memory_effects[input_index];
@@ -4667,8 +4681,10 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         if (json_builder_append(&builder, "]") != 0) goto oom;
       }
       if (json_builder_appendf(&builder, "},\"escapes\":{\"state\":\"%s\"",
-          summary->escape_effects_unknown != 0U ? "unknown" : "explicit") != 0) goto oom;
-      if (summary->escape_effects_unknown == 0U) {
+          function_summary_effect_component_state_name(summary->escape_effect_state,
+            summary->escape_effects_unknown)) != 0) goto oom;
+      if (function_summary_effect_component_state_name(summary->escape_effect_state,
+          summary->escape_effects_unknown)[0] == 'e') {
         if (json_builder_append(&builder, ",\"escapes\":[") != 0) goto oom;
         for (input_index = 0U; input_index < summary->escape_count; ++input_index) {
           const M68kFunctionSummaryEscapeIR *escape = &summary->escapes[input_index];

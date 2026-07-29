@@ -2427,15 +2427,36 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       !json_optional_string_field_local(memory, memory_end, "state", memory_state, sizeof(memory_state)) ||
       !json_optional_string_field_local(escapes, escapes_end, "state", escape_state, sizeof(escape_state))) return 0;
   summary->return_contract_unknown = 1U;
+  if (strcmp(register_state, "unknown") == 0)
+    summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  else if (strcmp(register_state, "explicit") == 0)
+    summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  else if (strcmp(register_state, "invalid") == 0)
+    summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+  else if (strcmp(register_state, "overflow") == 0)
+    summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW;
+  else return 0;
+  if (strcmp(memory_state, "unknown") == 0)
+    summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  else if (strcmp(memory_state, "explicit") == 0)
+    summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  else if (strcmp(memory_state, "invalid") == 0)
+    summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+  else if (strcmp(memory_state, "overflow") == 0)
+    summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW;
+  else return 0;
+  if (strcmp(escape_state, "unknown") == 0)
+    summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  else if (strcmp(escape_state, "explicit") == 0)
+    summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  else if (strcmp(escape_state, "invalid") == 0)
+    summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+  else if (strcmp(escape_state, "overflow") == 0)
+    summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW;
+  else return 0;
   summary->register_effects_unknown = strcmp(register_state, "unknown") == 0 ? 1U : 0U;
   summary->memory_effects_unknown = strcmp(memory_state, "unknown") == 0 ? 1U : 0U;
   summary->escape_effects_unknown = strcmp(escape_state, "unknown") == 0 ? 1U : 0U;
-  if ((strcmp(register_state, "unknown") != 0 && strcmp(register_state, "explicit") != 0 &&
-       strcmp(register_state, "invalid") != 0 && strcmp(register_state, "overflow") != 0) ||
-      (strcmp(memory_state, "unknown") != 0 && strcmp(memory_state, "explicit") != 0 &&
-       strcmp(memory_state, "invalid") != 0 && strcmp(memory_state, "overflow") != 0) ||
-      (strcmp(escape_state, "unknown") != 0 && strcmp(escape_state, "explicit") != 0 &&
-       strcmp(escape_state, "invalid") != 0 && strcmp(escape_state, "overflow") != 0)) return 0;
   if (strcmp(register_state, "invalid") == 0 || strcmp(register_state, "overflow") == 0 ||
       strcmp(memory_state, "invalid") == 0 || strcmp(memory_state, "overflow") == 0 ||
       strcmp(escape_state, "invalid") == 0 || strcmp(escape_state, "overflow") == 0) summary->effects_invalid = 1U;

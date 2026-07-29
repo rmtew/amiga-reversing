@@ -27478,6 +27478,8 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
   policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+  policy.function_summaries[0].effects_invalid = 1U;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_arg");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "callback_context");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
@@ -27500,6 +27502,7 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_id\":\"callback_context_arg\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"registers\":{\"state\":\"invalid\"}") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_use_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"use_kind\":\"call\"") != NULL);
   free(analysis_json);

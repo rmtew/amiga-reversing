@@ -2193,6 +2193,11 @@ static void function_summary_set_register_partition(M68kAnalysisFunctionSummary 
   uint8_t bit;
   if (summary == NULL) return;
   summary->register_effects_unknown = 0U;
+  summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  summary->memory_effects_unknown = 0U;
+  summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  summary->escape_effects_unknown = 0U;
+  summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
   summary->location_effect_count = 0U;
   for (bit = 0U; bit < 8U; ++bit) {
     M68kFunctionSummaryLocationEffectIR *data_effect = &summary->location_effects[summary->location_effect_count++];
@@ -7403,6 +7408,9 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.register_effects_unknown = configured->register_effects_unknown;
     summary.memory_effects_unknown = configured->memory_effects_unknown;
     summary.escape_effects_unknown = configured->escape_effects_unknown;
+    summary.register_effect_state = configured->register_effect_state;
+    summary.memory_effect_state = configured->memory_effect_state;
+    summary.escape_effect_state = configured->escape_effect_state;
     summary.memory_effect_count = configured->memory_effect_count;
     summary.escape_count = configured->escape_count;
     summary.effects_invalid = configured->effects_invalid;

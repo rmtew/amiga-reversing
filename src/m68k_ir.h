@@ -193,6 +193,17 @@ typedef struct M68kFunctionSummaryEscapeIR {
   M68kFunctionSummaryEffectSubjectIR sink_subject;
 } M68kFunctionSummaryEscapeIR;
 
+/* Every effect component has its own terminal identity.  A global invalid
+ * flag remains a transfer fast-path, but cannot replace this state in the
+ * persisted/source-analysis schema because it loses which component failed
+ * and whether the bound overflowed. */
+typedef enum M68kFunctionSummaryEffectComponentState {
+  M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN = 0,
+  M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT = 1,
+  M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID = 2,
+  M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW = 3
+} M68kFunctionSummaryEffectComponentState;
+
 int m68k_function_summary_abi_location_is_valid(const M68kFunctionSummaryAbiLocation *location);
 int m68k_function_summary_abi_location_equal(const M68kFunctionSummaryAbiLocation *left,
   const M68kFunctionSummaryAbiLocation *right);
@@ -215,6 +226,9 @@ typedef struct M68kAnalysisFunctionSummary {
   uint8_t register_effects_unknown;
   uint8_t memory_effects_unknown;
   uint8_t escape_effects_unknown;
+  uint8_t register_effect_state;
+  uint8_t memory_effect_state;
+  uint8_t escape_effect_state;
   uint8_t memory_effect_count;
   uint8_t escape_count;
   uint8_t effects_invalid;
@@ -1615,6 +1629,9 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t register_effects_unknown;
   uint8_t memory_effects_unknown;
   uint8_t escape_effects_unknown;
+  uint8_t register_effect_state;
+  uint8_t memory_effect_state;
+  uint8_t escape_effect_state;
   uint8_t result_count;
   uint8_t result_contract_invalid;
   uint8_t memory_effect_count;
