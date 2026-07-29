@@ -108,6 +108,7 @@ def test_active_source_import_boundaries_are_current() -> None:
         "shutil",
         "shlex",
         "subprocess",
+        "struct",
         "sys",
         "tempfile",
         "threading",
