@@ -6839,7 +6839,13 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     uint8_t reg;
     if (typed_flow_local_call_target(lookup, node->candidate, &target_section_index, &target_offset)) {
       local_call_target_known = 1U;
-      selected_local_effects = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset);
+      /* A target-declared summary is the durable callable contract.  Inferred
+       * local effects remain useful only when no declared direct contract
+       * exists; selecting them first silently discarded explicit stack,
+       * memory, and escape facts at the very call they describe. */
+      selected_local_effects = lookup_configured_direct_function_summary(lookup, target_section_index, target_offset);
+      if (selected_local_effects == NULL)
+        selected_local_effects = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset);
       if (selected_local_effects == NULL) {
         for (reg = 0U; reg < 8U; ++reg) {
           if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
