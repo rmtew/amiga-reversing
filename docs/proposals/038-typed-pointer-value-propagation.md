@@ -1319,9 +1319,12 @@ fallbacks.
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Apply target-declared identity results at a proven call and add a focused
-   result-origin escape fixture through the C target-metadata reader. The
-   persisted identity-result and escape-validation schema is complete.
+1. Add a focused result-origin escape fixture through the C target-metadata
+   reader. Target-declared identity results now transfer only at an exact
+   direct-call match, from a compatible declared input to one unambiguous
+   register output after the call's effect application; the C fixture proves
+   that the returned register drives a typed field access. The persisted
+   identity-result and escape-validation schema is complete.
 2. Represent and transfer ordered register-tuple ABI values; parsed tuple
    locations are not yet typed-state values.
 3. Apply explicit stack, memory, and escape effects with a stable
