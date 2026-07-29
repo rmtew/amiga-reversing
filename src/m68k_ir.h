@@ -1495,13 +1495,20 @@ typedef struct M68kFunctionSummaryIR {
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
 } M68kFunctionSummaryIR;
 
+typedef enum M68kFunctionSummaryUseKind {
+  M68K_FUNCTION_SUMMARY_USE_CALL = 1,
+  M68K_FUNCTION_SUMMARY_USE_INPUT = 2
+} M68kFunctionSummaryUseKind;
+
 /* Reverse edge owned by the summary's defining section/table.  The caller
  * coordinates are stable across source-analysis exports, unlike a transient
- * per-section array index. */
+ * per-section array index.  A call use exists even with no pointer input;
+ * input uses retain the narrower address-value consumer relation. */
 typedef struct M68kFunctionSummaryUseIR {
   char function_summary_id[96];
   uint32_t caller_section_index;
   uint32_t caller_offset;
+  uint8_t kind;
   uint8_t consumer_kind;
   uint8_t operand_index;
   uint8_t register_kind;

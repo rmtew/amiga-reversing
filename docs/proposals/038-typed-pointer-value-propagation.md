@@ -814,6 +814,21 @@ register-effect, and memory-effect facts `unknown`;
 it makes no new interprocedural preservation or rendering claim until those
 effects are implemented by the remaining B work.
 
+**Return-migration sequencing.** The summary graph now has one first-class
+call-use edge independent of an address-value input consumer. A call can use a
+summary solely for a returned value, preservation/clobber partition, or memory
+effect, and therefore cannot be represented by inventing a pointer input
+consumer. The edge records stable caller coordinates, summary identity, and
+the exact applicable interface role; input-consumer edges remain the reverse
+edges for proven pointer arguments only. The next B slice adds a
+platform-derived summary that
+uses the same callable and call-use facts as a target-declared one, but marks
+its return as `platform_output` and references the stable generated Amiga
+library/function/output IDs. It must not copy an OS type/name into a
+wrapper-specific record. Migrate the current recovered local-wrapper output
+record and its JSON/export path only when this common call-use and return
+representation is present; do not retain it as an adapter or fallback.
+
 **Required common summary shape.** One stable callable-summary identity owns
 all of the following, and every direct or indirect call refers to that identity
 rather than copying interface text into a call-site record:

@@ -27486,13 +27486,16 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].function_summaries[0].function_summary_id);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT,
     analysis.sections[0].function_summaries[0].callable_kind);
-  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_use_count);
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_use_count);
   M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].function_summary_uses[0].function_summary_id);
   M68K_C_ASSERT_U32(6U, analysis.sections[0].function_summary_uses[0].caller_offset);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_USE_CALL, analysis.sections[0].function_summary_uses[0].kind);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_USE_INPUT, analysis.sections[0].function_summary_uses[1].kind);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_id\":\"callback_context_arg\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_use_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_use_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"use_kind\":\"call\"") != NULL);
   free(analysis_json);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(analysis.sections[0].address_values[0].id,
@@ -27619,9 +27622,11 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].function_summaries[0].function_summary_id);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE,
     analysis.sections[0].function_summaries[0].callable_kind);
-  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_use_count);
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_use_count);
   M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].function_summary_uses[0].function_summary_id);
   M68K_C_ASSERT_U32(10U, analysis.sections[0].function_summary_uses[0].caller_offset);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_USE_CALL, analysis.sections[0].function_summary_uses[0].kind);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_USE_INPUT, analysis.sections[0].function_summary_uses[1].kind);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
   m68k_ir_source_analysis_destroy(&analysis);
@@ -28024,6 +28029,8 @@ static int test_facts_v2_render_asm_source_applies_callback_table_signature(void
   policy.function_summaries[0].inputs[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
   policy.function_summaries[0].inputs[0].register_index = 5U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].function_summary_id,
+    sizeof(policy.function_summaries[0].function_summary_id), "callback_world_object_context");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "world_object_shared_prefix");
   policy.register_seed_count = 1U;
   policy.register_seeds[0].has_section_index = 1U;

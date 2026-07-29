@@ -4001,6 +4001,15 @@ static int typed_flow_record_local_call_input_consumers(M68kRenderLookup *lookup
     uint8_t input_index;
     if (!summary->has_section_index || summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT ||
         summary->section_index != (uint32_t)target_section_index || summary->entry_offset != target_offset) continue;
+    {
+      M68kFunctionSummaryUseIR use;
+      memset(&use, 0, sizeof(use));
+      snprintf(use.function_summary_id, sizeof(use.function_summary_id), "%s", summary->function_summary_id);
+      use.caller_section_index = (uint32_t)section_index;
+      use.caller_offset = offset;
+      use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
+      if (render_lookup_add_function_summary_use(lookup, &use) != 0) return -1;
+    }
     for (input_index = 0U; input_index < summary->input_count; ++input_index) {
       const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
       if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
@@ -4039,6 +4048,15 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
     table_section = &lookup->object->sections[summary->section_index];
     if (table_section->data == NULL || summary->table_offset > table_section->size ||
         summary->entry_count > (table_section->size - summary->table_offset) / 4U) continue;
+    {
+      M68kFunctionSummaryUseIR use;
+      memset(&use, 0, sizeof(use));
+      snprintf(use.function_summary_id, sizeof(use.function_summary_id), "%s", summary->function_summary_id);
+      use.caller_section_index = (uint32_t)section_index;
+      use.caller_offset = offset;
+      use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
+      if (render_lookup_add_function_summary_use(lookup, &use) != 0) return -1;
+    }
     for (input_index = 0U; input_index < summary->input_count; ++input_index) {
       const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
       if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
@@ -4235,6 +4253,32 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
   return 0;
 }
 
+int render_lookup_add_function_summary_use(M68kRenderLookup *lookup, const M68kFunctionSummaryUseIR *use) {
+  M68kFunctionSummaryUseIR *grown;
+  size_t index, next_capacity;
+  if (lookup == NULL || use == NULL || use->function_summary_id[0] == '\0' ||
+      (use->kind != M68K_FUNCTION_SUMMARY_USE_CALL && use->kind != M68K_FUNCTION_SUMMARY_USE_INPUT)) return -1;
+  for (index = 0U; index < lookup->function_summary_use_count; ++index) {
+    const M68kFunctionSummaryUseIR *existing = &lookup->function_summary_uses[index];
+    if (existing->caller_section_index == use->caller_section_index &&
+        existing->caller_offset == use->caller_offset && existing->kind == use->kind &&
+        existing->consumer_kind == use->consumer_kind && existing->operand_index == use->operand_index &&
+        existing->register_kind == use->register_kind && existing->register_index == use->register_index &&
+        strcmp(existing->function_summary_id, use->function_summary_id) == 0) return 0;
+  }
+  if (lookup->function_summary_use_count == lookup->function_summary_use_capacity) {
+    next_capacity = lookup->function_summary_use_capacity == 0U ? 16U :
+      lookup->function_summary_use_capacity * 2U;
+    grown = (M68kFunctionSummaryUseIR *)render_lookup_grow_array(lookup, lookup->function_summary_uses,
+      lookup->function_summary_use_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->function_summary_uses = grown;
+    lookup->function_summary_use_capacity = next_capacity;
+  }
+  lookup->function_summary_uses[lookup->function_summary_use_count++] = *use;
+  return 0;
+}
+
 static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t kind, uint8_t reg_kind, uint8_t reg_index, const char *pointee_struct_name,
     const char *contract_name, const char *function_summary_id, uint32_t contract_section_index, uint32_t contract_offset,
@@ -4259,6 +4303,19 @@ static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, si
   snprintf(fact.contract_name, sizeof(fact.contract_name), "%s", contract_name != NULL ? contract_name : "");
   snprintf(fact.function_summary_id, sizeof(fact.function_summary_id), "%s",
     function_summary_id != NULL ? function_summary_id : "");
+  if (fact.function_summary_id[0] != '\0') {
+    M68kFunctionSummaryUseIR use;
+    memset(&use, 0, sizeof(use));
+    snprintf(use.function_summary_id, sizeof(use.function_summary_id), "%s", fact.function_summary_id);
+    use.caller_section_index = (uint32_t)section_index;
+    use.caller_offset = offset;
+    use.kind = M68K_FUNCTION_SUMMARY_USE_INPUT;
+    use.consumer_kind = kind;
+    use.operand_index = reg_index;
+    use.register_kind = reg_kind;
+    use.register_index = reg_index;
+    if (render_lookup_add_function_summary_use(lookup, &use) != 0) return -1;
+  }
   return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, &value, NULL);
 }
 
@@ -7280,20 +7337,11 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     memcpy(summary.inputs, configured->inputs, sizeof(summary.inputs));
     if (m68k_ir_section_analysis_append_function_summary(section_analysis, &summary) != 0) return -1;
     {
-      size_t consumer_index;
-      for (consumer_index = 0U; consumer_index < lookup->address_value_consumer_count; ++consumer_index) {
-        const M68kRenderTypedAddressConsumer *observed = &lookup->address_value_consumers[consumer_index];
-        M68kFunctionSummaryUseIR use;
-        if (strcmp(observed->fact.function_summary_id, configured->function_summary_id) != 0) continue;
-        memset(&use, 0, sizeof(use));
-        snprintf(use.function_summary_id, sizeof(use.function_summary_id), "%s", configured->function_summary_id);
-        use.caller_section_index = (uint32_t)observed->section_index;
-        use.caller_offset = observed->fact.offset;
-        use.consumer_kind = observed->fact.kind;
-        use.operand_index = observed->fact.operand_index;
-        use.register_kind = observed->fact.register_kind;
-        use.register_index = observed->fact.register_index;
-        if (m68k_ir_section_analysis_append_function_summary_use(section_analysis, &use) != 0) return -1;
+      size_t use_index;
+      for (use_index = 0U; use_index < lookup->function_summary_use_count; ++use_index) {
+        const M68kFunctionSummaryUseIR *use = &lookup->function_summary_uses[use_index];
+        if (strcmp(use->function_summary_id, configured->function_summary_id) != 0) continue;
+        if (m68k_ir_section_analysis_append_function_summary_use(section_analysis, use) != 0) return -1;
       }
     }
   }

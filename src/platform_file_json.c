@@ -323,6 +323,14 @@ static const char *address_value_consumer_kind_name(uint8_t kind) {
   }
 }
 
+static const char *function_summary_use_kind_name(uint8_t kind) {
+  switch (kind) {
+  case M68K_FUNCTION_SUMMARY_USE_CALL: return "call";
+  case M68K_FUNCTION_SUMMARY_USE_INPUT: return "input";
+  default: return "invalid";
+  }
+}
+
 static const char *pointer_store_destination_kind_name(uint8_t destination_kind) {
   switch (destination_kind) {
   case M68K_POINTER_STORE_DESTINATION_STRUCT_FIELD: return "struct_field";
@@ -4610,9 +4618,11 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (json_builder_append(&builder, "{\"function_summary_id\":") != 0 ||
           json_builder_append_json_string(&builder, use->function_summary_id) != 0 ||
           json_builder_appendf(&builder,
-            ",\"caller_section_index\":%u,\"caller_offset\":%u,\"consumer_kind_id\":%u,"
-            "\"consumer_kind\":",
+            ",\"caller_section_index\":%u,\"caller_offset\":%u,\"use_kind_id\":%u,\"use_kind\":",
             (unsigned)use->caller_section_index, (unsigned)use->caller_offset,
+            (unsigned)use->kind) != 0 ||
+          json_builder_append_json_string(&builder, function_summary_use_kind_name(use->kind)) != 0 ||
+          json_builder_appendf(&builder, ",\"consumer_kind_id\":%u,\"consumer_kind\":",
             (unsigned)use->consumer_kind) != 0 ||
           json_builder_append_json_string(&builder, address_value_consumer_kind_name(use->consumer_kind)) != 0 ||
           json_builder_appendf(&builder, ",\"operand_index\":%u,\"register_kind\":%u,\"register_index\":%u}",

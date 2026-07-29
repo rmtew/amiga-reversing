@@ -746,6 +746,9 @@ struct M68kRenderLookup {
   M68kRenderTypedAddressConsumer *address_value_consumers;
   size_t address_value_consumer_count;
   size_t address_value_consumer_capacity;
+  M68kFunctionSummaryUseIR *function_summary_uses;
+  size_t function_summary_use_count;
+  size_t function_summary_use_capacity;
   M68kRenderBootblockDiskRead *bootblock_disk_reads;
   size_t bootblock_disk_read_count;
   size_t bootblock_disk_read_capacity;
@@ -911,7 +914,8 @@ int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t se
   uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
   const PlatformFactsV2CallInput *input);
 int render_lookup_add_recovered_local_call_summary(M68kRenderLookup *lookup, size_t section_index,
-  uint32_t target_offset, const AmigaOsLibraryVectorInfo *vector);
+    uint32_t target_offset, const AmigaOsLibraryVectorInfo *vector);
+int render_lookup_add_function_summary_use(M68kRenderLookup *lookup, const M68kFunctionSummaryUseIR *use);
 int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   int16_t displacement, const AmigaOsCallOutputInfo *output);
 int render_lookup_add_typed_app_slot(M68kRenderLookup *lookup, int16_t displacement, uint16_t struct_id,

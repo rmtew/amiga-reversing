@@ -3099,7 +3099,8 @@ int m68k_ir_section_analysis_append_function_summary_use(M68kSectionAnalysisIR *
   for (index = 0U; index < section_analysis->function_summary_use_count; ++index) {
     const M68kFunctionSummaryUseIR *existing = &section_analysis->function_summary_uses[index];
     if (existing->caller_section_index == use->caller_section_index &&
-        existing->caller_offset == use->caller_offset && existing->consumer_kind == use->consumer_kind &&
+        existing->caller_offset == use->caller_offset && existing->kind == use->kind &&
+        existing->consumer_kind == use->consumer_kind &&
         existing->operand_index == use->operand_index && existing->register_kind == use->register_kind &&
         existing->register_index == use->register_index &&
         strcmp(existing->function_summary_id, use->function_summary_id) == 0) return 0;
