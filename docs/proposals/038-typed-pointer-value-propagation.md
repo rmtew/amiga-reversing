@@ -1280,6 +1280,28 @@ The full C suite passes for this staged lifecycle.  It does not yet satisfy
 the required callback, failure-reason, stack/memory/escape, or complete
 fixture gates.
 
+**Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
+subtasks are, in dependency order:
+
+1. Materialize callback-table summaries after typed-flow convergence by
+   resolving the completed table identity, intersecting the durable direct
+   entry summaries, and exporting one table-owned fact plus reverse uses.
+2. Migrate callable result declarations into the common persisted/source-
+   analysis summary shape, then add the closed escape `source_kind` field so
+   input- and result-origin escapes validate and round-trip losslessly.
+3. Represent and transfer ordered register-tuple ABI values; parsed tuple
+   locations are not yet typed-state values.
+4. Apply explicit stack, memory, and escape effects with a stable
+   subject-to-storage index.  Until that index exists, conservative clearing
+   remains sound but does not provide the required precise effect transfer.
+5. Add the complete focused matrix: direct/callback success and every terminal
+   failure, stack/memory/escape effects, result-origin escapes, tuple values,
+   conflicting summaries, and unknown/incompatible negatives.
+6. Regenerate the required read-only corpus evidence and run the Pandora
+   source-analysis, source-quality, assembly, and exact round-trip gates.  The
+   current checkout does not expose Pandora as a rendered-source verifier
+   target, so that gate remains unclaimed.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references, but the strict metadata reader currently
