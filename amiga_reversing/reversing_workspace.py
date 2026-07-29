@@ -59,6 +59,15 @@ LOCAL_VERIFIER_STATE_FILE_NAMES = frozenset(
 )
 
 
+def _is_manual_action_migration_archive(name: str) -> bool:
+    return name.startswith("manual_actions.") and (
+        name.endswith(".migration-report.json")
+        or name.endswith(".migration.json")
+        or (name.startswith("manual_actions.pre-") or name.startswith("manual_actions.pre_"))
+        and name.endswith(".jsonl")
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class TargetFileInventoryEntry:
     path: str
@@ -260,6 +269,13 @@ def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
             TargetFileClass.LOCAL_VERIFIER_STATE,
             TargetFileAction.REGENERATE_ON_CLEAN_RUN,
             "local verifier artifacts are current-state evidence and can be regenerated after clean-run",
+        )
+    if is_target_local and _is_manual_action_migration_archive(name):
+        return TargetFileInventoryEntry(
+            rel_path,
+            TargetFileClass.AGENT_AUDIT,
+            TargetFileAction.PRESERVE_AGENT_AUDIT,
+            "deterministic manual-action migration archive is audit evidence",
         )
     if is_target_local and name in OBSOLETE_UI_STATE_FILE_NAMES:
         return TargetFileInventoryEntry(

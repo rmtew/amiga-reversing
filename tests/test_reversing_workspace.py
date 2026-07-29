@@ -101,6 +101,19 @@ def test_hygiene_classifies_decision_verifier_artifacts_as_local_verifier_state(
     assert report.safe_to_clean_run is True
 
 
+def test_hygiene_preserves_manual_action_migration_archives(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "manual_actions.pre-effects-v1.jsonl")
+    _touch(target_dir / "manual_actions.effects-v1.migration-report.json")
+
+    report = inspect_target_hygiene("demo", project_root=tmp_path)
+
+    assert _entry(report, "manual_actions.pre-effects-v1.jsonl")["class"] == TargetFileClass.AGENT_AUDIT
+    assert _entry(report, "manual_actions.effects-v1.migration-report.json")["action"] == \
+        TargetFileAction.PRESERVE_AGENT_AUDIT
+    assert report.unknown_files == ()
+
+
 def test_hygiene_marks_unknown_files_unsafe(tmp_path: Path) -> None:
     target_dir = _target(tmp_path)
     _touch(target_dir / "notes.json")
