@@ -1260,15 +1260,18 @@ null/sentinel values, and values invalidated by a clobber do not acquire an
 address identity or a symbolic rendering.
 
 For durable action-schema replacement, provide one explicit, versioned
-off-line migration command that rewrites every affected target's local action
-log from the retired fact to the new fact while preserving action ordering,
-action identity, and create/remove meaning. It validates the complete input
-log before writing, produces a deterministic migration report naming every
-converted identity, and refuses unknown or conflicting legacy payloads. The
-new runtime accepts only the new action schema; it never reads, projects, or
-silently translates retired action kinds. The migration command is conversion
-tooling, not a runtime fallback, and its fixture proves that a retired action
-record is rejected after migration.
+off-line migration command that validates an entire affected target's local
+action log, computes its active semantic state, and writes one canonical
+summary fact per callable. Its deterministic migration report preserves every
+source action identity and ordering, names the new summary identity and all
+absorbed input facts, and records each retired create/remove's resulting
+semantic state. This report is the historical audit artifact; the new log need
+not preserve a one-to-one event shape when several retired inputs become one
+summary. The command refuses unknown or conflicting legacy payloads before it
+writes. The new runtime accepts only the new action schema; it never reads,
+projects, or silently translates retired action kinds. The migration command
+is conversion tooling, not a runtime fallback, and its fixture proves that a
+retired action record is rejected after migration.
 
 ### Research-backed sequencing and common completion gate
 
