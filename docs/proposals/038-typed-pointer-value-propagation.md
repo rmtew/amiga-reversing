@@ -3,9 +3,10 @@
 Status: In progress — 2026-07-29. The consumer model, canonical address-value
 ownership, Proposal 039 corpus coverage, bounded candidate-merge soundness, and
 Extension A (canonical indexed, affine, and interior-address expressions) are
-complete. Extension B's input-contract/common-summary configuration, typed-flow
-migration, and source-analysis graph export are complete, but its return,
-preservation/clobber, escape, and memory-effect work remains. C--J
+complete. Extension B's input-contract/common-summary configuration, callable-result
+migration, and source-analysis graph export are complete. Its effect lattice
+is introduced in the common IR, but the persisted effect schema,
+projection/import, effect writers, and common call transfer remain. C--J
 remain ordered follow-on work.
 
 ## Problem
@@ -809,10 +810,11 @@ and exports both directions of every proven input edge. Call-site consumers
 carry an explicit `function_summary_id`; summary owners carry reverse caller
 coordinates, rather than reports reconstructing either relationship from
 policy or an overloaded contract-name string. The corpus/report surface
-consumes that explicit ID. This slice deliberately marks return,
-register-effect, and memory-effect facts `unknown`;
-it makes no new interprocedural preservation or rendering claim until those
-effects are implemented by the remaining B work.
+consumes that explicit ID. This slice originally marked return, register-effect,
+and memory-effect facts `unknown`; B1/B2 below have since replaced the
+wrapper-specific return path. They make no preservation, escape, or
+memory-effect claim until B3 supplies a complete effect partition and its
+common call transfer.
 
 **Prepared remaining B slice (2026-07-29).** The previously problematic part
 of B is now implementation-ready.  It was not an emulator, corpus, or target
@@ -851,7 +853,7 @@ Implement the remaining work in these ordered, separately verifiable slices:
    summary in place and replaces the present conservative local/platform/
    callback clobber special cases as each effect becomes modeled.
 
-**B1/B2 completion (2026-07-29).** `4dabcbff` completed the common callable
+**B1/B2 completion (2026-07-29).** `f4d44f8c` completed the common callable
 result migration.  `M68kFunctionSummaryIR` now owns the bounded result
 collection and its conflict state; the former local-call result type, arrays,
 append/copy helpers, JSON field, parser reader, lookup storage, and focused
@@ -862,7 +864,7 @@ references.  The Amiga parser consumes only common results, and configured
 summaries are exported before inferred results so coincident facts share one
 callable owner.  The full C suite and Pandora full-file round trip pass.
 
-B3 is now the immediate next implementation task.  It extends this one model
+B3 is the immediate remaining implementation task. It extends this one model
 in place; no run-time compatibility path, renderer fallback, or parallel
 effect record is permitted.
 
@@ -924,6 +926,68 @@ writing effects over a typed storage identity, a pointer escape, conflicting
 effects, an unknown callee, and a callback table whose entries disagree.  The
 Pandora round trip must remain exact; a source-analysis graph report must
 identify the selected summary/effect partition at each surviving transfer.
+
+**B3 effect-lattice foundation (2026-07-29).** `a7ee07cc` establishes the
+common IR shape rather than changing call behaviour prematurely. Both policy
+and source-analysis summaries now carry a closed per-register effect enum
+(`unknown`, `preserved`, `clobbered`), bounded memory-effect and escape
+collections, and explicit invalid/overflow state; source-analysis export
+already exposes the register partition and validity state. This is only a
+model foundation: typed flow still reads the old platform/local/callback
+paths, the export does not yet expose the memory/escape members, and no
+persisted target schema can describe the new collection. Therefore this
+commit makes no preservation or rendering claim.
+
+**B3 next atomic slice: canonical persisted effect schema (2026-07-29).**
+The next change is not to add a second parser branch or make old strings mean
+the new lattice. The current target metadata, Manual Action payload, and
+existing summary migration tool still carry the retired triple
+`return_contract: "unknown"`, `register_effects: "unknown"`, and
+`memory_effects: "unknown"`. That representation cannot encode an exhaustive
+partition, named memory subjects, escapes, validity, or overflow. It must be
+replaced before any effect writer or typed-flow reader is migrated.
+
+Define one versioned `effects` object owned by a function summary. It has
+three tagged closed components:
+
+- `registers`: either `unknown` or an explicit exhaustive mapping for every
+  caller-visible Dn, An, and declared stack ABI location to `preserved` or
+  `clobbered`;
+- `memory`: either `unknown` or an ordered finite list of fully identified
+  read/write/non-aliasing effects, with an explicit invalid/overflow terminal
+  state; and
+- `escapes`: either `unknown` or an ordered finite list of input/result
+  locations and durable sink identities, also with explicit invalid/overflow
+  state.
+
+The object is the sole persisted representation. `return_contract`,
+`register_effects`, and `memory_effects` are deleted from the Python model,
+catalog command, C metadata parser, generated effective metadata, action-log
+projection, converter output, and tests. The common C IR must be completed to
+represent every location and identity admitted by this schema; in particular,
+a register-only array is not a completion of the promised stack partition,
+and an escape record without a durable sink identity is not an escape
+contract.
+
+Provide one explicit offline migration command for every affected local action
+log. It validates the complete log and summary state first, converts each
+retired all-unknown triple into the canonical all-unknown `effects` object,
+and writes deterministic converted log/report outputs without overwriting an
+existing file. The report names original action IDs, source summary IDs,
+resulting canonical summary IDs, sequence ordering, and each removed/absorbed
+event. It refuses malformed, conflicting, unsupported, or already-mixed
+payloads. After the logs are migrated, runtime metadata/action parsing accepts
+only the new object and rejects all legacy strings. This offline tool is
+migration tooling, not a compatibility reader. Its fixtures must prove
+successful conversion, full-log atomic refusal, rejection of legacy input by
+the new runtime, and identical effective all-unknown semantics before an
+explicit effect is introduced.
+
+Only after that schema lands may the following B3 slice add complete
+source-analysis JSON import/export for memory and escape members, generated
+platform summary writers, local-body/callback aggregation writers, and the
+single common effect application reader. No specialised typed-flow reader may
+be retained after that final migration.
 
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
