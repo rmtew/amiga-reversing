@@ -10134,6 +10134,7 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
     }
   }
   if (summary == NULL || summary->effects_invalid != 0U || summary->register_effects_unknown != 0U ||
+      summary->memory_effects_unknown != 0U || summary->escape_effects_unknown != 0U ||
       !complete_partition) {
     typed_state_clear_all(state);
     for (reg = 0U; reg < preserved_stack_slot_count; ++reg) state->stack_slots[reg] = preserved_stack_slots[reg];
