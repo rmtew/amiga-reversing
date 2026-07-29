@@ -1219,11 +1219,48 @@ into a global flag on the source-analysis path: `unknown`, `explicit`,
 `invalid`, and `overflow` are carried independently for registers, memory, and
 escapes and exported as the same canonical three-component object.  Declared
 32-bit stack `struct_ptr` inputs now seed typed stack state at callable entry.
-These changes passed the focused metadata suite (116 tests at this point) and
-the full C suite.  They do not complete B3: source-analysis summary append
-validation, result-origin escapes, tuple-valued transfer, durable local/callback
-writer facts, complete effect fixtures, and the required corpus/Pandora gates
-remain outstanding.
+The common source-analysis append boundary now also validates component states,
+ABI locations, duplicate effects, effect subjects, and that each escape source
+is declared by the corresponding input or result.  These changes passed the
+focused metadata suite (116 tests at this point) and the full C suite.  They do
+not complete B3: result-origin escapes, tuple-valued transfer, durable
+local/callback writer facts, complete effect fixtures, and the required
+corpus/Pandora gates remain outstanding.
+
+**B3 durability research checkpoint (2026-07-29).** The next slice is to
+materialize the existing bounded local and callback-table preservation proofs
+as stable `M68kFunctionSummaryIR` facts, owned by their direct callee or
+declared table identity, then have calls refer to those facts through the
+existing summary-use edge.  The current functions
+`typed_flow_local_callee_effect_summary` and
+`typed_flow_callback_table_callee_effect_summary` instead construct
+`M68kAnalysisFunctionSummary` values on the typed-flow stack and pass them
+directly to transfer.  They are therefore neither exported nor independently
+validated as source-analysis facts.
+
+This is not a mechanical append: the direct-local proof currently takes the
+caller's live address-register mask, so its result is deliberately
+caller-dependent.  A durable writer must first run the same bounded proof over
+the complete caller-visible register partition (with data registers explicitly
+clobbered), retain a component-level terminal state for every bound/path/nested
+call failure, and cache it by stable direct-callee identity.  Callback-table
+aggregation must then intersect those materialized entry summaries and retain
+its own table identity and terminal reason.  Only after that may typed flow
+look up the stable fact rather than receiving a stack-local summary.
+
+The slice must complete the currently incomplete escape contract at the same
+boundary: the common IR already distinguishes input from result escape sources
+and validates result references, but the strict metadata reader currently
+forces every parsed escape source to `input` and the JSON exporter omits the
+source kind.  It must add a closed `source_kind` field, permit only a declared
+input or result at that location, and round-trip both forms.  Tuple inputs are
+also parsed but not yet represented by typed state, so tuple transfer remains
+an explicit follow-up rather than a claimed supported ABI.  Required fixtures
+for this slice are complete-domain direct-local proof, all-entry callback
+intersection, each terminal failure, durable JSON/use-edge export, input- and
+result-origin escapes, and a negative tuple-transfer case.  No new corpus or
+Pandora success is claimed until those fixtures and the required verifier gates
+can run.
 
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
