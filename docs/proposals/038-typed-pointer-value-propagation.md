@@ -1211,6 +1211,20 @@ invalidation.  Focused Python metadata tests (114) and the full C unit suite
 does not expose Pandora as a rendered-source-verifier target, so no new Pandora
 round-trip claim is made for this slice.
 
+**Effect-schema hardening follow-up (2026-07-29).** The explicit partition
+now rejects singleton register tuples, tuple partition members, duplicate ABI
+locations, and unknown or duplicate schema members in both Python metadata and
+the C target-metadata reader.  Component terminal state is no longer collapsed
+into a global flag on the source-analysis path: `unknown`, `explicit`,
+`invalid`, and `overflow` are carried independently for registers, memory, and
+escapes and exported as the same canonical three-component object.  Declared
+32-bit stack `struct_ptr` inputs now seed typed stack state at callable entry.
+These changes passed the focused metadata suite (116 tests at this point) and
+the full C suite.  They do not complete B3: source-analysis summary append
+validation, result-origin escapes, tuple-valued transfer, durable local/callback
+writer facts, complete effect fixtures, and the required corpus/Pandora gates
+remain outstanding.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
