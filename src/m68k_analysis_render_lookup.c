@@ -10073,13 +10073,26 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
   M68kRenderTypedStackSlot preserved_stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t preserved_stack_slot_count = 0U;
   uint8_t reg;
+  int complete_partition = 1;
   if (state == NULL) return;
   old_state = *state;
   for (reg = 0U; reg < old_state.stack_slot_count; ++reg) {
     if (old_state.stack_slots[reg].known != 0U && old_state.stack_slots[reg].caller_save_temporary != 0U)
       preserved_stack_slots[preserved_stack_slot_count++] = old_state.stack_slots[reg];
   }
-  if (summary == NULL || summary->effects_invalid != 0U || summary->register_effects_unknown != 0U) {
+  if (summary != NULL && summary->effects_invalid == 0U && summary->register_effects_unknown == 0U) {
+    for (reg = 0U; reg < 8U; ++reg) {
+      if ((summary->data_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
+           summary->data_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED) ||
+          (summary->address_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
+           summary->address_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED)) {
+        complete_partition = 0;
+        break;
+      }
+    }
+  }
+  if (summary == NULL || summary->effects_invalid != 0U || summary->register_effects_unknown != 0U ||
+      !complete_partition) {
     typed_state_clear_all(state);
     for (reg = 0U; reg < preserved_stack_slot_count; ++reg) state->stack_slots[reg] = preserved_stack_slots[reg];
     state->stack_slot_count = preserved_stack_slot_count;
