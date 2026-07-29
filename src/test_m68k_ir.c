@@ -28402,6 +28402,102 @@ static int test_facts_v2_render_asm_source_preserves_type_across_observed_absolu
   return 0;
 }
 
+static int test_facts_v2_static_write_effect_invalidates_matching_storage_reload(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  char *source = NULL;
+  uint8_t bytes[0x22U] = {0};
+  memset(&section, 0, sizeof(section));
+  /* move.l a0,$64C0.w; movea.l $64C0.w,a5; jsr callee;
+   * move.w $02(a0),d0; move.w $02(a5),d1; rts; callee: rts */
+  bytes[0] = 0x21u; bytes[1] = 0xc0u; bytes[2] = 0x64u; bytes[3] = 0xc0u;
+  bytes[4] = 0x2au; bytes[5] = 0x78u; bytes[6] = 0x64u; bytes[7] = 0xc0u;
+  bytes[8] = 0x4eu; bytes[9] = 0xb9u; bytes[12] = 0x00u; bytes[13] = 0x20u;
+  bytes[14] = 0x30u; bytes[15] = 0x28u; bytes[16] = 0x00u; bytes[17] = 0x02u;
+  bytes[18] = 0x32u; bytes[19] = 0x2du; bytes[20] = 0x00u; bytes[21] = 0x02u;
+  bytes[22] = 0x4eu; bytes[23] = 0x75u;
+  bytes[0x20] = 0x4eu; bytes[0x21] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name), "effect_object");
+  policy.absolute_storage_slot_count = 1U;
+  policy.absolute_storage_slots[0].address = 0x64c0U;
+  policy.absolute_storage_slots[0].size = 4U;
+  policy.absolute_storage_slots[0].storage_kind_id = M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER;
+  snprintf(policy.absolute_storage_slots[0].symbol, sizeof(policy.absolute_storage_slots[0].symbol), "effect_object_ptr");
+  snprintf(policy.absolute_storage_slots[0].pointer_struct,
+    sizeof(policy.absolute_storage_slots[0].pointer_struct), "effect_object");
+  snprintf(policy.absolute_storage_slots[0].storage_kind,
+    sizeof(policy.absolute_storage_slots[0].storage_kind), "pointer");
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "effect_object");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].offset = 2U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "word_value");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].entry_offset = 0x20U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].memory_effect_count = 1U;
+  policy.function_summaries[0].memory_effects[0].kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
+  policy.function_summaries[0].memory_effects[0].subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+  policy.function_summaries[0].memory_effects[0].subject.section_index = 0U;
+  policy.function_summaries[0].memory_effects[0].subject.offset = 0x64c0U;
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    M68kFunctionSummaryLocationEffectIR *data_effect =
+      &policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count++];
+    M68kFunctionSummaryLocationEffectIR *address_effect =
+      &policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count++];
+    data_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    data_effect->location.width = 4U; data_effect->location.register_count = 1U;
+    data_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    data_effect->location.registers[0].register_index = reg;
+    data_effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    address_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    address_effect->location.width = 4U; address_effect->location.register_count = 1U;
+    address_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    address_effect->location.registers[0].register_index = reg;
+    address_effect->effect = reg == 0U || reg == 5U ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED :
+      M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+  }
+  snprintf(policy.function_summaries[0].function_summary_id,
+    sizeof(policy.function_summaries[0].function_summary_id), "static_write_effect");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a0)") != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a5)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback(void) {
   M68kObject object;
   M68kSection section;
@@ -35238,6 +35334,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_applies_function_register_contract},
     {"facts_v2_render_asm_source_preserves_type_across_observed_absolute_local_call",
       test_facts_v2_render_asm_source_preserves_type_across_observed_absolute_local_call},
+    {"facts_v2_static_write_effect_invalidates_matching_storage_reload",
+      test_facts_v2_static_write_effect_invalidates_matching_storage_reload},
     {"facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback",
       test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback},
     {"facts_v2_render_asm_source_propagates_static_struct_pointer_chain",
