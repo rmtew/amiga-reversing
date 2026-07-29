@@ -1142,6 +1142,16 @@ partial, unconsumed configuration surface. The next B3 slice must widen the
 same location parser/projection for those forms together with explicit stack
 effects, not add a compatibility spelling.
 
+**Effect-subject/escape identity foundation (2026-07-29).** The old shared
+memory-effect-shaped escape array has been replaced in common IR. A memory
+effect now owns one tagged `EffectSubject` (summary input, static storage, or
+named abstract region); an escape owns an explicit input/result source kind,
+the shared ABI location, and a separate sink subject. `escape` was removed
+from the memory-effect enum. This deliberately changes no effect writer or
+transfer yet: source-analysis JSON, strict metadata parsing, and lattice
+validation must be migrated together before any explicit record can be
+created. Thus there is no transitional reader or false preservation claim.
+
 The first explicit fixtures must establish the closed-lattice operations before
 the call transfer changes: equality/idempotence, conflicting same-location
 claims, all-path local-return join, callback-table component join, each finite
