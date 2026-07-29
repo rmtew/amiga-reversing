@@ -63,6 +63,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT 16U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT 8U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT 8U
+#define M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT 32U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -143,6 +144,12 @@ typedef enum M68kFunctionSummaryLocationEffect {
   M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED = 2
 } M68kFunctionSummaryLocationEffect;
 
+typedef struct M68kFunctionSummaryLocationEffectIR {
+  M68kFunctionSummaryAbiLocation location;
+  uint8_t effect;
+  uint8_t reserved[3];
+} M68kFunctionSummaryLocationEffectIR;
+
 typedef enum M68kFunctionSummaryMemoryEffectKind {
   M68K_FUNCTION_SUMMARY_MEMORY_UNKNOWN = 0,
   M68K_FUNCTION_SUMMARY_MEMORY_READ = 1,
@@ -211,6 +218,7 @@ typedef struct M68kAnalysisFunctionSummary {
   uint8_t memory_effect_count;
   uint8_t escape_count;
   uint8_t effects_invalid;
+  uint8_t location_effect_count;
   uint32_t section_index;
   uint32_t entry_offset;
   uint32_t table_offset;
@@ -220,6 +228,7 @@ typedef struct M68kAnalysisFunctionSummary {
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
   uint8_t data_register_effects[8];
   uint8_t address_register_effects[8];
+  M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];
   M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
 } M68kAnalysisFunctionSummary;
@@ -1613,10 +1622,12 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t memory_effect_count;
   uint8_t escape_count;
   uint8_t effects_invalid;
+  uint8_t location_effect_count;
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
   M68kFunctionSummaryResultIR results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
   uint8_t data_register_effects[8];
   uint8_t address_register_effects[8];
+  M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];
   M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
 } M68kFunctionSummaryIR;

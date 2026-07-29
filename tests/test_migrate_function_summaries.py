@@ -1,4 +1,5 @@
 from amiga_reversing.tools.migrate_function_summaries import migrate_canonical_location_records, migrate_records
+from amiga_reversing.disasm.target_metadata import FunctionSummaryMetadata, TargetMetadata, target_metadata_json_payload
 
 
 def _unknown_effects() -> dict[str, object]:
@@ -180,3 +181,45 @@ def test_location_migration_replaces_only_canonical_register_strings() -> None:
     assert report["function_summary_location_migrations"] == [
         {"action_id": "summary", "sequence": 2, "function_summary_id": "summary-id"}
     ]
+
+
+def test_explicit_effect_schema_round_trips_stack_memory_and_escape_identities() -> None:
+    locations = [
+        {"location": {"kind": "register", "register": f"D{index}", "width": 4}, "effect": "clobbered"}
+        for index in range(8)
+    ] + [
+        {"location": {"kind": "register", "register": f"A{index}", "width": 4}, "effect": "preserved"}
+        for index in range(8)
+    ] + [{
+        "location": {"kind": "stack", "offset": 4, "width": 4, "convention": "caller_argument"},
+        "effect": "preserved",
+    }]
+    summary_payload = {
+        "function_summary_id": "explicit-effects",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0x80,
+        "inputs": [{
+            "location": {"kind": "stack", "offset": 4, "width": 4, "convention": "caller_argument"},
+            "value_kind": "struct_ptr",
+            "struct_name": "world_object",
+        }],
+        "effects": {
+            "schema_version": 1,
+            "registers": {"state": "explicit", "locations": locations},
+            "memory": {"state": "explicit", "effects": [
+                {"kind": "read", "subject": {"kind": "input", "input_index": 0}},
+                {"kind": "nonaliasing_write", "subject": {"kind": "static_storage", "section_index": 1, "offset": 16}},
+            ]},
+            "escapes": {"state": "explicit", "escapes": [{
+                "source_location": {"kind": "stack", "offset": 4, "width": 4, "convention": "caller_argument"},
+                "sink_subject": {"kind": "abstract_region", "region_id": "retained_callback_context"},
+            }]},
+        },
+        "note": "explicit effects fixture",
+    }
+    summary = FunctionSummaryMetadata.from_dict(summary_payload)
+    serialized = target_metadata_json_payload(
+        TargetMetadata(target_type="program", entry_register_seeds=(), function_summaries=(summary,))
+    )
+    assert list(serialized["function_summaries"]) == [summary_payload]

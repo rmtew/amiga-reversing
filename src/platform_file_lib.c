@@ -2018,6 +2018,30 @@ static int json_number_field_local(const char *object_start, const char *object_
   return 1;
 }
 
+static int json_i32_field_local(const char *object_start, const char *object_end, const char *key,
+    int32_t *out_value, int *out_present) {
+  char number_text[32];
+  char *endptr = NULL;
+  long parsed;
+  size_t used = 0U;
+  const char *value = json_find_key_local(object_start, object_end, key);
+  if (out_present != NULL) *out_present = 0;
+  if (value == NULL) return 1;
+  value = json_skip_ws_local(value, object_end);
+  if (value + 4 <= object_end && memcmp(value, "null", 4U) == 0) return 1;
+  while (value < object_end && ((*value >= '0' && *value <= '9') || *value == '-' || *value == '+')) {
+    if (used + 1U >= sizeof(number_text)) return 0;
+    number_text[used++] = *value++;
+  }
+  number_text[used] = '\0';
+  if (used == 0U) return 0;
+  parsed = strtol(number_text, &endptr, 10);
+  if (endptr == NULL || *endptr != '\0' || parsed < INT32_MIN || parsed > INT32_MAX) return 0;
+  if (out_value != NULL) *out_value = (int32_t)parsed;
+  if (out_present != NULL) *out_present = 1;
+  return 1;
+}
+
 static int json_bool_field_local(const char *object_start, const char *object_end, const char *key,
     uint8_t *out_value, int *out_present) {
   const char *value = json_find_key_local(object_start, object_end, key);
@@ -2178,6 +2202,22 @@ static const char *json_array_field_local(const char *object_start, const char *
   return NULL;
 }
 
+static const char *json_next_string_local(const char *cursor, const char *end, char *out, size_t out_size) {
+  const char *value;
+  if (out == NULL || out_size == 0U) return NULL;
+  while (cursor < end && (*cursor == ',' || *cursor == ' ' || *cursor == '\t' || *cursor == '\r' || *cursor == '\n'))
+    ++cursor;
+  if (cursor >= end || *cursor != '"') return NULL;
+  value = cursor;
+  if (!json_string_value_local(value, end, out, out_size)) return NULL;
+  ++cursor;
+  while (cursor < end && *cursor != '"') {
+    if (*cursor == '\\' && cursor + 1 < end) ++cursor;
+    ++cursor;
+  }
+  return cursor < end ? cursor + 1 : NULL;
+}
+
 static const char *json_object_field_local(const char *object_start, const char *object_end, const char *key,
     const char **out_end) {
   const char *value = json_find_key_local(object_start, object_end, key);
@@ -2191,7 +2231,99 @@ static const char *json_object_field_local(const char *object_start, const char 
   return value;
 }
 
-static int append_metadata_function_summary_unknown_effects_local(const char *object_start, const char *object_end,
+static int function_summary_register_name_local(const char *text, uint8_t *out_kind, uint8_t *out_index) {
+  if (text == NULL || out_kind == NULL || out_index == NULL || text[0] == '\0' || text[2] != '\0' ||
+      (text[0] != 'D' && text[0] != 'd' && text[0] != 'A' && text[0] != 'a') ||
+      text[1] < '0' || text[1] > '7') return 0;
+  *out_kind = (text[0] == 'D' || text[0] == 'd') ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS;
+  *out_index = (uint8_t)(text[1] - '0');
+  return 1;
+}
+
+static int append_metadata_function_summary_abi_location_local(const char *object_start, const char *object_end,
+    M68kFunctionSummaryAbiLocation *out_location) {
+  char kind[32];
+  char register_name[8];
+  char convention[32];
+  uint32_t width = 0U;
+  int32_t offset = 0;
+  int has_width = 0;
+  int has_offset = 0;
+  if (out_location == NULL ||
+      !json_optional_string_field_local(object_start, object_end, "kind", kind, sizeof(kind)) ||
+      !json_number_field_local(object_start, object_end, "width", &width, &has_width) ||
+      !has_width || width == 0U || width > UINT8_MAX) return 0;
+  memset(out_location, 0, sizeof(*out_location));
+  out_location->width = (uint8_t)width;
+  if (strcmp(kind, "register") == 0) {
+    if (!json_optional_string_field_local(object_start, object_end, "register", register_name,
+        sizeof(register_name)) || !function_summary_register_name_local(register_name,
+          &out_location->registers[0].register_kind, &out_location->registers[0].register_index)) return 0;
+    out_location->kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    out_location->register_count = 1U;
+  } else if (strcmp(kind, "stack") == 0) {
+    if (!json_i32_field_local(object_start, object_end, "offset", &offset, &has_offset) || !has_offset ||
+        !json_optional_string_field_local(object_start, object_end, "convention", convention,
+          sizeof(convention))) return 0;
+    out_location->kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK;
+    out_location->stack_offset = offset;
+    if (strcmp(convention, "caller_argument") == 0)
+      out_location->stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+    else if (strcmp(convention, "caller_result") == 0)
+      out_location->stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT;
+    else if (strcmp(convention, "caller_cleanup") == 0)
+      out_location->stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP;
+    else return 0;
+  } else if (strcmp(kind, "register_tuple") == 0) {
+    const char *registers_end;
+    const char *cursor = json_array_field_local(object_start, object_end, "registers", &registers_end);
+    char member_name[8];
+    out_location->kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
+    while (cursor != NULL && cursor < registers_end) {
+      if (out_location->register_count >= M68K_FUNCTION_SUMMARY_ABI_REGISTER_TUPLE_LIMIT ||
+          (cursor = json_next_string_local(cursor, registers_end, member_name, sizeof(member_name))) == NULL ||
+          !function_summary_register_name_local(member_name,
+            &out_location->registers[out_location->register_count].register_kind,
+            &out_location->registers[out_location->register_count].register_index)) return 0;
+      out_location->register_count += 1U;
+    }
+  } else {
+    return 0;
+  }
+  return m68k_function_summary_abi_location_is_valid(out_location);
+}
+
+static int append_metadata_function_summary_effect_subject_local(const char *object_start, const char *object_end,
+    uint8_t input_count, M68kFunctionSummaryEffectSubjectIR *out_subject) {
+  char kind[32];
+  char region_id[96];
+  uint32_t input_index = 0U, section_index = 0U, offset = 0U;
+  int has_input = 0, has_section = 0, has_offset = 0;
+  if (out_subject == NULL || !json_optional_string_field_local(object_start, object_end, "kind", kind, sizeof(kind)))
+    return 0;
+  memset(out_subject, 0, sizeof(*out_subject));
+  if (strcmp(kind, "input") == 0) {
+    if (!json_number_field_local(object_start, object_end, "input_index", &input_index, &has_input) ||
+        !has_input || input_index >= input_count) return 0;
+    out_subject->kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT;
+    out_subject->input_index = (uint8_t)input_index;
+  } else if (strcmp(kind, "static_storage") == 0) {
+    if (!json_number_field_local(object_start, object_end, "section_index", &section_index, &has_section) ||
+        !json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) || !has_section || !has_offset)
+      return 0;
+    out_subject->kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+    out_subject->section_index = section_index;
+    out_subject->offset = offset;
+  } else if (strcmp(kind, "abstract_region") == 0) {
+    if (!json_optional_string_field_local(object_start, object_end, "region_id", region_id, sizeof(region_id)) ||
+        region_id[0] == '\0') return 0;
+    out_subject->kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION;
+    if (!copy_policy_text(out_subject->abstract_region_id, sizeof(out_subject->abstract_region_id), region_id)) return 0;
+  } else return 0;
+  return m68k_function_summary_effect_subject_is_valid(out_subject, input_count);
+}
+
+static int append_metadata_function_summary_effects_local(const char *object_start, const char *object_end,
     M68kAnalysisFunctionSummary *summary) {
   const char *effects_end;
   const char *effects = json_object_field_local(object_start, object_end, "effects", &effects_end);
@@ -2203,7 +2335,7 @@ static int append_metadata_function_summary_unknown_effects_local(const char *ob
   const char *escapes;
   uint32_t schema_version = 0U;
   int has_schema_version = 0;
-  char state[16];
+  char register_state[16], memory_state[16], escape_state[16];
   if (effects == NULL || summary == NULL ||
       json_find_key_local(object_start, object_end, "return_contract") != NULL ||
       json_find_key_local(object_start, object_end, "register_effects") != NULL ||
@@ -2214,16 +2346,122 @@ static int append_metadata_function_summary_unknown_effects_local(const char *ob
   memory = json_object_field_local(effects, effects_end, "memory", &memory_end);
   escapes = json_object_field_local(effects, effects_end, "escapes", &escapes_end);
   if (registers == NULL || memory == NULL || escapes == NULL ||
-      !json_optional_string_field_local(registers, registers_end, "state", state, sizeof(state)) ||
-      strcmp(state, "unknown") != 0 ||
-      !json_optional_string_field_local(memory, memory_end, "state", state, sizeof(state)) ||
-      strcmp(state, "unknown") != 0 ||
-      !json_optional_string_field_local(escapes, escapes_end, "state", state, sizeof(state)) ||
-      strcmp(state, "unknown") != 0) return 0;
+      !json_optional_string_field_local(registers, registers_end, "state", register_state, sizeof(register_state)) ||
+      !json_optional_string_field_local(memory, memory_end, "state", memory_state, sizeof(memory_state)) ||
+      !json_optional_string_field_local(escapes, escapes_end, "state", escape_state, sizeof(escape_state))) return 0;
   summary->return_contract_unknown = 1U;
-  summary->register_effects_unknown = 1U;
-  summary->memory_effects_unknown = 1U;
-  summary->escape_effects_unknown = 1U;
+  summary->register_effects_unknown = strcmp(register_state, "unknown") == 0 ? 1U : 0U;
+  summary->memory_effects_unknown = strcmp(memory_state, "unknown") == 0 ? 1U : 0U;
+  summary->escape_effects_unknown = strcmp(escape_state, "unknown") == 0 ? 1U : 0U;
+  if ((strcmp(register_state, "unknown") != 0 && strcmp(register_state, "explicit") != 0 &&
+       strcmp(register_state, "invalid") != 0 && strcmp(register_state, "overflow") != 0) ||
+      (strcmp(memory_state, "unknown") != 0 && strcmp(memory_state, "explicit") != 0 &&
+       strcmp(memory_state, "invalid") != 0 && strcmp(memory_state, "overflow") != 0) ||
+      (strcmp(escape_state, "unknown") != 0 && strcmp(escape_state, "explicit") != 0 &&
+       strcmp(escape_state, "invalid") != 0 && strcmp(escape_state, "overflow") != 0)) return 0;
+  if (strcmp(register_state, "invalid") == 0 || strcmp(register_state, "overflow") == 0 ||
+      strcmp(memory_state, "invalid") == 0 || strcmp(memory_state, "overflow") == 0 ||
+      strcmp(escape_state, "invalid") == 0 || strcmp(escape_state, "overflow") == 0) summary->effects_invalid = 1U;
+  if (strcmp(register_state, "explicit") == 0) {
+    const char *locations_end;
+    const char *cursor = json_array_field_local(registers, registers_end, "locations", &locations_end);
+    uint8_t seen_data = 0U, seen_address = 0U;
+    if (cursor == NULL) return 0;
+    while (cursor < locations_end) {
+      const char *item_end;
+      const char *item = json_next_object_local(cursor, locations_end, &item_end);
+      const char *location_end;
+      const char *location;
+      char effect_text[16];
+      M68kFunctionSummaryLocationEffectIR *effect;
+      if (item == NULL || summary->location_effect_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT ||
+          (location = json_object_field_local(item, item_end, "location", &location_end)) == NULL ||
+          !json_optional_string_field_local(item, item_end, "effect", effect_text, sizeof(effect_text))) return 0;
+      effect = &summary->location_effects[summary->location_effect_count];
+      if (!append_metadata_function_summary_abi_location_local(location, location_end, &effect->location)) return 0;
+      if (strcmp(effect_text, "preserved") == 0) effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED;
+      else if (strcmp(effect_text, "clobbered") == 0) effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+      else return 0;
+      if (effect->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER) {
+        uint8_t *seen = effect->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ?
+          &seen_data : &seen_address;
+        uint8_t bit = (uint8_t)(1U << effect->location.registers[0].register_index);
+        uint8_t *legacy = effect->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ?
+          &summary->data_register_effects[effect->location.registers[0].register_index] :
+          &summary->address_register_effects[effect->location.registers[0].register_index];
+        if ((*seen & bit) != 0U) return 0;
+        *seen |= bit;
+        *legacy = effect->effect;
+      }
+      summary->location_effect_count += 1U;
+      cursor = item_end;
+    }
+    if (seen_data != 0xffU || seen_address != 0xffU) return 0;
+  }
+  if (strcmp(memory_state, "explicit") == 0) {
+    const char *memory_items_end;
+    const char *cursor = json_array_field_local(memory, memory_end, "effects", &memory_items_end);
+    if (cursor == NULL) return 0;
+    while (cursor < memory_items_end) {
+      const char *item_end;
+      const char *item = json_next_object_local(cursor, memory_items_end, &item_end);
+      const char *subject_end;
+      const char *subject;
+      char kind[32];
+      M68kFunctionSummaryMemoryEffectIR *effect;
+      uint8_t prior;
+      if (item == NULL || summary->memory_effect_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT ||
+          (subject = json_object_field_local(item, item_end, "subject", &subject_end)) == NULL ||
+          !json_optional_string_field_local(item, item_end, "kind", kind, sizeof(kind))) return 0;
+      effect = &summary->memory_effects[summary->memory_effect_count];
+      if (strcmp(kind, "read") == 0) effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_READ;
+      else if (strcmp(kind, "write") == 0) effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
+      else if (strcmp(kind, "nonaliasing_read") == 0) effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_READ;
+      else if (strcmp(kind, "nonaliasing_write") == 0) effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE;
+      else return 0;
+      if (!append_metadata_function_summary_effect_subject_local(subject, subject_end, summary->input_count,
+          &effect->subject)) return 0;
+      for (prior = 0U; prior < summary->memory_effect_count; ++prior) {
+        if (summary->memory_effects[prior].kind == effect->kind &&
+            m68k_function_summary_effect_subject_equal(&summary->memory_effects[prior].subject, &effect->subject)) return 0;
+      }
+      summary->memory_effect_count += 1U;
+      cursor = item_end;
+    }
+  }
+  if (strcmp(escape_state, "explicit") == 0) {
+    const char *escapes_items_end;
+    const char *cursor = json_array_field_local(escapes, escapes_end, "escapes", &escapes_items_end);
+    if (cursor == NULL) return 0;
+    while (cursor < escapes_items_end) {
+      const char *item_end;
+      const char *item = json_next_object_local(cursor, escapes_items_end, &item_end);
+      const char *location_end, *sink_end;
+      const char *location, *sink;
+      M68kFunctionSummaryEscapeIR *escape;
+      uint8_t input_index, prior;
+      if (item == NULL || summary->escape_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT ||
+          (location = json_object_field_local(item, item_end, "source_location", &location_end)) == NULL ||
+          (sink = json_object_field_local(item, item_end, "sink_subject", &sink_end)) == NULL) return 0;
+      escape = &summary->escapes[summary->escape_count];
+      if (!append_metadata_function_summary_abi_location_local(location, location_end, &escape->source_location) ||
+          !append_metadata_function_summary_effect_subject_local(sink, sink_end, summary->input_count,
+            &escape->sink_subject)) return 0;
+      escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+      for (input_index = 0U; input_index < summary->input_count; ++input_index) {
+        if (m68k_function_summary_abi_location_equal(&escape->source_location, &summary->inputs[input_index].location))
+          break;
+      }
+      if (input_index == summary->input_count) return 0;
+      for (prior = 0U; prior < summary->escape_count; ++prior) {
+        if (m68k_function_summary_abi_location_equal(&summary->escapes[prior].source_location,
+              &escape->source_location) && m68k_function_summary_effect_subject_equal(
+                &summary->escapes[prior].sink_subject, &escape->sink_subject)) return 0;
+      }
+      summary->escape_count += 1U;
+      cursor = item_end;
+    }
+  }
   return 1;
 }
 
@@ -2527,37 +2765,16 @@ static int append_metadata_function_summary_input_local(const char *object_start
     M68kAnalysisFunctionSummary *summary) {
   const char *location;
   const char *location_end;
-  char location_kind[32];
-  char register_name[8];
   char value_kind[32];
   char struct_name[64];
-  uint32_t width = 0U;
-  int has_width = 0;
   M68kAnalysisFunctionSummaryInput *input;
   if (summary == NULL || summary->input_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT ||
       (location = json_object_field_local(object_start, object_end, "location", &location_end)) == NULL ||
-      !json_optional_string_field_local(location, location_end, "kind", location_kind, sizeof(location_kind)) ||
-      !json_optional_string_field_local(location, location_end, "register", register_name, sizeof(register_name)) ||
-      !json_number_field_local(location, location_end, "width", &width, &has_width) ||
       !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
       !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
-      strcmp(location_kind, "register") != 0 || !has_width || width != 4U ||
       strcmp(value_kind, "struct_ptr") != 0 || struct_name[0] == '\0') return 0;
   input = &summary->inputs[summary->input_count];
-  input->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
-  input->location.width = (uint8_t)width;
-  input->location.register_count = 1U;
-  if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' &&
-      register_name[1] <= '7' && register_name[2] == '\0') {
-    input->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
-    input->location.registers[0].register_index = (uint8_t)(register_name[1] - '0');
-  } else if ((register_name[0] == 'A' || register_name[0] == 'a') && register_name[1] >= '0' &&
-      register_name[1] <= '7' && register_name[2] == '\0') {
-    input->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-    input->location.registers[0].register_index = (uint8_t)(register_name[1] - '0');
-  } else {
-    return 0;
-  }
+  if (!append_metadata_function_summary_abi_location_local(location, location_end, &input->location)) return 0;
   input->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   if (!copy_policy_text(input->struct_name, sizeof(input->struct_name), struct_name)) return 0;
   summary->input_count += 1U;
@@ -2587,7 +2804,6 @@ static int append_metadata_function_summary_local(const char *object_start, cons
   memset(summary, 0, sizeof(*summary));
   summary->has_section_index = 1U;
   summary->section_index = hunk;
-  if (!append_metadata_function_summary_unknown_effects_local(object_start, object_end, summary)) return 0;
   if (strcmp(callable_kind, "direct") == 0 && has_entry_offset && !has_table_offset && !has_entry_count) {
     summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
     summary->entry_offset = entry_offset;
@@ -2608,6 +2824,7 @@ static int append_metadata_function_summary_local(const char *object_start, cons
     cursor = input_end;
   }
   if (summary->input_count == 0U) return 0;
+  if (!append_metadata_function_summary_effects_local(object_start, object_end, summary)) return 0;
   policy->function_summary_count += 1U;
   return 1;
 }

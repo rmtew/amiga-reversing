@@ -39,6 +39,48 @@ static const char *listing_operand_access_name(uint8_t access_kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 static int listing_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t *out_value);
 
+static int append_function_summary_abi_location_json(JsonBuilder *builder,
+    const M68kFunctionSummaryAbiLocation *location) {
+  uint8_t index;
+  if (builder == NULL || !m68k_function_summary_abi_location_is_valid(location)) return -1;
+  if (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER) {
+    return json_builder_appendf(builder, "{\"kind\":\"register\",\"register\":\"%c%u\",\"width\":%u}",
+      location->registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ? 'D' : 'A',
+      (unsigned)location->registers[0].register_index, (unsigned)location->width);
+  }
+  if (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK) {
+    const char *convention = location->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT ?
+      "caller_argument" : location->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT ?
+      "caller_result" : "caller_cleanup";
+    return json_builder_appendf(builder, "{\"kind\":\"stack\",\"offset\":%d,\"width\":%u,\"convention\":\"%s\"}",
+      (int)location->stack_offset, (unsigned)location->width, convention);
+  }
+  if (json_builder_appendf(builder, "{\"kind\":\"register_tuple\",\"registers\":[") != 0) return -1;
+  for (index = 0U; index < location->register_count; ++index) {
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder, "\"%c%u\"",
+        location->registers[index].register_kind == M68K_ANALYSIS_REGISTER_DATA ? 'D' : 'A',
+        (unsigned)location->registers[index].register_index) != 0) return -1;
+  }
+  return json_builder_appendf(builder, "],\"width\":%u}", (unsigned)location->width);
+}
+
+static int append_function_summary_effect_subject_json(JsonBuilder *builder,
+    const M68kFunctionSummaryEffectSubjectIR *subject) {
+  if (builder == NULL || subject == NULL) return -1;
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT)
+    return json_builder_appendf(builder, "{\"kind\":\"input\",\"input_index\":%u}", (unsigned)subject->input_index);
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE)
+    return json_builder_appendf(builder, "{\"kind\":\"static_storage\",\"section_index\":%u,\"offset\":%u}",
+      (unsigned)subject->section_index, (unsigned)subject->offset);
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION) {
+    if (json_builder_append(builder, "{\"kind\":\"abstract_region\",\"region_id\":") != 0 ||
+        json_builder_append_json_string(builder, subject->abstract_region_id) != 0) return -1;
+    return json_builder_append(builder, "}");
+  }
+  return -1;
+}
+
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
   if (kind == M68K_PLATFORM_FILE_OBJECT) return "object";
@@ -4592,39 +4634,62 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append_json_string(&builder, callable_kind) != 0 ||
           json_builder_appendf(&builder,
             ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,"
-            "\"effects\":{\"schema_version\":1,\"registers\":{\"state\":\"%s\","
-            "\"data\":[",
+            "\"effects\":{\"schema_version\":1,\"registers\":{\"state\":\"%s\"",
             (unsigned)summary->callable_section_index, (unsigned)summary->entry_offset,
             (unsigned)summary->table_offset, (unsigned)summary->entry_count,
             summary->register_effects_unknown != 0U ? "unknown" : "explicit") != 0) goto oom;
-      for (input_index = 0U; input_index < 8U; ++input_index) {
-        if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-        if (json_builder_appendf(&builder, "%u", (unsigned)summary->data_register_effects[input_index]) != 0)
-          goto oom;
+      if (summary->register_effects_unknown == 0U) {
+        if (json_builder_append(&builder, ",\"locations\":[") != 0) goto oom;
+        for (input_index = 0U; input_index < summary->location_effect_count; ++input_index) {
+          const M68kFunctionSummaryLocationEffectIR *effect = &summary->location_effects[input_index];
+          if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (json_builder_append(&builder, "{\"location\":") != 0 ||
+              append_function_summary_abi_location_json(&builder, &effect->location) != 0 ||
+              json_builder_appendf(&builder, ",\"effect\":\"%s\"}",
+                effect->effect == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED ? "preserved" : "clobbered") != 0) goto oom;
+        }
+        if (json_builder_append(&builder, "]") != 0) goto oom;
       }
-      if (json_builder_append(&builder, "],\"address\":[") != 0) goto oom;
-      for (input_index = 0U; input_index < 8U; ++input_index) {
-        if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-        if (json_builder_appendf(&builder, "%u", (unsigned)summary->address_register_effects[input_index]) != 0)
-          goto oom;
+      if (json_builder_appendf(&builder, "},\"memory\":{\"state\":\"%s\"",
+          summary->memory_effects_unknown != 0U ? "unknown" : "explicit") != 0) goto oom;
+      if (summary->memory_effects_unknown == 0U) {
+        if (json_builder_append(&builder, ",\"effects\":[") != 0) goto oom;
+        for (input_index = 0U; input_index < summary->memory_effect_count; ++input_index) {
+          const M68kFunctionSummaryMemoryEffectIR *effect = &summary->memory_effects[input_index];
+          const char *kind = effect->kind == M68K_FUNCTION_SUMMARY_MEMORY_READ ? "read" :
+            effect->kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE ? "write" :
+            effect->kind == M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_READ ? "nonaliasing_read" : "nonaliasing_write";
+          if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (json_builder_appendf(&builder, "{\"kind\":\"%s\",\"subject\":", kind) != 0 ||
+              append_function_summary_effect_subject_json(&builder, &effect->subject) != 0 ||
+              json_builder_append(&builder, "}") != 0) goto oom;
+        }
+        if (json_builder_append(&builder, "]") != 0) goto oom;
       }
-      if (json_builder_appendf(&builder,
-          "]},\"memory\":{\"state\":\"%s\"},\"escapes\":{\"state\":\"%s\"},"
-          "\"invalid\":%u},\"inputs\":[",
-          summary->memory_effects_unknown != 0U ? "unknown" : "explicit",
-          summary->escape_effects_unknown != 0U ? "unknown" : "explicit",
+      if (json_builder_appendf(&builder, "},\"escapes\":{\"state\":\"%s\"",
+          summary->escape_effects_unknown != 0U ? "unknown" : "explicit") != 0) goto oom;
+      if (summary->escape_effects_unknown == 0U) {
+        if (json_builder_append(&builder, ",\"escapes\":[") != 0) goto oom;
+        for (input_index = 0U; input_index < summary->escape_count; ++input_index) {
+          const M68kFunctionSummaryEscapeIR *escape = &summary->escapes[input_index];
+          if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (json_builder_append(&builder, "{\"source_location\":") != 0 ||
+              append_function_summary_abi_location_json(&builder, &escape->source_location) != 0 ||
+              json_builder_append(&builder, ",\"sink_subject\":") != 0 ||
+              append_function_summary_effect_subject_json(&builder, &escape->sink_subject) != 0 ||
+              json_builder_append(&builder, "}") != 0) goto oom;
+        }
+        if (json_builder_append(&builder, "]") != 0) goto oom;
+      }
+      if (json_builder_appendf(&builder, "},\"invalid\":%u},\"inputs\":[",
           (unsigned)summary->effects_invalid) != 0) goto oom;
       for (input_index = 0U; input_index < summary->input_count; ++input_index) {
         const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
         if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-        if (json_builder_appendf(&builder,
-            "{\"location\":{\"kind_id\":%u,\"width\":%u,\"stack_convention_id\":%u,"
-            "\"stack_offset\":%d,\"registers\":[{\"register_kind\":%u,\"register_index\":%u}]},"
-            "\"seed_kind\":%u,\"struct_name\":",
-            (unsigned)input->location.kind, (unsigned)input->location.width,
-            (unsigned)input->location.stack_convention, (int)input->location.stack_offset,
-            (unsigned)input->location.registers[0].register_kind,
-            (unsigned)input->location.registers[0].register_index, (unsigned)input->seed_kind) != 0 ||
+        if (json_builder_append(&builder, "{\"location\":") != 0 ||
+            append_function_summary_abi_location_json(&builder, &input->location) != 0 ||
+            json_builder_appendf(&builder, ",\"seed_kind\":%u,\"struct_name\":",
+              (unsigned)input->seed_kind) != 0 ||
             json_builder_append_json_string(&builder, input->struct_name) != 0 ||
             json_builder_append(&builder, "}") != 0) goto oom;
       }

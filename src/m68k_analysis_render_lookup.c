@@ -7375,11 +7375,13 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.memory_effect_count = configured->memory_effect_count;
     summary.escape_count = configured->escape_count;
     summary.effects_invalid = configured->effects_invalid;
+    summary.location_effect_count = configured->location_effect_count;
     memcpy(summary.inputs, configured->inputs, sizeof(summary.inputs));
     memcpy(summary.data_register_effects, configured->data_register_effects,
       sizeof(summary.data_register_effects));
     memcpy(summary.address_register_effects, configured->address_register_effects,
       sizeof(summary.address_register_effects));
+    memcpy(summary.location_effects, configured->location_effects, sizeof(summary.location_effects));
     memcpy(summary.memory_effects, configured->memory_effects, sizeof(summary.memory_effects));
     memcpy(summary.escapes, configured->escapes, sizeof(summary.escapes));
     if (m68k_ir_section_analysis_append_function_summary(section_analysis, &summary) != 0) return -1;

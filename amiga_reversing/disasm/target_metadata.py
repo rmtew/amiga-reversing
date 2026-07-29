@@ -278,19 +278,40 @@ class EntryRegisterSeedMetadata:
 @dataclass(frozen=True, slots=True)
 class FunctionSummaryAbiLocationMetadata:
     kind: str
-    register: str
     width: int
+    register: str | None = None
+    offset: int | None = None
+    convention: str | None = None
+    registers: tuple[str, ...] = ()
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryAbiLocationMetadata:
         kind = payload["kind"]
-        register = payload["register"]
         width = payload["width"]
-        assert kind == "register"
-        assert isinstance(register, str) and len(register) == 2
-        assert register[0].upper() in {"D", "A"} and register[1] in "01234567"
-        assert isinstance(width, int) and width == 4
-        return cls(kind=kind, register=register.upper(), width=width)
+        assert kind in {"register", "stack", "register_tuple"}
+        assert isinstance(width, int) and width > 0
+        if kind == "register":
+            register = payload["register"]
+            assert isinstance(register, str) and len(register) == 2
+            assert register[0].upper() in {"D", "A"} and register[1] in "01234567"
+            assert set(payload) == {"kind", "register", "width"}
+            return cls(kind=kind, register=register.upper(), width=width)
+        if kind == "stack":
+            offset = payload["offset"]
+            convention = payload["convention"]
+            assert isinstance(offset, int)
+            assert convention in {"caller_argument", "caller_result", "caller_cleanup"}
+            assert set(payload) == {"kind", "offset", "width", "convention"}
+            return cls(kind=kind, width=width, offset=offset, convention=convention)
+        registers = payload["registers"]
+        assert isinstance(registers, list) and 2 <= len(registers) <= 4
+        assert all(isinstance(register, str) and len(register) == 2 and register[0].upper() in {"D", "A"}
+                   and register[1] in "01234567" for register in registers)
+        canonical = tuple(register.upper() for register in registers)
+        assert canonical == tuple(sorted(canonical, key=lambda value: (0 if value[0] == "D" else 1, value[1])))
+        assert len(set(canonical)) == len(canonical)
+        assert set(payload) == {"kind", "registers", "width"}
+        return cls(kind=kind, width=width, registers=canonical)
 
 
 @dataclass(frozen=True, slots=True)
@@ -322,9 +343,12 @@ class FunctionSummaryEffectsMetadata:
     registers_state: str
     memory_state: str
     escapes_state: str
+    register_locations: tuple[tuple[FunctionSummaryAbiLocationMetadata, str], ...] = ()
+    memory_effects: tuple[tuple[str, tuple[object, ...]], ...] = ()
+    escapes: tuple[tuple[FunctionSummaryAbiLocationMetadata, tuple[object, ...]], ...] = ()
 
     @classmethod
-    def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryEffectsMetadata:
+    def from_dict(cls, payload: dict[str, object], inputs: tuple[FunctionSummaryInputMetadata, ...]) -> FunctionSummaryEffectsMetadata:
         schema_version = payload["schema_version"]
         registers = _json_object(payload["registers"])
         memory = _json_object(payload["memory"])
@@ -333,14 +357,78 @@ class FunctionSummaryEffectsMetadata:
         memory_state = memory["state"]
         escapes_state = escapes["state"]
         assert schema_version == 1
-        assert registers_state == "unknown"
-        assert memory_state == "unknown"
-        assert escapes_state == "unknown"
+        assert registers_state in {"unknown", "explicit", "invalid", "overflow"}
+        assert memory_state in {"unknown", "explicit", "invalid", "overflow"}
+        assert escapes_state in {"unknown", "explicit", "invalid", "overflow"}
+        register_locations: list[tuple[FunctionSummaryAbiLocationMetadata, str]] = []
+        if registers_state == "explicit":
+            locations = registers["locations"]
+            assert isinstance(locations, list)
+            assert set(registers) == {"state", "locations"}
+            for item in locations:
+                item_object = _json_object(item)
+                location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(item_object["location"]))
+                effect = item_object["effect"]
+                assert effect in {"preserved", "clobbered"}
+                assert set(item_object) == {"location", "effect"}
+                register_locations.append((location, effect))
+            identities = [item[0] for item in register_locations]
+            assert len(set(identities)) == len(identities)
+            required = {("register", register, 4) for register in (*[f"D{i}" for i in range(8)], *[f"A{i}" for i in range(8)])}
+            observed = {(location.kind, location.register, location.width) for location, _ in register_locations
+                        if location.kind == "register"}
+            assert required <= observed
+            for input_item in inputs:
+                if input_item.location.kind == "stack":
+                    assert any(location == input_item.location for location, _ in register_locations)
+        else:
+            assert set(registers) == {"state"}
+        def subject(value: object) -> tuple[object, ...]:
+            item = _json_object(value)
+            kind = item["kind"]
+            if kind == "input":
+                index = item["input_index"]
+                assert isinstance(index, int) and 0 <= index < len(inputs) and set(item) == {"kind", "input_index"}
+                return (kind, index)
+            if kind == "static_storage":
+                section = item["section_index"]; offset = item["offset"]
+                assert isinstance(section, int) and section >= 0 and isinstance(offset, int) and offset >= 0
+                assert set(item) == {"kind", "section_index", "offset"}
+                return (kind, section, offset)
+            region = item["region_id"]
+            assert kind == "abstract_region" and isinstance(region, str) and region and set(item) == {"kind", "region_id"}
+            return (kind, region)
+        memory_effects: list[tuple[str, tuple[object, ...]]] = []
+        if memory_state == "explicit":
+            effects = memory["effects"]
+            assert isinstance(effects, list) and set(memory) == {"state", "effects"}
+            for item in effects:
+                item_object = _json_object(item); kind = item_object["kind"]
+                assert kind in {"read", "write", "nonaliasing_read", "nonaliasing_write"} and set(item_object) == {"kind", "subject"}
+                memory_effects.append((kind, subject(item_object["subject"])))
+            assert len(set(memory_effects)) == len(memory_effects)
+        else:
+            assert set(memory) == {"state"}
+        escape_records: list[tuple[FunctionSummaryAbiLocationMetadata, tuple[object, ...]]] = []
+        if escapes_state == "explicit":
+            items = escapes["escapes"]
+            assert isinstance(items, list) and set(escapes) == {"state", "escapes"}
+            allowed_sources = {item.location for item in inputs}
+            for item in items:
+                item_object = _json_object(item); location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(item_object["source_location"]))
+                assert location in allowed_sources and set(item_object) == {"source_location", "sink_subject"}
+                escape_records.append((location, subject(item_object["sink_subject"])))
+            assert len(set(escape_records)) == len(escape_records)
+        else:
+            assert set(escapes) == {"state"}
         return cls(
             schema_version=schema_version,
             registers_state=registers_state,
             memory_state=memory_state,
             escapes_state=escapes_state,
+            register_locations=tuple(register_locations),
+            memory_effects=tuple(memory_effects),
+            escapes=tuple(escape_records),
         )
 
 
@@ -363,7 +451,6 @@ class FunctionSummaryMetadata:
         hunk = payload["hunk"]
         callable_kind = payload["callable_kind"]
         inputs = payload["inputs"]
-        effects = FunctionSummaryEffectsMetadata.from_dict(_json_object(payload["effects"]))
         note = payload["note"]
         context_name = payload.get("context_name")
         entry_offset = payload.get("entry_offset")
@@ -380,6 +467,7 @@ class FunctionSummaryMetadata:
         )
         assert parsed_inputs
         assert len({item.location for item in parsed_inputs}) == len(parsed_inputs)
+        effects = FunctionSummaryEffectsMetadata.from_dict(_json_object(payload["effects"]), parsed_inputs)
         if callable_kind == "direct":
             assert isinstance(entry_offset, int) and entry_offset >= 0
             assert table_offset is None and entry_count is None
@@ -1726,6 +1814,36 @@ def write_target_corrections_metadata(target_dir: Path, metadata: TargetMetadata
     )
 
 
+def _function_summary_effect_subject_payload(subject: object) -> dict[str, object]:
+    """Rebuild the closed persisted subject object after dataclass export."""
+    assert isinstance(subject, list | tuple) and subject
+    kind = subject[0]
+    if kind == "input":
+        assert len(subject) == 2 and isinstance(subject[1], int)
+        return {"kind": kind, "input_index": subject[1]}
+    if kind == "static_storage":
+        assert len(subject) == 3 and isinstance(subject[1], int) and isinstance(subject[2], int)
+        return {"kind": kind, "section_index": subject[1], "offset": subject[2]}
+    assert kind == "abstract_region" and len(subject) == 2 and isinstance(subject[1], str)
+    return {"kind": kind, "region_id": subject[1]}
+
+
+def _function_summary_location_payload(location: object) -> dict[str, object]:
+    assert isinstance(location, dict)
+    kind = location.get("kind")
+    if kind == "register":
+        register = location.get("register"); width = location.get("width")
+        assert isinstance(register, str) and isinstance(width, int)
+        return {"kind": kind, "register": register, "width": width}
+    if kind == "stack":
+        offset = location.get("offset"); width = location.get("width"); convention = location.get("convention")
+        assert isinstance(offset, int) and isinstance(width, int) and isinstance(convention, str)
+        return {"kind": kind, "offset": offset, "width": width, "convention": convention}
+    registers = location.get("registers"); width = location.get("width")
+    assert kind == "register_tuple" and isinstance(registers, list) and isinstance(width, int)
+    return {"kind": kind, "registers": registers, "width": width}
+
+
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
     function_summaries = payload.get("function_summaries")
@@ -1738,13 +1856,43 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
                     summary.pop(key, None)
             effects = summary.get("effects")
             if isinstance(effects, dict):
+                input_records = summary.get("inputs")
+                if isinstance(input_records, list | tuple):
+                    for input_record in input_records:
+                        if not isinstance(input_record, dict):
+                            continue
+                        if isinstance(input_record.get("location"), dict):
+                            input_record["location"] = _function_summary_location_payload(input_record["location"])
+                    summary["inputs"] = list(input_records)
                 registers_state = effects.pop("registers_state", None)
                 memory_state = effects.pop("memory_state", None)
                 escapes_state = effects.pop("escapes_state", None)
+                register_locations = effects.pop("register_locations", [])
+                memory_effects = effects.pop("memory_effects", [])
+                escape_records = effects.pop("escapes", [])
                 if isinstance(registers_state, str) and isinstance(memory_state, str) and isinstance(escapes_state, str):
-                    effects["registers"] = {"state": registers_state}
-                    effects["memory"] = {"state": memory_state}
-                    effects["escapes"] = {"state": escapes_state}
+                    registers: dict[str, object] = {"state": registers_state}
+                    if registers_state == "explicit" and isinstance(register_locations, list | tuple):
+                        registers["locations"] = [
+                            {"location": _function_summary_location_payload(location), "effect": effect}
+                            for location, effect in register_locations
+                        ]
+                    memory: dict[str, object] = {"state": memory_state}
+                    if memory_state == "explicit" and isinstance(memory_effects, list | tuple):
+                        memory["effects"] = [
+                            {"kind": kind, "subject": _function_summary_effect_subject_payload(subject)}
+                            for kind, subject in memory_effects
+                        ]
+                    escapes: dict[str, object] = {"state": escapes_state}
+                    if escapes_state == "explicit" and isinstance(escape_records, list | tuple):
+                        escapes["escapes"] = [
+                            {"source_location": _function_summary_location_payload(location),
+                             "sink_subject": _function_summary_effect_subject_payload(subject)}
+                            for location, subject in escape_records
+                        ]
+                    effects["registers"] = registers
+                    effects["memory"] = memory
+                    effects["escapes"] = escapes
     bootblock = payload.get("bootblock")
     if isinstance(bootblock, dict) and bootblock.get("bootcode_has_code") is None:
         bootblock.pop("bootcode_has_code", None)
