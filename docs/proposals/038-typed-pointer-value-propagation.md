@@ -1077,6 +1077,16 @@ entry before intersecting its proven address component. The remaining callback
 result must itself become a common summary and retain component-level failure
 evidence; it must not retain the mask-shaped public boundary.
 
+**Register-effect handoff completion (2026-07-29).** The call-site flow now
+passes the selected direct-local or callback-table summary directly to
+`typed_state_apply_function_summary_effects`; it no longer reconstructs an
+address-preservation mask between analysis and transfer. Platform, local, and
+callback paths therefore share the same explicit Dn/An application boundary.
+Pandora regeneration remains full-file exact. Remaining B3 work is not another
+register-transfer variant: it is durable explicit stack/memory/escape effects,
+their source-analysis graph/export/import, and replacing the remaining
+transient writers with stable summary facts.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
