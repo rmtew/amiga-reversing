@@ -61,6 +61,7 @@ def _migrate_legacy_effects(summary: dict[str, Any]) -> dict[str, Any]:
         converted_input["location"] = {"kind": "register", "register": location.upper(), "width": 4}
         converted_inputs.append(converted_input)
     converted["inputs"] = converted_inputs
+    converted["results"] = []
     FunctionSummaryMetadata.from_dict(converted)
     return converted
 
@@ -272,6 +273,7 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             "hunk": key[1],
             "callable_kind": key[0],
             "inputs": inputs,
+            "results": [],
             "effects": _unknown_effects(),
             "note": first.payload.get("note", "Migrated function summary"),
             "context_name": first.payload.get("context_name", ""),
@@ -364,6 +366,7 @@ def migrate_canonical_location_records(records: list[dict[str, Any]]) -> tuple[l
             converted_inputs.append(converted_input)
         converted_summary = dict(summary)
         converted_summary["inputs"] = converted_inputs
+        converted_summary["results"] = []
         FunctionSummaryMetadata.from_dict(converted_summary)
         converted_record = dict(record)
         converted_record["function_summary"] = converted_summary
@@ -378,20 +381,73 @@ def migrate_canonical_location_records(records: list[dict[str, Any]]) -> tuple[l
     return converted, {"schema_version": 1, "function_summary_location_migrations": migrations}
 
 
+def migrate_canonical_result_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Add the mandatory canonical result collection to fully canonical summaries.
+
+    This accepts only the pre-result summary schema and rejects a mixed or
+    already-converted log. It is conversion tooling, not a runtime default for
+    a missing member.
+    """
+    converted: list[dict[str, Any]] = []
+    migrations: list[dict[str, Any]] = []
+    seen_action_ids: set[str] = set()
+    previous_sequence = -1
+    for record in records:
+        if record.get("record") != "manual_action":
+            converted.append(record)
+            continue
+        action_id = record.get("action_id")
+        sequence = record.get("sequence")
+        if not isinstance(action_id, str) or not action_id or action_id in seen_action_ids:
+            raise ValueError("manual action log has missing or duplicate action_id")
+        if not isinstance(sequence, int) or sequence < 0 or sequence <= previous_sequence:
+            raise ValueError("manual action log sequences must be strictly increasing")
+        seen_action_ids.add(action_id)
+        previous_sequence = sequence
+        if record.get("kind") != _FUNCTION_SUMMARY_CREATE:
+            converted.append(record)
+            continue
+        summary = record.get("function_summary")
+        if not isinstance(summary, dict):
+            raise ValueError(f"manual action {action_id} lacks function_summary")
+        if "results" in summary:
+            raise ValueError("result migration rejects an already-migrated or mixed summary")
+        converted_summary = dict(summary)
+        converted_summary["results"] = []
+        FunctionSummaryMetadata.from_dict(converted_summary)
+        converted_record = dict(record)
+        converted_record["function_summary"] = converted_summary
+        converted.append(converted_record)
+        migrations.append({
+            "action_id": action_id,
+            "sequence": sequence,
+            "function_summary_id": _required_string(converted_summary, "function_summary_id"),
+        })
+    if not migrations:
+        raise ValueError("result migration found no pre-result function summaries")
+    return converted, {"schema_version": 1, "function_summary_result_migrations": migrations}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Migrate retired callable facts to function summaries.")
     parser.add_argument("input", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--migrate-locations", action="store_true",
+    migration_group = parser.add_mutually_exclusive_group()
+    migration_group.add_argument("--migrate-locations", action="store_true",
         help="migrate canonical function-summary register-string inputs to ABI location objects")
+    migration_group.add_argument("--migrate-results", action="store_true",
+        help="migrate canonical summaries to the required explicit results collection")
     args = parser.parse_args(argv)
     if args.output.exists() or args.report.exists():
         raise SystemExit("refusing to overwrite migration output or report")
-    converted, report = (
-        migrate_canonical_location_records(_load_records(args.input))
-        if args.migrate_locations else migrate_records(_load_records(args.input))
-    )
+    records = _load_records(args.input)
+    if args.migrate_locations:
+        converted, report = migrate_canonical_location_records(records)
+    elif args.migrate_results:
+        converted, report = migrate_canonical_result_records(records)
+    else:
+        converted, report = migrate_records(records)
     args.output.write_text("".join(json.dumps(record, sort_keys=True) + "\n" for record in converted), encoding="utf-8")
     args.report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

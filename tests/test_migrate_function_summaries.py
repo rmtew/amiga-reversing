@@ -1,6 +1,10 @@
 import pytest
 
-from amiga_reversing.tools.migrate_function_summaries import migrate_canonical_location_records, migrate_records
+from amiga_reversing.tools.migrate_function_summaries import (
+    migrate_canonical_location_records,
+    migrate_canonical_result_records,
+    migrate_records,
+)
 from amiga_reversing.disasm.target_metadata import FunctionSummaryMetadata, TargetMetadata, target_metadata_json_payload
 
 
@@ -206,6 +210,7 @@ def test_explicit_effect_schema_round_trips_stack_memory_and_escape_identities()
             "value_kind": "struct_ptr",
             "struct_name": "world_object",
         }],
+        "results": [],
         "effects": {
             "schema_version": 1,
             "registers": {"state": "explicit", "locations": locations},
@@ -249,6 +254,7 @@ def test_explicit_effect_partition_rejects_register_tuple_location() -> None:
             "value_kind": "struct_ptr",
             "struct_name": "world_object",
         }],
+        "results": [],
         "effects": {
             "schema_version": 1,
             "registers": {"state": "explicit", "locations": locations},
@@ -272,9 +278,74 @@ def test_function_summary_schema_rejects_unknown_effect_member() -> None:
             "value_kind": "struct_ptr",
             "struct_name": "world_object",
         }],
+        "results": [],
         "effects": _unknown_effects(),
         "note": "strict effect object",
     }
     payload["effects"]["unexpected"] = True
     with pytest.raises(AssertionError):
         FunctionSummaryMetadata.from_dict(payload)
+
+
+def test_function_summary_result_identity_and_result_escape_round_trip() -> None:
+    payload = {
+        "function_summary_id": "result-identity",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0x80,
+        "inputs": [{
+            "location": {"kind": "register", "register": "A0", "width": 4},
+            "value_kind": "struct_ptr",
+            "struct_name": "world_object",
+        }],
+        "results": [{
+            "kind": "identity_input",
+            "location": {"kind": "register", "register": "A1", "width": 4},
+            "input_index": 0,
+        }],
+        "effects": {
+            "schema_version": 1,
+            "registers": {"state": "unknown"},
+            "memory": {"state": "unknown"},
+            "escapes": {"state": "explicit", "escapes": [{
+                "source_kind": "result",
+                "source_location": {"kind": "register", "register": "A1", "width": 4},
+                "sink_subject": {"kind": "abstract_region", "region_id": "saved_world_object"},
+            }]},
+        },
+        "note": "result identity escape",
+    }
+    summary = FunctionSummaryMetadata.from_dict(payload)
+    serialized = target_metadata_json_payload(
+        TargetMetadata(target_type="program", entry_register_seeds=(), function_summaries=(summary,))
+    )
+    assert list(serialized["function_summaries"]) == [payload]
+
+
+def test_result_migration_requires_and_adds_empty_collection() -> None:
+    record = {
+        "record": "manual_action",
+        "action_id": "summary",
+        "sequence": 2,
+        "kind": "create_manual_function_summary",
+        "function_summary": {
+            "function_summary_id": "summary-id",
+            "hunk": 0,
+            "callable_kind": "direct",
+            "entry_offset": 0x80,
+            "inputs": [{
+                "location": {"kind": "register", "register": "A0", "width": 4},
+                "value_kind": "struct_ptr",
+                "struct_name": "world_object",
+            }],
+            "effects": _unknown_effects(),
+            "note": "pre-result canonical summary",
+        },
+    }
+    converted, report = migrate_canonical_result_records([record])
+    assert converted[0]["function_summary"]["results"] == []
+    assert report["function_summary_result_migrations"] == [
+        {"action_id": "summary", "sequence": 2, "function_summary_id": "summary-id"}
+    ]
+    with pytest.raises(ValueError, match="already-migrated"):
+        migrate_canonical_result_records(converted)

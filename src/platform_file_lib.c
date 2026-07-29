@@ -2570,13 +2570,21 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       if (!append_metadata_function_summary_abi_location_local(location, location_end, &escape->source_location) ||
           !append_metadata_function_summary_effect_subject_local(sink, sink_end, summary->input_count,
             &escape->sink_subject)) return 0;
-      if (strcmp(source_kind, "input") != 0) return 0;
-      escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
-      for (input_index = 0U; input_index < summary->input_count; ++input_index) {
-        if (m68k_function_summary_abi_location_equal(&escape->source_location, &summary->inputs[input_index].location))
-          break;
-      }
-      if (input_index == summary->input_count) return 0;
+      if (strcmp(source_kind, "input") == 0) {
+        escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+        for (input_index = 0U; input_index < summary->input_count; ++input_index) {
+          if (m68k_function_summary_abi_location_equal(&escape->source_location, &summary->inputs[input_index].location))
+            break;
+        }
+        if (input_index == summary->input_count) return 0;
+      } else if (strcmp(source_kind, "result") == 0) {
+        escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_RESULT;
+        for (input_index = 0U; input_index < summary->result_count; ++input_index) {
+          if (m68k_function_summary_abi_location_equal(&escape->source_location, &summary->results[input_index].location))
+            break;
+        }
+        if (input_index == summary->result_count) return 0;
+      } else return 0;
       for (prior = 0U; prior < summary->escape_count; ++prior) {
         if (m68k_function_summary_abi_location_equal(&summary->escapes[prior].source_location,
               &escape->source_location) && m68k_function_summary_effect_subject_equal(
@@ -2911,6 +2919,37 @@ static int append_metadata_function_summary_input_local(const char *object_start
   return 1;
 }
 
+static int append_metadata_function_summary_result_local(const char *object_start, const char *object_end,
+    M68kAnalysisFunctionSummary *summary) {
+  static const char *const keys[] = {"kind", "location", "input_index"};
+  const char *location;
+  const char *location_end;
+  char kind[32];
+  uint32_t input_index = 0U;
+  int has_input_index = 0;
+  M68kAnalysisFunctionSummaryResult *result;
+  uint8_t prior;
+  if (summary == NULL || summary->result_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT ||
+      !json_object_has_only_keys_local(object_start, object_end, keys, sizeof(keys) / sizeof(keys[0])) ||
+      !json_optional_string_field_local(object_start, object_end, "kind", kind, sizeof(kind)) ||
+      (location = json_object_field_local(object_start, object_end, "location", &location_end)) == NULL ||
+      !json_number_field_local(object_start, object_end, "input_index", &input_index, &has_input_index) ||
+      !has_input_index || input_index >= summary->input_count || strcmp(kind, "identity_input") != 0) return 0;
+  result = &summary->results[summary->result_count];
+  memset(result, 0, sizeof(*result));
+  if (!append_metadata_function_summary_abi_location_local(location, location_end, &result->location)) return 0;
+  for (prior = 0U; prior < summary->result_count; ++prior) {
+    if (m68k_function_summary_abi_location_equal(&summary->results[prior].location, &result->location)) {
+      summary->result_contract_invalid = 1U;
+      return 0;
+    }
+  }
+  result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  result->input_index = (uint8_t)input_index;
+  summary->result_count += 1U;
+  return 1;
+}
+
 static int append_metadata_function_summary_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   char callable_kind[32];
@@ -2919,6 +2958,7 @@ static int append_metadata_function_summary_local(const char *object_start, cons
   uint32_t hunk = 0U, entry_offset = 0U, table_offset = 0U, entry_count = 0U;
   int has_hunk = 0, has_entry_offset = 0, has_table_offset = 0, has_entry_count = 0;
   const char *inputs_end;
+  const char *results_end;
   const char *cursor;
   M68kAnalysisFunctionSummary *summary;
   if (policy == NULL || policy->function_summary_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT ||
@@ -2954,6 +2994,14 @@ static int append_metadata_function_summary_local(const char *object_start, cons
     cursor = input_end;
   }
   if (summary->input_count == 0U) return 0;
+  cursor = json_array_field_local(object_start, object_end, "results", &results_end);
+  if (cursor == NULL) return 0;
+  while (cursor < results_end) {
+    const char *result_end;
+    const char *result_start = json_next_object_local(cursor, results_end, &result_end);
+    if (result_start == NULL || !append_metadata_function_summary_result_local(result_start, result_end, summary)) return 0;
+    cursor = result_end;
+  }
   if (!append_metadata_function_summary_effects_local(object_start, object_end, summary)) return 0;
   policy->function_summary_count += 1U;
   return 1;

@@ -1319,9 +1319,9 @@ fallbacks.
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Migrate callable result declarations into the common persisted/source-
-   analysis summary shape, then add the closed escape `source_kind` field so
-   input- and result-origin escapes validate and round-trip losslessly.
+1. Apply target-declared identity results at a proven call and add a focused
+   result-origin escape fixture through the C target-metadata reader. The
+   persisted identity-result and escape-validation schema is complete.
 2. Represent and transfer ordered register-tuple ABI values; parsed tuple
    locations are not yet typed-state values.
 3. Apply explicit stack, memory, and escape effects with a stable
@@ -1345,23 +1345,26 @@ result collection, so `source_kind: "result"` is rejected until result
 declarations are migrated and validation can prove the referenced result
 location.
 
-**Result-persistence audit (2026-07-29).** The common source-analysis model
-already owns `M68kFunctionSummaryResultIR`, validates result-origin escape
-locations against that collection, and exports results.  The missing boundary
-is specifically `M68kAnalysisFunctionSummary`: target metadata parsing and the
-Python `FunctionSummaryMetadata` projection persist only inputs and effects.
-The migration must add one ordered common result collection to that policy
-shape, parse it before effects, copy it into source-analysis export, and pass
-its locations to the closed escape validator.  Adding `source_kind: "result"`
-to the current metadata grammar first would be a false capability because no
-result declaration exists there to validate it against.
+**Target-declared identity-result migration (2026-07-29).** Persisted
+function summaries now require one explicit `results` collection. The first
+reviewable result form is the only target-authored form with a complete
+durable proof payload: `identity_input`, which names an exact ABI output
+location and one declared input index. Generated base, typed, and platform
+outputs remain common source-analysis facts, so metadata never copies their
+presentation names or platform payloads. The Python policy model, strict C
+target-metadata reader, source-analysis summary export, and source-analysis
+JSON all carry this one identity result; result-origin escapes validate only
+against a declared result location. An offline migration command converts
+pre-result canonical summaries by adding `results: []` and rejects mixed or
+already-migrated records. It converted Pandora's eighteen active summaries
+and retained a local pre-results archive/report. Focused Python and C fixtures
+prove identity-result round-trip and graph export.
 
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
-and validates result references, but the strict metadata reader currently
-forces every parsed escape source to `input` and the JSON exporter omits the
-source kind.  It must add a closed `source_kind` field, permit only a declared
-input or result at that location, and round-trip both forms.  Tuple inputs are
+and validates result references. The strict metadata reader and JSON exporter
+now preserve the closed `source_kind` field and permit only a declared input
+or result at that location. Tuple inputs are
 also parsed but not yet represented by typed state, so tuple transfer remains
 an explicit follow-up rather than a claimed supported ABI.  Required fixtures
 for this slice are complete-domain direct-local proof, all-entry callback

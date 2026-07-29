@@ -138,6 +138,22 @@ typedef struct M68kAnalysisFunctionSummaryInput {
   char struct_name[64];
 } M68kAnalysisFunctionSummaryInput;
 
+/* Target-authored results are deliberately narrower than generated platform
+ * results: a reviewer may only declare a lossless identity transform from a
+ * declared summary input. Generated base/typed/platform output facts use the
+ * common source-analysis result IR below. */
+typedef enum M68kAnalysisFunctionSummaryResultKind {
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_NONE = 0,
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 1
+} M68kAnalysisFunctionSummaryResultKind;
+
+typedef struct M68kAnalysisFunctionSummaryResult {
+  M68kFunctionSummaryAbiLocation location;
+  uint8_t kind;
+  uint8_t input_index;
+  uint8_t reserved[2];
+} M68kAnalysisFunctionSummaryResult;
+
 typedef enum M68kFunctionSummaryLocationEffect {
   M68K_FUNCTION_SUMMARY_LOCATION_UNKNOWN = 0,
   M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED = 1,
@@ -233,6 +249,9 @@ typedef struct M68kAnalysisFunctionSummary {
   uint8_t escape_count;
   uint8_t effects_invalid;
   uint8_t location_effect_count;
+  uint8_t result_count;
+  uint8_t result_contract_invalid;
+  uint8_t reserved1[2];
   uint32_t section_index;
   uint32_t entry_offset;
   uint32_t table_offset;
@@ -240,6 +259,7 @@ typedef struct M68kAnalysisFunctionSummary {
   char function_summary_id[96];
   char context_name[64];
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
+  M68kAnalysisFunctionSummaryResult results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
   M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];
   M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];

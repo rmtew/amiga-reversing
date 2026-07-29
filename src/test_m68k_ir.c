@@ -27250,6 +27250,14 @@ static int test_facts_v2_analysis_marks_candidate_overflow_at_five_way_branch_me
   policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
   policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.function_summaries[0].result_count = 1U;
+  policy.function_summaries[0].results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  policy.function_summaries[0].results[0].input_index = 0U;
+  policy.function_summaries[0].results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].results[0].location.width = 4U;
+  policy.function_summaries[0].results[0].location.register_count = 1U;
+  policy.function_summaries[0].results[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].results[0].location.registers[0].register_index = 1U;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "overflow_callback_arg");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "world_object_shared_prefix");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
@@ -27478,6 +27486,14 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
   policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.function_summaries[0].result_count = 1U;
+  policy.function_summaries[0].results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  policy.function_summaries[0].results[0].input_index = 0U;
+  policy.function_summaries[0].results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].results[0].location.width = 4U;
+  policy.function_summaries[0].results[0].location.register_count = 1U;
+  policy.function_summaries[0].results[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].results[0].location.registers[0].register_index = 1U;
   policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
   policy.function_summaries[0].effects_invalid = 1U;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_arg");
@@ -27494,6 +27510,10 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].function_summaries[0].function_summary_id);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT,
     analysis.sections[0].function_summaries[0].callable_kind);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].result_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT,
+    analysis.sections[0].function_summaries[0].results[0].kind);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].results[0].identity_input_index);
   M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_use_count);
   M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].function_summary_uses[0].function_summary_id);
   M68K_C_ASSERT_U32(6U, analysis.sections[0].function_summary_uses[0].caller_offset);
@@ -27503,6 +27523,7 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_id\":\"callback_context_arg\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"registers\":{\"state\":\"invalid\"}") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"identity_input\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_use_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"use_kind\":\"call\"") != NULL);
   free(analysis_json);

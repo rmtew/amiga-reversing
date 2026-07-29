@@ -7664,6 +7664,14 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.effects_invalid = configured->effects_invalid;
     summary.location_effect_count = configured->location_effect_count;
     memcpy(summary.inputs, configured->inputs, sizeof(summary.inputs));
+    for (uint8_t result_index = 0U; result_index < configured->result_count; ++result_index) {
+      const M68kAnalysisFunctionSummaryResult *configured_result = &configured->results[result_index];
+      M68kFunctionSummaryResultIR *result = &summary.results[summary.result_count++];
+      result->kind = M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+      result->location = configured_result->location;
+      result->identity_input_index = configured_result->input_index;
+    }
+    summary.result_contract_invalid = configured->result_contract_invalid;
     memcpy(summary.location_effects, configured->location_effects, sizeof(summary.location_effects));
     memcpy(summary.memory_effects, configured->memory_effects, sizeof(summary.memory_effects));
     memcpy(summary.escapes, configured->escapes, sizeof(summary.escapes));

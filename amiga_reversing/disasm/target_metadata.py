@@ -332,6 +332,30 @@ class FunctionSummaryInputMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class FunctionSummaryResultMetadata:
+    """A reviewer-declared lossless callable result.
+
+    Target metadata may express only an identity transform from an existing
+    input. Generated platform/base/typed results are source-analysis facts,
+    never copied target-facing names.
+    """
+
+    kind: str
+    location: FunctionSummaryAbiLocationMetadata
+    input_index: int
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object], inputs: tuple[FunctionSummaryInputMetadata, ...]) -> FunctionSummaryResultMetadata:
+        kind = payload["kind"]
+        location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(payload["location"]))
+        input_index = payload["input_index"]
+        assert kind == "identity_input"
+        assert isinstance(input_index, int) and 0 <= input_index < len(inputs)
+        assert set(payload) == {"kind", "location", "input_index"}
+        return cls(kind=kind, location=location, input_index=input_index)
+
+
+@dataclass(frozen=True, slots=True)
 class FunctionSummaryEffectsMetadata:
     """The persisted callable-effect boundary.
 
@@ -349,7 +373,8 @@ class FunctionSummaryEffectsMetadata:
     escapes: tuple[tuple[str, FunctionSummaryAbiLocationMetadata, tuple[object, ...]], ...] = ()
 
     @classmethod
-    def from_dict(cls, payload: dict[str, object], inputs: tuple[FunctionSummaryInputMetadata, ...]) -> FunctionSummaryEffectsMetadata:
+    def from_dict(cls, payload: dict[str, object], inputs: tuple[FunctionSummaryInputMetadata, ...],
+                  results: tuple[FunctionSummaryResultMetadata, ...]) -> FunctionSummaryEffectsMetadata:
         schema_version = payload["schema_version"]
         registers = _json_object(payload["registers"])
         memory = _json_object(payload["memory"])
@@ -419,11 +444,14 @@ class FunctionSummaryEffectsMetadata:
         if escapes_state == "explicit":
             items = escapes["escapes"]
             assert isinstance(items, list) and set(escapes) == {"state", "escapes"}
-            allowed_sources = {item.location for item in inputs}
+            allowed_inputs = {item.location for item in inputs}
+            allowed_results = {item.location for item in results}
             for item in items:
                 item_object = _json_object(item); location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(item_object["source_location"]))
                 source_kind = item_object["source_kind"]
-                assert source_kind == "input" and location in allowed_sources and set(item_object) == {"source_kind", "source_location", "sink_subject"}
+                assert source_kind in {"input", "result"}
+                assert location in (allowed_inputs if source_kind == "input" else allowed_results)
+                assert set(item_object) == {"source_kind", "source_location", "sink_subject"}
                 escape_records.append((source_kind, location, subject(item_object["sink_subject"])))
             assert len(set(escape_records)) == len(escape_records)
         else:
@@ -445,6 +473,7 @@ class FunctionSummaryMetadata:
     hunk: int
     callable_kind: str
     inputs: tuple[FunctionSummaryInputMetadata, ...]
+    results: tuple[FunctionSummaryResultMetadata, ...]
     effects: FunctionSummaryEffectsMetadata
     note: str
     context_name: str | None = None
@@ -458,6 +487,7 @@ class FunctionSummaryMetadata:
         hunk = payload["hunk"]
         callable_kind = payload["callable_kind"]
         inputs = payload["inputs"]
+        results = payload["results"]
         note = payload["note"]
         context_name = payload.get("context_name")
         entry_offset = payload.get("entry_offset")
@@ -468,7 +498,7 @@ class FunctionSummaryMetadata:
         assert callable_kind in {"direct", "callback_table"}
         assert isinstance(note, str)
         assert context_name is None or isinstance(context_name, str)
-        allowed_keys = {"function_summary_id", "hunk", "callable_kind", "inputs", "effects", "note",
+        allowed_keys = {"function_summary_id", "hunk", "callable_kind", "inputs", "results", "effects", "note",
                         "context_name", "entry_offset", "table_offset", "entry_count"}
         assert set(payload) <= allowed_keys
         parsed_inputs = tuple(
@@ -477,7 +507,12 @@ class FunctionSummaryMetadata:
         )
         assert parsed_inputs
         assert len({item.location for item in parsed_inputs}) == len(parsed_inputs)
-        effects = FunctionSummaryEffectsMetadata.from_dict(_json_object(payload["effects"]), parsed_inputs)
+        parsed_results = tuple(
+            FunctionSummaryResultMetadata.from_dict(_json_object(item), parsed_inputs)
+            for item in _json_list(results)
+        )
+        assert len({item.location for item in parsed_results}) == len(parsed_results)
+        effects = FunctionSummaryEffectsMetadata.from_dict(_json_object(payload["effects"]), parsed_inputs, parsed_results)
         if callable_kind == "direct":
             assert isinstance(entry_offset, int) and entry_offset >= 0
             assert table_offset is None and entry_count is None
@@ -490,6 +525,7 @@ class FunctionSummaryMetadata:
             hunk=hunk,
             callable_kind=callable_kind,
             inputs=parsed_inputs,
+            results=parsed_results,
             effects=effects,
             note=note,
             context_name=context_name,
@@ -1864,6 +1900,14 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
             for key in ("entry_offset", "table_offset", "entry_count", "context_name"):
                 if summary.get(key) is None:
                     summary.pop(key, None)
+            result_records = summary.get("results")
+            if isinstance(result_records, list | tuple):
+                for result_record in result_records:
+                    if not isinstance(result_record, dict):
+                        continue
+                    if isinstance(result_record.get("location"), dict):
+                        result_record["location"] = _function_summary_location_payload(result_record["location"])
+                summary["results"] = list(result_records)
             effects = summary.get("effects")
             if isinstance(effects, dict):
                 input_records = summary.get("inputs")
