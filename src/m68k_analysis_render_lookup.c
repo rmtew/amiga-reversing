@@ -2073,6 +2073,10 @@ static void typed_stored_value_activate_address(M68kRenderTypedStoredValue *valu
   typed_stored_value_update_known(value);
 }
 
+static void typed_state_set_stack_slot(M68kRenderTypedState *state, int16_t displacement,
+    uint8_t caller_save_temporary, const M68kRenderTypedStoredValue *value,
+    const M68kRenderTypedMemoryBaseValue *memory_base);
+
 static void typed_state_apply_function_summary_inputs(M68kRenderTypedState *state,
     const M68kAnalysisPolicy *policy, const M68kAnalysisFunctionSummary *summary, size_t section_index,
     uint32_t offset) {
@@ -2083,15 +2087,24 @@ static void typed_state_apply_function_summary_inputs(M68kRenderTypedState *stat
   for (input_index = 0U; input_index < summary->input_count; ++input_index) {
     const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
     uint16_t struct_id;
-    if (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
-        input->location.register_count != 1U || input->location.registers[0].register_index >= 8U ||
-        (input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_DATA &&
-         input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
-        input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) continue;
+    if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) continue;
     struct_id = lookup_policy_struct_id_by_name(policy, input->struct_name);
     if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
-    typed_state_set_reg_struct_id(state, input->location.registers[0].register_kind,
-      input->location.registers[0].register_index, struct_id, &provenance);
+    if (input->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+        input->location.register_count == 1U && input->location.registers[0].register_index < 8U &&
+        (input->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ||
+         input->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_ADDRESS)) {
+      typed_state_set_reg_struct_id(state, input->location.registers[0].register_kind,
+        input->location.registers[0].register_index, struct_id, &provenance);
+    } else if (input->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK && input->location.width == 4U &&
+        input->location.stack_offset >= INT16_MIN && input->location.stack_offset <= INT16_MAX) {
+      M68kRenderTypedStoredValue value;
+      typed_stored_value_clear(&value);
+      value.struct_id = struct_id;
+      value.provenance = provenance;
+      typed_stored_value_update_known(&value);
+      typed_state_set_stack_slot(state, (int16_t)input->location.stack_offset, 0U, &value, NULL);
+    }
   }
 }
 
