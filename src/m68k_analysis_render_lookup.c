@@ -5004,7 +5004,7 @@ static int typed_flow_callback_table_callee_effect_summary(const M68kRenderLooku
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
     const M68kDecodeCandidate *candidate, const AmigaOsLibraryVectorInfo *vector,
-    uint8_t locally_preserved_address, uint32_t offset) {
+    const M68kAnalysisFunctionSummary *local_effects, uint32_t offset) {
   const M68kSimFormMetadata *move_metadata = NULL;
   const M68kSimFormMetadata *metadata;
   const AmigaOsCallOutputInfo *source_output = NULL;
@@ -5033,22 +5033,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   typed_provenance_clear(&source_provenance);
   typed_memory_base_clear(&source_memory_base);
   if (instruction_has_call_flow_local(instruction)) {
-    if (locally_preserved_address != 0U) {
+    if (local_effects != NULL) {
       uint8_t preserved_reg;
-      memset(&call_effects, 0, sizeof(call_effects));
-      call_effects.register_effects_unknown = 0U;
-      for (preserved_reg = 0U; preserved_reg < 8U; ++preserved_reg) {
-        call_effects.data_register_effects[preserved_reg] = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-        call_effects.address_register_effects[preserved_reg] =
-          (locally_preserved_address & (uint8_t)(1U << preserved_reg)) != 0U
-            ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-      }
-      typed_state_apply_function_summary_effects(state, &call_effects);
+      typed_state_apply_function_summary_effects(state, local_effects);
       /* A locally proven preserved register is a real value-flow edge across
        * this call.  Source and destination are the same physical register;
        * the call instruction offset identifies the contract boundary. */
       for (preserved_reg = 0U; preserved_reg < 8U; ++preserved_reg) {
-        if ((locally_preserved_address & (uint8_t)(1U << preserved_reg)) == 0U) continue;
+        if (local_effects->address_register_effects[preserved_reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) continue;
         typed_provenance_append_transfer(&state->addr_regs[preserved_reg].provenance, section_index, offset,
           preserved_reg, preserved_reg);
       }
@@ -6316,7 +6308,7 @@ static int typed_flow_infer_local_helper_output_reg_at(const M68kRenderLookup *l
       }
     }
     typed_state_update_after_instruction(&typed_state, lookup, &platform_state, section->section_index,
-      &instruction, candidate, vector, 0U, candidate->offset);
+      &instruction, candidate, vector, NULL, candidate->offset);
     if (nested_resolution.output_reg_known && nested_resolution.vector != NULL &&
         amiga_output_has_typed_info(&nested_resolution.vector->output)) {
       M68kRenderTypedProvenance api_provenance =
@@ -6432,8 +6424,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   M68kTypedFlowCallResolution call_resolution;
   const AmigaOsCallOutputInfo *stored_output = NULL;
   int16_t slot_displacement = 0;
-  uint8_t locally_preserved_address = 0U;
-  M68kAnalysisFunctionSummary callback_summary;
+  M68kAnalysisFunctionSummary local_effects;
+  const M68kAnalysisFunctionSummary *selected_local_effects = NULL;
   uint8_t local_call_target_known = 0U;
   size_t target_section_index = 0U;
   uint32_t target_offset = 0U;
@@ -6457,29 +6449,19 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     uint8_t requested_address = 0U;
     uint8_t reg;
     if (typed_flow_local_call_target(lookup, node->candidate, &target_section_index, &target_offset)) {
-      M68kAnalysisFunctionSummary local_summary;
       local_call_target_known = 1U;
       for (reg = 0U; reg < 8U; ++reg) {
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
       }
       if (typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, target_section_index,
-            target_offset, requested_address, 0U, &local_summary)) {
-        for (reg = 0U; reg < 8U; ++reg) {
-          if (local_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
-            locally_preserved_address |= (uint8_t)(1U << reg);
-        }
-      }
+            target_offset, requested_address, 0U, &local_effects)) selected_local_effects = &local_effects;
     } else {
       for (reg = 0U; reg < 8U; ++reg) {
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
       }
       if (typed_flow_callback_table_callee_effect_summary(lookup, decode, accepted_start, out_typed_state,
-            section, node->candidate, &instruction, requested_address, &callback_summary)) {
-        for (reg = 0U; reg < 8U; ++reg) {
-          if (callback_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
-            locally_preserved_address |= (uint8_t)(1U << reg);
-        }
-      }
+            section, node->candidate, &instruction, requested_address, &local_effects))
+        selected_local_effects = &local_effects;
     }
   }
   if (record_typed_accesses && render_lookup_record_affine_address_uses(lookup, section->section_index,
@@ -6526,7 +6508,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     return -1;
   }
   typed_state_update_after_instruction(out_typed_state, lookup, out_platform_state, section->section_index,
-    &instruction, node->candidate, chosen_vector, locally_preserved_address, node->candidate->offset);
+    &instruction, node->candidate, chosen_vector, selected_local_effects, node->candidate->offset);
   if (call_resolution.output_reg_known && call_resolution.vector != NULL &&
       amiga_output_has_typed_info(&call_resolution.vector->output)) {
     M68kRenderTypedProvenance api_provenance =
