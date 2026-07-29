@@ -2171,21 +2171,48 @@ static void typed_state_clear_non_caller_save_stack_slots(M68kRenderTypedState *
   }
 }
 
+/* The generated ABI, bounded local-body proof, and callback aggregate all
+ * write the same exhaustive register partition.  Keep the legacy arrays only
+ * as the current transfer cache; the durable location collection is the
+ * summary/export identity. */
+static void function_summary_set_register_partition(M68kAnalysisFunctionSummary *summary,
+    uint8_t preserved_data, uint8_t preserved_address) {
+  uint8_t bit;
+  if (summary == NULL) return;
+  summary->register_effects_unknown = 0U;
+  summary->location_effect_count = 0U;
+  for (bit = 0U; bit < 8U; ++bit) {
+    M68kFunctionSummaryLocationEffectIR *data_effect = &summary->location_effects[summary->location_effect_count++];
+    M68kFunctionSummaryLocationEffectIR *address_effect = &summary->location_effects[summary->location_effect_count++];
+    summary->data_register_effects[bit] = (preserved_data & (uint8_t)(1U << bit)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    summary->address_register_effects[bit] = (preserved_address & (uint8_t)(1U << bit)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    memset(data_effect, 0, sizeof(*data_effect));
+    data_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    data_effect->location.width = 4U;
+    data_effect->location.register_count = 1U;
+    data_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    data_effect->location.registers[0].register_index = bit;
+    data_effect->effect = summary->data_register_effects[bit];
+    memset(address_effect, 0, sizeof(*address_effect));
+    address_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    address_effect->location.width = 4U;
+    address_effect->location.register_count = 1U;
+    address_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    address_effect->location.registers[0].register_index = bit;
+    address_effect->effect = summary->address_register_effects[bit];
+  }
+}
+
 static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAnalysisFunctionSummary *out_summary) {
   uint8_t preserved_data = 0U;
   uint8_t preserved_address = 0U;
-  uint8_t bit;
   if (out_summary == NULL) return 0;
   memset(out_summary, 0, sizeof(*out_summary));
   (void)platform_facts_v2_calling_convention_preserved_data_mask(platform_kind, &preserved_data);
   (void)platform_facts_v2_calling_convention_preserved_address_mask(platform_kind, &preserved_address);
-  for (bit = 0U; bit < 8U; ++bit) {
-    out_summary->data_register_effects[bit] = (preserved_data & (uint8_t)(1U << bit)) != 0U
-      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-    out_summary->address_register_effects[bit] = (preserved_address & (uint8_t)(1U << bit)) != 0U
-      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-  }
-  out_summary->register_effects_unknown = 0U;
+  function_summary_set_register_partition(out_summary, preserved_data, preserved_address);
   return 1;
 }
 
@@ -4893,12 +4920,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
   }
   if (returned == 0U) return 0;
   memset(out_summary, 0, sizeof(*out_summary));
-  out_summary->register_effects_unknown = 0U;
-  for (uint8_t reg = 0U; reg < 8U; ++reg) {
-    out_summary->data_register_effects[reg] = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-    out_summary->address_register_effects[reg] = (returned_mask & (uint8_t)(1U << reg)) != 0U
-      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-  }
+  function_summary_set_register_partition(out_summary, 0U, returned_mask);
   return 1;
 }
 
@@ -5003,12 +5025,7 @@ static int typed_flow_callback_table_callee_effect_summary(const M68kRenderLooku
   }
   if (matched == 0U) return 0;
   memset(out_summary, 0, sizeof(*out_summary));
-  out_summary->register_effects_unknown = 0U;
-  for (uint8_t reg = 0U; reg < 8U; ++reg) {
-    out_summary->data_register_effects[reg] = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-    out_summary->address_register_effects[reg] = (preserved_mask & (uint8_t)(1U << reg)) != 0U
-      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-  }
+  function_summary_set_register_partition(out_summary, 0U, preserved_mask);
   return 1;
 }
 
@@ -10117,7 +10134,29 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
     if (summary->address_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
       typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
   }
-  typed_state_clear_non_caller_save_stack_slots(state);
+  if (summary->location_effect_count == 0U) {
+    typed_state_clear_non_caller_save_stack_slots(state);
+  } else {
+    for (reg = 0U; reg < state->stack_slot_count;) {
+      M68kRenderTypedStackSlot *slot = &state->stack_slots[reg];
+      uint8_t effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+      uint8_t effect_index;
+      for (effect_index = 0U; effect_index < summary->location_effect_count; ++effect_index) {
+        const M68kFunctionSummaryLocationEffectIR *location_effect = &summary->location_effects[effect_index];
+        if (location_effect->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK ||
+            location_effect->location.stack_offset != slot->displacement ||
+            location_effect->location.width != 4U) continue;
+        effect = location_effect->effect;
+        break;
+      }
+      if (effect == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) {
+        ++reg;
+      } else {
+        state->stack_slots[reg] = state->stack_slots[state->stack_slot_count - 1U];
+        state->stack_slot_count -= 1U;
+      }
+    }
+  }
 }
 
 static void render_lookup_materialize_typed_address_target(M68kRenderLookup *lookup,
