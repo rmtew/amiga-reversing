@@ -10569,8 +10569,7 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
   }
   for (reg = 0U; reg < summary->memory_effect_count; ++reg) {
     uint8_t kind = summary->memory_effects[reg].kind;
-    if (kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE ||
-        kind == M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE) {
+    if (kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE) {
       /* The current typed-state store has no stable subject-to-slot index.
        * Clearing is therefore the only sound application of a proven write;
        * a later storage-identity index may narrow this without changing the
@@ -10578,6 +10577,10 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
       typed_state_clear_all(state);
       return;
     }
+    /* `nonaliasing_write` is already the precise negative alias proof: it
+     * cannot affect any caller-visible typed storage identity.  Treating it
+     * like an opaque write would discard a declared effect fact rather than
+     * applying it. */
   }
   if (summary->escape_count != 0U) {
     typed_state_clear_all(state);

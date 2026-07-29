@@ -28365,6 +28365,11 @@ static int test_facts_v2_render_asm_source_preserves_type_across_observed_absolu
   policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
   policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
   policy.function_summaries[0].escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].memory_effect_count = 1U;
+  policy.function_summaries[0].memory_effects[0].kind = M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE;
+  policy.function_summaries[0].memory_effects[0].subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+  policy.function_summaries[0].memory_effects[0].subject.section_index = 0U;
+  policy.function_summaries[0].memory_effects[0].subject.offset = 0x30U;
   for (uint8_t reg = 0U; reg < 8U; ++reg) {
     M68kFunctionSummaryLocationEffectIR *data_effect =
       &policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count++];
