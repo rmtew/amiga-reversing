@@ -4935,10 +4935,10 @@ static int typed_flow_callback_table_identity(const M68kRenderTypedState *state,
  * carries the exact source base of a declared callback table.  In that case,
  * prove preservation from every possible table target rather than assuming a
  * calling convention for an arbitrary register-indirect call. */
-static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68kRenderLookup *lookup,
+static int typed_flow_callback_table_callee_effect_summary(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, const M68kRenderTypedState *state,
     const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t requested_mask) {
+    const M68kInstructionIR *instruction, uint8_t requested_mask, M68kAnalysisFunctionSummary *out_summary) {
   const M68kAnalysisPolicy *policy;
   uint8_t dispatch_reg;
   uint16_t summary_index;
@@ -4946,14 +4946,14 @@ static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68
   uint32_t table_offset = 0U;
   uint8_t preserved_mask = requested_mask;
   uint8_t matched = 0U;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || state == NULL || instruction == NULL ||
+  if (out_summary == NULL || lookup == NULL || decode == NULL || accepted_start == NULL || state == NULL || instruction == NULL ||
       section == NULL || candidate == NULL || (policy = lookup->policy) == NULL || requested_mask == 0U ||
       instruction->operand_count != 1U || !operand_is_address_memory_local(&instruction->operands[0], &dispatch_reg,
         NULL) || dispatch_reg >= 8U) {
-    return 0U;
+    return 0;
   }
   if (!typed_flow_callback_table_identity(state, section, candidate, instruction,
-        &table_section_index, &table_offset)) return 0U;
+        &table_section_index, &table_offset)) return 0;
   for (summary_index = 0U; summary_index < policy->function_summary_count &&
        summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
     const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[summary_index];
@@ -4967,7 +4967,7 @@ static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68
     table_section = &lookup->object->sections[summary->section_index];
     if (table_section->data == NULL || summary->table_offset > table_section->size ||
         summary->entry_count > (table_section->size - summary->table_offset) / 4U) {
-      return 0U;
+      return 0;
     }
     for (entry_index = 0U; entry_index < summary->entry_count; ++entry_index) {
       size_t target_section_index = 0U;
@@ -4978,10 +4978,10 @@ static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68
       uint8_t reg;
       if (!render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index,
             &target_offset)) {
-        return 0U;
+        return 0;
       }
       if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
-            target_section_index, target_offset, requested_mask, 0U, &target_summary)) return 0U;
+            target_section_index, target_offset, requested_mask, 0U, &target_summary)) return 0;
       for (reg = 0U; reg < 8U; ++reg) {
         if (target_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
           target_preserved |= (uint8_t)(1U << reg);
@@ -4990,7 +4990,15 @@ static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68
       matched = 1U;
     }
   }
-  return matched != 0U ? preserved_mask : 0U;
+  if (matched == 0U) return 0;
+  memset(out_summary, 0, sizeof(*out_summary));
+  out_summary->register_effects_unknown = 0U;
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    out_summary->data_register_effects[reg] = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    out_summary->address_register_effects[reg] = (preserved_mask & (uint8_t)(1U << reg)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+  }
+  return 1;
 }
 
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
@@ -6425,6 +6433,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   const AmigaOsCallOutputInfo *stored_output = NULL;
   int16_t slot_displacement = 0;
   uint8_t locally_preserved_address = 0U;
+  M68kAnalysisFunctionSummary callback_summary;
   uint8_t local_call_target_known = 0U;
   size_t target_section_index = 0U;
   uint32_t target_offset = 0U;
@@ -6464,8 +6473,13 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       for (reg = 0U; reg < 8U; ++reg) {
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
       }
-      locally_preserved_address = typed_flow_callback_table_callee_preserved_address_mask(lookup, decode,
-        accepted_start, out_typed_state, section, node->candidate, &instruction, requested_address);
+      if (typed_flow_callback_table_callee_effect_summary(lookup, decode, accepted_start, out_typed_state,
+            section, node->candidate, &instruction, requested_address, &callback_summary)) {
+        for (reg = 0U; reg < 8U; ++reg) {
+          if (callback_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+            locally_preserved_address |= (uint8_t)(1U << reg);
+        }
+      }
     }
   }
   if (record_typed_accesses && render_lookup_record_affine_address_uses(lookup, section->section_index,
