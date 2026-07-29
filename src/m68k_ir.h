@@ -148,8 +148,7 @@ typedef enum M68kFunctionSummaryMemoryEffectKind {
   M68K_FUNCTION_SUMMARY_MEMORY_READ = 1,
   M68K_FUNCTION_SUMMARY_MEMORY_WRITE = 2,
   M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_READ = 3,
-  M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE = 4,
-  M68K_FUNCTION_SUMMARY_MEMORY_ESCAPE = 5
+  M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE = 4
 } M68kFunctionSummaryMemoryEffectKind;
 
 typedef enum M68kFunctionSummaryEffectSubjectKind {
@@ -159,14 +158,33 @@ typedef enum M68kFunctionSummaryEffectSubjectKind {
   M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION = 3
 } M68kFunctionSummaryEffectSubjectKind;
 
-typedef struct M68kFunctionSummaryMemoryEffectIR {
+typedef struct M68kFunctionSummaryEffectSubjectIR {
   uint8_t kind;
-  uint8_t subject_kind;
   uint8_t input_index;
-  uint8_t reserved;
+  uint8_t reserved[2];
   uint32_t section_index;
   uint32_t offset;
+  char abstract_region_id[96];
+} M68kFunctionSummaryEffectSubjectIR;
+
+typedef struct M68kFunctionSummaryMemoryEffectIR {
+  uint8_t kind;
+  uint8_t reserved[3];
+  M68kFunctionSummaryEffectSubjectIR subject;
 } M68kFunctionSummaryMemoryEffectIR;
+
+typedef enum M68kFunctionSummaryEscapeSourceKind {
+  M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_NONE = 0,
+  M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT = 1,
+  M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_RESULT = 2
+} M68kFunctionSummaryEscapeSourceKind;
+
+typedef struct M68kFunctionSummaryEscapeIR {
+  uint8_t source_kind;
+  uint8_t reserved[3];
+  M68kFunctionSummaryAbiLocation source_location;
+  M68kFunctionSummaryEffectSubjectIR sink_subject;
+} M68kFunctionSummaryEscapeIR;
 
 /* A callable summary owns every known interface fact for one direct entry or
    one proven callback table.  Unknown effects remain explicit unknowns rather
@@ -192,7 +210,7 @@ typedef struct M68kAnalysisFunctionSummary {
   uint8_t data_register_effects[8];
   uint8_t address_register_effects[8];
   M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
-  M68kFunctionSummaryMemoryEffectIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
+  M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
 } M68kAnalysisFunctionSummary;
 
 typedef enum M68kAnalysisEntryPointProvenance {
@@ -1589,7 +1607,7 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t data_register_effects[8];
   uint8_t address_register_effects[8];
   M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
-  M68kFunctionSummaryMemoryEffectIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
+  M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
 } M68kFunctionSummaryIR;
 
 typedef enum M68kFunctionSummaryUseKind {
