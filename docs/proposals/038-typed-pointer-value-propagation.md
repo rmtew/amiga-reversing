@@ -1415,7 +1415,8 @@ entry intersection.  The second typed-flow pass therefore applies a declared
 callback write or escape instead of silently treating the durable callback
 summary as register-only.  The callback source-analysis fixture now proves a
 valid configured direct entry is admitted as table evidence and that the
-materialized table fact carries its declared non-aliasing memory effect; the
+materialized table fact carries its declared non-aliasing memory effect and
+input-origin static-storage escape; the
 unresolved terminal fixture remains covered.  Escape-specific callback and
 multi-entry conflict cases remain part of the outstanding B3 matrix.
 

@@ -27756,6 +27756,14 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
     M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
   policy.function_summaries[0].memory_effects[0].subject.section_index = 0U;
   policy.function_summaries[0].memory_effects[0].subject.offset = 24U;
+  policy.function_summaries[0].escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].escape_count = 1U;
+  policy.function_summaries[0].escapes[0].source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+  policy.function_summaries[0].escapes[0].source_location = policy.function_summaries[0].inputs[0].location;
+  policy.function_summaries[0].escapes[0].sink_subject.kind =
+    M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+  policy.function_summaries[0].escapes[0].sink_subject.section_index = 0U;
+  policy.function_summaries[0].escapes[0].sink_subject.offset = 24U;
   /* A declared but unobserved table remains policy only.  The collector must
    * not materialize a durable inferred summary merely by scanning declarations. */
   policy.function_summaries[1] = policy.function_summaries[0];
@@ -27787,6 +27795,9 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[3].memory_effect_count);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE,
     analysis.sections[0].function_summaries[3].memory_effects[0].kind);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[3].escape_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT,
+    analysis.sections[0].function_summaries[3].escapes[0].source_kind);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE,
     analysis.sections[0].function_summaries[0].callable_kind);
   M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_use_count);
