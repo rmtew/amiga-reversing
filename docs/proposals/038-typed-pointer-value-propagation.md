@@ -1335,6 +1335,17 @@ result collection, so `source_kind: "result"` is rejected until result
 declarations are migrated and validation can prove the referenced result
 location.
 
+**Result-persistence audit (2026-07-29).** The common source-analysis model
+already owns `M68kFunctionSummaryResultIR`, validates result-origin escape
+locations against that collection, and exports results.  The missing boundary
+is specifically `M68kAnalysisFunctionSummary`: target metadata parsing and the
+Python `FunctionSummaryMetadata` projection persist only inputs and effects.
+The migration must add one ordered common result collection to that policy
+shape, parse it before effects, copy it into source-analysis export, and pass
+its locations to the closed escape validator.  Adding `source_kind: "result"`
+to the current metadata grammar first would be a false capability because no
+result declaration exists there to validate it against.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references, but the strict metadata reader currently
