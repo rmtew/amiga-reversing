@@ -1194,6 +1194,23 @@ register-transfer variant: it is durable explicit stack/memory/escape effects,
 their source-analysis graph/export/import, and replacing the remaining
 transient writers with stable summary facts.
 
+**Explicit effect-partition migration (2026-07-29).** The persisted
+`effects.schema_version: 1` object now accepts and round-trips its closed
+explicit register-location, memory-effect, and escape forms.  The Python
+metadata/effective projection, C target metadata parser, common C IR, and
+source-analysis JSON export all share the same ABI locations and effect
+subjects; retired register-effect arrays have been removed.  Generated
+platform ABI summaries, bounded local-body summaries, and callback aggregates
+now write the durable exhaustive Dn/An location partition, while call transfer
+reads that one partition.  A call preserves typed state only when its register,
+memory, and escape partitions are complete; unknown, invalid, or overflowed
+components clear state.  Explicit writes and escapes likewise invalidate typed
+state conservatively until a stable subject-to-storage index permits narrower
+invalidation.  Focused Python metadata tests (114) and the full C unit suite
+(`m68k_ir: all 591 passed`) passed after this migration.  The current checkout
+does not expose Pandora as a rendered-source-verifier target, so no new Pandora
+round-trip claim is made for this slice.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
