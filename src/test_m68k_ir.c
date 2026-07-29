@@ -34124,8 +34124,33 @@ static int test_facts_v2_render_asm_source_alloc_fails_on_invalid_relocation(voi
   return 0;
 }
 
+static int test_function_summary_effect_identities_are_canonical(void) {
+  M68kFunctionSummaryAbiLocation location;
+  M68kFunctionSummaryEffectSubjectIR subject;
+  memset(&location, 0, sizeof(location));
+  location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
+  location.width = 8U;
+  location.register_count = 2U;
+  location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+  location.registers[0].register_index = 0U;
+  location.registers[1].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  location.registers[1].register_index = 0U;
+  M68K_C_ASSERT(m68k_function_summary_abi_location_is_valid(&location));
+  location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  location.registers[1].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+  M68K_C_ASSERT(!m68k_function_summary_abi_location_is_valid(&location));
+  memset(&subject, 0, sizeof(subject));
+  subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT;
+  subject.input_index = 0U;
+  M68K_C_ASSERT(m68k_function_summary_effect_subject_is_valid(&subject, 1U));
+  subject.offset = 1U;
+  M68K_C_ASSERT(!m68k_function_summary_effect_subject_is_valid(&subject, 1U));
+  return 0;
+}
+
 int m68k_c_ir_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"function_summary_effect_identities_are_canonical", test_function_summary_effect_identities_are_canonical},
     {"render_policy_defaults", test_render_policy_defaults},
     {"source_statement_renderer_renders_single_statement", test_source_statement_renderer_renders_single_statement},
     {"source_statement_renderer_uses_comment_kind_for_struct_label",

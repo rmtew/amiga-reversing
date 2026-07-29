@@ -62,6 +62,13 @@ int m68k_function_summary_abi_location_is_valid(const M68kFunctionSummaryAbiLoca
       for (prior = 0U; prior < index; ++prior) {
         if (location->registers[prior].register_kind == member->register_kind &&
             location->registers[prior].register_index == member->register_index) return 0;
+        /* Tuples have one canonical ABI order (D0..D7, then A0..A7).  This
+         * keeps the identity stable across policy, source-analysis JSON, and
+         * a later summary join; accepting a permutation would manufacture two
+         * spellings for the same callable location. */
+        if ((location->registers[prior].register_kind > member->register_kind) ||
+            (location->registers[prior].register_kind == member->register_kind &&
+             location->registers[prior].register_index > member->register_index)) return 0;
       }
     }
     return 1;
@@ -89,11 +96,12 @@ int m68k_function_summary_abi_location_equal(const M68kFunctionSummaryAbiLocatio
 int m68k_function_summary_effect_subject_is_valid(const M68kFunctionSummaryEffectSubjectIR *subject,
     uint8_t input_count) {
   if (subject == NULL) return 0;
-  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) return subject->input_index < input_count;
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) return subject->input_index < input_count &&
+    subject->section_index == 0U && subject->offset == 0U && subject->abstract_region_id[0] == '\0';
   if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE) return subject->input_index == 0U &&
     subject->abstract_region_id[0] == '\0';
   return subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION && subject->input_index == 0U &&
-    subject->abstract_region_id[0] != '\0';
+    subject->section_index == 0U && subject->offset == 0U && subject->abstract_region_id[0] != '\0';
 }
 
 int m68k_function_summary_effect_subject_equal(const M68kFunctionSummaryEffectSubjectIR *left,
