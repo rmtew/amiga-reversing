@@ -3072,6 +3072,46 @@ int m68k_ir_section_analysis_append_address_value_consumer(M68kSectionAnalysisIR
   return 0;
 }
 
+int m68k_ir_section_analysis_append_function_summary(M68kSectionAnalysisIR *section_analysis,
+    const M68kFunctionSummaryIR *summary) {
+  size_t index;
+  if (section_analysis == NULL || summary == NULL || summary->function_summary_id[0] == '\0' ||
+      section_analysis->arena == NULL) return -1;
+  for (index = 0U; index < section_analysis->function_summary_count; ++index) {
+    const M68kFunctionSummaryIR *existing = &section_analysis->function_summaries[index];
+    if (strcmp(existing->function_summary_id, summary->function_summary_id) == 0) {
+      return memcmp(existing, summary, sizeof(*summary)) == 0 ? 0 : -1;
+    }
+  }
+  section_analysis->function_summaries = (M68kFunctionSummaryIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->function_summaries, section_analysis->function_summary_count,
+    &section_analysis->function_summary_capacity, 8U, sizeof(*section_analysis->function_summaries));
+  if (section_analysis->function_summaries == NULL) return -1;
+  section_analysis->function_summaries[section_analysis->function_summary_count++] = *summary;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_function_summary_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kFunctionSummaryUseIR *use) {
+  size_t index;
+  if (section_analysis == NULL || use == NULL || use->function_summary_id[0] == '\0' ||
+      section_analysis->arena == NULL) return -1;
+  for (index = 0U; index < section_analysis->function_summary_use_count; ++index) {
+    const M68kFunctionSummaryUseIR *existing = &section_analysis->function_summary_uses[index];
+    if (existing->caller_section_index == use->caller_section_index &&
+        existing->caller_offset == use->caller_offset && existing->consumer_kind == use->consumer_kind &&
+        existing->operand_index == use->operand_index && existing->register_kind == use->register_kind &&
+        existing->register_index == use->register_index &&
+        strcmp(existing->function_summary_id, use->function_summary_id) == 0) return 0;
+  }
+  section_analysis->function_summary_uses = (M68kFunctionSummaryUseIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->function_summary_uses, section_analysis->function_summary_use_count,
+    &section_analysis->function_summary_use_capacity, 8U, sizeof(*section_analysis->function_summary_uses));
+  if (section_analysis->function_summary_uses == NULL) return -1;
+  section_analysis->function_summary_uses[section_analysis->function_summary_use_count++] = *use;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressValueIR *address_value) {
   size_t index;
@@ -4855,6 +4895,20 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->address_value_consumer_count; ++index) {
     if (m68k_ir_section_analysis_append_address_value_consumer(&copy,
           &section_analysis->address_value_consumers[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->function_summary_count; ++index) {
+    if (m68k_ir_section_analysis_append_function_summary(&copy,
+          &section_analysis->function_summaries[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->function_summary_use_count; ++index) {
+    if (m68k_ir_section_analysis_append_function_summary_use(&copy,
+          &section_analysis->function_summary_uses[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

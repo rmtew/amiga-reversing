@@ -3931,7 +3931,7 @@ static void typed_flow_apply_call_input_alias_type(uint8_t platform_kind, size_t
 
 static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t kind, uint8_t reg_kind, uint8_t reg_index, const char *pointee_struct_name,
-    const char *contract_name, uint32_t contract_section_index, uint32_t contract_offset,
+    const char *contract_name, const char *function_summary_id, uint32_t contract_section_index, uint32_t contract_offset,
     const M68kRenderTypedState *state);
 static int typed_flow_callback_table_identity(const M68kRenderTypedState *state,
     const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
@@ -3959,7 +3959,7 @@ static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, uint8
     if (input_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
           M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT, input.reg_kind, input.reg_index,
-          input.type_name, input.input_name, UINT32_MAX, 0U, state) != 0) {
+          input.type_name, input.input_name, NULL, UINT32_MAX, 0U, state) != 0) {
       return -1;
     }
     if (allow_lookup_storage && state->app_addr_regs[input.reg_index].known) {
@@ -4008,7 +4008,8 @@ static int typed_flow_record_local_call_input_consumers(M68kRenderLookup *lookup
           lookup_policy_struct_id_by_name(lookup->policy, input->struct_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
       if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
             M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, input->register_kind, input->register_index,
-            input->struct_name, summary->function_summary_id, (uint32_t)target_section_index, target_offset, state) != 0)
+            input->struct_name, NULL, summary->function_summary_id,
+            (uint32_t)target_section_index, target_offset, state) != 0)
         return -1;
     }
   }
@@ -4045,7 +4046,8 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
           lookup_policy_struct_id_by_name(policy, input->struct_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
       if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
             M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT, input->register_kind, input->register_index,
-            input->struct_name, summary->function_summary_id, summary->section_index, summary->table_offset, state) != 0)
+            input->struct_name, NULL, summary->function_summary_id,
+            summary->section_index, summary->table_offset, state) != 0)
         return -1;
     }
   }
@@ -4235,7 +4237,7 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
 
 static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t kind, uint8_t reg_kind, uint8_t reg_index, const char *pointee_struct_name,
-    const char *contract_name, uint32_t contract_section_index, uint32_t contract_offset,
+    const char *contract_name, const char *function_summary_id, uint32_t contract_section_index, uint32_t contract_offset,
     const M68kRenderTypedState *state) {
   M68kAddressValueConsumerIR fact;
   M68kRenderTypedStoredValue value;
@@ -4255,6 +4257,8 @@ static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, si
   fact.contract_offset = contract_offset;
   snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", pointee_struct_name);
   snprintf(fact.contract_name, sizeof(fact.contract_name), "%s", contract_name != NULL ? contract_name : "");
+  snprintf(fact.function_summary_id, sizeof(fact.function_summary_id), "%s",
+    function_summary_id != NULL ? function_summary_id : "");
   return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, &value, NULL);
 }
 
@@ -7243,6 +7247,54 @@ static int append_render_lookup_typed_accesses_for_section(const M68kRenderLooku
         access->inherited, access->nested, access->provenance.kind, access->provenance.section_index,
         access->provenance.offset) != 0) {
       return -1;
+    }
+  }
+  return 0;
+}
+
+/* Policy config is only an analysis input.  Export its canonical summary once
+ * at the callable/table owner so call-input consumers can link to a durable
+ * source-analysis fact without reconstructing interface context from policy. */
+static int append_render_lookup_function_summaries_for_section(const M68kRenderLookup *lookup,
+    M68kSectionAnalysisIR *section_analysis) {
+  uint16_t index;
+  if (lookup == NULL || lookup->policy == NULL || section_analysis == NULL) return 0;
+  for (index = 0U; index < lookup->policy->function_summary_count &&
+       index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++index) {
+    const M68kAnalysisFunctionSummary *configured = &lookup->policy->function_summaries[index];
+    M68kFunctionSummaryIR summary;
+    if (!configured->has_section_index || configured->function_summary_id[0] == '\0' ||
+        configured->section_index != section_analysis->section_index) continue;
+    memset(&summary, 0, sizeof(summary));
+    snprintf(summary.function_summary_id, sizeof(summary.function_summary_id), "%s",
+      configured->function_summary_id);
+    summary.callable_section_index = configured->section_index;
+    summary.entry_offset = configured->entry_offset;
+    summary.table_offset = configured->table_offset;
+    summary.entry_count = configured->entry_count;
+    summary.callable_kind = configured->callable_kind;
+    summary.input_count = configured->input_count;
+    summary.return_contract_unknown = configured->return_contract_unknown;
+    summary.register_effects_unknown = configured->register_effects_unknown;
+    summary.memory_effects_unknown = configured->memory_effects_unknown;
+    memcpy(summary.inputs, configured->inputs, sizeof(summary.inputs));
+    if (m68k_ir_section_analysis_append_function_summary(section_analysis, &summary) != 0) return -1;
+    {
+      size_t consumer_index;
+      for (consumer_index = 0U; consumer_index < lookup->address_value_consumer_count; ++consumer_index) {
+        const M68kRenderTypedAddressConsumer *observed = &lookup->address_value_consumers[consumer_index];
+        M68kFunctionSummaryUseIR use;
+        if (strcmp(observed->fact.function_summary_id, configured->function_summary_id) != 0) continue;
+        memset(&use, 0, sizeof(use));
+        snprintf(use.function_summary_id, sizeof(use.function_summary_id), "%s", configured->function_summary_id);
+        use.caller_section_index = (uint32_t)observed->section_index;
+        use.caller_offset = observed->fact.offset;
+        use.consumer_kind = observed->fact.kind;
+        use.operand_index = observed->fact.operand_index;
+        use.register_kind = observed->fact.register_kind;
+        use.register_index = observed->fact.register_index;
+        if (m68k_ir_section_analysis_append_function_summary_use(section_analysis, &use) != 0) return -1;
+      }
     }
   }
   return 0;
@@ -12194,6 +12246,7 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   if (append_render_lookup_code_start_refs_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_violations_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_recovered_local_call_summaries_for_section(lookup, section_analysis) != 0) return -1;
+  if (append_render_lookup_function_summaries_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_recovered_function_args_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_affine_address_evidence_for_section(lookup, section_analysis) != 0) return -1;

@@ -3,9 +3,9 @@
 Status: In progress — 2026-07-29. The consumer model, canonical address-value
 ownership, Proposal 039 corpus coverage, bounded candidate-merge soundness, and
 Extension A (canonical indexed, affine, and interior-address expressions) are
-complete. Extension B's input-contract/common-summary configuration and
-typed-flow migration is complete, but its source-analysis graph export,
-return, preservation/clobber, escape, and memory-effect work remains. C--J
+complete. Extension B's input-contract/common-summary configuration, typed-flow
+migration, and source-analysis graph export are complete, but its return,
+preservation/clobber, escape, and memory-effect work remains. C--J
 remain ordered follow-on work.
 
 ## Problem
@@ -803,11 +803,14 @@ typed-flow entry/call/dispatch consumers, and C/Python fixtures use it
 exclusively. The one-shot converter has migrated Pandora's twenty-three
 retired action events to eighteen active summaries (including the two-input
 `s0:0000807C` entry), with the retired log kept only as a local migration
-archive and report. This is not yet a completed B fact pipeline: summaries
-must next be emitted as stable source-analysis identities with bidirectional
-call/input edges, and the renderer/opportunity report must consume those edges
-rather than reconstructing summary context from policy at use time. This slice
-deliberately marks return, register-effect, and memory-effect facts `unknown`;
+archive and report. The summary graph-export slice is also complete: source
+analysis exports each configured summary as a stable owner-section/table fact
+and exports both directions of every proven input edge. Call-site consumers
+carry an explicit `function_summary_id`; summary owners carry reverse caller
+coordinates, rather than reports reconstructing either relationship from
+policy or an overloaded contract-name string. The corpus/report surface
+consumes that explicit ID. This slice deliberately marks return,
+register-effect, and memory-effect facts `unknown`;
 it makes no new interprocedural preservation or rendering claim until those
 effects are implemented by the remaining B work.
 

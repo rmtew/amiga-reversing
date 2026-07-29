@@ -6515,7 +6515,11 @@ def _address_value_consumer_xref(
             if key in address_value:
                 payload[key] = address_value[key]
     kind = _string_value(consumer.get("kind")) or "unknown"
-    contract = _string_value(consumer.get("contract_name")) or "typed address consumer"
+    contract = (
+        _string_value(consumer.get("function_summary_id"))
+        or _string_value(consumer.get("contract_name"))
+        or "typed address consumer"
+    )
     return _xref(
         row,
         "analysis:address_value_consumer",
@@ -10847,7 +10851,11 @@ def build_typed_pointer_value_opportunity_report(
             "text": _string_value(xref.get("text")) or "",
             "source_kind": source_kind,
             "consumer_kind": consumer_kind,
-            "consumer_contract": _string_value(consumer.get("contract_name")) or "unknown",
+            "consumer_contract": (
+                _string_value(consumer.get("function_summary_id"))
+                or _string_value(consumer.get("contract_name"))
+                or "unknown"
+            ),
             "pointee_domain": pointee_domain,
             "resolution": resolution,
             "origin_kind": origin_kind,

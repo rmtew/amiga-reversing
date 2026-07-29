@@ -27435,6 +27435,7 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
   M68kAnalysisCustomStruct *custom_structs;
+  char *analysis_json = NULL;
   uint8_t bytes[0x24] = {0};
   memset(&section, 0, sizeof(section));
   memset(&analysis, 0, sizeof(analysis));
@@ -27479,7 +27480,20 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT,
     analysis.sections[0].address_value_consumers[0].kind);
-  M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_STR("", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].address_value_consumers[0].function_summary_id);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT,
+    analysis.sections[0].function_summaries[0].callable_kind);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_use_count);
+  M68K_C_ASSERT_STR("callback_context_arg", analysis.sections[0].function_summary_uses[0].function_summary_id);
+  M68K_C_ASSERT_U32(6U, analysis.sections[0].function_summary_uses[0].caller_offset);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_id\":\"callback_context_arg\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_use_count\":1") != NULL);
+  free(analysis_json);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(analysis.sections[0].address_values[0].id,
     analysis.sections[0].address_value_consumers[0].address_value_id);
@@ -27599,7 +27613,15 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT,
     analysis.sections[0].address_value_consumers[0].kind);
-  M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_STR("", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].address_value_consumers[0].function_summary_id);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE,
+    analysis.sections[0].function_summaries[0].callable_kind);
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_use_count);
+  M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].function_summary_uses[0].function_summary_id);
+  M68K_C_ASSERT_U32(10U, analysis.sections[0].function_summary_uses[0].caller_offset);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
   m68k_ir_source_analysis_destroy(&analysis);

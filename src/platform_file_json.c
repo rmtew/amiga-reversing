@@ -4565,7 +4565,58 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append_json_string(&builder, consumer->pointee_struct_name) != 0 ||
           json_builder_append(&builder, ",\"contract_name\":") != 0 ||
           json_builder_append_json_string(&builder, consumer->contract_name) != 0 ||
+          json_builder_append(&builder, ",\"function_summary_id\":") != 0 ||
+          json_builder_append_json_string(&builder, consumer->function_summary_id) != 0 ||
           json_builder_append(&builder, "}") != 0) goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"function_summary_count\":%u,\"function_summaries\":[",
+          (unsigned)section->function_summary_count) != 0) goto oom;
+    for (address_observation_index = 0U; address_observation_index < section->function_summary_count;
+        ++address_observation_index) {
+      const M68kFunctionSummaryIR *summary = &section->function_summaries[address_observation_index];
+      uint8_t input_index;
+      const char *callable_kind = summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT ? "direct" :
+        summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE ? "callback_table" : "invalid";
+      if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_append(&builder, "{\"function_summary_id\":") != 0 ||
+          json_builder_append_json_string(&builder, summary->function_summary_id) != 0 ||
+          json_builder_appendf(&builder, ",\"callable_kind\":") != 0 ||
+          json_builder_append_json_string(&builder, callable_kind) != 0 ||
+          json_builder_appendf(&builder,
+            ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,"
+            "\"return_contract\":\"%s\",\"register_effects\":\"%s\",\"memory_effects\":\"%s\",\"inputs\":[",
+            (unsigned)summary->callable_section_index, (unsigned)summary->entry_offset,
+            (unsigned)summary->table_offset, (unsigned)summary->entry_count,
+            summary->return_contract_unknown != 0U ? "unknown" : "invalid",
+            summary->register_effects_unknown != 0U ? "unknown" : "invalid",
+            summary->memory_effects_unknown != 0U ? "unknown" : "invalid") != 0) goto oom;
+      for (input_index = 0U; input_index < summary->input_count; ++input_index) {
+        const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
+        if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+        if (json_builder_appendf(&builder,
+            "{\"register_kind\":%u,\"register_index\":%u,\"seed_kind\":%u,\"struct_name\":",
+            (unsigned)input->register_kind, (unsigned)input->register_index, (unsigned)input->seed_kind) != 0 ||
+            json_builder_append_json_string(&builder, input->struct_name) != 0 ||
+            json_builder_append(&builder, "}") != 0) goto oom;
+      }
+      if (json_builder_append(&builder, "]}") != 0) goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"function_summary_use_count\":%u,\"function_summary_uses\":[",
+          (unsigned)section->function_summary_use_count) != 0) goto oom;
+    for (address_observation_index = 0U; address_observation_index < section->function_summary_use_count;
+        ++address_observation_index) {
+      const M68kFunctionSummaryUseIR *use = &section->function_summary_uses[address_observation_index];
+      if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_append(&builder, "{\"function_summary_id\":") != 0 ||
+          json_builder_append_json_string(&builder, use->function_summary_id) != 0 ||
+          json_builder_appendf(&builder,
+            ",\"caller_section_index\":%u,\"caller_offset\":%u,\"consumer_kind_id\":%u,"
+            "\"consumer_kind\":",
+            (unsigned)use->caller_section_index, (unsigned)use->caller_offset,
+            (unsigned)use->consumer_kind) != 0 ||
+          json_builder_append_json_string(&builder, address_value_consumer_kind_name(use->consumer_kind)) != 0 ||
+          json_builder_appendf(&builder, ",\"operand_index\":%u,\"register_kind\":%u,\"register_index\":%u}",
+            (unsigned)use->operand_index, (unsigned)use->register_kind, (unsigned)use->register_index) != 0) goto oom;
     }
     if (json_builder_appendf(&builder, "],\"address_value_count\":%u,\"address_values\":[",
           (unsigned)section->address_value_count) != 0) goto oom;

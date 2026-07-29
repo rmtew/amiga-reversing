@@ -1463,6 +1463,10 @@ typedef enum M68kAddressValueConsumerKind {
 typedef struct M68kAddressValueConsumerIR {
   char pointee_struct_name[64];
   char contract_name[96];
+  /* Set only for a direct or callback input.  Storage and platform inputs
+   * retain their own durable contract name instead of borrowing a callable
+   * identity. */
+  char function_summary_id[96];
   uint32_t id;
   uint32_t offset;
   uint32_t address_value_id;
@@ -1473,6 +1477,36 @@ typedef struct M68kAddressValueConsumerIR {
   uint8_t register_kind;
   uint8_t register_index;
 } M68kAddressValueConsumerIR;
+
+/* A source-analysis summary fact is deliberately separate from policy input:
+ * consumers link to this stable identity, allowing reports and later summary
+ * transfer work to navigate the graph without rereading target metadata. */
+typedef struct M68kFunctionSummaryIR {
+  char function_summary_id[96];
+  uint32_t callable_section_index;
+  uint32_t entry_offset;
+  uint32_t table_offset;
+  uint32_t entry_count;
+  uint8_t callable_kind;
+  uint8_t input_count;
+  uint8_t return_contract_unknown;
+  uint8_t register_effects_unknown;
+  uint8_t memory_effects_unknown;
+  M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
+} M68kFunctionSummaryIR;
+
+/* Reverse edge owned by the summary's defining section/table.  The caller
+ * coordinates are stable across source-analysis exports, unlike a transient
+ * per-section array index. */
+typedef struct M68kFunctionSummaryUseIR {
+  char function_summary_id[96];
+  uint32_t caller_section_index;
+  uint32_t caller_offset;
+  uint8_t consumer_kind;
+  uint8_t operand_index;
+  uint8_t register_kind;
+  uint8_t register_index;
+} M68kFunctionSummaryUseIR;
 
 typedef struct M68kAddressValueTransferIR {
   uint32_t section_index;
@@ -2323,6 +2357,12 @@ typedef struct M68kSectionAnalysisIR {
   M68kAddressValueConsumerIR *address_value_consumers;
   size_t address_value_consumer_count;
   size_t address_value_consumer_capacity;
+  M68kFunctionSummaryIR *function_summaries;
+  size_t function_summary_count;
+  size_t function_summary_capacity;
+  M68kFunctionSummaryUseIR *function_summary_uses;
+  size_t function_summary_use_count;
+  size_t function_summary_use_capacity;
   M68kAddressValueIR *address_values;
   size_t address_value_count;
   size_t address_value_capacity;
@@ -2585,6 +2625,10 @@ int m68k_ir_section_analysis_append_pointer_store(M68kSectionAnalysisIR *section
     const M68kPointerStoreIR *pointer_store);
 int m68k_ir_section_analysis_append_address_value_consumer(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressValueConsumerIR *consumer);
+int m68k_ir_section_analysis_append_function_summary(M68kSectionAnalysisIR *section_analysis,
+    const M68kFunctionSummaryIR *summary);
+int m68k_ir_section_analysis_append_function_summary_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kFunctionSummaryUseIR *use);
 int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressValueIR *address_value);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,

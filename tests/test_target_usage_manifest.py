@@ -179,6 +179,41 @@ def test_typed_pointer_store_corpus_xref_and_opportunity_report() -> None:
     assert symbolic_example["producer_operand_index"] == 0
 
 
+def test_address_value_consumer_uses_explicit_function_summary_edge() -> None:
+    analysis = {
+        "sections": [{
+            "section_index": 0,
+            "address_value_consumers": [{
+                "id": 1,
+                "offset": 0x20,
+                "operand_index": 0,
+                "kind": "local_function_input",
+                "address_value_id": 1,
+                "function_summary_id": "s0:00000080",
+                "contract_name": "",
+                "pointee_struct_name": "callback_context",
+            }],
+            "address_values": [{
+                "id": 1,
+                "origin_kind": "immediate",
+                "producer_section_index": 0,
+                "producer_offset": 0x10,
+                "producer_operand_index": 0,
+                "terminal_state": "resolved",
+                "render_outcome": "symbolic",
+            }],
+        }],
+    }
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    xrefs = _analysis_xrefs(row, analysis, {(0, 0x20): (1, "s0:00000020:instruction:1", "jsr")})
+    consumers = [xref for xref in xrefs if xref.get("kind_id") == XREF_KIND_ADDRESS_VALUE_CONSUMER]
+    assert len(consumers) == 1
+    assert consumers[0]["symbol"] == "s0:00000080"
+    report = build_typed_pointer_value_opportunity_report(xrefs)
+    example = report["examples_by_render_outcome"]["symbolic"][0]
+    assert example["consumer_contract"] == "s0:00000080"
+
+
 def test_corpus_build_monitor_reports_parallel_task_progress(tmp_path) -> None:
     progress_output = tmp_path / "progress"
     monitor = CorpusBuildMonitor(worker_count=4, progress_output=progress_output)
