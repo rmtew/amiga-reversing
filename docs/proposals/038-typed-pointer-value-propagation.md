@@ -891,6 +891,40 @@ must not remain alternate readers in typed flow.  The existing bounded
 local-callee and callback aggregators are deleted only after the common model
 can express their complete proven result and explicit failure reason.
 
+The common model is an exhaustive finite lattice, not a pair of preserve
+masks.  It must represent:
+
+- one of `unknown`, `preserved`, or `clobbered` for every Dn, An, and declared
+  stack-result/stack-cleanup location, with no implicit default for omitted
+  locations;
+- an ordered finite set of memory effects, each naming a stable summary input,
+  static storage identity, or explicit abstract region and classifying read,
+  write, non-aliasing read, non-aliasing write, or unknown/escaping access;
+- an ordered finite set of pointer escapes, each naming the escaped input or
+  result location and its durable sink identity; and
+- explicit validity/overflow state for each partition.  A conflicting or
+  overflowed partition cannot preserve an unrelated prefix of its previous
+  facts.
+
+Platform ABI metadata is converted to a generated platform-summary effect
+writer, not consulted directly by typed flow.  The local body analyser writes
+the same effect lattice only after every return path proves the same result;
+the callback-table aggregator joins those common effects over every proven
+entry.  The call transfer resolves exactly one applicable summary and applies
+its full partition atomically.  If no complete summary applies, it clears
+caller-visible typed state and emits the ordinary unknown-call stop reason.
+
+**B3 completion gate.** Add policy/action parsing, effective projection,
+source-analysis copy/export, and source-parser import for the same effect
+identities before replacing the transfer readers.  Then migrate the platform,
+local-body, and callback writers and delete their specialized typed-flow
+readers in the same feature slice.  Fixtures must cover preserved and
+clobbered Dn/An values, stack cleanup, a returned address value, read-only and
+writing effects over a typed storage identity, a pointer escape, conflicting
+effects, an unknown callee, and a callback table whose entries disagree.  The
+Pandora round trip must remain exact; a source-analysis graph report must
+identify the selected summary/effect partition at each surviving transfer.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
