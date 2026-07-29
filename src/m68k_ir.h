@@ -186,6 +186,17 @@ typedef struct M68kFunctionSummaryEscapeIR {
   M68kFunctionSummaryEffectSubjectIR sink_subject;
 } M68kFunctionSummaryEscapeIR;
 
+int m68k_function_summary_abi_location_is_valid(const M68kFunctionSummaryAbiLocation *location);
+int m68k_function_summary_abi_location_equal(const M68kFunctionSummaryAbiLocation *left,
+  const M68kFunctionSummaryAbiLocation *right);
+int m68k_function_summary_effect_subject_is_valid(const M68kFunctionSummaryEffectSubjectIR *subject,
+  uint8_t input_count);
+int m68k_function_summary_effect_subject_equal(const M68kFunctionSummaryEffectSubjectIR *left,
+  const M68kFunctionSummaryEffectSubjectIR *right);
+int m68k_function_summary_memory_effect_is_valid(const M68kFunctionSummaryMemoryEffectIR *effect,
+  uint8_t input_count);
+int m68k_function_summary_escape_is_valid(const M68kFunctionSummaryEscapeIR *escape, uint8_t input_count);
+
 /* A callable summary owns every known interface fact for one direct entry or
    one proven callback table.  Unknown effects remain explicit unknowns rather
    than being inferred from its typed inputs. */

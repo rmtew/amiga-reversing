@@ -46,6 +46,80 @@ static int text_equal_nullable(const char *left, const char *right) {
   return strcmp(left, right) == 0;
 }
 
+int m68k_function_summary_abi_location_is_valid(const M68kFunctionSummaryAbiLocation *location) {
+  uint8_t index;
+  if (location == NULL || location->width == 0U) return 0;
+  if (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+      location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) {
+    if (location->register_count == 0U || location->register_count > M68K_FUNCTION_SUMMARY_ABI_REGISTER_TUPLE_LIMIT ||
+        (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER && location->register_count != 1U) ||
+        location->stack_convention != M68K_FUNCTION_SUMMARY_ABI_STACK_NONE || location->stack_offset != 0) return 0;
+    for (index = 0U; index < location->register_count; ++index) {
+      const M68kFunctionSummaryAbiRegisterMember *member = &location->registers[index];
+      uint8_t prior;
+      if ((member->register_kind != M68K_ANALYSIS_REGISTER_DATA && member->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+          member->register_index >= 8U) return 0;
+      for (prior = 0U; prior < index; ++prior) {
+        if (location->registers[prior].register_kind == member->register_kind &&
+            location->registers[prior].register_index == member->register_index) return 0;
+      }
+    }
+    return 1;
+  }
+  return location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK && location->register_count == 0U &&
+    (location->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT ||
+     location->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT ||
+     location->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP);
+}
+
+int m68k_function_summary_abi_location_equal(const M68kFunctionSummaryAbiLocation *left,
+    const M68kFunctionSummaryAbiLocation *right) {
+  uint8_t index;
+  if (!m68k_function_summary_abi_location_is_valid(left) || !m68k_function_summary_abi_location_is_valid(right)) return 0;
+  if (left->kind != right->kind || left->width != right->width ||
+      left->stack_convention != right->stack_convention || left->register_count != right->register_count ||
+      left->stack_offset != right->stack_offset) return 0;
+  for (index = 0U; index < left->register_count; ++index) {
+    if (left->registers[index].register_kind != right->registers[index].register_kind ||
+        left->registers[index].register_index != right->registers[index].register_index) return 0;
+  }
+  return 1;
+}
+
+int m68k_function_summary_effect_subject_is_valid(const M68kFunctionSummaryEffectSubjectIR *subject,
+    uint8_t input_count) {
+  if (subject == NULL) return 0;
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) return subject->input_index < input_count;
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE) return subject->input_index == 0U &&
+    subject->abstract_region_id[0] == '\0';
+  return subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION && subject->input_index == 0U &&
+    subject->abstract_region_id[0] != '\0';
+}
+
+int m68k_function_summary_effect_subject_equal(const M68kFunctionSummaryEffectSubjectIR *left,
+    const M68kFunctionSummaryEffectSubjectIR *right) {
+  if (left == NULL || right == NULL || left->kind != right->kind) return 0;
+  if (left->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) return left->input_index == right->input_index;
+  if (left->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE)
+    return left->section_index == right->section_index && left->offset == right->offset;
+  return left->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION &&
+    strcmp(left->abstract_region_id, right->abstract_region_id) == 0;
+}
+
+int m68k_function_summary_memory_effect_is_valid(const M68kFunctionSummaryMemoryEffectIR *effect,
+    uint8_t input_count) {
+  return effect != NULL && effect->kind >= M68K_FUNCTION_SUMMARY_MEMORY_READ &&
+    effect->kind <= M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE &&
+    m68k_function_summary_effect_subject_is_valid(&effect->subject, input_count);
+}
+
+int m68k_function_summary_escape_is_valid(const M68kFunctionSummaryEscapeIR *escape, uint8_t input_count) {
+  return escape != NULL && (escape->source_kind == M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT ||
+    escape->source_kind == M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_RESULT) &&
+    m68k_function_summary_abi_location_is_valid(&escape->source_location) &&
+    m68k_function_summary_effect_subject_is_valid(&escape->sink_subject, input_count);
+}
+
 static int comma_token_list_contains(const char *list, const char *token) {
   size_t token_len;
   const char *cursor;
