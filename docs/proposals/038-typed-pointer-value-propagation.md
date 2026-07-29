@@ -783,6 +783,15 @@ fact/action/projection pipeline and, where the common representation subsumes
 the wrapper-specific record, migrate it rather than extending input contracts
 or retaining parallel summary models.
 
+**Migration inventory (2026-07-29).** Pandora's local action log has two
+historical callback-signature creates (one removed) and nineteen historical
+function-register-contract creates (one removed): nineteen active legacy
+facts in total, comprising one callback-table interface and eighteen
+direct-entry input facts. The migration fixture must include this shape: a
+removed create must remain removed after conversion, and two inputs for the
+same direct entry must become one summary with two ordered inputs rather than
+two competing callable facts.
+
 **Required common summary shape.** One stable callable-summary identity owns
 all of the following, and every direct or indirect call refers to that identity
 rather than copying interface text into a call-site record:
