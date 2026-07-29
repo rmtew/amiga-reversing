@@ -4110,21 +4110,28 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
         instruction, &table_section_index, &table_offset)) {
     return 0;
   }
+  /* The first flow pass discovers identities.  Do not write source-analysis
+   * uses against a pre-materialization policy projection: the second pass will
+   * write one edge to the durable table-owned summary instead. */
+  if (lookup->inferred_function_summaries_ready == 0U) return 0;
   for (summary_index = 0U; summary_index < policy->function_summary_count &&
        summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
     const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[summary_index];
+    const M68kAnalysisFunctionSummary *effect_summary;
     const M68kSection *table_section;
     uint8_t input_index;
     if (!summary->has_section_index || summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE ||
         summary->section_index >= lookup->object->section_count || summary->entry_count == 0U ||
         summary->section_index != table_section_index || summary->table_offset != table_offset) continue;
+    effect_summary = lookup_inferred_callback_table_function_summary(lookup, table_section_index, table_offset);
+    if (effect_summary == NULL) effect_summary = summary;
     table_section = &lookup->object->sections[summary->section_index];
     if (table_section->data == NULL || summary->table_offset > table_section->size ||
         summary->entry_count > (table_section->size - summary->table_offset) / 4U) continue;
     {
       M68kFunctionSummaryUseIR use;
       memset(&use, 0, sizeof(use));
-      snprintf(use.function_summary_id, sizeof(use.function_summary_id), "%s", summary->function_summary_id);
+      snprintf(use.function_summary_id, sizeof(use.function_summary_id), "%s", effect_summary->function_summary_id);
       use.caller_section_index = (uint32_t)section_index;
       use.caller_offset = offset;
       use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
@@ -4141,7 +4148,7 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
       if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
             M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT, input->location.registers[0].register_kind,
             input->location.registers[0].register_index,
-            input->struct_name, NULL, summary->function_summary_id,
+            input->struct_name, NULL, effect_summary->function_summary_id,
             summary->section_index, summary->table_offset, state) != 0)
         return -1;
     }
@@ -12081,6 +12088,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
    * once more so transfer reads the stable callable facts. */
   if (render_lookup_collect_inferred_direct_function_summaries(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_collect_inferred_callback_table_function_summaries(lookup, decode, accepted_start) != 0) return -1;
+  lookup->inferred_function_summaries_ready = 1U;
   if (lookup->inferred_function_summary_count != 0U &&
       render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) return -1;

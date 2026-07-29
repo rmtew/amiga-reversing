@@ -742,6 +742,7 @@ struct M68kRenderLookup {
   M68kRenderInferredFunctionSummary *inferred_function_summaries;
   size_t inferred_function_summary_count;
   size_t inferred_function_summary_capacity;
+  uint8_t inferred_function_summaries_ready;
   M68kRenderTypedSlotEffect *typed_slot_effects;
   size_t typed_slot_effect_count;
   size_t typed_slot_effect_capacity;

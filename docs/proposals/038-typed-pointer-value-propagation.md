@@ -1293,22 +1293,22 @@ alongside the declared interface contract.  The focused callback-consumer
 fixture now proves both records exist and the full C suite passes (`m68k_ir:
 all 592 passed`).
 
-This is deliberately not the completion of remaining-work item 1: call-use
-edges and callback input-consumer edges still name the declared interface
-summary, rather than the newly materialized table-effect identity.  The next
-increment must make that one durable table fact own those reverse uses too,
-including identities discovered only from completed typed state rather than
-the adjacent-load fallback.  It must also add terminal-reason fixtures for
-unresolved entries and incompatible entry summaries.
+The callback’s second typed-flow pass now makes both call-use and
+input-consumer edges name that durable table identity; the initial discovery
+pass emits neither, so no stale declared-interface edge survives.  This still
+does not complete remaining-work item 1: the collector enumerates declared
+tables, while a table identity discovered only from completed typed state is
+not yet retained for post-flow materialization.  It also still needs
+terminal-reason fixtures for unresolved entries and incompatible entry
+summaries.
 
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Complete callback-table materialization: migrate callback call-use and
-   input-consumer edges to the durable table-owned identity, collect identities
-   discovered only from completed typed state, and add reverse-use and terminal
-   failure fixtures.  The table summary/intersection/export slice is complete,
-   but its reverse-use lifecycle is not.
+1. Complete callback-table materialization by retaining identities discovered
+   only from completed typed state for post-flow collection, then add terminal
+   failure fixtures for unresolved entries and incompatible entry summaries.
+   Table summary/intersection/export and reverse-use lifecycle are complete.
 2. Migrate callable result declarations into the common persisted/source-
    analysis summary shape, then add the closed escape `source_kind` field so
    input- and result-origin escapes validate and round-trip losslessly.
