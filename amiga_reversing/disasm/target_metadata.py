@@ -370,6 +370,10 @@ class FunctionSummaryEffectsMetadata:
                 location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(item_object["location"]))
                 effect = item_object["effect"]
                 assert effect in {"preserved", "clobbered"}
+                # The partition describes individual caller-visible registers
+                # and stack ABI slots.  A register tuple remains a value ABI
+                # identity and cannot be a duplicate partition spelling.
+                assert location.kind in {"register", "stack"}
                 assert set(item_object) == {"location", "effect"}
                 register_locations.append((location, effect))
             identities = [item[0] for item in register_locations]

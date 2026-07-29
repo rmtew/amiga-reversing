@@ -2379,9 +2379,21 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
           !json_optional_string_field_local(item, item_end, "effect", effect_text, sizeof(effect_text))) return 0;
       effect = &summary->location_effects[summary->location_effect_count];
       if (!append_metadata_function_summary_abi_location_local(location, location_end, &effect->location)) return 0;
+      /* The preservation partition is exhaustive over individual caller
+       * registers and declared caller-visible stack locations.  A tuple is a
+       * value/result identity, not a second spelling for a partition member. */
+      if (effect->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+          effect->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK) return 0;
       if (strcmp(effect_text, "preserved") == 0) effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED;
       else if (strcmp(effect_text, "clobbered") == 0) effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
       else return 0;
+      {
+        uint8_t prior;
+        for (prior = 0U; prior < summary->location_effect_count; ++prior) {
+          if (m68k_function_summary_abi_location_equal(&summary->location_effects[prior].location,
+              &effect->location)) return 0;
+        }
+      }
       if (effect->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER) {
         uint8_t *seen = effect->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ?
           &seen_data : &seen_address;
@@ -2771,6 +2783,12 @@ static int append_metadata_function_summary_input_local(const char *object_start
       strcmp(value_kind, "struct_ptr") != 0 || struct_name[0] == '\0') return 0;
   input = &summary->inputs[summary->input_count];
   if (!append_metadata_function_summary_abi_location_local(location, location_end, &input->location)) return 0;
+  {
+    uint8_t prior;
+    for (prior = 0U; prior < summary->input_count; ++prior) {
+      if (m68k_function_summary_abi_location_equal(&summary->inputs[prior].location, &input->location)) return 0;
+    }
+  }
   input->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   if (!copy_policy_text(input->struct_name, sizeof(input->struct_name), struct_name)) return 0;
   summary->input_count += 1U;

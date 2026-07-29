@@ -1,3 +1,5 @@
+import pytest
+
 from amiga_reversing.tools.migrate_function_summaries import migrate_canonical_location_records, migrate_records
 from amiga_reversing.disasm.target_metadata import FunctionSummaryMetadata, TargetMetadata, target_metadata_json_payload
 
@@ -223,3 +225,36 @@ def test_explicit_effect_schema_round_trips_stack_memory_and_escape_identities()
         TargetMetadata(target_type="program", entry_register_seeds=(), function_summaries=(summary,))
     )
     assert list(serialized["function_summaries"]) == [summary_payload]
+
+
+def test_explicit_effect_partition_rejects_register_tuple_location() -> None:
+    locations = [
+        {"location": {"kind": "register", "register": f"D{index}", "width": 4}, "effect": "clobbered"}
+        for index in range(8)
+    ] + [
+        {"location": {"kind": "register", "register": f"A{index}", "width": 4}, "effect": "clobbered"}
+        for index in range(8)
+    ] + [{
+        "location": {"kind": "register_tuple", "registers": ["D0", "D1"], "width": 8},
+        "effect": "preserved",
+    }]
+    payload = {
+        "function_summary_id": "invalid-tuple-effect",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0x80,
+        "inputs": [{
+            "location": {"kind": "register", "register": "A0", "width": 4},
+            "value_kind": "struct_ptr",
+            "struct_name": "world_object",
+        }],
+        "effects": {
+            "schema_version": 1,
+            "registers": {"state": "explicit", "locations": locations},
+            "memory": {"state": "explicit", "effects": []},
+            "escapes": {"state": "explicit", "escapes": []},
+        },
+        "note": "invalid partition location",
+    }
+    with pytest.raises(AssertionError):
+        FunctionSummaryMetadata.from_dict(payload)
