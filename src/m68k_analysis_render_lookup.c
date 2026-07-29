@@ -5413,9 +5413,14 @@ static int render_lookup_append_inferred_callback_table_function_summary(M68kRen
       goto invalid;
     }
     if (render_lookup_append_inferred_direct_function_summary(lookup, decode, accepted_start,
-          target_section_index, target_offset) != 0 ||
-        (target = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset)) == NULL ||
-        target->effects_invalid != 0U) {
+          target_section_index, target_offset) != 0) {
+      record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE;
+      goto invalid;
+    }
+    target = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset);
+    if (target == NULL || target->effects_invalid != 0U)
+      target = lookup_configured_direct_function_summary(lookup, target_section_index, target_offset);
+    if (target == NULL || target->effects_invalid != 0U) {
       record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE;
       goto invalid;
     }

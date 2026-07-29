@@ -27749,12 +27749,25 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_table");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "callback_context");
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].memory_effect_count = 1U;
+  policy.function_summaries[0].memory_effects[0].kind = M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE;
+  policy.function_summaries[0].memory_effects[0].subject.kind =
+    M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+  policy.function_summaries[0].memory_effects[0].subject.section_index = 0U;
+  policy.function_summaries[0].memory_effects[0].subject.offset = 24U;
   /* A declared but unobserved table remains policy only.  The collector must
    * not materialize a durable inferred summary merely by scanning declarations. */
   policy.function_summaries[1] = policy.function_summaries[0];
   policy.function_summaries[1].table_offset = 20U;
   snprintf(policy.function_summaries[1].function_summary_id, sizeof(policy.function_summaries[1].function_summary_id), "unused_callback_context_table");
-  policy.function_summary_count = 2U;
+  policy.function_summaries[2].has_section_index = 1U;
+  policy.function_summaries[2].section_index = 0U;
+  policy.function_summaries[2].entry_offset = 16U;
+  policy.function_summaries[2].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  snprintf(policy.function_summaries[2].function_summary_id,
+    sizeof(policy.function_summaries[2].function_summary_id), "callback_entry");
+  policy.function_summary_count = 3U;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
@@ -27763,13 +27776,17 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68K_C_ASSERT_STR("", analysis.sections[0].address_value_consumers[0].contract_name);
   M68K_C_ASSERT_STR("inferred_callback_s0_o00000018_n1",
     analysis.sections[0].address_value_consumers[0].function_summary_id);
-  M68K_C_ASSERT_U32(3U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(4U, (uint32_t)analysis.sections[0].function_summary_count);
   M68K_C_ASSERT_STR("callback_context_table", analysis.sections[0].function_summaries[0].function_summary_id);
   M68K_C_ASSERT_STR("unused_callback_context_table", analysis.sections[0].function_summaries[1].function_summary_id);
+  M68K_C_ASSERT_STR("callback_entry", analysis.sections[0].function_summaries[2].function_summary_id);
   M68K_C_ASSERT_STR("inferred_callback_s0_o00000018_n1",
-    analysis.sections[0].function_summaries[2].function_summary_id);
-  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE,
-    analysis.sections[0].function_summaries[2].terminal_reason);
+    analysis.sections[0].function_summaries[3].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_NONE,
+    analysis.sections[0].function_summaries[3].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[3].memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE,
+    analysis.sections[0].function_summaries[3].memory_effects[0].kind);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE,
     analysis.sections[0].function_summaries[0].callable_kind);
   M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_use_count);
@@ -27789,10 +27806,10 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   object.sections[0].data[26] = 0x20u; object.sections[0].data[27] = 0x00u;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_U32(3U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(4U, (uint32_t)analysis.sections[0].function_summary_count);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED,
-    analysis.sections[0].function_summaries[2].terminal_reason);
-  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[2].effects_invalid);
+    analysis.sections[0].function_summaries[3].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[3].effects_invalid);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"callback_entry_unresolved\"") != NULL);

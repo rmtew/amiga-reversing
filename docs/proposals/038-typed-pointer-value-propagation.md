@@ -1413,8 +1413,11 @@ table-owned callback summaries now retain the declared table contract's memory
 and escape components while deriving their register partition from the proven
 entry intersection.  The second typed-flow pass therefore applies a declared
 callback write or escape instead of silently treating the durable callback
-summary as register-only.  Focused callback-effect success and terminal
-fixtures remain part of the outstanding B3 matrix.
+summary as register-only.  The callback source-analysis fixture now proves a
+valid configured direct entry is admitted as table evidence and that the
+materialized table fact carries its declared non-aliasing memory effect; the
+unresolved terminal fixture remains covered.  Escape-specific callback and
+multi-entry conflict cases remain part of the outstanding B3 matrix.
 
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
