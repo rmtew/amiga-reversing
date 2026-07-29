@@ -758,10 +758,16 @@ expression identity; it does not create a transfer-local representation.
 non-symbolic output is therefore correct.
 
 **Work.** Define durable function-summary facts for proven input contracts,
-return identities, register preservation/clobbers, pointer escapes, and
-callback signatures. Derive or accept them through the normal analysis/action
-surface and apply them only at direct local calls and proven callback edges.
-Unknown calls remain clobbers and create no inferred summary.
+return identities, register preservation/clobbers, pointer escapes, memory
+effects, and callback signatures.  An input or return may be a register, a
+defined stack argument/result location, or an explicitly declared
+multi-register value; its ABI ownership, width, and stack-cleanup rule are
+part of the same fact.  Derive or accept summaries through the normal
+analysis/action surface and apply them only at direct local calls and proven
+callable-value edges, including callbacks and dispatch-table entries.  An
+indirect target becomes callable only through D's proven table/load identity
+and a compatible summary identity.  Unknown calls remain clobbers and create
+no inferred summary.
 
 **Investigation result (2026-07-29).** The current policy already has durable
 `M68kAnalysisFunctionRegisterContract` and
@@ -777,10 +783,34 @@ fact/action/projection pipeline and, where the common representation subsumes
 the wrapper-specific record, migrate it rather than extending input contracts
 or retaining parallel summary models.
 
-**Acceptance.** Fixtures prove a typed parameter, return, preserved value, and
-escaped callback value, plus unknown-call, conflicting-summary, and missing-
-signature negatives. A planned expression appears only when its complete call
-chain is proven. Pandora retains the current callback-store result unless a
+**Required common summary shape.** One stable callable-summary identity owns
+all of the following, and every direct or indirect call refers to that identity
+rather than copying interface text into a call-site record:
+
+- callable location (a direct section/offset or a proven callable table-entry
+  identity), ABI, and a finite ordered list of input locations;
+- input and return value contracts, where a location is a register, stack
+  offset, or ordered multi-register tuple and an identity transform may refer
+  only to a declared input or a separately proven source identity;
+- a complete caller-visible register/stack preservation and clobber partition;
+- an explicit memory effect set (read, write, escape, or proven non-aliasing
+  access) over durable storage/parameter identities; and
+- callback bindings, which connect a proven table-entry callable identity to
+  the same summary rather than representing a second callback-only interface.
+
+Absent information is an explicit unknown effect, never implied preservation.
+The policy, target metadata, Manual Action payload, effective projection, C
+backend, JSON export, and tests must use this one representation.  Delete the
+current function-register-contract and callback-table-signature facts/actions
+and migrate the recovered local-wrapper effect to it; no adapter may retain
+the old fields or reconstruct a summary from them.
+
+**Acceptance.** Fixtures prove register and stack parameters, a multi-register
+value, return, preserved value, a declared non-aliasing memory effect, and an
+escaped callback value, plus unknown-call, conflicting-summary, incompatible
+ABI, unmodelled-memory-effect, and missing-signature negatives. A planned
+expression appears only when its complete call chain and every relevant memory
+effect are proven. Pandora retains the current callback-store result unless a
 durable summary supplies the missing proof.
 
 Function-pointer fields and dispatch-table entries are callable contracts, not
@@ -845,9 +875,11 @@ existing consumer/planner path render it; it must remove rather than duplicate
 any specialised value propagation made redundant by the common transfer.
 
 **Acceptance.** Fixtures cover direct and indexed loads, null/invalid entries,
-pointer-to-pointer chains, typed indirect calls, and dispatch targets. Rendering
-uses the existing table/object symbols only for proven links. Pandora gets a
-table-to-store proof or a precise missing-fact report.
+pointer-to-pointer chains, typed indirect calls, and dispatch targets. They
+also prove that a data pointer cannot be called until a compatible callable
+contract is linked to its loaded identity. Rendering uses the existing
+table/object symbols only for proven links. Pandora gets a table-to-store proof
+or a precise missing-fact report.
 
 Null, sentinel, and invalid-entry semantics are part of the table-entry
 contract. They are explicit terminal values, not absent target mappings, and
@@ -959,6 +991,12 @@ Loads may reuse a value only when their storage identity and generation match;
 stores create a new generation and invalidate dependent cached facts. Do not
 invent heap allocation/lifetime recovery: unknown allocation, escaping pointer,
 or opaque write produces an explicit invalidated/unknown state.
+
+Calls consume B's memory-effect contract rather than a register-only
+preservation rule: every opaque, incompatible, or potentially-aliasing write
+invalidates the affected mutable instance generations.  A declared
+non-aliasing read-only effect may preserve only the identities it explicitly
+names; it cannot preserve memory merely because no register was clobbered.
 
 **Proof rule.** Same type never means same instance. A field chain may render
 with a coherent instance base only after an instance edge and compatible
@@ -1111,7 +1149,10 @@ model.  Its members must describe proof boundaries, not renderer symptoms:
   dependent evidence.
 
 Each terminal value and blocked expression carries exactly one primary reason;
-optional evidence links identify every contributing fact.  Existing free-form
+optional evidence links identify every contributing fact. Every bounded
+analysis operation declares deterministic work, iteration, SCC, and candidate
+limits at the model boundary; reaching a limit produces the relevant terminal
+reason and does not retain an arbitrary partial state. Existing free-form
 `terminal_reason` text becomes a generated explanation of this canonical
 reason, not a second classification channel.  The design must migrate current
 terminal outcomes to the enum and delete any duplicate per-report stop-reason
@@ -1166,10 +1207,10 @@ a stop reason.  Each action requires a fact-specific verifier that checks its
 identity, conflict/range rules, projection into analysis metadata, and its
 effect on the canonical graph.  Removing or changing a fact must use the same
 action model and atomically invalidate/recompute every dependent graph edge,
-planned expression, xref, and aggregate row; it must not retain an obsolete
-compatibility projection. The action result must report the invalidated stable
-identities, so review can distinguish an evidence change from an unrelated
-rendering change.
+planned expression, xref, call-summary/SCC result, CFG-dependent transfer, and
+aggregate row; it must not retain an obsolete compatibility projection. The
+action result must report the invalidated stable identities, so review can
+distinguish an evidence change from an unrelated rendering change.
 
 #### Metrics and completion evidence
 
