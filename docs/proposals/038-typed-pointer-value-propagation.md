@@ -1319,7 +1319,7 @@ fallbacks.
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Apply explicit stack, memory, and escape effects with a stable
+1. Apply ordinary writing stack, memory, and escape effects with a stable
    subject-to-storage index.  Until that index exists, conservative clearing
    remains sound but does not provide the required precise effect transfer.
 2. Add the complete focused matrix: direct/callback success and every terminal
@@ -1375,13 +1375,20 @@ survives an otherwise-invalid call effect and supplies the base for a typed
 field access; the DLL-backed reader fixture also covers tuple result-origin
 escapes.
 
+**Non-aliasing effect transfer increment (2026-07-29).** An explicit
+`nonaliasing_write` now preserves unrelated typed state, as its closed effect
+kind is itself the proof that the write does not touch any caller-visible typed
+storage identity. Ordinary writes and escapes remain conservatively clearing
+until the stable subject-to-storage index can invalidate only the matching
+state. The direct-summary fixture combines this memory effect with a declared
+register partition and a callee body that would otherwise clobber the value.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references. The strict metadata reader and JSON exporter
 now preserve the closed `source_kind` field and permit only a declared input
-or result at that location. Tuple inputs are
-also parsed but not yet represented by typed state, so tuple transfer remains
-an explicit follow-up rather than a claimed supported ABI.  Required fixtures
+or result at that location. Ordered tuple inputs and results are now represented
+by typed state and transfer atomically. Required fixtures
 for this slice are complete-domain direct-local proof, all-entry callback
 intersection, each terminal failure, durable JSON/use-edge export, input- and
 result-origin escapes, and a negative tuple-transfer case.  No new corpus or
