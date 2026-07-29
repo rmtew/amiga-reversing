@@ -3074,6 +3074,7 @@ int m68k_ir_section_analysis_append_address_value_consumer(M68kSectionAnalysisIR
 
 int m68k_ir_section_analysis_append_function_summary(M68kSectionAnalysisIR *section_analysis,
     const M68kFunctionSummaryIR *summary) {
+  M68kFunctionSummaryIR copy;
   size_t index;
   if (section_analysis == NULL || summary == NULL || summary->function_summary_id[0] == '\0' ||
       section_analysis->arena == NULL) return -1;
@@ -3087,7 +3088,65 @@ int m68k_ir_section_analysis_append_function_summary(M68kSectionAnalysisIR *sect
     section_analysis->arena, section_analysis->function_summaries, section_analysis->function_summary_count,
     &section_analysis->function_summary_capacity, 8U, sizeof(*section_analysis->function_summaries));
   if (section_analysis->function_summaries == NULL) return -1;
-  section_analysis->function_summaries[section_analysis->function_summary_count++] = *summary;
+  copy = *summary;
+  for (index = 0U; index < copy.result_count; ++index) {
+    M68kFunctionSummaryResultIR *result = &copy.results[index];
+    if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER) {
+      if (!m68k_platform_name_ref_is_set(&result->payload.named_base.base_ref) &&
+          result->payload.named_base.base_name != NULL) {
+        result->payload.named_base.base_ref.platform_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+        result->payload.named_base.base_ref.domain_kind = M68K_PLATFORM_NAME_BASE;
+        result->payload.named_base.base_ref.id = m68k_platform_name_id_from_text(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          M68K_PLATFORM_NAME_BASE, result->payload.named_base.base_name);
+      }
+      result->payload.named_base.base_name = arena_strdup_if_unresolved_name(section_analysis->arena,
+        &result->payload.named_base.base_ref, result->payload.named_base.base_name);
+    } else if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER ||
+               result->kind == M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT) {
+      M68kPlatformTypedEffectPayloadIR *typed = &result->payload.typed;
+      if (!m68k_platform_name_ref_is_set(&typed->context_ref) && typed->context_name != NULL) {
+        typed->context_ref.platform_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+        typed->context_ref.domain_kind = M68K_PLATFORM_NAME_BASE;
+        typed->context_ref.id = m68k_platform_name_id_from_text(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          M68K_PLATFORM_NAME_BASE, typed->context_name);
+      }
+      if (!m68k_platform_name_ref_is_set(&typed->symbol_ref) && typed->symbol_name != NULL) {
+        typed->symbol_ref.platform_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+        typed->symbol_ref.domain_kind = M68K_PLATFORM_NAME_SYMBOL;
+        typed->symbol_ref.id = m68k_platform_name_id_from_text(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          M68K_PLATFORM_NAME_SYMBOL, typed->symbol_name);
+      }
+      if (!m68k_platform_name_ref_is_set(&typed->type_ref) && typed->type_name != NULL) {
+        typed->type_ref.platform_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+        typed->type_ref.domain_kind = M68K_PLATFORM_NAME_TYPE;
+        typed->type_ref.id = m68k_platform_name_id_from_text(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          M68K_PLATFORM_NAME_TYPE, typed->type_name);
+      }
+      if (!m68k_platform_name_ref_is_set(&typed->semantic_kind_ref) && typed->semantic_kind != NULL) {
+        typed->semantic_kind_ref.platform_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+        typed->semantic_kind_ref.domain_kind = M68K_PLATFORM_NAME_SEMANTIC_KIND;
+        typed->semantic_kind_ref.id = m68k_platform_name_id_from_text(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          M68K_PLATFORM_NAME_SEMANTIC_KIND, typed->semantic_kind);
+      }
+      if (!m68k_platform_name_ref_is_set(&typed->value_domain_ref) && typed->value_domain_name != NULL) {
+        typed->value_domain_ref.platform_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+        typed->value_domain_ref.domain_kind = M68K_PLATFORM_NAME_VALUE_DOMAIN;
+        typed->value_domain_ref.id = m68k_platform_name_id_from_text(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          M68K_PLATFORM_NAME_VALUE_DOMAIN, typed->value_domain_name);
+      }
+      result->payload.typed.context_name = arena_strdup_if_unresolved_name(section_analysis->arena,
+        &result->payload.typed.context_ref, result->payload.typed.context_name);
+      result->payload.typed.symbol_name = arena_strdup_if_unresolved_name(section_analysis->arena,
+        &result->payload.typed.symbol_ref, result->payload.typed.symbol_name);
+      result->payload.typed.type_name = arena_strdup_if_unresolved_name(section_analysis->arena,
+        &result->payload.typed.type_ref, result->payload.typed.type_name);
+      result->payload.typed.semantic_kind = arena_strdup_if_unresolved_name(section_analysis->arena,
+        &result->payload.typed.semantic_kind_ref, result->payload.typed.semantic_kind);
+      result->payload.typed.value_domain_name = arena_strdup_if_unresolved_name(section_analysis->arena,
+        &result->payload.typed.value_domain_ref, result->payload.typed.value_domain_name);
+    }
+  }
+  section_analysis->function_summaries[section_analysis->function_summary_count++] = copy;
   return 0;
 }
 
@@ -3772,138 +3831,92 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_global_slot_effect(
   return -1;
 }
 
-int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnalysisIR *section_analysis,
-    uint8_t platform_kind, uint32_t target_offset, uint8_t effect_kind, uint8_t reg_kind, uint8_t reg_index,
+int m68k_ir_section_analysis_append_function_summary_result(M68kSectionAnalysisIR *section_analysis,
+    uint8_t platform_kind, uint32_t target_offset, uint8_t result_kind, uint8_t reg_kind, uint8_t reg_index,
     uint8_t success_reg_kind, uint8_t success_reg_index, uint8_t success_value_known, int32_t success_reg_value,
     const char *base_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
-    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value) {
-  size_t index;
-  char *copy_base_name, *copy_symbol_name, *copy_type_name, *copy_semantic_kind, *copy_value_domain_name;
+    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value,
+    uint16_t platform_library_id, uint16_t platform_function_id, uint16_t platform_output_id) {
+  M68kFunctionSummaryIR *summary = NULL;
+  M68kFunctionSummaryResultIR result;
   M68kPlatformNameRef base_ref = {0}, symbol_ref = {0}, type_ref = {0};
   M68kPlatformNameRef semantic_kind_ref = {0}, value_domain_ref = {0};
-  if (section_analysis == NULL || effect_kind == M68K_PLATFORM_EFFECT_NONE) return -1;
-  if (section_analysis->arena == NULL) return -1;
-  base_ref.platform_kind = platform_kind;
-  base_ref.domain_kind = M68K_PLATFORM_NAME_BASE;
+  size_t index;
+  if (section_analysis == NULL || section_analysis->arena == NULL || reg_index >= 8U ||
+      (result_kind != M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER &&
+       result_kind != M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER &&
+       result_kind != M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT)) return -1;
+  for (index = 0U; index < section_analysis->function_summary_count; ++index) {
+    M68kFunctionSummaryIR *candidate = &section_analysis->function_summaries[index];
+    if (candidate->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+        candidate->callable_section_index == section_analysis->section_index && candidate->entry_offset == target_offset) {
+      summary = candidate;
+      break;
+    }
+  }
+  if (summary == NULL) {
+    M68kFunctionSummaryIR generated;
+    memset(&generated, 0, sizeof(generated));
+    snprintf(generated.function_summary_id, sizeof(generated.function_summary_id),
+      "derived_platform_summary_s%u_%08X", (unsigned)section_analysis->section_index, (unsigned)target_offset);
+    generated.callable_section_index = (uint32_t)section_analysis->section_index;
+    generated.entry_offset = target_offset;
+    generated.callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+    generated.return_contract_unknown = 0U;
+    generated.register_effects_unknown = 1U;
+    generated.memory_effects_unknown = 1U;
+    if (m68k_ir_section_analysis_append_function_summary(section_analysis, &generated) != 0) return -1;
+    summary = &section_analysis->function_summaries[section_analysis->function_summary_count - 1U];
+  }
+  memset(&result, 0, sizeof(result));
+  result.kind = result_kind;
+  result.reg_kind = reg_kind;
+  result.reg_index = reg_index;
+  result.width = 4U;
+  result.success_reg_kind = success_reg_kind;
+  result.success_reg_index = success_reg_index;
+  result.success_value_known = success_value_known;
+  result.success_reg_value = success_reg_value;
+  result.platform_library_id = platform_library_id;
+  result.platform_function_id = platform_function_id;
+  result.platform_output_id = platform_output_id;
+  base_ref.platform_kind = platform_kind; base_ref.domain_kind = M68K_PLATFORM_NAME_BASE;
   base_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_BASE, base_name);
-  symbol_ref.platform_kind = platform_kind;
-  symbol_ref.domain_kind = M68K_PLATFORM_NAME_SYMBOL;
+  symbol_ref.platform_kind = platform_kind; symbol_ref.domain_kind = M68K_PLATFORM_NAME_SYMBOL;
   symbol_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_SYMBOL, symbol_name);
-  type_ref.platform_kind = platform_kind;
-  type_ref.domain_kind = M68K_PLATFORM_NAME_TYPE;
+  type_ref.platform_kind = platform_kind; type_ref.domain_kind = M68K_PLATFORM_NAME_TYPE;
   type_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_TYPE, type_name);
-  semantic_kind_ref.platform_kind = platform_kind;
-  semantic_kind_ref.domain_kind = M68K_PLATFORM_NAME_SEMANTIC_KIND;
+  semantic_kind_ref.platform_kind = platform_kind; semantic_kind_ref.domain_kind = M68K_PLATFORM_NAME_SEMANTIC_KIND;
   semantic_kind_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_SEMANTIC_KIND, semantic_kind);
-  value_domain_ref.platform_kind = platform_kind;
-  value_domain_ref.domain_kind = M68K_PLATFORM_NAME_VALUE_DOMAIN;
+  value_domain_ref.platform_kind = platform_kind; value_domain_ref.domain_kind = M68K_PLATFORM_NAME_VALUE_DOMAIN;
   value_domain_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_VALUE_DOMAIN, value_domain_name);
-  for (index = 0; index < section_analysis->recovered_local_call_summary_count; ++index) {
-    M68kRecoveredLocalCallSummaryIR *existing = &section_analysis->recovered_local_call_summaries[index];
-    const char *existing_base_name = NULL, *existing_symbol_name = NULL, *existing_type_name = NULL;
-    const char *existing_semantic_kind = NULL, *existing_value_domain_name = NULL;
-    const M68kPlatformNameRef *existing_base_ref = &existing->payload.named_base.base_ref;
-    const M68kPlatformNameRef *existing_symbol_ref = &existing->payload.typed.symbol_ref;
-    uint8_t existing_has_constant_value = 0U;
-    int32_t existing_constant_value = 0;
-    if (existing->target_offset != target_offset || existing->effect_kind != effect_kind ||
-        existing->reg_kind != reg_kind || existing->reg_index != reg_index ||
-        existing->success_reg_kind != success_reg_kind || existing->success_reg_index != success_reg_index ||
-        existing->success_value_known != success_value_known || existing->success_reg_value != success_reg_value) {
-      continue;
-    }
-    if (existing->effect_kind == M68K_PLATFORM_EFFECT_SET_BASE_REG) {
-      existing_base_name = existing->payload.named_base.base_name;
-    } else if (existing->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-      existing_base_name = existing->payload.typed.context_name;
-      existing_symbol_name = existing->payload.typed.symbol_name;
-      existing_base_ref = &existing->payload.typed.context_ref;
-      existing_type_name = existing->payload.typed.type_name;
-      existing_semantic_kind = existing->payload.typed.semantic_kind;
-      existing_value_domain_name = existing->payload.typed.value_domain_name;
-      existing_has_constant_value = existing->payload.typed.has_constant_value;
-      existing_constant_value = existing->payload.typed.constant_value;
-    }
-    if (m68k_platform_name_matches(existing_base_ref, existing_base_name, &base_ref, base_name) &&
-        m68k_platform_name_matches(existing_symbol_ref, existing_symbol_name, &symbol_ref, symbol_name) &&
-        m68k_platform_name_matches(&existing->payload.typed.type_ref, existing_type_name, &type_ref, type_name) &&
-        m68k_platform_name_matches(&existing->payload.typed.semantic_kind_ref, existing_semantic_kind,
-          &semantic_kind_ref, semantic_kind) &&
-        m68k_platform_name_matches(&existing->payload.typed.value_domain_ref, existing_value_domain_name,
-          &value_domain_ref, value_domain_name) &&
-        existing_has_constant_value == has_constant_value &&
-        (!has_constant_value || existing_constant_value == constant_value)) {
-      return 0;
-    }
+  if (result_kind == M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER) {
+    result.payload.named_base.base_ref = base_ref;
+    result.payload.named_base.base_name = arena_strdup_if_unresolved_name(section_analysis->arena, &base_ref, base_name);
+  } else if (result_kind == M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER) {
+    result.payload.typed.context_ref = base_ref; result.payload.typed.symbol_ref = symbol_ref;
+    result.payload.typed.type_ref = type_ref; result.payload.typed.semantic_kind_ref = semantic_kind_ref;
+    result.payload.typed.value_domain_ref = value_domain_ref;
+    result.payload.typed.context_name = arena_strdup_if_unresolved_name(section_analysis->arena, &base_ref, base_name);
+    result.payload.typed.symbol_name = arena_strdup_if_unresolved_name(section_analysis->arena, &symbol_ref, symbol_name);
+    result.payload.typed.type_name = arena_strdup_if_unresolved_name(section_analysis->arena, &type_ref, type_name);
+    result.payload.typed.semantic_kind = arena_strdup_if_unresolved_name(section_analysis->arena, &semantic_kind_ref, semantic_kind);
+    result.payload.typed.value_domain_name = arena_strdup_if_unresolved_name(section_analysis->arena, &value_domain_ref, value_domain_name);
+    result.payload.typed.has_constant_value = has_constant_value;
+    result.payload.typed.constant_value = constant_value;
+  }
+  for (index = 0U; index < summary->result_count; ++index) {
+    M68kFunctionSummaryResultIR *existing = &summary->results[index];
+    if (existing->reg_kind != result.reg_kind || existing->reg_index != result.reg_index) continue;
+    if (memcmp(existing, &result, sizeof(result)) == 0) return 0;
+    summary->result_contract_invalid = 1U;
     return -1;
   }
-  section_analysis->recovered_local_call_summaries = (M68kRecoveredLocalCallSummaryIR *)arena_grow_array(
-    section_analysis->arena, section_analysis->recovered_local_call_summaries,
-    section_analysis->recovered_local_call_summary_count, &section_analysis->recovered_local_call_summary_capacity,
-    8U, sizeof(*section_analysis->recovered_local_call_summaries));
-  if (section_analysis->recovered_local_call_summaries == NULL) return -1;
-  copy_base_name = arena_strdup_if_unresolved_name(section_analysis->arena, &base_ref, base_name);
-  if (base_name != NULL && !m68k_platform_name_ref_is_set(&base_ref) && copy_base_name == NULL) return -1;
-  copy_symbol_name = arena_strdup_if_unresolved_name(section_analysis->arena, &symbol_ref, symbol_name);
-  if (symbol_name != NULL && !m68k_platform_name_ref_is_set(&symbol_ref) && copy_symbol_name == NULL) return -1;
-  copy_type_name = arena_strdup_if_unresolved_name(section_analysis->arena, &type_ref, type_name);
-  if (type_name != NULL && !m68k_platform_name_ref_is_set(&type_ref) && copy_type_name == NULL) return -1;
-  copy_semantic_kind = arena_strdup_if_unresolved_name(section_analysis->arena, &semantic_kind_ref, semantic_kind);
-  if (semantic_kind != NULL && !m68k_platform_name_ref_is_set(&semantic_kind_ref) && copy_semantic_kind == NULL)
+  if (summary->result_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT) {
+    summary->result_contract_invalid = 1U;
     return -1;
-  copy_value_domain_name = arena_strdup_if_unresolved_name(section_analysis->arena, &value_domain_ref, value_domain_name);
-  if (value_domain_name != NULL && !m68k_platform_name_ref_is_set(&value_domain_ref) && copy_value_domain_name == NULL)
-    return -1;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].target_offset =
-    target_offset;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].effect_kind =
-    effect_kind;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].reg_kind =
-    reg_kind;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].reg_index =
-    reg_index;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].success_reg_kind =
-    success_reg_kind;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].success_reg_index =
-    success_reg_index;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].success_value_known =
-    success_value_known;
-  section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].success_reg_value =
-    success_reg_value;
-  memset(&section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].payload,
-    0, sizeof(section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count].payload));
-  if (effect_kind == M68K_PLATFORM_EFFECT_SET_BASE_REG) {
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.named_base.base_name = copy_base_name;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.named_base.base_ref = base_ref;
-  } else if (effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.context_name = copy_base_name;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.symbol_name = copy_symbol_name;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.type_name = copy_type_name;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.semantic_kind = copy_semantic_kind;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.value_domain_name = copy_value_domain_name;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.context_ref = base_ref;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.symbol_ref = symbol_ref;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.type_ref = type_ref;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.semantic_kind_ref = semantic_kind_ref;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.value_domain_ref = value_domain_ref;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.has_constant_value = has_constant_value;
-    section_analysis->recovered_local_call_summaries[section_analysis->recovered_local_call_summary_count]
-      .payload.typed.constant_value = constant_value;
   }
-  section_analysis->recovered_local_call_summary_count += 1U;
+  summary->results[summary->result_count++] = result;
   return 0;
 }
 
@@ -5081,58 +5094,6 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
         effect->target_section_index;
       copy.recovered_platform_effects[copy.recovered_platform_effect_count - 1U].target_offset =
         effect->target_offset;
-    }
-  }
-  for (index = 0; index < section_analysis->recovered_local_call_summary_count; ++index) {
-    const M68kRecoveredLocalCallSummaryIR *summary = &section_analysis->recovered_local_call_summaries[index];
-    const char *base_name = m68k_platform_name_ref_display_text(&summary->payload.named_base.base_ref,
-      summary->payload.named_base.base_name);
-    const char *typed_context_name = m68k_platform_name_ref_display_text(&summary->payload.typed.context_ref,
-      summary->payload.typed.context_name);
-    const char *typed_symbol_name = m68k_platform_name_ref_display_text(&summary->payload.typed.symbol_ref,
-      summary->payload.typed.symbol_name);
-    const char *type_name = m68k_platform_name_ref_display_text(&summary->payload.typed.type_ref,
-      summary->payload.typed.type_name);
-    const char *semantic_kind = m68k_platform_name_ref_display_text(&summary->payload.typed.semantic_kind_ref,
-      summary->payload.typed.semantic_kind);
-    const char *value_domain_name = m68k_platform_name_ref_display_text(&summary->payload.typed.value_domain_ref,
-      summary->payload.typed.value_domain_name);
-    uint8_t platform_kind = summary->effect_kind == M68K_PLATFORM_EFFECT_SET_BASE_REG
-      ? m68k_platform_kind_from_ref_or_text(&summary->payload.named_base.base_ref, M68K_PLATFORM_NAME_BASE,
-          base_name)
-      : m68k_platform_kind_from_ref_or_text(&summary->payload.typed.context_ref, M68K_PLATFORM_NAME_BASE,
-          typed_context_name);
-    if (platform_kind == 0U && summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-      platform_kind = m68k_platform_kind_from_ref_or_text(&summary->payload.typed.symbol_ref,
-        M68K_PLATFORM_NAME_SYMBOL, typed_symbol_name);
-    }
-    if (platform_kind == 0U && summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-      platform_kind = m68k_platform_kind_from_ref_or_text(&summary->payload.typed.type_ref,
-        M68K_PLATFORM_NAME_TYPE, type_name);
-    }
-    if (platform_kind == 0U && summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-      platform_kind = m68k_platform_kind_from_ref_or_text(&summary->payload.typed.semantic_kind_ref,
-        M68K_PLATFORM_NAME_SEMANTIC_KIND, semantic_kind);
-    }
-    if (platform_kind == 0U && summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-      platform_kind = m68k_platform_kind_from_ref_or_text(&summary->payload.typed.value_domain_ref,
-        M68K_PLATFORM_NAME_VALUE_DOMAIN, value_domain_name);
-    }
-    if (m68k_ir_section_analysis_append_recovered_local_call_summary(&copy,
-          platform_kind,
-          summary->target_offset, summary->effect_kind,
-          summary->reg_kind, summary->reg_index, summary->success_reg_kind, summary->success_reg_index,
-          summary->success_value_known, summary->success_reg_value,
-          summary->effect_kind == M68K_PLATFORM_EFFECT_SET_BASE_REG ? base_name :
-            (summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ? typed_context_name : NULL),
-          summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ? typed_symbol_name : NULL,
-          summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ? type_name : NULL,
-          summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ? semantic_kind : NULL,
-          summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ? value_domain_name : NULL,
-          summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ? summary->payload.typed.has_constant_value : 0U,
-          summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ? summary->payload.typed.constant_value : 0) != 0) {
-      m68k_ir_section_analysis_destroy(&copy);
-      return -1;
     }
   }
   for (index = 0; index < section_analysis->recovered_function_arg_count; ++index) {

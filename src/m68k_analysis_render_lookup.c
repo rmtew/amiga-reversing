@@ -1424,7 +1424,7 @@ static int render_lookup_collect_recovered_function_args_from_wrapper(M68kRender
   return 0;
 }
 
-static int render_lookup_infer_amiga_recovered_local_call_summaries(M68kRenderLookup *lookup,
+static int render_lookup_infer_amiga_platform_derived_summaries(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start) {
   M68kRenderPlatformState platform_state;
   size_t section_index;
@@ -1461,7 +1461,7 @@ static int render_lookup_infer_amiga_recovered_local_call_summaries(M68kRenderLo
       if (vector != NULL &&
           candidate_direct_control_target(lookup, section->section_index, candidate, &target_section_index,
             &target_offset) &&
-          render_lookup_add_recovered_local_call_summary(lookup, target_section_index, target_offset, vector) != 0) {
+          render_lookup_add_platform_derived_summary(lookup, target_section_index, target_offset, vector) != 0) {
         return -1;
       }
       platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
@@ -6917,8 +6917,8 @@ static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, 
     if (lookup->global_base_slots[index].has_library_id != 0U &&
         lookup->global_base_slots[index].conflicted == 0U) return 1;
   }
-  for (index = 0U; index < lookup->recovered_local_call_summary_count; ++index) {
-    if (amiga_vector_has_typed_flow_info(lookup->recovered_local_call_summaries[index].vector)) return 1;
+  for (index = 0U; index < lookup->platform_derived_summary_count; ++index) {
+    if (amiga_vector_has_typed_flow_info(lookup->platform_derived_summaries[index].vector)) return 1;
   }
   return 0;
 }
@@ -7229,37 +7229,24 @@ static int candidate_loads_runtime_address_ref_target_to_address_reg(const M68kR
   return 0;
 }
 
-static int append_render_lookup_recovered_local_call_summaries_for_section(const M68kRenderLookup *lookup,
+static int append_render_lookup_platform_derived_summaries_for_section(const M68kRenderLookup *lookup,
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
   if (lookup == NULL || section_analysis == NULL || lookup->object == NULL ||
       lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     return 0;
   }
-  for (index = 0U; index < lookup->recovered_local_call_summary_count; ++index) {
-    const M68kRenderRecoveredLocalCallSummary *summary = &lookup->recovered_local_call_summaries[index];
+  for (index = 0U; index < lookup->platform_derived_summary_count; ++index) {
+    const M68kRenderPlatformDerivedSummary *summary = &lookup->platform_derived_summaries[index];
     const AmigaOsCallOutputInfo *output;
-    const char *symbol_name;
-    const char *type_name;
-    const char *semantic_kind;
-    const char *value_domain_name;
     if (summary->section_index != section_analysis->section_index || summary->vector == NULL) continue;
     output = &summary->vector->output;
     if (output->reg_kind == AMIGA_OS_REGISTER_NONE || output->reg_index >= 8U) continue;
-    symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, output->output_id);
-    type_name = amiga_output_type_or_struct_name(output);
-    semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, output->semantic_kind_id);
-    value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, output->value_domain_id);
-    if ((symbol_name == NULL || symbol_name[0] == '\0') &&
-        (type_name == NULL || type_name[0] == '\0') &&
-        (semantic_kind == NULL || semantic_kind[0] == '\0') &&
-        (value_domain_name == NULL || value_domain_name[0] == '\0')) {
-      continue;
-    }
-    if (m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis,
-        M68K_PLATFORM_BACKEND_AMIGA_HUNK, summary->target_offset, M68K_PLATFORM_EFFECT_SET_TYPED_REG,
-        output->reg_kind, output->reg_index, 0U, 0U, 0U, 0, NULL, symbol_name, type_name, semantic_kind,
-        value_domain_name, 0U, 0) != 0) {
+    if (m68k_ir_section_analysis_append_function_summary_result(section_analysis,
+        M68K_PLATFORM_BACKEND_AMIGA_HUNK, summary->target_offset, M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT,
+        output->reg_kind, output->reg_index, 0U, 0U, 0U, 0, NULL, NULL, NULL, NULL,
+        NULL, 0U, 0, summary->vector->library_id, summary->vector->function_id,
+        output->output_id) != 0) {
       return -1;
     }
   }
@@ -8665,35 +8652,35 @@ int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t se
   return 0;
 }
 
-int render_lookup_add_recovered_local_call_summary(M68kRenderLookup *lookup, size_t section_index,
+int render_lookup_add_platform_derived_summary(M68kRenderLookup *lookup, size_t section_index,
     uint32_t target_offset, const AmigaOsLibraryVectorInfo *vector) {
   size_t index;
-  M68kRenderRecoveredLocalCallSummary *grown;
+  M68kRenderPlatformDerivedSummary *grown;
   size_t next_capacity;
   if (lookup == NULL || vector == NULL) return 0;
-  for (index = 0U; index < lookup->recovered_local_call_summary_count; ++index) {
-    M68kRenderRecoveredLocalCallSummary *entry = &lookup->recovered_local_call_summaries[index];
+  for (index = 0U; index < lookup->platform_derived_summary_count; ++index) {
+    M68kRenderPlatformDerivedSummary *entry = &lookup->platform_derived_summaries[index];
     if (entry->section_index == section_index && entry->target_offset == target_offset) {
       if (entry->vector != vector) entry->vector = NULL;
       return 0;
     }
   }
-  if (lookup->recovered_local_call_summary_count == lookup->recovered_local_call_summary_capacity) {
-    next_capacity = lookup->recovered_local_call_summary_capacity == 0U ? 16U :
-      lookup->recovered_local_call_summary_capacity * 2U;
-    grown = (M68kRenderRecoveredLocalCallSummary *)render_lookup_grow_array(lookup,
-      lookup->recovered_local_call_summaries, lookup->recovered_local_call_summary_count, sizeof(*grown),
+  if (lookup->platform_derived_summary_count == lookup->platform_derived_summary_capacity) {
+    next_capacity = lookup->platform_derived_summary_capacity == 0U ? 16U :
+      lookup->platform_derived_summary_capacity * 2U;
+    grown = (M68kRenderPlatformDerivedSummary *)render_lookup_grow_array(lookup,
+      lookup->platform_derived_summaries, lookup->platform_derived_summary_count, sizeof(*grown),
       next_capacity);
     if (grown == NULL) return -1;
-    lookup->recovered_local_call_summaries = grown;
-    lookup->recovered_local_call_summary_capacity = next_capacity;
+    lookup->platform_derived_summaries = grown;
+    lookup->platform_derived_summary_capacity = next_capacity;
   }
-  memset(&lookup->recovered_local_call_summaries[lookup->recovered_local_call_summary_count], 0,
-    sizeof(lookup->recovered_local_call_summaries[lookup->recovered_local_call_summary_count]));
-  lookup->recovered_local_call_summaries[lookup->recovered_local_call_summary_count].section_index = section_index;
-  lookup->recovered_local_call_summaries[lookup->recovered_local_call_summary_count].target_offset = target_offset;
-  lookup->recovered_local_call_summaries[lookup->recovered_local_call_summary_count].vector = vector;
-  ++lookup->recovered_local_call_summary_count;
+  memset(&lookup->platform_derived_summaries[lookup->platform_derived_summary_count], 0,
+    sizeof(lookup->platform_derived_summaries[lookup->platform_derived_summary_count]));
+  lookup->platform_derived_summaries[lookup->platform_derived_summary_count].section_index = section_index;
+  lookup->platform_derived_summaries[lookup->platform_derived_summary_count].target_offset = target_offset;
+  lookup->platform_derived_summaries[lookup->platform_derived_summary_count].vector = vector;
+  ++lookup->platform_derived_summary_count;
   return 0;
 }
 
@@ -11691,7 +11678,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   end = clock();
   if (stats != NULL) stats->base_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();
-  if (render_lookup_infer_amiga_recovered_local_call_summaries(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_infer_amiga_platform_derived_summaries(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_infer_amiga_recovered_function_args(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (stats != NULL) stats->call_summary_seconds = elapsed_seconds_local(start, end);
@@ -12293,8 +12280,8 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   if (append_render_lookup_runtime_address_refs_for_section(lookup, decode, section_analysis) != 0) return -1;
   if (append_render_lookup_code_start_refs_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_violations_for_section(lookup, section_analysis) != 0) return -1;
-  if (append_render_lookup_recovered_local_call_summaries_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_function_summaries_for_section(lookup, section_analysis) != 0) return -1;
+  if (append_render_lookup_platform_derived_summaries_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_recovered_function_args_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_affine_address_evidence_for_section(lookup, section_analysis) != 0) return -1;

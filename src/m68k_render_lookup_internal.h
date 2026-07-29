@@ -205,11 +205,13 @@ typedef struct M68kRenderRecoveredFunctionArg {
   PlatformFactsV2CallInput input;
 } M68kRenderRecoveredFunctionArg;
 
-typedef struct M68kRenderRecoveredLocalCallSummary {
+/* Transient derivation evidence only.  Durable output is a common function
+ * summary result in source analysis. */
+typedef struct M68kRenderPlatformDerivedSummary {
   size_t section_index;
   uint32_t target_offset;
   const AmigaOsLibraryVectorInfo *vector;
-} M68kRenderRecoveredLocalCallSummary;
+} M68kRenderPlatformDerivedSummary;
 
 typedef struct M68kRenderTypedSlotEffect {
   size_t section_index;
@@ -728,9 +730,9 @@ struct M68kRenderLookup {
   M68kRenderRecoveredFunctionArg *recovered_function_args;
   size_t recovered_function_arg_count;
   size_t recovered_function_arg_capacity;
-  M68kRenderRecoveredLocalCallSummary *recovered_local_call_summaries;
-  size_t recovered_local_call_summary_count;
-  size_t recovered_local_call_summary_capacity;
+  M68kRenderPlatformDerivedSummary *platform_derived_summaries;
+  size_t platform_derived_summary_count;
+  size_t platform_derived_summary_capacity;
   M68kRenderTypedSlotEffect *typed_slot_effects;
   size_t typed_slot_effect_count;
   size_t typed_slot_effect_capacity;
@@ -913,7 +915,7 @@ int render_lookup_add_instruction_comment(M68kRenderLookup *lookup, size_t secti
 int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t section_index,
   uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
   const PlatformFactsV2CallInput *input);
-int render_lookup_add_recovered_local_call_summary(M68kRenderLookup *lookup, size_t section_index,
+int render_lookup_add_platform_derived_summary(M68kRenderLookup *lookup, size_t section_index,
     uint32_t target_offset, const AmigaOsLibraryVectorInfo *vector);
 int render_lookup_add_function_summary_use(M68kRenderLookup *lookup, const M68kFunctionSummaryUseIR *use);
 int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,

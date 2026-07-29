@@ -4607,6 +4607,25 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
             json_builder_append_json_string(&builder, input->struct_name) != 0 ||
             json_builder_append(&builder, "}") != 0) goto oom;
       }
+      if (json_builder_appendf(&builder, "],\"result_contract_invalid\":%u,\"results\":[",
+            (unsigned)summary->result_contract_invalid) != 0) goto oom;
+      {
+        uint8_t result_index;
+        for (result_index = 0U; result_index < summary->result_count; ++result_index) {
+          const M68kFunctionSummaryResultIR *result = &summary->results[result_index];
+          if (result_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (json_builder_appendf(&builder,
+              "{\"kind_id\":%u,\"reg_kind\":%u,\"reg_index\":%u,\"width\":%u,"
+              "\"success_reg_kind\":%u,\"success_reg_index\":%u,\"success_value_known\":%u,"
+              "\"success_reg_value\":%d,\"platform_library_id\":%u,\"platform_function_id\":%u,"
+              "\"platform_output_id\":%u}",
+              (unsigned)result->kind, (unsigned)result->reg_kind, (unsigned)result->reg_index,
+              (unsigned)result->width, (unsigned)result->success_reg_kind,
+              (unsigned)result->success_reg_index, (unsigned)result->success_value_known,
+              (int)result->success_reg_value, (unsigned)result->platform_library_id,
+              (unsigned)result->platform_function_id, (unsigned)result->platform_output_id) != 0) goto oom;
+        }
+      }
       if (json_builder_append(&builder, "]}") != 0) goto oom;
     }
     if (json_builder_appendf(&builder, "],\"function_summary_use_count\":%u,\"function_summary_uses\":[",
@@ -5731,66 +5750,6 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
             (unsigned)arg->typed.has_constant_value, (int)arg->typed.constant_value,
             (unsigned)arg->has_source_operand, (unsigned)arg->source_offset, (unsigned)arg->source_reg_kind,
             (unsigned)arg->source_reg_index, (int)arg->source_displacement) != 0)
-        goto oom;
-    }
-    if (json_builder_appendf(&builder,
-          "],\"recovered_local_call_summary_count\":%u,\"recovered_local_call_summaries\":[",
-          (unsigned)section->recovered_local_call_summary_count) != 0)
-      goto oom;
-    for (effect_index = 0; effect_index < section->recovered_local_call_summary_count; ++effect_index) {
-      const M68kRecoveredLocalCallSummaryIR *summary = &section->recovered_local_call_summaries[effect_index];
-      const char *base_name = NULL, *symbol_name = NULL, *type_name = NULL;
-      const char *semantic_kind = NULL, *value_domain_name = NULL;
-      uint8_t has_constant_value = 0U;
-      int32_t constant_value = 0;
-      if (effect_index != 0U && json_builder_append(&builder, ",") != 0)
-        goto oom;
-      if (summary->effect_kind == M68K_PLATFORM_EFFECT_SET_BASE_REG) {
-        base_name = m68k_platform_name_ref_display_text(&summary->payload.named_base.base_ref,
-          summary->payload.named_base.base_name);
-      } else if (summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-        base_name = m68k_platform_name_ref_display_text(&summary->payload.typed.context_ref,
-          summary->payload.typed.context_name);
-        symbol_name = m68k_platform_name_ref_display_text(&summary->payload.typed.symbol_ref,
-          summary->payload.typed.symbol_name);
-        type_name = m68k_platform_name_ref_display_text(&summary->payload.typed.type_ref,
-          summary->payload.typed.type_name);
-        semantic_kind = m68k_platform_name_ref_display_text(&summary->payload.typed.semantic_kind_ref,
-          summary->payload.typed.semantic_kind);
-        value_domain_name = m68k_platform_name_ref_display_text(&summary->payload.typed.value_domain_ref,
-          summary->payload.typed.value_domain_name);
-        has_constant_value = summary->payload.typed.has_constant_value;
-        constant_value = summary->payload.typed.constant_value;
-      }
-      if (json_builder_appendf(&builder,
-            "{\"target_offset\":%u,\"effect_kind\":%u,\"reg_kind\":%u,\"reg_index\":%u,"
-            "\"success_reg_kind\":%u,\"success_reg_index\":%u,\"success_value_known\":%u,"
-            "\"success_reg_value\":%d,\"base_name\":",
-            (unsigned)summary->target_offset, (unsigned)summary->effect_kind,
-            (unsigned)summary->reg_kind, (unsigned)summary->reg_index,
-            (unsigned)summary->success_reg_kind, (unsigned)summary->success_reg_index,
-            (unsigned)summary->success_value_known, (int)summary->success_reg_value) != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, base_name) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"symbol_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, symbol_name) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"type_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, type_name) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"semantic_kind\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, semantic_kind) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"value_domain_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, value_domain_name) != 0)
-        goto oom;
-      if (json_builder_appendf(&builder, ",\"has_constant_value\":%u,\"constant_value\":%d}",
-            (unsigned)has_constant_value, (int)constant_value) != 0)
         goto oom;
     }
     if (json_builder_append(&builder, "],\"entity_hints\":[") != 0)

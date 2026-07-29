@@ -814,6 +814,83 @@ register-effect, and memory-effect facts `unknown`;
 it makes no new interprocedural preservation or rendering claim until those
 effects are implemented by the remaining B work.
 
+**Prepared remaining B slice (2026-07-29).** The previously problematic part
+of B is now implementation-ready.  It was not an emulator, corpus, or target
+evidence blocker: the old recovered-local-call record could express a
+conditional base or typed register result, while the new common summary could
+express inputs and uses only.  Removing the old record before adding a common
+*collection* of callable results would either lose conditional success
+semantics or falsely force several ABI results into one return.  The required
+solution is a single common result model, not a wrapper exception and not a
+temporary conversion layer.
+
+Implement the remaining work in these ordered, separately verifiable slices:
+
+1. **B1 — callable results and legacy-result migration.** Add a finite,
+   ordered result collection owned by `M68kFunctionSummaryIR`.  Each result
+   has a closed kind, an ABI output location and width, an optional success
+   predicate, and exactly the canonical proof payload required by its kind.
+   A direct callable is identified by its section/entry coordinates; a
+   platform-derived result additionally uses generated library, vector, and
+   output IDs.  The result collection replaces every
+   `recovered_local_call_summary` writer and reader in one atomic migration.
+   Existing preservation, escape, and memory components remain explicitly
+   `unknown` in this slice; B1 does not pretend that a returned result proves
+   any of them.
+2. **B2 — result application at calls.** Apply only a validated common result
+   at the matching direct call or proven callback dispatch, after recording
+   the already-complete call-use edge.  A failed guard, unknown result,
+   incompatible ABI, invalid result collection, or conflicting output location
+   yields an explicit stop reason and no transferred value.  This slice may
+   create an address value or typed/base register state only from the common
+   result; it has no direct access to retired wrapper inference storage.
+3. **B3 — preservation, escape, and memory effects.** Add the complete effect
+   partition and apply it in typed flow.  This remains a distinct B slice
+   because it needs its own proof and invalidation rules, not because a second
+   summary representation is permitted.  Its implementation extends the B1
+   summary in place and replaces the present conservative local/platform/
+   callback clobber special cases as each effect becomes modeled.
+
+**B1/B2 completion (2026-07-29).** `4dabcbff` completed the common callable
+result migration.  `M68kFunctionSummaryIR` now owns the bounded result
+collection and its conflict state; the former local-call result type, arrays,
+append/copy helpers, JSON field, parser reader, lookup storage, and focused
+tests have all been removed.  Platform-derived results retain only generated
+library/function/output IDs and reconstruct their typed value from those IDs
+at consumption time.  Local base and typed results retain canonical platform
+references.  The Amiga parser consumes only common results, and configured
+summaries are exported before inferred results so coincident facts share one
+callable owner.  The full C suite and Pandora full-file round trip pass.
+
+B3 is now the immediate next implementation task.  It extends this one model
+in place; no run-time compatibility path, renderer fallback, or parallel
+effect record is permitted.
+
+**B3 implementation boundary (2026-07-29).** The audit identifies three
+existing, overlapping preservation paths that B3 must replace through the
+common summary effect partition:
+
+- `typed_state_apply_platform_call_clobbers` applies generated platform ABI
+  masks and clears non-caller-save stack state;
+- the bounded local-callee preservation walk proves address-register survival
+  from a callee body; and
+- callback-table dispatch intersects that local proof across each proven table
+  target before allowing the register to survive.
+
+The current policy and source-analysis summary expose only
+`register_effects_unknown` and `memory_effects_unknown` booleans, so B3 must
+add one closed effect model before changing any transfer rule.  It must contain
+an exhaustive caller-visible register/stack partition, finite escapes, and a
+finite memory-effect set over stable parameter or storage identities.  A
+caller may retain a value only when its exact location is declared preserved
+and every relevant memory identity is explicitly unaffected.  An absent,
+opaque, conflicting, or limit-exceeded effect clears the affected value and
+records the corresponding canonical stop reason.  Platform ABI facts and
+locally derived/callback effects become writers of this same partition; they
+must not remain alternate readers in typed flow.  The existing bounded
+local-callee and callback aggregators are deleted only after the common model
+can express their complete proven result and explicit failure reason.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
@@ -862,17 +939,48 @@ conflicting, incomplete, or bounded-overflow summary is unusable at a call and
 produces its explicit stop reason; no part of a previous or partial result may
 survive.
 
-**Migration implementation order.** First introduce the complete common IR,
-metadata/action projection, JSON, and source-parser read/write surface while
-converting every existing legacy fact into exactly one common summary result.
-Then update render lookup and typed flow to consume only the common summary at
-call sites, including direct calls and proven callback-table dispatches.
-Finally delete the legacy record type, arrays, append/copy/import helpers,
-JSON fields, parser branches, and wrapper-specific lookup storage in the same
-change. There is no dual-reader interval, compatibility projection, or
-fallback to a recovered local summary. Fixtures must prove that importing a
-fresh source-analysis JSON and analysing the original binary produce the same
-summary identities and effects.
+**B1 result-model invariants.** The implementation must make the following
+rules structural, rather than relying on a caller to remember them:
+
+- A result location is a canonical ABI descriptor: register, stack result, or
+  ordered multi-register tuple plus width.  Result order is deterministic and
+  does not choose semantic precedence between different locations.
+- A summary can contain at most one semantically distinct result for a given
+  output location.  Repeating an identical result is idempotent; a different
+  result for that location makes that location invalid.  It must not overwrite
+  the first result, retain both as candidates, or select one by insertion
+  order.
+- Conditional success is part of the result proof: it names the tested ABI
+  location and exact known value.  A condition cannot be represented as an
+  unstructured boolean, silently omitted during source import, or applied
+  after an already-visible value transfer.
+- `platform_output` contains generated stable IDs only; source-analysis JSON
+  derives display names from those IDs.  `base_register` and `typed_register`
+  use existing canonical base/type/value-domain references.  An identity
+  transform names only a declared summary input or another independently
+  stable source identity.  No result carries copied renderer spelling.
+- The source-analysis copy path owns all result payload storage and preserves
+  every result, guard, and identity exactly.  Export/import and fresh analysis
+  must produce the same summary/result identity and ordering.
+- The collection limit is declared at the common model boundary.  An exceeded
+  limit invalidates the summary/result collection explicitly; it does not
+  retain a prefix or degrade to the legacy record.
+
+**B1 migration implementation order.** First add the common result IR and
+its validation, then change the source-analysis append/copy/import and JSON
+surfaces to own results through the summary only.  Convert every legacy
+base-register, typed-register, platform-wrapper, and conditional-success
+record into exactly one common result at its direct callable.  Replace render
+lookup's transient wrapper inference with platform-derived common-result
+construction using generated IDs.  Update the Amiga source parser to
+construct/import only common results; B2 is its sole typed-flow application
+path.  Delete the legacy type, arrays, append/copy/import helpers, JSON
+fields, parser branches, and wrapper-specific lookup storage in the same
+change.  Only then apply results at call sites in B2, including direct calls
+and proven callback-table dispatches.  There is no dual-reader interval,
+compatibility projection, or fallback to a recovered local summary. Fixtures
+must prove that importing fresh source-analysis JSON and analysing the original
+binary produce the same summary and result identities and effects.
 
 **Required common summary shape.** One stable callable-summary identity owns
 all of the following, and every direct or indirect call refers to that identity

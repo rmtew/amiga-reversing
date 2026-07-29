@@ -60,6 +60,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT 192U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT 8U
+#define M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT 16U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -1107,20 +1108,34 @@ typedef struct M68kRecoveredPlatformEffectIR {
   } payload;
 } M68kRecoveredPlatformEffectIR;
 
-typedef struct M68kRecoveredLocalCallSummaryIR {
-  uint32_t target_offset;
-  uint8_t effect_kind;
+typedef enum M68kFunctionSummaryResultKind {
+  M68K_FUNCTION_SUMMARY_RESULT_UNKNOWN = 0,
+  M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER = 1,
+  M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER = 2,
+  M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 3,
+  M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 4
+} M68kFunctionSummaryResultKind;
+
+/* Results belong to one callable summary.  The ABI output location and
+ * optional success guard are proof data, not renderer hints. */
+typedef struct M68kFunctionSummaryResultIR {
+  uint8_t kind;
   uint8_t reg_kind;
   uint8_t reg_index;
+  uint8_t width;
   uint8_t success_reg_kind;
   uint8_t success_reg_index;
   uint8_t success_value_known;
+  uint8_t identity_input_index;
   int32_t success_reg_value;
+  uint16_t platform_library_id;
+  uint16_t platform_function_id;
+  uint16_t platform_output_id;
   union {
     M68kPlatformNamedBaseEffectPayloadIR named_base;
     M68kPlatformTypedEffectPayloadIR typed;
   } payload;
-} M68kRecoveredLocalCallSummaryIR;
+} M68kFunctionSummaryResultIR;
 
 typedef struct M68kRecoveredFunctionArgIR {
   uint32_t function_offset;
@@ -1492,7 +1507,10 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t return_contract_unknown;
   uint8_t register_effects_unknown;
   uint8_t memory_effects_unknown;
+  uint8_t result_count;
+  uint8_t result_contract_invalid;
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
+  M68kFunctionSummaryResultIR results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
 } M68kFunctionSummaryIR;
 
 typedef enum M68kFunctionSummaryUseKind {
@@ -2328,9 +2346,6 @@ typedef struct M68kSectionAnalysisIR {
   M68kRecoveredPlatformEffectIR *recovered_platform_effects;
   size_t recovered_platform_effect_count;
   size_t recovered_platform_effect_capacity;
-  M68kRecoveredLocalCallSummaryIR *recovered_local_call_summaries;
-  size_t recovered_local_call_summary_count;
-  size_t recovered_local_call_summary_capacity;
   M68kRecoveredFunctionArgIR *recovered_function_args;
   size_t recovered_function_arg_count;
   size_t recovered_function_arg_capacity;
@@ -2594,11 +2609,12 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_global_slot_effect(
     M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, size_t target_section_index,
     uint32_t target_offset, const char *symbol_name, const char *type_name, const char *semantic_kind,
     const char *value_domain_name);
-int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnalysisIR *section_analysis,
-    uint8_t platform_kind, uint32_t target_offset, uint8_t effect_kind, uint8_t reg_kind, uint8_t reg_index,
+int m68k_ir_section_analysis_append_function_summary_result(M68kSectionAnalysisIR *section_analysis,
+    uint8_t platform_kind, uint32_t target_offset, uint8_t result_kind, uint8_t reg_kind, uint8_t reg_index,
     uint8_t success_reg_kind, uint8_t success_reg_index, uint8_t success_value_known, int32_t success_reg_value,
     const char *base_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
-    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value);
+    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value,
+    uint16_t platform_library_id, uint16_t platform_function_id, uint16_t platform_output_id);
 int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
     const char *context_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
