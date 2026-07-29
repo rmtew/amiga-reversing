@@ -2119,16 +2119,16 @@ abs_0_000124FE:
 	subq.w #1,d7
 abs_0_0001250E:
 	movea.l (a0)+,a1
-	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
+	move.l $0000(a1),d0
 	beq.b abs_0_00012536
 	movea.l d0,a4
 	movem.l d7/a0,-(a7)
 abs_0_0001251C:
-	btst.b #0,world_position_state_record_interaction_flags(a4)
+	btst.b #0,$0018(a4)
 	bne.b abs_0_00012528
 	bsr.w abs_0_0001951A
 abs_0_00012528:
-	move.l world_position_state_record_attachment_state_ptr(a4),d0
+	move.l $0014(a4),d0
 	beq.b abs_0_00012532
 	movea.l d0,a4
 	bra.b abs_0_0001251C
@@ -4431,15 +4431,15 @@ abs_0_00016624:
 	rts
 abs_0_00016632:
 	bsr.w abs_0_0001640E
-	move.b ui_overlay_descriptor_text_color(a5),app_022D(a6)
+	move.b $0005(a5),app_022D(a6)
 	add.w d0,d0
 	add.w d0,d0
 	movea.l $C(a5,d0.w),a3
 	lsr.w #2,d0
 	addq.b #1,d0
-	add.b ui_overlay_descriptor_y(a5),d0
+	add.b $0001(a5),d0
 	move.b d0,d1
-	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b $0000(a5),d0
 	bsr.w abs_0_00016126
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
@@ -4489,7 +4489,7 @@ abs_0_000166C2:
 	bsr.w abs_0_00016444
 	bsr.w abs_0_000164AE
 	bsr.w abs_0_000165E0
-	bset.b #7,ui_overlay_descriptor_state_flags(a5)
+	bset.b #7,$0006(a5)
 	rts
 abs_0_000166D6:
 	movea.l #$70000,a0	; bitmap memory plane 4 base $00070000
@@ -6352,24 +6352,24 @@ update_world_object_interactions:
 	subq.w #1,d7
 abs_0_00017E04:
 	movea.l (a0)+,a1
-	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
+	move.l $0000(a1),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
-	btst.b #0,world_position_state_record_interaction_flags(a2)
+	btst.b #0,$0018(a2)
 	bne.w abs_0_00017F02
-	btst.b #4,world_position_state_record_world_object_flags(a2)
+	btst.b #4,$0019(a2)
 	bne.w abs_0_00017F08
-	btst.b #2,world_position_state_record_world_object_flags(a2)
+	btst.b #2,$0019(a2)
 	bne.w handle_item_receptacle_interaction
-	btst.b #0,world_position_state_record_world_object_flags(a2)
+	btst.b #0,$0019(a2)
 	beq.w abs_0_00017F02
-	move.w world_position_descriptor_prefix_world_x(a1),d0
-	move.w world_position_descriptor_prefix_world_y(a1),d1
-	add.w world_position_state_record_world_x_offset(a2),d0
-	add.w world_position_state_record_world_y_offset(a2),d1
+	move.w $0004(a1),d0
+	move.w $0006(a1),d1
+	add.w $000C(a2),d0
+	add.w $000E(a2),d1
 	addi.w #16,d1
 	moveq.l #8,d2
-	btst.b #5,world_position_state_record_world_object_flags(a2)
+	btst.b #5,$0019(a2)
 	bne.b abs_0_00017E58
 	moveq.l #16,d2
 abs_0_00017E58:
@@ -6391,41 +6391,41 @@ abs_0_00017E74:
 	cmp.w #$2C,d0
 	bcc.b abs_0_00017EC2
 	lea.l abs_0_00059134.l,a3
-	btst.b #5,world_position_state_record_world_object_flags(a2)
+	btst.b #5,$0019(a2)
 	beq.b abs_0_00017E90
 	lea.l abs_0_0005916C.l,a3
 abs_0_00017E90:
-	movea.l world_position_state_record_state_node_ptr(a2),a5
-	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
+	movea.l $0008(a2),a5
+	cmpa.l $0006(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,WorldPositionStateNode_position_descriptor_sequence_ptr(a5)
-	bclr.b #0,WorldPositionStateNode_active_flag(a5)
-	bset.b #2,WorldPositionStateNode_active_flag(a5)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a5)
+	move.l a3,$0006(a5)
+	bclr.b #0,$000A(a5)
+	bset.b #2,$000A(a5)
+	clr.w $0010(a5)
 	move.l a0,-(a7)
 	movea.l (a7)+,a0
 	bra.b abs_0_00017F02
 abs_0_00017EC2:
 	lea.l abs_0_00059150.l,a3
-	btst.b #5,world_position_state_record_world_object_flags(a2)
+	btst.b #5,$0019(a2)
 	beq.b abs_0_00017ED6
 	lea.l abs_0_00059188.l,a3
 abs_0_00017ED6:
-	movea.l world_position_state_record_state_node_ptr(a2),a5
-	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
+	movea.l $0008(a2),a5
+	cmpa.l $0006(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,WorldPositionStateNode_position_descriptor_sequence_ptr(a5)
-	bclr.b #0,WorldPositionStateNode_active_flag(a5)
-	bset.b #2,WorldPositionStateNode_active_flag(a5)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a5)
+	move.l a3,$0006(a5)
+	bclr.b #0,$000A(a5)
+	bset.b #2,$000A(a5)
+	clr.w $0010(a5)
 abs_0_00017F02:
 	dbf.w d7,abs_0_00017E04
 abs_0_00017F06:
@@ -6435,10 +6435,10 @@ abs_0_00017F08:
 	bne.b abs_0_00017F02
 	btst.b #3,app_033C(a6)
 	bne.b abs_0_00017F02
-	move.w world_position_descriptor_prefix_world_x(a1),d0
-	move.w world_position_descriptor_prefix_world_y(a1),d1
-	add.w world_position_state_record_world_x_offset(a2),d0
-	add.w world_position_state_record_world_y_offset(a2),d1
+	move.w $0004(a1),d0
+	move.w $0006(a1),d1
+	add.w $000C(a2),d0
+	add.w $000E(a2),d1
 	moveq.l #16,d4
 	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
 	beq.b abs_0_00017F3A
@@ -6502,16 +6502,16 @@ abs_0_00017FC2:
 	movem.l (a7)+,a0-a3
 	addq.b #1,app_0338(a6)
 abs_0_00017FDE:
-	movea.l world_position_state_record_state_node_ptr(a2),a3
-	bset.b #0,WorldPositionStateNode_active_flag(a3)
-	move.l world_position_state_record_attachment_state_ptr(a2),d0
+	movea.l $0008(a2),a3
+	bset.b #0,$000A(a3)
+	move.l $0014(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FDE
 abs_0_00017FF4:
-	movea.l world_position_state_record_state_node_ptr(a2),a3
-	bclr.b #0,WorldPositionStateNode_active_flag(a3)
-	move.l world_position_state_record_attachment_state_ptr(a2),d0
+	movea.l $0008(a2),a3
+	bclr.b #0,$000A(a3)
+	move.l $0014(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FF4
@@ -6787,11 +6787,11 @@ scan_world_objects_for_proximity:
 	move.l (a1)+,d2
 	beq.w update_nearby_object_context
 	movea.l d2,a5
-	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
-	move.w world_object_shared_prefix_world_x(a5),d2
-	move.w world_object_shared_prefix_world_y(a5),d3
-	move.w d2,world_position_descriptor_prefix_world_x(a0)
-	move.w d3,world_position_descriptor_prefix_world_y(a0)
+	movea.l $002C(a5),a0
+	move.w $0030(a5),d2
+	move.w $0032(a5),d3
+	move.w d2,$0004(a0)
+	move.w d3,$0006(a0)
 	cmpa.l a5,a4
 	beq.w abs_0_000183AA
 	sub.w d4,d2
@@ -6803,33 +6803,33 @@ abs_0_00018334:
 	neg.w d3
 abs_0_0001833A:
 	add.w d2,d3
-	move.w d3,world_object_shared_prefix_proximity_distance(a5)
-	bclr.b #5,world_object_shared_prefix_world_object_flags(a5)
+	move.w d3,$0042(a5)
+	bclr.b #5,$0048(a5)
 	cmp.w d0,d3
 	bcc.b abs_0_000183AA
 	bclr.b #2,app_02A6(a6)
 	move.w d3,d0
 	move.w d0,app_nearest_object_distance(a6)
-	bset.b #5,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #5,$0048(a5)
 	cmpa.l app_nearest_object_ptr(a6),a5
 	beq.b abs_0_000183AA
 	move.l a5,app_nearest_object_ptr(a6)
 	move.l a5,app_02D4(a6)
-	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
+	move.w $0052(a5),d0
 	beq.b abs_0_00018376
 	subq.w #1,d0
-	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
+	move.w d0,$0052(a5)
 abs_0_00018376:
 	bset.b #1,app_02A6(a6)
-	bset.b #2,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #2,$0048(a5)
 	bne.b abs_0_000183AA
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
+	btst.b #1,$0048(a5)
 	bne.b abs_0_000183AA
-	tst.l world_object_shared_prefix_context_message_ptr(a5)
+	tst.l $000C(a5)
 	beq.w scan_world_objects_for_proximity
 	movem.l a0-a3,-(a7)
-	move.w #$3C,world_object_shared_prefix_context_prompt_cooldown(a5)
-	movea.l world_object_shared_prefix_context_message_ptr(a5),a0
+	move.w #$3C,$0052(a5)
+	movea.l $000C(a5),a0
 	bsr.w enqueue_status_message
 	movem.l (a7)+,a0-a3
 abs_0_000183AA:

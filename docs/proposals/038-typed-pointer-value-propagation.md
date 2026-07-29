@@ -1327,9 +1327,10 @@ subtasks are, in dependency order:
    failure, stack/memory/escape effects, result-origin escapes, tuple values,
    conflicting summaries, and unknown/incompatible negatives.
 3. Regenerate the required read-only corpus evidence and run the Pandora
-   source-analysis, source-quality, assembly, and exact round-trip gates.  The
-   current checkout does not expose Pandora as a rendered-source verifier
-   target, so that gate remains unclaimed.
+   source-analysis, source-quality, and assembly gates.  The exact round-trip
+   gate passed on 2026-07-29 for the verifier catalog target
+   `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+   (`rendered_source_full_file_exact: true`, zero diff ranges).
 
 **Escape-source schema increment (2026-07-29).** The strict target-metadata
 reader and Python metadata projection now require the closed
