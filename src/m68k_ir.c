@@ -3158,12 +3158,80 @@ int m68k_ir_section_analysis_append_address_value_consumer(M68kSectionAnalysisIR
   return 0;
 }
 
+static int function_summary_component_state_is_valid(uint8_t state, uint8_t legacy_unknown) {
+  if (state > M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW) return 0;
+  /* In-process legacy writers have no state field.  Their false unknown bit
+   * has always meant an explicit component, so retain that representation at
+   * this boundary while rejecting every contradictory new state. */
+  if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN) return 1;
+  return legacy_unknown == 0U;
+}
+
+static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
+  uint8_t index, prior;
+  if (summary == NULL || summary->input_count > M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT ||
+      summary->result_count > M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT ||
+      summary->location_effect_count > M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT ||
+      summary->memory_effect_count > M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT ||
+      summary->escape_count > M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT ||
+      !function_summary_component_state_is_valid(summary->register_effect_state,
+        summary->register_effects_unknown) ||
+      !function_summary_component_state_is_valid(summary->memory_effect_state,
+        summary->memory_effects_unknown) ||
+      !function_summary_component_state_is_valid(summary->escape_effect_state,
+        summary->escape_effects_unknown)) return 0;
+  for (index = 0U; index < summary->input_count; ++index) {
+    if (!m68k_function_summary_abi_location_is_valid(&summary->inputs[index].location)) return 0;
+    for (prior = 0U; prior < index; ++prior)
+      if (m68k_function_summary_abi_location_equal(&summary->inputs[prior].location,
+          &summary->inputs[index].location)) return 0;
+  }
+  for (index = 0U; index < summary->location_effect_count; ++index) {
+    const M68kFunctionSummaryLocationEffectIR *effect = &summary->location_effects[index];
+    if (!m68k_function_summary_abi_location_is_valid(&effect->location) ||
+        (effect->effect != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
+         effect->effect != M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED)) return 0;
+    for (prior = 0U; prior < index; ++prior)
+      if (m68k_function_summary_abi_location_equal(&summary->location_effects[prior].location,
+          &effect->location)) return 0;
+  }
+  for (index = 0U; index < summary->memory_effect_count; ++index) {
+    const M68kFunctionSummaryMemoryEffectIR *effect = &summary->memory_effects[index];
+    if (!m68k_function_summary_memory_effect_is_valid(effect, summary->input_count)) return 0;
+    for (prior = 0U; prior < index; ++prior)
+      if (summary->memory_effects[prior].kind == effect->kind &&
+          m68k_function_summary_effect_subject_equal(&summary->memory_effects[prior].subject,
+            &effect->subject)) return 0;
+  }
+  for (index = 0U; index < summary->escape_count; ++index) {
+    const M68kFunctionSummaryEscapeIR *escape = &summary->escapes[index];
+    int found = 0;
+    if (!m68k_function_summary_escape_is_valid(escape, summary->input_count)) return 0;
+    if (escape->source_kind == M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT) {
+      for (prior = 0U; prior < summary->input_count; ++prior)
+        if (m68k_function_summary_abi_location_equal(&summary->inputs[prior].location,
+            &escape->source_location)) { found = 1; break; }
+    } else {
+      for (prior = 0U; prior < summary->result_count; ++prior)
+        if (m68k_function_summary_abi_location_equal(&summary->results[prior].location,
+            &escape->source_location)) { found = 1; break; }
+    }
+    if (!found) return 0;
+    for (prior = 0U; prior < index; ++prior)
+      if (summary->escapes[prior].source_kind == escape->source_kind &&
+          m68k_function_summary_abi_location_equal(&summary->escapes[prior].source_location,
+            &escape->source_location) && m68k_function_summary_effect_subject_equal(
+            &summary->escapes[prior].sink_subject, &escape->sink_subject)) return 0;
+  }
+  return 1;
+}
+
 int m68k_ir_section_analysis_append_function_summary(M68kSectionAnalysisIR *section_analysis,
     const M68kFunctionSummaryIR *summary) {
   M68kFunctionSummaryIR copy;
   size_t index;
   if (section_analysis == NULL || summary == NULL || summary->function_summary_id[0] == '\0' ||
-      section_analysis->arena == NULL) return -1;
+      section_analysis->arena == NULL || !function_summary_is_valid(summary)) return -1;
   for (index = 0U; index < section_analysis->function_summary_count; ++index) {
     const M68kFunctionSummaryIR *existing = &section_analysis->function_summaries[index];
     if (strcmp(existing->function_summary_id, summary->function_summary_id) == 0) {
