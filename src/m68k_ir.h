@@ -61,6 +61,8 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT 192U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT 8U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT 16U
+#define M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT 8U
+#define M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT 8U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -103,6 +105,37 @@ typedef struct M68kAnalysisFunctionSummaryInput {
   char struct_name[64];
 } M68kAnalysisFunctionSummaryInput;
 
+typedef enum M68kFunctionSummaryLocationEffect {
+  M68K_FUNCTION_SUMMARY_LOCATION_UNKNOWN = 0,
+  M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED = 1,
+  M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED = 2
+} M68kFunctionSummaryLocationEffect;
+
+typedef enum M68kFunctionSummaryMemoryEffectKind {
+  M68K_FUNCTION_SUMMARY_MEMORY_UNKNOWN = 0,
+  M68K_FUNCTION_SUMMARY_MEMORY_READ = 1,
+  M68K_FUNCTION_SUMMARY_MEMORY_WRITE = 2,
+  M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_READ = 3,
+  M68K_FUNCTION_SUMMARY_MEMORY_NONALIASING_WRITE = 4,
+  M68K_FUNCTION_SUMMARY_MEMORY_ESCAPE = 5
+} M68kFunctionSummaryMemoryEffectKind;
+
+typedef enum M68kFunctionSummaryEffectSubjectKind {
+  M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_NONE = 0,
+  M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT = 1,
+  M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE = 2,
+  M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION = 3
+} M68kFunctionSummaryEffectSubjectKind;
+
+typedef struct M68kFunctionSummaryMemoryEffectIR {
+  uint8_t kind;
+  uint8_t subject_kind;
+  uint8_t input_index;
+  uint8_t reserved;
+  uint32_t section_index;
+  uint32_t offset;
+} M68kFunctionSummaryMemoryEffectIR;
+
 /* A callable summary owns every known interface fact for one direct entry or
    one proven callback table.  Unknown effects remain explicit unknowns rather
    than being inferred from its typed inputs. */
@@ -113,7 +146,10 @@ typedef struct M68kAnalysisFunctionSummary {
   uint8_t return_contract_unknown;
   uint8_t register_effects_unknown;
   uint8_t memory_effects_unknown;
-  uint8_t reserved[2];
+  uint8_t escape_effects_unknown;
+  uint8_t memory_effect_count;
+  uint8_t escape_count;
+  uint8_t effects_invalid;
   uint32_t section_index;
   uint32_t entry_offset;
   uint32_t table_offset;
@@ -121,6 +157,10 @@ typedef struct M68kAnalysisFunctionSummary {
   char function_summary_id[96];
   char context_name[64];
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
+  uint8_t data_register_effects[8];
+  uint8_t address_register_effects[8];
+  M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
+  M68kFunctionSummaryMemoryEffectIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
 } M68kAnalysisFunctionSummary;
 
 typedef enum M68kAnalysisEntryPointProvenance {
@@ -1507,10 +1547,18 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t return_contract_unknown;
   uint8_t register_effects_unknown;
   uint8_t memory_effects_unknown;
+  uint8_t escape_effects_unknown;
   uint8_t result_count;
   uint8_t result_contract_invalid;
+  uint8_t memory_effect_count;
+  uint8_t escape_count;
+  uint8_t effects_invalid;
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
   M68kFunctionSummaryResultIR results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
+  uint8_t data_register_effects[8];
+  uint8_t address_register_effects[8];
+  M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
+  M68kFunctionSummaryMemoryEffectIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
 } M68kFunctionSummaryIR;
 
 typedef enum M68kFunctionSummaryUseKind {
