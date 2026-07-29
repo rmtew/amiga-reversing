@@ -1290,8 +1290,10 @@ pass looks up that table fact by its resolved table identity; an invalid table
 fact is never used as preservation evidence and falls back to the existing
 conservative transient proof.  Source analysis exports the table-owned fact
 alongside the declared interface contract.  The focused callback-consumer
-fixture now proves both records exist and the full C suite passes (`m68k_ir:
-all 592 passed`).
+fixture proves both records exist, but the currently admitted tiny-table setup
+materializes an `invalid` table summary and therefore exercises only the safe
+fallback.  It is not durable-success evidence; a fixture with accepted direct
+entry summaries remains required.
 
 The callback’s second typed-flow pass now makes both call-use and
 input-consumer edges name that durable table identity; the initial discovery
