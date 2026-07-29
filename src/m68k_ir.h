@@ -226,8 +226,6 @@ typedef struct M68kAnalysisFunctionSummary {
   char function_summary_id[96];
   char context_name[64];
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
-  uint8_t data_register_effects[8];
-  uint8_t address_register_effects[8];
   M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];
   M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
@@ -1625,8 +1623,6 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t location_effect_count;
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
   M68kFunctionSummaryResultIR results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
-  uint8_t data_register_effects[8];
-  uint8_t address_register_effects[8];
   M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];
   M68kFunctionSummaryMemoryEffectIR memory_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];

@@ -2386,12 +2386,8 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
         uint8_t *seen = effect->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ?
           &seen_data : &seen_address;
         uint8_t bit = (uint8_t)(1U << effect->location.registers[0].register_index);
-        uint8_t *legacy = effect->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ?
-          &summary->data_register_effects[effect->location.registers[0].register_index] :
-          &summary->address_register_effects[effect->location.registers[0].register_index];
         if ((*seen & bit) != 0U) return 0;
         *seen |= bit;
-        *legacy = effect->effect;
       }
       summary->location_effect_count += 1U;
       cursor = item_end;

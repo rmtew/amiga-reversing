@@ -2171,6 +2171,19 @@ static void typed_state_clear_non_caller_save_stack_slots(M68kRenderTypedState *
   }
 }
 
+static uint8_t function_summary_register_effect(const M68kAnalysisFunctionSummary *summary,
+    uint8_t register_kind, uint8_t register_index) {
+  uint8_t effect_index;
+  if (summary == NULL || register_index >= 8U) return M68K_FUNCTION_SUMMARY_LOCATION_UNKNOWN;
+  for (effect_index = 0U; effect_index < summary->location_effect_count; ++effect_index) {
+    const M68kFunctionSummaryLocationEffectIR *effect = &summary->location_effects[effect_index];
+    if (effect->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+        effect->location.register_count == 1U && effect->location.registers[0].register_kind == register_kind &&
+        effect->location.registers[0].register_index == register_index) return effect->effect;
+  }
+  return M68K_FUNCTION_SUMMARY_LOCATION_UNKNOWN;
+}
+
 /* The generated ABI, bounded local-body proof, and callback aggregate all
  * write the same exhaustive register partition.  Keep the legacy arrays only
  * as the current transfer cache; the durable location collection is the
@@ -2184,24 +2197,22 @@ static void function_summary_set_register_partition(M68kAnalysisFunctionSummary 
   for (bit = 0U; bit < 8U; ++bit) {
     M68kFunctionSummaryLocationEffectIR *data_effect = &summary->location_effects[summary->location_effect_count++];
     M68kFunctionSummaryLocationEffectIR *address_effect = &summary->location_effects[summary->location_effect_count++];
-    summary->data_register_effects[bit] = (preserved_data & (uint8_t)(1U << bit)) != 0U
-      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-    summary->address_register_effects[bit] = (preserved_address & (uint8_t)(1U << bit)) != 0U
-      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
     memset(data_effect, 0, sizeof(*data_effect));
     data_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
     data_effect->location.width = 4U;
     data_effect->location.register_count = 1U;
     data_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
     data_effect->location.registers[0].register_index = bit;
-    data_effect->effect = summary->data_register_effects[bit];
+    data_effect->effect = (preserved_data & (uint8_t)(1U << bit)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
     memset(address_effect, 0, sizeof(*address_effect));
     address_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
     address_effect->location.width = 4U;
     address_effect->location.register_count = 1U;
     address_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
     address_effect->location.registers[0].register_index = bit;
-    address_effect->effect = summary->address_register_effects[bit];
+    address_effect->effect = (preserved_address & (uint8_t)(1U << bit)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
   }
 }
 
@@ -4888,7 +4899,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
               !typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, callee_section,
                 callee_offset, live_mask, (uint8_t)(depth + 1U), &callee_summary)) return 0;
           for (reg = 0U; reg < 8U; ++reg) {
-            if (callee_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+            if (function_summary_register_effect(&callee_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
+                M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
               callee_preserved |= (uint8_t)(1U << reg);
           }
           state.preserved_mask = (state.preserved_mask & state.saved_mask) | callee_preserved;
@@ -5016,7 +5028,8 @@ static int typed_flow_callback_table_callee_effect_summary(const M68kRenderLooku
       if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
             target_section_index, target_offset, requested_mask, 0U, &target_summary)) return 0;
       for (reg = 0U; reg < 8U; ++reg) {
-        if (target_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+        if (function_summary_register_effect(&target_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
+            M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
           target_preserved |= (uint8_t)(1U << reg);
       }
       preserved_mask &= target_preserved;
@@ -5068,7 +5081,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
        * this call.  Source and destination are the same physical register;
        * the call instruction offset identifies the contract boundary. */
       for (preserved_reg = 0U; preserved_reg < 8U; ++preserved_reg) {
-        if (local_effects->address_register_effects[preserved_reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) continue;
+        if (function_summary_register_effect(local_effects, M68K_ANALYSIS_REGISTER_ADDRESS, preserved_reg) !=
+            M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) continue;
         typed_provenance_append_transfer(&state->addr_regs[preserved_reg].provenance, section_index, offset,
           preserved_reg, preserved_reg);
       }
@@ -7394,10 +7408,6 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.effects_invalid = configured->effects_invalid;
     summary.location_effect_count = configured->location_effect_count;
     memcpy(summary.inputs, configured->inputs, sizeof(summary.inputs));
-    memcpy(summary.data_register_effects, configured->data_register_effects,
-      sizeof(summary.data_register_effects));
-    memcpy(summary.address_register_effects, configured->address_register_effects,
-      sizeof(summary.address_register_effects));
     memcpy(summary.location_effects, configured->location_effects, sizeof(summary.location_effects));
     memcpy(summary.memory_effects, configured->memory_effects, sizeof(summary.memory_effects));
     memcpy(summary.escapes, configured->escapes, sizeof(summary.escapes));
@@ -10112,10 +10122,12 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
   }
   if (summary != NULL && summary->effects_invalid == 0U && summary->register_effects_unknown == 0U) {
     for (reg = 0U; reg < 8U; ++reg) {
-      if ((summary->data_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
-           summary->data_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED) ||
-          (summary->address_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
-           summary->address_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED)) {
+      uint8_t data_effect = function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_DATA, reg);
+      uint8_t address_effect = function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
+      if ((data_effect != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
+           data_effect != M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED) ||
+          (address_effect != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
+           address_effect != M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED)) {
         complete_partition = 0;
         break;
       }
@@ -10129,9 +10141,11 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
     return;
   }
   for (reg = 0U; reg < 8U; ++reg) {
-    if (summary->data_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+    if (function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_DATA, reg) !=
+        M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
       typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_DATA, reg);
-    if (summary->address_register_effects[reg] != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+    if (function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
+        M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
       typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
   }
   if (summary->location_effect_count == 0U) {
