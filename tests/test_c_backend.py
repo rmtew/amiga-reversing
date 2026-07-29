@@ -8458,6 +8458,103 @@ def test_real_dll_analysis_api_exposes_source_free_render_index_profile(tmp_path
     assert facts_v2["accepted_instructions"] >= 2
 
 
+def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "identity-result.bin"
+    # movea.l #callee,a0; jsr callee; move.w $02(a1),d0; rts; callee: rts
+    binary_path.write_bytes(bytes.fromhex("207c000000204eb900000020302900024e75") + b"\0" * 14 + b"\x4e\x75")
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "custom_structs": [
+                    {
+                        "name": "callback_context",
+                        "size": 4,
+                        "fields": [
+                            {"name": "result_word", "type": "word", "offset": 2, "size": 2},
+                        ],
+                    }
+                ],
+                "function_summaries": [
+                    {
+                        "callable_kind": "direct",
+                        "context_name": "identity_result_fixture",
+                        "entry_offset": 0x20,
+                        "function_summary_id": "identity_result_fixture",
+                        "hunk": 0,
+                        "inputs": [
+                            {
+                                "location": {"kind": "register", "register": "A0", "width": 4},
+                                "struct_name": "callback_context",
+                                "value_kind": "struct_ptr",
+                            }
+                        ],
+                        "results": [
+                            {
+                                "kind": "identity_input",
+                                "location": {"kind": "register", "register": "A1", "width": 4},
+                                "input_index": 0,
+                            }
+                        ],
+                        "effects": {
+                            "schema_version": 1,
+                            "registers": {"state": "unknown"},
+                            "memory": {"state": "unknown"},
+                            "escapes": {
+                                "state": "explicit",
+                                "escapes": [
+                                    {
+                                        "source_kind": "result",
+                                        "source_location": {"kind": "register", "register": "A1", "width": 4},
+                                        "sink_subject": {"kind": "input", "input_index": 0},
+                                    }
+                                ],
+                            },
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    analysis = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            0,
+            0,
+            str(metadata_path),
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )
+    summaries = [
+        summary
+        for section in analysis["sections"]
+        for summary in section["function_summaries"]
+        if summary["function_summary_id"] == "identity_result_fixture"
+    ]
+    assert len(summaries) == 1
+    assert summaries[0]["results"] == [
+        {"kind": "identity_input", "location": {"kind": "register", "register": "A1", "width": 4}, "input_index": 0}
+    ]
+    assert summaries[0]["effects"]["escapes"] == {
+        "state": "explicit",
+        "escapes": [
+            {
+                "source_kind": "result",
+                "source_location": {"kind": "register", "register": "A1", "width": 4},
+                "sink_subject": {"kind": "input", "input_index": 0},
+            }
+        ],
+    }
+
+
 def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_pointer(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "copper.bin"

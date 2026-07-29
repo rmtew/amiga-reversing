@@ -1319,21 +1319,15 @@ fallbacks.
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Add a focused result-origin escape fixture through the C target-metadata
-   reader. Target-declared identity results now transfer only at an exact
-   direct-call match, from a compatible declared input to one unambiguous
-   register output after the call's effect application; the C fixture proves
-   that the returned register drives a typed field access. The persisted
-   identity-result and escape-validation schema is complete.
-2. Represent and transfer ordered register-tuple ABI values; parsed tuple
+1. Represent and transfer ordered register-tuple ABI values; parsed tuple
    locations are not yet typed-state values.
-3. Apply explicit stack, memory, and escape effects with a stable
+2. Apply explicit stack, memory, and escape effects with a stable
    subject-to-storage index.  Until that index exists, conservative clearing
    remains sound but does not provide the required precise effect transfer.
-4. Add the complete focused matrix: direct/callback success and every terminal
+3. Add the complete focused matrix: direct/callback success and every terminal
    failure, stack/memory/escape effects, result-origin escapes, tuple values,
    conflicting summaries, and unknown/incompatible negatives.
-5. Regenerate the required read-only corpus evidence and run the Pandora
+4. Regenerate the required read-only corpus evidence and run the Pandora
    source-analysis, source-quality, assembly, and exact round-trip gates.  The
    current checkout does not expose Pandora as a rendered-source verifier
    target, so that gate remains unclaimed.
@@ -1362,6 +1356,15 @@ pre-result canonical summaries by adding `results: []` and rejects mixed or
 already-migrated records. It converted Pandora's eighteen active summaries
 and retained a local pre-results archive/report. Focused Python and C fixtures
 prove identity-result round-trip and graph export.
+
+**Direct identity-result transfer completion (2026-07-29).** Typed flow now
+applies a target-declared `identity_input` only after the exact direct call's
+effect application, using a compatible declared register input and one
+unambiguous register output. It does not infer a result from transient local
+effects or retain an alias to a clobberable input register. The C flow fixture
+proves a subsequent typed field access through the output register; the
+DLL-backed C target-metadata fixture proves a `source_kind: "result"` escape
+is parsed and exported only when its location matches the declared result.
 
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
