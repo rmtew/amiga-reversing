@@ -819,6 +819,15 @@ rather than copying interface text into a call-site record:
 - callback bindings, which connect a proven table-entry callable identity to
   the same summary rather than representing a second callback-only interface.
 
+The return contract must additionally distinguish a target-declared identity
+transform from a platform-derived result. The latter references the stable
+Amiga vector/output identity that proves it, rather than copying an OS type
+name into a wrapper-specific record. This is the required route for migrating
+the current recovered local Amiga-wrapper output summary: its local callable
+identity, returned register, and vector-output provenance become one common
+summary fact/export edge, after which the recovered-wrapper-only summary type
+and its renderer/JSON path are deleted.
+
 Absent information is an explicit unknown effect, never implied preservation.
 The policy, target metadata, Manual Action payload, effective projection, C
 backend, JSON export, and tests must use this one representation.  Delete the
