@@ -1163,6 +1163,7 @@ static uint16_t reglist_long_stack_size_local(uint32_t mask) {
 static int operand_is_stack_displacement_local(const M68kOperandIR *operand, int16_t *out_displacement);
 static int typed_storage_keys_match(const M68kRenderTypedStorageSlot *slot, uint8_t kind, size_t section_index,
     int32_t displacement, uint32_t address);
+static void typed_state_clear_reg(M68kRenderTypedState *state, uint8_t reg_kind, uint8_t reg_index);
 static void typed_memory_base_clear(M68kRenderTypedMemoryBaseValue *value);
 static int typed_memory_base_offset_add(uint32_t base_offset, int32_t displacement, uint32_t *out_offset);
 static void typed_memory_base_clear_pointer_table_if_offset_outside(M68kRenderTypedMemoryBaseValue *value);
@@ -1548,6 +1549,35 @@ static void typed_state_clear_base_slots_for_base(M68kRenderTypedState *state, u
     }
     state->field_slots[index] = state->field_slots[state->field_slot_count - 1U];
     --state->field_slot_count;
+  }
+}
+
+/* The typed-flow state already records the durable storage origin of values
+ * reloaded from tracked static/app/base slots.  A static-storage effect can
+ * therefore invalidate only the exact reloads and caches rooted at that
+ * storage identity; it must not discard an unrelated preserved register. */
+static void typed_state_invalidate_static_storage_subject(M68kRenderTypedState *state,
+    const M68kFunctionSummaryEffectSubjectIR *subject) {
+  uint8_t reg;
+  if (state == NULL || subject == NULL ||
+      subject->kind != M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE) return;
+  for (reg = 0U; reg < 8U; ++reg) {
+    const M68kRenderTypedStorageOrigin *data_origin = &state->data_regs[reg].origin;
+    const M68kRenderTypedStorageOrigin *address_origin = &state->addr_regs[reg].origin;
+    if (data_origin->kind == M68K_RENDER_TYPED_ORIGIN_LOOKUP_STORAGE &&
+        data_origin->section_index == subject->section_index && data_origin->address == subject->offset) {
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_DATA, reg);
+    }
+    if (address_origin->kind == M68K_RENDER_TYPED_ORIGIN_LOOKUP_STORAGE &&
+        address_origin->section_index == subject->section_index && address_origin->address == subject->offset) {
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
+      continue;
+    }
+    if (state->memory_base_regs[reg].known != 0U &&
+        state->memory_base_regs[reg].section_index == subject->section_index &&
+        state->memory_base_regs[reg].offset == subject->offset) {
+      typed_state_clear_base_slots_for_base(state, reg);
+    }
   }
 }
 
@@ -10570,12 +10600,15 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
   for (reg = 0U; reg < summary->memory_effect_count; ++reg) {
     uint8_t kind = summary->memory_effects[reg].kind;
     if (kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE) {
-      /* The current typed-state store has no stable subject-to-slot index.
-       * Clearing is therefore the only sound application of a proven write;
-       * a later storage-identity index may narrow this without changing the
-       * callable effect contract. */
-      typed_state_clear_all(state);
-      return;
+      const M68kFunctionSummaryEffectSubjectIR *subject = &summary->memory_effects[reg].subject;
+      if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE) {
+        typed_state_invalidate_static_storage_subject(state, subject);
+      } else {
+        /* Input and abstract-region writes still lack a stable caller-side
+         * storage identity.  Retain the conservative boundary for them. */
+        typed_state_clear_all(state);
+        return;
+      }
     }
     /* `nonaliasing_write` is already the precise negative alias proof: it
      * cannot affect any caller-visible typed storage identity.  Treating it
