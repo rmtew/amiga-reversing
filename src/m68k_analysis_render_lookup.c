@@ -2083,12 +2083,15 @@ static void typed_state_apply_function_summary_inputs(M68kRenderTypedState *stat
   for (input_index = 0U; input_index < summary->input_count; ++input_index) {
     const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
     uint16_t struct_id;
-    if (input->register_index >= 8U ||
-        (input->register_kind != M68K_ANALYSIS_REGISTER_DATA && input->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+    if (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+        input->location.register_count != 1U || input->location.registers[0].register_index >= 8U ||
+        (input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_DATA &&
+         input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
         input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) continue;
     struct_id = lookup_policy_struct_id_by_name(policy, input->struct_name);
     if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
-    typed_state_set_reg_struct_id(state, input->register_kind, input->register_index, struct_id, &provenance);
+    typed_state_set_reg_struct_id(state, input->location.registers[0].register_kind,
+      input->location.registers[0].register_index, struct_id, &provenance);
   }
 }
 
@@ -4019,10 +4022,14 @@ static int typed_flow_record_local_call_input_consumers(M68kRenderLookup *lookup
     for (input_index = 0U; input_index < summary->input_count; ++input_index) {
       const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
       if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-          input->register_kind != AMIGA_OS_REGISTER_ADDRESS || input->register_index >= 8U ||
+          input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+          input->location.register_count != 1U ||
+          input->location.registers[0].register_kind != AMIGA_OS_REGISTER_ADDRESS ||
+          input->location.registers[0].register_index >= 8U ||
           lookup_policy_struct_id_by_name(lookup->policy, input->struct_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
       if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
-            M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, input->register_kind, input->register_index,
+            M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, input->location.registers[0].register_kind,
+            input->location.registers[0].register_index,
             input->struct_name, NULL, summary->function_summary_id,
             (uint32_t)target_section_index, target_offset, state) != 0)
         return -1;
@@ -4066,10 +4073,14 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
     for (input_index = 0U; input_index < summary->input_count; ++input_index) {
       const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
       if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-          input->register_kind != AMIGA_OS_REGISTER_ADDRESS || input->register_index >= 8U ||
+          input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+          input->location.register_count != 1U ||
+          input->location.registers[0].register_kind != AMIGA_OS_REGISTER_ADDRESS ||
+          input->location.registers[0].register_index >= 8U ||
           lookup_policy_struct_id_by_name(policy, input->struct_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
       if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
-            M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT, input->register_kind, input->register_index,
+            M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT, input->location.registers[0].register_kind,
+            input->location.registers[0].register_index,
             input->struct_name, NULL, summary->function_summary_id,
             summary->section_index, summary->table_offset, state) != 0)
         return -1;

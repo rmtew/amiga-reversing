@@ -2525,22 +2525,36 @@ static int append_metadata_absolute_storage_slot_local(const char *object_start,
 
 static int append_metadata_function_summary_input_local(const char *object_start, const char *object_end,
     M68kAnalysisFunctionSummary *summary) {
-  char location[8];
+  const char *location;
+  const char *location_end;
+  char location_kind[32];
+  char register_name[8];
   char value_kind[32];
   char struct_name[64];
+  uint32_t width = 0U;
+  int has_width = 0;
   M68kAnalysisFunctionSummaryInput *input;
   if (summary == NULL || summary->input_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT ||
-      !json_optional_string_field_local(object_start, object_end, "location", location, sizeof(location)) ||
+      (location = json_object_field_local(object_start, object_end, "location", &location_end)) == NULL ||
+      !json_optional_string_field_local(location, location_end, "kind", location_kind, sizeof(location_kind)) ||
+      !json_optional_string_field_local(location, location_end, "register", register_name, sizeof(register_name)) ||
+      !json_number_field_local(location, location_end, "width", &width, &has_width) ||
       !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
       !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
+      strcmp(location_kind, "register") != 0 || !has_width || width != 4U ||
       strcmp(value_kind, "struct_ptr") != 0 || struct_name[0] == '\0') return 0;
   input = &summary->inputs[summary->input_count];
-  if ((location[0] == 'D' || location[0] == 'd') && location[1] >= '0' && location[1] <= '7' && location[2] == '\0') {
-    input->register_kind = M68K_ANALYSIS_REGISTER_DATA;
-    input->register_index = (uint8_t)(location[1] - '0');
-  } else if ((location[0] == 'A' || location[0] == 'a') && location[1] >= '0' && location[1] <= '7' && location[2] == '\0') {
-    input->register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-    input->register_index = (uint8_t)(location[1] - '0');
+  input->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  input->location.width = (uint8_t)width;
+  input->location.register_count = 1U;
+  if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' &&
+      register_name[1] <= '7' && register_name[2] == '\0') {
+    input->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    input->location.registers[0].register_index = (uint8_t)(register_name[1] - '0');
+  } else if ((register_name[0] == 'A' || register_name[0] == 'a') && register_name[1] >= '0' &&
+      register_name[1] <= '7' && register_name[2] == '\0') {
+    input->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    input->location.registers[0].register_index = (uint8_t)(register_name[1] - '0');
   } else {
     return 0;
   }
@@ -8591,8 +8605,11 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
     }
     for (input_index = 0U; input_index < summary->input_count; ++input_index) {
       const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
-      if (input->register_index >= 8U ||
-          (input->register_kind != M68K_ANALYSIS_REGISTER_DATA && input->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+      if (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+          input->location.width != 4U || input->location.register_count != 1U ||
+          input->location.registers[0].register_index >= 8U ||
+          (input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_DATA &&
+           input->location.registers[0].register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
           input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR || input->struct_name[0] == '\0') {
         platform_file_add_error(diagnostics, "target metadata function summary input is invalid");
         return 0;

@@ -276,20 +276,37 @@ class EntryRegisterSeedMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class FunctionSummaryAbiLocationMetadata:
+    kind: str
+    register: str
+    width: int
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryAbiLocationMetadata:
+        kind = payload["kind"]
+        register = payload["register"]
+        width = payload["width"]
+        assert kind == "register"
+        assert isinstance(register, str) and len(register) == 2
+        assert register[0].upper() in {"D", "A"} and register[1] in "01234567"
+        assert isinstance(width, int) and width == 4
+        return cls(kind=kind, register=register.upper(), width=width)
+
+
+@dataclass(frozen=True, slots=True)
 class FunctionSummaryInputMetadata:
-    location: str
+    location: FunctionSummaryAbiLocationMetadata
     value_kind: str
     struct_name: str
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryInputMetadata:
-        location = payload["location"]
+        location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(payload["location"]))
         value_kind = payload["value_kind"]
         struct_name = payload["struct_name"]
-        assert isinstance(location, str) and location
         assert isinstance(value_kind, str) and value_kind == "struct_ptr"
         assert isinstance(struct_name, str) and struct_name
-        return cls(location.upper(), value_kind, struct_name)
+        return cls(location, value_kind, struct_name)
 
 
 @dataclass(frozen=True, slots=True)

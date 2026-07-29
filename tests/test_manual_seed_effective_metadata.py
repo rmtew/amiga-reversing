@@ -810,7 +810,7 @@ def test_effective_metadata_includes_manual_function_summary(tmp_path: Path) -> 
                     "hunk": 0,
                     "callable_kind": "direct",
                     "entry_offset": 0x7BBA,
-                    "inputs": [{"location": "A5", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+                    "inputs": [{"location": {"kind": "register", "register": "A5", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
                     "effects": {
                         "schema_version": 1,
                         "registers": {"state": "unknown"},
@@ -832,7 +832,7 @@ def test_effective_metadata_includes_manual_function_summary(tmp_path: Path) -> 
             "hunk": 0,
             "callable_kind": "direct",
             "entry_offset": 0x7BBA,
-            "inputs": [{"location": "A5", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+            "inputs": [{"location": {"kind": "register", "register": "A5", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
             "effects": {
                 "schema_version": 1,
                 "registers": {"state": "unknown"},

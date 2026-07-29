@@ -286,7 +286,7 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
             "hunk": 0,
             "callable_kind": "direct",
             "entry_offset": 0x7BBA,
-            "inputs": [{"location": "a5", "struct_name": "world_object_shared_prefix"}],
+            "inputs": [{"location": {"kind": "register", "register": "a5", "width": 4}, "struct_name": "world_object_shared_prefix"}],
             "context_name": "npc_item_trade_validation",
         },
     )
@@ -297,7 +297,7 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
             "hunk": 0,
             "callable_kind": "direct",
             "entry_offset": 0x7BBA,
-            "inputs": [{"location": "A5", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+            "inputs": [{"location": {"kind": "register", "register": "A5", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
                 "effects": {
                     "schema_version": 1,
                     "registers": {"state": "unknown"},

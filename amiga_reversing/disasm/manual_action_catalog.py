@@ -5908,16 +5908,26 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
     raw_inputs = params.get("inputs")
     if hunk is None or callable_kind not in {"direct", "callback_table"} or not isinstance(raw_inputs, list):
         raise ValueError("target.function_summary.add requires hunk, callable_kind, and inputs")
-    inputs: list[dict[str, str]] = []
+    inputs: list[dict[str, object]] = []
     for raw_input in raw_inputs:
         if not isinstance(raw_input, Mapping):
             raise ValueError("target.function_summary.add inputs must be objects")
         location = raw_input.get("location")
         struct_name = raw_input.get("struct_name")
-        if not isinstance(location, str) or not location.strip() or not isinstance(struct_name, str) or not struct_name.strip():
+        if not isinstance(location, Mapping) or not isinstance(struct_name, str) or not struct_name.strip():
             raise ValueError("target.function_summary.add inputs require location and struct_name")
-        inputs.append({"location": location.strip().upper(), "value_kind": "struct_ptr", "struct_name": struct_name.strip()})
-    if not inputs or len({item["location"] for item in inputs}) != len(inputs):
+        location_kind = location.get("kind")
+        register = location.get("register")
+        width = _optional_int(location.get("width"))
+        if location_kind != "register" or not isinstance(register, str) or len(register.strip()) != 2 or \
+                register.strip()[0].upper() not in {"D", "A"} or register.strip()[1] not in "01234567" or width != 4:
+            raise ValueError("target.function_summary.add input locations require register kind, Dn/An register, and width 4")
+        inputs.append({
+            "location": {"kind": "register", "register": register.strip().upper(), "width": 4},
+            "value_kind": "struct_ptr",
+            "struct_name": struct_name.strip(),
+        })
+    if not inputs or len({str(item["location"]) for item in inputs}) != len(inputs):
         raise ValueError("target.function_summary.add inputs must have distinct locations")
     if callable_kind == "direct":
         if entry_offset is None:

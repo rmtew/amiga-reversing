@@ -1,4 +1,4 @@
-from amiga_reversing.tools.migrate_function_summaries import migrate_records
+from amiga_reversing.tools.migrate_function_summaries import migrate_canonical_location_records, migrate_records
 
 
 def _unknown_effects() -> dict[str, object]:
@@ -36,8 +36,8 @@ def test_migration_groups_inputs_by_direct_callable_and_preserves_history() -> N
     summary = converted[1]["function_summary"]
     assert summary["function_summary_id"] == "function-summary-entry-h0-0000807C"
     assert summary["inputs"] == [
-        {"location": "A1", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"},
-        {"location": "A2", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"},
+        {"location": {"kind": "register", "register": "A1", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"},
+        {"location": {"kind": "register", "register": "A2", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"},
     ]
     assert summary["effects"] == _unknown_effects()
     assert report["active_summary_mappings"][0]["source_action_ids"] == ["first", "second"]
@@ -84,7 +84,7 @@ def test_migration_converts_callback_table_and_retains_nonlegacy_records() -> No
     assert summary["callable_kind"] == "callback_table"
     assert summary["table_offset"] == 0x1432
     assert summary["entry_count"] == 33
-    assert summary["inputs"][0]["location"] == "A5"
+    assert summary["inputs"][0]["location"] == {"kind": "register", "register": "A5", "width": 4}
     assert summary["effects"] == _unknown_effects()
     assert report["active_summary_mappings"][0]["source_fact_ids"] == ["old-callback"]
 
@@ -153,3 +153,30 @@ def test_migration_rejects_mixed_or_previously_migrated_summary_schema() -> None
         assert "canonical effects schema" in str(exc)
     else:
         raise AssertionError("expected mixed-schema rejection")
+
+
+def test_location_migration_replaces_only_canonical_register_strings() -> None:
+    record = {
+        "record": "manual_action",
+        "action_id": "summary",
+        "sequence": 2,
+        "kind": "create_manual_function_summary",
+        "function_summary": {
+            "function_summary_id": "summary-id",
+            "hunk": 0,
+            "callable_kind": "direct",
+            "entry_offset": 0x807C,
+            "inputs": [{"location": "A1", "value_kind": "struct_ptr", "struct_name": "world_object"}],
+            "effects": _unknown_effects(),
+            "note": "canonical old location",
+            "context_name": "",
+        },
+    }
+    converted, report = migrate_canonical_location_records([record])
+
+    assert converted[0]["function_summary"]["inputs"][0]["location"] == {
+        "kind": "register", "register": "A1", "width": 4,
+    }
+    assert report["function_summary_location_migrations"] == [
+        {"action_id": "summary", "sequence": 2, "function_summary_id": "summary-id"}
+    ]

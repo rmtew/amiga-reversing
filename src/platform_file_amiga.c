@@ -4013,27 +4013,34 @@ static int load_amiga_function_summary_result_state(const M68kSectionAnalysisIR 
           (result->success_reg_kind != 1U || result->success_reg_index != 0U || result->success_reg_value != 0)) {
         continue;
       }
-      if (result->reg_index >= 8U) continue;
+      if (result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+          result->location.register_count != 1U || result->location.registers[0].register_index >= 8U) continue;
       if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER) {
         base_id = amiga_named_base_payload_id_local(&result->payload.named_base);
         if (amiga_base_id_is_none_local(base_id)) continue;
-        if (result->reg_kind == 1U || result->reg_kind == 2U) {
-          amiga_call_effect_reg_state_set_base_id(out_state, result->reg_kind, result->reg_index, base_id);
+        if (result->location.registers[0].register_kind == 1U ||
+            result->location.registers[0].register_kind == 2U) {
+          amiga_call_effect_reg_state_set_base_id(out_state, result->location.registers[0].register_kind,
+            result->location.registers[0].register_index, base_id);
           found = 1;
         }
       } else if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER ||
                  result->kind == M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT) {
-        if (result->reg_kind == 1U) {
+        if (result->location.registers[0].register_kind == 1U) {
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT)
-            found |= apply_amiga_function_summary_platform_output(&out_state->data_reg_values[result->reg_index], result);
+            found |= apply_amiga_function_summary_platform_output(
+              &out_state->data_reg_values[result->location.registers[0].register_index], result);
           else
-            amiga_typed_payload_apply_to_value_local(&out_state->data_reg_values[result->reg_index], &result->payload.typed);
+            amiga_typed_payload_apply_to_value_local(
+              &out_state->data_reg_values[result->location.registers[0].register_index], &result->payload.typed);
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER) found = 1;
-        } else if (result->reg_kind == 2U) {
+        } else if (result->location.registers[0].register_kind == 2U) {
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT)
-            found |= apply_amiga_function_summary_platform_output(&out_state->addr_reg_values[result->reg_index], result);
+            found |= apply_amiga_function_summary_platform_output(
+              &out_state->addr_reg_values[result->location.registers[0].register_index], result);
           else
-            amiga_typed_payload_apply_to_value_local(&out_state->addr_reg_values[result->reg_index], &result->payload.typed);
+            amiga_typed_payload_apply_to_value_local(
+              &out_state->addr_reg_values[result->location.registers[0].register_index], &result->payload.typed);
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER) found = 1;
         }
       }

@@ -4618,8 +4618,13 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
         if (input_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
         if (json_builder_appendf(&builder,
-            "{\"register_kind\":%u,\"register_index\":%u,\"seed_kind\":%u,\"struct_name\":",
-            (unsigned)input->register_kind, (unsigned)input->register_index, (unsigned)input->seed_kind) != 0 ||
+            "{\"location\":{\"kind_id\":%u,\"width\":%u,\"stack_convention_id\":%u,"
+            "\"stack_offset\":%d,\"registers\":[{\"register_kind\":%u,\"register_index\":%u}]},"
+            "\"seed_kind\":%u,\"struct_name\":",
+            (unsigned)input->location.kind, (unsigned)input->location.width,
+            (unsigned)input->location.stack_convention, (int)input->location.stack_offset,
+            (unsigned)input->location.registers[0].register_kind,
+            (unsigned)input->location.registers[0].register_index, (unsigned)input->seed_kind) != 0 ||
             json_builder_append_json_string(&builder, input->struct_name) != 0 ||
             json_builder_append(&builder, "}") != 0) goto oom;
       }
@@ -4631,12 +4636,16 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           const M68kFunctionSummaryResultIR *result = &summary->results[result_index];
           if (result_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
           if (json_builder_appendf(&builder,
-              "{\"kind_id\":%u,\"reg_kind\":%u,\"reg_index\":%u,\"width\":%u,"
+              "{\"kind_id\":%u,\"location\":{\"kind_id\":%u,\"width\":%u,"
+              "\"stack_convention_id\":%u,\"stack_offset\":%d,\"registers\":[{\"register_kind\":%u,"
+              "\"register_index\":%u}]},"
               "\"success_reg_kind\":%u,\"success_reg_index\":%u,\"success_value_known\":%u,"
               "\"success_reg_value\":%d,\"platform_library_id\":%u,\"platform_function_id\":%u,"
               "\"platform_output_id\":%u}",
-              (unsigned)result->kind, (unsigned)result->reg_kind, (unsigned)result->reg_index,
-              (unsigned)result->width, (unsigned)result->success_reg_kind,
+              (unsigned)result->kind, (unsigned)result->location.kind, (unsigned)result->location.width,
+              (unsigned)result->location.stack_convention, (int)result->location.stack_offset,
+              (unsigned)result->location.registers[0].register_kind,
+              (unsigned)result->location.registers[0].register_index, (unsigned)result->success_reg_kind,
               (unsigned)result->success_reg_index, (unsigned)result->success_value_known,
               (int)result->success_reg_value, (unsigned)result->platform_library_id,
               (unsigned)result->platform_function_id, (unsigned)result->platform_output_id) != 0) goto oom;

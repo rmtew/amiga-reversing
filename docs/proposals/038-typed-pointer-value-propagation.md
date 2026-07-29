@@ -1123,6 +1123,25 @@ and callback writers populate an explicit partition. This prevents a
 short-lived parser shape that the common model cannot represent and avoids a
 second compatibility model during B3.
 
+**ABI-location foundation progress (2026-07-29).** The first step of that
+order is complete. `M68kFunctionSummaryAbiLocation` now replaces the separate
+input and result register fields in common C IR, including the direct result
+writer, typed-flow consumers, Amiga result application, source-analysis JSON,
+copy paths, and fixtures. Its closed kind includes register, stack, and
+ordered register-tuple locations and records width plus stack convention; no
+callable fact carries an untyped location string in IR. The persisted summary
+input is now the canonical register location object
+`{"kind":"register","register":"A5","width":4}`. The C and Python
+runtime parsers reject the retired string form, and the Manual Action catalog,
+offline converter, and all eighteen active Pandora summaries were migrated in
+one deterministic pass. Full C/Python suites and Pandora's full-file exact
+round trip pass. This foundation deliberately does not yet accept a stack or
+tuple input in persisted metadata: admitting either before the same explicit
+effects schema can describe and apply its complete partition would be a
+partial, unconsumed configuration surface. The next B3 slice must widen the
+same location parser/projection for those forms together with explicit stack
+effects, not add a compatibility spelling.
+
 The first explicit fixtures must establish the closed-lattice operations before
 the call transfer changes: equality/idempotence, conflicting same-location
 claims, all-path local-return join, callback-table component join, each finite

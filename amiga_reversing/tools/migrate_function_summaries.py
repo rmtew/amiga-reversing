@@ -47,6 +47,20 @@ def _migrate_legacy_effects(summary: dict[str, Any]) -> dict[str, Any]:
     for name in retired:
         del converted[name]
     converted["effects"] = _unknown_effects()
+    inputs = converted.get("inputs")
+    if not isinstance(inputs, list):
+        raise ValueError("function summary inputs must be a list")
+    converted_inputs: list[dict[str, Any]] = []
+    for input_payload in inputs:
+        if not isinstance(input_payload, dict):
+            raise ValueError("function summary input must be an object")
+        location = input_payload.get("location")
+        if not isinstance(location, str) or len(location) != 2 or location[0].upper() not in {"D", "A"} or location[1] not in "01234567":
+            raise ValueError("legacy function summary input location must be Dn or An")
+        converted_input = dict(input_payload)
+        converted_input["location"] = {"kind": "register", "register": location.upper(), "width": 4}
+        converted_inputs.append(converted_input)
+    converted["inputs"] = converted_inputs
     FunctionSummaryMetadata.from_dict(converted)
     return converted
 
@@ -74,9 +88,9 @@ def _required_nonnegative_int(payload: dict[str, Any], name: str) -> int:
     return value
 
 
-def _input_from_legacy(payload: dict[str, Any]) -> dict[str, str]:
+def _input_from_legacy(payload: dict[str, Any]) -> dict[str, object]:
     return {
-        "location": _required_string(payload, "register").upper(),
+        "location": {"kind": "register", "register": _required_string(payload, "register").upper(), "width": 4},
         "value_kind": "struct_ptr",
         "struct_name": _required_string(payload, "struct_name"),
     }
@@ -241,13 +255,16 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
 
     summaries: list[dict[str, Any]] = []
     for key, facts in grouped.items():
-        inputs: list[dict[str, str]] = []
+        inputs: list[dict[str, object]] = []
         input_locations: set[str] = set()
         for fact in facts:
             item = _input_from_legacy(fact.payload)
-            if item["location"] in input_locations:
+            location = item["location"]
+            assert isinstance(location, dict)
+            location_identity = str(location)
+            if location_identity in input_locations:
                 raise ValueError(f"callable {_summary_id(key)} has duplicate input location {item['location']}")
-            input_locations.add(item["location"])
+            input_locations.add(location_identity)
             inputs.append(item)
         first = facts[0]
         summary: dict[str, Any] = {
@@ -300,15 +317,81 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
     return converted, report
 
 
+def migrate_canonical_location_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Convert the retired register-string location form in canonical summaries.
+
+    This is deliberately separate from the retired-fact/effect-schema migration
+    above. It accepts only fully canonical v1 effects and refuses an input log
+    that has already been converted or mixes object and string locations.
+    """
+    converted: list[dict[str, Any]] = []
+    migrations: list[dict[str, Any]] = []
+    seen_action_ids: set[str] = set()
+    previous_sequence = -1
+    for record in records:
+        if record.get("record") != "manual_action":
+            converted.append(record)
+            continue
+        action_id = record.get("action_id")
+        sequence = record.get("sequence")
+        if not isinstance(action_id, str) or not action_id or action_id in seen_action_ids:
+            raise ValueError("manual action log has missing or duplicate action_id")
+        if not isinstance(sequence, int) or sequence < 0 or sequence <= previous_sequence:
+            raise ValueError("manual action log sequences must be strictly increasing")
+        seen_action_ids.add(action_id)
+        previous_sequence = sequence
+        if record.get("kind") != _FUNCTION_SUMMARY_CREATE:
+            converted.append(record)
+            continue
+        summary = record.get("function_summary")
+        if not isinstance(summary, dict):
+            raise ValueError(f"manual action {action_id} lacks function_summary")
+        effects = summary.get("effects")
+        if effects != _unknown_effects():
+            raise ValueError("location migration accepts only canonical all-unknown effects")
+        inputs = summary.get("inputs")
+        if not isinstance(inputs, list) or not inputs:
+            raise ValueError("function summary inputs must be a non-empty list")
+        converted_inputs: list[dict[str, Any]] = []
+        for input_payload in inputs:
+            if not isinstance(input_payload, dict):
+                raise ValueError("function summary input must be an object")
+            location = input_payload.get("location")
+            if not isinstance(location, str) or len(location) != 2 or location[0].upper() not in {"D", "A"} or location[1] not in "01234567":
+                raise ValueError("location migration requires every input to use a Dn/An register string")
+            converted_input = dict(input_payload)
+            converted_input["location"] = {"kind": "register", "register": location.upper(), "width": 4}
+            converted_inputs.append(converted_input)
+        converted_summary = dict(summary)
+        converted_summary["inputs"] = converted_inputs
+        FunctionSummaryMetadata.from_dict(converted_summary)
+        converted_record = dict(record)
+        converted_record["function_summary"] = converted_summary
+        converted.append(converted_record)
+        migrations.append({
+            "action_id": action_id,
+            "sequence": sequence,
+            "function_summary_id": _required_string(converted_summary, "function_summary_id"),
+        })
+    if not migrations:
+        raise ValueError("location migration found no retired register-string summary inputs")
+    return converted, {"schema_version": 1, "function_summary_location_migrations": migrations}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Migrate retired callable facts to function summaries.")
     parser.add_argument("input", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--migrate-locations", action="store_true",
+        help="migrate canonical function-summary register-string inputs to ABI location objects")
     args = parser.parse_args(argv)
     if args.output.exists() or args.report.exists():
         raise SystemExit("refusing to overwrite migration output or report")
-    converted, report = migrate_records(_load_records(args.input))
+    converted, report = (
+        migrate_canonical_location_records(_load_records(args.input))
+        if args.migrate_locations else migrate_records(_load_records(args.input))
+    )
     args.output.write_text("".join(json.dumps(record, sort_keys=True) + "\n" for record in converted), encoding="utf-8")
     args.report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

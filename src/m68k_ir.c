@@ -3870,9 +3870,11 @@ int m68k_ir_section_analysis_append_function_summary_result(M68kSectionAnalysisI
   }
   memset(&result, 0, sizeof(result));
   result.kind = result_kind;
-  result.reg_kind = reg_kind;
-  result.reg_index = reg_index;
-  result.width = 4U;
+  result.location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  result.location.width = 4U;
+  result.location.register_count = 1U;
+  result.location.registers[0].register_kind = reg_kind;
+  result.location.registers[0].register_index = reg_index;
   result.success_reg_kind = success_reg_kind;
   result.success_reg_index = success_reg_index;
   result.success_value_known = success_value_known;
@@ -3907,7 +3909,7 @@ int m68k_ir_section_analysis_append_function_summary_result(M68kSectionAnalysisI
   }
   for (index = 0U; index < summary->result_count; ++index) {
     M68kFunctionSummaryResultIR *existing = &summary->results[index];
-    if (existing->reg_kind != result.reg_kind || existing->reg_index != result.reg_index) continue;
+    if (memcmp(&existing->location, &result.location, sizeof(result.location)) != 0) continue;
     if (memcmp(existing, &result, sizeof(result)) == 0) return 0;
     summary->result_contract_invalid = 1U;
     return -1;

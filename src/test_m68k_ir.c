@@ -27244,8 +27244,11 @@ static int test_facts_v2_analysis_marks_candidate_overflow_at_five_way_branch_me
   policy.function_summaries[0].entry_offset = 0x62U;
   policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
   policy.function_summaries[0].input_count = 1U;
-  policy.function_summaries[0].inputs[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
-  policy.function_summaries[0].inputs[0].register_index = 0U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "overflow_callback_arg");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "world_object_shared_prefix");
@@ -27469,8 +27472,11 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   policy.function_summaries[0].entry_offset = 0x20U;
   policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
   policy.function_summaries[0].input_count = 1U;
-  policy.function_summaries[0].inputs[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
-  policy.function_summaries[0].inputs[0].register_index = 0U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_arg");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "callback_context");
@@ -27606,8 +27612,11 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   policy.function_summaries[0].entry_count = 1U;
   policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
   policy.function_summaries[0].input_count = 1U;
-  policy.function_summaries[0].inputs[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
-  policy.function_summaries[0].inputs[0].register_index = 5U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 5U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_table");
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "callback_context");
@@ -28026,8 +28035,11 @@ static int test_facts_v2_render_asm_source_applies_callback_table_signature(void
   policy.function_summaries[0].entry_count = 1U;
   policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
   policy.function_summaries[0].input_count = 1U;
-  policy.function_summaries[0].inputs[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-  policy.function_summaries[0].inputs[0].register_index = 5U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 5U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   snprintf(policy.function_summaries[0].function_summary_id,
     sizeof(policy.function_summaries[0].function_summary_id), "callback_world_object_context");
@@ -28100,8 +28112,11 @@ static int test_facts_v2_render_asm_source_applies_function_register_contract(vo
   policy.function_summaries[0].entry_offset = 4U;
   policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
   policy.function_summaries[0].input_count = 1U;
-  policy.function_summaries[0].inputs[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-  policy.function_summaries[0].inputs[0].register_index = 5U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 5U;
   policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
   snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "world_object_shared_prefix");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,

@@ -97,11 +97,43 @@ typedef enum M68kAnalysisFunctionSummaryCallableKind {
   M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE = 2
 } M68kAnalysisFunctionSummaryCallableKind;
 
-typedef struct M68kAnalysisFunctionSummaryInput {
+/* This is the canonical ABI location identity for callable inputs, results,
+ * caller-visible location effects, and escape sources.  A location is never
+ * an implicit current-stack-pointer displacement or a presentation string. */
+#define M68K_FUNCTION_SUMMARY_ABI_REGISTER_TUPLE_LIMIT 4U
+
+typedef enum M68kFunctionSummaryAbiLocationKind {
+  M68K_FUNCTION_SUMMARY_ABI_LOCATION_NONE = 0,
+  M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER = 1,
+  M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK = 2,
+  M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE = 3
+} M68kFunctionSummaryAbiLocationKind;
+
+typedef enum M68kFunctionSummaryAbiStackConvention {
+  M68K_FUNCTION_SUMMARY_ABI_STACK_NONE = 0,
+  M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT = 1,
+  M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT = 2,
+  M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP = 3
+} M68kFunctionSummaryAbiStackConvention;
+
+typedef struct M68kFunctionSummaryAbiRegisterMember {
   uint8_t register_kind;
   uint8_t register_index;
+} M68kFunctionSummaryAbiRegisterMember;
+
+typedef struct M68kFunctionSummaryAbiLocation {
+  uint8_t kind;
+  uint8_t width;
+  uint8_t stack_convention;
+  uint8_t register_count;
+  int32_t stack_offset;
+  M68kFunctionSummaryAbiRegisterMember registers[M68K_FUNCTION_SUMMARY_ABI_REGISTER_TUPLE_LIMIT];
+} M68kFunctionSummaryAbiLocation;
+
+typedef struct M68kAnalysisFunctionSummaryInput {
   uint8_t seed_kind;
-  uint8_t reserved;
+  uint8_t reserved[3];
+  M68kFunctionSummaryAbiLocation location;
   char struct_name[64];
 } M68kAnalysisFunctionSummaryInput;
 
@@ -1160,9 +1192,8 @@ typedef enum M68kFunctionSummaryResultKind {
  * optional success guard are proof data, not renderer hints. */
 typedef struct M68kFunctionSummaryResultIR {
   uint8_t kind;
-  uint8_t reg_kind;
-  uint8_t reg_index;
-  uint8_t width;
+  uint8_t reserved[3];
+  M68kFunctionSummaryAbiLocation location;
   uint8_t success_reg_kind;
   uint8_t success_reg_index;
   uint8_t success_value_known;
