@@ -1280,12 +1280,35 @@ The full C suite passes for this staged lifecycle.  It does not yet satisfy
 the required callback, failure-reason, stack/memory/escape, or complete
 fixture gates.
 
+**Callback-table materialization increment (2026-07-29).** The post-flow
+collector now also visits each declared callback-table identity, resolves every
+table entry to an object callable, materializes any missing complete-domain
+direct-entry facts, and emits one table-owned
+`inferred_callback_s<section>_o<offset>_n<count>` summary whose exhaustive
+register partition is the intersection of those entries.  A second typed-flow
+pass looks up that table fact by its resolved table identity; an invalid table
+fact is never used as preservation evidence and falls back to the existing
+conservative transient proof.  Source analysis exports the table-owned fact
+alongside the declared interface contract.  The focused callback-consumer
+fixture now proves both records exist and the full C suite passes (`m68k_ir:
+all 592 passed`).
+
+This is deliberately not the completion of remaining-work item 1: call-use
+edges and callback input-consumer edges still name the declared interface
+summary, rather than the newly materialized table-effect identity.  The next
+increment must make that one durable table fact own those reverse uses too,
+including identities discovered only from completed typed state rather than
+the adjacent-load fallback.  It must also add terminal-reason fixtures for
+unresolved entries and incompatible entry summaries.
+
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Materialize callback-table summaries after typed-flow convergence by
-   resolving the completed table identity, intersecting the durable direct
-   entry summaries, and exporting one table-owned fact plus reverse uses.
+1. Complete callback-table materialization: migrate callback call-use and
+   input-consumer edges to the durable table-owned identity, collect identities
+   discovered only from completed typed state, and add reverse-use and terminal
+   failure fixtures.  The table summary/intersection/export slice is complete,
+   but its reverse-use lifecycle is not.
 2. Migrate callable result declarations into the common persisted/source-
    analysis summary shape, then add the closed escape `source_kind` field so
    input- and result-origin escapes validate and round-trip losslessly.
