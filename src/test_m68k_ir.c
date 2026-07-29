@@ -6423,8 +6423,8 @@ static int test_facts_v2_affine_static_interior_expression_survives_register_add
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  char *source = NULL;
   char *analysis_json = NULL;
+  char *source = NULL;
   uint8_t bytes[16] = {0x43u, 0xfau, 0x00u, 0x0au, 0xd2u, 0xfcu, 0x00u, 0x02u,
     0x10u, 0x11u, 0x4eu, 0x75u, 'a', 'b', 'c', 'd'};
   memset(&section, 0, sizeof(section));
@@ -27577,6 +27577,7 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
   M68kAnalysisCustomStruct *custom_structs;
+  char *analysis_json = NULL;
   uint8_t bytes[28] = {
     0x2au, 0x7cu, 0x00u, 0x00u, 0x10u, 0x10u, /* movea.l #callback,a5 */
     0x20u, 0x7au, 0x00u, 0x10u,               /* movea.l callback_table(pc),a0 */
@@ -27654,6 +27655,23 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_USE_INPUT, analysis.sections[0].function_summary_uses[1].kind);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  /* The same proven dispatch contract with an external table word must not
+   * degrade to an ordinary invalid summary: it carries the exact unresolved
+   * entry reason and cannot preserve caller state. */
+  object.sections[0].data[24] = 0x00u; object.sections[0].data[25] = 0x00u;
+  object.sections[0].data[26] = 0x20u; object.sections[0].data[27] = 0x00u;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(3U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED,
+    analysis.sections[0].function_summaries[2].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[2].effects_invalid);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"callback_entry_unresolved\"") != NULL);
+  free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);

@@ -1310,29 +1310,27 @@ summaries.
 summaries now export one closed terminal reason: an entry is either
 `callback_entry_unresolved` when its table value has no source callable
 identity, or `callback_entry_incompatible` when the identified entry cannot
-supply a usable complete summary. The existing callback fixture proves the
-latter through an unaccepted direct-entry summary; the unresolved-entry
-fixture remains the next focused case. These reasons are source-analysis
-facts and never preservation fallbacks.
+supply a usable complete summary. The callback fixture proves both: first an
+unaccepted direct-entry summary, then the same proven table identity with an
+external entry word. It also verifies the latter reason in source-analysis
+JSON. These reasons are source-analysis facts and never preservation
+fallbacks.
 
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Add the callback-table unresolved-entry terminal-failure fixture. The
-   incompatible-entry summary fixture, table-identity collection,
-   summary/intersection/export, and reverse-use lifecycle are complete.
-2. Migrate callable result declarations into the common persisted/source-
+1. Migrate callable result declarations into the common persisted/source-
    analysis summary shape, then add the closed escape `source_kind` field so
    input- and result-origin escapes validate and round-trip losslessly.
-3. Represent and transfer ordered register-tuple ABI values; parsed tuple
+2. Represent and transfer ordered register-tuple ABI values; parsed tuple
    locations are not yet typed-state values.
-4. Apply explicit stack, memory, and escape effects with a stable
+3. Apply explicit stack, memory, and escape effects with a stable
    subject-to-storage index.  Until that index exists, conservative clearing
    remains sound but does not provide the required precise effect transfer.
-5. Add the complete focused matrix: direct/callback success and every terminal
+4. Add the complete focused matrix: direct/callback success and every terminal
    failure, stack/memory/escape effects, result-origin escapes, tuple values,
    conflicting summaries, and unknown/incompatible negatives.
-6. Regenerate the required read-only corpus evidence and run the Pandora
+5. Regenerate the required read-only corpus evidence and run the Pandora
    source-analysis, source-quality, assembly, and exact round-trip gates.  The
    current checkout does not expose Pandora as a rendered-source verifier
    target, so that gate remains unclaimed.
