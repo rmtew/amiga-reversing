@@ -3,7 +3,9 @@
 Status: In progress — 2026-07-29. The consumer model, canonical address-value
 ownership, Proposal 039 corpus coverage, bounded candidate-merge soundness, and
 Extension A (canonical indexed, affine, and interior-address expressions) are
-complete. B--J remain ordered follow-on work.
+complete. Extension B's input-contract/common-summary migration is complete;
+its return, preservation/clobber, escape, and memory-effect work remains.
+C--J remain ordered follow-on work.
 
 ## Problem
 
