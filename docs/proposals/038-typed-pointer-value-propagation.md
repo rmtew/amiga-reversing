@@ -837,6 +837,40 @@ the common summary-return fact. Leaving any one reader or writer on the old
 shape would create a hidden compatibility projection and make source import
 and fresh analysis disagree about the callable's effect.
 
+**Required return/effect lattice before migration.** The common summary must
+be widened before any legacy record is removed. Its result model is a closed
+tagged union, not three booleans or copied presentation strings:
+
+- `unknown`, with no transfer permission;
+- a target-declared identity transform from one declared input or another
+  separately proven source identity;
+- a platform-derived output identified by generated Amiga
+  library/function/output IDs and a declared result ABI location; and
+- the existing proven local base-register or typed-register result state,
+  represented by the same canonical base/type/value-domain identities used by
+  source analysis rather than the retired record's payload shape.
+
+Every result declares its register, stack, or ordered multi-register ABI
+location and width. A summary also owns a complete preservation/clobber
+partition, escapes, and an explicit memory-effect set. `unknown` is a valid
+closed-lattice value for each component, but it is never interpreted as
+preservation, non-escape, non-aliasing, or a return value. A malformed,
+conflicting, incomplete, or bounded-overflow summary is unusable at a call and
+produces its explicit stop reason; no part of a previous or partial result may
+survive.
+
+**Migration implementation order.** First introduce the complete common IR,
+metadata/action projection, JSON, and source-parser read/write surface while
+converting every existing legacy fact into exactly one common summary result.
+Then update render lookup and typed flow to consume only the common summary at
+call sites, including direct calls and proven callback-table dispatches.
+Finally delete the legacy record type, arrays, append/copy/import helpers,
+JSON fields, parser branches, and wrapper-specific lookup storage in the same
+change. There is no dual-reader interval, compatibility projection, or
+fallback to a recovered local summary. Fixtures must prove that importing a
+fresh source-analysis JSON and analysing the original binary produce the same
+summary identities and effects.
+
 **Required common summary shape.** One stable callable-summary identity owns
 all of the following, and every direct or indirect call refers to that identity
 rather than copying interface text into a call-site record:
@@ -875,6 +909,13 @@ ABI, unmodelled-memory-effect, and missing-signature negatives. A planned
 expression appears only when its complete call chain and every relevant memory
 effect are proven. Pandora retains the current callback-store result unless a
 durable summary supplies the missing proof.
+
+The migration fixtures additionally cover each retired local-result form:
+platform wrapper output, base-register result, typed-register result, and a
+conditional-success result. They prove canonical source-analysis JSON
+round-trips those facts with no `recovered_local_call_summary` field or type
+remaining, and that malformed or contradictory legacy-equivalent evidence is
+rejected rather than projected into a partial common summary.
 
 Function-pointer fields and dispatch-table entries are callable contracts, not
 untyped pointer exceptions. The summary representation must therefore cover
