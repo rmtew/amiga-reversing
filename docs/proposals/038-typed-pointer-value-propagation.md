@@ -1250,6 +1250,17 @@ values in typed-adjacent code, address-like scalars without a pointer contract,
 null/sentinel values, and values invalidated by a clobber do not acquire an
 address identity or a symbolic rendering.
 
+For durable action-schema replacement, provide one explicit, versioned
+off-line migration command that rewrites every affected target's local action
+log from the retired fact to the new fact while preserving action ordering,
+action identity, and create/remove meaning. It validates the complete input
+log before writing, produces a deterministic migration report naming every
+converted identity, and refuses unknown or conflicting legacy payloads. The
+new runtime accepts only the new action schema; it never reads, projects, or
+silently translates retired action kinds. The migration command is conversion
+tooling, not a runtime fallback, and its fixture proves that a retired action
+record is rejected after migration.
+
 ### Research-backed sequencing and common completion gate
 
 1. Start A with the Pandora four-entry masked pointer table, because its
