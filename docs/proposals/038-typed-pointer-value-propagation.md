@@ -1066,6 +1066,17 @@ their specialised writers and no durable explicit memory, escape, or stack
 effect is yet admitted. The full C suite and Pandora full-file round trip pass
 with no rendering difference.
 
+**Local writer boundary (2026-07-29).** The bounded local-body walk now emits
+an explicit complete register partition rather than returning a preservation
+mask. Its current proven domain remains deliberately narrow (all data registers
+clobbered; address registers preserved only when every returning path proves
+that fact), but an empty preservation set is now a valid explicit partition
+and an unresolved nested call, bound hit, missing return, or invalid path is a
+separate unusable result. Callback aggregation consumes this summary for each
+entry before intersecting its proven address component. The remaining callback
+result must itself become a common summary and retain component-level failure
+evidence; it must not retain the mask-shaped public boundary.
+
 **Return-migration sequencing.** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory

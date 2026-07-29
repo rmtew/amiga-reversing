@@ -1192,9 +1192,9 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector
 static int instruction_move_operand_indices_from_metadata(const M68kInstructionIR *instruction,
     size_t *out_source_index, size_t *out_dest_index, const M68kSimFormMetadata **out_metadata);
 static uint16_t lookup_typed_app_slot_struct_id(const M68kRenderLookup *lookup, int16_t displacement);
-static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLookup *lookup,
+static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
-  uint8_t requested_mask, uint8_t depth);
+  uint8_t requested_mask, uint8_t depth, M68kAnalysisFunctionSummary *out_summary);
 static void typed_state_apply_function_summary_effects(M68kRenderTypedState *state,
     const M68kAnalysisFunctionSummary *summary);
 static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAnalysisFunctionSummary *out_summary);
@@ -4771,9 +4771,9 @@ static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M6
   return candidate_direct_target(candidate, out_section_index, out_target_offset);
 }
 
-static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLookup *lookup,
+static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
-    uint8_t requested_mask, uint8_t depth) {
+    uint8_t requested_mask, uint8_t depth, M68kAnalysisFunctionSummary *out_summary) {
   typedef struct M68kTypedLocalCalleeState {
     uint32_t offset;
     uint8_t saved_mask;
@@ -4783,10 +4783,10 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLo
   M68kTypedLocalCalleeState visited[128];
   const M68kDecodeSectionIR *section;
   uint8_t work_count = 0U, visited_count = 0U, returned = 0U, returned_mask = 0U;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || section_index >= decode->section_count ||
-      accepted_start[section_index] == NULL || requested_mask == 0U || depth > 4U) return 0U;
+  if (out_summary == NULL || lookup == NULL || decode == NULL || accepted_start == NULL ||
+      section_index >= decode->section_count || accepted_start[section_index] == NULL || depth > 4U) return 0;
   section = &decode->sections[section_index];
-  if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0U;
+  if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0;
   worklist[work_count].offset = target_offset;
   worklist[work_count++].saved_mask = 0U;
   worklist[0].preserved_mask = requested_mask;
@@ -4844,9 +4844,14 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLo
         uint8_t live_mask = state.preserved_mask & (uint8_t)~state.saved_mask;
         if (live_mask != 0U) {
           uint8_t callee_preserved = 0U;
-          if (typed_flow_local_call_target(lookup, candidate, &callee_section, &callee_offset)) {
-            callee_preserved = typed_flow_local_callee_preserved_address_mask(lookup, decode, accepted_start,
-              callee_section, callee_offset, live_mask, (uint8_t)(depth + 1U));
+          M68kAnalysisFunctionSummary callee_summary;
+          uint8_t reg;
+          if (!typed_flow_local_call_target(lookup, candidate, &callee_section, &callee_offset) ||
+              !typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, callee_section,
+                callee_offset, live_mask, (uint8_t)(depth + 1U), &callee_summary)) return 0;
+          for (reg = 0U; reg < 8U; ++reg) {
+            if (callee_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+              callee_preserved |= (uint8_t)(1U << reg);
           }
           state.preserved_mask = (state.preserved_mask & state.saved_mask) | callee_preserved;
         }
@@ -4864,7 +4869,7 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLo
           state.offset = branch_target;
           continue;
         }
-        if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) return 0U;
+        if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) return 0;
         worklist[work_count].offset = branch_target;
         worklist[work_count++].saved_mask = state.saved_mask;
         worklist[work_count - 1U].preserved_mask = state.preserved_mask;
@@ -4875,7 +4880,15 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLo
       state.offset += candidate->byte_count;
     }
   }
-  return returned != 0U ? returned_mask : 0U;
+  if (returned == 0U) return 0;
+  memset(out_summary, 0, sizeof(*out_summary));
+  out_summary->register_effects_unknown = 0U;
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    out_summary->data_register_effects[reg] = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    out_summary->address_register_effects[reg] = (returned_mask & (uint8_t)(1U << reg)) != 0U
+      ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+  }
+  return 1;
 }
 
 /* Resolve the callback table backing an indirect dispatch.  A preceding
@@ -4960,13 +4973,19 @@ static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68
       size_t target_section_index = 0U;
       uint32_t target_offset = 0U;
       uint32_t value = m68k_read_u32be(table_section->data + summary->table_offset + entry_index * 4U);
-      uint8_t target_preserved;
+      M68kAnalysisFunctionSummary target_summary;
+      uint8_t target_preserved = 0U;
+      uint8_t reg;
       if (!render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index,
             &target_offset)) {
         return 0U;
       }
-      target_preserved = typed_flow_local_callee_preserved_address_mask(lookup, decode, accepted_start,
-        target_section_index, target_offset, requested_mask, 0U);
+      if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
+            target_section_index, target_offset, requested_mask, 0U, &target_summary)) return 0U;
+      for (reg = 0U; reg < 8U; ++reg) {
+        if (target_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+          target_preserved |= (uint8_t)(1U << reg);
+      }
       preserved_mask &= target_preserved;
       matched = 1U;
     }
@@ -6429,12 +6448,18 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     uint8_t requested_address = 0U;
     uint8_t reg;
     if (typed_flow_local_call_target(lookup, node->candidate, &target_section_index, &target_offset)) {
+      M68kAnalysisFunctionSummary local_summary;
       local_call_target_known = 1U;
       for (reg = 0U; reg < 8U; ++reg) {
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
       }
-      locally_preserved_address = typed_flow_local_callee_preserved_address_mask(lookup, decode, accepted_start,
-        target_section_index, target_offset, requested_address, 0U);
+      if (typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, target_section_index,
+            target_offset, requested_address, 0U, &local_summary)) {
+        for (reg = 0U; reg < 8U; ++reg) {
+          if (local_summary.address_register_effects[reg] == M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+            locally_preserved_address |= (uint8_t)(1U << reg);
+        }
+      }
     } else {
       for (reg = 0U; reg < 8U; ++reg) {
         if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
