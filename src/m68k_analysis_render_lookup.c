@@ -2071,38 +2071,50 @@ static void typed_stored_value_activate_address(M68kRenderTypedStoredValue *valu
   typed_stored_value_update_known(value);
 }
 
-static void typed_state_apply_callback_table_signatures(M68kRenderTypedState *state,
+static void typed_state_apply_function_summary_inputs(M68kRenderTypedState *state,
+    const M68kAnalysisPolicy *policy, const M68kAnalysisFunctionSummary *summary, size_t section_index,
+    uint32_t offset) {
+  uint8_t input_index;
+  M68kRenderTypedProvenance provenance;
+  if (state == NULL || policy == NULL || summary == NULL) return;
+  provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, section_index, offset);
+  for (input_index = 0U; input_index < summary->input_count; ++input_index) {
+    const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
+    uint16_t struct_id;
+    if (input->register_index >= 8U ||
+        (input->register_kind != M68K_ANALYSIS_REGISTER_DATA && input->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+        input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) continue;
+    struct_id = lookup_policy_struct_id_by_name(policy, input->struct_name);
+    if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
+    typed_state_set_reg_struct_id(state, input->register_kind, input->register_index, struct_id, &provenance);
+  }
+}
+
+static void typed_state_apply_function_summaries(M68kRenderTypedState *state,
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   const M68kAnalysisPolicy *policy;
-  uint16_t signature_index;
+  uint16_t summary_index;
   if (state == NULL || lookup == NULL || (policy = lookup->policy) == NULL || lookup->object == NULL) return;
-  for (signature_index = 0U; signature_index < policy->callback_table_signature_count &&
-       signature_index < M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT; ++signature_index) {
-    const M68kAnalysisCallbackTableSignature *signature = &policy->callback_table_signatures[signature_index];
+  for (summary_index = 0U; summary_index < policy->function_summary_count &&
+       summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
+    const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[summary_index];
     const M68kSection *table_section;
-    const char *struct_name;
-    uint16_t struct_id;
     uint32_t cursor;
-    if (!signature->has_section_index || signature->section_index >= lookup->object->section_count ||
-        signature->entry_count == 0U || signature->register_index >= 8U ||
-        (signature->register_kind != M68K_ANALYSIS_REGISTER_DATA &&
-         signature->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
-        signature->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
+    if (!summary->has_section_index || summary->section_index >= lookup->object->section_count) continue;
+    if (summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) {
+      if (summary->section_index == section_index && summary->entry_offset == offset)
+        typed_state_apply_function_summary_inputs(state, policy, summary, section_index, offset);
       continue;
     }
-    table_section = &lookup->object->sections[signature->section_index];
-    if (table_section->data == NULL || signature->table_offset > table_section->size ||
-        signature->entry_count > (table_section->size - signature->table_offset) / 4U) {
+    if (summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE || summary->entry_count == 0U)
       continue;
-    }
-    struct_name = signature->type_name[0] != '\0' ? signature->type_name : signature->name;
-    struct_id = lookup_policy_struct_id_by_name(policy, struct_name);
-    if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
-    for (cursor = 0U; cursor < signature->entry_count; ++cursor) {
+    table_section = &lookup->object->sections[summary->section_index];
+    if (table_section->data == NULL || summary->table_offset > table_section->size ||
+        summary->entry_count > (table_section->size - summary->table_offset) / 4U) continue;
+    for (cursor = 0U; cursor < summary->entry_count; ++cursor) {
       size_t target_section_index = 0U;
       uint32_t target_offset = 0U;
-      uint32_t value = m68k_read_u32be(table_section->data + signature->table_offset + cursor * 4U);
-      M68kRenderTypedProvenance provenance;
+      uint32_t value = m68k_read_u32be(table_section->data + summary->table_offset + cursor * 4U);
       uint16_t range_index;
       uint8_t resolved = 0U;
       for (range_index = 0U; range_index < policy->runtime_range_count &&
@@ -2125,36 +2137,9 @@ static void typed_state_apply_callback_table_signatures(M68kRenderTypedState *st
       if (target_section_index != section_index || target_offset != offset) {
         continue;
       }
-      provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, section_index, offset);
-      typed_state_set_reg_struct_id(state, signature->register_kind, signature->register_index, struct_id,
-        &provenance);
+      typed_state_apply_function_summary_inputs(state, policy, summary, section_index, offset);
       break;
     }
-  }
-}
-
-static void typed_state_apply_function_register_contracts(M68kRenderTypedState *state,
-    const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
-  uint16_t index;
-  if (state == NULL || policy == NULL) return;
-  for (index = 0U; index < policy->function_register_contract_count &&
-       index < M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT; ++index) {
-    const M68kAnalysisFunctionRegisterContract *contract = &policy->function_register_contracts[index];
-    const char *struct_name;
-    uint16_t struct_id;
-    M68kRenderTypedProvenance provenance;
-    if (!contract->has_section_index || contract->section_index != (uint32_t)section_index ||
-        contract->entry_offset != offset || contract->register_index >= 8U ||
-        (contract->register_kind != M68K_ANALYSIS_REGISTER_DATA &&
-         contract->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
-        contract->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
-      continue;
-    }
-    struct_name = contract->type_name[0] != '\0' ? contract->type_name : contract->name;
-    struct_id = lookup_policy_struct_id_by_name(policy, struct_name);
-    if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
-    provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, section_index, offset);
-    typed_state_set_reg_struct_id(state, contract->register_kind, contract->register_index, struct_id, &provenance);
   }
 }
 
@@ -4010,24 +3995,21 @@ static int typed_flow_record_local_call_input_consumers(M68kRenderLookup *lookup
     uint32_t offset, size_t target_section_index, uint32_t target_offset, const M68kRenderTypedState *state) {
   uint16_t index;
   if (lookup == NULL || lookup->policy == NULL || state == NULL) return 0;
-  for (index = 0U; index < lookup->policy->function_register_contract_count &&
-       index < M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT; ++index) {
-    const M68kAnalysisFunctionRegisterContract *contract = &lookup->policy->function_register_contracts[index];
-    const char *type_name;
-    const char *contract_name;
-    if (!contract->has_section_index || contract->section_index != (uint32_t)target_section_index ||
-        contract->entry_offset != target_offset ||
-        contract->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-        contract->register_kind != AMIGA_OS_REGISTER_ADDRESS || contract->register_index >= 8U) {
-      continue;
-    }
-    type_name = contract->type_name[0] != '\0' ? contract->type_name : contract->name;
-    contract_name = contract->name[0] != '\0' ? contract->name : type_name;
-    if (lookup_policy_struct_id_by_name(lookup->policy, type_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
-    if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
-          M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, contract->register_kind, contract->register_index,
-          type_name, contract_name, (uint32_t)target_section_index, target_offset, state) != 0) {
-      return -1;
+  for (index = 0U; index < lookup->policy->function_summary_count &&
+       index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++index) {
+    const M68kAnalysisFunctionSummary *summary = &lookup->policy->function_summaries[index];
+    uint8_t input_index;
+    if (!summary->has_section_index || summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT ||
+        summary->section_index != (uint32_t)target_section_index || summary->entry_offset != target_offset) continue;
+    for (input_index = 0U; input_index < summary->input_count; ++input_index) {
+      const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
+      if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
+          input->register_kind != AMIGA_OS_REGISTER_ADDRESS || input->register_index >= 8U ||
+          lookup_policy_struct_id_by_name(lookup->policy, input->struct_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
+      if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
+            M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, input->register_kind, input->register_index,
+            input->struct_name, summary->function_summary_id, (uint32_t)target_section_index, target_offset, state) != 0)
+        return -1;
     }
   }
   return 0;
@@ -4037,7 +4019,7 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
     uint32_t offset, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, const M68kRenderTypedState *state) {
   const M68kAnalysisPolicy *policy;
-  uint16_t signature_index;
+  uint16_t summary_index;
   size_t table_section_index;
   uint32_t table_offset;
   if (lookup == NULL || lookup->object == NULL || instruction == NULL || state == NULL ||
@@ -4045,31 +4027,26 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
         instruction, &table_section_index, &table_offset)) {
     return 0;
   }
-  for (signature_index = 0U; signature_index < policy->callback_table_signature_count &&
-       signature_index < M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT; ++signature_index) {
-    const M68kAnalysisCallbackTableSignature *signature = &policy->callback_table_signatures[signature_index];
+  for (summary_index = 0U; summary_index < policy->function_summary_count &&
+       summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
+    const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[summary_index];
     const M68kSection *table_section;
-    const char *type_name;
-    const char *contract_name;
-    if (!signature->has_section_index || signature->section_index >= lookup->object->section_count ||
-        signature->entry_count == 0U || signature->section_index != table_section_index ||
-        signature->table_offset != table_offset ||
-        signature->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-        signature->register_kind != AMIGA_OS_REGISTER_ADDRESS || signature->register_index >= 8U) {
-      continue;
-    }
-    table_section = &lookup->object->sections[signature->section_index];
-    if (table_section->data == NULL || signature->table_offset > table_section->size ||
-        signature->entry_count > (table_section->size - signature->table_offset) / 4U) {
-      continue;
-    }
-    type_name = signature->type_name[0] != '\0' ? signature->type_name : signature->name;
-    contract_name = signature->name[0] != '\0' ? signature->name : type_name;
-    if (lookup_policy_struct_id_by_name(policy, type_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
-    if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
-          M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT, signature->register_kind, signature->register_index,
-          type_name, contract_name, signature->section_index, signature->table_offset, state) != 0) {
-      return -1;
+    uint8_t input_index;
+    if (!summary->has_section_index || summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE ||
+        summary->section_index >= lookup->object->section_count || summary->entry_count == 0U ||
+        summary->section_index != table_section_index || summary->table_offset != table_offset) continue;
+    table_section = &lookup->object->sections[summary->section_index];
+    if (table_section->data == NULL || summary->table_offset > table_section->size ||
+        summary->entry_count > (table_section->size - summary->table_offset) / 4U) continue;
+    for (input_index = 0U; input_index < summary->input_count; ++input_index) {
+      const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
+      if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
+          input->register_kind != AMIGA_OS_REGISTER_ADDRESS || input->register_index >= 8U ||
+          lookup_policy_struct_id_by_name(policy, input->struct_name) == AMIGA_OS_STRUCT_ID_NONE) continue;
+      if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
+            M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT, input->register_kind, input->register_index,
+            input->struct_name, summary->function_summary_id, summary->section_index, summary->table_offset, state) != 0)
+        return -1;
     }
   }
   return 0;
@@ -4884,7 +4861,7 @@ static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68
     const M68kInstructionIR *instruction, uint8_t requested_mask) {
   const M68kAnalysisPolicy *policy;
   uint8_t dispatch_reg;
-  uint16_t signature_index;
+  uint16_t summary_index;
   size_t table_section_index = 0U;
   uint32_t table_offset = 0U;
   uint8_t preserved_mask = requested_mask;
@@ -4897,25 +4874,25 @@ static uint8_t typed_flow_callback_table_callee_preserved_address_mask(const M68
   }
   if (!typed_flow_callback_table_identity(state, section, candidate, instruction,
         &table_section_index, &table_offset)) return 0U;
-  for (signature_index = 0U; signature_index < policy->callback_table_signature_count &&
-       signature_index < M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT; ++signature_index) {
-    const M68kAnalysisCallbackTableSignature *signature = &policy->callback_table_signatures[signature_index];
+  for (summary_index = 0U; summary_index < policy->function_summary_count &&
+       summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
+    const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[summary_index];
     const M68kSection *table_section;
     uint32_t entry_index;
-    if (!signature->has_section_index || signature->section_index >= lookup->object->section_count ||
-        signature->entry_count == 0U || table_section_index != signature->section_index ||
-        table_offset != signature->table_offset) {
+    if (!summary->has_section_index || summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE ||
+        summary->section_index >= lookup->object->section_count || summary->entry_count == 0U ||
+        table_section_index != summary->section_index || table_offset != summary->table_offset) {
       continue;
     }
-    table_section = &lookup->object->sections[signature->section_index];
-    if (table_section->data == NULL || signature->table_offset > table_section->size ||
-        signature->entry_count > (table_section->size - signature->table_offset) / 4U) {
+    table_section = &lookup->object->sections[summary->section_index];
+    if (table_section->data == NULL || summary->table_offset > table_section->size ||
+        summary->entry_count > (table_section->size - summary->table_offset) / 4U) {
       return 0U;
     }
-    for (entry_index = 0U; entry_index < signature->entry_count; ++entry_index) {
+    for (entry_index = 0U; entry_index < summary->entry_count; ++entry_index) {
       size_t target_section_index = 0U;
       uint32_t target_offset = 0U;
-      uint32_t value = m68k_read_u32be(table_section->data + signature->table_offset + entry_index * 4U);
+      uint32_t value = m68k_read_u32be(table_section->data + summary->table_offset + entry_index * 4U);
       uint8_t target_preserved;
       if (!render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index,
             &target_offset)) {
@@ -6361,10 +6338,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   *out_platform_state = node->platform_in;
   typed_state_apply_policy_register_seeds(out_typed_state, lookup->policy, section->section_index,
     node->candidate->offset);
-  typed_state_apply_callback_table_signatures(out_typed_state, lookup, section->section_index,
-    node->candidate->offset);
-  typed_state_apply_function_register_contracts(out_typed_state, lookup->policy, section->section_index,
-    node->candidate->offset);
+  typed_state_apply_function_summaries(out_typed_state, lookup, section->section_index, node->candidate->offset);
   platform_state_apply_policy_register_seeds(out_platform_state, lookup->policy, section->section_index,
     node->candidate->offset);
   if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) return -1;
@@ -6808,8 +6782,7 @@ static int amiga_vector_has_typed_flow_info(const AmigaOsLibraryVectorInfo *vect
 
 static int policy_has_typed_flow_metadata(const M68kAnalysisPolicy *policy) {
   if (policy == NULL) return 0;
-  return policy->register_seed_count != 0U || policy->callback_table_signature_count != 0U ||
-    policy->function_register_contract_count != 0U ||
+  return policy->register_seed_count != 0U || policy->function_summary_count != 0U ||
     policy->rsset_layout_region_count != 0U ||
     policy->structured_data_item_count != 0U;
 }

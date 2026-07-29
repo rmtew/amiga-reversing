@@ -191,6 +191,9 @@ def migrate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             "hunk": key[1],
             "callable_kind": key[0],
             "inputs": inputs,
+            "return_contract": "unknown",
+            "register_effects": "unknown",
+            "memory_effects": "unknown",
             "note": first.payload.get("note", "Migrated function summary"),
             "context_name": first.payload.get("context_name", ""),
         }

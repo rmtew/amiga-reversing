@@ -2156,6 +2156,28 @@ static int append_metadata_entry_point_local(const char *object_start, const cha
   return platform_file_analysis_policy_add_entry_point_arg_with_provenance(policy, entry_arg, provenance);
 }
 
+static const char *json_array_field_local(const char *object_start, const char *object_end, const char *key,
+    const char **out_end) {
+  const char *cursor = json_find_key_local(object_start, object_end, key);
+  int depth = 0;
+  if (out_end != NULL) *out_end = NULL;
+  if (cursor == NULL) return NULL;
+  cursor = json_skip_ws_local(cursor, object_end);
+  if (cursor >= object_end || *cursor != '[') return NULL;
+  ++cursor;
+  for (const char *scan = cursor; scan < object_end; ++scan) {
+    if (*scan == '[') ++depth;
+    else if (*scan == ']') {
+      if (depth == 0) {
+        if (out_end != NULL) *out_end = scan;
+        return cursor;
+      }
+      --depth;
+    }
+  }
+  return NULL;
+}
+
 static int append_metadata_seeded_code_label_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t offset = 0U;
@@ -2452,105 +2474,87 @@ static int append_metadata_absolute_storage_slot_local(const char *object_start,
   }
 }
 
-static int append_metadata_callback_table_signature_local(const char *object_start, const char *object_end,
-    M68kAnalysisPolicy *policy) {
-  char register_name[8];
+static int append_metadata_function_summary_input_local(const char *object_start, const char *object_end,
+    M68kAnalysisFunctionSummary *summary) {
+  char location[8];
+  char value_kind[32];
   char struct_name[64];
-  char context_name[64];
-  char note[64];
-  uint32_t table_offset = 0U;
-  uint32_t entry_count = 0U;
-  uint32_t hunk = 0U;
-  int has_table_offset = 0;
-  int has_entry_count = 0;
-  int has_hunk = 0;
-  uint8_t register_kind;
-  uint8_t register_index;
-  M68kAnalysisCallbackTableSignature *signature;
-  if (policy == NULL || policy->callback_table_signature_count >= M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT ||
-      !json_number_field_local(object_start, object_end, "table_offset", &table_offset, &has_table_offset) ||
-      !json_number_field_local(object_start, object_end, "entry_count", &entry_count, &has_entry_count) ||
-      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
-      !json_optional_string_field_local(object_start, object_end, "register", register_name, sizeof(register_name)) ||
+  M68kAnalysisFunctionSummaryInput *input;
+  if (summary == NULL || summary->input_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT ||
+      !json_optional_string_field_local(object_start, object_end, "location", location, sizeof(location)) ||
+      !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
       !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
-      !json_optional_string_field_local(object_start, object_end, "context_name", context_name, sizeof(context_name)) ||
-      !json_optional_string_field_local(object_start, object_end, "note", note, sizeof(note))) {
-    return 0;
-  }
-  if (!has_table_offset || !has_entry_count || !has_hunk || entry_count == 0U || struct_name[0] == '\0') return 0;
-  if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' &&
-      register_name[1] <= '7' && register_name[2] == '\0') {
-    register_kind = M68K_ANALYSIS_REGISTER_DATA;
-    register_index = (uint8_t)(register_name[1] - '0');
-  } else if ((register_name[0] == 'A' || register_name[0] == 'a') && register_name[1] >= '0' &&
-             register_name[1] <= '7' && register_name[2] == '\0') {
-    register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-    register_index = (uint8_t)(register_name[1] - '0');
+      strcmp(value_kind, "struct_ptr") != 0 || struct_name[0] == '\0') return 0;
+  input = &summary->inputs[summary->input_count];
+  if ((location[0] == 'D' || location[0] == 'd') && location[1] >= '0' && location[1] <= '7' && location[2] == '\0') {
+    input->register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    input->register_index = (uint8_t)(location[1] - '0');
+  } else if ((location[0] == 'A' || location[0] == 'a') && location[1] >= '0' && location[1] <= '7' && location[2] == '\0') {
+    input->register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    input->register_index = (uint8_t)(location[1] - '0');
   } else {
     return 0;
   }
-  signature = &policy->callback_table_signatures[policy->callback_table_signature_count];
-  memset(signature, 0, sizeof(*signature));
-  signature->register_kind = register_kind;
-  signature->register_index = register_index;
-  signature->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  signature->has_section_index = 1U;
-  signature->section_index = hunk;
-  signature->table_offset = table_offset;
-  signature->entry_count = entry_count;
-  if (!copy_policy_text(signature->name, sizeof(signature->name), note) ||
-      !copy_policy_text(signature->type_name, sizeof(signature->type_name), struct_name) ||
-      !copy_policy_text(signature->context_name, sizeof(signature->context_name), context_name)) return 0;
-  policy->callback_table_signature_count += 1U;
+  input->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  if (!copy_policy_text(input->struct_name, sizeof(input->struct_name), struct_name)) return 0;
+  summary->input_count += 1U;
   return 1;
 }
 
-static int append_metadata_function_register_contract_local(const char *object_start, const char *object_end,
+static int append_metadata_function_summary_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
-  char register_name[8];
-  char struct_name[64];
+  char callable_kind[32];
+  char function_summary_id[96];
   char context_name[64];
-  char note[64];
-  uint32_t entry_offset = 0U;
-  uint32_t hunk = 0U;
-  int has_entry_offset = 0;
-  int has_hunk = 0;
-  uint8_t register_kind;
-  uint8_t register_index;
-  M68kAnalysisFunctionRegisterContract *contract;
-  if (policy == NULL || policy->function_register_contract_count >= M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT ||
-      !json_number_field_local(object_start, object_end, "entry_offset", &entry_offset, &has_entry_offset) ||
+  char return_contract[32];
+  char register_effects[32];
+  char memory_effects[32];
+  uint32_t hunk = 0U, entry_offset = 0U, table_offset = 0U, entry_count = 0U;
+  int has_hunk = 0, has_entry_offset = 0, has_table_offset = 0, has_entry_count = 0;
+  const char *inputs_end;
+  const char *cursor;
+  M68kAnalysisFunctionSummary *summary;
+  if (policy == NULL || policy->function_summary_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
-      !json_optional_string_field_local(object_start, object_end, "register", register_name, sizeof(register_name)) ||
-      !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
+      !json_number_field_local(object_start, object_end, "entry_offset", &entry_offset, &has_entry_offset) ||
+      !json_number_field_local(object_start, object_end, "table_offset", &table_offset, &has_table_offset) ||
+      !json_number_field_local(object_start, object_end, "entry_count", &entry_count, &has_entry_count) ||
+      !json_optional_string_field_local(object_start, object_end, "callable_kind", callable_kind, sizeof(callable_kind)) ||
+      !json_optional_string_field_local(object_start, object_end, "function_summary_id", function_summary_id, sizeof(function_summary_id)) ||
       !json_optional_string_field_local(object_start, object_end, "context_name", context_name, sizeof(context_name)) ||
-      !json_optional_string_field_local(object_start, object_end, "note", note, sizeof(note))) {
-    return 0;
+      !json_optional_string_field_local(object_start, object_end, "return_contract", return_contract, sizeof(return_contract)) ||
+      !json_optional_string_field_local(object_start, object_end, "register_effects", register_effects, sizeof(register_effects)) ||
+      !json_optional_string_field_local(object_start, object_end, "memory_effects", memory_effects, sizeof(memory_effects)) ||
+      !has_hunk || function_summary_id[0] == '\0' || strcmp(return_contract, "unknown") != 0 ||
+      strcmp(register_effects, "unknown") != 0 || strcmp(memory_effects, "unknown") != 0) return 0;
+  summary = &policy->function_summaries[policy->function_summary_count];
+  memset(summary, 0, sizeof(*summary));
+  summary->has_section_index = 1U;
+  summary->section_index = hunk;
+  summary->return_contract_unknown = 1U;
+  summary->register_effects_unknown = 1U;
+  summary->memory_effects_unknown = 1U;
+  if (strcmp(callable_kind, "direct") == 0 && has_entry_offset && !has_table_offset && !has_entry_count) {
+    summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+    summary->entry_offset = entry_offset;
+  } else if (strcmp(callable_kind, "callback_table") == 0 && !has_entry_offset && has_table_offset &&
+      has_entry_count && entry_count != 0U) {
+    summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
+    summary->table_offset = table_offset;
+    summary->entry_count = entry_count;
+  } else return 0;
+  if (!copy_policy_text(summary->function_summary_id, sizeof(summary->function_summary_id), function_summary_id) ||
+      !copy_policy_text(summary->context_name, sizeof(summary->context_name), context_name)) return 0;
+  cursor = json_array_field_local(object_start, object_end, "inputs", &inputs_end);
+  while (cursor != NULL && cursor < inputs_end) {
+    const char *input_end;
+    const char *input_start = json_next_object_local(cursor, inputs_end, &input_end);
+    if (input_start == NULL) break;
+    if (!append_metadata_function_summary_input_local(input_start, input_end, summary)) return 0;
+    cursor = input_end;
   }
-  if (!has_entry_offset || !has_hunk || struct_name[0] == '\0') return 0;
-  if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' &&
-      register_name[1] <= '7' && register_name[2] == '\0') {
-    register_kind = M68K_ANALYSIS_REGISTER_DATA;
-    register_index = (uint8_t)(register_name[1] - '0');
-  } else if ((register_name[0] == 'A' || register_name[0] == 'a') && register_name[1] >= '0' &&
-             register_name[1] <= '7' && register_name[2] == '\0') {
-    register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-    register_index = (uint8_t)(register_name[1] - '0');
-  } else {
-    return 0;
-  }
-  contract = &policy->function_register_contracts[policy->function_register_contract_count];
-  memset(contract, 0, sizeof(*contract));
-  contract->register_kind = register_kind;
-  contract->register_index = register_index;
-  contract->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  contract->has_section_index = 1U;
-  contract->section_index = hunk;
-  contract->entry_offset = entry_offset;
-  if (!copy_policy_text(contract->name, sizeof(contract->name), note) ||
-      !copy_policy_text(contract->type_name, sizeof(contract->type_name), struct_name) ||
-      !copy_policy_text(contract->context_name, sizeof(contract->context_name), context_name)) return 0;
-  policy->function_register_contract_count += 1U;
+  if (summary->input_count == 0U) return 0;
+  policy->function_summary_count += 1U;
   return 1;
 }
 
@@ -8074,24 +8078,13 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     }
     cursor = object_end;
   }
-  cursor = json_find_array_local(text, "callback_table_signatures", &array_end);
+  cursor = json_find_array_local(text, "function_summaries", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
-    if (!append_metadata_callback_table_signature_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata callback table signature");
-      return -1;
-    }
-    cursor = object_end;
-  }
-  cursor = json_find_array_local(text, "function_register_contracts", &array_end);
-  while (cursor != NULL && cursor < array_end) {
-    const char *object_end;
-    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
-    if (object_start == NULL) break;
-    if (!append_metadata_function_register_contract_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata function register contract");
+    if (!append_metadata_function_summary_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata function summary");
       return -1;
     }
     cursor = object_end;
@@ -8538,28 +8531,32 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
           seed->entry_offset, "target metadata register seed offset is out of range for source file"))
       return 0;
   }
-  for (index = 0U; index < policy->callback_table_signature_count &&
-       index < M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT; ++index) {
-    const M68kAnalysisCallbackTableSignature *signature = &policy->callback_table_signatures[index];
-    if (!signature->has_section_index || signature->entry_count == 0U ||
-        signature->entry_count > UINT32_MAX / 4U ||
-        !validate_policy_range_local(diagnostics, object, signature->has_section_index, signature->section_index,
-          signature->table_offset, signature->entry_count * 4U)) {
-      platform_file_add_error(diagnostics, "target metadata callback table signature range is invalid");
+  for (index = 0U; index < policy->function_summary_count &&
+       index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++index) {
+    const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[index];
+    uint8_t input_index;
+    if (!summary->has_section_index || summary->input_count == 0U ||
+        summary->input_count > M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT ||
+        (summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+         !validate_policy_offset_local(diagnostics, object, 1U, summary->section_index, summary->entry_offset,
+           "target metadata function summary entry offset is out of range for source file")) ||
+        (summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE &&
+         (summary->entry_count == 0U || summary->entry_count > UINT32_MAX / 4U ||
+          !validate_policy_range_local(diagnostics, object, 1U, summary->section_index, summary->table_offset,
+            summary->entry_count * 4U))) ||
+        (summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+         summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE)) {
+      platform_file_add_error(diagnostics, "target metadata function summary is invalid");
       return 0;
     }
-  }
-  for (index = 0U; index < policy->function_register_contract_count &&
-       index < M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT; ++index) {
-    const M68kAnalysisFunctionRegisterContract *contract = &policy->function_register_contracts[index];
-    if (!contract->has_section_index || contract->register_index >= 8U ||
-        (contract->register_kind != M68K_ANALYSIS_REGISTER_DATA &&
-         contract->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
-        contract->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-        !validate_policy_offset_local(diagnostics, object, contract->has_section_index, contract->section_index,
-          contract->entry_offset, "target metadata function register contract offset is out of range for source file")) {
-      platform_file_add_error(diagnostics, "target metadata function register contract is invalid");
-      return 0;
+    for (input_index = 0U; input_index < summary->input_count; ++input_index) {
+      const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[input_index];
+      if (input->register_index >= 8U ||
+          (input->register_kind != M68K_ANALYSIS_REGISTER_DATA && input->register_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+          input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR || input->struct_name[0] == '\0') {
+        platform_file_add_error(diagnostics, "target metadata function summary input is invalid");
+        return 0;
+      }
     }
   }
   for (index = 0U; index < policy->structured_data_item_count &&

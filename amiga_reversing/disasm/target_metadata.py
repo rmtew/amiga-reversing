@@ -276,58 +276,86 @@ class EntryRegisterSeedMetadata:
 
 
 @dataclass(frozen=True, slots=True)
-class CallbackTableSignatureMetadata:
-    hunk: int
-    table_offset: int
-    entry_count: int
-    register: str
+class FunctionSummaryInputMetadata:
+    location: str
+    value_kind: str
     struct_name: str
-    note: str
-    context_name: str | None = None
 
     @classmethod
-    def from_dict(cls, payload: dict[str, object]) -> CallbackTableSignatureMetadata:
-        hunk = payload["hunk"]
-        table_offset = payload["table_offset"]
-        entry_count = payload["entry_count"]
-        register = payload["register"]
+    def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryInputMetadata:
+        location = payload["location"]
+        value_kind = payload["value_kind"]
         struct_name = payload["struct_name"]
-        note = payload["note"]
-        context_name = payload.get("context_name")
-        assert isinstance(hunk, int)
-        assert isinstance(table_offset, int)
-        assert isinstance(entry_count, int) and entry_count > 0
-        assert isinstance(register, str)
+        assert isinstance(location, str) and location
+        assert isinstance(value_kind, str) and value_kind == "struct_ptr"
         assert isinstance(struct_name, str) and struct_name
-        assert isinstance(note, str)
-        assert context_name is None or isinstance(context_name, str)
-        return cls(hunk, table_offset, entry_count, register, struct_name, note, context_name)
+        return cls(location.upper(), value_kind, struct_name)
 
 
 @dataclass(frozen=True, slots=True)
-class FunctionRegisterContractMetadata:
+class FunctionSummaryMetadata:
+    function_summary_id: str
     hunk: int
-    entry_offset: int
-    register: str
-    struct_name: str
+    callable_kind: str
+    inputs: tuple[FunctionSummaryInputMetadata, ...]
+    return_contract: str
+    register_effects: str
+    memory_effects: str
     note: str
     context_name: str | None = None
+    entry_offset: int | None = None
+    table_offset: int | None = None
+    entry_count: int | None = None
 
     @classmethod
-    def from_dict(cls, payload: dict[str, object]) -> FunctionRegisterContractMetadata:
+    def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryMetadata:
+        function_summary_id = payload["function_summary_id"]
         hunk = payload["hunk"]
-        entry_offset = payload["entry_offset"]
-        register = payload["register"]
-        struct_name = payload["struct_name"]
+        callable_kind = payload["callable_kind"]
+        inputs = payload["inputs"]
+        return_contract = payload["return_contract"]
+        register_effects = payload["register_effects"]
+        memory_effects = payload["memory_effects"]
         note = payload["note"]
         context_name = payload.get("context_name")
-        assert isinstance(hunk, int)
-        assert isinstance(entry_offset, int)
-        assert isinstance(register, str)
-        assert isinstance(struct_name, str) and struct_name
+        entry_offset = payload.get("entry_offset")
+        table_offset = payload.get("table_offset")
+        entry_count = payload.get("entry_count")
+        assert isinstance(function_summary_id, str) and function_summary_id
+        assert isinstance(hunk, int) and hunk >= 0
+        assert callable_kind in {"direct", "callback_table"}
+        assert isinstance(return_contract, str) and return_contract == "unknown"
+        assert isinstance(register_effects, str) and register_effects == "unknown"
+        assert isinstance(memory_effects, str) and memory_effects == "unknown"
         assert isinstance(note, str)
         assert context_name is None or isinstance(context_name, str)
-        return cls(hunk, entry_offset, register, struct_name, note, context_name)
+        parsed_inputs = tuple(
+            FunctionSummaryInputMetadata.from_dict(_json_object(item))
+            for item in _json_list(inputs)
+        )
+        assert parsed_inputs
+        assert len({item.location for item in parsed_inputs}) == len(parsed_inputs)
+        if callable_kind == "direct":
+            assert isinstance(entry_offset, int) and entry_offset >= 0
+            assert table_offset is None and entry_count is None
+        else:
+            assert entry_offset is None
+            assert isinstance(table_offset, int) and table_offset >= 0
+            assert isinstance(entry_count, int) and entry_count > 0
+        return cls(
+            function_summary_id=function_summary_id,
+            hunk=hunk,
+            callable_kind=callable_kind,
+            inputs=parsed_inputs,
+            return_contract=return_contract,
+            register_effects=register_effects,
+            memory_effects=memory_effects,
+            note=note,
+            context_name=context_name,
+            entry_offset=entry_offset,
+            table_offset=table_offset,
+            entry_count=entry_count,
+        )
 
 @dataclass(frozen=True, slots=True)
 class ResidentTargetMetadata:
@@ -1467,8 +1495,7 @@ class DataBlockLayoutMetadata:
 class TargetMetadata:
     target_type: str
     entry_register_seeds: tuple[EntryRegisterSeedMetadata, ...]
-    callback_table_signatures: tuple[CallbackTableSignatureMetadata, ...] = ()
-    function_register_contracts: tuple[FunctionRegisterContractMetadata, ...] = ()
+    function_summaries: tuple[FunctionSummaryMetadata, ...] = ()
     bootblock: BootBlockTargetMetadata | None = None
     resident: ResidentTargetMetadata | None = None
     library: LibraryTargetMetadata | None = None
@@ -1492,8 +1519,7 @@ class TargetMetadata:
     def from_dict(cls, payload: dict[str, object]) -> TargetMetadata:
         target_type = payload["target_type"]
         entry_register_seeds = payload["entry_register_seeds"]
-        callback_table_signatures = payload.get("callback_table_signatures", [])
-        function_register_contracts = payload.get("function_register_contracts", [])
+        function_summaries = payload.get("function_summaries", [])
         bootblock = payload["bootblock"]
         resident = payload["resident"]
         library = payload["library"]
@@ -1520,13 +1546,9 @@ class TargetMetadata:
                 EntryRegisterSeedMetadata.from_dict(_json_object(seed))
                 for seed in seeds
             ),
-            callback_table_signatures=tuple(
-                CallbackTableSignatureMetadata.from_dict(_json_object(signature))
-                for signature in _json_list(callback_table_signatures)
-            ),
-            function_register_contracts=tuple(
-                FunctionRegisterContractMetadata.from_dict(_json_object(contract))
-                for contract in _json_list(function_register_contracts)
+            function_summaries=tuple(
+                FunctionSummaryMetadata.from_dict(_json_object(summary))
+                for summary in _json_list(function_summaries)
             ),
             bootblock=None if bootblock is None else BootBlockTargetMetadata.from_dict(_json_object(bootblock)),
             resident=None if resident is None else ResidentTargetMetadata.from_dict(_json_object(resident)),
@@ -1663,6 +1685,14 @@ def write_target_corrections_metadata(target_dir: Path, metadata: TargetMetadata
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
+    function_summaries = payload.get("function_summaries")
+    if isinstance(function_summaries, list | tuple):
+        for summary in function_summaries:
+            if not isinstance(summary, dict):
+                continue
+            for key in ("entry_offset", "table_offset", "entry_count", "context_name"):
+                if summary.get(key) is None:
+                    summary.pop(key, None)
     bootblock = payload.get("bootblock")
     if isinstance(bootblock, dict) and bootblock.get("bootcode_has_code") is None:
         bootblock.pop("bootcode_has_code", None)
@@ -1723,10 +1753,8 @@ def validate_target_seeded_metadata(metadata: TargetMetadata) -> TargetMetadata:
         raise ValueError("target_seeded_metadata.json must not contain library metadata")
     if metadata.entry_register_seeds:
         raise ValueError("target_seeded_metadata.json must not contain entry_register_seeds")
-    if metadata.callback_table_signatures:
-        raise ValueError("target_seeded_metadata.json must not contain callback_table_signatures")
-    if metadata.function_register_contracts:
-        raise ValueError("target_seeded_metadata.json must not contain function_register_contracts")
+    if metadata.function_summaries:
+        raise ValueError("target_seeded_metadata.json must not contain function_summaries")
     if metadata.suppressed_seeded_items:
         raise ValueError("target_seeded_metadata.json must not contain suppressed_seeded_items")
     if metadata.target_equates:
@@ -1789,10 +1817,8 @@ def validate_target_corrections_metadata(metadata: TargetMetadata) -> TargetMeta
         raise ValueError("target_corrections.json must not contain library metadata")
     if metadata.entry_register_seeds:
         raise ValueError("target_corrections.json must not contain entry_register_seeds")
-    if metadata.callback_table_signatures:
-        raise ValueError("target_corrections.json must not contain callback_table_signatures")
-    if metadata.function_register_contracts:
-        raise ValueError("target_corrections.json must not contain function_register_contracts")
+    if metadata.function_summaries:
+        raise ValueError("target_corrections.json must not contain function_summaries")
     if metadata.custom_structs:
         raise ValueError("target_corrections.json must not contain custom_structs")
     if metadata.rsset_layout_regions:
@@ -1812,8 +1838,7 @@ def apply_suppressed_seeded_items(
     return TargetMetadata(
         target_type=seeded.target_type,
         entry_register_seeds=seeded.entry_register_seeds,
-        callback_table_signatures=seeded.callback_table_signatures,
-        function_register_contracts=seeded.function_register_contracts,
+        function_summaries=seeded.function_summaries,
         bootblock=seeded.bootblock,
         resident=seeded.resident,
         library=seeded.library,
@@ -2120,16 +2145,13 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
         raise ValueError("Conflicting target_type between target metadata and seeded target metadata")
     if seeded.entry_register_seeds:
         raise ValueError("Conflicting entry_register_seeds between target metadata and seeded target metadata")
-    if seeded.callback_table_signatures:
-        raise ValueError("Conflicting callback_table_signatures between target metadata and seeded target metadata")
-    if seeded.function_register_contracts:
-        raise ValueError("Conflicting function_register_contracts between target metadata and seeded target metadata")
+    if seeded.function_summaries:
+        raise ValueError("Conflicting function_summaries between target metadata and seeded target metadata")
     seeded = apply_suppressed_seeded_items(seeded, manual.suppressed_seeded_items)
     return TargetMetadata(
         target_type=manual.target_type,
         entry_register_seeds=manual.entry_register_seeds,
-        callback_table_signatures=manual.callback_table_signatures,
-        function_register_contracts=manual.function_register_contracts,
+        function_summaries=manual.function_summaries,
         bootblock=_merge_optional_field(manual.bootblock, seeded.bootblock, what="bootblock metadata"),
         resident=_merge_optional_field(manual.resident, seeded.resident, what="resident metadata"),
         library=_merge_optional_field(manual.library, seeded.library, what="library metadata"),

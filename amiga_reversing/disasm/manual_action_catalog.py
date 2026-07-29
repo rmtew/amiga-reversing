@@ -121,10 +121,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_code_label_remove_action(),
         _target_code_register_seed_action(),
         _target_code_register_seed_remove_action(),
-        _target_callback_table_signature_action(),
-        _target_callback_table_signature_remove_action(),
-        _target_function_register_contract_action(),
-        _target_function_register_contract_remove_action(),
+        _target_function_summary_action(),
+        _target_function_summary_remove_action(),
         _target_data_block_layout_action(),
         _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
@@ -191,22 +189,10 @@ def target_catalog_manual_payload(
         return "create_manual_register_seed", {"register_seed": _target_code_register_seed_payload(params)}
     if action.get("action") == "remove_manual_register_seed":
         return "remove_manual_register_seed", {"register_seed_id": str(params["register_seed_id"])}
-    if action.get("action") == "create_manual_callback_table_signature":
-        return "create_manual_callback_table_signature", {
-            "callback_table_signature": _target_callback_table_signature_payload(params)
-        }
-    if action.get("action") == "remove_manual_callback_table_signature":
-        return "remove_manual_callback_table_signature", {
-            "callback_table_signature_id": str(params["callback_table_signature_id"])
-        }
-    if action.get("action") == "create_manual_function_register_contract":
-        return "create_manual_function_register_contract", {
-            "function_register_contract": _target_function_register_contract_payload(params)
-        }
-    if action.get("action") == "remove_manual_function_register_contract":
-        return "remove_manual_function_register_contract", {
-            "function_register_contract_id": str(params["function_register_contract_id"])
-        }
+    if action.get("action") == "create_manual_function_summary":
+        return "create_manual_function_summary", {"function_summary": _target_function_summary_payload(params)}
+    if action.get("action") == "remove_manual_function_summary":
+        return "remove_manual_function_summary", {"function_summary_id": str(params["function_summary_id"])}
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
     if action.get("action") == "remove_manual_data_block_layout":
@@ -5811,67 +5797,36 @@ def _target_code_register_seed_remove_action() -> dict[str, object]:
     )
 
 
-def _target_callback_table_signature_action() -> dict[str, object]:
+def _target_function_summary_action() -> dict[str, object]:
     return _target_log_action(
-        "target.callback_table_signature.add",
-        "Add typed callback-table signature",
-        "create_manual_callback_table_signature",
+        "target.function_summary.add",
+        "Add typed function summary",
+        "create_manual_function_summary",
         {
             "type": "object",
             "properties": {
                 "hunk": {"type": "integer", "minimum": 0},
+                "callable_kind": {"type": "string", "enum": ["direct", "callback_table"]},
+                "entry_offset": {"type": "integer", "minimum": 0},
                 "table_offset": {"type": "integer", "minimum": 0},
                 "entry_count": {"type": "integer", "minimum": 1},
-                "register": {"type": "string"},
-                "struct_name": {"type": "string"},
+                "inputs": {"type": "array", "minItems": 1},
                 "context_name": {"type": "string"},
             },
-            "required": ["hunk", "table_offset", "entry_count", "register", "struct_name"],
+            "required": ["hunk", "callable_kind", "inputs"],
         },
     )
 
 
-def _target_callback_table_signature_remove_action() -> dict[str, object]:
+def _target_function_summary_remove_action() -> dict[str, object]:
     return _target_log_action(
-        "target.callback_table_signature.remove",
-        "Remove typed callback-table signature",
-        "remove_manual_callback_table_signature",
+        "target.function_summary.remove",
+        "Remove typed function summary",
+        "remove_manual_function_summary",
         {
             "type": "object",
-            "properties": {"callback_table_signature_id": {"type": "string"}},
-            "required": ["callback_table_signature_id"],
-        },
-    )
-
-
-def _target_function_register_contract_action() -> dict[str, object]:
-    return _target_log_action(
-        "target.function.register_contract.add",
-        "Add typed function-register contract",
-        "create_manual_function_register_contract",
-        {
-            "type": "object",
-            "properties": {
-                "hunk": {"type": "integer", "minimum": 0},
-                "entry_offset": {"type": "integer", "minimum": 0},
-                "register": {"type": "string"},
-                "struct_name": {"type": "string"},
-                "context_name": {"type": "string"},
-            },
-            "required": ["hunk", "entry_offset", "register", "struct_name"],
-        },
-    )
-
-
-def _target_function_register_contract_remove_action() -> dict[str, object]:
-    return _target_log_action(
-        "target.function.register_contract.remove",
-        "Remove typed function-register contract",
-        "remove_manual_function_register_contract",
-        {
-            "type": "object",
-            "properties": {"function_register_contract_id": {"type": "string"}},
-            "required": ["function_register_contract_id"],
+            "properties": {"function_summary_id": {"type": "string"}},
+            "required": ["function_summary_id"],
         },
     )
 
@@ -5944,58 +5899,58 @@ def _target_code_register_seed_payload(params: Mapping[str, object]) -> dict[str
     return seed
 
 
-def _target_callback_table_signature_payload(params: Mapping[str, object]) -> dict[str, object]:
+def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, object]:
     hunk = _optional_int(params.get("hunk"))
+    callable_kind = params.get("callable_kind")
+    entry_offset = _optional_int(params.get("entry_offset"))
     table_offset = _optional_int(params.get("table_offset"))
     entry_count = _optional_int(params.get("entry_count"))
-    register = params.get("register")
-    struct_name = params.get("struct_name")
-    if hunk is None or table_offset is None or entry_count is None or entry_count <= 0 or not isinstance(register, str) \
-            or not register.strip() or not isinstance(struct_name, str) or not struct_name.strip():
-        raise ValueError("target.callback_table_signature.add requires hunk, table_offset, entry_count, register, and struct_name")
-    normalized_register = register.strip().upper()
-    signature: dict[str, object] = {
-        "callback_table_signature_id": (
-            f"catalog-callback-table-signature-h{hunk}-{table_offset:08X}-{normalized_register}"
-        ),
+    raw_inputs = params.get("inputs")
+    if hunk is None or callable_kind not in {"direct", "callback_table"} or not isinstance(raw_inputs, list):
+        raise ValueError("target.function_summary.add requires hunk, callable_kind, and inputs")
+    inputs: list[dict[str, str]] = []
+    for raw_input in raw_inputs:
+        if not isinstance(raw_input, Mapping):
+            raise ValueError("target.function_summary.add inputs must be objects")
+        location = raw_input.get("location")
+        struct_name = raw_input.get("struct_name")
+        if not isinstance(location, str) or not location.strip() or not isinstance(struct_name, str) or not struct_name.strip():
+            raise ValueError("target.function_summary.add inputs require location and struct_name")
+        inputs.append({"location": location.strip().upper(), "value_kind": "struct_ptr", "struct_name": struct_name.strip()})
+    if not inputs or len({item["location"] for item in inputs}) != len(inputs):
+        raise ValueError("target.function_summary.add inputs must have distinct locations")
+    if callable_kind == "direct":
+        if entry_offset is None:
+            raise ValueError("direct function summary requires entry_offset")
+        if table_offset is not None or entry_count is not None:
+            raise ValueError("direct function summary cannot specify callback table fields")
+        summary_id = f"catalog-function-summary-entry-h{hunk}-{entry_offset:08X}"
+    else:
+        if table_offset is None or entry_count is None or entry_count <= 0:
+            raise ValueError("callback-table function summary requires table_offset and entry_count")
+        if entry_offset is not None:
+            raise ValueError("callback-table function summary cannot specify entry_offset")
+        summary_id = f"catalog-function-summary-table-h{hunk}-{table_offset:08X}-{entry_count}"
+    summary: dict[str, object] = {
+        "function_summary_id": summary_id,
         "hunk": hunk,
-        "table_offset": table_offset,
-        "entry_count": entry_count,
-        "register": normalized_register,
-        "struct_name": struct_name.strip(),
-        "note": "Typed callback-table signature",
+        "callable_kind": callable_kind,
+        "inputs": inputs,
+        "return_contract": "unknown",
+        "register_effects": "unknown",
+        "memory_effects": "unknown",
+        "note": "Typed function summary",
         "context_name": "",
     }
+    if callable_kind == "direct":
+        summary["entry_offset"] = entry_offset
+    else:
+        summary["table_offset"] = table_offset
+        summary["entry_count"] = entry_count
     context_name = params.get("context_name")
     if isinstance(context_name, str) and context_name.strip():
-        signature["context_name"] = context_name.strip()
-    return signature
-
-
-def _target_function_register_contract_payload(params: Mapping[str, object]) -> dict[str, object]:
-    hunk = _optional_int(params.get("hunk"))
-    entry_offset = _optional_int(params.get("entry_offset"))
-    register = params.get("register")
-    struct_name = params.get("struct_name")
-    if hunk is None or entry_offset is None or not isinstance(register, str) or not register.strip() \
-            or not isinstance(struct_name, str) or not struct_name.strip():
-        raise ValueError("target.function.register_contract.add requires hunk, entry_offset, register, and struct_name")
-    normalized_register = register.strip().upper()
-    contract: dict[str, object] = {
-        "function_register_contract_id": (
-            f"catalog-function-register-contract-h{hunk}-{entry_offset:08X}-{normalized_register}"
-        ),
-        "hunk": hunk,
-        "entry_offset": entry_offset,
-        "register": normalized_register,
-        "struct_name": struct_name.strip(),
-        "note": "Typed function-register contract",
-        "context_name": "",
-    }
-    context_name = params.get("context_name")
-    if isinstance(context_name, str) and context_name.strip():
-        contract["context_name"] = context_name.strip()
-    return contract
+        summary["context_name"] = context_name.strip()
+    return summary
 
 
 def _target_data_block_element_action() -> dict[str, object]:

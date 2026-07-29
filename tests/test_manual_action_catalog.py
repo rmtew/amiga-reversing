@@ -281,34 +281,37 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
     assert payload == {"register_seed_id": "catalog-code-register-seed-h0-0004D37E-A5"}
 
     kind, payload = target_catalog_manual_payload(
-        "target.function.register_contract.add",
+        "target.function_summary.add",
         {
             "hunk": 0,
+            "callable_kind": "direct",
             "entry_offset": 0x7BBA,
-            "register": "a5",
-            "struct_name": "world_object_shared_prefix",
+            "inputs": [{"location": "a5", "struct_name": "world_object_shared_prefix"}],
             "context_name": "npc_item_trade_validation",
         },
     )
-    assert kind == "create_manual_function_register_contract"
+    assert kind == "create_manual_function_summary"
     assert payload == {
-        "function_register_contract": {
-            "function_register_contract_id": "catalog-function-register-contract-h0-00007BBA-A5",
+        "function_summary": {
+            "function_summary_id": "catalog-function-summary-entry-h0-00007BBA",
             "hunk": 0,
+            "callable_kind": "direct",
             "entry_offset": 0x7BBA,
-            "register": "A5",
-            "struct_name": "world_object_shared_prefix",
+            "inputs": [{"location": "A5", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+            "return_contract": "unknown",
+            "register_effects": "unknown",
+            "memory_effects": "unknown",
             "context_name": "npc_item_trade_validation",
-            "note": "Typed function-register contract",
+            "note": "Typed function summary",
         }
     }
 
     kind, payload = target_catalog_manual_payload(
-        "target.function.register_contract.remove",
-        {"function_register_contract_id": "catalog-function-register-contract-h0-00007BBA-A5"},
+        "target.function_summary.remove",
+        {"function_summary_id": "catalog-function-summary-entry-h0-00007BBA"},
     )
-    assert kind == "remove_manual_function_register_contract"
-    assert payload == {"function_register_contract_id": "catalog-function-register-contract-h0-00007BBA-A5"}
+    assert kind == "remove_manual_function_summary"
+    assert payload == {"function_summary_id": "catalog-function-summary-entry-h0-00007BBA"}
 
 
 def test_provenance_source_evidence_id_includes_all_parent_evidence_ids() -> None:

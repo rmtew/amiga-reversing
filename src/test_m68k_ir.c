@@ -27238,17 +27238,17 @@ static int test_facts_v2_analysis_marks_candidate_overflow_at_five_way_branch_me
   policy.register_seeds[0].section_index = 0U;
   snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
     "world_object_shared_prefix");
-  policy.function_register_contract_count = 1U;
-  policy.function_register_contracts[0].has_section_index = 1U;
-  policy.function_register_contracts[0].section_index = 0U;
-  policy.function_register_contracts[0].entry_offset = 0x62U;
-  policy.function_register_contracts[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
-  policy.function_register_contracts[0].register_index = 0U;
-  policy.function_register_contracts[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  snprintf(policy.function_register_contracts[0].name,
-    sizeof(policy.function_register_contracts[0].name), "overflow_callback_arg");
-  snprintf(policy.function_register_contracts[0].type_name,
-    sizeof(policy.function_register_contracts[0].type_name), "world_object_shared_prefix");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].entry_offset = 0x62U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].register_index = 0U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "overflow_callback_arg");
+  snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "world_object_shared_prefix");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -27462,17 +27462,17 @@ static int test_facts_v2_analysis_records_local_function_address_value_consumer(
   policy.custom_struct_owner = 1U;
   snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "callback_context");
   custom_structs[0].size = 4U;
-  policy.function_register_contract_count = 1U;
-  policy.function_register_contracts[0].has_section_index = 1U;
-  policy.function_register_contracts[0].section_index = 0U;
-  policy.function_register_contracts[0].entry_offset = 0x20U;
-  policy.function_register_contracts[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
-  policy.function_register_contracts[0].register_index = 0U;
-  policy.function_register_contracts[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  snprintf(policy.function_register_contracts[0].name,
-    sizeof(policy.function_register_contracts[0].name), "callback_context_arg");
-  snprintf(policy.function_register_contracts[0].type_name,
-    sizeof(policy.function_register_contracts[0].type_name), "callback_context");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].entry_offset = 0x20U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].register_index = 0U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_arg");
+  snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "callback_context");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].pointer_store_count);
@@ -27582,18 +27582,18 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   policy.custom_struct_owner = 1U;
   snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "callback_context");
   custom_structs[0].size = 4U;
-  policy.callback_table_signature_count = 1U;
-  policy.callback_table_signatures[0].has_section_index = 1U;
-  policy.callback_table_signatures[0].section_index = 0U;
-  policy.callback_table_signatures[0].table_offset = 24U;
-  policy.callback_table_signatures[0].entry_count = 1U;
-  policy.callback_table_signatures[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
-  policy.callback_table_signatures[0].register_index = 5U;
-  policy.callback_table_signatures[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  snprintf(policy.callback_table_signatures[0].name, sizeof(policy.callback_table_signatures[0].name),
-    "callback_context_table");
-  snprintf(policy.callback_table_signatures[0].type_name, sizeof(policy.callback_table_signatures[0].type_name),
-    "callback_context");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].table_offset = 24U;
+  policy.function_summaries[0].entry_count = 1U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].register_index = 5U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id), "callback_context_table");
+  snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "callback_context");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
@@ -27992,16 +27992,17 @@ static int test_facts_v2_render_asm_source_applies_callback_table_signature(void
   custom_structs[0].fields[0].offset = 2U;
   custom_structs[0].fields[0].size = 2U;
   snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "world_y");
-  policy.callback_table_signature_count = 1U;
-  policy.callback_table_signatures[0].has_section_index = 1U;
-  policy.callback_table_signatures[0].section_index = 0U;
-  policy.callback_table_signatures[0].table_offset = 18U;
-  policy.callback_table_signatures[0].entry_count = 1U;
-  policy.callback_table_signatures[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-  policy.callback_table_signatures[0].register_index = 5U;
-  policy.callback_table_signatures[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  snprintf(policy.callback_table_signatures[0].type_name,
-    sizeof(policy.callback_table_signatures[0].type_name), "world_object_shared_prefix");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].table_offset = 18U;
+  policy.function_summaries[0].entry_count = 1U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].register_index = 5U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "world_object_shared_prefix");
   policy.register_seed_count = 1U;
   policy.register_seeds[0].has_section_index = 1U;
   policy.register_seeds[0].section_index = 0U;
@@ -28064,15 +28065,16 @@ static int test_facts_v2_render_asm_source_applies_function_register_contract(vo
   custom_structs[0].fields[0].offset = 2U;
   custom_structs[0].fields[0].size = 2U;
   snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "world_y");
-  policy.function_register_contract_count = 1U;
-  policy.function_register_contracts[0].has_section_index = 1U;
-  policy.function_register_contracts[0].section_index = 0U;
-  policy.function_register_contracts[0].entry_offset = 4U;
-  policy.function_register_contracts[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-  policy.function_register_contracts[0].register_index = 5U;
-  policy.function_register_contracts[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  snprintf(policy.function_register_contracts[0].type_name,
-    sizeof(policy.function_register_contracts[0].type_name), "world_object_shared_prefix");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].entry_offset = 4U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].register_index = 5U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].inputs[0].struct_name, sizeof(policy.function_summaries[0].inputs[0].struct_name), "world_object_shared_prefix");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);

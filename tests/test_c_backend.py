@@ -1153,32 +1153,32 @@ class _M68kAnalysisRegisterSeed(ctypes.Structure):
     ]
 
 
-class _M68kAnalysisCallbackTableSignature(ctypes.Structure):
+class _M68kAnalysisFunctionSummaryInput(ctypes.Structure):
     _fields_ = [
         ("register_kind", ctypes.c_uint8),
         ("register_index", ctypes.c_uint8),
         ("seed_kind", ctypes.c_uint8),
-        ("has_section_index", ctypes.c_uint8),
-        ("section_index", ctypes.c_uint32),
-        ("table_offset", ctypes.c_uint32),
-        ("entry_count", ctypes.c_uint32),
-        ("name", ctypes.c_char * 64),
-        ("type_name", ctypes.c_char * 64),
-        ("context_name", ctypes.c_char * 64),
+        ("reserved", ctypes.c_uint8),
+        ("struct_name", ctypes.c_char * 64),
     ]
 
 
-class _M68kAnalysisFunctionRegisterContract(ctypes.Structure):
+class _M68kAnalysisFunctionSummary(ctypes.Structure):
     _fields_ = [
-        ("register_kind", ctypes.c_uint8),
-        ("register_index", ctypes.c_uint8),
-        ("seed_kind", ctypes.c_uint8),
+        ("callable_kind", ctypes.c_uint8),
         ("has_section_index", ctypes.c_uint8),
+        ("input_count", ctypes.c_uint8),
+        ("return_contract_unknown", ctypes.c_uint8),
+        ("register_effects_unknown", ctypes.c_uint8),
+        ("memory_effects_unknown", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
         ("section_index", ctypes.c_uint32),
         ("entry_offset", ctypes.c_uint32),
-        ("name", ctypes.c_char * 64),
-        ("type_name", ctypes.c_char * 64),
+        ("table_offset", ctypes.c_uint32),
+        ("entry_count", ctypes.c_uint32),
+        ("function_summary_id", ctypes.c_char * 96),
         ("context_name", ctypes.c_char * 64),
+        ("inputs", _M68kAnalysisFunctionSummaryInput * 8),
     ]
 
 
@@ -1432,8 +1432,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("disable_implicit_entry_points", ctypes.c_uint8),
         ("reserved0", ctypes.c_uint8 * 1),
         ("register_seed_count", ctypes.c_uint16),
-        ("callback_table_signature_count", ctypes.c_uint16),
-        ("function_register_contract_count", ctypes.c_uint16),
+        ("function_summary_count", ctypes.c_uint16),
         ("entry_point_count", ctypes.c_uint16),
         ("structured_data_item_count", ctypes.c_uint16),
         ("named_label_count", ctypes.c_uint16),
@@ -1461,8 +1460,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("source_context_entry_path", ctypes.c_char * 512),
         ("source_context_parent_disk_id", ctypes.c_char * 512),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
-        ("callback_table_signatures", _M68kAnalysisCallbackTableSignature * 64),
-        ("function_register_contracts", _M68kAnalysisFunctionRegisterContract * 128),
+        ("function_summaries", _M68kAnalysisFunctionSummary * 192),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
         ("structured_data_items_inline", _M68kAnalysisStructuredDataItem * 4),
         ("structured_data_items", ctypes.POINTER(_M68kAnalysisStructuredDataItem)),

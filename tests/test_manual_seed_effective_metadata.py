@@ -793,7 +793,7 @@ def test_effective_metadata_includes_manual_register_seed_for_semantic_helper(tm
     ]
 
 
-def test_effective_metadata_includes_manual_function_register_contract(tmp_path: Path) -> None:
+def test_effective_metadata_includes_manual_function_summary(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
@@ -804,15 +804,18 @@ def test_effective_metadata_includes_manual_function_register_contract(tmp_path:
             _action(
                 "a1",
                 1,
-                "create_manual_function_register_contract",
-                function_register_contract={
-                    "function_register_contract_id": "npc-item-trade-a5",
+                "create_manual_function_summary",
+                function_summary={
+                    "function_summary_id": "npc-item-trade",
                     "hunk": 0,
+                    "callable_kind": "direct",
                     "entry_offset": 0x7BBA,
-                    "register": "A5",
-                    "struct_name": "world_object_shared_prefix",
+                    "inputs": [{"location": "A5", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+                    "return_contract": "unknown",
+                    "register_effects": "unknown",
+                    "memory_effects": "unknown",
                     "context_name": "npc_item_trade_validation",
-                    "note": "Typed function-register contract",
+                    "note": "Typed function summary",
                 },
             ),
         ],
@@ -820,14 +823,18 @@ def test_effective_metadata_includes_manual_function_register_contract(tmp_path:
 
     payload = json.loads(effective_metadata_text(target_dir))
 
-    assert payload["function_register_contracts"] == [
+    assert payload["function_summaries"] == [
         {
+            "function_summary_id": "npc-item-trade",
             "hunk": 0,
+            "callable_kind": "direct",
             "entry_offset": 0x7BBA,
-            "register": "A5",
-            "struct_name": "world_object_shared_prefix",
+            "inputs": [{"location": "A5", "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+            "return_contract": "unknown",
+            "register_effects": "unknown",
+            "memory_effects": "unknown",
             "context_name": "npc_item_trade_validation",
-            "note": "Typed function-register contract",
+            "note": "Typed function summary",
         }
     ]
 

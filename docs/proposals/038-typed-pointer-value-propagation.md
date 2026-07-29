@@ -792,6 +792,18 @@ removed create must remain removed after conversion, and two inputs for the
 same direct entry must become one summary with two ordered inputs rather than
 two competing callable facts.
 
+**Implementation progress (2026-07-29).** The input-contract migration is
+complete: one `M68kAnalysisFunctionSummary` policy representation replaces the
+old callback-table and function-register arrays; Python metadata, effective
+projection, Manual Action catalog, C parser, typed-flow entry/call/dispatch
+consumers, and C/Python fixtures use it exclusively. The one-shot converter
+has migrated Pandora's twenty-three retired action events to eighteen active
+summaries (including the two-input `s0:0000807C` entry), with the retired log
+kept only as a local migration archive and report. This slice deliberately
+marks return, register-effect, and memory-effect facts `unknown`; it makes no
+new interprocedural preservation or rendering claim until those effects are
+implemented by the remaining B work.
+
 **Required common summary shape.** One stable callable-summary identity owns
 all of the following, and every direct or indirect call refers to that identity
 rather than copying interface text into a call-site record:

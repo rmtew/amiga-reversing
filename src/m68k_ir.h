@@ -58,8 +58,8 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT 32U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
-#define M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT 64U
-#define M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT 128U
+#define M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT 192U
+#define M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT 8U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -88,36 +88,39 @@ typedef struct M68kAnalysisRegisterSeed {
   char context_name[64];
 } M68kAnalysisRegisterSeed;
 
-/* A callback table is an owned table contract: every pointer entry supplies
-   the same typed register argument to its target.  This is intentionally a
-   table-level fact rather than a collection of duplicated entrypoint seeds. */
-typedef struct M68kAnalysisCallbackTableSignature {
-  uint8_t register_kind;
-  uint8_t register_index;
-  uint8_t seed_kind;
-  uint8_t has_section_index;
-  uint32_t section_index;
-  uint32_t table_offset;
-  uint32_t entry_count;
-  char name[64];
-  char type_name[64];
-  char context_name[64];
-} M68kAnalysisCallbackTableSignature;
+typedef enum M68kAnalysisFunctionSummaryCallableKind {
+  M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_NONE = 0,
+  M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT = 1,
+  M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE = 2
+} M68kAnalysisFunctionSummaryCallableKind;
 
-/* A callable contract describes an input register at one function entry.
- * Unlike a register seed, it is part of the function interface and may be
- * supplied by direct callers, callbacks, or platform dispatch. */
-typedef struct M68kAnalysisFunctionRegisterContract {
+typedef struct M68kAnalysisFunctionSummaryInput {
   uint8_t register_kind;
   uint8_t register_index;
   uint8_t seed_kind;
+  uint8_t reserved;
+  char struct_name[64];
+} M68kAnalysisFunctionSummaryInput;
+
+/* A callable summary owns every known interface fact for one direct entry or
+   one proven callback table.  Unknown effects remain explicit unknowns rather
+   than being inferred from its typed inputs. */
+typedef struct M68kAnalysisFunctionSummary {
+  uint8_t callable_kind;
   uint8_t has_section_index;
+  uint8_t input_count;
+  uint8_t return_contract_unknown;
+  uint8_t register_effects_unknown;
+  uint8_t memory_effects_unknown;
+  uint8_t reserved[2];
   uint32_t section_index;
   uint32_t entry_offset;
-  char name[64];
-  char type_name[64];
+  uint32_t table_offset;
+  uint32_t entry_count;
+  char function_summary_id[96];
   char context_name[64];
-} M68kAnalysisFunctionRegisterContract;
+  M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
+} M68kAnalysisFunctionSummary;
 
 typedef enum M68kAnalysisEntryPointProvenance {
   M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DEFAULT = 0,
@@ -521,8 +524,7 @@ typedef struct M68kAnalysisPolicy {
   uint8_t disable_implicit_entry_points;
   uint8_t reserved0[1];
   uint16_t register_seed_count;
-  uint16_t callback_table_signature_count;
-  uint16_t function_register_contract_count;
+  uint16_t function_summary_count;
   uint16_t entry_point_count;
   uint16_t structured_data_item_count;
   uint16_t named_label_count;
@@ -550,8 +552,7 @@ typedef struct M68kAnalysisPolicy {
   char source_context_entry_path[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_parent_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
-  M68kAnalysisCallbackTableSignature callback_table_signatures[M68K_ANALYSIS_CALLBACK_TABLE_SIGNATURE_LIMIT];
-  M68kAnalysisFunctionRegisterContract function_register_contracts[M68K_ANALYSIS_FUNCTION_REGISTER_CONTRACT_LIMIT];
+  M68kAnalysisFunctionSummary function_summaries[M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
   /* These collections may contain thousands of facts.  Keep policy values
      cheap to pass through recursive analysis and own overflow storage here. */
