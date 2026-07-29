@@ -1383,6 +1383,14 @@ until the stable subject-to-storage index can invalidate only the matching
 state. The direct-summary fixture combines this memory effect with a declared
 register partition and a callee body that would otherwise clobber the value.
 
+**Static-storage write invalidation increment (2026-07-29).** Typed-flow
+register values already retain a stable origin when reloaded from tracked
+storage. A `write` whose subject is `static_storage` now invalidates only
+register reloads and local memory caches rooted at that exact section/offset;
+preserved registers with unrelated identities survive. Input-subject and
+abstract-region writes, along with escapes, remain conservative because their
+caller-side storage identity is not yet represented.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references. The strict metadata reader and JSON exporter
