@@ -1408,6 +1408,14 @@ input-origin escape removes the stale reload while retaining an unrelated
 preserved typed pointer.  Abstract-region sinks continue to clear all typed
 state, since their identity is deliberately not represented at the caller.
 
+**Callback effect-carriage increment (2026-07-29).** Materialized,
+table-owned callback summaries now retain the declared table contract's memory
+and escape components while deriving their register partition from the proven
+entry intersection.  The second typed-flow pass therefore applies a declared
+callback write or escape instead of silently treating the durable callback
+summary as register-only.  Focused callback-effect success and terminal
+fixtures remain part of the outstanding B3 matrix.
+
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
 and validates result references. The strict metadata reader and JSON exporter

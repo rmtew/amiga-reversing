@@ -5385,6 +5385,17 @@ static int render_lookup_append_inferred_callback_table_function_summary(M68kRen
   record->summary.input_count = declared->input_count;
   record->summary.return_contract_unknown = 1U;
   memcpy(record->summary.inputs, declared->inputs, sizeof(record->summary.inputs));
+  /* The table contract owns its declared memory and escape relations.  The
+   * entries determine only the register partition below; dropping these
+   * components would turn a valid callback write into a false preservation
+   * proof on the second typed-flow pass. */
+  record->summary.memory_effect_state = declared->memory_effect_state;
+  record->summary.escape_effect_state = declared->escape_effect_state;
+  record->summary.memory_effect_count = declared->memory_effect_count;
+  record->summary.escape_count = declared->escape_count;
+  memcpy(record->summary.memory_effects, declared->memory_effects,
+    sizeof(record->summary.memory_effects));
+  memcpy(record->summary.escapes, declared->escapes, sizeof(record->summary.escapes));
   snprintf(record->summary.function_summary_id, sizeof(record->summary.function_summary_id),
     "inferred_callback_s%u_o%08X_n%u", (unsigned)declared->section_index,
     (unsigned)declared->table_offset, (unsigned)declared->entry_count);
