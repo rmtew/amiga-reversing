@@ -28302,8 +28302,7 @@ static int test_facts_v2_render_asm_source_preserves_type_across_observed_absolu
     0x2bu, 0x40u, 0x00u, 0x10u,             /* move.l d0,$10(a5) */
     0x4eu, 0x75u,                           /* rts */
     0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
-    0x2fu, 0x0du,                           /* callee: move.l a5,-(a7) */
-    0x2au, 0x5fu,                           /* movea.l (a7)+,a5 */
+    0x2au, 0x7cu, 0x00u, 0x00u, 0x00u, 0x00u, /* callee: movea.l #0,a5 */
     0x4eu, 0x75u                            /* rts */
   };
   memset(&section, 0, sizeof(section));
@@ -28358,6 +28357,35 @@ static int test_facts_v2_render_asm_source_preserves_type_across_observed_absolu
   custom_structs[0].fields[0].offset = 0x10U;
   custom_structs[0].fields[0].size = 4U;
   snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "interaction_message_ptr");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].entry_offset = 0x14U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    M68kFunctionSummaryLocationEffectIR *data_effect =
+      &policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count++];
+    M68kFunctionSummaryLocationEffectIR *address_effect =
+      &policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count++];
+    data_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    data_effect->location.width = 4U;
+    data_effect->location.register_count = 1U;
+    data_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    data_effect->location.registers[0].register_index = reg;
+    data_effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    address_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    address_effect->location.width = 4U;
+    address_effect->location.register_count = 1U;
+    address_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    address_effect->location.registers[0].register_index = reg;
+    address_effect->effect = reg == 5U ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED :
+      M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+  }
+  snprintf(policy.function_summaries[0].function_summary_id,
+    sizeof(policy.function_summaries[0].function_summary_id), "declared_a5_preserved");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
