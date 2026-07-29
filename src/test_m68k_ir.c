@@ -28462,6 +28462,14 @@ static int test_facts_v2_static_write_effect_invalidates_matching_storage_reload
   policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
   policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
   policy.function_summaries[0].escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].location.kind =
+    M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind =
+    M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
   policy.function_summaries[0].memory_effect_count = 1U;
   policy.function_summaries[0].memory_effects[0].kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
   policy.function_summaries[0].memory_effects[0].subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
@@ -28486,6 +28494,21 @@ static int test_facts_v2_static_write_effect_invalidates_matching_storage_reload
   }
   snprintf(policy.function_summaries[0].function_summary_id,
     sizeof(policy.function_summaries[0].function_summary_id), "static_write_effect");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a0)") != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a5)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].memory_effect_count = 0U;
+  policy.function_summaries[0].escape_count = 1U;
+  policy.function_summaries[0].escapes[0].source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+  policy.function_summaries[0].escapes[0].source_location = policy.function_summaries[0].inputs[0].location;
+  policy.function_summaries[0].escapes[0].sink_subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+  policy.function_summaries[0].escapes[0].sink_subject.section_index = 0U;
+  policy.function_summaries[0].escapes[0].sink_subject.offset = 0x64c0U;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);

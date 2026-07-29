@@ -10643,9 +10643,19 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
      * like an opaque write would discard a declared effect fact rather than
      * applying it. */
   }
-  if (summary->escape_count != 0U) {
-    typed_state_clear_all(state);
-    return;
+  for (reg = 0U; reg < summary->escape_count; ++reg) {
+    const M68kFunctionSummaryEffectSubjectIR *sink = &summary->escapes[reg].sink_subject;
+    if (sink->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE) {
+      typed_state_invalidate_static_storage_subject(state, sink);
+    } else if (sink->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT &&
+        sink->input_index < summary->input_count) {
+      typed_state_invalidate_input_subject(state, summary, sink->input_index);
+    } else {
+      /* An abstract escape sink has no caller-side identity in the typed
+       * state, so retaining any cache would manufacture a non-alias proof. */
+      typed_state_clear_all(state);
+      return;
+    }
   }
   if (summary->location_effect_count == 0U) {
     typed_state_clear_non_caller_save_stack_slots(state);

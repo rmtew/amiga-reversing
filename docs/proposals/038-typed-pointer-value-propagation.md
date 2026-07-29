@@ -1319,9 +1319,10 @@ fallbacks.
 **Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
 subtasks are, in dependency order:
 
-1. Apply ordinary writing stack, memory, and escape effects with a stable
-   subject-to-storage index.  Until that index exists, conservative clearing
-   remains sound but does not provide the required precise effect transfer.
+1. Complete the focused effect matrix for writing stack, memory, and escape
+   effects.  Exact static-storage and input subjects now have a stable caller
+   identity; abstract regions still intentionally clear conservatively because
+   they have no caller-side storage identity.
 2. Add the complete focused matrix: direct/callback success and every terminal
    failure, stack/memory/escape effects, result-origin escapes, tuple values,
    conflicting summaries, and unknown/incompatible negatives.
@@ -1396,6 +1397,16 @@ summary input now invalidates only the base/field caches rooted at the declared
 address-register input (including directly tracked aliases). The preserved
 register continues to identify the same pointer; cached values read through its
 mutable pointee do not. Abstract-region writes and escapes remain conservative.
+
+**Sink-specific escape invalidation increment (2026-07-29).** An explicit
+escape now applies the same declared sink identity as a write: a
+`static_storage` sink invalidates only reloads and caches rooted at that exact
+slot, and an `input` sink invalidates only the corresponding mutable-pointee
+caches.  The escape source records why the relation exists; it does not widen
+the caller-side invalidation subject.  A static-slot regression proves an
+input-origin escape removes the stale reload while retaining an unrelated
+preserved typed pointer.  Abstract-region sinks continue to clear all typed
+state, since their identity is deliberately not represented at the caller.
 
 The slice must complete the currently incomplete escape contract at the same
 boundary: the common IR already distinguishes input from result escape sources
