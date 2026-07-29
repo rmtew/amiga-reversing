@@ -1197,6 +1197,7 @@ static uint8_t typed_flow_local_callee_preserved_address_mask(const M68kRenderLo
   uint8_t requested_mask, uint8_t depth);
 static void typed_state_apply_function_summary_effects(M68kRenderTypedState *state,
     const M68kAnalysisFunctionSummary *summary);
+static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAnalysisFunctionSummary *out_summary);
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
@@ -2167,23 +2168,22 @@ static void typed_state_clear_non_caller_save_stack_slots(M68kRenderTypedState *
   }
 }
 
-static void typed_state_apply_platform_call_clobbers(uint8_t platform_kind, M68kRenderTypedState *state) {
-  M68kAnalysisFunctionSummary summary;
+static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAnalysisFunctionSummary *out_summary) {
   uint8_t preserved_data = 0U;
   uint8_t preserved_address = 0U;
   uint8_t bit;
-  if (state == NULL) return;
-  memset(&summary, 0, sizeof(summary));
+  if (out_summary == NULL) return 0;
+  memset(out_summary, 0, sizeof(*out_summary));
   (void)platform_facts_v2_calling_convention_preserved_data_mask(platform_kind, &preserved_data);
   (void)platform_facts_v2_calling_convention_preserved_address_mask(platform_kind, &preserved_address);
   for (bit = 0U; bit < 8U; ++bit) {
-    summary.data_register_effects[bit] = (preserved_data & (uint8_t)(1U << bit)) != 0U
+    out_summary->data_register_effects[bit] = (preserved_data & (uint8_t)(1U << bit)) != 0U
       ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
-    summary.address_register_effects[bit] = (preserved_address & (uint8_t)(1U << bit)) != 0U
+    out_summary->address_register_effects[bit] = (preserved_address & (uint8_t)(1U << bit)) != 0U
       ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED : M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
   }
-  summary.register_effects_unknown = 0U;
-  typed_state_apply_function_summary_effects(state, &summary);
+  out_summary->register_effects_unknown = 0U;
+  return 1;
 }
 
 static void typed_state_set_app_address(M68kRenderTypedState *state, uint8_t reg_index, int16_t displacement,
@@ -5026,9 +5026,12 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           preserved_reg, preserved_reg);
       }
     }
-    else if (vector != NULL && lookup != NULL && lookup->object != NULL)
-      typed_state_apply_platform_call_clobbers(lookup->object->platform_backend_kind, state);
-    else {
+    else if (vector != NULL && lookup != NULL && lookup->object != NULL) {
+      if (generated_platform_call_effect_summary(lookup->object->platform_backend_kind, &call_effects))
+        typed_state_apply_function_summary_effects(state, &call_effects);
+      else
+        typed_state_apply_function_summary_effects(state, NULL);
+    } else {
       /* An unresolved direct/indirect call has no preservation contract.
        * Keeping register-held source identities here would turn an unknown
        * callee into an unsound affine transfer. */
