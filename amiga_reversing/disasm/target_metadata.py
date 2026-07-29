@@ -327,6 +327,7 @@ class FunctionSummaryInputMetadata:
         struct_name = payload["struct_name"]
         assert isinstance(value_kind, str) and value_kind == "struct_ptr"
         assert isinstance(struct_name, str) and struct_name
+        assert set(payload) == {"location", "value_kind", "struct_name"}
         return cls(location, value_kind, struct_name)
 
 
@@ -357,6 +358,7 @@ class FunctionSummaryEffectsMetadata:
         memory_state = memory["state"]
         escapes_state = escapes["state"]
         assert schema_version == 1
+        assert set(payload) == {"schema_version", "registers", "memory", "escapes"}
         assert registers_state in {"unknown", "explicit", "invalid", "overflow"}
         assert memory_state in {"unknown", "explicit", "invalid", "overflow"}
         assert escapes_state in {"unknown", "explicit", "invalid", "overflow"}
@@ -465,6 +467,9 @@ class FunctionSummaryMetadata:
         assert callable_kind in {"direct", "callback_table"}
         assert isinstance(note, str)
         assert context_name is None or isinstance(context_name, str)
+        allowed_keys = {"function_summary_id", "hunk", "callable_kind", "inputs", "effects", "note",
+                        "context_name", "entry_offset", "table_offset", "entry_count"}
+        assert set(payload) <= allowed_keys
         parsed_inputs = tuple(
             FunctionSummaryInputMetadata.from_dict(_json_object(item))
             for item in _json_list(inputs)

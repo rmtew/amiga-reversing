@@ -2202,6 +2202,55 @@ static const char *json_array_field_local(const char *object_start, const char *
   return NULL;
 }
 
+/* Target-summary payloads are a durable schema, not a loose option bag.  The
+ * lightweight metadata reader otherwise ignores an unknown nested member,
+ * which makes Python and C accept different callable contracts. */
+static int json_object_has_only_keys_local(const char *start, const char *end,
+    const char *const *allowed_keys, size_t allowed_key_count) {
+  const char *cursor;
+  const char *string_start = NULL;
+  int depth = 0;
+  int in_string = 0;
+  int escaped = 0;
+  uint64_t seen = 0U;
+  if (start == NULL || end == NULL || start >= end || *start != '{' ||
+      allowed_keys == NULL || allowed_key_count == 0U || allowed_key_count > 64U) return 0;
+  for (cursor = start; cursor < end; ++cursor) {
+    char ch = *cursor;
+    if (in_string) {
+      if (escaped) {
+        escaped = 0;
+      } else if (ch == '\\') {
+        escaped = 1;
+      } else if (ch == '"') {
+        const char *after = json_skip_ws_local(cursor + 1, end);
+        size_t key_index;
+        size_t length = (size_t)(cursor - string_start);
+        in_string = 0;
+        if (depth != 1 || after >= end || *after != ':') continue;
+        for (key_index = 0U; key_index < allowed_key_count; ++key_index) {
+          if (strlen(allowed_keys[key_index]) == length &&
+              memcmp(string_start, allowed_keys[key_index], length) == 0) break;
+        }
+        if (key_index == allowed_key_count || (seen & ((uint64_t)1U << key_index)) != 0U) return 0;
+        seen |= (uint64_t)1U << key_index;
+      }
+      continue;
+    }
+    if (ch == '"') {
+      in_string = 1;
+      escaped = 0;
+      string_start = cursor + 1;
+    } else if (ch == '{' || ch == '[') {
+      ++depth;
+    } else if (ch == '}' || ch == ']') {
+      if (depth <= 0) return 0;
+      --depth;
+    }
+  }
+  return !in_string && depth == 0;
+}
+
 static const char *json_next_string_local(const char *cursor, const char *end, char *out, size_t out_size) {
   const char *value;
   if (out == NULL || out_size == 0U) return NULL;
@@ -2242,6 +2291,9 @@ static int function_summary_register_name_local(const char *text, uint8_t *out_k
 
 static int append_metadata_function_summary_abi_location_local(const char *object_start, const char *object_end,
     M68kFunctionSummaryAbiLocation *out_location) {
+  static const char *const register_keys[] = {"kind", "register", "width"};
+  static const char *const stack_keys[] = {"kind", "offset", "width", "convention"};
+  static const char *const tuple_keys[] = {"kind", "registers", "width"};
   char kind[32];
   char register_name[8];
   char convention[32];
@@ -2256,12 +2308,16 @@ static int append_metadata_function_summary_abi_location_local(const char *objec
   memset(out_location, 0, sizeof(*out_location));
   out_location->width = (uint8_t)width;
   if (strcmp(kind, "register") == 0) {
+    if (!json_object_has_only_keys_local(object_start, object_end, register_keys,
+        sizeof(register_keys) / sizeof(register_keys[0]))) return 0;
     if (!json_optional_string_field_local(object_start, object_end, "register", register_name,
         sizeof(register_name)) || !function_summary_register_name_local(register_name,
           &out_location->registers[0].register_kind, &out_location->registers[0].register_index)) return 0;
     out_location->kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
     out_location->register_count = 1U;
   } else if (strcmp(kind, "stack") == 0) {
+    if (!json_object_has_only_keys_local(object_start, object_end, stack_keys,
+        sizeof(stack_keys) / sizeof(stack_keys[0]))) return 0;
     if (!json_i32_field_local(object_start, object_end, "offset", &offset, &has_offset) || !has_offset ||
         !json_optional_string_field_local(object_start, object_end, "convention", convention,
           sizeof(convention))) return 0;
@@ -2275,6 +2331,8 @@ static int append_metadata_function_summary_abi_location_local(const char *objec
       out_location->stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP;
     else return 0;
   } else if (strcmp(kind, "register_tuple") == 0) {
+    if (!json_object_has_only_keys_local(object_start, object_end, tuple_keys,
+        sizeof(tuple_keys) / sizeof(tuple_keys[0]))) return 0;
     const char *registers_end;
     const char *cursor = json_array_field_local(object_start, object_end, "registers", &registers_end);
     char member_name[8];
@@ -2295,6 +2353,9 @@ static int append_metadata_function_summary_abi_location_local(const char *objec
 
 static int append_metadata_function_summary_effect_subject_local(const char *object_start, const char *object_end,
     uint8_t input_count, M68kFunctionSummaryEffectSubjectIR *out_subject) {
+  static const char *const input_keys[] = {"kind", "input_index"};
+  static const char *const static_storage_keys[] = {"kind", "section_index", "offset"};
+  static const char *const abstract_region_keys[] = {"kind", "region_id"};
   char kind[32];
   char region_id[96];
   uint32_t input_index = 0U, section_index = 0U, offset = 0U;
@@ -2303,11 +2364,15 @@ static int append_metadata_function_summary_effect_subject_local(const char *obj
     return 0;
   memset(out_subject, 0, sizeof(*out_subject));
   if (strcmp(kind, "input") == 0) {
+    if (!json_object_has_only_keys_local(object_start, object_end, input_keys,
+        sizeof(input_keys) / sizeof(input_keys[0]))) return 0;
     if (!json_number_field_local(object_start, object_end, "input_index", &input_index, &has_input) ||
         !has_input || input_index >= input_count) return 0;
     out_subject->kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT;
     out_subject->input_index = (uint8_t)input_index;
   } else if (strcmp(kind, "static_storage") == 0) {
+    if (!json_object_has_only_keys_local(object_start, object_end, static_storage_keys,
+        sizeof(static_storage_keys) / sizeof(static_storage_keys[0]))) return 0;
     if (!json_number_field_local(object_start, object_end, "section_index", &section_index, &has_section) ||
         !json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) || !has_section || !has_offset)
       return 0;
@@ -2315,6 +2380,8 @@ static int append_metadata_function_summary_effect_subject_local(const char *obj
     out_subject->section_index = section_index;
     out_subject->offset = offset;
   } else if (strcmp(kind, "abstract_region") == 0) {
+    if (!json_object_has_only_keys_local(object_start, object_end, abstract_region_keys,
+        sizeof(abstract_region_keys) / sizeof(abstract_region_keys[0]))) return 0;
     if (!json_optional_string_field_local(object_start, object_end, "region_id", region_id, sizeof(region_id)) ||
         region_id[0] == '\0') return 0;
     out_subject->kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION;
@@ -2325,6 +2392,14 @@ static int append_metadata_function_summary_effect_subject_local(const char *obj
 
 static int append_metadata_function_summary_effects_local(const char *object_start, const char *object_end,
     M68kAnalysisFunctionSummary *summary) {
+  static const char *const effects_keys[] = {"schema_version", "registers", "memory", "escapes"};
+  static const char *const state_keys[] = {"state"};
+  static const char *const register_explicit_keys[] = {"state", "locations"};
+  static const char *const memory_explicit_keys[] = {"state", "effects"};
+  static const char *const escape_explicit_keys[] = {"state", "escapes"};
+  static const char *const location_effect_keys[] = {"location", "effect"};
+  static const char *const memory_effect_keys[] = {"kind", "subject"};
+  static const char *const escape_keys[] = {"source_location", "sink_subject"};
   const char *effects_end;
   const char *effects = json_object_field_local(object_start, object_end, "effects", &effects_end);
   const char *registers_end;
@@ -2341,7 +2416,9 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       json_find_key_local(object_start, object_end, "register_effects") != NULL ||
       json_find_key_local(object_start, object_end, "memory_effects") != NULL ||
       !json_number_field_local(effects, effects_end, "schema_version", &schema_version, &has_schema_version) ||
-      !has_schema_version || schema_version != 1U) return 0;
+      !has_schema_version || schema_version != 1U ||
+      !json_object_has_only_keys_local(effects, effects_end, effects_keys,
+        sizeof(effects_keys) / sizeof(effects_keys[0]))) return 0;
   registers = json_object_field_local(effects, effects_end, "registers", &registers_end);
   memory = json_object_field_local(effects, effects_end, "memory", &memory_end);
   escapes = json_object_field_local(effects, effects_end, "escapes", &escapes_end);
@@ -2362,6 +2439,15 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
   if (strcmp(register_state, "invalid") == 0 || strcmp(register_state, "overflow") == 0 ||
       strcmp(memory_state, "invalid") == 0 || strcmp(memory_state, "overflow") == 0 ||
       strcmp(escape_state, "invalid") == 0 || strcmp(escape_state, "overflow") == 0) summary->effects_invalid = 1U;
+  if (!json_object_has_only_keys_local(registers, registers_end,
+        strcmp(register_state, "explicit") == 0 ? register_explicit_keys : state_keys,
+        strcmp(register_state, "explicit") == 0 ? sizeof(register_explicit_keys) / sizeof(register_explicit_keys[0]) : 1U) ||
+      !json_object_has_only_keys_local(memory, memory_end,
+        strcmp(memory_state, "explicit") == 0 ? memory_explicit_keys : state_keys,
+        strcmp(memory_state, "explicit") == 0 ? sizeof(memory_explicit_keys) / sizeof(memory_explicit_keys[0]) : 1U) ||
+      !json_object_has_only_keys_local(escapes, escapes_end,
+        strcmp(escape_state, "explicit") == 0 ? escape_explicit_keys : state_keys,
+        strcmp(escape_state, "explicit") == 0 ? sizeof(escape_explicit_keys) / sizeof(escape_explicit_keys[0]) : 1U)) return 0;
   if (strcmp(register_state, "explicit") == 0) {
     const char *locations_end;
     const char *cursor = json_array_field_local(registers, registers_end, "locations", &locations_end);
@@ -2377,6 +2463,8 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       if (item == NULL || summary->location_effect_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT ||
           (location = json_object_field_local(item, item_end, "location", &location_end)) == NULL ||
           !json_optional_string_field_local(item, item_end, "effect", effect_text, sizeof(effect_text))) return 0;
+      if (!json_object_has_only_keys_local(item, item_end, location_effect_keys,
+          sizeof(location_effect_keys) / sizeof(location_effect_keys[0]))) return 0;
       effect = &summary->location_effects[summary->location_effect_count];
       if (!append_metadata_function_summary_abi_location_local(location, location_end, &effect->location)) return 0;
       /* The preservation partition is exhaustive over individual caller
@@ -2421,6 +2509,8 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       if (item == NULL || summary->memory_effect_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT ||
           (subject = json_object_field_local(item, item_end, "subject", &subject_end)) == NULL ||
           !json_optional_string_field_local(item, item_end, "kind", kind, sizeof(kind))) return 0;
+      if (!json_object_has_only_keys_local(item, item_end, memory_effect_keys,
+          sizeof(memory_effect_keys) / sizeof(memory_effect_keys[0]))) return 0;
       effect = &summary->memory_effects[summary->memory_effect_count];
       if (strcmp(kind, "read") == 0) effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_READ;
       else if (strcmp(kind, "write") == 0) effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
@@ -2451,6 +2541,8 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       if (item == NULL || summary->escape_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT ||
           (location = json_object_field_local(item, item_end, "source_location", &location_end)) == NULL ||
           (sink = json_object_field_local(item, item_end, "sink_subject", &sink_end)) == NULL) return 0;
+      if (!json_object_has_only_keys_local(item, item_end, escape_keys,
+          sizeof(escape_keys) / sizeof(escape_keys[0]))) return 0;
       escape = &summary->escapes[summary->escape_count];
       if (!append_metadata_function_summary_abi_location_local(location, location_end, &escape->source_location) ||
           !append_metadata_function_summary_effect_subject_local(sink, sink_end, summary->input_count,

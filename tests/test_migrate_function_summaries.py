@@ -258,3 +258,22 @@ def test_explicit_effect_partition_rejects_register_tuple_location() -> None:
     }
     with pytest.raises(AssertionError):
         FunctionSummaryMetadata.from_dict(payload)
+
+
+def test_function_summary_schema_rejects_unknown_effect_member() -> None:
+    payload = {
+        "function_summary_id": "unknown-effect-member",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0x80,
+        "inputs": [{
+            "location": {"kind": "register", "register": "A0", "width": 4},
+            "value_kind": "struct_ptr",
+            "struct_name": "world_object",
+        }],
+        "effects": _unknown_effects(),
+        "note": "strict effect object",
+    }
+    payload["effects"]["unexpected"] = True
+    with pytest.raises(AssertionError):
+        FunctionSummaryMetadata.from_dict(payload)
