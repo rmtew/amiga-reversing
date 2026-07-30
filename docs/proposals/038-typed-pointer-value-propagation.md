@@ -1653,6 +1653,28 @@ not optional refactoring and not a reason to retain transitional state.
    This completes B6's bounded domain; new result kinds or address spaces
    require a separately specified extension rather than silently reopening it.
 
+   **Post-completion review finding (2026-07-30).** A broad source-rendering
+   regression invalidated the original completion claim for the affected
+   output path. Regenerating Pandora rewrote one 47 KiB opaque data payload at
+   `loc_0_000000E8` from 11,849 raw `dc.b` rows to 11,813 `dc.l` rows, each
+   labelled `lookup_table`. The byte image still round-trips, but the new
+   classification has no demonstrated finite table extent or consumer-backed
+   semantics and is therefore not human-quality reconstruction. Treat a broad
+   typed-data promotion as valid only when its exact range and consumers are
+   durable facts; unproven remainder must remain raw data. The initial repair
+   traced the item to the `postincrement_read_sequence` heuristic and removed
+   its lookup-table promotion: a finite sequence of pointer reads alone is not
+   table evidence. The regression fixture now requires that such a sequence
+   remain raw data, and regenerated Pandora restores the opaque payload to raw
+   `dc.b` rows. Its content is exact; its existing Hunk container-shape/size
+   mismatch remains separately reported. The review also found that
+   platform-contract result conflict/capacity terminals currently abort source
+   analysis instead of exporting their required durable terminal, and that
+   `direct_scc {size, ordinal}` is insufficient to identify one component
+   among multiple equal-size SCCs. These are open B work, so B5/B6 must not be
+   reported as fully complete until they are resolved and the full C suite is
+   green.
+
    **B6 active slice -- source-section abstract-region bindings.** A bare
    `abstract_region` subject name is insufficient evidence for a direct-body
    writer. Add one canonical, strict-imported/exported binding keyed by

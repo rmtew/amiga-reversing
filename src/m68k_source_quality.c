@@ -7925,126 +7925,6 @@ static int append_indexed_local_scalar_table_items(M68kSourceAnalysisIR *source_
   return 0;
 }
 
-static int source_quality_candidate_reads_postincrement_from_reg(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t reg, uint32_t item_size, uint8_t item_kind) {
-  const M68kSimFormMetadata *metadata;
-  uint32_t candidate_item_size = 0U;
-  uint8_t candidate_item_kind = 0U;
-  size_t operand_index;
-  if (candidate == NULL || instruction == NULL ||
-      !source_quality_structured_data_kind_for_candidate_size(candidate, &candidate_item_size,
-        &candidate_item_kind) ||
-      candidate_item_size != item_size || candidate_item_kind != item_kind) {
-    return 0;
-  }
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return 0;
-  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < instruction->operand_count &&
-       operand_index < 4U; ++operand_index) {
-    uint8_t source_reg = 0U;
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ &&
-        source_quality_operand_is_address_postincrement(&instruction->operands[operand_index], &source_reg) &&
-        source_reg == reg) {
-      return 1;
-    }
-  }
-  return 0;
-}
-
-static uint32_t source_quality_count_consecutive_postincrement_reads(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, size_t first_candidate_index, uint8_t reg, uint32_t item_size,
-    uint8_t item_kind) {
-  size_t candidate_index;
-  uint32_t count = 0U;
-  if (section == NULL || accepted_start == NULL) return 0U;
-  for (candidate_index = first_candidate_index; candidate_index < section->candidate_count; ++candidate_index) {
-    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-    M68kInstructionIR instruction;
-    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate) ||
-        m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
-        !source_quality_candidate_reads_postincrement_from_reg(candidate, &instruction, reg, item_size, item_kind)) {
-      break;
-    }
-    ++count;
-  }
-  return count;
-}
-
-static int append_indexed_postincrement_data_table_items(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
-  size_t decode_index;
-  if (source_analysis == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL) return 0;
-  for (decode_index = 0U; decode_index < decode->section_count; ++decode_index) {
-    const M68kDecodeSectionIR *section = &decode->sections[decode_index];
-    M68kSectionAnalysisIR *section_analysis;
-    M68kSourceQualityAudioPointerState state;
-    size_t candidate_index;
-    if (section->section_index > UINT32_MAX || accepted_start[decode_index] == NULL ||
-        accepted_bytes[decode_index] == NULL) {
-      return -1;
-    }
-    section_analysis = source_analysis_section_by_index(source_analysis, (uint32_t)section->section_index);
-    if (section_analysis == NULL) continue;
-    source_quality_audio_pointer_state_clear_all(&state);
-    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
-      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-      M68kInstructionIR instruction;
-      uint32_t item_size = 0U;
-      uint8_t item_kind = 0U;
-      uint8_t source_reg;
-      if (!source_quality_candidate_is_accepted_start(section, accepted_start[decode_index], candidate)) continue;
-      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      if (source_quality_structured_data_kind_for_candidate_size(candidate, &item_size, &item_kind) &&
-          item_size > 1U) {
-        for (source_reg = 0U; source_reg < 8U; ++source_reg) {
-          const M68kDecodeSectionIR *target_section;
-          M68kSectionAnalysisIR *target_analysis;
-          uint32_t target_section_index;
-          uint32_t target_offset;
-          uint32_t read_count;
-          uint32_t span;
-          if (!source_quality_candidate_reads_postincrement_from_reg(candidate, &instruction, source_reg,
-              item_size, item_kind) ||
-              !state.addr_regs[source_reg].known) {
-            continue;
-          }
-          target_section_index = state.addr_regs[source_reg].target_section_index;
-          target_offset = state.addr_regs[source_reg].target_offset;
-          if (target_section_index >= decode->section_count || accepted_bytes[target_section_index] == NULL)
-            continue;
-          target_section = &decode->sections[target_section_index];
-          target_analysis = source_analysis_section_by_index(source_analysis, target_section_index);
-          if (target_analysis == NULL || target_section->data == NULL ||
-              target_offset > target_section->size || item_size > target_section->size - target_offset ||
-              source_quality_accepted_range_has_code_byte(accepted_bytes[target_section_index],
-                target_section->size, target_offset, item_size) ||
-              source_quality_section_has_interior_label(target_analysis, target_offset, item_size) ||
-              source_quality_existing_structured_data_overlaps(source_analysis, target_section_index,
-                target_offset, item_size) ||
-              source_quality_range_ownership_covers_noncode_or_conflict(target_analysis, target_offset)) {
-            continue;
-          }
-          read_count = source_quality_count_consecutive_postincrement_reads(section, accepted_start[decode_index],
-            candidate_index, source_reg, item_size, item_kind);
-          if (read_count < 2U) continue;
-          span = source_quality_pc_relative_lookup_table_span(source_analysis, target_analysis, target_section,
-            accepted_bytes[target_section_index], target_offset, item_size);
-          if (span < read_count * item_size) continue;
-          if (append_pc_relative_lookup_table_item(source_analysis, target_section_index, target_offset, span,
-              item_kind, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE,
-              (uint32_t)section->section_index, candidate->offset, 0U, M68K_ANALYSIS_REGISTER_NONE, 0U, 0U,
-              M68K_ANALYSIS_REGISTER_NONE, 0U, NULL, 0U, 0U, 0U) != 0) {
-            return -1;
-          }
-        }
-      }
-      source_quality_dispatch_pointer_state_update_after_instruction(&state, section_analysis, section, candidate,
-        &instruction);
-    }
-  }
-  return 0;
-}
-
 static int source_quality_candidate_next_is_indexed_control_through_reg(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
     const M68kSourceQualityAudioPointerState *state, uint8_t reg, uint8_t index_is_address,
@@ -13359,8 +13239,6 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_indexed_local_scalar_table_items(source_analysis, decode, accepted_start,
     accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_pc_relative_lookup_table_items(source_analysis, decode, accepted_start,
-    accepted_bytes));
-  SOURCE_QUALITY_CHECK_OK(append_indexed_postincrement_data_table_items(source_analysis, decode, accepted_start,
     accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_platform_call_input_string_structured_data_items(source_analysis, decode, facts,
     accepted_start, accepted_bytes));

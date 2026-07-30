@@ -2283,7 +2283,7 @@ static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
   return 0;
 }
 
-static int test_facts_v2_indexed_postincrement_reads_auto_classify_word_table(void) {
+static int test_facts_v2_indexed_postincrement_reads_stay_raw_without_table_evidence(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -2315,7 +2315,7 @@ static int test_facts_v2_indexed_postincrement_reads_auto_classify_word_table(vo
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_0000000A(pc,d0.w),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "loc_0_0000000A:\n\tdc.w $1122,$3344,$5566,$7788\t; lookup_table\n") != NULL);
+    "loc_0_0000000A:\n\tdc.b $11,$22,$33,$44,$55,$66,$77,$88\n") != NULL);
   for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 10U &&
@@ -2324,11 +2324,7 @@ static int test_facts_v2_indexed_postincrement_reads_auto_classify_word_table(vo
       break;
     }
   }
-  M68K_C_ASSERT(auto_item != NULL);
-  M68K_C_ASSERT_U32(8U, auto_item->size);
-  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
-  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE,
-    auto_item->source_pattern_id);
+  M68K_C_ASSERT(auto_item == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -36724,8 +36720,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_pc_index_data_target_auto_classifies_lookup_span},
     {"facts_v2_pc_index_loop_bound_promotes_exact_table_count",
       test_facts_v2_pc_index_loop_bound_promotes_exact_table_count},
-    {"facts_v2_indexed_postincrement_reads_auto_classify_word_table",
-      test_facts_v2_indexed_postincrement_reads_auto_classify_word_table},
+    {"facts_v2_indexed_postincrement_reads_stay_raw_without_table_evidence",
+      test_facts_v2_indexed_postincrement_reads_stay_raw_without_table_evidence},
     {"facts_v2_genam_byte_postincrement_table_stays_byte_data",
       test_facts_v2_genam_byte_postincrement_table_stays_byte_data},
     {"facts_v2_indexed_local_base_auto_classifies_scalar_table",
