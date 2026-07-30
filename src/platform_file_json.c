@@ -31,6 +31,24 @@ static const char *m68k_code_start_reason_name(uint32_t reason);
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
 static const char *analysis_conflict_state_name(uint8_t conflict_state);
 static int append_expected_symbol_access_producers_json(JsonBuilder *builder, const char *producer);
+static const char *address_value_consumer_contract_display_name(const M68kAddressValueConsumerIR *consumer) {
+  const AmigaOsLibraryVectorInfo *vector;
+  const AmigaOsCallInputInfo *inputs;
+  size_t input_count, index;
+  if (consumer == NULL || consumer->has_platform_input_identity == 0U) {
+    return consumer != NULL ? consumer->contract_name : "";
+  }
+  vector = amiga_os_find_library_vector_by_function_ids(consumer->platform_library_id,
+    consumer->platform_function_id);
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  for (index = 0U; inputs != NULL && index < input_count; ++index) {
+    if (inputs[index].input_id == consumer->platform_input_id) {
+      const char *name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, inputs[index].input_id);
+      return name != NULL ? name : "";
+    }
+  }
+  return "";
+}
 static void address_observation_owner_symbols(const M68kAddressObservationIR *observation,
   const char **out_symbol, const char **out_base_symbol);
 static int address_observation_owner_symbol_expr(const M68kAddressObservationIR *observation,
@@ -73,6 +91,13 @@ static int append_function_summary_effect_subject_json(JsonBuilder *builder,
   if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE)
     return json_builder_appendf(builder, "{\"kind\":\"static_storage\",\"section_index\":%u,\"offset\":%u}",
       (unsigned)subject->section_index, (unsigned)subject->offset);
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK) {
+    const char *convention = subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT ?
+      "caller_argument" : subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT ?
+      "caller_result" : "caller_cleanup";
+    return json_builder_appendf(builder, "{\"kind\":\"stack\",\"offset\":%u,\"convention\":\"%s\"}",
+      (unsigned)subject->offset, convention);
+  }
   if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION) {
     if (json_builder_append(builder, "{\"kind\":\"abstract_region\",\"region_id\":") != 0 ||
         json_builder_append_json_string(builder, subject->abstract_region_id) != 0) return -1;
@@ -81,14 +106,11 @@ static int append_function_summary_effect_subject_json(JsonBuilder *builder,
   return -1;
 }
 
-static const char *function_summary_effect_component_state_name(uint8_t state, uint8_t legacy_unknown) {
-  /* Policy summaries constructed by older in-process writers have no state
-   * field.  Preserve their established boolean semantics while all persisted
-   * metadata and new writers retain the exact terminal state. */
+static const char *function_summary_effect_component_state_name(uint8_t state) {
   if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT) return "explicit";
   if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID) return "invalid";
   if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW) return "overflow";
-  return legacy_unknown != 0U ? "unknown" : "explicit";
+  return "unknown";
 }
 
 static const char *function_summary_terminal_reason_name(uint8_t reason) {
@@ -96,6 +118,14 @@ static const char *function_summary_terminal_reason_name(uint8_t reason) {
     case M68K_FUNCTION_SUMMARY_TERMINAL_NONE: return "none";
     case M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED: return "callback_entry_unresolved";
     case M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE: return "callback_entry_incompatible";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_UNSUPPORTED: return "direct_body_unsupported";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_SOLVER_ITERATION_LIMIT: return "solver_iteration_limit";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_CONTRACT_CAPACITY: return "platform_contract_capacity";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_CONTRACT_IDENTITY_CONFLICT: return "platform_contract_identity_conflict";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH: return "recursive_direct_graph";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT: return "direct_body_limit";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_GRAPH_CAPACITY: return "direct_graph_capacity";
+    case M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_THUNK_BINDING_MISSING: return "platform_thunk_binding_missing";
     default: return "invalid";
   }
 }
@@ -4633,8 +4663,14 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           (unsigned)consumer->contract_offset) != 0 ||
           json_builder_append_json_string(&builder, consumer->pointee_struct_name) != 0 ||
           json_builder_append(&builder, ",\"contract_name\":") != 0 ||
-          json_builder_append_json_string(&builder, consumer->contract_name) != 0 ||
-          json_builder_append(&builder, ",\"function_summary_id\":") != 0 ||
+          json_builder_append_json_string(&builder, address_value_consumer_contract_display_name(consumer)) != 0 ||
+          json_builder_append(&builder, ",\"platform_input_identity\":") != 0) goto oom;
+      if (consumer->has_platform_input_identity != 0U) {
+        if (json_builder_appendf(&builder, "{\"library_id\":%u,\"function_id\":%u,\"input_id\":%u}",
+              (unsigned)consumer->platform_library_id, (unsigned)consumer->platform_function_id,
+              (unsigned)consumer->platform_input_id) != 0) goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"function_summary_id\":") != 0 ||
           json_builder_append_json_string(&builder, consumer->function_summary_id) != 0 ||
           json_builder_append(&builder, "}") != 0) goto oom;
     }
@@ -4652,15 +4688,14 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_appendf(&builder, ",\"callable_kind\":") != 0 ||
           json_builder_append_json_string(&builder, callable_kind) != 0 ||
           json_builder_appendf(&builder,
-            ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,\"terminal_reason\":\"%s\","
+            ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,\"direct_scc\":{\"size\":%u,\"ordinal\":%u},\"terminal_reason\":\"%s\","
             "\"effects\":{\"schema_version\":1,\"registers\":{\"state\":\"%s\"",
             (unsigned)summary->callable_section_index, (unsigned)summary->entry_offset,
             (unsigned)summary->table_offset, (unsigned)summary->entry_count,
+            (unsigned)summary->direct_scc_size, (unsigned)summary->direct_scc_ordinal,
             function_summary_terminal_reason_name(summary->terminal_reason),
-            function_summary_effect_component_state_name(summary->register_effect_state,
-              summary->register_effects_unknown)) != 0) goto oom;
-      if (function_summary_effect_component_state_name(summary->register_effect_state,
-          summary->register_effects_unknown)[0] == 'e') {
+            function_summary_effect_component_state_name(summary->register_effect_state)) != 0) goto oom;
+      if (function_summary_effect_component_state_name(summary->register_effect_state)[0] == 'e') {
         if (json_builder_append(&builder, ",\"locations\":[") != 0) goto oom;
         for (input_index = 0U; input_index < summary->location_effect_count; ++input_index) {
           const M68kFunctionSummaryLocationEffectIR *effect = &summary->location_effects[input_index];
@@ -4673,10 +4708,8 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         if (json_builder_append(&builder, "]") != 0) goto oom;
       }
       if (json_builder_appendf(&builder, "},\"memory\":{\"state\":\"%s\"",
-          function_summary_effect_component_state_name(summary->memory_effect_state,
-            summary->memory_effects_unknown)) != 0) goto oom;
-      if (function_summary_effect_component_state_name(summary->memory_effect_state,
-          summary->memory_effects_unknown)[0] == 'e') {
+          function_summary_effect_component_state_name(summary->memory_effect_state)) != 0) goto oom;
+      if (function_summary_effect_component_state_name(summary->memory_effect_state)[0] == 'e') {
         if (json_builder_append(&builder, ",\"effects\":[") != 0) goto oom;
         for (input_index = 0U; input_index < summary->memory_effect_count; ++input_index) {
           const M68kFunctionSummaryMemoryEffectIR *effect = &summary->memory_effects[input_index];
@@ -4691,10 +4724,8 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         if (json_builder_append(&builder, "]") != 0) goto oom;
       }
       if (json_builder_appendf(&builder, "},\"escapes\":{\"state\":\"%s\"",
-          function_summary_effect_component_state_name(summary->escape_effect_state,
-            summary->escape_effects_unknown)) != 0) goto oom;
-      if (function_summary_effect_component_state_name(summary->escape_effect_state,
-          summary->escape_effects_unknown)[0] == 'e') {
+          function_summary_effect_component_state_name(summary->escape_effect_state)) != 0) goto oom;
+      if (function_summary_effect_component_state_name(summary->escape_effect_state)[0] == 'e') {
         if (json_builder_append(&builder, ",\"escapes\":[") != 0) goto oom;
         for (input_index = 0U; input_index < summary->escape_count; ++input_index) {
           const M68kFunctionSummaryEscapeIR *escape = &summary->escapes[input_index];
@@ -4717,7 +4748,13 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
             json_builder_appendf(&builder, ",\"seed_kind\":%u,\"struct_name\":",
               (unsigned)input->seed_kind) != 0 ||
             json_builder_append_json_string(&builder, input->struct_name) != 0 ||
-            json_builder_append(&builder, "}") != 0) goto oom;
+            json_builder_append(&builder, ",\"platform_input_identity\":") != 0) goto oom;
+        if (input->has_platform_identity != 0U) {
+          if (json_builder_appendf(&builder, "{\"library_id\":%u,\"function_id\":%u,\"input_id\":%u}",
+                (unsigned)input->platform_library_id, (unsigned)input->platform_function_id,
+                (unsigned)input->platform_input_id) != 0) goto oom;
+        } else if (json_builder_append(&builder, "null") != 0) goto oom;
+        if (json_builder_append(&builder, "}") != 0) goto oom;
       }
       if (json_builder_appendf(&builder, "],\"result_contract_invalid\":%u,\"results\":[",
             (unsigned)summary->result_contract_invalid) != 0) goto oom;
@@ -4767,8 +4804,23 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_appendf(&builder, ",\"consumer_kind_id\":%u,\"consumer_kind\":",
             (unsigned)use->consumer_kind) != 0 ||
           json_builder_append_json_string(&builder, address_value_consumer_kind_name(use->consumer_kind)) != 0 ||
-          json_builder_appendf(&builder, ",\"operand_index\":%u,\"register_kind\":%u,\"register_index\":%u}",
-            (unsigned)use->operand_index, (unsigned)use->register_kind, (unsigned)use->register_index) != 0) goto oom;
+          json_builder_appendf(&builder, ",\"operand_index\":%u,\"register_kind\":%u,\"register_index\":%u,"
+            "\"terminal_reason\":\"%s\"}", (unsigned)use->operand_index,
+            (unsigned)use->register_kind, (unsigned)use->register_index,
+             function_summary_terminal_reason_name(use->terminal_reason)) != 0) goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"platform_call_thunk_count\":%u,\"platform_call_thunks\":[",
+          (unsigned)section->platform_call_thunk_count) != 0) goto oom;
+    for (address_observation_index = 0U; address_observation_index < section->platform_call_thunk_count;
+        ++address_observation_index) {
+      const M68kPlatformCallThunkIR *thunk = &section->platform_call_thunks[address_observation_index];
+      if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"wrapper_section_index\":%u,\"wrapper_entry_offset\":%u,\"platform_library_id\":%u,"
+          "\"platform_function_id\":%u,\"wrapper_call_offset\":%u,\"relation\":\"platform_call_thunk\"}",
+          (unsigned)thunk->wrapper_section_index, (unsigned)thunk->wrapper_entry_offset,
+          (unsigned)thunk->platform_library_id, (unsigned)thunk->platform_function_id,
+          (unsigned)thunk->wrapper_call_offset) != 0) goto oom;
     }
     if (json_builder_appendf(&builder, "],\"address_value_count\":%u,\"address_values\":[",
           (unsigned)section->address_value_count) != 0) goto oom;

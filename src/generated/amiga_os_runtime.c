@@ -36741,6 +36741,25 @@ const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_name(cons
   return amiga_os_find_library_vector_by_symbol_id(amiga_os_name_id(4u, lvo_symbol_name));
 }
 
+const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_ids(uint16_t library_id, uint16_t function_id, uint16_t output_id) {
+  size_t index;
+  for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {
+    const AmigaOsLibraryVectorInfo *entry = &g_amiga_os_library_vectors[index];
+    if (entry->library_id == library_id && entry->function_id == function_id &&
+        entry->output.output_id == output_id) return entry;
+  }
+  return NULL;
+}
+
+const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_function_ids(uint16_t library_id, uint16_t function_id) {
+  size_t index;
+  for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {
+    const AmigaOsLibraryVectorInfo *entry = &g_amiga_os_library_vectors[index];
+    if (entry->library_id == library_id && entry->function_id == function_id) return entry;
+  }
+  return NULL;
+}
+
 const AmigaOsLibraryVectorInfo *amiga_os_library_vector_at(size_t index) {
   if (index >= AMIGA_OS_LIBRARY_VECTOR_COUNT) return NULL;
   return &g_amiga_os_library_vectors[index];

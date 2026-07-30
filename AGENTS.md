@@ -105,3 +105,17 @@ Load knowledge files on demand.
 - Propagate naming from functions to referenced data when justified.
 - Prefer descriptive names, e.g. `update_player_position`, not `sub_1234`.
 - Record cross-references bidirectionally.
+
+## Gap-Driven Development
+
+- Treat a valid, semantically meaningful form uncovered by a focused test or
+  analysis as a potential missing capability, not merely an unsupported test
+  shape.  Determine whether it belongs to the project model before dismissing
+  it.
+- When it belongs, normalize equivalent representations to one durable fact or
+  identity, implement the missing path, and add positive and conservative
+  regression coverage.  Do not abandon the path simply because the current
+  implementation does not yet track it.
+- When it is intentionally out of scope, record the explicit boundary and
+  reason in the relevant durable proposal or design documentation; conversation
+  memory is not an adequate substitute.

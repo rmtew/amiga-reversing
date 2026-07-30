@@ -12,9 +12,9 @@
     INCLUDE "hardware/custom.i"
 
 _custom	EQU	$DFF000
-stack_top_00080000	EQU	$80000
 absolute_slot_000000C0	EQU	$C0
 runtime_code_00000100	EQU	$100
+stack_top_00080000	EQU	$80000
 
     SECTION section,code
 loc_0_00000000:

@@ -14816,6 +14816,8 @@ const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_base_id(uint16_t
 const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector(const char *base_name, int16_t lvo);
 const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_id(uint16_t lvo_symbol_id);
 const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_name(const char *lvo_symbol_name);
+const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_function_ids(uint16_t library_id, uint16_t function_id);
+const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_ids(uint16_t library_id, uint16_t function_id, uint16_t output_id);
 const AmigaOsLibraryVectorInfo *amiga_os_library_vector_at(size_t index);
 const AmigaOsCallInputInfo *amiga_os_library_vector_inputs(const AmigaOsLibraryVectorInfo *entry, size_t *out_count);
 const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_struct_id(uint16_t struct_id, int16_t offset);

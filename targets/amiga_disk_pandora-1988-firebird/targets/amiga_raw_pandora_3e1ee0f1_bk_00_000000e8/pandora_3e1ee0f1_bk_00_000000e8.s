@@ -1717,8 +1717,8 @@ abs_0_00011412:
 	add.w d0,d0
 	movea.l world_object_handler_ptrs(pc,d0.w),a0
 	jsr (a0)
-	move.l a4,world_object_shared_prefix_behavior_script_ptr(a5)
-	tst.w world_object_shared_prefix_behavior_script_delay_ticks(a5)
+	move.l a4,$0024(a5)
+	tst.w $0044(a5)
 	beq.b abs_0_00011412
 	rts
 world_object_handler_ptrs:
@@ -2119,7 +2119,7 @@ abs_0_000124FE:
 	subq.w #1,d7
 abs_0_0001250E:
 	movea.l (a0)+,a1
-	move.l $0000(a1),d0
+	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
 	beq.b abs_0_00012536
 	movea.l d0,a4
 	movem.l d7/a0,-(a7)
@@ -2998,7 +2998,7 @@ abs_0_00012F8E:
 	move.b $0001(a1),$0001(a0)
 	bclr.b #3,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w announce_item_trade
-	move.b d6,world_object_shared_prefix_selected_item_id(a5)
+	move.b d6,$0046(a5)
 	bsr.w display_current_item_name
 	bsr.w refresh_selected_item_name_display
 	bsr.w clear_inventory_item_selection_flags
@@ -6009,7 +6009,7 @@ abs_0_00017968:
 	move.b app_02B7(a6),d0
 abs_0_0001796C:
 	clr.w app_02AE(a6)
-	sub.b d0,world_object_shared_prefix_hit_points+1(a5)
+	sub.b d0,$003D(a5)
 	bmi.w abs_0_000179E4
 	beq.w abs_0_000179E4
 	bsr.w abs_0_00017AE8
@@ -6041,7 +6041,7 @@ abs_0_000179E4:
 	addq.b #1,app_0327(a6)
 	movea.l app_interaction_object_ptr(a6),a5
 abs_0_000179EC:
-	move.l world_object_shared_prefix_interaction_completion_callback(a5),d0
+	move.l $0008(a5),d0
 	beq.b abs_0_00017A06
 	move.l #$24C28,$64C0.w
 	movea.l d0,a0
@@ -6050,15 +6050,15 @@ abs_0_000179EC:
 	movem.l (a7)+,a4-a5
 abs_0_00017A06:
 	bsr.w restore_world_object_position_state
-	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #1,$0048(a5)
 	bclr.b #1,app_ui_flags(a6)
 	lea.l abs_0_0005C97A.l,a0
 	clr.l (a0)
 	move.w #$2710,d2
-	sub.w d2,world_object_shared_prefix_world_x(a5)
-	move.w world_object_shared_prefix_world_x(a5),d0
+	sub.w d2,$0030(a5)
+	move.w $0030(a5),d0
 	andi.b #240,d0
-	move.w d0,world_object_shared_prefix_world_x(a5)
+	move.w d0,$0030(a5)
 	bsr.w abs_0_000124E0
 	lea.l player_world_object.l,a5
 	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
@@ -6183,7 +6183,7 @@ validate_npc_item_trade:
 	cmp.b #$2,d0
 	bcc.b evaluate_npc_trade_offer
 abs_0_00017BF2:
-	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
+	movea.l $0014(a5),a0
 	moveq.l #3,d7
 abs_0_00017BF8:
 	move.b (a0),d0
@@ -6198,7 +6198,7 @@ abs_0_00017C0A:
 	move #$1,ccr
 	rts
 select_npc_trade_item:
-	move.b (a0),world_object_shared_prefix_selected_item_id(a5)
+	move.b (a0),$0046(a5)
 	bsr.w display_current_item_name
 	bra.b abs_0_00017C06
 evaluate_npc_trade_offer:
@@ -6352,24 +6352,24 @@ update_world_object_interactions:
 	subq.w #1,d7
 abs_0_00017E04:
 	movea.l (a0)+,a1
-	move.l $0000(a1),d0
+	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
-	btst.b #0,$0018(a2)
+	btst.b #0,world_position_state_record_interaction_flags(a2)
 	bne.w abs_0_00017F02
-	btst.b #4,$0019(a2)
+	btst.b #4,world_position_state_record_world_object_flags(a2)
 	bne.w abs_0_00017F08
-	btst.b #2,$0019(a2)
+	btst.b #2,world_position_state_record_world_object_flags(a2)
 	bne.w handle_item_receptacle_interaction
-	btst.b #0,$0019(a2)
+	btst.b #0,world_position_state_record_world_object_flags(a2)
 	beq.w abs_0_00017F02
-	move.w $0004(a1),d0
-	move.w $0006(a1),d1
-	add.w $000C(a2),d0
-	add.w $000E(a2),d1
+	move.w world_position_descriptor_prefix_world_x(a1),d0
+	move.w world_position_descriptor_prefix_world_y(a1),d1
+	add.w world_position_state_record_world_x_offset(a2),d0
+	add.w world_position_state_record_world_y_offset(a2),d1
 	addi.w #16,d1
 	moveq.l #8,d2
-	btst.b #5,$0019(a2)
+	btst.b #5,world_position_state_record_world_object_flags(a2)
 	bne.b abs_0_00017E58
 	moveq.l #16,d2
 abs_0_00017E58:
@@ -6391,12 +6391,12 @@ abs_0_00017E74:
 	cmp.w #$2C,d0
 	bcc.b abs_0_00017EC2
 	lea.l abs_0_00059134.l,a3
-	btst.b #5,$0019(a2)
+	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017E90
 	lea.l abs_0_0005916C.l,a3
 abs_0_00017E90:
-	movea.l $0008(a2),a5
-	cmpa.l $0006(a5),a3
+	movea.l world_position_state_record_state_node_ptr(a2),a5
+	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
@@ -6411,12 +6411,12 @@ abs_0_00017E90:
 	bra.b abs_0_00017F02
 abs_0_00017EC2:
 	lea.l abs_0_00059150.l,a3
-	btst.b #5,$0019(a2)
+	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017ED6
 	lea.l abs_0_00059188.l,a3
 abs_0_00017ED6:
-	movea.l $0008(a2),a5
-	cmpa.l $0006(a5),a3
+	movea.l world_position_state_record_state_node_ptr(a2),a5
+	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
@@ -6435,10 +6435,10 @@ abs_0_00017F08:
 	bne.b abs_0_00017F02
 	btst.b #3,app_033C(a6)
 	bne.b abs_0_00017F02
-	move.w $0004(a1),d0
-	move.w $0006(a1),d1
-	add.w $000C(a2),d0
-	add.w $000E(a2),d1
+	move.w world_position_descriptor_prefix_world_x(a1),d0
+	move.w world_position_descriptor_prefix_world_y(a1),d1
+	add.w world_position_state_record_world_x_offset(a2),d0
+	add.w world_position_state_record_world_y_offset(a2),d1
 	moveq.l #16,d4
 	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
 	beq.b abs_0_00017F3A
@@ -6502,16 +6502,16 @@ abs_0_00017FC2:
 	movem.l (a7)+,a0-a3
 	addq.b #1,app_0338(a6)
 abs_0_00017FDE:
-	movea.l $0008(a2),a3
-	bset.b #0,$000A(a3)
-	move.l $0014(a2),d0
+	movea.l world_position_state_record_state_node_ptr(a2),a3
+	bset.b #0,WorldPositionStateNode_active_flag(a3)
+	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FDE
 abs_0_00017FF4:
-	movea.l $0008(a2),a3
-	bclr.b #0,$000A(a3)
-	move.l $0014(a2),d0
+	movea.l world_position_state_record_state_node_ptr(a2),a3
+	bclr.b #0,WorldPositionStateNode_active_flag(a3)
+	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FF4
@@ -6597,12 +6597,12 @@ deposit_item_in_receptacle:
 	clr.l world_position_state_record_attachment_state_ptr(a2)
 	move.b item_receptacle_interaction_data_required_item_definition_id(a3),world_object_shared_prefix_selected_item_id(a4)
 	bsr.w refresh_selected_item_name_display
-	move.b world_object_shared_prefix_selected_item_id(a4),d0
+	move.b $0046(a4),d0
 	cmp.b #$68,d0
 	bne.b abs_0_0001814C
 	bset.b #0,app_033C(a6)
 	bne.b abs_0_0001814C
-	move.w #$5F,world_object_shared_prefix_hit_points(a4)
+	move.w #$5F,$003C(a4)
 	movea.l a4,a5
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
@@ -6787,11 +6787,11 @@ scan_world_objects_for_proximity:
 	move.l (a1)+,d2
 	beq.w update_nearby_object_context
 	movea.l d2,a5
-	movea.l $002C(a5),a0
-	move.w $0030(a5),d2
-	move.w $0032(a5),d3
-	move.w d2,$0004(a0)
-	move.w d3,$0006(a0)
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
+	move.w world_object_shared_prefix_world_x(a5),d2
+	move.w world_object_shared_prefix_world_y(a5),d3
+	move.w d2,world_position_descriptor_prefix_world_x(a0)
+	move.w d3,world_position_descriptor_prefix_world_y(a0)
 	cmpa.l a5,a4
 	beq.w abs_0_000183AA
 	sub.w d4,d2
@@ -6803,33 +6803,33 @@ abs_0_00018334:
 	neg.w d3
 abs_0_0001833A:
 	add.w d2,d3
-	move.w d3,$0042(a5)
-	bclr.b #5,$0048(a5)
+	move.w d3,world_object_shared_prefix_proximity_distance(a5)
+	bclr.b #5,world_object_shared_prefix_world_object_flags(a5)
 	cmp.w d0,d3
 	bcc.b abs_0_000183AA
 	bclr.b #2,app_02A6(a6)
 	move.w d3,d0
 	move.w d0,app_nearest_object_distance(a6)
-	bset.b #5,$0048(a5)
+	bset.b #5,world_object_shared_prefix_world_object_flags(a5)
 	cmpa.l app_nearest_object_ptr(a6),a5
 	beq.b abs_0_000183AA
 	move.l a5,app_nearest_object_ptr(a6)
 	move.l a5,app_02D4(a6)
-	move.w $0052(a5),d0
+	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
 	beq.b abs_0_00018376
 	subq.w #1,d0
-	move.w d0,$0052(a5)
+	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
 abs_0_00018376:
 	bset.b #1,app_02A6(a6)
-	bset.b #2,$0048(a5)
+	bset.b #2,world_object_shared_prefix_world_object_flags(a5)
 	bne.b abs_0_000183AA
-	btst.b #1,$0048(a5)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bne.b abs_0_000183AA
-	tst.l $000C(a5)
+	tst.l world_object_shared_prefix_context_message_ptr(a5)
 	beq.w scan_world_objects_for_proximity
 	movem.l a0-a3,-(a7)
-	move.w #$3C,$0052(a5)
-	movea.l $000C(a5),a0
+	move.w #$3C,world_object_shared_prefix_context_prompt_cooldown(a5)
+	movea.l world_object_shared_prefix_context_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	movem.l (a7)+,a0-a3
 abs_0_000183AA:
@@ -7263,7 +7263,7 @@ abs_0_000188BC:
 	move.b #$46,app_02CC(a6)
 	jsr abs_0_0005C9AE.l
 	lea.l abs_0_0005C5B6.l,a0
-	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a4)
+	move.l a0,$004E(a4)
 	lea.l abs_0_0005C592.l,a1
 	move.l a1,$0000(a0)
 	move.l a1,$0004(a0)
@@ -7271,7 +7271,7 @@ abs_0_000188BC:
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
 	jsr restore_world_object_position_state.l
-	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #1,$0048(a5)
 	bra.w abs_0_0001884E
 abs_0_0001890C:
 	moveq.l #31,d0
@@ -7673,8 +7673,8 @@ abs_0_0001926E:
 	beq.w abs_0_000193D8
 	subq.b #1,$0(a0,d0.w)
 	jsr abs_0_0005D30A.l
-	move.w world_object_shared_prefix_world_x(a4),d0
-	move.w world_object_shared_prefix_world_y(a4),d1
+	move.w $0030(a4),d0
+	move.w $0032(a4),d1
 	moveq.l #14,d2
 	add.w d2,d0
 	add.w d2,d1
@@ -7754,17 +7754,17 @@ abs_0_000193A4:
 	move.w d0,$0004(a1)
 	move.w d1,$0006(a1)
 	move.w app_0322(a6),d0
-	move.b world_object_shared_prefix_item_state(a5),d1
+	move.b $004C(a5),d1
 	sub.b abs_0_000193EA(pc,d0.w),d1
 	bpl.b abs_0_000193BC
 	clr.b d1
 abs_0_000193BC:
-	move.b d1,world_object_shared_prefix_item_state(a5)
-	move.b world_object_shared_prefix_hit_points+1(a5),d1
+	move.b d1,$004C(a5)
+	move.b $003D(a5),d1
 	sub.b abs_0_000193E8(pc,d0.w),d1
 	bmi.b abs_0_000193EC
 	beq.b abs_0_000193EC
-	move.b d1,world_object_shared_prefix_hit_points+1(a5)
+	move.b d1,$003D(a5)
 	move.b app_031B(a6),d0
 abs_0_000193D4:
 	move.b d0,app_031B(a6)
@@ -7780,7 +7780,7 @@ abs_0_000193E8:
 abs_0_000193EA:
 	dc.b $32,$64	; lookup_table
 abs_0_000193EC:
-	move.l world_object_shared_prefix_interaction_completion_callback(a5),d0
+	move.l $0008(a5),d0
 	beq.b abs_0_000193F6
 	movea.l d0,a0
 	jsr (a0)
@@ -7804,7 +7804,7 @@ abs_0_0001941E:
 abs_0_0001942E:
 	move.w d0,$0004(a1)
 	move.w d1,$0006(a1)
-	btst.b #4,world_position_state_record_world_object_flags(a2)
+	btst.b #4,$0019(a2)
 	beq.b abs_0_0001944A
 	lea.l abs_0_0001944C(pc),a0
 	bsr.w enqueue_scrolling_message
@@ -7949,9 +7949,9 @@ abs_0_0001962A:
 	beq.b abs_0_00019644
 	bsr.w enforce_id_card_requirement
 abs_0_00019644:
-	add.w world_object_shared_prefix_world_x(a4),d0
-	add.w world_object_shared_prefix_world_y(a4),d1
-	movea.l world_object_shared_prefix_position_descriptor_ptr(a4),a1
+	add.w $0030(a4),d0
+	add.w $0032(a4),d1
+	movea.l $002C(a4),a1
 	lea.l player_position_state.l,a2
 	movea.l world_position_state_record_collision_bounds_ptr.w(a2),a3
 	add.w world_position_state_record_world_x_offset(a2),d0
@@ -7982,11 +7982,11 @@ abs_0_000196A2:
 	tst.w $01CC(a6)
 	beq.w abs_0_00019844
 	move.w #$1,abs_0_0005C31A.l
-	btst.b #2,world_object_shared_prefix_movement_direction_flags(a4)
+	btst.b #2,$004B(a4)
 	beq.b abs_0_000196C0
 	move.w #$7,app_033A(a6)
 abs_0_000196C0:
-	btst.b #3,world_object_shared_prefix_movement_direction_flags(a4)
+	btst.b #3,$004B(a4)
 	beq.b abs_0_000196CE
 	move.w #$FFF9,app_033A(a6)
 abs_0_000196CE:
@@ -8090,13 +8090,13 @@ abs_0_000197FE:
 	move.w d0,app_031C(a6)
 	move.w d1,app_031E(a6)
 	add.w app_033A(a6),d0
-	add.w d0,world_object_shared_prefix_world_x(a4)
+	add.w d0,$0030(a4)
 	sub.w app_033A(a6),d0
 	tst.w app_033A(a6)
 	bne.b abs_0_00019844
 	move.w app_tilemap_height(a6),d3
 	lsl.w #4,d3
-	move.w world_object_shared_prefix_world_y(a4),d2
+	move.w $0032(a4),d2
 	add.w d1,d2
 	bpl.b abs_0_0001983A
 	add.w d3,d2
@@ -8106,30 +8106,30 @@ abs_0_0001983A:
 	bcc.b abs_0_00019840
 	add.w d3,d2
 abs_0_00019840:
-	move.w d2,world_object_shared_prefix_world_y(a4)
+	move.w d2,$0032(a4)
 abs_0_00019844:
-	clr.b world_object_shared_prefix_movement_direction_flags(a4)
+	clr.b $004B(a4)
 	lea.l player_position_state.l,a0
 	tst.w d0
 	beq.b abs_0_00019870
 	bpl.b abs_0_00019862
 	lea.l abs_0_0005C776.l,a1
-	bset.b #2,world_object_shared_prefix_movement_direction_flags(a4)
+	bset.b #2,$004B(a4)
 	bra.b abs_0_00019890
 abs_0_00019862:
 	lea.l player_position_state_interaction_data_ptr.l,a1
-	bset.b #3,world_object_shared_prefix_movement_direction_flags(a4)
+	bset.b #3,$004B(a4)
 	bra.b abs_0_00019890
 abs_0_00019870:
 	tst.w d1
 	beq.b abs_0_00019890
 	bpl.b abs_0_00019884
 	lea.l abs_0_0005C7D6.l,a1
-	bset.b #0,world_object_shared_prefix_movement_direction_flags(a4)
+	bset.b #0,$004B(a4)
 	bra.b abs_0_00019890
 abs_0_00019884:
 	lea.l abs_0_0005C7A8.l,a1
-	bset.b #1,world_object_shared_prefix_movement_direction_flags(a4)
+	bset.b #1,$004B(a4)
 abs_0_00019890:
 	movea.l world_position_state_record_state_node_ptr(a0),a2
 	cmpa.l a2,a1
@@ -8144,7 +8144,7 @@ abs_0_000198A2:
 	beq.b abs_0_0001990A
 	bpl.b abs_0_000198D8
 	move.w app_028E(a6),d2
-	move.w world_object_shared_prefix_world_x(a4),d0
+	move.w $0030(a4),d0
 	cmp.w d2,d0
 	bcc.b abs_0_0001990A
 	move.w app_tilemap_scroll_x(a6),d0
@@ -8154,7 +8154,7 @@ abs_0_000198A2:
 	clr.w app_0298(a6)
 	bra.w abs_0_00017D24
 abs_0_000198D8:
-	move.w world_object_shared_prefix_world_x(a4),d0
+	move.w $0030(a4),d0
 	addi.w #24,d0
 	move.w app_0290(a6),d2
 	cmp.w d2,d0
@@ -8172,7 +8172,7 @@ abs_0_0001990A:
 	tst.w d1
 	beq.w abs_0_000199AA
 	bpl.b abs_0_0001994C
-	move.w world_object_shared_prefix_world_y(a4),d0
+	move.w $0032(a4),d0
 	cmp.w #$10,d0
 	bcc.b abs_0_00019934
 	move.w app_tilemap_height(a6),d0
@@ -8180,7 +8180,7 @@ abs_0_0001990A:
 	lsl.w #4,d0
 	move.w d0,app_tilemap_scroll_y(a6)
 	addi.w #80,d0
-	move.w d0,world_object_shared_prefix_world_y(a4)
+	move.w d0,$0032(a4)
 	bra.w abs_0_00017D32
 abs_0_00019934:
 	move.w app_0292(a6),d2
@@ -8190,14 +8190,14 @@ abs_0_00019934:
 	move.w #$FFF0,app_0298(a6)
 	bra.w abs_0_00017D24
 abs_0_0001994C:
-	move.w world_object_shared_prefix_world_y(a4),d0
+	move.w $0032(a4),d0
 	move.w app_tilemap_height(a6),d1
 	subq.w #3,d1
 	lsl.w #4,d1
 	cmp.w d1,d0
 	bcs.b abs_0_0001996A
 	clr.w app_tilemap_scroll_y(a6)
-	move.w #$10,world_object_shared_prefix_world_y(a4)
+	move.w #$10,$0032(a4)
 	bra.w abs_0_00017D32
 abs_0_0001996A:
 	move.w app_0294(a6),d2

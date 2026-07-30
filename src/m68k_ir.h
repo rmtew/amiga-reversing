@@ -74,7 +74,10 @@ typedef enum M68kAnalysisRegisterKind {
 typedef enum M68kAnalysisRegisterSeedKind {
   M68K_ANALYSIS_REGISTER_SEED_NONE = 0,
   M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE = 1,
-  M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR = 2
+  M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR = 2,
+  /* Callable-only ABI identity for a pointer whose concrete pointee type is
+   * not yet recovered.  It is not valid as a free register seed. */
+  M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER = 3
 } M68kAnalysisRegisterSeedKind;
 
 typedef struct M68kAnalysisRegisterSeed {
@@ -133,9 +136,15 @@ typedef struct M68kFunctionSummaryAbiLocation {
 
 typedef struct M68kAnalysisFunctionSummaryInput {
   uint8_t seed_kind;
-  uint8_t reserved[3];
+  /* Generated platform inputs carry their source-table identity, never a
+   * copied display name.  Target-authored inputs leave this clear. */
+  uint8_t has_platform_identity;
+  uint8_t reserved[2];
   M68kFunctionSummaryAbiLocation location;
   char struct_name[64];
+  uint16_t platform_library_id;
+  uint16_t platform_function_id;
+  uint16_t platform_input_id;
 } M68kAnalysisFunctionSummaryInput;
 
 /* Target-authored results are deliberately narrower than generated platform
@@ -144,14 +153,19 @@ typedef struct M68kAnalysisFunctionSummaryInput {
  * common source-analysis result IR below. */
 typedef enum M68kAnalysisFunctionSummaryResultKind {
   M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_NONE = 0,
-  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 1
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 1,
+  /* Generated-only. Target metadata remains restricted to identity_input;
+   * generated platform contracts carry stable IDs, never copied names. */
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 2
 } M68kAnalysisFunctionSummaryResultKind;
 
 typedef struct M68kAnalysisFunctionSummaryResult {
   M68kFunctionSummaryAbiLocation location;
   uint8_t kind;
   uint8_t input_index;
-  uint8_t reserved[2];
+  uint16_t platform_library_id;
+  uint16_t platform_function_id;
+  uint16_t platform_output_id;
 } M68kAnalysisFunctionSummaryResult;
 
 typedef enum M68kFunctionSummaryLocationEffect {
@@ -178,13 +192,18 @@ typedef enum M68kFunctionSummaryEffectSubjectKind {
   M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_NONE = 0,
   M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT = 1,
   M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE = 2,
-  M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION = 3
+  M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION = 3,
+  /* A caller-visible stack slot is a distinct durable storage identity.
+   * Its ABI convention prevents equal numeric offsets in different stack
+   * roles from aliasing. */
+  M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK = 4
 } M68kFunctionSummaryEffectSubjectKind;
 
 typedef struct M68kFunctionSummaryEffectSubjectIR {
   uint8_t kind;
   uint8_t input_index;
-  uint8_t reserved[2];
+  uint8_t stack_convention;
+  uint8_t reserved;
   uint32_t section_index;
   uint32_t offset;
   char abstract_region_id[96];
@@ -238,10 +257,6 @@ typedef struct M68kAnalysisFunctionSummary {
   uint8_t callable_kind;
   uint8_t has_section_index;
   uint8_t input_count;
-  uint8_t return_contract_unknown;
-  uint8_t register_effects_unknown;
-  uint8_t memory_effects_unknown;
-  uint8_t escape_effects_unknown;
   uint8_t register_effect_state;
   uint8_t memory_effect_state;
   uint8_t escape_effect_state;
@@ -251,7 +266,7 @@ typedef struct M68kAnalysisFunctionSummary {
   uint8_t location_effect_count;
   uint8_t result_count;
   uint8_t result_contract_invalid;
-  uint8_t reserved1[2];
+  uint8_t reserved1[1];
   uint32_t section_index;
   uint32_t entry_offset;
   uint32_t table_offset;
@@ -270,7 +285,15 @@ typedef struct M68kAnalysisFunctionSummary {
 typedef enum M68kFunctionSummaryTerminalReason {
   M68K_FUNCTION_SUMMARY_TERMINAL_NONE = 0,
   M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED = 1,
-  M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE = 2
+  M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE = 2,
+  M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_UNSUPPORTED = 3,
+  M68K_FUNCTION_SUMMARY_TERMINAL_SOLVER_ITERATION_LIMIT = 4,
+  M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_CONTRACT_CAPACITY = 5,
+  M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_CONTRACT_IDENTITY_CONFLICT = 6,
+  M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH = 7,
+  M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT = 8,
+  M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_GRAPH_CAPACITY = 9,
+  M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_THUNK_BINDING_MISSING = 10
 } M68kFunctionSummaryTerminalReason;
 
 typedef enum M68kAnalysisEntryPointProvenance {
@@ -557,6 +580,7 @@ typedef struct M68kAnalysisRssetUseSiteBinding {
 
 #define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
 #define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U
+#define M68K_ANALYSIS_ABSTRACT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE 512U
 
 /* An observed debugger mapping proves pointer address resolution, not general
@@ -669,6 +693,14 @@ typedef struct M68kAnalysisManualRuntimeAddressRef {
   char xref_generation_mode[32];
 } M68kAnalysisManualRuntimeAddressRef;
 
+/* Named source-section range used by summary abstract-region effects. */
+typedef struct M68kAnalysisAbstractRegion {
+  uint32_t section_index;
+  uint32_t start_offset;
+  uint32_t size;
+  char region_id[96];
+} M68kAnalysisAbstractRegion;
+
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
@@ -688,6 +720,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t manual_representation_count;
   uint16_t target_equate_count;
   uint16_t manual_runtime_address_ref_count;
+  uint16_t abstract_region_count;
   uint16_t custom_struct_count;
   uint16_t custom_struct_capacity;
   uint16_t structured_data_item_capacity;
@@ -720,6 +753,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
   M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];
+  M68kAnalysisAbstractRegion abstract_regions[M68K_ANALYSIS_ABSTRACT_REGION_LIMIT];
   M68kAnalysisCustomStruct *custom_structs;
 } M68kAnalysisPolicy;
 
@@ -1640,6 +1674,11 @@ typedef struct M68kAddressValueConsumerIR {
   uint8_t kind;
   uint8_t register_kind;
   uint8_t register_index;
+  uint8_t has_platform_input_identity;
+  uint8_t reserved0;
+  uint16_t platform_library_id;
+  uint16_t platform_function_id;
+  uint16_t platform_input_id;
 } M68kAddressValueConsumerIR;
 
 /* A source-analysis summary fact is deliberately separate from policy input:
@@ -1653,10 +1692,6 @@ typedef struct M68kFunctionSummaryIR {
   uint32_t entry_count;
   uint8_t callable_kind;
   uint8_t input_count;
-  uint8_t return_contract_unknown;
-  uint8_t register_effects_unknown;
-  uint8_t memory_effects_unknown;
-  uint8_t escape_effects_unknown;
   uint8_t register_effect_state;
   uint8_t memory_effect_state;
   uint8_t escape_effect_state;
@@ -1667,7 +1702,11 @@ typedef struct M68kFunctionSummaryIR {
   uint8_t effects_invalid;
   uint8_t location_effect_count;
   uint8_t terminal_reason;
-  uint8_t reserved0[3];
+  /* Direct solver proof: a nonzero component size identifies the inferred
+   * direct-call SCC that owns this summary. Configured/callback summaries use
+   * zero because they are not graph-solver nodes. */
+  uint8_t direct_scc_size;
+  uint8_t direct_scc_ordinal;
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
   M68kFunctionSummaryResultIR results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
   M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];
@@ -1693,7 +1732,25 @@ typedef struct M68kFunctionSummaryUseIR {
   uint8_t operand_index;
   uint8_t register_kind;
   uint8_t register_index;
+  uint8_t terminal_reason;
+  uint8_t reserved[3];
 } M68kFunctionSummaryUseIR;
+
+/* A local callable proven to be a thunk for one generated platform callable.
+ * This is an analysis identity, not a renderer spelling or a recovered name. */
+typedef enum M68kPlatformCallThunkRelationKind {
+  M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK = 1
+} M68kPlatformCallThunkRelationKind;
+
+typedef struct M68kPlatformCallThunkIR {
+  uint32_t wrapper_section_index;
+  uint32_t wrapper_entry_offset;
+  uint32_t platform_library_id;
+  uint32_t platform_function_id;
+  uint32_t wrapper_call_offset;
+  uint8_t relation_kind;
+  uint8_t reserved[3];
+} M68kPlatformCallThunkIR;
 
 typedef struct M68kAddressValueTransferIR {
   uint32_t section_index;
@@ -2547,6 +2604,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kFunctionSummaryUseIR *function_summary_uses;
   size_t function_summary_use_count;
   size_t function_summary_use_capacity;
+  M68kPlatformCallThunkIR *platform_call_thunks;
+  size_t platform_call_thunk_count;
+  size_t platform_call_thunk_capacity;
   M68kAddressValueIR *address_values;
   size_t address_value_count;
   size_t address_value_capacity;
@@ -2814,6 +2874,8 @@ int m68k_ir_section_analysis_append_function_summary(M68kSectionAnalysisIR *sect
     const M68kFunctionSummaryIR *summary);
 int m68k_ir_section_analysis_append_function_summary_use(M68kSectionAnalysisIR *section_analysis,
     const M68kFunctionSummaryUseIR *use);
+int m68k_ir_section_analysis_append_platform_call_thunk(M68kSectionAnalysisIR *section_analysis,
+    const M68kPlatformCallThunkIR *thunk);
 int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressValueIR *address_value);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,

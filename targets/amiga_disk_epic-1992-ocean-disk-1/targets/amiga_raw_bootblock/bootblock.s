@@ -24,18 +24,18 @@
     INCLUDE "exec/io.i"
     INCLUDE "hardware/custom.i"
 
-m68k_vector_trap_3_instruction_vector	EQU	$8C
-stack_top_0007FDF0	EQU	$7FDF0
-stack_top_0007FFF0	EQU	$7FFF0
-runtime_code_00000400	EQU	$400
-m68k_vector_trap_0_instruction_vector	EQU	$80
-absolute_slot_00020000	EQU	$20000
+_custom	EQU	$DFF000
 absolute_slot_00000864	EQU	$864
 absolute_slot_00009C78	EQU	$9C78
+absolute_slot_00020000	EQU	$20000
 absolute_slot_00076CC0	EQU	$76CC0
+m68k_vector_trap_0_instruction_vector	EQU	$80
+m68k_vector_trap_3_instruction_vector	EQU	$8C
+runtime_code_00000400	EQU	$400
 runtime_code_00077A6A	EQU	$77A6A
 runtime_code_00078C00	EQU	$78C00
-_custom	EQU	$DFF000
+stack_top_0007FDF0	EQU	$7FDF0
+stack_top_0007FFF0	EQU	$7FFF0
 
     SECTION code,code
 	dc.b "DOS",$00	; NOTE: boot magic

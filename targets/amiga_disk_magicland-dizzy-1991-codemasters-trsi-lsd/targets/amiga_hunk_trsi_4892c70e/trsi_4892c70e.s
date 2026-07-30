@@ -11,11 +11,11 @@
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
 
-_custom	EQU	$DFF000
 _ciab	EQU	$BFD000
-runtime_code_00000100	EQU	$100
-m68k_vector_illegal_instruction	EQU	$10
+_custom	EQU	$DFF000
 absolute_slot_00030000	EQU	$30000
+m68k_vector_illegal_instruction	EQU	$10
+runtime_code_00000100	EQU	$100
 
     SECTION section,code
 loc_0_00000000:

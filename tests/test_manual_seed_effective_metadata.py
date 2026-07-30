@@ -11,12 +11,14 @@ from amiga_reversing.disasm.manual_actions import (
     build_target_identity,
 )
 from amiga_reversing.disasm.target_metadata import (
+    AbstractRegionMetadata,
     CustomStructFieldMetadata,
     CustomStructMetadata,
     DataBlockElementKind,
     DataBlockElementMetadata,
     DataBlockLayoutMetadata,
     ExecutionViewMetadata,
+    FunctionSummaryMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
     ManualRuntimeAddressRefMetadata,
@@ -27,6 +29,7 @@ from amiga_reversing.disasm.target_metadata import (
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
+    target_metadata_json_payload,
     write_target_metadata,
     write_target_seeded_metadata,
 )
@@ -48,6 +51,37 @@ def _action(action_id: str, sequence: int, kind: str, **fields: object) -> dict[
         "kind": kind,
         **fields,
     }
+
+
+def test_abstract_region_metadata_is_strict_unique_and_non_overlapping() -> None:
+    payload = {
+        "target_type": "program", "entry_register_seeds": [], "bootblock": None, "resident": None,
+        "library": None, "custom_structs": [], "rsset_layout_regions": [],
+        "abstract_regions": [
+            {"region_id": "world_state", "section_index": 0, "start_offset": 16, "size": 8},
+            {"region_id": "sound_state", "section_index": 0, "start_offset": 24, "size": 4},
+        ],
+    }
+    metadata = TargetMetadata.from_dict(payload)
+    assert metadata.abstract_regions == (
+        AbstractRegionMetadata("world_state", 0, 16, 8),
+        AbstractRegionMetadata("sound_state", 0, 24, 4),
+    )
+    assert list(target_metadata_json_payload(metadata)["abstract_regions"]) == payload["abstract_regions"]
+
+    duplicate = {**payload, "abstract_regions": [*payload["abstract_regions"],
+        {"region_id": "world_state", "section_index": 1, "start_offset": 0, "size": 4}]}
+    overlap = {**payload, "abstract_regions": [*payload["abstract_regions"],
+        {"region_id": "overlap", "section_index": 0, "start_offset": 20, "size": 8}]}
+    malformed = {**payload, "abstract_regions": [{"region_id": "extra", "section_index": 0,
+        "start_offset": 0, "size": 1, "address_space": "source_section"}]}
+    for invalid in (duplicate, overlap, malformed):
+        try:
+            TargetMetadata.from_dict(invalid)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("invalid abstract-region metadata was accepted")
 
 
 def test_effective_metadata_replays_accepted_callback_decision_as_code_entrypoint(tmp_path: Path) -> None:
@@ -811,6 +845,7 @@ def test_effective_metadata_includes_manual_function_summary(tmp_path: Path) -> 
                     "callable_kind": "direct",
                     "entry_offset": 0x7BBA,
                     "inputs": [{"location": {"kind": "register", "register": "A5", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+                    "results": [],
                     "effects": {
                         "schema_version": 1,
                         "registers": {"state": "unknown"},
@@ -833,6 +868,7 @@ def test_effective_metadata_includes_manual_function_summary(tmp_path: Path) -> 
             "callable_kind": "direct",
             "entry_offset": 0x7BBA,
             "inputs": [{"location": {"kind": "register", "register": "A5", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+            "results": [],
             "effects": {
                 "schema_version": 1,
                 "registers": {"state": "unknown"},
@@ -843,6 +879,97 @@ def test_effective_metadata_includes_manual_function_summary(tmp_path: Path) -> 
             "note": "Typed function summary",
         }
     ]
+
+
+def test_function_summary_metadata_rejects_retired_unknown_contract_fields() -> None:
+    payload: dict[str, object] = {
+        "function_summary_id": "retired-contract-shape",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0,
+        "inputs": [{"location": {"kind": "register", "register": "A0", "width": 4},
+                    "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+        "results": [],
+        "effects": {"schema_version": 1, "registers": {"state": "unknown"},
+                    "memory": {"state": "unknown"}, "escapes": {"state": "unknown"}},
+        "note": "must reject retired fields",
+        "return_contract_unknown": True,
+    }
+    try:
+        FunctionSummaryMetadata.from_dict(payload)
+    except AssertionError:
+        return
+    raise AssertionError("retired function-summary field was accepted")
+
+
+def test_function_summary_metadata_accepts_type_neutral_abi_pointer_input() -> None:
+    payload: dict[str, object] = {
+        "function_summary_id": "identity-pointer",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0,
+        "inputs": [{"location": {"kind": "register", "register": "A0", "width": 4},
+                    "value_kind": "abi_pointer"}],
+        "results": [{"kind": "identity_input",
+                     "location": {"kind": "register", "register": "D0", "width": 4},
+                     "input_index": 0}],
+        "effects": {"schema_version": 1, "registers": {"state": "unknown"},
+                    "memory": {"state": "unknown"}, "escapes": {"state": "unknown"}},
+        "note": "Preserves an otherwise unknown pointer identity.",
+    }
+
+    summary = FunctionSummaryMetadata.from_dict(payload)
+
+    assert summary.inputs[0].value_kind == "abi_pointer"
+    assert summary.inputs[0].struct_name is None
+    assert summary.results[0].location.register == "D0"
+
+
+def test_function_summary_metadata_accepts_distinct_stack_effect_subject() -> None:
+    payload: dict[str, object] = {
+        "function_summary_id": "stack-effect",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0,
+        "inputs": [{"location": {"kind": "register", "register": "A0", "width": 4},
+                    "value_kind": "abi_pointer"}],
+        "results": [],
+        "effects": {
+            "schema_version": 1,
+            "registers": {"state": "unknown"},
+            "memory": {"state": "explicit", "effects": [
+                {"kind": "write", "subject": {
+                    "kind": "stack", "offset": 4, "convention": "caller_argument"}},
+            ]},
+            "escapes": {"state": "unknown"},
+        },
+        "note": "A stack effect is identified by ABI role as well as offset.",
+    }
+
+    summary = FunctionSummaryMetadata.from_dict(payload)
+
+    assert summary.effects.memory_effects == (("write", ("stack", 4, "caller_argument")),)
+
+
+def test_function_summary_metadata_rejects_abi_pointer_with_struct_name() -> None:
+    payload: dict[str, object] = {
+        "function_summary_id": "invalid-generic-pointer",
+        "hunk": 0,
+        "callable_kind": "direct",
+        "entry_offset": 0,
+        "inputs": [{"location": {"kind": "register", "register": "A0", "width": 4},
+                    "value_kind": "abi_pointer", "struct_name": "world_object_shared_prefix"}],
+        "results": [],
+        "effects": {"schema_version": 1, "registers": {"state": "unknown"},
+                    "memory": {"state": "unknown"}, "escapes": {"state": "unknown"}},
+        "note": "A generic identity must not carry an invented type.",
+    }
+
+    try:
+        FunctionSummaryMetadata.from_dict(payload)
+    except AssertionError:
+        return
+    raise AssertionError("abi_pointer with a struct name was accepted")
 
 
 def test_effective_metadata_ignores_suggested_manual_seeds_until_accepted(tmp_path: Path) -> None:

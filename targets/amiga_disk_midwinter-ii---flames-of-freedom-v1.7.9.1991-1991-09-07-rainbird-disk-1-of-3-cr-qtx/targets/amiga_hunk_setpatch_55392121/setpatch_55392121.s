@@ -36,9 +36,9 @@ app_003E RS.L 1
 app_0052 RS.W 1
 app_SIZEOF EQU __RS
 
-_custom	EQU	$DFF000
 _LVOexecPrivate3	EQU	-48
 _LVOexecPrivate5	EQU	-60
+_custom	EQU	$DFF000
 
     SECTION section_0,code
 loc_0_00000000:
@@ -413,7 +413,7 @@ loc_3_000001D4:
 	jsr (a4)
 	bra.b loc_3_0000022C
 loc_3_000001F4:
-	cmpi.w #35,LIB_VERSION(a2)
+	cmpi.w #35,$0014(a2)
 	bhi.b loc_3_00000224
 	move.l #loc_12_00000000,-(a7)	; KNOWN: arg +12 funcEntry unsigned long (*)() code_ptr
 	pea.l $FFFFFFA6.l	; KNOWN: arg +8 funcOffset long

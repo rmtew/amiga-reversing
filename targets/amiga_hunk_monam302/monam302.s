@@ -14,6 +14,7 @@
 ;   interface metadata: FD v33
 
     INCLUDE "devices/console_lib.i"
+    INCLUDE "devices/inputevent.i"
     INCLUDE "dos/dos.i"
     INCLUDE "dos/dos_lib.i"
     INCLUDE "dos/dosextens.i"
@@ -118,8 +119,8 @@ app_0814 RS.B 1
 app_0815 RS.B 1
 app_0816 RS.W 1
 app_console_device_iorequest RS.B 48
-app_0848 RS.L 1
-    RS.B 26
+app_0848 RS.B 22
+    RS.B 8
 app_0866 RS.L 1
 app_086A RS.W 1
     RS.B 2
@@ -3747,7 +3748,7 @@ loc_0_000041F4:
 	move.w $0018(a1),(a0)+
 	move.w $001A(a1),(a0)+
 	movea.l $001C(a1),a1
-	move.l (a1),(a0)
+	move.l (a1),ie_NextEvent(a0)
 	movea.l (a7)+,a0
 	lea.l app_0866(a6),a1
 	clr.l (a1)

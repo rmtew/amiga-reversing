@@ -1162,9 +1162,9 @@ abs_0_00040000:
 	ori.b #0,d0
 	ori.b #0,d0
 	ori.b #8,d0
-	ori.b #$40C,d0
+	dc.w $0000,$040C	; non-canonical byte-immediate encoding
 	ori.b #2,d0
-	ori.b #$1E8,d0
+	dc.w $0000,$01E8	; non-canonical byte-immediate encoding
 	ori.b #12,d0
 	dc.b $42,$7E,$02,$1D,$28,$6A,$01,$24,$4E,$95,$72,$14,$25,$41,$02,$78
 	dc.b $20,$3C,$00,$00,$00,$E4,$28,$6A,$01,$50,$4E,$95,$22,$11,$E5,$89

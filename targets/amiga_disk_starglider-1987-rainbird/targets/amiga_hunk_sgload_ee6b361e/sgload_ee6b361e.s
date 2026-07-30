@@ -19,9 +19,9 @@
     INCLUDE "hardware/dmabits.i"
     INCLUDE "hardware/intbits.i"
 
-sound_sample_00032000	EQU	$32000
-m68k_vector_level_4_interrupt_autovector	EQU	$70
 _custom	EQU	$DFF000
+m68k_vector_level_4_interrupt_autovector	EQU	$70
+sound_sample_00032000	EQU	$32000
 
     SECTION section,code_c
 loc_0_00000000:

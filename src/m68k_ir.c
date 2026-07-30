@@ -104,11 +104,18 @@ int m68k_function_summary_effect_subject_is_valid(const M68kFunctionSummaryEffec
     uint8_t input_count) {
   if (subject == NULL) return 0;
   if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) return subject->input_index < input_count &&
-    subject->section_index == 0U && subject->offset == 0U && subject->abstract_region_id[0] == '\0';
+    subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_NONE && subject->section_index == 0U &&
+    subject->offset == 0U && subject->abstract_region_id[0] == '\0';
   if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE) return subject->input_index == 0U &&
-    subject->abstract_region_id[0] == '\0';
-  return subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION && subject->input_index == 0U &&
-    subject->section_index == 0U && subject->offset == 0U && subject->abstract_region_id[0] != '\0';
+    subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_NONE && subject->abstract_region_id[0] == '\0';
+  if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION) return subject->input_index == 0U &&
+    subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_NONE && subject->section_index == 0U &&
+    subject->offset == 0U && subject->abstract_region_id[0] != '\0';
+  return subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK && subject->input_index == 0U &&
+    (subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT ||
+     subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT ||
+     subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP) &&
+    subject->section_index == 0U && subject->abstract_region_id[0] == '\0';
 }
 
 int m68k_function_summary_effect_subject_equal(const M68kFunctionSummaryEffectSubjectIR *left,
@@ -117,6 +124,8 @@ int m68k_function_summary_effect_subject_equal(const M68kFunctionSummaryEffectSu
   if (left->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) return left->input_index == right->input_index;
   if (left->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE)
     return left->section_index == right->section_index && left->offset == right->offset;
+  if (left->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK)
+    return left->offset == right->offset && left->stack_convention == right->stack_convention;
   return left->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION &&
     strcmp(left->abstract_region_id, right->abstract_region_id) == 0;
 }
@@ -3161,13 +3170,8 @@ int m68k_ir_section_analysis_append_address_value_consumer(M68kSectionAnalysisIR
   return 0;
 }
 
-static int function_summary_component_state_is_valid(uint8_t state, uint8_t legacy_unknown) {
-  if (state > M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW) return 0;
-  /* In-process legacy writers have no state field.  Their false unknown bit
-   * has always meant an explicit component, so retain that representation at
-   * this boundary while rejecting every contradictory new state. */
-  if (state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN) return 1;
-  return legacy_unknown == 0U;
+static int function_summary_component_state_is_valid(uint8_t state) {
+  return state <= M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW;
 }
 
 static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
@@ -3177,12 +3181,9 @@ static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
       summary->location_effect_count > M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT ||
       summary->memory_effect_count > M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT ||
       summary->escape_count > M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT ||
-      !function_summary_component_state_is_valid(summary->register_effect_state,
-        summary->register_effects_unknown) ||
-      !function_summary_component_state_is_valid(summary->memory_effect_state,
-        summary->memory_effects_unknown) ||
-      !function_summary_component_state_is_valid(summary->escape_effect_state,
-        summary->escape_effects_unknown)) return 0;
+      !function_summary_component_state_is_valid(summary->register_effect_state) ||
+      !function_summary_component_state_is_valid(summary->memory_effect_state) ||
+      !function_summary_component_state_is_valid(summary->escape_effect_state)) return 0;
   for (index = 0U; index < summary->input_count; ++index) {
     if (!m68k_function_summary_abi_location_is_valid(&summary->inputs[index].location)) return 0;
     for (prior = 0U; prior < index; ++prior)
@@ -3198,8 +3199,10 @@ static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
       const M68kFunctionSummaryAbiLocation *input_location;
       if (result->identity_input_index >= summary->input_count) return 0;
       input_location = &summary->inputs[result->identity_input_index].location;
-      if (result->location.kind != input_location->kind || result->location.width != input_location->width ||
-          result->location.register_count != input_location->register_count) return 0;
+      if (result->location.width != input_location->width ||
+          result->location.register_count != input_location->register_count ||
+          ((result->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK) !=
+           (input_location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK))) return 0;
     }
     for (prior = 0U; prior < index; ++prior)
       if (m68k_function_summary_abi_location_equal(&summary->results[prior].location,
@@ -3342,6 +3345,29 @@ int m68k_ir_section_analysis_append_function_summary_use(M68kSectionAnalysisIR *
     &section_analysis->function_summary_use_capacity, 8U, sizeof(*section_analysis->function_summary_uses));
   if (section_analysis->function_summary_uses == NULL) return -1;
   section_analysis->function_summary_uses[section_analysis->function_summary_use_count++] = *use;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_platform_call_thunk(M68kSectionAnalysisIR *section_analysis,
+    const M68kPlatformCallThunkIR *thunk) {
+  size_t index;
+  if (section_analysis == NULL || thunk == NULL || section_analysis->arena == NULL ||
+      thunk->relation_kind != M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK ||
+      thunk->wrapper_section_index != section_analysis->section_index) return -1;
+  for (index = 0U; index < section_analysis->platform_call_thunk_count; ++index) {
+    const M68kPlatformCallThunkIR *existing = &section_analysis->platform_call_thunks[index];
+    if (existing->wrapper_section_index == thunk->wrapper_section_index &&
+        existing->wrapper_entry_offset == thunk->wrapper_entry_offset &&
+        existing->platform_library_id == thunk->platform_library_id &&
+        existing->platform_function_id == thunk->platform_function_id &&
+        existing->wrapper_call_offset == thunk->wrapper_call_offset &&
+        existing->relation_kind == thunk->relation_kind) return 0;
+  }
+  section_analysis->platform_call_thunks = (M68kPlatformCallThunkIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->platform_call_thunks, section_analysis->platform_call_thunk_count,
+    &section_analysis->platform_call_thunk_capacity, 8U, sizeof(*section_analysis->platform_call_thunks));
+  if (section_analysis->platform_call_thunks == NULL) return -1;
+  section_analysis->platform_call_thunks[section_analysis->platform_call_thunk_count++] = *thunk;
   return 0;
 }
 
@@ -4035,9 +4061,9 @@ int m68k_ir_section_analysis_append_function_summary_result(M68kSectionAnalysisI
     generated.callable_section_index = (uint32_t)section_analysis->section_index;
     generated.entry_offset = target_offset;
     generated.callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
-    generated.return_contract_unknown = 0U;
-    generated.register_effects_unknown = 1U;
-    generated.memory_effects_unknown = 1U;
+    generated.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+    generated.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+    generated.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
     if (m68k_ir_section_analysis_append_function_summary(section_analysis, &generated) != 0) return -1;
     summary = &section_analysis->function_summaries[section_analysis->function_summary_count - 1U];
   }
@@ -5098,6 +5124,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->function_summary_use_count; ++index) {
     if (m68k_ir_section_analysis_append_function_summary_use(&copy,
           &section_analysis->function_summary_uses[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->platform_call_thunk_count; ++index) {
+    if (m68k_ir_section_analysis_append_platform_call_thunk(&copy,
+          &section_analysis->platform_call_thunks[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

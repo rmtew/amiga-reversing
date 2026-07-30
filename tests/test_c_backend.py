@@ -1153,13 +1153,82 @@ class _M68kAnalysisRegisterSeed(ctypes.Structure):
     ]
 
 
-class _M68kAnalysisFunctionSummaryInput(ctypes.Structure):
+class _M68kFunctionSummaryAbiRegisterMember(ctypes.Structure):
     _fields_ = [
         ("register_kind", ctypes.c_uint8),
         ("register_index", ctypes.c_uint8),
+    ]
+
+
+class _M68kFunctionSummaryAbiLocation(ctypes.Structure):
+    _fields_ = [
+        ("kind", ctypes.c_uint8),
+        ("width", ctypes.c_uint8),
+        ("stack_convention", ctypes.c_uint8),
+        ("register_count", ctypes.c_uint8),
+        ("stack_offset", ctypes.c_int32),
+        ("registers", _M68kFunctionSummaryAbiRegisterMember * 4),
+    ]
+
+
+class _M68kAnalysisFunctionSummaryInput(ctypes.Structure):
+    _fields_ = [
         ("seed_kind", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8),
+        ("has_platform_identity", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
+        ("location", _M68kFunctionSummaryAbiLocation),
         ("struct_name", ctypes.c_char * 64),
+        ("platform_library_id", ctypes.c_uint16),
+        ("platform_function_id", ctypes.c_uint16),
+        ("platform_input_id", ctypes.c_uint16),
+    ]
+
+
+class _M68kAnalysisFunctionSummaryResult(ctypes.Structure):
+    _fields_ = [
+        ("location", _M68kFunctionSummaryAbiLocation),
+        ("kind", ctypes.c_uint8),
+        ("input_index", ctypes.c_uint8),
+        ("platform_library_id", ctypes.c_uint16),
+        ("platform_function_id", ctypes.c_uint16),
+        ("platform_output_id", ctypes.c_uint16),
+    ]
+
+
+class _M68kFunctionSummaryLocationEffectIR(ctypes.Structure):
+    _fields_ = [
+        ("location", _M68kFunctionSummaryAbiLocation),
+        ("effect", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+    ]
+
+
+class _M68kFunctionSummaryEffectSubjectIR(ctypes.Structure):
+    _fields_ = [
+        ("kind", ctypes.c_uint8),
+        ("input_index", ctypes.c_uint8),
+        ("stack_convention", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("abstract_region_id", ctypes.c_char * 96),
+    ]
+
+
+class _M68kFunctionSummaryMemoryEffectIR(ctypes.Structure):
+    _fields_ = [
+        ("kind", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("subject", _M68kFunctionSummaryEffectSubjectIR),
+    ]
+
+
+class _M68kFunctionSummaryEscapeIR(ctypes.Structure):
+    _fields_ = [
+        ("source_kind", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("source_location", _M68kFunctionSummaryAbiLocation),
+        ("sink_subject", _M68kFunctionSummaryEffectSubjectIR),
     ]
 
 
@@ -1168,10 +1237,16 @@ class _M68kAnalysisFunctionSummary(ctypes.Structure):
         ("callable_kind", ctypes.c_uint8),
         ("has_section_index", ctypes.c_uint8),
         ("input_count", ctypes.c_uint8),
-        ("return_contract_unknown", ctypes.c_uint8),
-        ("register_effects_unknown", ctypes.c_uint8),
-        ("memory_effects_unknown", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("register_effect_state", ctypes.c_uint8),
+        ("memory_effect_state", ctypes.c_uint8),
+        ("escape_effect_state", ctypes.c_uint8),
+        ("memory_effect_count", ctypes.c_uint8),
+        ("escape_count", ctypes.c_uint8),
+        ("effects_invalid", ctypes.c_uint8),
+        ("location_effect_count", ctypes.c_uint8),
+        ("result_count", ctypes.c_uint8),
+        ("result_contract_invalid", ctypes.c_uint8),
+        ("reserved1", ctypes.c_uint8),
         ("section_index", ctypes.c_uint32),
         ("entry_offset", ctypes.c_uint32),
         ("table_offset", ctypes.c_uint32),
@@ -1179,6 +1254,10 @@ class _M68kAnalysisFunctionSummary(ctypes.Structure):
         ("function_summary_id", ctypes.c_char * 96),
         ("context_name", ctypes.c_char * 64),
         ("inputs", _M68kAnalysisFunctionSummaryInput * 8),
+        ("results", _M68kAnalysisFunctionSummaryResult * 16),
+        ("location_effects", _M68kFunctionSummaryLocationEffectIR * 32),
+        ("memory_effects", _M68kFunctionSummaryMemoryEffectIR * 8),
+        ("escapes", _M68kFunctionSummaryEscapeIR * 8),
     ]
 
 
@@ -3200,6 +3279,59 @@ def test_real_dll_seeded_entities_become_structured_data_policy_items(tmp_path: 
     assert item["value_domain"] == "ascii"
     assert item["semantic_role"] == "string"
     assert item["semantic_role_flags"] == 128
+
+
+def test_c_backend_abstract_regions_are_strictly_loaded_and_exported(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "abstract-regions.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    binary_path.write_bytes(bytes.fromhex("4e754e754e754e75"))
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "abstract_regions": [
+                    {"region_id": "world_state", "section_index": 0, "start_offset": 2, "size": 4},
+                    {"region_id": "audio_state", "section_index": 0, "start_offset": 6, "size": 2},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY, path=binary_path, address_model=RawAddressModel.LOCAL_OFFSET,
+        load_address=0, entrypoint=0, code_start_offset=0, display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    policy = effective_policy_project_source_with_c_backend(
+        source, metadata_path=metadata_path, project_root=PROJECT_ROOT,
+    )["analysis_policy"]
+
+    assert policy["abstract_region_count"] == 2
+    assert policy["abstract_regions"] == [
+        {"region_id": "world_state", "section_index": 0, "start_offset": 2, "size": 4},
+        {"region_id": "audio_state", "section_index": 0, "start_offset": 6, "size": 2},
+    ]
+
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "abstract_regions": [
+                    {"region_id": "one", "section_index": 0, "start_offset": 2, "size": 4},
+                    {"region_id": "two", "section_index": 0, "start_offset": 4, "size": 2},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="abstract region"):
+        effective_policy_project_source_with_c_backend(
+            source, metadata_path=metadata_path, project_root=PROJECT_ROOT,
+        )
 
 
 def test_real_dll_seeded_entity_metadata_classifies_pointer_table_once(tmp_path: Path) -> None:
@@ -8495,7 +8627,7 @@ def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path)
                         "results": [
                             {
                                 "kind": "identity_input",
-                                "location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8},
+                                "location": {"kind": "register_tuple", "registers": ["D0", "A2"], "width": 8},
                                 "input_index": 0,
                             }
                         ],
@@ -8508,7 +8640,7 @@ def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path)
                                 "escapes": [
                                     {
                                         "source_kind": "result",
-                                        "source_location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8},
+                                        "source_location": {"kind": "register_tuple", "registers": ["D0", "A2"], "width": 8},
                                         "sink_subject": {"kind": "input", "input_index": 0},
                                     }
                                 ],
@@ -8542,14 +8674,14 @@ def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path)
     ]
     assert len(summaries) == 1
     assert summaries[0]["results"] == [
-        {"kind": "identity_input", "location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8}, "input_index": 0}
+        {"kind": "identity_input", "location": {"kind": "register_tuple", "registers": ["D0", "A2"], "width": 8}, "input_index": 0}
     ]
     assert summaries[0]["effects"]["escapes"] == {
         "state": "explicit",
         "escapes": [
             {
                 "source_kind": "result",
-                "source_location": {"kind": "register_tuple", "registers": ["A2", "A3"], "width": 8},
+                "source_location": {"kind": "register_tuple", "registers": ["D0", "A2"], "width": 8},
                 "sink_subject": {"kind": "input", "input_index": 0},
             }
         ],

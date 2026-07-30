@@ -9,13 +9,13 @@
 loc_0_00000000:
     ORG $40000
 abs_0_00040000:
-	ori.b #$77E,d0
+	dc.w $0000,$077E	; non-canonical byte-immediate encoding
 	ori.b #12,(a1)
 	ori.b #3,d3
 	ori.b #9,d3
 	ori.b #3,d3
 	ori.b #3,d2
-	ori.b #$28D5,d3
+	dc.w $0003,$28D5	; non-canonical byte-immediate encoding
 	ori.b #227,d5
 	ori.b #4,d4
 	ori.b #3,d4

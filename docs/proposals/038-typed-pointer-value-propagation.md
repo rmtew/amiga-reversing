@@ -854,14 +854,15 @@ Implement the remaining work in these ordered, separately verifiable slices:
    summary in place and replaces the present conservative local/platform/
    callback clobber special cases as each effect becomes modeled.
 
-**B1/B2 completion (2026-07-29).** `f4d44f8c` completed the common callable
-result migration.  `M68kFunctionSummaryIR` now owns the bounded result
+**B1/B2 core migration completion (2026-07-29).** `f4d44f8c` completed the
+common callable result migration for the then-supported result transfer.
+`M68kFunctionSummaryIR` now owns the bounded result
 collection and its conflict state; the former local-call result type, arrays,
 append/copy helpers, JSON field, parser reader, lookup storage, and focused
 tests have all been removed.  Platform-derived results retain only generated
-library/function/output IDs and reconstruct their typed value from those IDs
-at consumption time.  Local base and typed results retain canonical platform
-references.  The Amiga parser consumes only common results, and configured
+library/function/output IDs; B4 later completes their common typed-flow
+consumption. Local base and typed results retain canonical platform references.
+The Amiga parser consumes only common results, and configured
 summaries are exported before inferred results so coincident facts share one
 callable owner.  The full C suite and Pandora full-file round trip pass.
 
@@ -1316,21 +1317,453 @@ external entry word. It also verifies the latter reason in source-analysis
 JSON. These reasons are source-analysis facts and never preservation
 fallbacks.
 
-**Current B3 remaining work (2026-07-29).** B3 is not complete.  The remaining
-subtasks are, in dependency order:
+**B3 completion status (2026-07-30).** The implementation and focused-test
+matrix are complete.  Pandora review exposed and resolved a transfer-precision
+gap: an opaque memory/escape component now invalidates storage-derived caches,
+but does not discard a register identity that the independent complete
+register partition proves preserved.  This retains the two post-dispatch A5
+field names after the 33-entry `world_object_handler` table without restoring
+the prior unsound conversion of unknown components into empty explicit ones.
+The internal assembler's exact round-trip is the required assembly evidence;
+an unavailable external oracle is not a B3 gate or blocker.
+
+**B1--B3 integration review (2026-07-30).** The completed B1--B3 model is
+the common contract path for target-declared direct and callback summaries,
+including their identity results and effects.  Review found one bounded
+normalization gap: direct generated Amiga vector calls still receive their
+input typing, ABI effect partition, and typed output through vector-specific
+typed-flow branches.  The same calls export a durable `platform_output`
+summary result to source analysis, but typed flow does not yet select and
+consume that summary result.  The existing platform-output tests prove the
+typed rendering outcome, not one common producer-to-consumer contract path.
+
+**B4 -- common result-transfer and generated platform-contract completion.**
+Complete every result form the common ABI model admits, then construct the
+direct platform callable contract from generated stable platform IDs, select
+it at the call boundary, and route its inputs, effects, and output through the
+same common summary transfer used by target and callback calls.  In particular,
+implement stack-result transfer with its explicit caller-result/cleanup
+convention and lifetime; a stack ABI location is not complete merely because
+the IR validates and exports it.  Migrate inferred local platform wrappers to
+that same generated result contract; the current bounded wrapper/helper vector
+walk may prove the wrapper boundary, but may not remain a second output/effect
+transfer path.  Remove the vector-specific typed-flow output/effect fallbacks
+only after the generated writer supplies an equivalent complete contract. Keep
+platform display names derived from generated IDs; do not copy them into
+wrapper facts.  Cover a stack identity result and its convention mismatch, an
+Amiga direct return and a local wrapper through post-effect transfer, a
+platform input, an unknown or unavailable output, and a
+preserved/clobbered-register negative. Audit the Atari writer at the same
+boundary: either migrate an equivalent generated contract or record its
+explicit capability boundary. This is a follow-up to the B1--B3 integration
+review, not a revision of B3's completed effect model.
+
+**B4 progress (2026-07-30).** The first missing executable form is now
+implemented rather than merely recorded: an `identity_input` may transfer a
+typed longword from the exact pre-call `caller_argument` stack location to an
+explicit `caller_result` stack location after effects. The transfer preserves
+the stored value's pointer/type provenance and memory-base evidence, while
+requiring an exact ABI convention match; a cleanup slot cannot satisfy an
+argument contract. The focused C regression proves both the post-call typed
+field render and the cleanup-convention negative. Generated Amiga contracts
+now also carry the platform ABI partition and a stable
+`library_id/function_id/output_id` result identity. Direct calls consume that
+contract through the common post-effect result transfer; inferred wrappers
+retain their local effects and receive the same generated result as an
+augmentation of their one callable contract. The generated runtime lookup is
+produced from the platform data, and the former vector-specific typed-flow
+output/effect assignments have been removed. Generated contracts also carry
+typed address inputs from those same platform rows; consumer recording, prefix
+refinement, app-slot promotion, and preserved-alias propagation consume the
+contract input and its register partition rather than issue a separate
+platform-facts lookup at each call. The existing `CreateMsgPort`/`Forbid`
+matrix is the direct-output and unavailable-output/register-partition proof:
+the generated `CreateMsgPort` D0 result remains typed through an A2 copy,
+whereas the following no-typed-output `Forbid` call correctly prevents an A0
+field render. The local and nested helper-return fixtures prove the equivalent
+wrapper transfer. Atari is an explicit capability boundary rather than an
+unmigrated duplicate: generated Atari call rows expose only trap/opcode,
+argument-count, cleanup, and scalar return-kind metadata; they contain no
+typed input or pointer-output register contract, and Atari trap recovery does
+not enter this Amiga vector typed-flow path. Its renderer emits the supported
+scalar D0 return domain directly from the generated call fact. It must gain
+typed ABI rows before it can participate in this pointer-contract transfer.
+
+**B4 completion status (2026-07-30).** Complete. Stack identity results,
+generated Amiga inputs/effects/outputs, and inferred wrapper outputs all use
+the common callable contract and post-effect transfer. The prior vector-only
+typed-flow transfer is removed; generated runtime lookup is the sole platform
+ID-to-output resolver. The C suite covers direct, wrapper, nested wrapper,
+typed-input, unavailable-output, and preserved/clobbered-register outcomes.
+Final verification passed: the C unit suite includes 595 `m68k_ir` tests, the
+Python suite reports 1357 passed and 58 skipped, and regenerated Pandora source
+has zero reconstructed-content differences. Its Hunk fixture still reports
+container-shape/size mismatch, which is outside the rendered source content and
+does not represent a callable-contract or reassembly regression.
+
+**B-slice audit follow-up (2026-07-30).** Two partial-contract risks found by
+the complete B1--B4 review are closed. A wrapper whose local result collection
+has no capacity for the generated platform result now marks its composed result
+contract invalid and transfers no result; it never silently retains a local
+prefix while dropping the generated output. The bounded local-body walker
+proves only its exhaustive register partition, not a no-write/no-escape body
+property. Its memory and escape components are therefore `unknown`: common
+transfer retains independently preserved register identities but invalidates
+storage-derived caches. The regression matrix proves both behaviours. The
+Amiga typed-flow activation check also reads generated vector inputs directly,
+rather than a second platform-facts input query.
+
+**Post-B audit ledger (2026-07-30).** B1--B4 are complete at their stated
+boundary, but three gains remain deliberately visible for the next work rather
+than becoming hidden debt:
+
+1. The closed effect-component states are still mirrored by internal
+   `*_effects_unknown` booleans (and the obsolete
+   `return_contract_unknown` marker) in the C policy/analysis structs. They
+   are redundant in-process compatibility state, not a required persisted
+   schema. A cleanup slice must make component state the sole representation,
+   delete the booleans from validation, transfer, JSON export, writers, and
+   tests, and not add a compatibility reader.
+2. Generated Amiga inputs currently derive their display semantic name from a
+   generated input ID when a transient callable contract is built. The next
+   contract-normalization slice should retain that stable generated input ID
+   alongside the library/function IDs and derive display text only at export
+   or render time; wrapper facts must not own copied platform display strings.
+   It should also factor wrapper-plus-platform augmentation into one checked
+   composition operation with an explicit capacity terminal reason, rather
+   than leave bounded composition inline at the call site.
+3. The bounded local-body walker now honestly proves only registers and marks
+   memory/escape unknown. Recovering the lost precision requires the existing
+   interprocedural fixed-point work in H: a finite direct/proven-callback call
+   graph, SCC convergence, complete memory/escape writers, and explicit limit
+   terminals. Do not reintroduce an empty-memory shortcut or another local
+   result/effect path to regain that precision. Atari remains an explicit
+   capability boundary until generated typed ABI input/output rows exist.
+
+**Remaining B work -- enabled (2026-07-30).** The audit ledger is now active
+implementation scope. These are continuations of the callable-contract model,
+not optional refactoring and not a reason to retain transitional state.
+
+1. **B5 -- canonical callable-contract normalization.** Make the closed
+   effect-component state the only C policy/analysis representation; remove
+   `return_contract_unknown` and all `*_effects_unknown` mirrors atomically.
+   Give generated platform inputs stable generated identity
+   (`library_id/function_id/input_id`) in the common input contract, deriving
+   semantic display text only when rendering or exporting. Introduce one
+   checked wrapper-plus-platform composition operation that either yields the
+   complete augmented contract or an explicit capacity/identity terminal
+   state. It must replace the inline augmentation and must never truncate
+   inputs or results, copy platform names into wrapper facts, or accept a
+   compatibility representation. Verify strict metadata rejection of removed
+   fields, source-analysis round-trip of generated input identity, composed
+   direct/wrapper input/output transfer, and every capacity terminal.
+
+   **B5 progress (2026-07-30).** The mirrored unknown/return booleans are
+   removed from the C policy and analysis model. Generated Amiga inputs now
+   retain only their stable `library_id/function_id/input_id`, including in
+   address-value consumer facts; display text is reconstructed from the
+   generated runtime table only at JSON export. The generated runtime now
+   exposes a generator-owned library/function lookup for that reconstruction.
+   Wrapper augmentation is one checked composition operation: it normalizes an
+   equivalent target input to the generated identity, and treats input/result
+   capacity exhaustion or a conflicting ABI location as a terminal invalid
+   contract, with no partial effect, input, or result transfer. Focused tests
+   cover the stable consumer identity. The persisted-metadata suite now also
+   proves that a retired `return_contract_unknown` field is rejected rather
+    than retained as a compatibility shape. Composition terminal ownership is
+    now implemented on the
+    durable call-use edge (`platform_contract_capacity` or
+     `platform_contract_identity_conflict` with exact caller coordinates). The
+     aligned source-analysis regression completes the binding-backed success,
+     identity-conflict, and capacity matrix.
+
+    **B5 prerequisite -- durable platform-thunk binding.** Before a local
+    wrapper summary may compose with a generated platform summary, analysis
+    must emit one canonical `platform_call_thunk` fact with exactly the wrapper
+    callable identity (`section_index`, `entry_offset`), generated platform
+    callable identity (`library_id`, `function_id`), relation kind, and the
+    wrapper instruction offset that proves the platform call. Analysis creates
+    this fact only when that instruction resolves to one exact generated
+    platform callable. The existing local wrapper summary remains the complete
+    representation of the wrapper's ABI adaptation and effects; this
+    prerequisite does not add a parallel adaptation schema.
+
+    Typed flow must consume the binding to compose the wrapper and platform
+    summaries for callers of the wrapper. Missing, conflicting, or
+    capacity-limited bindings must create the existing terminal call-use fact
+    at the outer caller's stable call-site identity. Source-analysis JSON must
+    export the binding and the corresponding use or terminal facts. Focused
+    fixtures must cover a normal direct caller-to-wrapper-to-platform path,
+    identity conflict, and capacity exhaustion. Rendered names, output text,
+    and unpersisted instruction-pattern guesses are not callable identities
+    and must not participate in composition.
+
+    **B5 platform-thunk binding increment (2026-07-30).** Source analysis now
+    owns and exports the canonical `platform_call_thunk` fact. It records the
+    wrapper section/entry, exact generated library/function IDs, and the
+    wrapper call instruction that proves the relation. Typed flow consults this
+    fact before composing a local callable and a generated platform contract;
+    an absent binding produces the durable
+    `platform_thunk_binding_missing` call-use terminal at the outer caller.
+    Direct and nested wrapper result fixtures continue through the common
+    composition path, while the focused source-analysis JSON fixture asserts
+    the binding's stable identity fields, successful absence of a missing
+    binding terminal, and a generated-result identity conflict at the outer
+    caller. The same fixture fills the local result collection with distinct
+    non-D0 ABI locations and proves `platform_contract_capacity` at that outer
+    caller. This completes the B5 binding-backed success and terminal matrix;
+    future wrapper work must not regress to transient recognition.
+2. **B6 -- complete interprocedural callable summaries.** Activate H as the
+   remaining precision half of B. Replace the bounded local-body walker with
+   a finite direct/proven-callback call graph, SCC fixed point, and complete
+   summary writers for register, memory, escape, and result components. A
+   summary is usable only after convergence; unresolved calls, recursion,
+   unsupported body forms, and capacity/iteration limits produce durable
+   terminal states and no transferred value. This is the only route to recover
+   local no-write/no-escape precision. It must remove the bounded walker once
+   the solver owns its supported domain, rather than leave a fallback path.
+   Verify self and mutual recursion, convergent identity result, writes and
+   escapes, unknown members, callback disagreement, and each solver limit.
+
+   **B6 progress (2026-07-30).** Direct local callees are now discovered as
+   graph-owned inferred-summary nodes before typed flow. Their register
+   partitions begin at the conservative clobbering boundary and are recomputed
+   by bounded fixed-point iteration; a nested local call reads the current
+   inferred or configured callable fact instead of recursively launching the
+   former depth-four summary walk. The first typed-flow pass records a proven
+   callback-table identity but does not transfer a transient callback-body
+   summary; materialized callback summaries use the solved direct facts on the
+   second pass. Configured direct summaries remain authoritative and are not
+   duplicated as inferred nodes. This establishes the graph ownership and
+   removes the recursive fallback path. The direct solver now builds reachable
+   direct-call adjacency, takes transitive closure as its SCC proof, and makes
+   every cyclic member an invalid durable `recursive_direct_graph` terminal.
+   The first positive body-effect writer is also live: a completely traversed
+   direct callee with no caller-visible memory write and only complete empty
+   nested contracts exports explicit empty memory and escape components. Any
+   non-stack write, non-empty nested effect, or unknown nested component remains
+   unknown; it is never silently normalized to an empty set. The focused C
+   matrix asserts that no-write/no-escape contract. The first subject-aware
+   writer records an exact direct absolute/data-target write as a static-storage
+   memory effect. Its escape component stays unknown until the stored source can
+   be mapped to a durable input/result identity; the regression asserts that
+   split. Full B6 still requires input/stack/abstract-region write and escape
+   writers and result writers. The current finite direct-body walker also now
+   distinguishes exhausted instruction/work/visit capacity as the durable
+   `direct_body_limit` terminal instead of conflating it with unsupported body
+   semantics; a 257-instruction valid-body regression asserts that boundary.
+   A 65-node acyclic dependency chain now also proves that a bounded
+   fixed-point failure marks every inferred direct summary with the durable
+   `solver_iteration_limit` terminal rather than exposing a partially converged
+   prefix. The remaining limit work is graph-capacity coverage.
+
+   Callback disagreement is covered at the same callable boundary: a proven
+   two-entry table whose direct entries disagree about A5 preservation exports
+    one callback summary with A5 clobbered. The aggregate intersects complete
+    entry partitions and never adopts one table entry's more permissive result.
+
+   **B6 generic ABI-pointer contract (2026-07-30).** The metadata schema now
+   admits the type-neutral `abi_pointer` input alongside concrete
+   `struct_ptr`: the former has an ABI location and deliberately carries no
+   claimed pointee type, while the latter still requires a concrete struct
+   name. A configured identity result through `abi_pointer` preserves the
+   caller's recovered type and provenance rather than replacing it with an
+   invented generic type; focused Python and C regressions cover the strict
+   shape and a typed caller-to-result transfer. The body solver still requires
+   entry-origin tracking before it synthesizes this fact: an address register
+   written by a callee-local `LEA`/load must never be reported as an input just
+   because it later appears in a store. With that proof, a write through an
+   unmodified entry register can use the same common input subject and identity
+   result contract, without a local-only result format. Origin tracking and the
+   associated input-subject effect/result writers remain required B6 work, not
+   an intentional unsupported fixture shape.
+
+   **B6 entry-origin result increment (2026-07-30).** The per-callee-body
+   pointer-register origin state now reaches the common inferred contract. An
+   entry pointer register retains its identity through a direct longword
+   register copy, while a callee-local register write clears it. A returned
+   copy in a distinct register produces one `abi_pointer` input and one common
+   `identity_input` result, allowing the caller's already-proven concrete
+   pointer type and provenance to transfer through the normal post-effect
+   result path. Crucially, untouched entry registers do not become
+   inferred inputs merely because they reach a return: only an input subject
+   consumed by a body effect or a distinct returned identity is admitted. The
+   focused direct-callee fixture proves `movea.l a0,a1` followed by a caller
+   typed A1 field access, while the companion callee-local `LEA` fixture proves
+   that a local address cannot manufacture either an ABI input or identity
+   result. A second negative fixture proves that divergent entry origins on
+   returning branches do not produce an identity result. The matching
+   input-subject writer is now also proven: `move.l d0,(a0)` in the inferred
+   callee emits one explicit `write` over its canonical `abi_pointer` input,
+   retains the identity result, and permits the caller's post-effect typed A1
+   field access. The fixture asserts the generated form metadata's
+   memory-write role as well as the exported common summary, so this is not an
+   opcode-text exception. A second focused body fixture now proves the matching
+   pointer escape: `move.l a1,(a0)` emits an explicit source-to-input-sink
+   escape (A1 to the canonical A0 input subject), alongside its explicit
+   memory write. The matching exact-static-store fixture proves the same source
+   can escape to a static-storage subject. The source is accepted only when it
+   remains an entry-origin address identity; an unproven source such as D0
+   still makes the escape component unknown. Any future body-derived result
+   kind must use this same common contract and cannot fall back to a local
+   result representation.
+   In particular, stack writers are not blocked on opcode decoding: the
+   common effect-subject schema now carries a stack offset plus ABI convention
+   through strict policy JSON import/export and validation, so equal numeric
+   offsets in distinct ABI roles cannot alias. Common call transfer now applies
+   an explicit stack write or escape sink to that exact caller-side identity;
+   the focused fixture proves a `caller_result` effect at offset zero does not
+   invalidate a `caller_argument`, while the matching argument effect does.
+   The first direct-body stack writer is now live: with an unchanged entry A7,
+   a callee `4(a7)` write maps to caller-argument offset zero (the intervening
+   longword is the call return address), and an entry-origin pointer source
+   exports the matching stack-sink escape. The focused source-analysis fixture
+   proves that durable common contract. Any A7 auto-indexing, frame setup, or
+   cleanup ends the proof and leaves the component unknown rather than
+   silently assigning a caller slot.
+
+   **B6 implementation status (2026-07-30; corrected after review).** The
+   completed direct-body slice is deliberately narrow but real: entry-origin
+   ABI-pointer inputs, input and exact-static write subjects, identity-input
+   results, and input-to-input/static pointer escapes are inferred and covered
+   by focused C fixtures. The verification recorded for that slice is a clean
+   build, 611 C unit tests, 55 selected Python tests, and a Pandora payload
+   round trip with zero diff ranges (content exact; not full-file exact because
+   of the pre-existing HUNK container shape/size mismatch). This proposal is
+   **not complete**.
+
+   **B6 graph-capacity increment (2026-07-30).** The direct SCC solver now
+   bounds graph materialisation at 128 inferred callable nodes. A later direct
+   edge exports the durable `direct_graph_capacity` call-use terminal without
+   materialising a partial callable summary; the 129-callee fixture proves the
+   exact boundary and keeps the first 128 facts separate from the omitted
+   edge. The terminal is exported independently because an omitted node has no
+   summary owner to attach it to.
+
+   **B6 completion status (2026-07-30).** The direct/proven-callback solver
+   now owns the supported callable domain. Its only body-synthesizable common
+   result is `identity_input`; entry-origin longword copies cover An-to-An,
+   An-to-Dn, Dn-to-An, and Dn-to-Dn transfers without inventing a second local
+   result format. The focused matrix covers convergent identity transfer,
+   input/static/abstract-region/stack writes and escapes, callback success and
+   disagreement, direct-body unsupported and capacity terminals, solver and
+   graph capacity, self and mutual recursion, an SCC containing an unknown
+   callee, and callback unresolved/incompatible entries. Each inferred direct
+   summary exports its SCC proof and terminal reason in source-analysis JSON.
+   This completes B6's bounded domain; new result kinds or address spaces
+   require a separately specified extension rather than silently reopening it.
+
+   **B6 active slice -- source-section abstract-region bindings.** A bare
+   `abstract_region` subject name is insufficient evidence for a direct-body
+   writer. Add one canonical, strict-imported/exported binding keyed by
+   `region_id` with `address_space: source_section`, `section_index`,
+   `start_offset`, and `size`; its range is the finite half-open interval
+   `[start_offset, start_offset + size)`. Region IDs must be unique, and ranges
+   must not overlap in one source section. Direct-body inference may emit an
+   abstract-region write or escape only when the proven target address resolves
+   to exactly one binding; otherwise its memory/escape component remains
+   unknown. Call transfer continues to conservatively clear abstract-region
+   subjects because they intentionally do not identify one caller-side storage
+   slot. Focused coverage must prove an in-range writer, start/end boundary and
+   out-of-range negatives, overlap rejection, JSON round trip, and the
+    existing conservative caller invalidation. Runtime-address spaces and
+    non-source mappings are explicitly deferred until a later slice needs them.
+
+   **B6 abstract-region schema increment (2026-07-30).** The initial durable
+   binding slice is complete. `abstract_regions` is now a strict target
+   metadata collection whose canonical members are `region_id`,
+   `section_index`, `start_offset`, and `size`. Both Python and C readers
+   reject unknown fields, empty IDs, zero sizes, unsigned end overflow,
+   duplicate IDs, and same-section half-open overlap. The effective C policy
+   exports the stable collection and validates each range against the loaded
+   source section before analysis. Focused Python and C-backend regressions
+   prove the round trip and strict negatives. The direct-body writer now maps
+   a static source write to an abstract-region subject only when the complete
+   instruction write span is contained by exactly one binding; an unbound,
+   partial, or malformed/ambiguous in-memory binding cannot create the fact.
+   A proven entry-origin pointer source creates the matching abstract-region
+   escape sink. Focused C fixtures prove both the write and escape conversion
+   from the pre-existing exact-static cases, plus the partial-range boundary
+   negative which stays a static-storage subject. Call transfer still conservatively
+   invalidates an abstract-region subject because it deliberately has no
+   caller-side storage identity.
+
+   **B6 direct-body stack-write increment (2026-07-30).** With the entry A7
+   value intact, the direct-body analyzer maps `4(a7)` to caller-argument
+   offset zero (the call return address occupies the first longword). It emits
+   the matching stack memory-write and, for a proven entry-origin pointer
+   source, an input-origin escape. Frame adjustment, A7 auto-indexing, or an
+   unproven source leaves the affected component unknown. The focused fixture
+   proves the explicit `caller_argument` convention and the paired escape;
+   the existing stack-convention negatives keep same-offset result and cleanup
+   slots distinct. This completes the B6 direct-body effect/escape subject
+   domain; a new result kind requires a separately specified extension.
+
+   **B6 unresolved-nested-call terminal increment (2026-07-30).** A direct
+   helper that reaches an indirect nested call without a proven local callable
+   contract cannot reuse a preservation proof across that call. Its inferred
+   summary is invalid with the durable `direct_body_unsupported` terminal,
+   rather than an explicit empty effect partition; the source-analysis JSON
+   exports that exact reason. The focused C fixture covers this direct
+   unknown-callee boundary alongside the body, solver, and graph-capacity
+   limits. Callback unresolved and incompatible entry terminals remain covered
+   separately by the callback aggregate fixture.
+
+   **B6 data-register identity-result increment (2026-07-30).** Direct
+   longword register copies now carry one shared entry-pointer identity across
+   Dn and An. Thus `move.l aN,dN`, `movea.l dN,aM`, and `move.l dN,dM` produce
+   the same common `abi_pointer` input and `identity_input` result contract;
+   normal call-result application preserves the caller's recovered type across
+   a register-class change. Metadata and C validation allow a non-stack
+   identity result to change register class while retaining the exact width and
+   register-member count. No scalar Dn value or other Dn writer is treated as
+   a pointer origin. The focused fixture proves both an
+   inferred D0 result used through A1 and a D0 input returned through A1; the
+   metadata regression proves the strict cross-class contract shape.
+
+   The first recursive regression is now in the C matrix: a caller reaches a
+   self-recursive direct callee and then performs a typed A0 field access. Its
+   inferred callable summary is terminal and retains the conservative A0
+   clobber, so the call cannot fabricate a surviving typed value. The companion
+   mutual-recursion regression proves that both SCC members carry the same
+   durable terminal state. Each inferred direct summary now also exports its
+   solver proof as `direct_scc` (`size` and deterministic member `ordinal`) in
+   source-analysis JSON; self and mutual fixtures assert the stable proof
+   fields alongside the terminal reason. A third fixture places an unresolved
+   indirect nested call inside a two-member SCC and proves that the whole SCC
+   remains terminal with the same durable graph proof; no member transfers a
+   provisional value. This is solver-owned evidence, not a renderer-derived
+   graph reconstruction.
+
+Atari typed contracts are not a B5/B6 workaround. They become eligible only
+when generated Atari metadata can express equivalent typed ABI input/output
+rows; until then the existing scalar-return boundary remains explicit.
 
 1. Complete the focused effect matrix for writing stack, memory, and escape
    effects.  Exact static-storage and input subjects now have a stable caller
    identity; abstract regions still intentionally clear conservatively because
-   they have no caller-side storage identity.
+   they have no caller-side storage identity.  The stack-identity prerequisite
+   is complete: bare `(a7)` and zero-displacement `0(a7)` now normalize to the
+   same durable stack slot.  A focused direct-summary regression proves both
+   spellings reload the typed value when that slot is preserved and that the
+   explicit zero-displacement spelling loses it when clobbered.  A nonzero
+   caller-argument identity (`+4(a7)`) is also covered and matches only its
+   own declared effect.  Stack slots now also retain their ABI convention, so
+   a `caller_result` or `caller_cleanup` effect at the same numeric offset
+   cannot preserve a `caller_argument` value; focused negative regressions
+   cover both forms.
+   For the remaining B6 direct-body work, finish further result forms as one
+   common contract. A component may
+   be explicit only when its subjects and sources are durable; otherwise it
+   remains unknown or terminal, never an empty approximation.
 2. Add the complete focused matrix: direct/callback success and every terminal
-   failure, stack/memory/escape effects, result-origin escapes, tuple values,
-   conflicting summaries, and unknown/incompatible negatives.
-3. Regenerate the required read-only corpus evidence and run the Pandora
-   source-analysis, source-quality, and assembly gates.  The exact round-trip
-   gate passed on 2026-07-29 for the verifier catalog target
-   `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
-   (`rendered_source_full_file_exact: true`, zero diff ranges).
+   failure, stack/memory/escape effects, conflicting summaries, and
+   unknown/incompatible negatives.  The input- and abstract-sink callback
+   forms and atomic tuple negative are complete.
+3. The required read-only corpus build completed on 2026-07-30 for all 378
+   inputs (319 file entries and 59 project targets).  Pandora's source
+   analysis and source-quality gates pass, and its no-write exact round-trip
+   is full-file exact with zero diff ranges.
 
 **Escape-source schema increment (2026-07-29).** The strict target-metadata
 reader and Python metadata projection now require the closed
@@ -1418,46 +1851,93 @@ summary as register-only.  The callback source-analysis fixture now proves a
 valid configured direct entry is admitted as table evidence and that the
 materialized table fact carries its declared non-aliasing memory effect and
 input-origin static-storage escape; the
-unresolved terminal fixture remains covered.  Escape-specific callback and
-multi-entry conflict cases remain part of the outstanding B3 matrix.
+unresolved terminal fixture remains covered.  The callback render fixture now
+also proves all-entry register intersection: one preserving entry retains the
+seeded A5 struct pointer, while adding a second A5-clobbering entry suppresses
+the post-call typed field access.  The exact static-sink callback escape path
+is also covered: it preserves an unrelated A0 pointer while invalidating the
+A5 reload cache rooted at the escaped slot.  The input-sink callback form is
+now also covered: an A1 pointer loaded from an A0 struct field loses its typed
+field access after the callback escapes through A0, while a direct A0 field
+access remains typed under the complete preserved-register partition.  The
+first callback-flow pass now carries the declared table memory and escape
+components alongside its body-derived register intersection, so this
+invalidation is applied before table materialization as well as after it.
+The abstract-sink callback form is also covered with a named abstract region:
+it clears both the field-derived pointer and direct input access, as required
+when no caller-side storage identity exists.
 
-The slice must complete the currently incomplete escape contract at the same
-boundary: the common IR already distinguishes input from result escape sources
-and validates result references. The strict metadata reader and JSON exporter
-now preserve the closed `source_kind` field and permit only a declared input
-or result at that location. Ordered tuple inputs and results are now represented
-by typed state and transfer atomically. Required fixtures
-for this slice are complete-domain direct-local proof, all-entry callback
-intersection, each terminal failure, durable JSON/use-edge export, input- and
-result-origin escapes, and a negative tuple-transfer case.  No new corpus or
-Pandora success is claimed until those fixtures and the required verifier gates
-can run.
+**Callback unknown-component preservation (2026-07-30).** The callback
+materializer's shared register-partition helper also initialised memory and
+escape components for generated/local writers.  That accidentally converted a
+declared callback `unknown` memory or escape component into an empty explicit
+component after copying the table contract.  The materializer now restores the
+declared component state and unknown flags after deriving only its register
+intersection.  A focused callback source-analysis fixture proves that an
+unknown table memory component remains unknown on the durable inferred table
+summary, so common call transfer retains its required conservative clearing
+behaviour rather than receiving a manufactured empty non-aliasing partition.
+The full C suite (`m68k_ir: all 595 passed`) and full Python suite (1,357
+passed, 58 skipped) pass.  Pandora's raw reconstructed target also remains
+full-file exact in a current no-write round-trip check.  The final 2026-07-30
+isolated, read-only eight-worker corpus build completed all 378 inputs (319
+file entries and 59 project targets) in 845.6 seconds.  Its opportunity report
+records 77 consumers across nine targets: 44 storage, 18 local-function input,
+and 15 platform/API input.  Their outcomes are 16 symbolic, 60 non-source, and
+one invalid; target resolution is 55 resolved, 17 unknown, two finite, two
+outside the known address space, and one invalid.  No callback consumer with a
+durable corpus contract was observed, so that category is reported as
+unavailable rather than as a negative result.  This closes the fresh-build
+evidence for this increment.
 
-**Return-migration sequencing.** The summary graph now has one first-class
+**Callback terminal-matrix increment (2026-07-30).** The callback source
+analysis fixture now distinguishes the two terminal failures rather than
+collapsing both into an opaque invalid effect: an in-range table word whose
+target cannot yield a valid direct summary records
+`callback_entry_incompatible`, while an external table word records
+`callback_entry_unresolved`.  Both terminal aggregates are invalid and cannot
+preserve caller state.  This closes the callback terminal portion of the
+focused matrix; direct-call invalidity remains covered by the common invalid
+summary transfer.
+
+**Callback result/escape completion (2026-07-30).** Callback-table summaries
+now carry declared results through both the pre-materialization body-derived
+fallback and the materialized table-owned fact.  The common post-effect result
+transfer therefore applies a callback `identity_input` output just as it does
+for a direct summary.  Source-analysis export retains those inferred results
+before validating result-origin escapes.  A focused callback fixture proves an
+A3 identity result remains typed after an abstract-sink escape clears the
+pre-call A0/A1 state, and proves the same abstract relation validates when its
+source is the declared result location.  This closes result-origin escape
+coverage for direct and callback summaries; it does not weaken abstract-sink
+clearing of pre-call state.
+
+The escape contract is now complete at this boundary: the common IR
+distinguishes input from result escape sources, validates their exact declared
+locations, and the strict metadata reader, table materializer, and
+source-analysis exporter retain the closed `source_kind` field. Ordered tuple
+inputs and results are represented by typed state and transfer atomically.
+Stack convention is part of the stored slot identity, and the focused matrix,
+corpus evidence, and Pandora gates are complete.
+
+**Historical B1/B2 return-migration design (completed).** The summary graph now has one first-class
 call-use edge independent of an address-value input consumer. A call can use a
 summary solely for a returned value, preservation/clobber partition, or memory
 effect, and therefore cannot be represented by inventing a pointer input
 consumer. The edge records stable caller coordinates, summary identity, and
 the exact applicable interface role; input-consumer edges remain the reverse
-edges for proven pointer arguments only. The next B slice adds a
-platform-derived summary that
-uses the same callable and call-use facts as a target-declared one, but marks
-its return as `platform_output` and references the stable generated Amiga
-library/function/output IDs. It must not copy an OS type/name into a
-wrapper-specific record. Migrate the current recovered local-wrapper output
-record and its JSON/export path only when this common call-use and return
-representation is present; do not retain it as an adapter or fallback.
+edges for proven pointer arguments only. This section records the completed
+B1/B2 migration that added platform-derived `platform_output` results using
+stable generated Amiga library/function/output IDs. It is not a next B slice.
 
-The migration is end-to-end: the render lookup's inferred wrapper record, the
+The completed migration was end-to-end: the render lookup's inferred wrapper record, the
 source-analysis IR record, JSON serialization, IR copy/import, and Amiga
-source-parser local-success reconstruction presently share the legacy
-`recovered_local_call_summary` shape. Replace all of those in one change with
-the common summary-return fact. Leaving any one reader or writer on the old
-shape would create a hidden compatibility projection and make source import
-and fresh analysis disagree about the callable's effect.
+source-parser local-success reconstruction formerly shared the legacy
+`recovered_local_call_summary` shape. They were replaced together by the
+common summary-return fact, with no compatibility projection.
 
-**Required return/effect lattice before migration.** The common summary must
-be widened before any legacy record is removed. Its result model is a closed
+**Historical B1 return/effect lattice.** The common summary was widened before
+the legacy record was removed. Its result model is a closed
 tagged union, not three booleans or copied presentation strings:
 
 - `unknown`, with no transfer permission;
@@ -1481,8 +1961,8 @@ conflicting, incomplete, or bounded-overflow summary is unusable at a call and
 produces its explicit stop reason; no part of a previous or partial result may
 survive.
 
-**B1 result-model invariants.** The implementation must make the following
-rules structural, rather than relying on a caller to remember them:
+**B1 result-model invariants (implemented).** The following rules are
+structural rather than caller conventions:
 
 - A result location is a canonical ABI descriptor: register, stack result, or
   ordered multi-register tuple plus width.  Result order is deterministic and
@@ -1508,21 +1988,33 @@ rules structural, rather than relying on a caller to remember them:
   limit invalidates the summary/result collection explicitly; it does not
   retain a prefix or degrade to the legacy record.
 
-**B1 migration implementation order.** First add the common result IR and
-its validation, then change the source-analysis append/copy/import and JSON
-surfaces to own results through the summary only.  Convert every legacy
-base-register, typed-register, platform-wrapper, and conditional-success
-record into exactly one common result at its direct callable.  Replace render
-lookup's transient wrapper inference with platform-derived common-result
-construction using generated IDs.  Update the Amiga source parser to
-construct/import only common results; B2 is its sole typed-flow application
-path.  Delete the legacy type, arrays, append/copy/import helpers, JSON
-fields, parser branches, and wrapper-specific lookup storage in the same
-change.  Only then apply results at call sites in B2, including direct calls
-and proven callback-table dispatches.  There is no dual-reader interval,
-compatibility projection, or fallback to a recovered local summary. Fixtures
-must prove that importing fresh source-analysis JSON and analysing the original
-binary produce the same summary and result identities and effects.
+**B3-derived result-extension guardrails.** The B3 call transfer establishes
+additional requirements for any future result extension:
+
+- Apply a result only after the selected summary's effects, from an immutable
+  pre-call snapshot.  A result must not accidentally borrow a clobbered live
+  input register, and an ordered tuple either transfers in full or not at all.
+- Keep result validity separate from effect validity.  A complete preserved
+  register partition may retain a direct pointer identity across an opaque
+  memory/escape component, but that component must invalidate
+  storage-derived/field caches.  A result does not license stale cached reads.
+- Make platform output, direct target result, and inferred local-wrapper
+  result reach the same common post-effect transfer.  No wrapper-specific
+  renderer path may preserve a value that the common effect transfer would
+  clear.
+- Cover direct platform calls, a local wrapper, an unknown/invalid result,
+  an effect-clobbered input, and a multi-register negative.  Regenerate a
+  representative target source and require that improved typed output survives
+  exact round-trip without regressing established symbolic field accesses.
+
+**B1/B2 migration implementation record.** The migration added the common
+result IR and validation, moved source-analysis append/copy/import and JSON
+ownership to the summary, converted legacy base-register, typed-register,
+platform-wrapper, and conditional-success records, and deleted the old type,
+arrays, helpers, JSON fields, parser branches, and lookup storage in the same
+change. B2 applies results at direct calls and proven callback dispatches. The
+fixtures prove fresh JSON import and original-binary analysis yield the same
+summary/result identities and effects.
 
 **Required common summary shape.** One stable callable-summary identity owns
 all of the following, and every direct or indirect call refers to that identity

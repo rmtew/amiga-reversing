@@ -319,17 +319,20 @@ class FunctionSummaryAbiLocationMetadata:
 class FunctionSummaryInputMetadata:
     location: FunctionSummaryAbiLocationMetadata
     value_kind: str
-    struct_name: str
+    struct_name: str | None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> FunctionSummaryInputMetadata:
         location = FunctionSummaryAbiLocationMetadata.from_dict(_json_object(payload["location"]))
         value_kind = payload["value_kind"]
-        struct_name = payload["struct_name"]
-        assert isinstance(value_kind, str) and value_kind == "struct_ptr"
-        assert isinstance(struct_name, str) and struct_name
-        assert set(payload) == {"location", "value_kind", "struct_name"}
-        return cls(location, value_kind, struct_name)
+        assert isinstance(value_kind, str) and value_kind in {"struct_ptr", "abi_pointer"}
+        if value_kind == "struct_ptr":
+            struct_name = payload["struct_name"]
+            assert isinstance(struct_name, str) and struct_name
+            assert set(payload) == {"location", "value_kind", "struct_name"}
+            return cls(location, value_kind, struct_name)
+        assert set(payload) == {"location", "value_kind"}
+        return cls(location, value_kind, None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -353,9 +356,9 @@ class FunctionSummaryResultMetadata:
         assert kind == "identity_input"
         assert isinstance(input_index, int) and 0 <= input_index < len(inputs)
         input_location = inputs[input_index].location
-        assert location.kind == input_location.kind
         assert location.width == input_location.width
         assert len(location.registers) == len(input_location.registers)
+        assert (location.kind == "stack") == (input_location.kind == "stack")
         assert set(payload) == {"kind", "location", "input_index"}
         return cls(kind=kind, location=location, input_index=input_index)
 
@@ -431,6 +434,12 @@ class FunctionSummaryEffectsMetadata:
                 assert isinstance(section, int) and section >= 0 and isinstance(offset, int) and offset >= 0
                 assert set(item) == {"kind", "section_index", "offset"}
                 return (kind, section, offset)
+            if kind == "stack":
+                offset = item["offset"]; convention = item["convention"]
+                assert isinstance(offset, int) and offset >= 0
+                assert convention in {"caller_argument", "caller_result", "caller_cleanup"}
+                assert set(item) == {"kind", "offset", "convention"}
+                return (kind, offset, convention)
             region = item["region_id"]
             assert kind == "abstract_region" and isinstance(region, str) and region and set(item) == {"kind", "region_id"}
             return (kind, region)
@@ -538,6 +547,30 @@ class FunctionSummaryMetadata:
             table_offset=table_offset,
             entry_count=entry_count,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class AbstractRegionMetadata:
+    """A named, non-overlapping source range usable by callable effects."""
+
+    region_id: str
+    section_index: int
+    start_offset: int
+    size: int
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> AbstractRegionMetadata:
+        region_id = payload["region_id"]
+        section_index = payload["section_index"]
+        start_offset = payload["start_offset"]
+        size = payload["size"]
+        assert isinstance(region_id, str) and region_id
+        assert isinstance(section_index, int) and section_index >= 0
+        assert isinstance(start_offset, int) and start_offset >= 0
+        assert isinstance(size, int) and size > 0
+        assert start_offset + size <= 0x1_0000_0000
+        assert set(payload) == {"region_id", "section_index", "start_offset", "size"}
+        return cls(region_id, section_index, start_offset, size)
 
 @dataclass(frozen=True, slots=True)
 class ResidentTargetMetadata:
@@ -1678,6 +1711,7 @@ class TargetMetadata:
     target_type: str
     entry_register_seeds: tuple[EntryRegisterSeedMetadata, ...]
     function_summaries: tuple[FunctionSummaryMetadata, ...] = ()
+    abstract_regions: tuple[AbstractRegionMetadata, ...] = ()
     bootblock: BootBlockTargetMetadata | None = None
     resident: ResidentTargetMetadata | None = None
     library: LibraryTargetMetadata | None = None
@@ -1702,6 +1736,7 @@ class TargetMetadata:
         target_type = payload["target_type"]
         entry_register_seeds = payload["entry_register_seeds"]
         function_summaries = payload.get("function_summaries", [])
+        abstract_regions = payload.get("abstract_regions", [])
         bootblock = payload["bootblock"]
         resident = payload["resident"]
         library = payload["library"]
@@ -1722,6 +1757,18 @@ class TargetMetadata:
         suppressed_seeded_items = payload.get("suppressed_seeded_items", [])
         assert isinstance(target_type, str)
         seeds = _json_list(entry_register_seeds)
+        parsed_abstract_regions = tuple(
+            AbstractRegionMetadata.from_dict(_json_object(region))
+            for region in _json_list(abstract_regions)
+        )
+        assert len(parsed_abstract_regions) <= 128
+        assert len({region.region_id for region in parsed_abstract_regions}) == len(parsed_abstract_regions)
+        for index, region in enumerate(parsed_abstract_regions):
+            for other in parsed_abstract_regions[:index]:
+                assert region.section_index != other.section_index or (
+                    region.start_offset >= other.start_offset + other.size or
+                    other.start_offset >= region.start_offset + region.size
+                )
         return cls(
             target_type=target_type,
             entry_register_seeds=tuple(
@@ -1732,6 +1779,7 @@ class TargetMetadata:
                 FunctionSummaryMetadata.from_dict(_json_object(summary))
                 for summary in _json_list(function_summaries)
             ),
+            abstract_regions=parsed_abstract_regions,
             bootblock=None if bootblock is None else BootBlockTargetMetadata.from_dict(_json_object(bootblock)),
             resident=None if resident is None else ResidentTargetMetadata.from_dict(_json_object(resident)),
             library=None if library is None else LibraryTargetMetadata.from_dict(_json_object(library)),
@@ -1875,6 +1923,9 @@ def _function_summary_effect_subject_payload(subject: object) -> dict[str, objec
     if kind == "static_storage":
         assert len(subject) == 3 and isinstance(subject[1], int) and isinstance(subject[2], int)
         return {"kind": kind, "section_index": subject[1], "offset": subject[2]}
+    if kind == "stack":
+        assert len(subject) == 3 and isinstance(subject[1], int) and isinstance(subject[2], str)
+        return {"kind": kind, "offset": subject[1], "convention": subject[2]}
     assert kind == "abstract_region" and len(subject) == 2 and isinstance(subject[1], str)
     return {"kind": kind, "region_id": subject[1]}
 
@@ -1920,6 +1971,8 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
                     for input_record in input_records:
                         if not isinstance(input_record, dict):
                             continue
+                        if input_record.get("struct_name") is None:
+                            input_record.pop("struct_name", None)
                         if isinstance(input_record.get("location"), dict):
                             input_record["location"] = _function_summary_location_payload(input_record["location"])
                     summary["inputs"] = list(input_records)

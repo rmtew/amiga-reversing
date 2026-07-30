@@ -1617,6 +1617,7 @@ static uint16_t text_u16_id_from_map_local(const TextU16Map *entries, size_t ent
 static const TextU8Map ANALYSIS_REGISTER_SEED_KIND_NAMES[] = {
   { "library_base", M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE },
   { "struct_ptr", M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR },
+  { "abi_pointer", M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER },
 };
 
 static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
@@ -2356,7 +2357,9 @@ static int append_metadata_function_summary_effect_subject_local(const char *obj
   static const char *const input_keys[] = {"kind", "input_index"};
   static const char *const static_storage_keys[] = {"kind", "section_index", "offset"};
   static const char *const abstract_region_keys[] = {"kind", "region_id"};
+  static const char *const stack_keys[] = {"kind", "offset", "convention"};
   char kind[32];
+  char convention[32];
   char region_id[96];
   uint32_t input_index = 0U, section_index = 0U, offset = 0U;
   int has_input = 0, has_section = 0, has_offset = 0;
@@ -2386,6 +2389,20 @@ static int append_metadata_function_summary_effect_subject_local(const char *obj
         region_id[0] == '\0') return 0;
     out_subject->kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION;
     if (!copy_policy_text(out_subject->abstract_region_id, sizeof(out_subject->abstract_region_id), region_id)) return 0;
+  } else if (strcmp(kind, "stack") == 0) {
+    if (!json_object_has_only_keys_local(object_start, object_end, stack_keys,
+        sizeof(stack_keys) / sizeof(stack_keys[0]))) return 0;
+    if (!json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) || !has_offset ||
+        !json_optional_string_field_local(object_start, object_end, "convention", convention, sizeof(convention))) return 0;
+    out_subject->kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK;
+    out_subject->offset = offset;
+    if (strcmp(convention, "caller_argument") == 0)
+      out_subject->stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+    else if (strcmp(convention, "caller_result") == 0)
+      out_subject->stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT;
+    else if (strcmp(convention, "caller_cleanup") == 0)
+      out_subject->stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP;
+    else return 0;
   } else return 0;
   return m68k_function_summary_effect_subject_is_valid(out_subject, input_count);
 }
@@ -2426,7 +2443,6 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
       !json_optional_string_field_local(registers, registers_end, "state", register_state, sizeof(register_state)) ||
       !json_optional_string_field_local(memory, memory_end, "state", memory_state, sizeof(memory_state)) ||
       !json_optional_string_field_local(escapes, escapes_end, "state", escape_state, sizeof(escape_state))) return 0;
-  summary->return_contract_unknown = 1U;
   if (strcmp(register_state, "unknown") == 0)
     summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
   else if (strcmp(register_state, "explicit") == 0)
@@ -2454,9 +2470,6 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
   else if (strcmp(escape_state, "overflow") == 0)
     summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_OVERFLOW;
   else return 0;
-  summary->register_effects_unknown = strcmp(register_state, "unknown") == 0 ? 1U : 0U;
-  summary->memory_effects_unknown = strcmp(memory_state, "unknown") == 0 ? 1U : 0U;
-  summary->escape_effects_unknown = strcmp(escape_state, "unknown") == 0 ? 1U : 0U;
   if (strcmp(register_state, "invalid") == 0 || strcmp(register_state, "overflow") == 0 ||
       strcmp(memory_state, "invalid") == 0 || strcmp(memory_state, "overflow") == 0 ||
       strcmp(escape_state, "invalid") == 0 || strcmp(escape_state, "overflow") == 0) summary->effects_invalid = 1U;
@@ -2895,6 +2908,8 @@ static int append_metadata_absolute_storage_slot_local(const char *object_start,
 
 static int append_metadata_function_summary_input_local(const char *object_start, const char *object_end,
     M68kAnalysisFunctionSummary *summary) {
+  static const char *const struct_ptr_keys[] = {"location", "value_kind", "struct_name"};
+  static const char *const abi_pointer_keys[] = {"location", "value_kind"};
   const char *location;
   const char *location_end;
   char value_kind[32];
@@ -2904,7 +2919,13 @@ static int append_metadata_function_summary_input_local(const char *object_start
       (location = json_object_field_local(object_start, object_end, "location", &location_end)) == NULL ||
       !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
       !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
-      strcmp(value_kind, "struct_ptr") != 0 || struct_name[0] == '\0') return 0;
+      (strcmp(value_kind, "struct_ptr") != 0 && strcmp(value_kind, "abi_pointer") != 0) ||
+      (strcmp(value_kind, "struct_ptr") == 0 && !json_object_has_only_keys_local(object_start, object_end,
+        struct_ptr_keys, sizeof(struct_ptr_keys) / sizeof(struct_ptr_keys[0]))) ||
+      (strcmp(value_kind, "abi_pointer") == 0 && !json_object_has_only_keys_local(object_start, object_end,
+        abi_pointer_keys, sizeof(abi_pointer_keys) / sizeof(abi_pointer_keys[0]))) ||
+      (strcmp(value_kind, "struct_ptr") == 0 && struct_name[0] == '\0') ||
+      (strcmp(value_kind, "abi_pointer") == 0 && struct_name[0] != '\0')) return 0;
   input = &summary->inputs[summary->input_count];
   if (!append_metadata_function_summary_abi_location_local(location, location_end, &input->location)) return 0;
   {
@@ -2913,8 +2934,10 @@ static int append_metadata_function_summary_input_local(const char *object_start
       if (m68k_function_summary_abi_location_equal(&summary->inputs[prior].location, &input->location)) return 0;
     }
   }
-  input->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  if (!copy_policy_text(input->struct_name, sizeof(input->struct_name), struct_name)) return 0;
+  input->seed_kind = strcmp(value_kind, "abi_pointer") == 0 ? M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER :
+    M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  if (input->seed_kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+      !copy_policy_text(input->struct_name, sizeof(input->struct_name), struct_name)) return 0;
   summary->input_count += 1U;
   return 1;
 }
@@ -8497,6 +8520,39 @@ static int append_metadata_source_context_local(const char *text, M68kAnalysisPo
   return 1;
 }
 
+static int append_metadata_abstract_region_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  static const char *const keys[] = {"region_id", "section_index", "start_offset", "size"};
+  M68kAnalysisAbstractRegion region;
+  uint32_t section_index = 0U, start_offset = 0U, size = 0U;
+  int has_section = 0, has_start = 0, has_size = 0;
+  uint16_t index;
+  if (object_start == NULL || object_end == NULL || policy == NULL ||
+      !json_object_has_only_keys_local(object_start, object_end, keys, sizeof(keys) / sizeof(keys[0])) ||
+      !json_optional_string_field_local(object_start, object_end, "region_id", region.region_id,
+        sizeof(region.region_id)) || region.region_id[0] == '\0' ||
+      !json_number_field_local(object_start, object_end, "section_index", &section_index, &has_section) ||
+      !json_number_field_local(object_start, object_end, "start_offset", &start_offset, &has_start) ||
+      !json_number_field_local(object_start, object_end, "size", &size, &has_size) ||
+      !has_section || !has_start || !has_size || size == 0U || start_offset > UINT32_MAX - size ||
+      policy->abstract_region_count >= M68K_ANALYSIS_ABSTRACT_REGION_LIMIT) return 0;
+  memset(&region, 0, sizeof(region));
+  if (!json_optional_string_field_local(object_start, object_end, "region_id", region.region_id,
+        sizeof(region.region_id))) return 0;
+  region.section_index = section_index;
+  region.start_offset = start_offset;
+  region.size = size;
+  for (index = 0U; index < policy->abstract_region_count; ++index) {
+    const M68kAnalysisAbstractRegion *existing = &policy->abstract_regions[index];
+    if (strcmp(existing->region_id, region.region_id) == 0) return 0;
+    if (existing->section_index == region.section_index &&
+        region.start_offset < existing->start_offset + existing->size &&
+        existing->start_offset < region.start_offset + region.size) return 0;
+  }
+  policy->abstract_regions[policy->abstract_region_count++] = region;
+  return 1;
+}
+
 static int append_metadata_generic_policy_text_local(const char *text, M68kAnalysisPolicy *policy,
     M68kDiagSink diagnostics) {
   const char *array_end;
@@ -8537,6 +8593,17 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     if (object_start == NULL) break;
     if (!append_metadata_function_summary_local(object_start, object_end, policy)) {
       platform_file_add_error(diagnostics.list, "failed parsing target metadata function summary");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "abstract_regions", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_abstract_region_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata abstract region");
       return -1;
     }
     cursor = object_end;
@@ -8858,6 +8925,7 @@ static const char *analysis_register_kind_name_local(uint8_t kind) {
 static const char *analysis_register_seed_kind_name_local(uint8_t kind) {
   if (kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) return "library_base";
   if (kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) return "struct_ptr";
+  if (kind == M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER) return "abi_pointer";
   return "none";
 }
 
@@ -8983,6 +9051,16 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
           seed->entry_offset, "target metadata register seed offset is out of range for source file"))
       return 0;
   }
+  for (index = 0U; index < policy->abstract_region_count &&
+       index < M68K_ANALYSIS_ABSTRACT_REGION_LIMIT; ++index) {
+    const M68kAnalysisAbstractRegion *region = &policy->abstract_regions[index];
+    if (region->region_id[0] == '\0' || region->size == 0U || region->start_offset > UINT32_MAX - region->size ||
+        !validate_policy_range_local(diagnostics, object, 1U, region->section_index,
+          region->start_offset, region->size)) {
+      platform_file_add_error(diagnostics, "target metadata abstract region is invalid");
+      return 0;
+    }
+  }
   for (index = 0U; index < policy->function_summary_count &&
        index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++index) {
     const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[index];
@@ -9007,7 +9085,10 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
           (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
            input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE &&
            input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK) ||
-          input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR || input->struct_name[0] == '\0') {
+          (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+           input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER) ||
+          (input->seed_kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR && input->struct_name[0] == '\0') ||
+          (input->seed_kind == M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER && input->struct_name[0] != '\0')) {
         platform_file_add_error(diagnostics, "target metadata function summary input is invalid");
         return 0;
       }
@@ -9681,14 +9762,14 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         "\"entry_point_count\":%u,\"register_seed_count\":%u,"
         "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
         "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"rsset_layout_region_count\":%u,"
-        "\"absolute_storage_slot_count\":%u,"
+        "\"absolute_storage_slot_count\":%u,\"abstract_region_count\":%u,"
         "\"manual_representation_count\":%u,\"custom_struct_count\":%u",
         (unsigned)policy->max_cpu, policy->disable_implicit_entry_points ? "false" : "true",
         (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
         (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
         (unsigned)policy->runtime_entry_point_count, (unsigned)policy->rsset_layout_region_count,
-        (unsigned)policy->absolute_storage_slot_count,
+        (unsigned)policy->absolute_storage_slot_count, (unsigned)policy->abstract_region_count,
         (unsigned)policy->manual_representation_count, (unsigned)policy->custom_struct_count) != 0)
     return -1;
   if (json_builder_append(builder, ",\"entrypoints\":[") != 0) return -1;
@@ -9902,6 +9983,16 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
     if (append_nullable_u32_json_local(builder, entry->has_section_index, entry->section_index) != 0) return -1;
     if (json_builder_appendf(builder, ",\"runtime_address\":%u}", (unsigned)entry->runtime_address) != 0)
+      return -1;
+  }
+  if (json_builder_append(builder, "],\"abstract_regions\":[") != 0) return -1;
+  for (index = 0U; index < policy->abstract_region_count && index < M68K_ANALYSIS_ABSTRACT_REGION_LIMIT; ++index) {
+    const M68kAnalysisAbstractRegion *region = &policy->abstract_regions[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"region_id\":") != 0 ||
+        json_builder_append_json_string(builder, region->region_id) != 0 ||
+        json_builder_appendf(builder, ",\"section_index\":%u,\"start_offset\":%u,\"size\":%u}",
+          (unsigned)region->section_index, (unsigned)region->start_offset, (unsigned)region->size) != 0)
       return -1;
   }
   if (json_builder_append(builder, "],\"custom_structs\":[") != 0) return -1;

@@ -10,13 +10,13 @@ loc_0_00000000:
     ORG $40000
 abs_0_00040000:
 	ori.b #8,d0
-	ori.b #$4D0,d0
+	dc.w $0000,$04D0	; non-canonical byte-immediate encoding
 	ori.b #13,d0
-	ori.b #$174,d0
+	dc.w $0000,$0174	; non-canonical byte-immediate encoding
 	ori.b #0,d0
 	movem.w d0-d2/d5/a1/a6-a7,$10(a0,d0.w)
 	addq.w #8,d0
-	ori.b #$2A99,d2
+	dc.w $0002,$2A99	; non-canonical byte-immediate encoding
 	dc.b $FF,$CC,$00,$30,$F2,$07,$3F,$CF,$FF,$0C,$71,$FF,$FC,$C0,$22,$CF
 	dc.b $10,$F7,$91,$C3,$04,$71,$CF,$00,$04,$00,$0A,$AA,$94,$C2,$09,$FF
 	dc.b $00,$AA,$77,$F0,$19,$FC,$F0,$00,$CC,$71,$CF,$40,$70,$F1,$C0,$0A

@@ -218,7 +218,9 @@ typedef struct M68kRenderPlatformDerivedSummary {
 typedef struct M68kRenderInferredFunctionSummary {
   M68kAnalysisFunctionSummary summary;
   uint8_t terminal_reason;
-  uint8_t reserved[3];
+  uint8_t direct_scc_size;
+  uint8_t direct_scc_ordinal;
+  uint8_t reserved;
 } M68kRenderInferredFunctionSummary;
 
 /* A callback-table identity observed by completed typed flow.  It is kept
@@ -424,6 +426,10 @@ typedef struct M68kRenderTypedStackSlot {
    * caller's stack pointer after a call returns. Fixed stack-frame slots are
    * not given that ABI guarantee. */
   uint8_t caller_save_temporary;
+  /* The ABI role of a non-temporary slot.  Keeping this distinct from its
+   * displacement prevents a caller argument from satisfying a result or
+   * cleanup contract at the same stack offset. */
+  uint8_t abi_stack_convention;
   int16_t displacement;
   M68kRenderTypedStoredValue value;
   M68kRenderTypedMemoryBaseValue memory_base;
@@ -774,6 +780,9 @@ struct M68kRenderLookup {
   M68kFunctionSummaryUseIR *function_summary_uses;
   size_t function_summary_use_count;
   size_t function_summary_use_capacity;
+  M68kPlatformCallThunkIR *platform_call_thunks;
+  size_t platform_call_thunk_count;
+  size_t platform_call_thunk_capacity;
   M68kRenderBootblockDiskRead *bootblock_disk_reads;
   size_t bootblock_disk_read_count;
   size_t bootblock_disk_read_capacity;

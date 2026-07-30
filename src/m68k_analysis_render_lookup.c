@@ -1192,20 +1192,65 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector
     unsigned depth);
 static int instruction_move_operand_indices_from_metadata(const M68kInstructionIR *instruction,
     size_t *out_source_index, size_t *out_dest_index, const M68kSimFormMetadata **out_metadata);
+int operand_address_register_index_local(const M68kOperandIR *operand, uint8_t *out_reg);
+int operand_is_address_memory_local(const M68kOperandIR *operand, uint8_t *out_reg, int16_t *out_displacement);
 static uint16_t lookup_typed_app_slot_struct_id(const M68kRenderLookup *lookup, int16_t displacement);
+static const M68kAnalysisAbstractRegion *lookup_abstract_region_for_source_range(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, uint32_t size) {
+  const M68kAnalysisAbstractRegion *match = NULL;
+  uint16_t index;
+  if (lookup == NULL || lookup->policy == NULL || size == 0U || offset > UINT32_MAX - size) return NULL;
+  for (index = 0U; index < lookup->policy->abstract_region_count &&
+       index < M68K_ANALYSIS_ABSTRACT_REGION_LIMIT; ++index) {
+    const M68kAnalysisAbstractRegion *region = &lookup->policy->abstract_regions[index];
+    if (region->section_index != section_index || region->size == 0U ||
+        region->start_offset > UINT32_MAX - region->size || offset < region->start_offset ||
+        size > region->start_offset + region->size - offset) continue;
+    /* Policy validation rejects overlap. Retain the explicit uniqueness guard
+     * here so an in-memory malformed policy cannot turn ambiguous ownership
+     * into an arbitrary effect subject. */
+    if (match != NULL) return NULL;
+    match = region;
+  }
+  return match;
+}
+
 static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
-  const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
-  uint8_t requested_mask, uint8_t depth, M68kAnalysisFunctionSummary *out_summary);
+    const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
+    M68kAnalysisFunctionSummary *out_summary, uint8_t *out_direct_callees, uint8_t *out_limit_hit);
+static const M68kAnalysisAbstractRegion *lookup_abstract_region_for_source_range(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, uint32_t size);
 static const M68kAnalysisFunctionSummary *lookup_inferred_direct_function_summary(
   const M68kRenderLookup *lookup, size_t section_index, uint32_t entry_offset);
+static size_t lookup_inferred_direct_function_summary_index(const M68kRenderLookup *lookup,
+  size_t section_index, uint32_t entry_offset);
 static const M68kAnalysisFunctionSummary *lookup_inferred_callback_table_function_summary(
   const M68kRenderLookup *lookup, size_t section_index, uint32_t table_offset);
 static void typed_state_apply_function_summary_effects(M68kRenderTypedState *state,
     const M68kAnalysisFunctionSummary *summary);
-static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAnalysisFunctionSummary *out_summary);
+static int generated_platform_call_summary(uint8_t platform_kind, const AmigaOsLibraryVectorInfo *vector,
+    uint8_t output_reg_known, uint8_t output_reg_kind, uint8_t output_reg_index,
+    M68kAnalysisFunctionSummary *out_summary);
+
+/* A wrapper is usable only when its local effects and generated platform ABI
+ * form one exact callable contract.  These are terminal composition states:
+ * callers never truncate either side to obtain a plausible partial summary. */
+typedef enum M68kPlatformContractCompositionState {
+  M68K_PLATFORM_CONTRACT_COMPOSITION_COMPLETE = 0,
+  M68K_PLATFORM_CONTRACT_COMPOSITION_CAPACITY = 1,
+  M68K_PLATFORM_CONTRACT_COMPOSITION_IDENTITY_CONFLICT = 2
+} M68kPlatformContractCompositionState;
+static M68kPlatformContractCompositionState function_summary_compose_platform_contract(
+    const M68kAnalysisFunctionSummary *local_summary,
+    const M68kAnalysisFunctionSummary *platform_summary,
+    M68kAnalysisFunctionSummary *out_summary);
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
+/* The direct-summary graph is quadratic during its SCC proof.  Keep this
+ * finite at the graph boundary; over-capacity calls receive a durable terminal
+ * use rather than silently extending the work set. */
+#define M68K_RENDER_TYPED_DIRECT_GRAPH_NODE_LIMIT 128U
 #define M68K_RENDER_TYPED_FLOW_LOCAL_CALLEE_INSTRUCTION_LIMIT 256U
 
 static int instruction_stack_delta_for_comment(const M68kInstructionIR *instruction, int32_t *out_delta) {
@@ -1282,7 +1327,10 @@ static int operand_is_stack_displacement_local(const M68kOperandIR *operand, int
   uint8_t reg = 0U;
   int16_t displacement = 0;
   if (out_displacement != NULL) *out_displacement = 0;
-  if (!operand_is_address_displacement_local(operand, &reg, &displacement) || reg != 7U) return 0;
+  /* `(a7)` and `0(a7)` are one caller-stack location.  The former is EA mode
+   * 2, while the latter is mode 5 with a zero extension; normalise both to
+   * the same durable stack-slot identity before typed flow records it. */
+  if (!operand_is_address_memory_local(operand, &reg, &displacement) || reg != 7U) return 0;
   if (out_displacement != NULL) *out_displacement = displacement;
   return 1;
 }
@@ -1601,9 +1649,46 @@ static void typed_state_invalidate_input_subject(M68kRenderTypedState *state,
       if (candidate == base_reg ||
           (m68k_bitset_u32_has(state->addr_reg_alias_known, candidate) &&
            state->addr_reg_alias_source[candidate] == base_reg)) {
+        uint8_t reg;
+        /* A value loaded from a field/base cache is not a direct alias of the
+         * input pointer.  It is nevertheless stale after a write through that
+         * input, so retain the input itself but discard that derived register
+         * value before removing its backing cache. */
+        for (reg = 0U; reg < 8U; ++reg) {
+          const M68kRenderTypedStorageOrigin *data_origin = &state->data_regs[reg].origin;
+          const M68kRenderTypedStorageOrigin *address_origin = &state->addr_regs[reg].origin;
+          if (data_origin->kind == M68K_RENDER_TYPED_ORIGIN_BASE_SLOT &&
+              data_origin->base_reg == candidate) {
+            typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_DATA, reg);
+          }
+          if (address_origin->kind == M68K_RENDER_TYPED_ORIGIN_BASE_SLOT &&
+              address_origin->base_reg == candidate && reg != candidate &&
+              !(m68k_bitset_u32_has(state->addr_reg_alias_known, reg) &&
+                state->addr_reg_alias_source[reg] == candidate)) {
+            typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
+          }
+        }
         typed_state_clear_base_slots_for_base(state, candidate);
       }
     }
+  }
+}
+
+/* Stack effects have the same exact-storage rule as static effects.  The ABI
+ * convention is part of the identity: a caller result or cleanup slot at an
+ * equal displacement cannot invalidate a caller argument. */
+static void typed_state_invalidate_stack_subject(M68kRenderTypedState *state,
+    const M68kFunctionSummaryEffectSubjectIR *subject) {
+  size_t index;
+  if (state == NULL || subject == NULL || subject->kind != M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK ||
+      subject->offset > INT16_MAX) return;
+  for (index = 0U; index < state->stack_slot_count; ++index) {
+    const M68kRenderTypedStackSlot *slot = &state->stack_slots[index];
+    if (slot->known == 0U || slot->displacement != (int16_t)subject->offset ||
+        slot->abi_stack_convention != subject->stack_convention) continue;
+    state->stack_slots[index] = state->stack_slots[state->stack_slot_count - 1U];
+    --state->stack_slot_count;
+    return;
   }
 }
 
@@ -2134,8 +2219,14 @@ static void typed_stored_value_activate_address(M68kRenderTypedStoredValue *valu
 }
 
 static void typed_state_set_stack_slot(M68kRenderTypedState *state, int16_t displacement,
-    uint8_t caller_save_temporary, const M68kRenderTypedStoredValue *value,
+    uint8_t caller_save_temporary, uint8_t abi_stack_convention, const M68kRenderTypedStoredValue *value,
     const M68kRenderTypedMemoryBaseValue *memory_base);
+static const M68kRenderTypedStoredValue *typed_state_stack_slot_value(const M68kRenderTypedState *state,
+    int16_t displacement);
+static const M68kRenderTypedMemoryBaseValue *typed_state_stack_slot_memory_base(
+    const M68kRenderTypedState *state, int16_t displacement);
+static const M68kRenderTypedStackSlot *typed_state_stack_slot_for_abi_location(
+    const M68kRenderTypedState *state, int16_t displacement, uint8_t abi_stack_convention);
 
 static void typed_state_apply_function_summary_inputs(M68kRenderTypedState *state,
     const M68kAnalysisPolicy *policy, const M68kAnalysisFunctionSummary *summary, size_t section_index,
@@ -2168,7 +2259,8 @@ static void typed_state_apply_function_summary_inputs(M68kRenderTypedState *stat
       value.struct_id = struct_id;
       value.provenance = provenance;
       typed_stored_value_update_known(&value);
-      typed_state_set_stack_slot(state, (int16_t)input->location.stack_offset, 0U, &value, NULL);
+      typed_state_set_stack_slot(state, (int16_t)input->location.stack_offset, 0U,
+        input->location.stack_convention, &value, NULL);
     }
   }
 }
@@ -2282,17 +2374,16 @@ static void typed_state_copy_register_identity_result(M68kRenderTypedState *stat
    * register that the callee may have clobbered. */
   if (destination_kind == M68K_ANALYSIS_REGISTER_ADDRESS)
     typed_state_clear_addr_alias_for_reg(state, destination_index);
-  typed_state_set_reg_struct_id(state, destination_kind, destination_index, input_struct_id,
-    &source->provenance);
+  if (input_struct_id != AMIGA_OS_STRUCT_ID_NONE)
+    typed_state_set_reg_struct_id(state, destination_kind, destination_index, input_struct_id,
+      &source->provenance);
 }
 
-static void typed_state_apply_direct_function_summary_results(M68kRenderTypedState *state,
+static void typed_state_apply_function_summary_results(M68kRenderTypedState *state,
     const M68kRenderTypedState *before_call, const M68kRenderLookup *lookup,
-    size_t target_section_index, uint32_t target_offset) {
-  const M68kAnalysisFunctionSummary *summary;
+    const M68kAnalysisFunctionSummary *summary, size_t section_index, uint32_t offset) {
   uint8_t result_index;
   if (state == NULL || before_call == NULL || lookup == NULL || lookup->policy == NULL) return;
-  summary = lookup_configured_direct_function_summary(lookup, target_section_index, target_offset);
   if (summary == NULL || summary->result_contract_invalid != 0U) return;
   for (result_index = 0U; result_index < summary->result_count &&
        result_index < M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT; ++result_index) {
@@ -2300,21 +2391,52 @@ static void typed_state_apply_direct_function_summary_results(M68kRenderTypedSta
     const M68kAnalysisFunctionSummaryInput *input;
     uint8_t member_index;
     uint16_t input_struct_id;
+    if (result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT) {
+      const AmigaOsLibraryVectorInfo *vector;
+      M68kRenderTypedProvenance api_provenance;
+      if (result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+          result->location.width != 4U || result->location.register_count != 1U) continue;
+      vector = amiga_os_find_library_vector_by_ids(result->platform_library_id,
+        result->platform_function_id, result->platform_output_id);
+      if (vector == NULL || !amiga_output_has_typed_info(&vector->output)) continue;
+      api_provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section_index, offset);
+      typed_state_set_reg(state, result->location.registers[0].register_kind,
+        result->location.registers[0].register_index, &vector->output, &api_provenance);
+      continue;
+    }
     if (result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT ||
         result->input_index >= summary->input_count) continue;
     input = &summary->inputs[result->input_index];
-    if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
-        (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
-         input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) ||
+    if ((input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+         input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER) ||
         input->location.kind != result->location.kind || input->location.width != result->location.width ||
         input->location.register_count != result->location.register_count) continue;
     input_struct_id = lookup_policy_struct_id_by_name(lookup->policy, input->struct_name);
-    if (input_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
+    if (input->seed_kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR && input_struct_id == AMIGA_OS_STRUCT_ID_NONE)
+      continue;
+    if (input->location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK) {
+      const M68kRenderTypedStackSlot *source_slot;
+      if (input->location.width != 4U || input->location.stack_offset < INT16_MIN ||
+          input->location.stack_offset > INT16_MAX || result->location.stack_offset < INT16_MIN ||
+          result->location.stack_offset > INT16_MAX) continue;
+      /* The caller's ordinary stack store has no ABI role until this
+       * contract interprets it.  Snapshot that physical slot before callee
+       * effects, then materialize a separate caller-result slot afterwards. */
+      source_slot = typed_state_stack_slot_for_abi_location(before_call, (int16_t)input->location.stack_offset,
+        input->location.stack_convention);
+      if (source_slot == NULL || source_slot->value.struct_id != input_struct_id) continue;
+      typed_state_set_stack_slot(state, (int16_t)result->location.stack_offset, 0U,
+        result->location.stack_convention, &source_slot->value, &source_slot->memory_base);
+      continue;
+    }
+    if (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+        input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) continue;
     for (member_index = 0U; member_index < input->location.register_count; ++member_index) {
       const M68kRenderTypedRegValue *source_value = typed_state_register_value(before_call,
         input->location.registers[member_index].register_kind, input->location.registers[member_index].register_index);
       if (source_value == NULL || source_value->type_conflicted != 0U ||
-          (source_value->struct_id != AMIGA_OS_STRUCT_ID_NONE && source_value->struct_id != input_struct_id)) break;
+          (input->seed_kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+           source_value->struct_id != AMIGA_OS_STRUCT_ID_NONE && source_value->struct_id != input_struct_id)) break;
     }
     if (member_index != input->location.register_count) continue;
     for (member_index = 0U; member_index < input->location.register_count; ++member_index) {
@@ -2349,6 +2471,24 @@ static void typed_state_clear_non_caller_save_stack_slots(M68kRenderTypedState *
   }
 }
 
+/* An opaque memory/escape component invalidates cached values loaded from
+ * caller-visible storage.  It does not, by itself, invalidate a register
+ * identity whose independent register partition proves it was preserved. */
+static void typed_state_invalidate_opaque_memory_effects(M68kRenderTypedState *state) {
+  uint8_t reg;
+  if (state == NULL) return;
+  typed_state_clear_non_caller_save_stack_slots(state);
+  state->base_slot_count = 0U;
+  state->field_slot_count = 0U;
+  for (reg = 0U; reg < 8U; ++reg) {
+    if (state->data_regs[reg].origin.kind != M68K_RENDER_TYPED_ORIGIN_NONE)
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_DATA, reg);
+    if (state->addr_regs[reg].origin.kind != M68K_RENDER_TYPED_ORIGIN_NONE)
+      typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
+    typed_state_clear_io_request_setup(state, reg);
+  }
+}
+
 static uint8_t function_summary_register_effect(const M68kAnalysisFunctionSummary *summary,
     uint8_t register_kind, uint8_t register_index) {
   uint8_t effect_index;
@@ -2363,18 +2503,13 @@ static uint8_t function_summary_register_effect(const M68kAnalysisFunctionSummar
 }
 
 /* The generated ABI, bounded local-body proof, and callback aggregate all
- * write the same exhaustive register partition.  Keep the legacy arrays only
- * as the current transfer cache; the durable location collection is the
- * summary/export identity. */
+ * write the same exhaustive register partition. */
 static void function_summary_set_register_partition(M68kAnalysisFunctionSummary *summary,
     uint8_t preserved_data, uint8_t preserved_address) {
   uint8_t bit;
   if (summary == NULL) return;
-  summary->register_effects_unknown = 0U;
   summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
-  summary->memory_effects_unknown = 0U;
   summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
-  summary->escape_effects_unknown = 0U;
   summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
   summary->location_effect_count = 0U;
   for (bit = 0U; bit < 8U; ++bit) {
@@ -2399,7 +2534,9 @@ static void function_summary_set_register_partition(M68kAnalysisFunctionSummary 
   }
 }
 
-static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAnalysisFunctionSummary *out_summary) {
+static int generated_platform_call_summary(uint8_t platform_kind, const AmigaOsLibraryVectorInfo *vector,
+    uint8_t output_reg_known, uint8_t output_reg_kind, uint8_t output_reg_index,
+    M68kAnalysisFunctionSummary *out_summary) {
   uint8_t preserved_data = 0U;
   uint8_t preserved_address = 0U;
   if (out_summary == NULL) return 0;
@@ -2407,7 +2544,111 @@ static int generated_platform_call_effect_summary(uint8_t platform_kind, M68kAna
   (void)platform_facts_v2_calling_convention_preserved_data_mask(platform_kind, &preserved_data);
   (void)platform_facts_v2_calling_convention_preserved_address_mask(platform_kind, &preserved_address);
   function_summary_set_register_partition(out_summary, preserved_data, preserved_address);
+  if (vector != NULL) {
+    const AmigaOsCallInputInfo *inputs;
+    size_t input_count = 0U, input_index;
+    inputs = amiga_os_library_vector_inputs(vector, &input_count);
+    for (input_index = 0U; inputs != NULL && input_index < input_count &&
+         out_summary->input_count < M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT; ++input_index) {
+      const AmigaOsCallInputInfo *platform_input = &inputs[input_index];
+      const char *struct_name;
+      M68kAnalysisFunctionSummaryInput *input;
+      if (platform_input->reg_kind != AMIGA_OS_REGISTER_ADDRESS || platform_input->reg_index >= 8U ||
+          platform_input->struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
+      struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, platform_input->struct_id);
+      if (struct_name == NULL || struct_name[0] == '\0') continue;
+      input = &out_summary->inputs[out_summary->input_count++];
+      input->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+      input->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+      input->location.width = 4U;
+      input->location.register_count = 1U;
+      input->location.registers[0].register_kind = platform_input->reg_kind;
+      input->location.registers[0].register_index = platform_input->reg_index;
+      snprintf(input->struct_name, sizeof(input->struct_name), "%s", struct_name);
+      input->has_platform_identity = 1U;
+      input->platform_library_id = vector->library_id;
+      input->platform_function_id = vector->function_id;
+      input->platform_input_id = platform_input->input_id;
+    }
+  }
+  if (vector != NULL && amiga_output_has_typed_info(&vector->output)) {
+    M68kAnalysisFunctionSummaryResult *result = &out_summary->results[out_summary->result_count++];
+    result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT;
+    result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    result->location.width = 4U;
+    result->location.register_count = 1U;
+    result->location.registers[0].register_kind = output_reg_known != 0U ? output_reg_kind : vector->output.reg_kind;
+    result->location.registers[0].register_index = output_reg_known != 0U ? output_reg_index : vector->output.reg_index;
+    result->platform_library_id = vector->library_id;
+    result->platform_function_id = vector->function_id;
+    result->platform_output_id = vector->output.output_id;
+  }
   return 1;
+}
+
+static int function_summary_platform_input_matches(const M68kAnalysisFunctionSummaryInput *existing,
+    const M68kAnalysisFunctionSummaryInput *generated) {
+  if (existing == NULL || generated == NULL || existing->seed_kind != generated->seed_kind ||
+      strcmp(existing->struct_name, generated->struct_name) != 0) return 0;
+  if (existing->has_platform_identity == 0U) return 1;
+  return generated->has_platform_identity != 0U &&
+    existing->platform_library_id == generated->platform_library_id &&
+    existing->platform_function_id == generated->platform_function_id &&
+    existing->platform_input_id == generated->platform_input_id;
+}
+
+static int function_summary_platform_result_matches(const M68kAnalysisFunctionSummaryResult *existing,
+    const M68kAnalysisFunctionSummaryResult *generated) {
+  return existing != NULL && generated != NULL && existing->kind == generated->kind &&
+    existing->input_index == generated->input_index &&
+    existing->platform_library_id == generated->platform_library_id &&
+    existing->platform_function_id == generated->platform_function_id &&
+    existing->platform_output_id == generated->platform_output_id;
+}
+
+static M68kPlatformContractCompositionState function_summary_compose_platform_contract(
+    const M68kAnalysisFunctionSummary *local_summary,
+    const M68kAnalysisFunctionSummary *platform_summary,
+    M68kAnalysisFunctionSummary *out_summary) {
+  uint8_t input_index, result_index;
+  if (local_summary == NULL || platform_summary == NULL || out_summary == NULL)
+    return M68K_PLATFORM_CONTRACT_COMPOSITION_IDENTITY_CONFLICT;
+  *out_summary = *local_summary;
+  for (input_index = 0U; input_index < platform_summary->input_count; ++input_index) {
+    const M68kAnalysisFunctionSummaryInput *generated = &platform_summary->inputs[input_index];
+    uint8_t existing_index;
+    for (existing_index = 0U; existing_index < out_summary->input_count; ++existing_index) {
+      if (m68k_function_summary_abi_location_equal(&out_summary->inputs[existing_index].location,
+          &generated->location)) break;
+    }
+    if (existing_index < out_summary->input_count) {
+      if (!function_summary_platform_input_matches(&out_summary->inputs[existing_index], generated))
+        return M68K_PLATFORM_CONTRACT_COMPOSITION_IDENTITY_CONFLICT;
+      /* Normalize an equivalent target-declared input to the generated ID. */
+      out_summary->inputs[existing_index] = *generated;
+    } else if (out_summary->input_count == M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT) {
+      return M68K_PLATFORM_CONTRACT_COMPOSITION_CAPACITY;
+    } else {
+      out_summary->inputs[out_summary->input_count++] = *generated;
+    }
+  }
+  for (result_index = 0U; result_index < platform_summary->result_count; ++result_index) {
+    const M68kAnalysisFunctionSummaryResult *generated = &platform_summary->results[result_index];
+    uint8_t existing_index;
+    for (existing_index = 0U; existing_index < out_summary->result_count; ++existing_index) {
+      if (m68k_function_summary_abi_location_equal(&out_summary->results[existing_index].location,
+          &generated->location)) break;
+    }
+    if (existing_index < out_summary->result_count) {
+      if (!function_summary_platform_result_matches(&out_summary->results[existing_index], generated))
+        return M68K_PLATFORM_CONTRACT_COMPOSITION_IDENTITY_CONFLICT;
+    } else if (out_summary->result_count == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT) {
+      return M68K_PLATFORM_CONTRACT_COMPOSITION_CAPACITY;
+    } else {
+      out_summary->results[out_summary->result_count++] = *generated;
+    }
+  }
+  return M68K_PLATFORM_CONTRACT_COMPOSITION_COMPLETE;
 }
 
 static void typed_state_set_app_address(M68kRenderTypedState *state, uint8_t reg_index, int16_t displacement,
@@ -2850,7 +3091,7 @@ static void typed_state_clear_stack_slot(M68kRenderTypedState *state, int16_t di
 }
 
 static void typed_state_set_stack_slot(M68kRenderTypedState *state, int16_t displacement,
-    uint8_t caller_save_temporary, const M68kRenderTypedStoredValue *value,
+    uint8_t caller_save_temporary, uint8_t abi_stack_convention, const M68kRenderTypedStoredValue *value,
     const M68kRenderTypedMemoryBaseValue *memory_base) {
   size_t index;
   if (state == NULL || value == NULL ||
@@ -2860,6 +3101,7 @@ static void typed_state_set_stack_slot(M68kRenderTypedState *state, int16_t disp
     if (state->stack_slots[index].known == 0U || state->stack_slots[index].displacement != displacement) continue;
     state->stack_slots[index].value = *value;
     state->stack_slots[index].caller_save_temporary = caller_save_temporary;
+    state->stack_slots[index].abi_stack_convention = abi_stack_convention;
     if (memory_base != NULL) state->stack_slots[index].memory_base = *memory_base;
     else typed_memory_base_clear(&state->stack_slots[index].memory_base);
     return;
@@ -2867,6 +3109,7 @@ static void typed_state_set_stack_slot(M68kRenderTypedState *state, int16_t disp
   if (state->stack_slot_count >= M68K_RENDER_TYPED_STACK_SLOT_LIMIT) return;
   state->stack_slots[state->stack_slot_count].known = 1U;
   state->stack_slots[state->stack_slot_count].caller_save_temporary = caller_save_temporary;
+  state->stack_slots[state->stack_slot_count].abi_stack_convention = abi_stack_convention;
   state->stack_slots[state->stack_slot_count].displacement = displacement;
   state->stack_slots[state->stack_slot_count].value = *value;
   if (memory_base != NULL) state->stack_slots[state->stack_slot_count].memory_base = *memory_base;
@@ -2928,6 +3171,22 @@ static const M68kRenderTypedStoredValue *typed_state_stack_slot_value(const M68k
         typed_stored_value_has_useful_info(&slot->value)) {
       return &slot->value;
     }
+  }
+  return NULL;
+}
+
+/* Stack values retain their ABI role.  Result transfer may consume only the
+ * declared caller-argument slot, never a cleanup or prior result at the same
+ * displacement. */
+static const M68kRenderTypedStackSlot *typed_state_stack_slot_for_abi_location(
+    const M68kRenderTypedState *state, int16_t displacement, uint8_t abi_stack_convention) {
+  size_t index;
+  if (state == NULL) return NULL;
+  for (index = 0U; index < state->stack_slot_count; ++index) {
+    const M68kRenderTypedStackSlot *slot = &state->stack_slots[index];
+    if (slot->known == 0U || slot->displacement != displacement ||
+        !typed_stored_value_has_useful_info(&slot->value)) continue;
+    if (slot->abi_stack_convention == abi_stack_convention) return slot;
   }
   return NULL;
 }
@@ -4124,22 +4383,24 @@ static int render_lookup_add_bootblock_runtime_copy(M68kRenderLookup *lookup, si
   return 0;
 }
 
-static void typed_flow_apply_call_input_alias_type(uint8_t platform_kind, size_t section_index, uint32_t offset,
-    M68kRenderTypedState *state, const PlatformFactsV2CallInput *input, uint16_t input_struct_id,
-    int *io_changed) {
+static void typed_flow_apply_call_input_alias_type(const M68kAnalysisFunctionSummary *summary,
+    size_t section_index, uint32_t offset, M68kRenderTypedState *state,
+    const M68kAnalysisFunctionSummaryInput *input, uint16_t input_struct_id, int *io_changed) {
   uint8_t source_reg;
   uint8_t preserved_address;
   M68kRenderTypedProvenance provenance;
-  if (state == NULL || input == NULL || input_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
-      input->reg_kind != AMIGA_OS_REGISTER_ADDRESS || input->reg_index >= 8U ||
-      !m68k_bitset_u32_has(state->addr_reg_alias_known, input->reg_index)) {
+  if (summary == NULL || state == NULL || input == NULL || input_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
+      input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+      input->location.register_count != 1U ||
+      input->location.registers[0].register_kind != AMIGA_OS_REGISTER_ADDRESS ||
+      input->location.registers[0].register_index >= 8U ||
+      !m68k_bitset_u32_has(state->addr_reg_alias_known, input->location.registers[0].register_index)) {
     return;
   }
-  source_reg = state->addr_reg_alias_source[input->reg_index];
+  source_reg = state->addr_reg_alias_source[input->location.registers[0].register_index];
   if (source_reg >= 8U) return;
-  if (!platform_facts_v2_calling_convention_preserved_address_mask(platform_kind, &preserved_address)) {
-    return;
-  }
+  preserved_address = function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_ADDRESS, source_reg) ==
+    M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED ? (uint8_t)(1U << source_reg) : 0U;
   if ((preserved_address & (uint8_t)(1U << source_reg)) == 0U) return;
   provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT, section_index, offset);
   if (state->addr_regs[source_reg].known == 0U) {
@@ -4162,50 +4423,49 @@ static void typed_flow_apply_call_input_alias_type(uint8_t platform_kind, size_t
 static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t kind, uint8_t reg_kind, uint8_t reg_index, const char *pointee_struct_name,
     const char *contract_name, const char *function_summary_id, uint32_t contract_section_index, uint32_t contract_offset,
-    const M68kRenderTypedState *state);
+    const M68kAnalysisFunctionSummaryInput *platform_input, const M68kRenderTypedState *state);
 static int typed_flow_callback_table_identity(const M68kRenderTypedState *state,
     const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, size_t *out_table_section_index, uint32_t *out_table_offset);
 
-static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, uint8_t platform_kind, size_t section_index,
-    uint32_t offset, M68kRenderTypedState *state, const AmigaOsLibraryVectorInfo *vector,
+static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, M68kRenderTypedState *state, const M68kAnalysisFunctionSummary *summary,
     int allow_lookup_storage, int *io_changed) {
-  const char *symbol_name;
-  size_t input_count = 0U;
-  size_t index;
-  if (lookup == NULL || state == NULL || vector == NULL) return 0;
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
-  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
-  if (!platform_facts_v2_call_input_count_for_symbol(platform_kind, symbol_name, &input_count)) return 0;
-  for (index = 0U; index < input_count; ++index) {
-    PlatformFactsV2CallInput input;
+  uint8_t index;
+  if (lookup == NULL || state == NULL || summary == NULL) return 0;
+  for (index = 0U; index < summary->input_count; ++index) {
+    const M68kAnalysisFunctionSummaryInput *input = &summary->inputs[index];
     uint16_t input_struct_id;
     int added = 0;
-    if (!platform_facts_v2_call_input_at(platform_kind, symbol_name, index, &input)) continue;
-    if (!input.has_struct_type || input.reg_kind != AMIGA_OS_REGISTER_ADDRESS || input.reg_index >= 8U) {
+    uint8_t reg_index;
+    if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
+        input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+        input->location.register_count != 1U ||
+        input->location.registers[0].register_kind != AMIGA_OS_REGISTER_ADDRESS ||
+        input->location.registers[0].register_index >= 8U) {
       continue;
     }
-    input_struct_id = lookup_policy_struct_id_by_name(lookup->policy, input.type_name);
+    reg_index = input->location.registers[0].register_index;
+    input_struct_id = lookup_policy_struct_id_by_name(lookup->policy, input->struct_name);
     if (input_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
-          M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT, input.reg_kind, input.reg_index,
-          input.type_name, input.input_name, NULL, UINT32_MAX, 0U, state) != 0) {
+          M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT, AMIGA_OS_REGISTER_ADDRESS, reg_index,
+          input->struct_name, NULL, NULL, UINT32_MAX, 0U, input, state) != 0) {
       return -1;
     }
-    if (allow_lookup_storage && state->app_addr_regs[input.reg_index].known) {
-      if (render_lookup_add_typed_app_slot_region(lookup, state->app_addr_regs[input.reg_index].displacement,
+    if (allow_lookup_storage && state->app_addr_regs[reg_index].known) {
+      if (render_lookup_add_typed_app_slot_region(lookup, state->app_addr_regs[reg_index].displacement,
           input_struct_id, section_index, offset, &added) != 0) {
         return -1;
       }
       if (added && io_changed != NULL) *io_changed = 1;
     }
-    if (state->addr_regs[input.reg_index].known &&
-        state->addr_regs[input.reg_index].struct_id != input_struct_id &&
-        amiga_struct_prefix_chain_contains(input_struct_id, state->addr_regs[input.reg_index].struct_id)) {
+    if (state->addr_regs[reg_index].known && state->addr_regs[reg_index].struct_id != input_struct_id &&
+        amiga_struct_prefix_chain_contains(input_struct_id, state->addr_regs[reg_index].struct_id)) {
       int refined = 0;
-      uint16_t root_struct_id = state->addr_regs[input.reg_index].struct_id;
-      M68kRenderTypedRegValue input_value = state->addr_regs[input.reg_index];
-      if (typed_state_refine_address_reg_from_prefix(lookup, state, input.reg_index,
+      uint16_t root_struct_id = state->addr_regs[reg_index].struct_id;
+      M68kRenderTypedRegValue input_value = state->addr_regs[reg_index];
+      if (typed_state_refine_address_reg_from_prefix(lookup, state, reg_index,
           root_struct_id, input_struct_id, section_index, offset, &refined) != 0) {
         return -1;
       }
@@ -4215,7 +4475,7 @@ static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, uint8
       }
       if (refined && io_changed != NULL) *io_changed = 1;
     }
-    typed_flow_apply_call_input_alias_type(platform_kind, section_index, offset, state, &input, input_struct_id,
+    typed_flow_apply_call_input_alias_type(summary, section_index, offset, state, input, input_struct_id,
       io_changed);
   }
   return 0;
@@ -4252,7 +4512,7 @@ static int typed_flow_record_local_call_input_consumers(M68kRenderLookup *lookup
         if (render_lookup_record_typed_call_consumer(lookup, section_index, offset,
               M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT, member->register_kind, member->register_index,
               input->struct_name, NULL, summary->function_summary_id,
-              (uint32_t)target_section_index, target_offset, state) != 0)
+              (uint32_t)target_section_index, target_offset, NULL, state) != 0)
           return -1;
       }
     }
@@ -4311,7 +4571,7 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
             M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT, input->location.registers[0].register_kind,
             input->location.registers[0].register_index,
             input->struct_name, NULL, effect_summary->function_summary_id,
-            summary->section_index, summary->table_offset, state) != 0)
+            summary->section_index, summary->table_offset, NULL, state) != 0)
         return -1;
     }
   }
@@ -4505,12 +4765,17 @@ int render_lookup_add_function_summary_use(M68kRenderLookup *lookup, const M68kF
   if (lookup == NULL || use == NULL || use->function_summary_id[0] == '\0' ||
       (use->kind != M68K_FUNCTION_SUMMARY_USE_CALL && use->kind != M68K_FUNCTION_SUMMARY_USE_INPUT)) return -1;
   for (index = 0U; index < lookup->function_summary_use_count; ++index) {
-    const M68kFunctionSummaryUseIR *existing = &lookup->function_summary_uses[index];
+    M68kFunctionSummaryUseIR *existing = &lookup->function_summary_uses[index];
     if (existing->caller_section_index == use->caller_section_index &&
         existing->caller_offset == use->caller_offset && existing->kind == use->kind &&
         existing->consumer_kind == use->consumer_kind && existing->operand_index == use->operand_index &&
         existing->register_kind == use->register_kind && existing->register_index == use->register_index &&
-        strcmp(existing->function_summary_id, use->function_summary_id) == 0) return 0;
+        strcmp(existing->function_summary_id, use->function_summary_id) == 0) {
+      if (existing->terminal_reason == M68K_FUNCTION_SUMMARY_TERMINAL_NONE &&
+          use->terminal_reason != M68K_FUNCTION_SUMMARY_TERMINAL_NONE)
+        existing->terminal_reason = use->terminal_reason;
+      return 0;
+    }
   }
   if (lookup->function_summary_use_count == lookup->function_summary_use_capacity) {
     next_capacity = lookup->function_summary_use_capacity == 0U ? 16U :
@@ -4525,10 +4790,37 @@ int render_lookup_add_function_summary_use(M68kRenderLookup *lookup, const M68kF
   return 0;
 }
 
+static int render_lookup_add_platform_call_thunk(M68kRenderLookup *lookup,
+    const M68kPlatformCallThunkIR *thunk) {
+  M68kPlatformCallThunkIR *grown;
+  size_t index, next_capacity;
+  if (lookup == NULL || thunk == NULL ||
+      thunk->relation_kind != M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK) return -1;
+  for (index = 0U; index < lookup->platform_call_thunk_count; ++index) {
+    const M68kPlatformCallThunkIR *existing = &lookup->platform_call_thunks[index];
+    if (existing->wrapper_section_index == thunk->wrapper_section_index &&
+        existing->wrapper_entry_offset == thunk->wrapper_entry_offset &&
+        existing->platform_library_id == thunk->platform_library_id &&
+        existing->platform_function_id == thunk->platform_function_id &&
+        existing->wrapper_call_offset == thunk->wrapper_call_offset) return 0;
+  }
+  if (lookup->platform_call_thunk_count == lookup->platform_call_thunk_capacity) {
+    next_capacity = lookup->platform_call_thunk_capacity == 0U ? 16U :
+      lookup->platform_call_thunk_capacity * 2U;
+    grown = (M68kPlatformCallThunkIR *)render_lookup_grow_array(lookup, lookup->platform_call_thunks,
+      lookup->platform_call_thunk_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->platform_call_thunks = grown;
+    lookup->platform_call_thunk_capacity = next_capacity;
+  }
+  lookup->platform_call_thunks[lookup->platform_call_thunk_count++] = *thunk;
+  return 0;
+}
+
 static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t kind, uint8_t reg_kind, uint8_t reg_index, const char *pointee_struct_name,
     const char *contract_name, const char *function_summary_id, uint32_t contract_section_index, uint32_t contract_offset,
-    const M68kRenderTypedState *state) {
+    const M68kAnalysisFunctionSummaryInput *platform_input, const M68kRenderTypedState *state) {
   M68kAddressValueConsumerIR fact;
   M68kRenderTypedStoredValue value;
   if (lookup == NULL || state == NULL || pointee_struct_name == NULL || pointee_struct_name[0] == '\0' ||
@@ -4547,6 +4839,12 @@ static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, si
   fact.contract_offset = contract_offset;
   snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s", pointee_struct_name);
   snprintf(fact.contract_name, sizeof(fact.contract_name), "%s", contract_name != NULL ? contract_name : "");
+  if (platform_input != NULL && platform_input->has_platform_identity != 0U) {
+    fact.has_platform_input_identity = 1U;
+    fact.platform_library_id = platform_input->platform_library_id;
+    fact.platform_function_id = platform_input->platform_function_id;
+    fact.platform_input_id = platform_input->platform_input_id;
+  }
   snprintf(fact.function_summary_id, sizeof(fact.function_summary_id), "%s",
     function_summary_id != NULL ? function_summary_id : "");
   if (fact.function_summary_id[0] != '\0') {
@@ -4753,7 +5051,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
     if (typed_stored_value_has_useful_info(&value))
-      typed_state_set_stack_slot(state, stack_displacement, 0U, &value, NULL);
+      typed_state_set_stack_slot(state, stack_displacement, 0U,
+        M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT, &value, NULL);
     else typed_state_clear_stack_slot(state, stack_displacement);
     return 0;
   }
@@ -5011,25 +5310,76 @@ static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M6
   return candidate_direct_target(candidate, out_section_index, out_target_offset);
 }
 
+/* Direct-body identity is a pointer-sized register value, not an address-mode
+ * claim. Keep the entry register class in one compact encoding so an ABI
+ * pointer can enter in Dn and return through An (or vice versa). */
+#define M68K_TYPED_FLOW_ENTRY_ORIGIN_DATA_FLAG 0x80U
+static uint8_t typed_flow_entry_origin_make(uint8_t register_kind, uint8_t register_index) {
+  if (register_index >= 8U) return 0xffU;
+  return register_kind == M68K_ANALYSIS_REGISTER_DATA ?
+    (uint8_t)(M68K_TYPED_FLOW_ENTRY_ORIGIN_DATA_FLAG | register_index) : register_index;
+}
+
+static int typed_flow_entry_origin_decode(uint8_t origin, uint8_t *out_kind, uint8_t *out_index) {
+  uint8_t index = origin & 0x7fU;
+  if (index >= 8U) return 0;
+  if (out_kind != NULL)
+    *out_kind = (origin & M68K_TYPED_FLOW_ENTRY_ORIGIN_DATA_FLAG) != 0U ?
+      M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS;
+  if (out_index != NULL) *out_index = index;
+  return 1;
+}
+
+static uint8_t typed_flow_entry_origin_ordinal(uint8_t origin) {
+  uint8_t kind = 0U, index = 0U;
+  if (!typed_flow_entry_origin_decode(origin, &kind, &index)) return 0xffU;
+  return kind == M68K_ANALYSIS_REGISTER_DATA ? (uint8_t)(8U + index) : index;
+}
+
 static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
-    uint8_t requested_mask, uint8_t depth, M68kAnalysisFunctionSummary *out_summary) {
+    M68kAnalysisFunctionSummary *out_summary, uint8_t *out_direct_callees, uint8_t *out_limit_hit) {
   typedef struct M68kTypedLocalCalleeState {
     uint32_t offset;
     uint8_t saved_mask;
     uint8_t preserved_mask;
+    /* A direct body may name a caller argument only while A7 still has its
+     * entry value. Frame setup, cleanup, or auto-indexing ends that proof. */
+    uint8_t stack_entry_stable;
+    /* Each address register either still denotes one entry ABI register, or
+     * has been written by the callee.  This is deliberately identity-only:
+     * it never guesses that a locally-created address is a caller input. */
+    uint8_t entry_origin[8];
+    /* A data register can carry one lossless longword copy of an entry pointer
+     * value. It is otherwise unknown, so scalar Dn values never manufacture
+     * pointer ABI inputs. */
+    uint8_t data_origin[8];
   } M68kTypedLocalCalleeState;
   M68kTypedLocalCalleeState worklist[128];
   M68kTypedLocalCalleeState visited[128];
   const M68kDecodeSectionIR *section;
   uint8_t work_count = 0U, visited_count = 0U, returned = 0U, returned_mask = 0U;
+  uint16_t input_origin_mask = 0U;
+  uint8_t returned_origin[8], returned_data_origin[8];
+  M68kFunctionSummaryMemoryEffectIR static_writes[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
+  M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
+  uint8_t static_write_count = 0U;
+  uint8_t escape_count = 0U;
+  uint8_t memory_effects_unknown = 0U, escape_effects_unknown = 0U;
+  const uint8_t requested_mask = 0xffU;
+  if (out_limit_hit != NULL) *out_limit_hit = 0U;
   if (out_summary == NULL || lookup == NULL || decode == NULL || accepted_start == NULL ||
-      section_index >= decode->section_count || accepted_start[section_index] == NULL || depth > 4U) return 0;
+      section_index >= decode->section_count || accepted_start[section_index] == NULL) return 0;
   section = &decode->sections[section_index];
   if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0;
   worklist[work_count].offset = target_offset;
   worklist[work_count++].saved_mask = 0U;
   worklist[0].preserved_mask = requested_mask;
+  worklist[0].stack_entry_stable = 1U;
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    worklist[0].entry_origin[reg] = reg;
+    worklist[0].data_origin[reg] = typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_DATA, reg);
+  }
   while (work_count != 0U) {
     M68kTypedLocalCalleeState state = worklist[--work_count];
       uint16_t step;
@@ -5041,16 +5391,295 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       uint8_t index;
       for (index = 0U; index < visited_count; ++index) {
         if (visited[index].offset == state.offset && visited[index].saved_mask == state.saved_mask &&
-            visited[index].preserved_mask == state.preserved_mask) break;
+            visited[index].preserved_mask == state.preserved_mask &&
+            visited[index].stack_entry_stable == state.stack_entry_stable &&
+            memcmp(visited[index].entry_origin, state.entry_origin, sizeof(state.entry_origin)) == 0 &&
+            memcmp(visited[index].data_origin, state.data_origin, sizeof(state.data_origin)) == 0) break;
       }
       if (index != visited_count) break;
-      if (visited_count >= (uint8_t)(sizeof(visited) / sizeof(visited[0]))) return 0U;
+      if (visited_count >= (uint8_t)(sizeof(visited) / sizeof(visited[0]))) {
+        if (out_limit_hit != NULL) *out_limit_hit = 1U;
+        return 0U;
+      }
       visited[visited_count++] = state;
       candidate = m68k_decode_ir_find_candidate_at_offset(section, state.offset);
       if (candidate == NULL || candidate->byte_count == 0U || accepted_start[section_index][state.offset] == 0U ||
           m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0U;
       metadata = m68k_sim_metadata_for_instruction(&instruction);
       if (metadata == NULL) return 0U;
+      /* Exact data targets give a durable static-storage subject.  Other
+       * writes have no caller identity at this layer, so remain unknown. */
+      for (uint8_t operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U;
+           ++operand_index) {
+        size_t static_section_index = section_index;
+        uint32_t static_offset;
+        uint8_t prior;
+        size_t move_source_index = 0U, move_dest_index = 0U;
+        uint8_t source_reg = 0U;
+        uint8_t source_origin = 0xffU;
+        if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
+        if (operand_is_predec_a7_local(&instruction.operands[operand_index]) ||
+            operand_is_postinc_a7_local(&instruction.operands[operand_index])) {
+          state.stack_entry_stable = 0U;
+          memory_effects_unknown = 1U;
+          escape_effects_unknown = 1U;
+          continue;
+        }
+        if (instruction_move_operand_indices_from_metadata(&instruction, &move_source_index, &move_dest_index,
+              NULL) && move_dest_index == operand_index &&
+            operand_address_register_index_local(&instruction.operands[move_source_index], &source_reg) &&
+            source_reg < 8U && state.entry_origin[source_reg] < 8U) {
+          source_origin = state.entry_origin[source_reg];
+          input_origin_mask |= (uint16_t)(1U << source_origin);
+        }
+        {
+          uint8_t base_reg = 0U;
+          int16_t base_displacement = 0;
+          if (operand_is_address_memory_local(&instruction.operands[operand_index], &base_reg,
+              &base_displacement) && base_reg == 7U) {
+            uint32_t caller_offset;
+            M68kFunctionSummaryMemoryEffectIR *effect;
+            /* JSR pushes a four-byte return address.  With the entry stack
+             * still intact, callee `4(a7)` is caller argument offset zero. */
+            if (state.stack_entry_stable == 0U || base_displacement < 4) {
+              memory_effects_unknown = 1U;
+              escape_effects_unknown = 1U;
+              continue;
+            }
+            caller_offset = (uint32_t)(base_displacement - 4);
+            for (prior = 0U; prior < static_write_count; ++prior) {
+              const M68kFunctionSummaryEffectSubjectIR *subject = &static_writes[prior].subject;
+              if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK &&
+                  subject->offset == caller_offset &&
+                  subject->stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT) break;
+            }
+            if (prior == static_write_count && static_write_count < M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT) {
+              effect = &static_writes[static_write_count++];
+              memset(effect, 0, sizeof(*effect));
+              effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
+              effect->subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK;
+              effect->subject.offset = caller_offset;
+              effect->subject.stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+            } else if (prior == static_write_count) memory_effects_unknown = 1U;
+            if (source_origin >= 8U) {
+              escape_effects_unknown = 1U;
+            } else {
+              for (prior = 0U; prior < escape_count; ++prior) {
+                const M68kFunctionSummaryEscapeIR *escape = &escapes[prior];
+                if (escape->source_location.registers[0].register_index == source_origin &&
+                    escape->sink_subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK &&
+                    escape->sink_subject.offset == caller_offset &&
+                    escape->sink_subject.stack_convention == M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT) break;
+              }
+              if (prior == escape_count && escape_count < M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT) {
+                M68kFunctionSummaryEscapeIR *escape = &escapes[escape_count++];
+                memset(escape, 0, sizeof(*escape));
+                escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+                escape->source_location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+                escape->source_location.width = 4U;
+                escape->source_location.register_count = 1U;
+                escape->source_location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+                escape->source_location.registers[0].register_index = source_origin;
+                escape->sink_subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK;
+                escape->sink_subject.offset = caller_offset;
+                escape->sink_subject.stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+              } else if (prior == escape_count) escape_effects_unknown = 1U;
+            }
+            continue;
+          }
+          if (operand_is_address_memory_local(&instruction.operands[operand_index], &base_reg,
+              &base_displacement) && typed_flow_entry_origin_decode(state.entry_origin[base_reg], NULL, NULL)) {
+            M68kFunctionSummaryMemoryEffectIR *effect;
+            uint8_t origin = state.entry_origin[base_reg];
+            input_origin_mask |= (uint16_t)(1U << typed_flow_entry_origin_ordinal(origin));
+            for (prior = 0U; prior < static_write_count; ++prior) {
+              const M68kFunctionSummaryEffectSubjectIR *subject = &static_writes[prior].subject;
+              if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT && subject->input_index == origin) break;
+            }
+            if (prior == static_write_count && static_write_count < M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT) {
+              effect = &static_writes[static_write_count++];
+              memset(effect, 0, sizeof(*effect));
+              effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
+              effect->subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT;
+              /* Temporarily the entry-register identity; compacted to an ABI
+               * input index once every returned path has been examined. */
+              effect->subject.input_index = origin;
+            } else if (prior == static_write_count) memory_effects_unknown = 1U;
+            if (source_origin >= 8U) {
+              escape_effects_unknown = 1U;
+            } else {
+              for (prior = 0U; prior < escape_count; ++prior) {
+                const M68kFunctionSummaryEscapeIR *escape = &escapes[prior];
+                if (escape->source_location.registers[0].register_index == source_origin &&
+                    escape->sink_subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT &&
+                    escape->sink_subject.input_index == origin) break;
+              }
+              if (prior == escape_count && escape_count < M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT) {
+                M68kFunctionSummaryEscapeIR *escape = &escapes[escape_count++];
+                memset(escape, 0, sizeof(*escape));
+                escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+                /* Entry identities are compacted after the full input set is known. */
+                escape->source_location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+                escape->source_location.width = 4U;
+                escape->source_location.register_count = 1U;
+                escape->source_location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+                escape->source_location.registers[0].register_index = source_origin;
+                escape->sink_subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT;
+                escape->sink_subject.input_index = origin;
+              } else if (prior == escape_count) {
+                escape_effects_unknown = 1U;
+              }
+            }
+            continue;
+          }
+        }
+        if (!candidate_data_target_for_operand(candidate, operand_index, &static_section_index, &static_offset) &&
+            !operand_absolute_offset_local(&instruction.operands[operand_index], &static_offset)) {
+          memory_effects_unknown = 1U;
+          escape_effects_unknown = 1U;
+          continue;
+        }
+        if (static_section_index >= decode->section_count)
+          static_section_index = section_index;
+        {
+          const M68kAnalysisAbstractRegion *abstract_region = lookup_abstract_region_for_source_range(lookup,
+            static_section_index, static_offset, instruction_size_suffix_bytes_local(instruction.size_suffix));
+          if (abstract_region != NULL) {
+            for (prior = 0U; prior < static_write_count; ++prior) {
+              const M68kFunctionSummaryEffectSubjectIR *subject = &static_writes[prior].subject;
+              if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION &&
+                  strcmp(subject->abstract_region_id, abstract_region->region_id) == 0) break;
+            }
+            if (prior == static_write_count && static_write_count < M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT) {
+              M68kFunctionSummaryMemoryEffectIR *effect = &static_writes[static_write_count++];
+              memset(effect, 0, sizeof(*effect));
+              effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
+              effect->subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION;
+              snprintf(effect->subject.abstract_region_id, sizeof(effect->subject.abstract_region_id), "%s",
+                abstract_region->region_id);
+            } else if (prior == static_write_count) memory_effects_unknown = 1U;
+            if (source_origin >= 8U) {
+              escape_effects_unknown = 1U;
+            } else {
+              for (prior = 0U; prior < escape_count; ++prior) {
+                const M68kFunctionSummaryEscapeIR *escape = &escapes[prior];
+                if (escape->source_location.registers[0].register_index == source_origin &&
+                    escape->sink_subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION &&
+                    strcmp(escape->sink_subject.abstract_region_id, abstract_region->region_id) == 0) break;
+              }
+              if (prior == escape_count && escape_count < M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT) {
+                M68kFunctionSummaryEscapeIR *escape = &escapes[escape_count++];
+                memset(escape, 0, sizeof(*escape));
+                escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+                escape->source_location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+                escape->source_location.width = 4U;
+                escape->source_location.register_count = 1U;
+                escape->source_location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+                escape->source_location.registers[0].register_index = source_origin;
+                escape->sink_subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION;
+                snprintf(escape->sink_subject.abstract_region_id, sizeof(escape->sink_subject.abstract_region_id),
+                  "%s", abstract_region->region_id);
+              } else if (prior == escape_count) escape_effects_unknown = 1U;
+            }
+            continue;
+          }
+        }
+        for (prior = 0U; prior < static_write_count; ++prior) {
+          const M68kFunctionSummaryEffectSubjectIR *subject = &static_writes[prior].subject;
+          if (subject->section_index == static_section_index && subject->offset == static_offset) break;
+        }
+        if (prior == static_write_count) {
+          if (static_write_count == M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT) {
+            memory_effects_unknown = 1U;
+          } else {
+            M68kFunctionSummaryMemoryEffectIR *effect = &static_writes[static_write_count++];
+            memset(effect, 0, sizeof(*effect));
+            effect->kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
+            effect->subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+            effect->subject.section_index = (uint32_t)static_section_index;
+            effect->subject.offset = static_offset;
+          }
+        }
+        if (source_origin >= 8U) {
+          escape_effects_unknown = 1U;
+        } else {
+          for (prior = 0U; prior < escape_count; ++prior) {
+            const M68kFunctionSummaryEscapeIR *escape = &escapes[prior];
+            if (escape->source_location.registers[0].register_index == source_origin &&
+                escape->sink_subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE &&
+                escape->sink_subject.section_index == static_section_index && escape->sink_subject.offset == static_offset)
+              break;
+          }
+          if (prior == escape_count && escape_count < M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT) {
+            M68kFunctionSummaryEscapeIR *escape = &escapes[escape_count++];
+            memset(escape, 0, sizeof(*escape));
+            escape->source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+            escape->source_location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+            escape->source_location.width = 4U;
+            escape->source_location.register_count = 1U;
+            escape->source_location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+            escape->source_location.registers[0].register_index = source_origin;
+            escape->sink_subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+            escape->sink_subject.section_index = (uint32_t)static_section_index;
+            escape->sink_subject.offset = static_offset;
+          } else if (prior == escape_count) {
+            escape_effects_unknown = 1U;
+          }
+        }
+      }
+      /* Propagate an entry pointer identity only through a direct longword
+       * register copy. Every other register writer is callee-local. */
+      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && instruction.size_suffix == 'l' &&
+          instruction.operand_count == 2U) {
+        uint8_t source_reg = 0U, dest_reg = 0U;
+        if (operand_address_register_index_local(&instruction.operands[0], &source_reg) &&
+            operand_address_register_index_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
+          state.entry_origin[dest_reg] = state.entry_origin[source_reg];
+        else if (operand_is_data_register_local(&instruction.operands[0], &source_reg) &&
+                 operand_address_register_index_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
+          state.entry_origin[dest_reg] = state.data_origin[source_reg];
+        else if (operand_address_register_index_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
+          state.entry_origin[dest_reg] = 0xffU;
+      } else {
+        for (uint8_t operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+          uint8_t dest_reg = 0U;
+          if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+              !operand_is_address_memory_local(&instruction.operands[operand_index], NULL, NULL) &&
+              operand_address_register_index_local(&instruction.operands[operand_index], &dest_reg) && dest_reg < 8U)
+            state.entry_origin[dest_reg] = 0xffU;
+        }
+      }
+      /* A longword register-to-data copy preserves the ABI pointer bit
+       * pattern, but no other Dn write is an identity proof. */
+      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction.size_suffix == 'l' &&
+          instruction.operand_count == 2U) {
+        uint8_t source_reg = 0U, dest_reg = 0U;
+        if (operand_address_register_index_local(&instruction.operands[0], &source_reg) && source_reg < 8U &&
+            operand_is_data_register_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
+          state.data_origin[dest_reg] = state.entry_origin[source_reg];
+        else if (operand_is_data_register_local(&instruction.operands[0], &source_reg) && source_reg < 8U &&
+                 operand_is_data_register_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
+          state.data_origin[dest_reg] = state.data_origin[source_reg];
+        else if (operand_is_data_register_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
+          state.data_origin[dest_reg] = 0xffU;
+      } else {
+        for (uint8_t operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U;
+             ++operand_index) {
+          uint8_t dest_reg = 0U;
+          if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+              operand_is_data_register_local(&instruction.operands[operand_index], &dest_reg) && dest_reg < 8U)
+            state.data_origin[dest_reg] = 0xffU;
+        }
+      }
+      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_LINK || instruction.mnemonic_id == M68K_ASM_MNEMONIC_UNLK)
+        state.stack_entry_stable = 0U;
+      for (uint8_t operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U;
+           ++operand_index) {
+        uint8_t written_reg = 0U;
+        if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+            operand_address_register_index_local(&instruction.operands[operand_index], &written_reg) && written_reg == 7U)
+          state.stack_entry_stable = 0U;
+      }
       if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction.operand_count == 2U &&
           instruction.operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
           operand_is_predec_a7_local(&instruction.operands[1])) {
@@ -5082,15 +5711,30 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         size_t callee_section = 0U;
         uint32_t callee_offset = 0U;
         uint8_t live_mask = state.preserved_mask & (uint8_t)~state.saved_mask;
+        size_t callee_index;
+        int has_local_callee = typed_flow_local_call_target(lookup, candidate, &callee_section, &callee_offset);
+        const M68kAnalysisFunctionSummary *callee_summary = NULL;
+        if (has_local_callee) {
+          callee_index = lookup_inferred_direct_function_summary_index(lookup, callee_section, callee_offset);
+          if (out_direct_callees != NULL && callee_index != SIZE_MAX) out_direct_callees[callee_index] = 1U;
+          callee_summary = lookup_inferred_direct_function_summary(lookup, callee_section, callee_offset);
+          if (callee_summary == NULL)
+            callee_summary = lookup_configured_direct_function_summary(lookup, callee_section, callee_offset);
+        }
+        if (callee_summary == NULL || callee_summary->effects_invalid != 0U ||
+            callee_summary->memory_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT ||
+            callee_summary->escape_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT ||
+            callee_summary->memory_effect_count != 0U || callee_summary->escape_count != 0U) {
+          memory_effects_unknown = 1U;
+          escape_effects_unknown = 1U;
+        }
         if (live_mask != 0U) {
           uint8_t callee_preserved = 0U;
-          M68kAnalysisFunctionSummary callee_summary;
           uint8_t reg;
-          if (!typed_flow_local_call_target(lookup, candidate, &callee_section, &callee_offset) ||
-              !typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, callee_section,
-                callee_offset, live_mask, (uint8_t)(depth + 1U), &callee_summary)) return 0;
+          if (!has_local_callee) return 0;
+          if (callee_summary == NULL || callee_summary->effects_invalid != 0U) return 0;
           for (reg = 0U; reg < 8U; ++reg) {
-            if (function_summary_register_effect(&callee_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
+            if (function_summary_register_effect(callee_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
                 M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
               callee_preserved |= (uint8_t)(1U << reg);
           }
@@ -5101,6 +5745,13 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         if (state.saved_mask != 0U) return 0U;
         if (returned == 0U) returned_mask = state.preserved_mask;
         else returned_mask &= state.preserved_mask;
+        if (returned == 0U) {
+          memcpy(returned_origin, state.entry_origin, sizeof(returned_origin));
+          memcpy(returned_data_origin, state.data_origin, sizeof(returned_data_origin));
+        } else for (uint8_t reg = 0U; reg < 8U; ++reg) {
+          if (returned_origin[reg] != state.entry_origin[reg]) returned_origin[reg] = 0xffU;
+          if (returned_data_origin[reg] != state.data_origin[reg]) returned_data_origin[reg] = 0xffU;
+        }
         returned = 1U;
         break;
       }
@@ -5110,20 +5761,134 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           state.offset = branch_target;
           continue;
         }
-        if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) return 0;
+        if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) {
+          if (out_limit_hit != NULL) *out_limit_hit = 1U;
+          return 0;
+        }
         worklist[work_count].offset = branch_target;
         worklist[work_count++].saved_mask = state.saved_mask;
         worklist[work_count - 1U].preserved_mask = state.preserved_mask;
+        worklist[work_count - 1U].stack_entry_stable = state.stack_entry_stable;
+        memcpy(worklist[work_count - 1U].entry_origin, state.entry_origin, sizeof(state.entry_origin));
+        memcpy(worklist[work_count - 1U].data_origin, state.data_origin, sizeof(state.data_origin));
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
           (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U) ||
           metadata->flow_kind == M68K_SIM_FLOW_TRAP || candidate->byte_count > section->size - state.offset) break;
       state.offset += candidate->byte_count;
     }
+    if (step == M68K_RENDER_TYPED_FLOW_LOCAL_CALLEE_INSTRUCTION_LIMIT) {
+      if (out_limit_hit != NULL) *out_limit_hit = 1U;
+      return 0;
+    }
   }
   if (returned == 0U) return 0;
   memset(out_summary, 0, sizeof(*out_summary));
+  /* An untouched entry register is not, by itself, a callable input.  Admit
+   * it only when a body effect consumed it or when it is the source of a
+   * distinct returned identity.  Otherwise every local helper would publish
+   * eight invented ABI-pointer inputs merely because the entry state is
+   * carried through its return path. */
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    uint8_t ordinal = typed_flow_entry_origin_ordinal(returned_origin[reg]);
+    if (ordinal != 0xffU && returned_origin[reg] != typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_ADDRESS, reg))
+      input_origin_mask |= (uint16_t)(1U << ordinal);
+    ordinal = typed_flow_entry_origin_ordinal(returned_data_origin[reg]);
+    if (ordinal != 0xffU && returned_data_origin[reg] != typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_DATA, reg))
+      input_origin_mask |= (uint16_t)(1U << ordinal);
+  }
+  for (uint8_t ordinal = 0U; ordinal < 16U; ++ordinal) {
+    M68kAnalysisFunctionSummaryInput *input;
+    if ((input_origin_mask & (uint16_t)(1U << ordinal)) == 0U) continue;
+    input = &out_summary->inputs[out_summary->input_count++];
+    input->seed_kind = M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER;
+    input->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    input->location.width = 4U;
+    input->location.register_count = 1U;
+    input->location.registers[0].register_kind = ordinal >= 8U ?
+      M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS;
+    input->location.registers[0].register_index = ordinal & 7U;
+  }
+  for (uint8_t effect_index = 0U; effect_index < static_write_count; ++effect_index) {
+    M68kFunctionSummaryEffectSubjectIR *subject = &static_writes[effect_index].subject;
+    if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) {
+      uint8_t compact = 0U;
+      while (compact < out_summary->input_count &&
+             out_summary->inputs[compact].location.registers[0].register_index != subject->input_index) ++compact;
+      if (compact == out_summary->input_count) { memory_effects_unknown = 1U; break; }
+      subject->input_index = compact;
+    }
+  }
+  for (uint8_t escape_index = 0U; escape_index < escape_count; ++escape_index) {
+    M68kFunctionSummaryEscapeIR *escape = &escapes[escape_index];
+    uint8_t compact = 0U;
+    uint8_t source_origin = escape->source_location.registers[0].register_index;
+    while (compact < out_summary->input_count &&
+           out_summary->inputs[compact].location.registers[0].register_index != source_origin) ++compact;
+    if (compact == out_summary->input_count) { escape_effects_unknown = 1U; break; }
+    if (escape->sink_subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) {
+      uint8_t sink_origin = escape->sink_subject.input_index;
+      compact = 0U;
+      while (compact < out_summary->input_count &&
+             out_summary->inputs[compact].location.registers[0].register_index != sink_origin) ++compact;
+      if (compact == out_summary->input_count) { escape_effects_unknown = 1U; break; }
+      escape->sink_subject.input_index = compact;
+    }
+  }
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    uint8_t input_index = 0U;
+    uint8_t origin_kind = 0U, origin_reg = 0U;
+    if (!typed_flow_entry_origin_decode(returned_origin[reg], &origin_kind, &origin_reg) ||
+        returned_origin[reg] == typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_ADDRESS, reg)) continue;
+    while (input_index < out_summary->input_count &&
+           (out_summary->inputs[input_index].location.registers[0].register_kind != origin_kind ||
+            out_summary->inputs[input_index].location.registers[0].register_index != origin_reg)) ++input_index;
+    if (input_index == out_summary->input_count || out_summary->result_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT)
+      continue;
+    out_summary->results[out_summary->result_count].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+    out_summary->results[out_summary->result_count].input_index = input_index;
+    out_summary->results[out_summary->result_count].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    out_summary->results[out_summary->result_count].location.width = 4U;
+    out_summary->results[out_summary->result_count].location.register_count = 1U;
+    out_summary->results[out_summary->result_count].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    out_summary->results[out_summary->result_count++].location.registers[0].register_index = reg;
+  }
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    uint8_t input_index = 0U;
+    uint8_t origin_kind = 0U, origin_reg = 0U;
+    if (!typed_flow_entry_origin_decode(returned_data_origin[reg], &origin_kind, &origin_reg) ||
+        returned_data_origin[reg] == typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_DATA, reg)) continue;
+    while (input_index < out_summary->input_count &&
+           (out_summary->inputs[input_index].location.registers[0].register_kind != origin_kind ||
+            out_summary->inputs[input_index].location.registers[0].register_index != origin_reg)) ++input_index;
+    if (input_index == out_summary->input_count || out_summary->result_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT)
+      continue;
+    out_summary->results[out_summary->result_count].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+    out_summary->results[out_summary->result_count].input_index = input_index;
+    out_summary->results[out_summary->result_count].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    out_summary->results[out_summary->result_count].location.width = 4U;
+    out_summary->results[out_summary->result_count].location.register_count = 1U;
+    out_summary->results[out_summary->result_count].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    out_summary->results[out_summary->result_count++].location.registers[0].register_index = reg;
+  }
   function_summary_set_register_partition(out_summary, 0U, returned_mask);
+  if (memory_effects_unknown == 0U) {
+    memcpy(out_summary->memory_effects, static_writes, sizeof(static_writes));
+    out_summary->memory_effect_count = static_write_count;
+  } else {
+    out_summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+    out_summary->memory_effect_count = 0U;
+  }
+  /* A complete traversal with no caller-visible write and only complete empty
+   * nested contracts proves an empty escape partition. Any source that has no
+   * durable ABI identity remains unknown, never silently empty. */
+  if (escape_effects_unknown != 0U) {
+    out_summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+    out_summary->escape_count = 0U;
+  } else {
+    memcpy(out_summary->escapes, escapes, sizeof(escapes));
+    out_summary->escape_count = escape_count;
+  }
   return 1;
 }
 
@@ -5140,8 +5905,138 @@ static const M68kAnalysisFunctionSummary *lookup_inferred_direct_function_summar
   return NULL;
 }
 
+static size_t lookup_inferred_direct_function_summary_index(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t entry_offset) {
+  size_t index;
+  if (lookup == NULL) return SIZE_MAX;
+  for (index = 0U; index < lookup->inferred_function_summary_count; ++index) {
+    const M68kAnalysisFunctionSummary *summary = &lookup->inferred_function_summaries[index].summary;
+    if (summary->has_section_index != 0U &&
+        summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+        summary->section_index == section_index && summary->entry_offset == entry_offset) return index;
+  }
+  return SIZE_MAX;
+}
+
+static const M68kPlatformCallThunkIR *lookup_platform_call_thunk(const M68kRenderLookup *lookup,
+    size_t wrapper_section_index, uint32_t wrapper_entry_offset) {
+  size_t index;
+  if (lookup == NULL) return NULL;
+  for (index = 0U; index < lookup->platform_call_thunk_count; ++index) {
+    const M68kPlatformCallThunkIR *thunk = &lookup->platform_call_thunks[index];
+    if (thunk->wrapper_section_index == wrapper_section_index &&
+        thunk->wrapper_entry_offset == wrapper_entry_offset) return thunk;
+  }
+  return NULL;
+}
+
+/* Accept a wrapper only when one concrete platform dispatch is followed solely
+ * by ordinary wrapper cleanup and return. This produces durable evidence for
+ * composition without treating a rendered local-helper name as an identity. */
+static const AmigaOsLibraryVectorInfo *discover_direct_platform_thunk_at(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t entry_offset,
+    uint32_t *out_call_offset) {
+  const M68kDecodeSectionIR *section;
+  M68kRenderPlatformState state;
+  const AmigaOsLibraryVectorInfo *resolved = NULL;
+  uint32_t cursor;
+  if (out_call_offset != NULL) *out_call_offset = 0U;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || section_index >= decode->section_count) return NULL;
+  section = &decode->sections[section_index];
+  if (!accepted_start_at(section, accepted_start[section_index], entry_offset)) return NULL;
+  memset(&state, 0, sizeof(state));
+  cursor = entry_offset;
+  while (cursor < section->size && cursor - entry_offset < 128U) {
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const AmigaOsLibraryVectorInfo *vector;
+    if (!accepted_start_at(section, accepted_start[section_index], cursor)) return NULL;
+    candidate = find_candidate_at_offset_local(section, cursor);
+    if (candidate == NULL || candidate->byte_count == 0U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+      return NULL;
+    attach_known_instruction_relocations(lookup, section_index, candidate, &instruction);
+    platform_state_apply_policy_register_seeds(&state, lookup->policy, section_index, candidate->offset);
+    if (resolved != NULL) {
+      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_RTS) return resolved;
+      /* The local summary owns post-call adaptation (for example D0-to-A0
+       * result aliases) and its branch effects. A second call would require
+       * another callable relation and is intentionally not folded into this
+       * thunk. */
+      if (instruction_has_call_flow_local(&instruction)) return NULL;
+      cursor += candidate->byte_count;
+      continue;
+    }
+    vector = attach_amiga_lvo_symbol_if_known(&state, &instruction);
+    if (vector == NULL) vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start[section_index],
+      candidate, &instruction);
+    if (vector == NULL && instruction_has_call_flow_local(&instruction)) {
+      /* A wrapper may adapt the result of one nested local platform thunk.
+       * The direct call instruction is durable evidence for this wrapper's
+       * relation; the nested resolver still requires an exact vector target. */
+      vector = resolve_amiga_local_helper_call_vector(lookup, decode, accepted_start, section_index, candidate);
+    }
+    if (vector != NULL) {
+      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+        if (out_call_offset != NULL) *out_call_offset = candidate->offset;
+        return vector;
+      }
+      if (instruction.mnemonic_id != M68K_ASM_MNEMONIC_JSR && !instruction_has_call_flow_local(&instruction)) return NULL;
+      resolved = vector;
+      if (out_call_offset != NULL) *out_call_offset = candidate->offset;
+    }
+    if (vector == NULL && (instruction_has_call_flow_local(&instruction) ||
+        candidate_has_non_call_control_target(candidate))) return NULL;
+    platform_state_update_data_lvo_after_instruction(&state, &instruction);
+    platform_state_update_after_instruction(&state, lookup, &instruction);
+    if (candidate_terminates_a6_state(candidate)) return NULL;
+    cursor += candidate->byte_count;
+  }
+  return NULL;
+}
+
+static int render_lookup_collect_platform_call_thunks(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start) {
+  uint16_t configured_index;
+  size_t inferred_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
+  for (configured_index = 0U; lookup->policy != NULL && configured_index < lookup->policy->function_summary_count &&
+       configured_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++configured_index) {
+    const M68kAnalysisFunctionSummary *summary = &lookup->policy->function_summaries[configured_index];
+    const AmigaOsLibraryVectorInfo *vector;
+    M68kPlatformCallThunkIR thunk;
+    if (summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT || !summary->has_section_index) continue;
+    memset(&thunk, 0, sizeof(thunk));
+    vector = discover_direct_platform_thunk_at(lookup, decode, accepted_start, summary->section_index,
+      summary->entry_offset, &thunk.wrapper_call_offset);
+    if (vector == NULL) continue;
+    thunk.wrapper_section_index = summary->section_index;
+    thunk.wrapper_entry_offset = summary->entry_offset;
+    thunk.platform_library_id = vector->library_id;
+    thunk.platform_function_id = vector->function_id;
+    thunk.relation_kind = M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK;
+    if (render_lookup_add_platform_call_thunk(lookup, &thunk) != 0) return -1;
+  }
+  for (inferred_index = 0U; inferred_index < lookup->inferred_function_summary_count; ++inferred_index) {
+    const M68kAnalysisFunctionSummary *summary = &lookup->inferred_function_summaries[inferred_index].summary;
+    const AmigaOsLibraryVectorInfo *vector;
+    M68kPlatformCallThunkIR thunk;
+    if (summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT || !summary->has_section_index) continue;
+    memset(&thunk, 0, sizeof(thunk));
+    vector = discover_direct_platform_thunk_at(lookup, decode, accepted_start, summary->section_index,
+      summary->entry_offset, &thunk.wrapper_call_offset);
+    if (vector == NULL) continue;
+    thunk.wrapper_section_index = summary->section_index;
+    thunk.wrapper_entry_offset = summary->entry_offset;
+    thunk.platform_library_id = vector->library_id;
+    thunk.platform_function_id = vector->function_id;
+    thunk.relation_kind = M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK;
+    if (render_lookup_add_platform_call_thunk(lookup, &thunk) != 0) return -1;
+  }
+  return 0;
+}
+
 static int render_lookup_append_inferred_direct_function_summary(M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t entry_offset) {
+    size_t section_index, uint32_t entry_offset) {
   M68kRenderInferredFunctionSummary *grown;
   M68kRenderInferredFunctionSummary *record;
   size_t next_capacity;
@@ -5161,16 +6056,16 @@ static int render_lookup_append_inferred_direct_function_summary(M68kRenderLooku
   record->summary.has_section_index = 1U;
   record->summary.section_index = (uint32_t)section_index;
   record->summary.entry_offset = entry_offset;
-  record->summary.return_contract_unknown = 1U;
   snprintf(record->summary.function_summary_id, sizeof(record->summary.function_summary_id),
     "inferred_local_s%u_o%08X", (unsigned)section_index, (unsigned)entry_offset);
-  if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, section_index, entry_offset,
-      0xffU, 0U, &record->summary)) {
-    record->summary.effects_invalid = 1U;
-    record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-  }
+  /* The graph solver owns body inference after every direct target has a
+   * stable node. Start from the conservative clobbering boundary: until a
+   * callee body proves a location survives, recursive edges cannot invent a
+   * caller-visible value. A later SCC layer may refine this only with a
+   * converged component proof. */
+  function_summary_set_register_partition(&record->summary, 0U, 0U);
+  record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
   return 0;
 }
 
@@ -5189,8 +6084,22 @@ static int render_lookup_collect_inferred_direct_function_summaries(M68kRenderLo
       if (candidate->offset >= section->size || accepted_start[section_index] == NULL ||
           accepted_start[section_index][candidate->offset] == 0U ||
           !typed_flow_local_call_target(lookup, candidate, &target_section_index, &target_offset)) continue;
-      if (render_lookup_append_inferred_direct_function_summary(lookup, decode, accepted_start,
-          target_section_index, target_offset) != 0) return -1;
+      if (lookup_configured_direct_function_summary(lookup, target_section_index, target_offset) == NULL) {
+        if (lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset) == NULL &&
+            lookup->inferred_function_summary_count >= M68K_RENDER_TYPED_DIRECT_GRAPH_NODE_LIMIT) {
+          memset(&use, 0, sizeof(use));
+          snprintf(use.function_summary_id, sizeof(use.function_summary_id), "direct_graph_capacity_s%u_o%08X",
+            (unsigned)target_section_index, (unsigned)target_offset);
+          use.caller_section_index = (uint32_t)section_index;
+          use.caller_offset = candidate->offset;
+          use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
+          use.terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_GRAPH_CAPACITY;
+          if (render_lookup_add_function_summary_use(lookup, &use) != 0) return -1;
+          continue;
+        }
+        if (render_lookup_append_inferred_direct_function_summary(lookup,
+              target_section_index, target_offset) != 0) return -1;
+      }
       memset(&use, 0, sizeof(use));
       snprintf(use.function_summary_id, sizeof(use.function_summary_id), "inferred_local_s%u_o%08X",
         (unsigned)target_section_index, (unsigned)target_offset);
@@ -5199,6 +6108,123 @@ static int render_lookup_collect_inferred_direct_function_summaries(M68kRenderLo
       use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
       if (render_lookup_add_function_summary_use(lookup, &use) != 0) return -1;
     }
+  }
+  return 0;
+}
+
+/* All direct nodes exist before this runs. A local call therefore reads the
+ * current graph fact instead of recursively re-entering body analysis. The
+ * conservative seed permits only body-proven preservation to enter a summary;
+ * unresolved recursive components consequently transfer no value. */
+static int render_lookup_solve_inferred_direct_function_summaries(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start) {
+  uint8_t iteration;
+  size_t summary_count;
+  uint8_t *edges;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
+  summary_count = lookup->inferred_function_summary_count;
+  if (summary_count == 0U) return 0;
+  if (summary_count > SIZE_MAX / summary_count) return -1;
+  edges = (uint8_t *)calloc(summary_count * summary_count, sizeof(*edges));
+  if (edges == NULL) return -1;
+  /* Build edges from each entry's reachable body, rather than from an
+   * incidental section-wide scan.  This is the graph proof used to classify
+   * recursion; configured callees remain opaque authoritative leaves. */
+  for (size_t index = 0U; index < summary_count; ++index) {
+    M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
+    M68kAnalysisFunctionSummary ignored;
+    uint8_t limit_hit = 0U;
+    if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
+    if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
+          record->summary.section_index, record->summary.entry_offset, &ignored,
+          &edges[index * summary_count], &limit_hit)) {
+      record->summary.effects_invalid = 1U;
+      record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+      record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+      record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+      record->terminal_reason = limit_hit != 0U ? M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT :
+        M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_UNSUPPORTED;
+    }
+  }
+  /* Transitive closure gives a compact SCC proof: two nodes share an SCC iff
+   * each reaches the other.  Every member of a cyclic SCC is terminal, so no
+   * recursive edge can be mistaken for a converged callable contract. */
+  for (size_t via = 0U; via < summary_count; ++via) {
+    for (size_t from = 0U; from < summary_count; ++from) {
+      if (edges[from * summary_count + via] == 0U) continue;
+      for (size_t to = 0U; to < summary_count; ++to) {
+        if (edges[via * summary_count + to] != 0U) edges[from * summary_count + to] = 1U;
+      }
+    }
+  }
+  for (size_t index = 0U; index < summary_count; ++index) {
+    M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
+    size_t member_count = 0U;
+    size_t ordinal = 0U;
+    size_t member;
+    if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
+    for (member = 0U; member < summary_count; ++member) {
+      if (member == index || (edges[index * summary_count + member] != 0U &&
+          edges[member * summary_count + index] != 0U)) {
+        if (member < index) ++ordinal;
+        ++member_count;
+      }
+    }
+    record->direct_scc_size = member_count <= UINT8_MAX ? (uint8_t)member_count : UINT8_MAX;
+    record->direct_scc_ordinal = ordinal <= UINT8_MAX ? (uint8_t)ordinal : UINT8_MAX;
+    if (edges[index * summary_count + index] == 0U) continue;
+    record->summary.effects_invalid = 1U;
+    record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH;
+  }
+  free(edges);
+  for (iteration = 0U; iteration < M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT; ++iteration) {
+    size_t index;
+    int changed = 0;
+    for (index = 0U; index < lookup->inferred_function_summary_count; ++index) {
+      M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
+      M68kAnalysisFunctionSummary next;
+      uint8_t limit_hit = 0U;
+      if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
+      if (record->summary.effects_invalid != 0U) continue;
+      if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
+            record->summary.section_index, record->summary.entry_offset, &next, NULL, &limit_hit)) {
+        if (record->summary.effects_invalid == 0U) {
+          record->summary.effects_invalid = 1U;
+          record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+          record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+          record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+          record->terminal_reason = limit_hit != 0U ? M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT :
+            M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_UNSUPPORTED;
+          changed = 1;
+        }
+        continue;
+      }
+      next.callable_kind = record->summary.callable_kind;
+      next.has_section_index = record->summary.has_section_index;
+      next.section_index = record->summary.section_index;
+      next.entry_offset = record->summary.entry_offset;
+      snprintf(next.function_summary_id, sizeof(next.function_summary_id), "%s",
+        record->summary.function_summary_id);
+      if (memcmp(&next, &record->summary, sizeof(next)) != 0) {
+        record->summary = next;
+        changed = 1;
+      }
+    }
+    if (!changed) return 0;
+  }
+  /* A finite lattice should converge.  A limit is terminal, never a partial
+   * callable contract. */
+  for (size_t index = 0U; index < lookup->inferred_function_summary_count; ++index) {
+    M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
+    if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
+    record->summary.effects_invalid = 1U;
+    record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+    record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_SOLVER_ITERATION_LIMIT;
   }
   return 0;
 }
@@ -5241,72 +6267,6 @@ static int typed_flow_callback_table_identity(const M68kRenderTypedState *state,
     }
   }
   return 0;
-}
-
-/* An indirect callback dispatch is local only when the dispatch register still
- * carries the exact source base of a declared callback table.  In that case,
- * prove preservation from every possible table target rather than assuming a
- * calling convention for an arbitrary register-indirect call. */
-static int typed_flow_callback_table_callee_effect_summary(const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, const M68kRenderTypedState *state,
-    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, uint8_t requested_mask, M68kAnalysisFunctionSummary *out_summary) {
-  const M68kAnalysisPolicy *policy;
-  uint8_t dispatch_reg;
-  uint16_t summary_index;
-  size_t table_section_index = 0U;
-  uint32_t table_offset = 0U;
-  uint8_t preserved_mask = requested_mask;
-  uint8_t matched = 0U;
-  if (out_summary == NULL || lookup == NULL || decode == NULL || accepted_start == NULL || state == NULL || instruction == NULL ||
-      section == NULL || candidate == NULL || (policy = lookup->policy) == NULL || requested_mask == 0U ||
-      instruction->operand_count != 1U || !operand_is_address_memory_local(&instruction->operands[0], &dispatch_reg,
-        NULL) || dispatch_reg >= 8U) {
-    return 0;
-  }
-  if (!typed_flow_callback_table_identity(state, section, candidate, instruction,
-        &table_section_index, &table_offset)) return 0;
-  for (summary_index = 0U; summary_index < policy->function_summary_count &&
-       summary_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++summary_index) {
-    const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[summary_index];
-    const M68kSection *table_section;
-    uint32_t entry_index;
-    if (!summary->has_section_index || summary->callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE ||
-        summary->section_index >= lookup->object->section_count || summary->entry_count == 0U ||
-        table_section_index != summary->section_index || table_offset != summary->table_offset) {
-      continue;
-    }
-    table_section = &lookup->object->sections[summary->section_index];
-    if (table_section->data == NULL || summary->table_offset > table_section->size ||
-        summary->entry_count > (table_section->size - summary->table_offset) / 4U) {
-      return 0;
-    }
-    for (entry_index = 0U; entry_index < summary->entry_count; ++entry_index) {
-      size_t target_section_index = 0U;
-      uint32_t target_offset = 0U;
-      uint32_t value = m68k_read_u32be(table_section->data + summary->table_offset + entry_index * 4U);
-      M68kAnalysisFunctionSummary target_summary;
-      uint8_t target_preserved = 0U;
-      uint8_t reg;
-      if (!render_lookup_pointer_value_to_object_source_location(lookup, value, &target_section_index,
-            &target_offset)) {
-        return 0;
-      }
-      if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
-            target_section_index, target_offset, requested_mask, 0U, &target_summary)) return 0;
-      for (reg = 0U; reg < 8U; ++reg) {
-        if (function_summary_register_effect(&target_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
-            M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
-          target_preserved |= (uint8_t)(1U << reg);
-      }
-      preserved_mask &= target_preserved;
-      matched = 1U;
-    }
-  }
-  if (matched == 0U) return 0;
-  memset(out_summary, 0, sizeof(*out_summary));
-  function_summary_set_register_partition(out_summary, 0U, preserved_mask);
-  return 1;
 }
 
 /* Callback-table facts are owned by the table, not by an individual indirect
@@ -5383,8 +6343,10 @@ static int render_lookup_append_inferred_callback_table_function_summary(M68kRen
   record->summary.table_offset = declared->table_offset;
   record->summary.entry_count = declared->entry_count;
   record->summary.input_count = declared->input_count;
-  record->summary.return_contract_unknown = 1U;
+  record->summary.result_count = declared->result_count;
+  record->summary.result_contract_invalid = declared->result_contract_invalid;
   memcpy(record->summary.inputs, declared->inputs, sizeof(record->summary.inputs));
+  memcpy(record->summary.results, declared->results, sizeof(record->summary.results));
   /* The table contract owns its declared memory and escape relations.  The
    * entries determine only the register partition below; dropping these
    * components would turn a valid callback write into a false preservation
@@ -5412,8 +6374,13 @@ static int render_lookup_append_inferred_callback_table_function_summary(M68kRen
       record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_UNRESOLVED;
       goto invalid;
     }
-    if (render_lookup_append_inferred_direct_function_summary(lookup, decode, accepted_start,
+    if (lookup_configured_direct_function_summary(lookup, target_section_index, target_offset) == NULL &&
+        render_lookup_append_inferred_direct_function_summary(lookup,
           target_section_index, target_offset) != 0) {
+      record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE;
+      goto invalid;
+    }
+    if (render_lookup_solve_inferred_direct_function_summaries(lookup, decode, accepted_start) != 0) {
       record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE;
       goto invalid;
     }
@@ -5430,6 +6397,15 @@ static int render_lookup_append_inferred_callback_table_function_summary(M68kRen
     }
   }
   function_summary_set_register_partition(&record->summary, 0U, preserved_mask);
+  /* `function_summary_set_register_partition` is also used by the generated
+   * platform and local-body writers, where an empty explicit memory/escape
+   * partition is intentional.  Here the table interface owns those two
+   * components.  Restore their exact declared terminal state after deriving
+   * only the register intersection: an unknown callback memory/escape
+   * contract must stay unknown and force the common call transfer to clear
+   * typed state, rather than becoming an empty explicit partition. */
+  record->summary.memory_effect_state = declared->memory_effect_state;
+  record->summary.escape_effect_state = declared->escape_effect_state;
   return 0;
 invalid:
   record->summary.effects_invalid = 1U;
@@ -5462,8 +6438,7 @@ static int render_lookup_collect_inferred_callback_table_function_summaries(M68k
 
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
-    const M68kDecodeCandidate *candidate, const AmigaOsLibraryVectorInfo *vector,
-    const M68kAnalysisFunctionSummary *local_effects, uint32_t offset) {
+    const M68kDecodeCandidate *candidate, const M68kAnalysisFunctionSummary *local_effects, uint32_t offset) {
   const M68kSimFormMetadata *move_metadata = NULL;
   const M68kSimFormMetadata *metadata;
   const AmigaOsCallOutputInfo *source_output = NULL;
@@ -5486,7 +6461,6 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   int source_is_direct_addr_reg = 0;
   int source_tracks_plain_addr_alias = 0;
   int recognized_stack_update = 0;
-  M68kAnalysisFunctionSummary call_effects;
   if (state == NULL || instruction == NULL) return;
   typed_origin_clear(&source_origin);
   typed_provenance_clear(&source_provenance);
@@ -5505,12 +6479,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           preserved_reg, preserved_reg);
       }
     }
-    else if (vector != NULL && lookup != NULL && lookup->object != NULL) {
-      if (generated_platform_call_effect_summary(lookup->object->platform_backend_kind, &call_effects))
-        typed_state_apply_function_summary_effects(state, &call_effects);
-      else
-        typed_state_apply_function_summary_effects(state, NULL);
-    } else {
+    else {
       /* An unresolved direct/indirect call has no preservation contract.
        * Keeping register-held source identities here would turn an unknown
        * callee into an unsound affine transfer. */
@@ -5536,7 +6505,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
         saved.byte_cursor = state->addr_regs[reg].byte_cursor;
         saved.provenance = state->addr_regs[reg].provenance;
         typed_stored_value_update_known(&saved);
-        typed_state_set_stack_slot(state, displacement, 1U, &saved, &state->memory_base_regs[reg]);
+        typed_state_set_stack_slot(state, displacement, 1U, M68K_FUNCTION_SUMMARY_ABI_STACK_NONE,
+          &saved, &state->memory_base_regs[reg]);
       }
       displacement = (int16_t)(displacement + 4);
     }
@@ -5634,10 +6604,23 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
        * is useful, but is not the pointee type of the long read from the
        * table, so it must not suppress pointer-table propagation. */
       if (typed_stored_value_from_pointer_table_read(&stored_value, lookup, state, source_operand,
-          section_index, offset) ||
-          (!typed_stored_value_has_useful_info(&stored_value) &&
-           typed_stored_value_from_field_pointer_read(&stored_value, lookup, state, source_operand,
-             section_index, offset))) {
+          section_index, offset)) {
+        source_struct_id = stored_value.struct_id;
+        source_provenance = stored_value.provenance;
+      } else if (!typed_stored_value_has_useful_info(&stored_value) &&
+          typed_stored_value_from_field_pointer_read(&stored_value, lookup, state, source_operand,
+            section_index, offset)) {
+        uint8_t base_reg = 0U;
+        int16_t base_displacement = 0;
+        /* A field-pointer read is a cached value derived from its base input.
+         * Preserve that identity so a declared write/escape through the input
+         * can invalidate the derived register without discarding the input. */
+        if (operand_is_address_memory_local(source_operand, &base_reg, &base_displacement) &&
+            base_reg < 8U) {
+          source_origin.kind = M68K_RENDER_TYPED_ORIGIN_BASE_SLOT;
+          source_origin.base_reg = base_reg;
+          source_origin.displacement = state->addr_regs[base_reg].byte_cursor + base_displacement;
+        }
         source_struct_id = stored_value.struct_id;
         source_provenance = stored_value.provenance;
       }
@@ -5646,6 +6629,19 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       source_struct_id = typed_struct_id_for_base_slot_operand(lookup, platform_state, source_operand);
       if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE)
         source_provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT, section_index, offset);
+    }
+    if (source_origin.kind == M68K_RENDER_TYPED_ORIGIN_NONE && instruction->size_suffix == 'l' &&
+        move_metadata != NULL && move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ) {
+      uint8_t base_reg = 0U;
+      int16_t base_displacement = 0;
+      if (operand_is_address_memory_local(source_operand, &base_reg, &base_displacement) && base_reg < 8U &&
+          state->addr_regs[base_reg].known && state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+        /* A long read through a typed base is a value derived from that base,
+         * even when field metadata supplied its pointee type directly. */
+        source_origin.kind = M68K_RENDER_TYPED_ORIGIN_BASE_SLOT;
+        source_origin.base_reg = base_reg;
+        source_origin.displacement = state->addr_regs[base_reg].byte_cursor + base_displacement;
+      }
     }
     source_is_direct_addr_reg = operand_address_register_index_local(source_operand, &source_addr_reg);
     source_alias_reg = source_addr_reg;
@@ -5739,7 +6735,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     if (instruction->size_suffix == 'l' && operand_is_predec_a7_local(dest_operand)) {
       typed_state_rebase_stack_slots(state, 4);
       if (typed_stored_value_has_useful_info(&stored_value) || source_has_memory_base)
-        typed_state_set_stack_slot(state, 0, 1U, &stored_value,
+        typed_state_set_stack_slot(state, 0, 1U, M68K_FUNCTION_SUMMARY_ABI_STACK_NONE, &stored_value,
           source_has_memory_base ? &source_memory_base : NULL);
       recognized_stack_update = 1;
     } else if (instruction->size_suffix == 'l' && operand_is_postinc_a7_local(source_operand)) {
@@ -5959,11 +6955,6 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   if (instruction_may_update_stack_pointer_from_metadata(instruction) && !recognized_stack_update &&
       !instruction_has_call_flow_local(instruction))
     typed_state_clear_stack_slots(state);
-  if (vector != NULL && amiga_output_has_typed_info(&vector->output)) {
-    M68kRenderTypedProvenance api_provenance =
-      typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section_index, offset);
-    typed_state_set_reg(state, vector->output.reg_kind, vector->output.reg_index, &vector->output, &api_provenance);
-  }
 }
 
 static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
@@ -6042,6 +7033,7 @@ static int typed_stack_slots_equal(const M68kRenderTypedStackSlot *left,
     const M68kRenderTypedStackSlot *right) {
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->caller_save_temporary == right->caller_save_temporary &&
+    left->abi_stack_convention == right->abi_stack_convention &&
     left->displacement == right->displacement &&
     typed_memory_bases_equal(&left->memory_base, &right->memory_base) &&
     typed_stored_values_equal(&left->value, &right->value);
@@ -6359,6 +7351,7 @@ static int typed_state_merge_stack_slots(M68kRenderTypedState *dest, const M68kR
     for (source_index = 0U; source_index < source->stack_slot_count; ++source_index) {
       if (source->stack_slots[source_index].known != 0U &&
           source->stack_slots[source_index].caller_save_temporary == dest_slot->caller_save_temporary &&
+          source->stack_slots[source_index].abi_stack_convention == dest_slot->abi_stack_convention &&
           source->stack_slots[source_index].displacement == dest_slot->displacement) {
         source_slot = &source->stack_slots[source_index];
         break;
@@ -6730,6 +7723,9 @@ static int typed_flow_infer_local_helper_output_reg_at(const M68kRenderLookup *l
     const AmigaOsLibraryVectorInfo *local_helper_vector;
     const AmigaOsLibraryVectorInfo *vector;
     M68kTypedFlowCallResolution nested_resolution;
+    M68kAnalysisFunctionSummary generated_platform_summary;
+    const M68kAnalysisFunctionSummary *call_summary = NULL;
+    M68kRenderTypedState call_input_state;
     if (!accepted_start_at(section, accepted_start[section_index], cursor)) break;
     candidate = find_candidate_at_offset_local(section, cursor);
     if (candidate == NULL || candidate->byte_count == 0U) break;
@@ -6767,15 +7763,18 @@ static int typed_flow_infer_local_helper_output_reg_at(const M68kRenderLookup *l
         nested_resolution.output_reg_known = 1U;
       }
     }
-    typed_state_update_after_instruction(&typed_state, lookup, &platform_state, section->section_index,
-      &instruction, candidate, vector, NULL, candidate->offset);
-    if (nested_resolution.output_reg_known && nested_resolution.vector != NULL &&
-        amiga_output_has_typed_info(&nested_resolution.vector->output)) {
-      M68kRenderTypedProvenance api_provenance =
-        typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index, candidate->offset);
-      typed_state_set_reg(&typed_state, nested_resolution.output_reg_kind, nested_resolution.output_reg_index,
-        &nested_resolution.vector->output, &api_provenance);
+    if (vector != NULL &&
+        generated_platform_call_summary(lookup->object->platform_backend_kind, vector,
+          nested_resolution.output_reg_known, nested_resolution.output_reg_kind, nested_resolution.output_reg_index,
+          &generated_platform_summary)) {
+      call_summary = &generated_platform_summary;
+      call_input_state = typed_state;
     }
+    typed_state_update_after_instruction(&typed_state, lookup, &platform_state, section->section_index,
+      &instruction, candidate, call_summary, candidate->offset);
+    if (call_summary != NULL)
+      typed_state_apply_function_summary_results(&typed_state, &call_input_state, lookup, call_summary,
+        section->section_index, candidate->offset);
     platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
     platform_state_update_after_instruction(&platform_state, lookup, &instruction);
     platform_state_note_call_result_after_instruction(&platform_state, &instruction, vector);
@@ -6884,10 +7883,13 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   M68kTypedFlowCallResolution call_resolution;
   const AmigaOsCallOutputInfo *stored_output = NULL;
   int16_t slot_displacement = 0;
-  M68kAnalysisFunctionSummary local_effects;
   const M68kAnalysisFunctionSummary *selected_local_effects = NULL;
+  const M68kAnalysisFunctionSummary *result_summary = NULL;
+  M68kAnalysisFunctionSummary generated_platform_summary;
   M68kRenderTypedState call_input_state;
   uint8_t local_call_target_known = 0U;
+  uint8_t call_has_result_summary = 0U;
+  uint8_t generated_platform_contract_selected = 0U;
   size_t target_section_index = 0U;
   uint32_t target_offset = 0U;
   if (lookup == NULL || decode == NULL || accepted_start == NULL || section == NULL || node == NULL ||
@@ -6918,13 +7920,6 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       selected_local_effects = lookup_configured_direct_function_summary(lookup, target_section_index, target_offset);
       if (selected_local_effects == NULL)
         selected_local_effects = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset);
-      if (selected_local_effects == NULL) {
-        for (reg = 0U; reg < 8U; ++reg) {
-          if (out_typed_state->addr_regs[reg].known) requested_address |= (uint8_t)(1U << reg);
-        }
-        if (typed_flow_local_callee_effect_summary(lookup, decode, accepted_start, target_section_index,
-              target_offset, requested_address, 0U, &local_effects)) selected_local_effects = &local_effects;
-      }
     } else {
       size_t table_section_index = 0U;
       uint32_t table_offset = 0U;
@@ -6939,9 +7934,9 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       }
       if (selected_local_effects != NULL && selected_local_effects->effects_invalid != 0U)
         selected_local_effects = NULL;
-      if (selected_local_effects == NULL && typed_flow_callback_table_callee_effect_summary(lookup, decode, accepted_start, out_typed_state,
-            section, node->candidate, &instruction, requested_address, &local_effects))
-        selected_local_effects = &local_effects;
+      /* The first pass records this proven table identity.  Its callable
+       * summary is materialized before the second pass; no transient
+       * callback-body walk is permitted as a compatibility transfer path. */
     }
   }
   if (record_typed_accesses && render_lookup_record_affine_address_uses(lookup, section->section_index,
@@ -6956,11 +7951,6 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   if (record_typed_accesses &&
       render_lookup_record_bootblock_disk_read_call(lookup, section->section_index, node->candidate->offset,
       out_typed_state, chosen_vector) != 0) {
-    return -1;
-  }
-  if (!record_typed_accesses &&
-      typed_flow_apply_call_input_type_refs(lookup, lookup->object->platform_backend_kind, section->section_index,
-      node->candidate->offset, out_typed_state, chosen_vector, allow_lookup_storage, io_changed) != 0) {
     return -1;
   }
   if (!record_typed_accesses && instruction_has_call_flow_local(&instruction) && local_call_target_known != 0U &&
@@ -6985,23 +7975,87 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       m68k_bitset_u32_has(out_platform_state->address_base_known, 6U), &slot_displacement, &stored_output) &&
       render_lookup_add_typed_slot_effect(lookup, section->section_index, node->candidate->offset,
         slot_displacement, stored_output) != 0) {
+      return -1;
+  }
+  /* A resolved platform target augments the callable boundary with its
+   * generated result contract.  Local effects remain the wrapper's exact
+   * effects; direct vectors receive the generated ABI partition itself. */
+  if (chosen_vector != NULL &&
+      generated_platform_call_summary(lookup->object->platform_backend_kind, chosen_vector,
+        call_resolution.output_reg_known, call_resolution.output_reg_kind, call_resolution.output_reg_index,
+        &generated_platform_summary)) {
+    if (selected_local_effects != NULL) {
+      M68kAnalysisFunctionSummary platform_contract = generated_platform_summary;
+      const M68kPlatformCallThunkIR *thunk = local_call_target_known != 0U ?
+        lookup_platform_call_thunk(lookup, target_section_index, target_offset) : NULL;
+      if (thunk == NULL && local_call_target_known != 0U) {
+        M68kPlatformCallThunkIR discovered_thunk;
+        const AmigaOsLibraryVectorInfo *discovered_vector;
+        memset(&discovered_thunk, 0, sizeof(discovered_thunk));
+        discovered_vector = discover_direct_platform_thunk_at(lookup, decode, accepted_start, target_section_index,
+          target_offset, &discovered_thunk.wrapper_call_offset);
+        if (discovered_vector != NULL) {
+          discovered_thunk.wrapper_section_index = (uint32_t)target_section_index;
+          discovered_thunk.wrapper_entry_offset = target_offset;
+          discovered_thunk.platform_library_id = discovered_vector->library_id;
+          discovered_thunk.platform_function_id = discovered_vector->function_id;
+          discovered_thunk.relation_kind = M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK;
+          if (render_lookup_add_platform_call_thunk(lookup, &discovered_thunk) != 0) return -1;
+          thunk = lookup_platform_call_thunk(lookup, target_section_index, target_offset);
+        }
+      }
+      M68kPlatformContractCompositionState composition =
+        thunk == NULL || thunk->platform_library_id != chosen_vector->library_id ||
+        thunk->platform_function_id != chosen_vector->function_id ? M68K_PLATFORM_CONTRACT_COMPOSITION_IDENTITY_CONFLICT :
+        function_summary_compose_platform_contract(selected_local_effects, &platform_contract, &generated_platform_summary);
+      if (composition != M68K_PLATFORM_CONTRACT_COMPOSITION_COMPLETE) {
+        M68kFunctionSummaryUseIR terminal_use;
+        /* This is an explicit terminal state.  Do not apply the local half as
+         * though it were the platform callable's complete contract. */
+        generated_platform_summary.result_contract_invalid = 1U;
+        generated_platform_summary.effects_invalid = 1U;
+        memset(&terminal_use, 0, sizeof(terminal_use));
+        snprintf(terminal_use.function_summary_id, sizeof(terminal_use.function_summary_id), "%s",
+          selected_local_effects->function_summary_id);
+        terminal_use.caller_section_index = (uint32_t)section->section_index;
+        terminal_use.caller_offset = node->candidate->offset;
+        terminal_use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
+        terminal_use.terminal_reason = thunk == NULL ? M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_THUNK_BINDING_MISSING :
+          (thunk->platform_library_id != chosen_vector->library_id ||
+           thunk->platform_function_id != chosen_vector->function_id) ?
+          M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_CONTRACT_IDENTITY_CONFLICT :
+          composition == M68K_PLATFORM_CONTRACT_COMPOSITION_CAPACITY ?
+          M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_CONTRACT_CAPACITY :
+          M68K_FUNCTION_SUMMARY_TERMINAL_PLATFORM_CONTRACT_IDENTITY_CONFLICT;
+        if (terminal_use.function_summary_id[0] != '\0' &&
+            render_lookup_add_function_summary_use(lookup, &terminal_use) != 0) return -1;
+        selected_local_effects = NULL;
+      } else {
+        selected_local_effects = &generated_platform_summary;
+        generated_platform_contract_selected = 1U;
+      }
+    } else {
+      selected_local_effects = &generated_platform_summary;
+      generated_platform_contract_selected = 1U;
+    }
+  }
+  if (!record_typed_accesses && generated_platform_contract_selected != 0U &&
+      typed_flow_apply_call_input_type_refs(lookup, section->section_index, node->candidate->offset,
+        out_typed_state, selected_local_effects, allow_lookup_storage, io_changed) != 0) {
     return -1;
   }
-  if (instruction_has_call_flow_local(&instruction) && local_call_target_known != 0U)
+  if ((instruction_has_call_flow_local(&instruction) || generated_platform_contract_selected != 0U) &&
+      selected_local_effects != NULL &&
+      selected_local_effects->result_contract_invalid == 0U && selected_local_effects->result_count != 0U) {
     call_input_state = *out_typed_state;
-  typed_state_update_after_instruction(out_typed_state, lookup, out_platform_state, section->section_index,
-    &instruction, node->candidate, chosen_vector, selected_local_effects, node->candidate->offset);
-  if (instruction_has_call_flow_local(&instruction) && local_call_target_known != 0U)
-    typed_state_apply_direct_function_summary_results(out_typed_state, &call_input_state, lookup,
-      target_section_index, target_offset);
-  if (call_resolution.output_reg_known && call_resolution.vector != NULL &&
-      amiga_output_has_typed_info(&call_resolution.vector->output)) {
-    M68kRenderTypedProvenance api_provenance =
-      typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index,
-        node->candidate->offset);
-    typed_state_set_reg(out_typed_state, call_resolution.output_reg_kind, call_resolution.output_reg_index,
-      &call_resolution.vector->output, &api_provenance);
+    result_summary = selected_local_effects;
+    call_has_result_summary = 1U;
   }
+  typed_state_update_after_instruction(out_typed_state, lookup, out_platform_state, section->section_index,
+    &instruction, node->candidate, selected_local_effects, node->candidate->offset);
+  if (call_has_result_summary != 0U)
+    typed_state_apply_function_summary_results(out_typed_state, &call_input_state, lookup, result_summary,
+      section->section_index, node->candidate->offset);
   platform_state_update_data_lvo_after_instruction(out_platform_state, &instruction);
   platform_state_update_after_instruction(out_platform_state, lookup, &instruction);
   platform_state_note_call_result_after_instruction(out_platform_state, &instruction, chosen_vector);
@@ -7346,22 +8400,14 @@ cleanup:
 }
 
 static int amiga_vector_has_typed_flow_info(const AmigaOsLibraryVectorInfo *vector) {
-  const char *symbol_name;
+  const AmigaOsCallInputInfo *inputs;
   size_t input_count = 0U;
   size_t index;
   if (vector == NULL) return 0;
   if (amiga_output_has_typed_info(&vector->output)) return 1;
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
-  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
-  if (!platform_facts_v2_call_input_count_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, &input_count))
-    return 0;
-  for (index = 0U; index < input_count; ++index) {
-    PlatformFactsV2CallInput input;
-    if (platform_facts_v2_call_input_at(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol_name, index, &input) &&
-        input.has_struct_type) {
-      return 1;
-    }
-  }
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  for (index = 0U; inputs != NULL && index < input_count; ++index)
+    if (inputs[index].struct_id != AMIGA_OS_STRUCT_ID_NONE) return 1;
   return 0;
 }
 
@@ -7842,10 +8888,6 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.entry_count = configured->entry_count;
     summary.callable_kind = configured->callable_kind;
     summary.input_count = configured->input_count;
-    summary.return_contract_unknown = configured->return_contract_unknown;
-    summary.register_effects_unknown = configured->register_effects_unknown;
-    summary.memory_effects_unknown = configured->memory_effects_unknown;
-    summary.escape_effects_unknown = configured->escape_effects_unknown;
     summary.register_effect_state = configured->register_effect_state;
     summary.memory_effect_state = configured->memory_effect_state;
     summary.escape_effect_state = configured->escape_effect_state;
@@ -7861,6 +8903,7 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
       result->location = configured_result->location;
       result->identity_input_index = configured_result->input_index;
     }
+    summary.result_count = configured->result_count;
     summary.result_contract_invalid = configured->result_contract_invalid;
     memcpy(summary.location_effects, configured->location_effects, sizeof(summary.location_effects));
     memcpy(summary.memory_effects, configured->memory_effects, sizeof(summary.memory_effects));
@@ -7888,10 +8931,6 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.entry_count = inferred->entry_count;
     summary.callable_kind = inferred->callable_kind;
     summary.input_count = inferred->input_count;
-    summary.return_contract_unknown = inferred->return_contract_unknown;
-    summary.register_effects_unknown = inferred->register_effects_unknown;
-    summary.memory_effects_unknown = inferred->memory_effects_unknown;
-    summary.escape_effects_unknown = inferred->escape_effects_unknown;
     summary.register_effect_state = inferred->register_effect_state;
     summary.memory_effect_state = inferred->memory_effect_state;
     summary.escape_effect_state = inferred->escape_effect_state;
@@ -7900,7 +8939,18 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.effects_invalid = inferred->effects_invalid;
     summary.location_effect_count = inferred->location_effect_count;
     summary.terminal_reason = lookup->inferred_function_summaries[index].terminal_reason;
+    summary.direct_scc_size = lookup->inferred_function_summaries[index].direct_scc_size;
+    summary.direct_scc_ordinal = lookup->inferred_function_summaries[index].direct_scc_ordinal;
     memcpy(summary.inputs, inferred->inputs, sizeof(summary.inputs));
+    for (uint8_t result_index = 0U; result_index < inferred->result_count; ++result_index) {
+      const M68kAnalysisFunctionSummaryResult *inferred_result = &inferred->results[result_index];
+      M68kFunctionSummaryResultIR *result = &summary.results[summary.result_count++];
+      result->kind = M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+      result->location = inferred_result->location;
+      result->identity_input_index = inferred_result->input_index;
+    }
+    summary.result_count = inferred->result_count;
+    summary.result_contract_invalid = inferred->result_contract_invalid;
     memcpy(summary.location_effects, inferred->location_effects, sizeof(summary.location_effects));
     memcpy(summary.memory_effects, inferred->memory_effects, sizeof(summary.memory_effects));
     memcpy(summary.escapes, inferred->escapes, sizeof(summary.escapes));
@@ -7910,6 +8960,20 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
       if (strcmp(use->function_summary_id, inferred->function_summary_id) != 0) continue;
       if (m68k_ir_section_analysis_append_function_summary_use(section_analysis, use) != 0) return -1;
     }
+  }
+  for (size_t thunk_index = 0U; thunk_index < lookup->platform_call_thunk_count; ++thunk_index) {
+    const M68kPlatformCallThunkIR *thunk = &lookup->platform_call_thunks[thunk_index];
+    if (thunk->wrapper_section_index != section_analysis->section_index) continue;
+    if (m68k_ir_section_analysis_append_platform_call_thunk(section_analysis, thunk) != 0) return -1;
+  }
+  /* Graph-capacity terminals have no callable summary by definition.  Export
+   * their stable caller edge directly so the omitted node is visible rather
+   * than becoming an unrecorded unknown call. */
+  for (size_t use_index = 0U; use_index < lookup->function_summary_use_count; ++use_index) {
+    const M68kFunctionSummaryUseIR *use = &lookup->function_summary_uses[use_index];
+    if (use->terminal_reason != M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_GRAPH_CAPACITY ||
+        use->caller_section_index != section_analysis->section_index) continue;
+    if (m68k_ir_section_analysis_append_function_summary_use(section_analysis, use) != 0) return -1;
   }
   return 0;
 }
@@ -10610,7 +11674,8 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
     if (old_state.stack_slots[reg].known != 0U && old_state.stack_slots[reg].caller_save_temporary != 0U)
       preserved_stack_slots[preserved_stack_slot_count++] = old_state.stack_slots[reg];
   }
-  if (summary != NULL && summary->effects_invalid == 0U && summary->register_effects_unknown == 0U) {
+  if (summary != NULL && summary->effects_invalid == 0U &&
+      summary->register_effect_state == M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT) {
     for (reg = 0U; reg < 8U; ++reg) {
       uint8_t data_effect = function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_DATA, reg);
       uint8_t address_effect = function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
@@ -10623,8 +11688,8 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
       }
     }
   }
-  if (summary == NULL || summary->effects_invalid != 0U || summary->register_effects_unknown != 0U ||
-      summary->memory_effects_unknown != 0U || summary->escape_effects_unknown != 0U ||
+  if (summary == NULL || summary->effects_invalid != 0U ||
+      summary->register_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT ||
       !complete_partition) {
     typed_state_clear_all(state);
     for (reg = 0U; reg < preserved_stack_slot_count; ++reg) state->stack_slots[reg] = preserved_stack_slots[reg];
@@ -10639,6 +11704,11 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
         M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
       typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
   }
+  if (summary->memory_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT ||
+      summary->escape_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT) {
+    typed_state_invalidate_opaque_memory_effects(state);
+    return;
+  }
   for (reg = 0U; reg < summary->memory_effect_count; ++reg) {
     uint8_t kind = summary->memory_effects[reg].kind;
     if (kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE) {
@@ -10648,6 +11718,8 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
       } else if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT &&
           subject->input_index < summary->input_count) {
         typed_state_invalidate_input_subject(state, summary, subject->input_index);
+      } else if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK) {
+        typed_state_invalidate_stack_subject(state, subject);
       } else {
         /* Abstract regions still lack a stable caller-side storage identity. */
         typed_state_clear_all(state);
@@ -10666,6 +11738,8 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
     } else if (sink->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT &&
         sink->input_index < summary->input_count) {
       typed_state_invalidate_input_subject(state, summary, sink->input_index);
+    } else if (sink->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK) {
+      typed_state_invalidate_stack_subject(state, sink);
     } else {
       /* An abstract escape sink has no caller-side identity in the typed
        * state, so retaining any cache would manufacture a non-alias proof. */
@@ -10684,6 +11758,7 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
         const M68kFunctionSummaryLocationEffectIR *location_effect = &summary->location_effects[effect_index];
         if (location_effect->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK ||
             location_effect->location.stack_offset != slot->displacement ||
+            location_effect->location.stack_convention != slot->abi_stack_convention ||
             location_effect->location.width != 4U) continue;
         effect = location_effect->effect;
         break;
@@ -12342,11 +13417,12 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   end = clock();
   if (stats != NULL) stats->app_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();
-  if (render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
-  /* The first fixed point discovers direct callees.  Materialize their
-   * complete-domain summaries only after it has converged, then run the flow
-   * once more so transfer reads the stable callable facts. */
+  /* Discover the complete direct-call graph before any typed transfer.  The
+   * solver then owns recursive edges; typed flow only consumes its facts. */
   if (render_lookup_collect_inferred_direct_function_summaries(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_solve_inferred_direct_function_summaries(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_collect_platform_call_thunks(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_collect_inferred_callback_table_function_summaries(lookup, decode, accepted_start) != 0) return -1;
   lookup->inferred_function_summaries_ready = 1U;
   if (lookup->inferred_function_summary_count != 0U &&

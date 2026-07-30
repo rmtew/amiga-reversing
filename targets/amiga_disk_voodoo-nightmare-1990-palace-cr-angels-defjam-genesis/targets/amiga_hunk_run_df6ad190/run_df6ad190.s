@@ -41,15 +41,15 @@ app_406A RS.L 1
 app_5A6A RS.L 1
 app_SIZEOF EQU __RS
 
+INTF_CLRALL	EQU	$7FFF
+_ciaa	EQU	$BFE001
+_ciab	EQU	$BFD000
+_custom	EQU	$DFF000
+absolute_slot_00000002	EQU	$2
 m68k_vector_trap_2_instruction_vector	EQU	$88
 m68k_vector_trap_3_instruction_vector	EQU	$8C
-_custom	EQU	$DFF000
-INTF_CLRALL	EQU	$7FFF
-stack_top_00080000	EQU	$80000
-_ciab	EQU	$BFD000
-_ciaa	EQU	$BFE001
 runtime_code_00000400	EQU	$400
-absolute_slot_00000002	EQU	$2
+stack_top_00080000	EQU	$80000
 
     SECTION section_0,code
 loc_0_00000000:

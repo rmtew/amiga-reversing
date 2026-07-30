@@ -1429,6 +1429,10 @@ static int test_facts_v2_boundary_relocation_api_wrapper_promotes_code(void) {
   char *source = NULL;
   uint8_t bytes[0x24];
   M68K_C_ASSERT(open_library != NULL);
+  M68K_C_ASSERT(amiga_os_find_library_vector_by_ids(open_library->library_id,
+    open_library->function_id, open_library->output.output_id) == open_library);
+  M68K_C_ASSERT(amiga_os_find_library_vector_by_ids(open_library->library_id,
+    open_library->function_id, (uint16_t)(open_library->output.output_id + 1U)) == NULL);
   lvo = open_library->lvo;
   memset(bytes, 0, sizeof(bytes));
   bytes[0] = 0x4eu;
@@ -25702,6 +25706,268 @@ static int test_facts_v2_render_asm_source_propagates_local_helper_api_output_ty
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_rejects_partial_wrapper_platform_contract(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kAnalysisFunctionSummary *summary;
+  char *source = NULL;
+  uint8_t bytes[20] = {
+    0x61u, 0x08u,
+    0x4au, 0x28u, 0x00u, 0x0fu,
+    0x4eu, 0x75u,
+    0x2cu, 0x78u, 0x00u, 0x04u,
+    0x4eu, 0xaeu, 0xfdu, 0x66u,
+    0x4eu, 0x75u
+  };
+  uint8_t index;
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.register_seed_count = 2U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 1U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "MsgPort");
+  policy.register_seeds[1].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[1].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[1].reg_index = 6U;
+  policy.register_seeds[1].has_entry_offset = 1U;
+  policy.register_seeds[1].has_section_index = 1U;
+  policy.register_seeds[1].entry_offset = 8U;
+  policy.register_seeds[1].section_index = 0U;
+  snprintf(policy.register_seeds[1].name, sizeof(policy.register_seeds[1].name), "exec.library");
+  policy.function_summary_count = 1U;
+  summary = &policy.function_summaries[0];
+  summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  summary->has_section_index = 1U;
+  summary->section_index = 0U;
+  summary->entry_offset = 8U;
+  snprintf(summary->function_summary_id, sizeof(summary->function_summary_id), "full_wrapper_result_set");
+  for (index = 0U; index < M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT; ++index) {
+    M68kAnalysisFunctionSummaryInput *input = &summary->inputs[index];
+    input->seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+    input->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    input->location.width = 4U;
+    input->location.register_count = 1U;
+    input->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    input->location.registers[0].register_index = (uint8_t)((index + 1U) % 8U);
+    snprintf(input->struct_name, sizeof(input->struct_name), "MsgPort");
+  }
+  for (index = 0U; index < M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT; ++index) {
+    M68kAnalysisFunctionSummaryResult *result = &summary->results[index];
+    result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+    result->input_index = (uint8_t)(index % M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT);
+    result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    result->location.width = 4U;
+    result->location.register_count = 1U;
+    result->location.registers[0].register_kind = index < 8U ? M68K_ANALYSIS_REGISTER_ADDRESS :
+      M68K_ANALYSIS_REGISTER_DATA;
+    result->location.registers[0].register_index = (uint8_t)(index % 8U);
+  }
+  /* The first declared identity is A1-to-A0. Before the overflow guard, it
+   * survived while the generated platform result was silently dropped. */
+  summary->input_count = M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT;
+  summary->result_count = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT;
+  summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  for (index = 0U; index < 8U; ++index) {
+    M68kFunctionSummaryLocationEffectIR *data_effect = &summary->location_effects[summary->location_effect_count++];
+    M68kFunctionSummaryLocationEffectIR *address_effect = &summary->location_effects[summary->location_effect_count++];
+    data_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    data_effect->location.width = 4U;
+    data_effect->location.register_count = 1U;
+    data_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    data_effect->location.registers[0].register_index = index;
+    data_effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED;
+    address_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    address_effect->location.width = 4U;
+    address_effect->location.register_count = 1U;
+    address_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    address_effect->location.registers[0].register_index = index;
+    address_effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED;
+  }
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\ttst.b MP_SIGBIT(a0)\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\ttst.b $000F(a0)\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* A distinct local result at the API's D0 location is an ABI identity
+   * conflict, not an alternative return that may coexist with the generated
+   * platform output. */
+  summary->input_count = 1U;
+  summary->inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  summary->inputs[0].location.width = 4U;
+  summary->inputs[0].location.register_count = 1U;
+  summary->inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  summary->inputs[0].location.registers[0].register_index = 1U;
+  summary->result_count = 1U;
+  summary->results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  summary->results[0].input_index = 0U;
+  summary->results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  summary->results[0].location.width = 4U;
+  summary->results[0].location.register_count = 1U;
+  summary->results[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+  summary->results[0].location.registers[0].register_index = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\ttst.b MP_SIGBIT(a0)\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\ttst.b $000F(a0)\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_source_analysis_exports_discovered_platform_thunk(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kAnalysisFunctionSummary *summary;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *analysis_json = NULL;
+  uint8_t bytes[18] = {
+    0x61u, 0x06u,                         /* caller: bsr.s wrapper */
+    0x4au, 0x28u, 0x00u, 0x0fu,           /* tst.b $f(a0) */
+    0x4eu, 0x75u,                         /* rts */
+    0x2cu, 0x78u, 0x00u, 0x04u,           /* wrapper: movea.l $4.w,a6 */
+    0x4eu, 0xaeu, 0xfdu, 0x66u,           /* jsr _LVOCreateMsgPort(a6) */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "exec.library");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"wrapper_entry_offset\":8") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"wrapper_call_offset\":12,\"relation\":\"platform_call_thunk\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "platform_thunk_binding_missing") == NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  analysis_json = NULL;
+  /* A local D0 result is not interchangeable with the generated platform
+   * result at the same ABI location. The terminal belongs to the outer call. */
+  policy.function_summary_count = 1U;
+  summary = &policy.function_summaries[0];
+  memset(summary, 0, sizeof(*summary));
+  summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  summary->has_section_index = 1U;
+  summary->section_index = 0U;
+  summary->entry_offset = 8U;
+  summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  snprintf(summary->function_summary_id, sizeof(summary->function_summary_id), "thunk_conflict");
+  summary->input_count = 1U;
+  summary->inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  summary->inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  summary->inputs[0].location.width = 4U;
+  summary->inputs[0].location.register_count = 1U;
+  summary->inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  summary->inputs[0].location.registers[0].register_index = 1U;
+  snprintf(summary->inputs[0].struct_name, sizeof(summary->inputs[0].struct_name), "MsgPort");
+  summary->result_count = 1U;
+  summary->results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  summary->results[0].input_index = 0U;
+  summary->results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  summary->results[0].location.width = 4U;
+  summary->results[0].location.register_count = 1U;
+  summary->results[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+  summary->results[0].location.registers[0].register_index = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(analysis_json, "\"caller_offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"platform_contract_identity_conflict\"") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  analysis_json = NULL;
+  /* Fill every local result slot with a different ABI location so the
+   * generated D0 result cannot be appended or mistaken for a conflict. */
+  memset(summary, 0, sizeof(*summary));
+  summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  summary->has_section_index = 1U;
+  summary->section_index = 0U;
+  summary->entry_offset = 8U;
+  summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  snprintf(summary->function_summary_id, sizeof(summary->function_summary_id), "thunk_capacity");
+  summary->input_count = 1U;
+  summary->inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  summary->inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  summary->inputs[0].location.width = 4U;
+  summary->inputs[0].location.register_count = 1U;
+  summary->inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  summary->inputs[0].location.registers[0].register_index = 1U;
+  snprintf(summary->inputs[0].struct_name, sizeof(summary->inputs[0].struct_name), "MsgPort");
+  summary->result_count = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT;
+  for (uint8_t result_index = 0U; result_index < summary->result_count; ++result_index) {
+    M68kAnalysisFunctionSummaryResult *result = &summary->results[result_index];
+    result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+    result->input_index = 0U;
+    result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    result->location.width = 4U;
+    result->location.register_count = 1U;
+    result->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    result->location.registers[0].register_index = result_index;
+  }
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(analysis_json, "\"caller_offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"platform_contract_capacity\"") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_helper_return_alias_type(void) {
   M68kObject object;
   M68kSection section;
@@ -27439,6 +27705,646 @@ static int test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_sto
   return 0;
 }
 
+static int test_facts_v2_direct_no_write_no_escape_summary_is_explicit(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[8] = {
+    0x61u, 0x04u,                         /* bsr.s callee */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u,                         /* alignment nop */
+    0x4eu, 0x75u                          /* callee: rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("inferred_local_s0_o00000006", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT,
+    analysis.sections[0].function_summaries[0].memory_effect_state);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT,
+    analysis.sections[0].function_summaries[0].escape_effect_state);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].escape_count);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_direct_static_write_summary_has_static_subject(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[14] = {
+    0x61u, 0x06u,                         /* bsr.s callee */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u,           /* alignment */
+    0x21u, 0xc0u, 0x64u, 0xc0u,           /* callee: move.l d0,$64c0.w */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("inferred_local_s0_o00000008", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT,
+    analysis.sections[0].function_summaries[0].memory_effect_state);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_MEMORY_WRITE,
+    analysis.sections[0].function_summaries[0].memory_effects[0].kind);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE,
+    analysis.sections[0].function_summaries[0].memory_effects[0].subject.kind);
+  M68K_C_ASSERT_U32(0x64c0U, analysis.sections[0].function_summaries[0].memory_effects[0].subject.offset);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN,
+    analysis.sections[0].function_summaries[0].escape_effect_state);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  policy.abstract_region_count = 1U;
+  policy.abstract_regions[0].section_index = 0U;
+  policy.abstract_regions[0].start_offset = 0x64c0U;
+  policy.abstract_regions[0].size = 4U;
+  snprintf(policy.abstract_regions[0].region_id, sizeof(policy.abstract_regions[0].region_id), "global_state");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION,
+    analysis.sections[0].function_summaries[0].memory_effects[0].subject.kind);
+  M68K_C_ASSERT_STR("global_state",
+    analysis.sections[0].function_summaries[0].memory_effects[0].subject.abstract_region_id);
+  /* The value source is D0, so the escape remains unknown; an abstract-region
+   * effect must not invent an escape source merely because its sink is named. */
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN,
+    analysis.sections[0].function_summaries[0].escape_effect_state);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  policy.abstract_regions[0].start_offset = 0x64c1U;
+  policy.abstract_regions[0].size = 3U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE,
+    analysis.sections[0].function_summaries[0].memory_effects[0].subject.kind);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_direct_summary_body_limit_is_terminal(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[522] = {0};
+  size_t offset;
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  /* bsr.s callee; rts; alignment; 257 nops; callee rts. The body is valid,
+   * but exceeds the current finite direct-body traversal limit. */
+  bytes[0] = 0x61u; bytes[1] = 0x04u;
+  bytes[2] = 0x4eu; bytes[3] = 0x75u;
+  bytes[4] = 0x4eu; bytes[5] = 0x71u;
+  for (offset = 6U; offset < 520U; offset += 2U) {
+    bytes[offset] = 0x4eu; bytes[offset + 1U] = 0x71u;
+  }
+  bytes[520] = 0x4eu; bytes[521] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT,
+    analysis.sections[0].function_summaries[0].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].effects_invalid);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A direct summary cannot silently use a local preservation proof across an
+ * indirect callee. The unresolved nested call is a durable unsupported-body
+ * terminal, not an explicit empty effect partition. */
+static int test_facts_v2_direct_summary_unknown_nested_call_is_terminal(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  char *analysis_json = NULL;
+  uint8_t bytes[10] = {
+    0x61u, 0x04u,                         /* bsr.s callee */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u,                         /* nop */
+    0x4eu, 0x90u,                         /* callee: jsr (a0) */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = section.data_size = sizeof(bytes);
+  section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_UNSUPPORTED,
+    analysis.sections[0].function_summaries[0].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].effects_invalid);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"direct_body_unsupported\"") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_direct_summary_iteration_limit_is_terminal(void) {
+  enum { chain_count = 65, first_entry = 6, bytes_size = first_entry + 4 * (chain_count - 1) + 2 };
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[bytes_size];
+  size_t index;
+  memset(bytes, 0, sizeof(bytes));
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  /* Each helper calls its successor then returns. Discovery order is caller
+   * first, so preservation propagates only one edge per solver pass. The last
+   * helper returns directly; 65 nodes require a 65th convergence check. */
+  bytes[0] = 0x61u; bytes[1] = 0x04u;
+  bytes[2] = 0x4eu; bytes[3] = 0x75u;
+  bytes[4] = 0x4eu; bytes[5] = 0x71u;
+  for (index = 0U; index + 1U < chain_count; ++index) {
+    size_t entry = first_entry + 4U * index;
+    bytes[entry] = 0x61u; bytes[entry + 1U] = 0x02u;
+    bytes[entry + 2U] = 0x4eu; bytes[entry + 3U] = 0x75u;
+  }
+  bytes[first_entry + 4U * (chain_count - 1U)] = 0x4eu;
+  bytes[first_entry + 4U * (chain_count - 1U) + 1U] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(chain_count, (uint32_t)analysis.sections[0].function_summary_count);
+  for (index = 0U; index < chain_count; ++index) {
+    M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_SOLVER_ITERATION_LIMIT,
+      analysis.sections[0].function_summaries[index].terminal_reason);
+    M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[index].effects_invalid);
+  }
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* The SCC proof is bounded at the graph boundary.  The 129th independently
+ * reachable direct callee must remain a terminal call use, rather than
+ * growing the graph or exposing a partially solved summary. */
+static int test_facts_v2_direct_summary_graph_capacity_is_terminal(void) {
+  enum { direct_count = 129, caller_size = direct_count * 4, total_size = caller_size + direct_count * 2 };
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[total_size];
+  uint32_t index;
+  uint8_t terminal_found = 0U;
+  memset(bytes, 0, sizeof(bytes));
+  for (index = 0U; index < direct_count; ++index) {
+    uint32_t call_offset = index * 4U;
+    uint32_t target_offset = caller_size + index * 2U;
+    uint32_t displacement = target_offset - (call_offset + 2U);
+    bytes[call_offset] = 0x61u; bytes[call_offset + 1U] = 0x00u; /* bsr.w */
+    bytes[call_offset + 2U] = (uint8_t)(displacement >> 8);
+    bytes[call_offset + 3U] = (uint8_t)displacement;
+    bytes[target_offset] = 0x4eu; bytes[target_offset + 1U] = 0x75u; /* rts */
+  }
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(128U, (uint32_t)analysis.sections[0].function_summary_count);
+  for (index = 0U; index < analysis.sections[0].function_summary_use_count; ++index) {
+    const M68kFunctionSummaryUseIR *use = &analysis.sections[0].function_summary_uses[index];
+    if (use->caller_offset == (direct_count - 1U) * 4U &&
+        use->terminal_reason == M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_GRAPH_CAPACITY) {
+      terminal_found = 1U;
+      break;
+    }
+  }
+  M68K_C_ASSERT(terminal_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_callback_register_disagreement_intersects_to_clobber(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[32] = {
+    0x2au, 0x7cu, 0x00u, 0x00u, 0x10u, 0x10u, /* movea.l #callback,a5 */
+    0x20u, 0x7au, 0x00u, 0x10u,               /* movea.l table(pc),a0 */
+    0x4eu, 0x90u, 0x4eu, 0x75u,               /* jsr (a0); rts */
+    0x4eu, 0x75u, 0x4eu, 0x75u,               /* callback entries */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x00u, 0x00u, 0x10u, 0x10u, 0x00u, 0x00u, 0x10u, 0x12u
+  };
+  uint8_t summary_index, reg;
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x1000U;
+  policy.function_summary_count = 3U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].table_offset = 24U;
+  policy.function_summaries[0].entry_count = 2U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  snprintf(policy.function_summaries[0].function_summary_id,
+    sizeof(policy.function_summaries[0].function_summary_id), "two_entry_callback_table");
+  for (summary_index = 1U; summary_index < 3U; ++summary_index) {
+    M68kAnalysisFunctionSummary *summary = &policy.function_summaries[summary_index];
+    summary->has_section_index = 1U;
+    summary->section_index = 0U;
+    summary->entry_offset = summary_index == 1U ? 16U : 18U;
+    summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+    summary->register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+    summary->memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+    summary->escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+    snprintf(summary->function_summary_id, sizeof(summary->function_summary_id),
+      "callback_entry_%u", (unsigned)summary_index);
+    for (reg = 0U; reg < 8U; ++reg) {
+      M68kFunctionSummaryLocationEffectIR *data = &summary->location_effects[summary->location_effect_count++];
+      M68kFunctionSummaryLocationEffectIR *address = &summary->location_effects[summary->location_effect_count++];
+      data->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+      data->location.width = 4U; data->location.register_count = 1U;
+      data->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+      data->location.registers[0].register_index = reg;
+      data->effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+      address->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+      address->location.width = 4U; address->location.register_count = 1U;
+      address->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+      address->location.registers[0].register_index = reg;
+      address->effect = summary_index == 1U && reg == 5U ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED :
+        M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    }
+  }
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(4U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("inferred_callback_s0_o00000018_n2",
+    analysis.sections[0].function_summaries[3].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_NONE,
+    analysis.sections[0].function_summaries[3].terminal_reason);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED,
+    analysis.sections[0].function_summaries[3].location_effects[13].effect);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_self_recursive_direct_summary_is_conservative(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  char *analysis_json = NULL;
+  M68kAnalysisCustomStruct *custom_structs;
+  uint8_t bytes[8] = {
+    0x61u, 0x04u,                         /* bsr.s callee */
+    0x30u, 0x28u, 0x00u, 0x02u,           /* move.w $2(a0),d0 */
+    0x61u, 0xfeu                          /* callee: bsr.s callee */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "self_context");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].offset = 2U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "field_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name), "self_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("inferred_local_s0_o00000006", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
+    analysis.sections[0].function_summaries[0].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].direct_scc_size);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].direct_scc_ordinal);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].effects_invalid);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED,
+    analysis.sections[0].function_summaries[0].location_effects[8].effect);
+  M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].recovered_platform_typed_access_count);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_id\":\"inferred_local_s0_o00000006\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"recursive_direct_graph\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"direct_scc\":{\"size\":1,\"ordinal\":0}") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_function_summary_use_exports_platform_contract_terminal(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kFunctionSummaryUseIR use;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  memset(&use, 0, sizeof(use));
+  snprintf(use.function_summary_id, sizeof(use.function_summary_id), "wrapper_contract");
+  use.caller_section_index = 0U;
+  use.caller_offset = 4U;
+  use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
+  use.terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_GRAPH_CAPACITY;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_function_summary_use(&section_analysis, &use));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"direct_graph_capacity\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_platform_call_thunk_exports_source_analysis_identity(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kPlatformCallThunkIR thunk;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 32U;
+  memset(&thunk, 0, sizeof(thunk));
+  thunk.wrapper_section_index = 0U;
+  thunk.wrapper_entry_offset = 8U;
+  thunk.platform_library_id = 1U;
+  thunk.platform_function_id = 2U;
+  thunk.wrapper_call_offset = 14U;
+  thunk.relation_kind = M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_platform_call_thunk(&section_analysis, &thunk));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"platform_call_thunk_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"wrapper_entry_offset\":8,\"platform_library_id\":1,\"platform_function_id\":2,\"wrapper_call_offset\":14") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_facts_v2_mutually_recursive_direct_summaries_are_conservative(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_structs;
+  uint8_t bytes[16] = {
+    0x61u, 0x04u,                         /* bsr.s first */
+    0x30u, 0x28u, 0x00u, 0x02u,           /* move.w $2(a0),d0 */
+    0x61u, 0x04u, 0x4eu, 0x75u,           /* first: bsr.s second; rts */
+    0x4eu, 0x71u,                         /* alignment nop */
+    0x61u, 0xf8u, 0x4eu, 0x75u            /* second: bsr.s first; rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "mutual_context");
+  custom_structs[0].size = 4U;
+  custom_structs[0].field_count = 1U;
+  custom_structs[0].fields[0].offset = 2U;
+  custom_structs[0].fields[0].size = 2U;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "field_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name), "mutual_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("inferred_local_s0_o00000006", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_STR("inferred_local_s0_o0000000C", analysis.sections[0].function_summaries[1].function_summary_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
+    analysis.sections[0].function_summaries[0].terminal_reason);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
+    analysis.sections[0].function_summaries[1].terminal_reason);
+  M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[0].direct_scc_size);
+  M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[1].direct_scc_size);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].direct_scc_ordinal);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[1].direct_scc_ordinal);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].effects_invalid);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[1].effects_invalid);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED,
+    analysis.sections[0].function_summaries[0].location_effects[8].effect);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED,
+    analysis.sections[0].function_summaries[1].location_effects[8].effect);
+  M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].recovered_platform_typed_access_count);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* An unresolved nested call inside an SCC cannot yield a usable summary: the
+ * component terminal remains recursive and the JSON proof retains the SCC. */
+static int test_facts_v2_recursive_scc_with_unknown_callee_is_terminal(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  char *analysis_json = NULL;
+  uint8_t bytes[16] = {
+    0x61u, 0x04u, 0x4eu, 0x75u, 0x4eu, 0x71u, /* caller; first at 6 */
+    0x61u, 0x04u, 0x4eu, 0x90u, 0x4eu, 0x75u, /* first: bsr second; jsr (a0); rts */
+    0x61u, 0xf8u, 0x4eu, 0x75u                /* second: bsr first; rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
+    analysis.sections[0].function_summaries[0].terminal_reason);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
+    analysis.sections[0].function_summaries[1].terminal_reason);
+  M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[0].direct_scc_size);
+  M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[1].direct_scc_size);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"recursive_direct_graph\"") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_analysis_records_local_function_address_value_consumer(void) {
   M68kObject object;
   M68kSection section;
@@ -27585,10 +28491,10 @@ static int test_facts_v2_analysis_transfers_tuple_identity_result(void) {
   policy.runtime_ranges[0].section_index = 0U;
   policy.runtime_ranges[0].size = sizeof(bytes);
   policy.runtime_ranges[0].runtime_address = 0x100U;
-  custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_structs));
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(2U, sizeof(*custom_structs));
   M68K_C_ASSERT(custom_structs != NULL);
   policy.custom_structs = custom_structs;
-  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_count = policy.custom_struct_capacity = 2U;
   policy.custom_struct_owner = 1U;
   snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "tuple_context");
   custom_structs[0].size = 4U;
@@ -27596,6 +28502,8 @@ static int test_facts_v2_analysis_transfers_tuple_identity_result(void) {
   custom_structs[0].fields[0].offset = 2U;
   custom_structs[0].fields[0].size = 2U;
   snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "result_word");
+  snprintf(custom_structs[1].name, sizeof(custom_structs[1].name), "incompatible_context");
+  custom_structs[1].size = 4U;
   policy.function_summary_count = 1U;
   policy.function_summaries[0].has_section_index = 1U;
   policy.function_summaries[0].section_index = 0U;
@@ -27636,6 +28544,770 @@ static int test_facts_v2_analysis_transfers_tuple_identity_result(void) {
   }
   M68K_C_ASSERT(result_access_found);
   m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  /* A tuple is atomic: a known incompatible member must prevent every
+   * identity-result output, rather than transferring a compatible prefix. */
+  object.sections[0].data[6] = 0x22u; object.sections[0].data[7] = 0x4cu; /* movea.l a4,a1 */
+  object.sections[0].data[8] = 0x4eu; object.sections[0].data[9] = 0x71u;
+  object.sections[0].data[10] = 0x4eu; object.sections[0].data[11] = 0x71u;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].has_section_index = policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 4U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name), "incompatible_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  result_access_found = 0;
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 18U && access->base_reg == 2U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "tuple_context") == 0 && strcmp(access->field_name, "result_word") == 0)
+      result_access_found = 1;
+  }
+  M68K_C_ASSERT(!result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_analysis_transfers_generic_abi_pointer_identity_result(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_struct;
+  size_t index;
+  int result_access_found = 0;
+  uint8_t bytes[0x32] = {0};
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  /* jsr callee; move.w $02(a1),d0; rts; callee: rts */
+  bytes[0] = 0x4eu; bytes[1] = 0xb9u; bytes[4] = 0x01u; bytes[5] = 0x30u;
+  bytes[6] = 0x30u; bytes[7] = 0x29u; bytes[8] = 0x00u; bytes[9] = 0x02u;
+  bytes[10] = 0x4eu; bytes[11] = 0x75u;
+  bytes[0x30] = 0x4eu; bytes[0x31] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_struct = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_struct));
+  M68K_C_ASSERT(custom_struct != NULL);
+  policy.custom_structs = custom_struct;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_struct->name, sizeof(custom_struct->name), "generic_pointer_context");
+  custom_struct->size = 4U;
+  custom_struct->field_count = 1U;
+  custom_struct->fields[0].offset = 2U;
+  custom_struct->fields[0].size = 2U;
+  snprintf(custom_struct->fields[0].name, sizeof(custom_struct->fields[0].name), "result_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].has_section_index = policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "generic_pointer_context");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].entry_offset = 0x30U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER;
+  policy.function_summaries[0].result_count = 1U;
+  policy.function_summaries[0].results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  policy.function_summaries[0].results[0].input_index = 0U;
+  policy.function_summaries[0].results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].results[0].location.width = 4U;
+  policy.function_summaries[0].results[0].location.register_count = 1U;
+  policy.function_summaries[0].results[0].location.registers[0].register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  policy.function_summaries[0].results[0].location.registers[0].register_index = 1U;
+  policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
+  policy.function_summaries[0].effects_invalid = 1U;
+  snprintf(policy.function_summaries[0].function_summary_id, sizeof(policy.function_summaries[0].function_summary_id),
+    "generic_abi_pointer_identity");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 6U && access->base_reg == 1U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "generic_pointer_context") == 0 &&
+        strcmp(access->field_name, "result_word") == 0) result_access_found = 1;
+  }
+  M68K_C_ASSERT(result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A direct body summary may recover an ABI-neutral pointer input only when
+ * the returned address register is a lossless copy of an entry register.  The
+ * resulting identity transform must use the common callable result contract,
+ * so the caller's already-proven concrete type survives on A1. */
+static int test_facts_v2_infers_entry_pointer_identity_result(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_struct;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  int result_access_found = 0;
+  uint8_t bytes[0x14] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x30u, 0x29u, 0x00u, 0x02u,           /* move.w $2(a1),d0 */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x22u, 0x48u,                         /* callee: movea.l a0,a1 */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_struct = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_struct));
+  M68K_C_ASSERT(custom_struct != NULL);
+  policy.custom_structs = custom_struct;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_struct->name, sizeof(custom_struct->name), "entry_pointer_context");
+  custom_struct->size = 4U;
+  custom_struct->field_count = 1U;
+  custom_struct->fields[0].offset = 2U;
+  custom_struct->fields[0].size = 2U;
+  snprintf(custom_struct->fields[0].name, sizeof(custom_struct->fields[0].name), "result_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].has_section_index = policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "entry_pointer_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(1U, summary->input_count);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER,
+    summary->inputs[0].seed_kind);
+  M68K_C_ASSERT_U32(1U, summary->result_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT,
+    summary->results[0].kind);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT,
+    summary->memory_effect_state);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT,
+    summary->escape_effect_state);
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 2U && access->base_reg == 1U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "entry_pointer_context") == 0 &&
+        strcmp(access->field_name, "result_word") == 0) result_access_found = 1;
+  }
+  M68K_C_ASSERT(result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  summary = NULL;
+  result_access_found = 0;
+  /* A pointer may enter through D0 and return through A1; the common ABI
+   * identity retains the concrete caller type across the register class. */
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_DATA;
+  object.sections[0].data[16] = 0x22u;
+  object.sections[0].data[17] = 0x40u;   /* movea.l d0,a1 */
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(1U, summary->input_count);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA,
+    summary->inputs[0].location.registers[0].register_kind);
+  M68K_C_ASSERT_U32(0U, summary->inputs[0].location.registers[0].register_index);
+  M68K_C_ASSERT_U32(1U, summary->result_count);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_ADDRESS,
+    summary->results[0].location.registers[0].register_kind);
+  M68K_C_ASSERT_U32(1U, summary->results[0].location.registers[0].register_index);
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 2U && access->base_reg == 1U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "entry_pointer_context") == 0 &&
+        strcmp(access->field_name, "result_word") == 0) result_access_found = 1;
+  }
+  M68K_C_ASSERT(result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A longword An-to-Dn result is a lossless pointer identity. The common
+ * result contract must retain its type through the caller's Dn-to-An copy;
+ * no data-register-specific result side channel is permitted. */
+static int test_facts_v2_infers_entry_pointer_data_register_identity_result(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_struct;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  int result_access_found = 0;
+  uint8_t bytes[0x14] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x22u, 0x40u,                         /* movea.l d0,a1 */
+    0x30u, 0x29u, 0x00u, 0x02u,           /* move.w $2(a1),d0 */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x20u, 0x08u,                         /* callee: move.l a0,d0 */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_struct = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_struct));
+  M68K_C_ASSERT(custom_struct != NULL);
+  policy.custom_structs = custom_struct;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_struct->name, sizeof(custom_struct->name), "entry_data_result_context");
+  custom_struct->size = 4U;
+  custom_struct->field_count = 1U;
+  custom_struct->fields[0].offset = 2U;
+  custom_struct->fields[0].size = 2U;
+  snprintf(custom_struct->fields[0].name, sizeof(custom_struct->fields[0].name), "result_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].has_section_index = policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "entry_data_result_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(1U, summary->input_count);
+  M68K_C_ASSERT_U32(1U, summary->result_count);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA,
+    summary->results[0].location.registers[0].register_kind);
+  M68K_C_ASSERT_U32(0U, summary->results[0].location.registers[0].register_index);
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 4U && access->base_reg == 1U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "entry_data_result_context") == 0 &&
+        strcmp(access->field_name, "result_word") == 0) result_access_found = 1;
+  }
+  M68K_C_ASSERT(result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A callee-created address is not an ABI input or identity result merely
+ * because it occupies the same return register. */
+static int test_facts_v2_does_not_infer_local_address_as_entry_pointer_result(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kAnalysisCustomStruct *custom_struct;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  int result_access_found = 0;
+  uint8_t bytes[0x16] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x30u, 0x29u, 0x00u, 0x02u,           /* move.w $2(a1),d0 */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x43u, 0xfau, 0x00u, 0x00u,           /* callee: lea $0(pc),a1 */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_struct = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_struct));
+  M68K_C_ASSERT(custom_struct != NULL);
+  policy.custom_structs = custom_struct;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_struct->name, sizeof(custom_struct->name), "local_address_context");
+  custom_struct->size = 4U;
+  custom_struct->field_count = 1U;
+  custom_struct->fields[0].offset = 2U;
+  custom_struct->fields[0].size = 2U;
+  snprintf(custom_struct->fields[0].name, sizeof(custom_struct->fields[0].name), "result_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].has_section_index = policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "local_address_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(0U, summary->input_count);
+  M68K_C_ASSERT_U32(0U, summary->result_count);
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 2U && access->base_reg == 1U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "local_address_context") == 0) result_access_found = 1;
+  }
+  M68K_C_ASSERT(!result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A result must have one identity on every returning path.  A1 derived from
+ * A0 on one path and A2 on the other is deliberately not an ABI result. */
+static int test_facts_v2_does_not_infer_identity_result_from_divergent_branches(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  uint8_t bytes[0x1c] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x4au, 0x00u,                         /* callee: tst.b d0 */
+    0x67u, 0x04u,                         /* beq.s from_a2 */
+    0x22u, 0x48u,                         /* movea.l a0,a1 */
+    0x4eu, 0x75u,                         /* rts */
+    0x22u, 0x4au,                         /* from_a2: movea.l a2,a1 */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(0U, summary->input_count);
+  M68K_C_ASSERT_U32(0U, summary->result_count);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A direct body write through an unmodified entry register has one durable
+ * caller identity.  Its inferred summary must therefore use the common input
+ * subject, while the independent A1 identity result remains available. */
+static int test_facts_v2_infers_entry_pointer_write_and_identity_result(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  M68kInstructionIR write_instruction;
+  const M68kSimFormMetadata *write_metadata;
+  M68kAnalysisCustomStruct *custom_struct;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  int result_access_found = 0;
+  uint8_t bytes[0x16] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x30u, 0x29u, 0x00u, 0x02u,           /* move.w $2(a1),d0 */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x20u, 0x80u,                         /* callee: move.l d0,(a0) */
+    0x22u, 0x48u,                         /* movea.l a0,a1 */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  write_instruction = m68k_ir_decode_one(&bytes[16], 2U, M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+  write_metadata = m68k_sim_metadata_for_instruction(&write_instruction);
+  M68K_C_ASSERT_U32(2U, write_instruction.operand_count);
+  M68K_C_ASSERT_U32(M68K_ASM_OPERAND_EA, write_instruction.operands[1].kind);
+  M68K_C_ASSERT_U32(2U, write_instruction.operands[1].value.ea_mode);
+  M68K_C_ASSERT(write_metadata != NULL);
+  M68K_C_ASSERT_U32(M68K_SIM_OP_MOVE, write_metadata->operation_type);
+  M68K_C_ASSERT_U32(1U, write_metadata->dest_operand_index);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_WRITE, write_metadata->operand_access_kinds[1]);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  custom_struct = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*custom_struct));
+  M68K_C_ASSERT(custom_struct != NULL);
+  policy.custom_structs = custom_struct;
+  policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_struct->name, sizeof(custom_struct->name), "entry_write_context");
+  custom_struct->size = 4U;
+  custom_struct->field_count = 1U;
+  custom_struct->fields[0].offset = 2U;
+  custom_struct->fields[0].size = 2U;
+  snprintf(custom_struct->fields[0].name, sizeof(custom_struct->fields[0].name), "result_word");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].has_section_index = policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].section_index = 0U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name),
+    "entry_write_context");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(1U, summary->input_count);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER, summary->inputs[0].seed_kind);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->memory_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_MEMORY_WRITE, summary->memory_effects[0].kind);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT,
+    summary->memory_effects[0].subject.kind);
+  M68K_C_ASSERT_U32(0U, summary->memory_effects[0].subject.input_index);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN, summary->escape_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->result_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT, summary->results[0].kind);
+  for (index = 0U; index < analysis.sections[0].recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[index];
+    if (access->offset == 2U && access->base_reg == 1U && access->displacement == 2 &&
+        strcmp(access->root_struct_name, "entry_write_context") == 0 &&
+        strcmp(access->field_name, "result_word") == 0) result_access_found = 1;
+  }
+  M68K_C_ASSERT(result_access_found);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A pointer copied from one entry register into storage reached through
+ * another has both ABI identities.  The source-to-sink escape must remain
+ * explicit rather than collapsing the entire escape partition to unknown. */
+static int test_facts_v2_infers_entry_pointer_source_to_input_escape(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  uint8_t bytes[0x14] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x20u, 0x89u,                         /* callee: move.l a1,(a0) */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(2U, summary->input_count);
+  M68K_C_ASSERT_U32(0U, summary->inputs[0].location.registers[0].register_index);
+  M68K_C_ASSERT_U32(1U, summary->inputs[1].location.registers[0].register_index);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->memory_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT, summary->memory_effects[0].subject.kind);
+  M68K_C_ASSERT_U32(0U, summary->memory_effects[0].subject.input_index);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->escape_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->escape_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT, summary->escapes[0].source_kind);
+  M68K_C_ASSERT_U32(1U, summary->escapes[0].source_location.registers[0].register_index);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT, summary->escapes[0].sink_subject.kind);
+  M68K_C_ASSERT_U32(0U, summary->escapes[0].sink_subject.input_index);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* The same entry-origin source is also a durable escape when stored to an
+ * exact static location; the sink is not limited to another ABI input. */
+static int test_facts_v2_infers_entry_pointer_source_to_static_escape(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  uint8_t bytes[0x24] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x21u, 0xc9u, 0x00u, 0x20u,           /* callee: move.l a1,$20.w */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(1U, summary->input_count);
+  M68K_C_ASSERT_U32(1U, summary->inputs[0].location.registers[0].register_index);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->memory_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE,
+    summary->memory_effects[0].subject.kind);
+  M68K_C_ASSERT_U32(0U, summary->memory_effects[0].subject.section_index);
+  M68K_C_ASSERT_U32(0x20U, summary->memory_effects[0].subject.offset);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->escape_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->escape_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT, summary->escapes[0].source_kind);
+  M68K_C_ASSERT_U32(1U, summary->escapes[0].source_location.registers[0].register_index);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE,
+    summary->escapes[0].sink_subject.kind);
+  M68K_C_ASSERT_U32(0U, summary->escapes[0].sink_subject.section_index);
+  M68K_C_ASSERT_U32(0x20U, summary->escapes[0].sink_subject.offset);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  summary = NULL;
+  policy.abstract_region_count = 1U;
+  policy.abstract_regions[0].section_index = 0U;
+  policy.abstract_regions[0].start_offset = 0x20U;
+  policy.abstract_regions[0].size = 4U;
+  snprintf(policy.abstract_regions[0].region_id, sizeof(policy.abstract_regions[0].region_id), "world_state");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION,
+    summary->memory_effects[0].subject.kind);
+  M68K_C_ASSERT_STR("world_state", summary->memory_effects[0].subject.abstract_region_id);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->escape_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->escape_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION,
+    summary->escapes[0].sink_subject.kind);
+  M68K_C_ASSERT_STR("world_state", summary->escapes[0].sink_subject.abstract_region_id);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+/* A direct callee has one extra return-address longword on A7.  With no frame
+ * adjustment, `4(a7)` is therefore a durable caller-argument stack subject,
+ * including for a pointer escape into that slot. */
+static int test_facts_v2_infers_entry_pointer_source_to_stack_escape(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  const M68kFunctionSummaryIR *summary = NULL;
+  size_t index;
+  uint8_t bytes[0x18] = {
+    0x61u, 0x0eu,                         /* bsr.s callee */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u, 0x4eu, 0x71u,
+    0x2fu, 0x49u, 0x00u, 0x04u,           /* callee: move.l a1,4(a7) */
+    0x4eu, 0x75u                          /* rts */
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.has_entry_offset = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  for (index = 0U; index < analysis.sections[0].function_summary_count; ++index) {
+    if (strcmp(analysis.sections[0].function_summaries[index].function_summary_id,
+        "inferred_local_s0_o00000010") == 0) {
+      summary = &analysis.sections[0].function_summaries[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(summary != NULL);
+  M68K_C_ASSERT_U32(1U, summary->input_count);
+  M68K_C_ASSERT_U32(1U, summary->inputs[0].location.registers[0].register_index);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->memory_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->memory_effect_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK, summary->memory_effects[0].subject.kind);
+  M68K_C_ASSERT_U32(0U, summary->memory_effects[0].subject.offset);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT,
+    summary->memory_effects[0].subject.stack_convention);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT, summary->escape_effect_state);
+  M68K_C_ASSERT_U32(1U, summary->escape_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK, summary->escapes[0].sink_subject.kind);
+  M68K_C_ASSERT_U32(0U, summary->escapes[0].sink_subject.offset);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT,
+    summary->escapes[0].sink_subject.stack_convention);
+  m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
@@ -27647,6 +29319,7 @@ static int test_facts_v2_analysis_records_platform_api_address_value_consumer(vo
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
+  char *analysis_json = NULL;
   int16_t open_device_lvo = 0;
   uint8_t bytes[0x22] = {0};
   memset(&section, 0, sizeof(section));
@@ -27686,7 +29359,19 @@ static int test_facts_v2_analysis_records_platform_api_address_value_consumer(vo
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_consumer_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT,
     analysis.sections[0].address_value_consumers[0].kind);
-  M68K_C_ASSERT_STR("iORequest", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_STR("", analysis.sections[0].address_value_consumers[0].contract_name);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].address_value_consumers[0].has_platform_input_identity);
+  M68K_C_ASSERT_U32(AMIGA_OS_LIBRARY_ID_EXEC_LIBRARY,
+    analysis.sections[0].address_value_consumers[0].platform_library_id);
+  M68K_C_ASSERT_U32(AMIGA_OS_FUNCTION_ID_OPENDEVICE,
+    analysis.sections[0].address_value_consumers[0].platform_function_id);
+  M68K_C_ASSERT(analysis.sections[0].address_value_consumers[0].platform_input_id != AMIGA_OS_SYMBOL_ID_NONE);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"platform_input_identity\":{\"library_id\":14,\"function_id\":652," ) != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"contract_name\":\"iORequest\"") != NULL);
+  free(analysis_json);
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].address_value_count);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
   m68k_ir_source_analysis_destroy(&analysis);
@@ -27810,6 +29495,33 @@ static int test_facts_v2_analysis_records_callback_address_value_consumer(void) 
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RENDER_SYMBOLIC, analysis.sections[0].address_values[0].render_outcome);
   m68k_ir_source_analysis_destroy(&analysis);
   memset(&analysis, 0, sizeof(analysis));
+  /* The callback aggregate derives its register partition from table entries,
+   * but it must retain an unknown declared memory component.  Reclassifying
+   * that component as an empty explicit set would let the later flow pass
+   * preserve state across an opaque callback memory effect. */
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  policy.function_summaries[0].memory_effect_count = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(4U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN,
+    analysis.sections[0].function_summaries[3].memory_effect_state);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].memory_effect_count = 1U;
+  /* A resolved table word whose target cannot yield a valid direct summary is
+   * distinct from an external/unresolved word. */
+  object.sections[0].data[24] = 0x00u; object.sections[0].data[25] = 0x00u;
+  object.sections[0].data[26] = 0x10u; object.sections[0].data[27] = 0x18u;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(5U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_CALLBACK_ENTRY_INCOMPATIBLE,
+    analysis.sections[0].function_summaries[3].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[3].effects_invalid);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
   /* The same proven dispatch contract with an external table word must not
    * degrade to an ordinary invalid summary: it carries the exact unresolved
    * entry reason and cannot preserve caller state. */
@@ -27867,7 +29579,7 @@ static int test_facts_v2_analysis_does_not_record_untyped_unknown_call_consumer(
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(void) {
+static int test_facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -27955,19 +29667,17 @@ static int test_facts_v2_render_asm_source_propagates_static_struct_data_type(vo
       adjacent_typed = candidate;
     }
   }
-  M68K_C_ASSERT(typed != NULL);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_FIELD_ADDRESS, typed->type_provenance_kind);
-  M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
-  M68K_C_ASSERT_INT(48, typed->base_cursor);
-  M68K_C_ASSERT(adjacent_typed != NULL);
-  M68K_C_ASSERT(strcmp(adjacent_typed->field_name, "world_y") == 0);
+  /* The helper body has no memory/escape proof.  Its independently preserved
+   * A5 register is not enough to retain a value loaded through mutable
+   * storage before the call. */
+  M68K_C_ASSERT(typed == NULL);
+  M68K_C_ASSERT(adjacent_typed == NULL);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_world_x-48(a5),d0\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_world_y-48(a5),d1\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.b world_object_shared_prefix_world_x+1-48(a5),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_x-48(a5)") == NULL);
+  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y-48(a5)") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
@@ -28173,7 +29883,9 @@ static int test_facts_v2_render_asm_source_applies_callback_table_signature(void
     0x4eu, 0x75u,                         /* rts */
     0x4eu, 0x71u, 0x4eu, 0x71u,           /* alignment */
     0x4eu, 0x75u,                         /* callback: rts */
-    0x00u, 0x00u, 0x10u, 0x10u            /* callback table entry */
+    0x00u, 0x00u, 0x10u, 0x10u,           /* preserving callback table entry */
+    0x00u, 0x00u, 0x00u, 0x00u,           /* populated for the conflict phase below */
+    0x2au, 0x40u, 0x4eu, 0x75u            /* callback that clobbers a5 */
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -28245,6 +29957,18 @@ static int test_facts_v2_render_asm_source_applies_callback_table_signature(void
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y(a5)") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* Every table entry participates in the callback effect intersection.  The
+   * second entry clobbers a5, so the aggregate must not retain the seeded
+   * struct pointer merely because the first entry preserves it. */
+  bytes[22] = 0x00u; bytes[23] = 0x00u; bytes[24] = 0x10u; bytes[25] = 0x1au;
+  policy.function_summaries[0].entry_count = 2U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y(a5)") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
@@ -28542,6 +30266,393 @@ static int test_facts_v2_static_write_effect_invalidates_matching_storage_reload
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "effect_object_word_value(a0)") != NULL);
   M68K_C_ASSERT(strstr(source, "effect_object_word_value(a5)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* An opaque memory component invalidates storage-derived reloads, but not
+   * the independently preserved direct A0 pointer identity. */
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_UNKNOWN;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a0)") != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a5)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  /* The bare `(a7)` store/reload is the same caller stack identity as
+   * `0(a7)`.  A declared effect decides whether that typed slot survives a
+   * direct call. */
+  memset(object.sections[0].data, 0, sizeof(bytes));
+  object.sections[0].data[0] = 0x2eu; object.sections[0].data[1] = 0x88u; /* move.l a0,(a7) */
+  object.sections[0].data[2] = 0x4eu; object.sections[0].data[3] = 0xb9u;
+  object.sections[0].data[6] = 0x00u; object.sections[0].data[7] = 0x20u;
+  object.sections[0].data[8] = 0x22u; object.sections[0].data[9] = 0x57u; /* movea.l (a7),a1 */
+  object.sections[0].data[10] = 0x30u; object.sections[0].data[11] = 0x29u;
+  object.sections[0].data[12] = 0x00u; object.sections[0].data[13] = 0x02u;
+  object.sections[0].data[14] = 0x4eu; object.sections[0].data[15] = 0x75u;
+  object.sections[0].data[0x20] = 0x4eu; object.sections[0].data[0x21] = 0x75u;
+  policy.function_summaries[0].memory_effect_count = 0U;
+  policy.function_summaries[0].escape_count = 0U;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count].location.kind =
+    M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count].location.width = 4U;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count].location.stack_convention =
+    M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count].location.stack_offset = 0;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count].effect =
+    M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED;
+  policy.function_summaries[0].location_effect_count += 1U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* A stack write invalidates only the exact ABI subject.  The same numeric
+   * slot under a result convention is a different caller-visible identity. */
+  policy.function_summaries[0].memory_effect_count = 1U;
+  policy.function_summaries[0].memory_effects[0].kind = M68K_FUNCTION_SUMMARY_MEMORY_WRITE;
+  policy.function_summaries[0].memory_effects[0].subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK;
+  policy.function_summaries[0].memory_effects[0].subject.offset = 0U;
+  policy.function_summaries[0].memory_effects[0].subject.stack_convention =
+    M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") != NULL);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].memory_effects[0].subject.stack_convention =
+    M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") == NULL);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].memory_effect_count = 0U;
+  /* The explicit zero-displacement spelling is the same slot. */
+  memset(object.sections[0].data, 0, sizeof(bytes));
+  object.sections[0].data[0] = 0x2fu; object.sections[0].data[1] = 0x48u; /* move.l a0,0(a7) */
+  object.sections[0].data[2] = 0x00u; object.sections[0].data[3] = 0x00u;
+  object.sections[0].data[4] = 0x4eu; object.sections[0].data[5] = 0xb9u;
+  object.sections[0].data[8] = 0x00u; object.sections[0].data[9] = 0x20u;
+  object.sections[0].data[10] = 0x22u; object.sections[0].data[11] = 0x6fu; /* movea.l 0(a7),a1 */
+  object.sections[0].data[12] = 0x00u; object.sections[0].data[13] = 0x00u;
+  object.sections[0].data[14] = 0x30u; object.sections[0].data[15] = 0x29u;
+  object.sections[0].data[16] = 0x00u; object.sections[0].data[17] = 0x02u;
+  object.sections[0].data[18] = 0x4eu; object.sections[0].data[19] = 0x75u;
+  object.sections[0].data[0x20] = 0x4eu; object.sections[0].data[0x21] = 0x75u;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* A nonzero caller-argument displacement is a distinct durable identity;
+   * it must match only the corresponding declared stack effect. */
+  object.sections[0].data[2] = 0x00u; object.sections[0].data[3] = 0x04u;
+  object.sections[0].data[12] = 0x00u; object.sections[0].data[13] = 0x04u;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count - 1U]
+    .location.stack_offset = 4;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* A result or cleanup declaration at this same displacement is a different
+   * ABI identity.  It must not preserve the caller-argument cache. */
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count - 1U]
+    .location.stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count - 1U]
+    .location.stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count - 1U]
+    .location.stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+  policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count - 1U].effect =
+    M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* A stack identity result is transferred from the pre-call caller-argument
+   * slot into its distinct caller-result slot after the callee effects. */
+  memset(object.sections[0].data, 0, sizeof(bytes));
+  object.sections[0].data[0] = 0x2fu; object.sections[0].data[1] = 0x48u;
+  object.sections[0].data[4] = 0x4eu; object.sections[0].data[5] = 0xb9;
+  object.sections[0].data[8] = 0x00u; object.sections[0].data[9] = 0x20u;
+  object.sections[0].data[10] = 0x22u; object.sections[0].data[11] = 0x6fu;
+  object.sections[0].data[12] = 0x00u; object.sections[0].data[13] = 0x04u;
+  object.sections[0].data[14] = 0x30u; object.sections[0].data[15] = 0x29u;
+  object.sections[0].data[16] = 0x00u; object.sections[0].data[17] = 0x02u;
+  object.sections[0].data[18] = 0x4eu; object.sections[0].data[19] = 0x75u;
+  object.sections[0].data[0x20] = 0x4eu; object.sections[0].data[0x21] = 0x75u;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].inputs[0].struct_name,
+    sizeof(policy.function_summaries[0].inputs[0].struct_name), "effect_object");
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 0U;
+  policy.function_summaries[0].inputs[0].location.stack_convention =
+    M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+  policy.function_summaries[0].inputs[0].location.stack_offset = 0;
+  policy.function_summaries[0].result_count = 1U;
+  policy.function_summaries[0].results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  policy.function_summaries[0].results[0].input_index = 0U;
+  policy.function_summaries[0].results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK;
+  policy.function_summaries[0].results[0].location.width = 4U;
+  policy.function_summaries[0].results[0].location.stack_convention =
+    M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT;
+  policy.function_summaries[0].results[0].location.stack_offset = 4;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].inputs[0].location.stack_convention =
+    M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_CLEANUP;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a1)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.function_summaries[0].result_count = 0U;
+  /* The same exact static sink must invalidate a reload cache through an
+   * observed callback-table contract, while the unrelated A0 pointer remains
+   * usable. */
+  memset(object.sections[0].data, 0, sizeof(bytes));
+  object.sections[0].data[0] = 0x21u; object.sections[0].data[1] = 0xc0u;
+  object.sections[0].data[2] = 0x64u; object.sections[0].data[3] = 0xc0u;
+  object.sections[0].data[4] = 0x2au; object.sections[0].data[5] = 0x78u;
+  object.sections[0].data[6] = 0x64u; object.sections[0].data[7] = 0xc0u;
+  object.sections[0].data[8] = 0x22u; object.sections[0].data[9] = 0x7au;
+  object.sections[0].data[10] = 0x00u; object.sections[0].data[11] = 0x12u;
+  object.sections[0].data[12] = 0x4eu; object.sections[0].data[13] = 0x91u;
+  object.sections[0].data[14] = 0x30u; object.sections[0].data[15] = 0x28u;
+  object.sections[0].data[16] = 0x00u; object.sections[0].data[17] = 0x02u;
+  object.sections[0].data[18] = 0x32u; object.sections[0].data[19] = 0x2du;
+  object.sections[0].data[20] = 0x00u; object.sections[0].data[21] = 0x02u;
+  object.sections[0].data[22] = 0x4eu; object.sections[0].data[23] = 0x75u;
+  object.sections[0].data[24] = 0x4eu; object.sections[0].data[25] = 0x75u;
+  object.sections[0].data[28] = 0x00u; object.sections[0].data[29] = 0x00u;
+  object.sections[0].data[30] = 0x10u; object.sections[0].data[31] = 0x18u;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x1000U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x1000U;
+  policy.entry_point_count = 2U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.entry_points[1].has_section_index = 1U;
+  policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 24U;
+  policy.function_summaries[0].entry_offset = 0U;
+  policy.function_summaries[0].table_offset = 28U;
+  policy.function_summaries[0].entry_count = 1U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
+  policy.function_summaries[0].location_effect_count = 16U;
+  policy.function_summaries[0].memory_effect_count = 0U;
+  policy.function_summaries[0].escape_count = 1U;
+  policy.function_summaries[0].escapes[0].source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+  policy.function_summaries[0].escapes[0].source_location = policy.function_summaries[0].inputs[0].location;
+  policy.function_summaries[0].escapes[0].sink_subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STATIC_STORAGE;
+  policy.function_summaries[0].escapes[0].sink_subject.section_index = 0U;
+  policy.function_summaries[0].escapes[0].sink_subject.offset = 0x64c0U;
+  snprintf(policy.function_summaries[0].function_summary_id,
+    sizeof(policy.function_summaries[0].function_summary_id), "static_slot_callback_escape");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a0)") != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_object_word_value(a5)") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_callback_input_escape_invalidates_derived_field_pointer(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  char *source = NULL;
+  uint8_t bytes[28] = {
+    0x22u, 0x50u,                         /* movea.l (a0),a1 */
+    0x24u, 0x7au, 0x00u, 0x14u,           /* movea.l callback_table(pc),a2 */
+    0x4eu, 0x92u,                         /* jsr (a2) */
+    0x30u, 0x29u, 0x00u, 0x02u,           /* move.w $02(a1),d0 */
+    0x32u, 0x28u, 0x00u, 0x04u,           /* move.w $04(a0),d1 */
+    0x34u, 0x2bu, 0x00u, 0x04u,           /* move.w $04(a3),d2 */
+    0x4eu, 0x75u,                         /* rts */
+    0x4eu, 0x75u,                         /* callback: rts */
+    0x00u, 0x00u, 0x10u, 0x16u            /* callback table entry */
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE; section.size = section.data_size = sizeof(bytes); section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x1000U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x1000U;
+  policy.entry_point_count = 2U;
+  policy.entry_points[0].has_section_index = 1U; policy.entry_points[0].section_index = 0U;
+  policy.entry_points[1].has_section_index = 1U; policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 22U;
+  custom_structs = (M68kAnalysisCustomStruct *)calloc(2U, sizeof(*custom_structs));
+  M68K_C_ASSERT(custom_structs != NULL);
+  policy.custom_structs = custom_structs; policy.custom_struct_count = policy.custom_struct_capacity = 2U;
+  policy.custom_struct_owner = 1U;
+  snprintf(custom_structs[0].name, sizeof(custom_structs[0].name), "effect_container");
+  custom_structs[0].size = 6U; custom_structs[0].field_count = 2U;
+  custom_structs[0].fields[0].size = 4U;
+  custom_structs[0].fields[0].value_kind = M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER;
+  snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "child_ptr");
+  snprintf(custom_structs[0].fields[0].pointer_struct, sizeof(custom_structs[0].fields[0].pointer_struct),
+    "derived_object");
+  custom_structs[0].fields[1].offset = 4U; custom_structs[0].fields[1].size = 2U;
+  snprintf(custom_structs[0].fields[1].name, sizeof(custom_structs[0].fields[1].name), "container_word");
+  snprintf(custom_structs[1].name, sizeof(custom_structs[1].name), "derived_object");
+  custom_structs[1].size = 4U; custom_structs[1].field_count = 1U;
+  custom_structs[1].fields[0].offset = 2U; custom_structs[1].fields[0].size = 2U;
+  snprintf(custom_structs[1].fields[0].name, sizeof(custom_structs[1].fields[0].name), "word_value");
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 0U;
+  policy.register_seeds[0].has_entry_offset = policy.register_seeds[0].has_section_index = 1U;
+  snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name), "effect_container");
+  policy.function_summary_count = 1U;
+  policy.function_summaries[0].has_section_index = 1U;
+  policy.function_summaries[0].section_index = 0U;
+  policy.function_summaries[0].table_offset = 24U;
+  policy.function_summaries[0].entry_count = 1U;
+  policy.function_summaries[0].callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_CALLBACK_TABLE;
+  policy.function_summaries[0].input_count = 1U;
+  policy.function_summaries[0].inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].inputs[0].location.width = 4U;
+  policy.function_summaries[0].inputs[0].location.register_count = 1U;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.function_summaries[0].inputs[0].location.registers[0].register_index = 0U;
+  policy.function_summaries[0].inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy.function_summaries[0].inputs[0].struct_name,
+    sizeof(policy.function_summaries[0].inputs[0].struct_name), "effect_container");
+  policy.function_summaries[0].result_count = 1U;
+  policy.function_summaries[0].results[0].kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+  policy.function_summaries[0].results[0].input_index = 0U;
+  policy.function_summaries[0].results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  policy.function_summaries[0].results[0].location.width = 4U;
+  policy.function_summaries[0].results[0].location.register_count = 1U;
+  policy.function_summaries[0].results[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.function_summaries[0].results[0].location.registers[0].register_index = 3U;
+  policy.function_summaries[0].memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  policy.function_summaries[0].register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    M68kFunctionSummaryLocationEffectIR *data_effect =
+      &policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count++];
+    M68kFunctionSummaryLocationEffectIR *address_effect =
+      &policy.function_summaries[0].location_effects[policy.function_summaries[0].location_effect_count++];
+    data_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    data_effect->location.width = 4U; data_effect->location.register_count = 1U;
+    data_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    data_effect->location.registers[0].register_index = reg;
+    data_effect->effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+    address_effect->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+    address_effect->location.width = 4U; address_effect->location.register_count = 1U;
+    address_effect->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    address_effect->location.registers[0].register_index = reg;
+    address_effect->effect = reg == 0U ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED :
+      M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+  }
+  policy.function_summaries[0].escape_count = 1U;
+  policy.function_summaries[0].escapes[0].source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_INPUT;
+  policy.function_summaries[0].escapes[0].source_location = policy.function_summaries[0].inputs[0].location;
+  policy.function_summaries[0].escapes[0].sink_subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT;
+  policy.function_summaries[0].escapes[0].sink_subject.input_index = 0U;
+  snprintf(policy.function_summaries[0].function_summary_id,
+    sizeof(policy.function_summaries[0].function_summary_id), "input_sink_callback_escape");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_container_child_ptr(a0)") != NULL);
+  M68K_C_ASSERT(strstr(source, "derived_object_word_value(a1)") == NULL);
+  M68K_C_ASSERT(strstr(source, "effect_container_container_word(a0)") != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_container_container_word(a3)") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* An abstract callback sink has no caller-side identity, so even a
+   * preserved register cannot carry a typed value across the escape. */
+  policy.function_summaries[0].escapes[0].sink_subject.kind =
+    M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_ABSTRACT_REGION;
+  snprintf(policy.function_summaries[0].escapes[0].sink_subject.abstract_region_id,
+    sizeof(policy.function_summaries[0].escapes[0].sink_subject.abstract_region_id), "callback_external_state");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "derived_object_word_value(a1)") == NULL);
+  M68K_C_ASSERT(strstr(source, "effect_container_container_word(a0)") == NULL);
+  /* Result transfer is post-effect: the abstract sink clears caller state,
+   * while the declared A3 identity result remains a valid new output. */
+  M68K_C_ASSERT(strstr(source, "effect_container_container_word(a3)") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  /* The same table-owned abstract relation may originate from the declared
+   * result location.  Materialization must preserve both result and escape. */
+  policy.function_summaries[0].escapes[0].source_kind = M68K_FUNCTION_SUMMARY_ESCAPE_SOURCE_RESULT;
+  policy.function_summaries[0].escapes[0].source_location = policy.function_summaries[0].results[0].location;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "effect_container_container_word(a0)") == NULL);
+  M68K_C_ASSERT(strstr(source, "effect_container_container_word(a3)") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
@@ -34488,6 +36599,16 @@ static int test_function_summary_effect_identities_are_canonical(void) {
   M68K_C_ASSERT(m68k_function_summary_effect_subject_is_valid(&subject, 1U));
   subject.offset = 1U;
   M68K_C_ASSERT(!m68k_function_summary_effect_subject_is_valid(&subject, 1U));
+  memset(&subject, 0, sizeof(subject));
+  subject.kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK;
+  subject.offset = 4U;
+  subject.stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT;
+  M68K_C_ASSERT(m68k_function_summary_effect_subject_is_valid(&subject, 0U));
+  subject.stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_RESULT;
+  M68K_C_ASSERT(!m68k_function_summary_effect_subject_equal(&subject, &(M68kFunctionSummaryEffectSubjectIR){
+    .kind = M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK,
+    .offset = 4U,
+    .stack_convention = M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT}));
   return 0;
 }
 
@@ -35329,6 +37450,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_keeps_typed_base_only_across_platform_preserved_regs},
     {"facts_v2_render_asm_source_propagates_local_helper_api_output_type",
       test_facts_v2_render_asm_source_propagates_local_helper_api_output_type},
+    {"facts_v2_render_asm_source_rejects_partial_wrapper_platform_contract",
+      test_facts_v2_render_asm_source_rejects_partial_wrapper_platform_contract},
+    {"facts_v2_source_analysis_exports_discovered_platform_thunk",
+      test_facts_v2_source_analysis_exports_discovered_platform_thunk},
     {"facts_v2_render_asm_source_propagates_helper_return_alias_type",
       test_facts_v2_render_asm_source_propagates_helper_return_alias_type},
     {"facts_v2_render_asm_source_propagates_nested_helper_return_alias_type",
@@ -35363,18 +37488,60 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_propagates_static_array_address_to_generic_pointer_store},
     {"facts_v2_analysis_uses_relocation_target_for_generic_pointer_store",
       test_facts_v2_analysis_uses_relocation_target_for_generic_pointer_store},
+    {"facts_v2_direct_no_write_no_escape_summary_is_explicit",
+      test_facts_v2_direct_no_write_no_escape_summary_is_explicit},
+    {"facts_v2_direct_static_write_summary_has_static_subject",
+      test_facts_v2_direct_static_write_summary_has_static_subject},
+    {"facts_v2_direct_summary_body_limit_is_terminal",
+      test_facts_v2_direct_summary_body_limit_is_terminal},
+    {"facts_v2_direct_summary_unknown_nested_call_is_terminal",
+      test_facts_v2_direct_summary_unknown_nested_call_is_terminal},
+    {"facts_v2_direct_summary_iteration_limit_is_terminal",
+      test_facts_v2_direct_summary_iteration_limit_is_terminal},
+    {"facts_v2_direct_summary_graph_capacity_is_terminal",
+      test_facts_v2_direct_summary_graph_capacity_is_terminal},
+    {"facts_v2_callback_register_disagreement_intersects_to_clobber",
+      test_facts_v2_callback_register_disagreement_intersects_to_clobber},
+    {"facts_v2_self_recursive_direct_summary_is_conservative",
+      test_facts_v2_self_recursive_direct_summary_is_conservative},
+    {"function_summary_use_exports_platform_contract_terminal",
+      test_function_summary_use_exports_platform_contract_terminal},
+    {"platform_call_thunk_exports_source_analysis_identity",
+      test_platform_call_thunk_exports_source_analysis_identity},
+    {"facts_v2_mutually_recursive_direct_summaries_are_conservative",
+      test_facts_v2_mutually_recursive_direct_summaries_are_conservative},
+    {"facts_v2_recursive_scc_with_unknown_callee_is_terminal",
+      test_facts_v2_recursive_scc_with_unknown_callee_is_terminal},
     {"facts_v2_analysis_records_local_function_address_value_consumer",
       test_facts_v2_analysis_records_local_function_address_value_consumer},
     {"facts_v2_analysis_transfers_tuple_identity_result",
       test_facts_v2_analysis_transfers_tuple_identity_result},
+    {"facts_v2_analysis_transfers_generic_abi_pointer_identity_result",
+      test_facts_v2_analysis_transfers_generic_abi_pointer_identity_result},
+    {"facts_v2_infers_entry_pointer_identity_result",
+      test_facts_v2_infers_entry_pointer_identity_result},
+    {"facts_v2_infers_entry_pointer_data_register_identity_result",
+      test_facts_v2_infers_entry_pointer_data_register_identity_result},
+    {"facts_v2_does_not_infer_local_address_as_entry_pointer_result",
+      test_facts_v2_does_not_infer_local_address_as_entry_pointer_result},
+    {"facts_v2_does_not_infer_identity_result_from_divergent_branches",
+      test_facts_v2_does_not_infer_identity_result_from_divergent_branches},
+    {"facts_v2_infers_entry_pointer_write_and_identity_result",
+      test_facts_v2_infers_entry_pointer_write_and_identity_result},
+    {"facts_v2_infers_entry_pointer_source_to_input_escape",
+      test_facts_v2_infers_entry_pointer_source_to_input_escape},
+    {"facts_v2_infers_entry_pointer_source_to_static_escape",
+      test_facts_v2_infers_entry_pointer_source_to_static_escape},
+    {"facts_v2_infers_entry_pointer_source_to_stack_escape",
+      test_facts_v2_infers_entry_pointer_source_to_stack_escape},
     {"facts_v2_analysis_records_platform_api_address_value_consumer",
       test_facts_v2_analysis_records_platform_api_address_value_consumer},
     {"facts_v2_analysis_records_callback_address_value_consumer",
       test_facts_v2_analysis_records_callback_address_value_consumer},
     {"facts_v2_analysis_does_not_record_untyped_unknown_call_consumer",
       test_facts_v2_analysis_does_not_record_untyped_unknown_call_consumer},
-    {"facts_v2_render_asm_source_propagates_static_struct_data_type",
-      test_facts_v2_render_asm_source_propagates_static_struct_data_type},
+    {"facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call",
+      test_facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call},
     {"facts_v2_render_asm_source_propagates_pointer_table_pointee_type",
       test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type},
     {"facts_v2_render_asm_source_propagates_runtime_pointer_table_pointee_type",
@@ -35387,6 +37554,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_preserves_type_across_observed_absolute_local_call},
     {"facts_v2_static_write_effect_invalidates_matching_storage_reload",
       test_facts_v2_static_write_effect_invalidates_matching_storage_reload},
+    {"facts_v2_callback_input_escape_invalidates_derived_field_pointer",
+      test_facts_v2_callback_input_escape_invalidates_derived_field_pointer},
     {"facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback",
       test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback},
     {"facts_v2_render_asm_source_propagates_static_struct_pointer_chain",

@@ -11,8 +11,8 @@
     INCLUDE "hardware/custom.i"
 
 _custom	EQU	$DFF000
-absolute_slot_00035002	EQU	$35002
 absolute_slot_00020000	EQU	$20000
+absolute_slot_00035002	EQU	$35002
 absolute_slot_00040000	EQU	$40000
 
     SECTION section,code
@@ -20,14 +20,14 @@ loc_0_00000000:
 	moveq.l #0,d7
 	lea.l loc_0_00000290(pc),a1
 	lea.l _custom+color+$24.l,a5
-	movea.l loc_0_0000015E+2(pc),a4
+	movea.l $152(pc),a4
 	movea.l a4,a0
 loc_0_00000012:
 	adda.l #$7A9C,a0
 	cmpa.l a4,a1
 	bgt.b loc_0_00000024
 	movea.l a1,a0
-	adda.l loc_0_00000012+2(pc),a0
+	adda.l -$C(pc),a0
 	bra.b loc_0_0000002A
 loc_0_00000024:
 	move.b (a1)+,(a4)+

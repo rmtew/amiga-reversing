@@ -14,9 +14,9 @@
     INCLUDE "hardware/custom.i"
     INCLUDE "hardware/dmabits.i"
 
-runtime_code_00000200	EQU	$200
 _custom	EQU	$DFF000
 m68k_vector_trap_0_instruction_vector	EQU	$80
+runtime_code_00000200	EQU	$200
 
     SECTION code,code
 	dc.b "DOS",$00	; NOTE: boot magic

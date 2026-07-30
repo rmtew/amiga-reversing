@@ -13,8 +13,8 @@
     INCLUDE "hardware/dmabits.i"
     INCLUDE "hardware/intbits.i"
 
-_custom	EQU	$DFF000
 _ciaa	EQU	$BFE001
+_custom	EQU	$DFF000
 absolute_slot_00049AF6	EQU	$49AF6
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 
