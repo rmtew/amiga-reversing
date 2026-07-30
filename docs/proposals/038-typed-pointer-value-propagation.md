@@ -2276,6 +2276,44 @@ the missing table-entry pointee and null/invalid-entry semantics, and validate
 table bounds, entry representation, and pointee ownership before every
 dereference.
 
+**Scope of the common table-entry transfer.** This is one canonical load
+transfer for every already-proven table entry, not a Pandora message-table
+special case. It covers direct, PC-relative, base-relative, and indexed loads
+whose existing descriptor and address-expression facts identify either one
+entry or a finite, bounds-checked selection of entries with one compatible
+declared pointer representation and pointee domain. A finite homogeneous
+selection preserves its table-element/index-domain expression and candidate
+set; it must not be collapsed to one selected pointee merely because each
+candidate is source-owned. Heterogeneous entries remain an explicit ambiguous
+outcome until a later predicate proof selects one. The same transfer also
+covers descriptor-proven table cursors (including an affine/pre/post-increment
+cursor only when existing range/index evidence remains valid), pointer arrays
+whose entries name static data, strings, structured objects, or another pointer
+table, and repeated loads of that value through typed register, stack,
+global-slot, or field consumers.
+
+It covers an indirect call/jump whose effective address directly reads a table
+entry as well as the more common load-then-call form; neither shape gets a
+special dispatch path. A code entry is callable only after the loaded value
+also has a compatible callable contract. Table-entry representation decoding is
+owned by the descriptor/canonical expression model: absolute, relocated, or
+relative pointer encodings participate when that model provides one resolved
+value identity (F extends the relative/relocated forms). D must consume that
+fact rather than reimplement relocation or relative-address arithmetic.
+The resulting value may therefore feed a typed store, a later dereference, or
+an indirect call through the existing address-value/consumer/render-plan
+closure.
+
+It does not classify an arbitrary `dc.l` range as a table, infer an entry's
+pointee type from its numeric value, select an unbounded/ambiguous index,
+collapse different entries into one object, or make a data entry callable.
+Null, sentinel, invalid, external, runtime-only, and unowned entries remain
+explicit terminals. A missing descriptor, bounds proof, entry representation,
+pointee ownership, or consumer contract is likewise a precise non-symbolic
+outcome, never a numeric-to-symbolic fallback or a renderer-side lookup.
+Post-increment reads alone are not cursor/table evidence: the broad Pandora
+data-classification regression remains a permanent negative case.
+
 **Investigation result (2026-07-29).** The renderer already recognises
 pointer-table structured items and runtime pointer-table slots, and callback
 dispatch has a narrow table-identity proof. Those paths are specialised and do
@@ -2284,17 +2322,143 @@ must generalise that one proven table-entry-to-value transfer, then have the
 existing consumer/planner path render it; it must remove rather than duplicate
 any specialised value propagation made redundant by the common transfer.
 
-**Acceptance.** Fixtures cover direct and indexed loads, null/invalid entries,
-pointer-to-pointer chains, typed indirect calls, and dispatch targets. They
-also prove that a data pointer cannot be called until a compatible callable
-contract is linked to its loaded identity. Rendering uses the existing
-table/object symbols only for proven links. Pandora gets a table-to-store proof
-or a precise missing-fact report.
+**Acceptance.** Fixtures cover direct, PC/base-relative, indexed, and
+descriptor-proven cursor loads; a singleton entry and a finite homogeneous
+selection; heterogeneous/ambiguous and out-of-range selections; null/invalid
+entries; absolute and any already-supported relocated/relative representation;
+pointer-to-pointer chains; typed indirect calls; and both direct-table-EA and
+load-then-call dispatch targets. They also prove that a data pointer cannot be
+called until a compatible callable contract is linked to its loaded identity,
+and that a post-increment read without a descriptor remains raw/non-table.
+Rendering uses the existing table/object symbols only for proven links.
+Pandora gets a table-to-store proof or a precise missing-fact report.
 
 Null, sentinel, and invalid-entry semantics are part of the table-entry
 contract. They are explicit terminal values, not absent target mappings, and
 must remain non-symbolic unless a target's durable type contract assigns a
 specific source-visible representation.
+
+**Autonomous implementation handoff — D (pointer-table value transfer).**
+This is the complete bounded task for an implementation agent. Start from the
+current committed B-closeout baseline; do not modify another extension, target
+manual state, or generated source by hand. The goal is one common,
+consumer-backed transfer from an already-proven pointer-table entry to the
+existing typed-flow/address-value/render-plan closure. It is not a table
+discovery, scalar-table, layout, predicate, or recursive-summary task.
+
+**Existing owners and required integration points.** `M68kTableDescriptorIR`,
+`M68kTableConsumerIR`, and `M68kTableEntryIR` in `src/m68k_ir.h` already own
+table range, selection-domain, raw-entry, target-status, and entry-target
+facts. `M68kAddressExpressionIR` already links an indexed consumer to those
+facts; `m68k_source_quality.c` creates its `indexed_table` records. The common
+value owner is `M68kAddressValueIR`, and the existing typed register/storage
+state and render-plan path live in `src/m68k_analysis_render_lookup.c`.
+`platform_file_json.c` exports the source-analysis proof. Reuse these owners
+and their stable section/offset identities. If a new record is necessary for a
+table-entry value origin or selection, it must link to these facts by identity;
+it must not copy table bounds, classify table bytes, or make a renderer-local
+lookup. Add the corresponding strict JSON export and focused C coverage in
+`src/test_m68k_ir.c`.
+
+The current callback-table identity path in
+`m68k_analysis_render_lookup.c` (`typed_flow_callback_table_identity`, observed
+callback-table collection, and callback summary materialisation) is the known
+specialised overlap. Preserve callback-summary effect aggregation and callable
+contract validation, but route table-entry identity/value recovery through the
+new common D path. Delete only the redundant table-load/back-scan propagation
+after the common path reproduces its valid cases; do not delete callback
+summary semantics or add a second compatibility transfer.
+
+**Required design decisions before coding.**
+
+1. Define one canonical table-entry value origin and selection identity. A
+   singleton can name one existing `M68kTableEntryIR`; a bounded homogeneous
+   selection must name the table descriptor/consumer/indexed expression and
+   retain its selection domain. Do not enumerate only a prefix of a larger
+   domain. The current fixed `M68kAddressValueIR` candidate arrays are not
+   permission to truncate: either represent the bounded selection by stable
+   table identity or end in an explicit terminal.
+2. Derive pointer type and target only from the declared pointer-table entry
+   representation plus existing entry target/ownership facts. A raw numeric
+   word, a scalar table, a range with no pointer contract, or a table whose
+   entries disagree on the needed pointee domain is not a D value.
+3. Apply the value through normal typed-flow transfer only. A normal load may
+   write any supported register; later copies, stack/global/field storage,
+   reloads, dereferences, and call consumers use their existing transfer
+   rules. A direct table-EA `jsr`/`jmp` has no synthetic register destination:
+   connect the same value identity directly to its call consumer.
+4. Keep representation decoding below D. Accept absolute entries now only
+   where existing table-entry target facts resolve them. Consume relocated or
+   relative entries only when the canonical expression/entry model already
+   supplies the resolved value; otherwise emit the explicit terminal and leave
+   F to add the missing representation fact.
+5. Record a durable terminal/stop reason for each rejected load shape. Do not
+   use absence of a value as evidence of a scalar, and never add a numeric,
+   symbolic, label, or table-classification fallback.
+
+**Implementation sequence.**
+
+1. Establish a before baseline for Pandora's
+   `s0:0004D3F0:instruction` table load/store and inspect its existing
+   descriptor, table consumer, four entry facts, indexed expression, and typed
+   store consumer. State the exact expected changed consumer range before
+   editing. The current accepted mask domain is `0..12` with stride four; it
+   is the required real-target positive proof.
+2. Add the minimal canonical table-entry value/selection fact and validation,
+   then export it in source-analysis JSON. Make invalid, unresolved, null,
+   sentinel, heterogeneous, out-of-range, unowned, and capacity/unrepresentable
+   selections explicit and non-renderable. Do not make source-quality discover
+   additional tables in this step.
+3. Wire the fact into typed flow at table-read operands, then let existing
+   register/storage/call consumer recording and render planning consume it.
+   Generalise the callback table-load identity path only after this works for a
+   normal pointer-table load; preserve the callback contract as a separate
+   callable proof.
+4. Remove the superseded specialised table-value propagation only after its
+   focused callback/dispatch regressions pass through the common path. Keep
+   unrelated table classification and callback-summary code intact.
+5. Regenerate Pandora, inspect every changed rendered range, and update this
+   proposal with actual facts rather than an implementation claim. A general
+   target proof may be supplied by focused fixtures plus the fresh corpus
+   outcome report; it must not be manufactured by editing generated output.
+
+**Required fixture matrix.** Add independent C fixtures for: a singleton
+absolute pointer-table load; Pandora-shaped four-entry homogeneous indexed
+selection feeding a typed field store; compatible repeated copies and a
+pointer-to-pointer second load; direct-table-EA and load-then-call dispatch;
+a callback-table case migrated to the common value path; null/sentinel and
+unresolved/unowned entries; scalar/non-pointer and heterogeneous entries;
+out-of-range/unbounded index domains; a post-increment sequence without a
+descriptor; and an unrepresentable selection that proves no prefix is retained.
+Each positive fixture asserts the durable source-analysis/JSON identity, the
+consumer link, and the planned expression; each negative asserts its terminal
+and absence of a planned symbolic expression. Preserve the existing broad
+Pandora raw-data regression fixture.
+
+**Completion evidence and stop conditions.** Run:
+
+```powershell
+cmd /c "src\build.bat && src\build\m68k_c_unit_tests.exe"
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'
+uv run pytest -q
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report `
+  --target amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1 `
+  --update-rendered-source --no-write-report --json
+```
+
+Run the fresh read-only corpus opportunity report after the focused proofs and
+record its new D outcomes separately. Pandora is expected to change only at
+the bounded `s0:0004D3F0` table-load/store consumer path (and any directly
+dependent existing consumer backed by the same new value fact); its table data
+layout, unrelated code/data ranges, and the raw `loc_0_000000E8` payload must
+not change. `content_exact` remains the target gate while the known Hunk
+container mismatch exists. Stop and hand back for review if the required
+selection identity cannot be represented without truncation, a new table
+classification/relative representation/predicate/layout model is needed, a
+callback regression cannot migrate through the common path, or the rendered
+diff is broad or unrelated. Report changed files, exact rendered ranges,
+observed versus expected gains, terminal counts, and every command result;
+do not claim completion from test execution alone.
 
 **Dependency and benefit.** Indexed table loads require A; a direct-load slice
 may stand alone. This enables readable table, object-array, dispatch, and
@@ -2424,24 +2588,25 @@ proof; it may not conflate all `world_object_shared_prefix` values.
 **Dependency and benefit.** Requires C and F. It makes repeated object access
 and stale-pointer prevention more accurate without speculative object recovery.
 
-#### H. Interprocedural summary fixed point
+#### H. Convergent recursive callable-summary fixed point
 
-**Evidence and boundary.** The framework has a reachable-code fixed point, and
-typed flow has a bounded local callee preservation walk (depth four with fixed
-work/visited limits). It also has durable register contracts and callback-table
-signatures, plus a narrow recovered Amiga-wrapper effect record. It has no
-call-graph/SCC summary solver, so recursive or mutually recursive pointer
-return, escape, and preservation facts cannot converge as one general model.
+**Evidence and boundary.** B6 now has a bounded direct/proven-callback graph
+solver, canonical SCC proof identity, and conservative recursive terminals.
+That is intentionally a safety boundary: recursive or mutually recursive
+components export `recursive_direct_graph` rather than transferring a
+provisional result. The remaining opportunity is not to build another call
+graph or summary format, but to permit an eligible SCC's existing common
+summary facts to converge under a declared finite lattice.
 
-**Work.** B's target summary becomes a monotone interface over canonical value
-identities: typed inputs, returned identity transform, escapes, writes,
-preserved/clobbered registers, and callback/indirect-call signature. Build a
-direct/proven callback call graph from existing facts, condense it into SCCs,
-and iterate summaries to a declared finite lattice fixed point. A summary is
-usable only after its SCC reaches convergence; unresolved indirect edges,
-unknown callees, or lattice-cap overflow yield explicit stop reasons. Migrate
-the overlapping wrapper record into this representation rather than keeping a
-parallel effect model.
+**Work.** Extend the B6 solver so it iterates the existing common target
+summary (typed inputs, identity results, escapes, writes, and
+preserved/clobbered locations) for an eligible direct/proven-callback SCC until
+it reaches a declared finite-lattice fixed point. Reuse B6's direct graph,
+canonical SCC anchors, JSON proof, and terminal vocabulary; do not add a
+parallel wrapper or recursive-summary representation. A component becomes
+usable only after complete convergence. Unknown/incompatible indirect edges,
+unmodelled body effects, iteration/value-set/graph-cap overflow, or any
+non-monotone transfer retain an explicit terminal and transfer nothing.
 
 **Proof rule.** No provisional result from an in-progress recursive summary may
 reach rendering. Summary joins retain only identities valid on every returning
@@ -2449,11 +2614,14 @@ path, and any unmodelled write/escape invalidates the relevant value. SCC size,
 iteration, and value-set limits are explicit terminal evidence, never silent
 depth cutoffs or retained subsets.
 
-**Acceptance.** Fixtures cover self recursion, mutual recursion, a convergent
-typed return, an escaping callback, an SCC with one unknown callee, and a limit
-overflow. JSON records the summary/SCC proof chain and terminal reason.
-Existing direct/callback contract fixtures retain their results through the
-common solver, and the old bounded-preservation result is removed or subsumed.
+**Acceptance.** Fixtures cover a self-recursive and a mutually recursive SCC
+that each converge to one existing common identity result; a convergent escape
+or location effect; an SCC with one unknown callee; incompatible effects; and
+iteration/value-set limit overflow. JSON records the B6 SCC anchor, the
+converged-summary proof chain, and the terminal reason where it cannot
+converge. Existing direct/callback contract fixtures retain their results
+through the same solver, and no provisional recursive value reaches a typed
+consumer or renderer.
 
 **Dependency and benefit.** Extends B and C. It converts presently local call
 contracts into sound reusable interprocedural gains without a compatibility
@@ -2699,9 +2867,9 @@ retired action record is rejected after migration.
 7. G follows F and C. Start with a static or table-element instance and a
    single mutable write generation; do not begin with heap or allocator
    recovery.
-8. H follows B and C. Build the summary lattice and SCC solver around existing
-   direct/callback contracts, migrate the wrapper-specific effect, then admit
-   recursive summaries only after the non-recursive fixed-point proof is exact.
+8. H follows B and C. Extend B6's existing graph, SCC proof, and common
+   summary lattice; do not rebuild them. Admit a recursive summary only after
+   the SCC's complete finite-lattice convergence proof is exact.
 9. I follows the relevant A/C/D/E edges. Establish CFG-edge predicate scope
    before connecting it to an indexed table or discriminated layout; no
    variant rendering begins from a merely nearby comparison.
