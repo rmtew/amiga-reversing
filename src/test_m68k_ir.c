@@ -25923,8 +25923,8 @@ static int test_facts_v2_source_analysis_exports_discovered_platform_thunk(void)
   free(analysis_json);
   m68k_ir_source_analysis_destroy(&source_analysis);
   analysis_json = NULL;
-  /* Fill every local result slot with a different ABI location so the
-   * generated D0 result cannot be appended or mistaken for a conflict. */
+  /* Fill every local result slot with a valid, distinct two-register ABI
+   * location so generated D0 cannot be appended or mistaken for a conflict. */
   memset(summary, 0, sizeof(*summary));
   summary->callable_kind = M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT;
   summary->has_section_index = 1U;
@@ -25936,22 +25936,26 @@ static int test_facts_v2_source_analysis_exports_discovered_platform_thunk(void)
   snprintf(summary->function_summary_id, sizeof(summary->function_summary_id), "thunk_capacity");
   summary->input_count = 1U;
   summary->inputs[0].seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  summary->inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
-  summary->inputs[0].location.width = 4U;
-  summary->inputs[0].location.register_count = 1U;
-  summary->inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  summary->inputs[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
+  summary->inputs[0].location.width = 8U;
+  summary->inputs[0].location.register_count = 2U;
+  summary->inputs[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
   summary->inputs[0].location.registers[0].register_index = 1U;
+  summary->inputs[0].location.registers[1].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  summary->inputs[0].location.registers[1].register_index = 1U;
   snprintf(summary->inputs[0].struct_name, sizeof(summary->inputs[0].struct_name), "MsgPort");
   summary->result_count = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT;
   for (uint8_t result_index = 0U; result_index < summary->result_count; ++result_index) {
     M68kAnalysisFunctionSummaryResult *result = &summary->results[result_index];
     result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
     result->input_index = 0U;
-    result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
-    result->location.width = 4U;
-    result->location.register_count = 1U;
-    result->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
-    result->location.registers[0].register_index = result_index;
+    result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
+    result->location.width = 8U;
+    result->location.register_count = 2U;
+    result->location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
+    result->location.registers[0].register_index = (uint8_t)(result_index & 7U);
+    result->location.registers[1].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    result->location.registers[1].register_index = (uint8_t)(result_index >> 3U);
   }
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &source_analysis, m68k_diag_sink(NULL)));

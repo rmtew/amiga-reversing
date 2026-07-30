@@ -8809,7 +8809,34 @@ static int append_render_lookup_platform_derived_summaries_for_section(const M68
   for (index = 0U; index < lookup->platform_derived_summary_count; ++index) {
     const M68kRenderPlatformDerivedSummary *summary = &lookup->platform_derived_summaries[index];
     const AmigaOsCallOutputInfo *output;
+    uint16_t existing_index;
     if (summary->section_index != section_analysis->section_index || summary->vector == NULL) continue;
+    /* A local callable at this entry is the wrapper-side contract.  Its
+     * platform result must be composed at the call boundary, where a
+     * disagreement or capacity shortage has a caller-owned terminal; it is
+     * not a second result on the wrapper summary. */
+    for (existing_index = 0U; existing_index < section_analysis->function_summary_count; ++existing_index) {
+      const M68kFunctionSummaryIR *existing = &section_analysis->function_summaries[existing_index];
+      if (existing->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+          existing->entry_offset == summary->target_offset) {
+        break;
+      }
+    }
+    if (existing_index < section_analysis->function_summary_count) continue;
+    if (lookup->policy != NULL) {
+      for (existing_index = 0U; existing_index < lookup->policy->function_summary_count &&
+           existing_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++existing_index) {
+        const M68kAnalysisFunctionSummary *existing = &lookup->policy->function_summaries[existing_index];
+        if (existing->has_section_index &&
+            existing->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
+            existing->section_index == section_analysis->section_index &&
+            existing->entry_offset == summary->target_offset) {
+          break;
+        }
+      }
+      if (existing_index < lookup->policy->function_summary_count &&
+          existing_index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT) continue;
+    }
     output = &summary->vector->output;
     if (output->reg_kind == AMIGA_OS_REGISTER_NONE || output->reg_index >= 8U) continue;
     if (m68k_ir_section_analysis_append_function_summary_result(section_analysis,

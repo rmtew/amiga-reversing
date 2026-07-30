@@ -391,6 +391,21 @@ other pointer-field types without code changes.
   call contract rather than creating an interprocedural alias.
 - Pandora has no duplicate declaration, synthetic label, dangling symbolic
   expression, or source-quality workaround introduced by the change.
+- Proposal completion requires rendered-source evidence, not only fixture or
+  round-trip success. Before implementation, name the affected target scope,
+  establish its committed rendered-source baseline, and state the exact source
+  improvements expected (or explicitly state that no rendered change is
+  expected). After every output-affecting slice, regenerate that scope and
+  inspect the rendered diff against the baseline. Confirm that each expected
+  improvement is present at its intended consumer/range, flag any widespread
+  or unrelated change as a regression, and judge every remaining changed range
+  against the implemented durable facts: intended semantic improvement,
+  harmless representation-only change, or regression. A change is widespread
+  when it crosses the declared proof range or alters multiple unrelated
+  code/data regions, even if round-trip bytes remain exact. It blocks
+  completion until removed or explicitly explained and accepted in this
+  proposal. Slices with no expected source change still perform and record the
+  no-diff check.
 - `M68kAddressValueIR` is the sole durable owner of an address value's source
   value, provenance, resolution, target, candidate set, terminal state, and
   render outcome. A storage record owns only its storage-specific destination
@@ -1674,6 +1689,115 @@ not optional refactoring and not a reason to retain transitional state.
    among multiple equal-size SCCs. These are open B work, so B5/B6 must not be
    reported as fully complete until they are resolved and the full C suite is
    green.
+
+   **Review-repair progress and process correction (2026-07-31).** The
+   platform-contract finding is now fixed locally and verified: platform-derived
+   results are not appended to a same-entry direct wrapper summary, because the
+   wrapper/platform composition belongs at the caller boundary. A repaired
+   capacity fixture uses sixteen valid, distinct register-tuple ABI locations
+   (the earlier fixture incorrectly used nonexistent address registers A8--A15).
+   The full C unit suite then passed with 618 IR tests, including both
+   `platform_contract_identity_conflict` and `platform_contract_capacity` JSON
+   terminals. This work is retained as the B-closeout checkpoint baseline;
+   the remaining SCC repair must preserve it.
+
+   The following process failure also occurred during this repair: repeated
+   continuation messages claimed that work was continuing when no investigation,
+   edit, or verification had happened. Those messages are not progress evidence
+   and must not be treated as such. Going forward, a progress claim requires a
+   concrete changed artifact, command result, or newly established fact; an
+   unresolved task must be reported as unresolved rather than padded with
+   status-only continuations.
+
+   **Remaining B work.** Replace `direct_scc {size, ordinal}` with a proof that
+   identifies the component independently of its size: export a canonical
+   component anchor (the lowest stable `(section_index, entry_offset)` member)
+   or an equivalent complete member identity, then add a fixture containing at
+   least two equal-size SCCs and assert that their exported proofs differ. Run
+   the full C suite again, regenerate/round-trip Pandora, update this status
+   with the resulting evidence, and commit only the verified repair.
+
+   **B closeout review and projected path (2026-07-31).** The remaining work
+   is intentionally smaller than a new inference feature, but it is not merely
+   presentation cleanup: an SCC terminal without a unique proof identity is
+   not independently reviewable. Completion requires the following sequence.
+
+   1. Define one canonical SCC identity in the analysis IR. The preferred form
+      is a component anchor: the lexicographically lowest member's stable
+      `(section_index, entry_offset)`. Every member of one SCC carries the same
+      anchor; `size` remains descriptive and `ordinal` remains the member's
+      deterministic position within that anchored component. A configured or
+      callback summary retains the existing all-zero/non-SCC shape. Do not use
+      a discovery-array index: it is implementation order, not durable proof.
+   2. Carry the identity from direct-graph construction through the inferred
+      summary record and `M68kFunctionSummaryIR`, then export
+      `direct_scc {anchor_section_index, anchor_entry_offset, size, ordinal}`.
+      Update schema/JSON consumers that treat the old object as closed. The
+      anchor must never be derived from rendered labels or source text.
+   3. Add two disjoint equal-size SCCs (preferably two two-node cycles in one
+      section). Assert a shared anchor within each SCC, distinct anchors across
+      SCCs, deterministic ordinal, `recursive_direct_graph` for all members,
+      and no result/type transfer. Retain the existing self, mutual, and
+      unknown-member fixtures as regressions.
+   4. Keep the B5 repair reviewable: its caller-owned terminal paths and valid
+      tuple-capacity fixture are checkpointed. Re-run the full C suite and the
+      selected strict metadata/Python projection suite after the SCC change.
+   5. Regenerate Pandora and run the rendered-source round-trip report. Treat
+      `content_exact` as the Pandora gate while the known Hunk container
+      mismatch remains. Inspect all changed ranges, update this section with
+      actual evidence, resolve conflicting completion prose, then commit.
+
+   **Expected rendered-source effect of B closeout.** The SCC anchor is proof
+   metadata only: it must produce **no rendered assembly change** in Pandora or
+   any general target. It makes recursive terminals reviewable in JSON; it must
+   not resolve recursion or preserve a typed value. The B5 terminal repair also
+   must add no numeric fallback, symbolic expression, or wrapper result when a
+   composition conflicts or is full. Pandora is therefore expected to remain
+   byte-for-byte identical after regeneration, including the restored raw
+   `dc.b` payload at `loc_0_000000E8`.
+
+   A general target may change only when an already-proven, non-terminal direct
+   or bound-wrapper identity result reaches an existing typed consumer. The
+   normal renderer may then show that consumer's established typed field/symbol
+   expression or semantic comment; it must not manufacture a label merely
+   because a call exists. Targets without such a consumer, and all terminal SCC,
+   missing-binding, identity-conflict, capacity, unknown-call, and unsupported
+   body cases, must remain textually unchanged. B improves durable evidence
+   first; rendering changes only through the pre-existing consumer-backed
+   closure.
+
+   **Implementation handoff: B closeout only (2026-07-31).** The next
+   implementation agent owns only the SCC-identity repair described in the
+   five-step closeout path above. B5's caller-boundary platform repair and its
+   capacity regression are the starting baseline and must be preserved. Do not
+   reopen any completed B6 slice, add a new result kind/address space, change
+   recursive-terminal semantics, or make an SCC terminal renderable merely to
+   produce visible source change. The historical B6 sections below provide
+   context, not additional work for this handoff.
+
+   The handoff implementation must change the direct-graph/inferred-summary
+   path, public IR, JSON export, and focused C fixtures as required by the
+   canonical anchor; it must not add a renderer-side identity or fallback. Its
+   evidence package is: a successful `cmd /c src\\build.bat`; a successful
+   `src\\build\\m68k_c_unit_tests.exe m68k_ir`; the selected strict
+   metadata/Python projection tests needed by any changed JSON consumer; and
+   this exact Pandora report command (with the repository-local UV cache):
+
+   ```powershell
+   $env:UV_CACHE_DIR='C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\.uv-cache'
+   uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report `
+     --target amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1 `
+     --update-rendered-source --no-write-report --json
+   ```
+
+   Compare regenerated source with the checkpoint baseline and record the
+   changed range count and classification. The expected result for this
+   handoff is zero rendered-source changes and Pandora `content_exact`; the
+   known Hunk container-shape/size mismatch is not a changed-source exemption.
+   Stop for review if any unrelated or broad range changes, if a terminal
+   becomes symbolic, or if resolving the anchor requires a new semantic model.
+   Completion reporting must cite the changed files and command outputs, not a
+   generic continuation claim.
 
    **B6 active slice -- source-section abstract-region bindings.** A bare
    `abstract_region` subject name is insufficient evidence for a direct-body
