@@ -6,8 +6,9 @@ Extension A (canonical indexed, affine, and interior-address expressions) are
 complete. Extension B's input-contract/common-summary configuration, callable-result
 migration, and source-analysis graph export are complete. Its effect lattice
 and strict unknown-state persisted schema migration are in the common model,
-but explicit effect projection/import, effect writers, and common call transfer
-remain. C--J
+but explicit effect projection/import, effect writers, common call transfer,
+and platform-contract terminals are complete. The interprocedural SCC proof
+identity and corrective ordinal/conservative-result pass are complete. C--J
 remain ordered follow-on work.
 
 ## Problem
@@ -1455,9 +1456,10 @@ than becoming hidden debt:
    result/effect path to regain that precision. Atari remains an explicit
    capability boundary until generated typed ABI input/output rows exist.
 
-**Remaining B work -- enabled (2026-07-30).** The audit ledger is now active
-implementation scope. These are continuations of the callable-contract model,
-not optional refactoring and not a reason to retain transitional state.
+**Historical B work ledger -- enabled (2026-07-30).** This audit ledger records
+the implementation scope at that checkpoint. The callable-contract model is
+complete, including its SCC-proof closeout; the entries below are retained as
+evidence.
 
 1. **B5 -- canonical callable-contract normalization.** Make the closed
    effect-component state the only C policy/analysis representation; remove
@@ -1686,9 +1688,9 @@ not optional refactoring and not a reason to retain transitional state.
    platform-contract result conflict/capacity terminals currently abort source
    analysis instead of exporting their required durable terminal, and that
    `direct_scc {size, ordinal}` is insufficient to identify one component
-   among multiple equal-size SCCs. These are open B work, so B5/B6 must not be
-   reported as fully complete until they are resolved and the full C suite is
-   green.
+   among multiple equal-size SCCs. At that checkpoint these were open B work;
+   B5's repair and the B6 SCC-proof repair are recorded below and complete at
+   their stated boundary.
 
    **Review-repair progress and process correction (2026-07-31).** The
    platform-contract finding is now fixed locally and verified: platform-derived
@@ -1709,18 +1711,32 @@ not optional refactoring and not a reason to retain transitional state.
    unresolved task must be reported as unresolved rather than padded with
    status-only continuations.
 
-   **Remaining B work.** Replace `direct_scc {size, ordinal}` with a proof that
-   identifies the component independently of its size: export a canonical
-   component anchor (the lowest stable `(section_index, entry_offset)` member)
-   or an equivalent complete member identity, then add a fixture containing at
-   least two equal-size SCCs and assert that their exported proofs differ. Run
-   the full C suite again, regenerate/round-trip Pandora, update this status
-   with the resulting evidence, and commit only the verified repair.
+   **B5/B6 closeout implementation (2026-07-31; complete).** Each inferred
+   direct summary carries the lexicographically lowest stable
+   `(section_index, entry_offset)` member as its component anchor, and its
+   ordinal counts SCC members lower by that stable tuple rather than by
+   discovery-array index. Configured and callback summaries retain the
+   zero/non-SCC shape. The equal-size disjoint-cycle fixture deliberately
+   discovers the higher member before the lower member, proving distinct
+   anchors (6 and 16), stable lexicographic ordinals in IR and JSON, recursive
+   terminals, zero result counts, and no recovered typed access. The full
+   `m68k_ir` suite passes 618 tests; the full C suite passes; selected strict
+   projection tests pass (13 tests); and the full Python suite passes (1362
+   passed, 58 skipped). Pandora reports zero changed ranges with
+   `rendered_source_content_exact: true`; only the known Hunk container-shape
+   and size mismatch prevents `rendered_source_full_file_exact`.
 
-   **B closeout review and projected path (2026-07-31).** The remaining work
-   is intentionally smaller than a new inference feature, but it is not merely
+   **Post-handoff correctness review (2026-07-31; resolved).** The review
+   correctly identified discovery-order ordinals and insufficient conservative
+   assertions. Ordinals now use the stable tuple comparison, and the fixture
+   forces discovery order to differ from stable member order while asserting
+   both IR and JSON. Every member also asserts zero results and the section
+   asserts no recovered typed access. The required full C, Python, and Pandora
+   gates are recorded above.
+
+   **B closeout review and initial evidence (2026-07-31).** The repair was not merely
    presentation cleanup: an SCC terminal without a unique proof identity is
-   not independently reviewable. Completion requires the following sequence.
+   not independently reviewable. The initial implementation sequence was:
 
    1. Define one canonical SCC identity in the analysis IR. The preferred form
       is a component anchor: the lexicographically lowest member's stable
@@ -1766,22 +1782,21 @@ not optional refactoring and not a reason to retain transitional state.
    first; rendering changes only through the pre-existing consumer-backed
    closure.
 
-   **Implementation handoff: B closeout only (2026-07-31).** The next
-   implementation agent owns only the SCC-identity repair described in the
-   five-step closeout path above. B5's caller-boundary platform repair and its
-   capacity regression are the starting baseline and must be preserved. Do not
-   reopen any completed B6 slice, add a new result kind/address space, change
-   recursive-terminal semantics, or make an SCC terminal renderable merely to
-   produce visible source change. The historical B6 sections below provide
-   context, not additional work for this handoff.
+   **Implementation handoff: B closeout complete (2026-07-31).** The SCC
+   anchor, stable ordinal, and conservative-result proof are implemented and
+   verified.
+   B5's caller-boundary platform repair and capacity regression remain
+   preserved. No completed B6 slice was reopened, no result kind/address space
+   was added, and recursive terminals remain non-renderable. The B6 sections
+   below are historical context and evidence, not open work for this handoff.
 
-   The handoff implementation must change the direct-graph/inferred-summary
-   path, public IR, JSON export, and focused C fixtures as required by the
-   canonical anchor; it must not add a renderer-side identity or fallback. Its
-   evidence package is: a successful `cmd /c src\\build.bat`; a successful
-   `src\\build\\m68k_c_unit_tests.exe m68k_ir`; the selected strict
-   metadata/Python projection tests needed by any changed JSON consumer; and
-   this exact Pandora report command (with the repository-local UV cache):
+   The implementation changed the direct-graph/inferred-summary path, public
+   IR, JSON export, and focused C fixtures for the canonical anchor; it added
+   no renderer-side identity or fallback. Its evidence package is a successful
+   `cmd /c src\\build.bat`, the full
+   `src\\build\\m68k_c_unit_tests.exe` run, 13 selected strict
+   metadata/Python projection tests, and this exact Pandora report command
+   (with the repository-local UV cache):
 
    ```powershell
    $env:UV_CACHE_DIR='C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\.uv-cache'
@@ -1790,16 +1805,12 @@ not optional refactoring and not a reason to retain transitional state.
      --update-rendered-source --no-write-report --json
    ```
 
-   Compare regenerated source with the checkpoint baseline and record the
-   changed range count and classification. The expected result for this
-   handoff is zero rendered-source changes and Pandora `content_exact`; the
-   known Hunk container-shape/size mismatch is not a changed-source exemption.
-   Stop for review if any unrelated or broad range changes, if a terminal
-   becomes symbolic, or if resolving the anchor requires a new semantic model.
-   Completion reporting must cite the changed files and command outputs, not a
-   generic continuation claim.
+   The report records zero changed ranges and Pandora `content_exact`; the
+   known Hunk container-shape/size mismatch is not treated as a changed-source
+   exemption. No terminal became symbolic and no new semantic model was
+   required.
 
-   **B6 active slice -- source-section abstract-region bindings.** A bare
+   **B6 completed slice -- source-section abstract-region bindings.** A bare
    `abstract_region` subject name is insufficient evidence for a direct-body
    writer. Add one canonical, strict-imported/exported binding keyed by
    `region_id` with `address_space: source_section`, `section_index`,
@@ -1873,9 +1884,11 @@ not optional refactoring and not a reason to retain transitional state.
    clobber, so the call cannot fabricate a surviving typed value. The companion
    mutual-recursion regression proves that both SCC members carry the same
    durable terminal state. Each inferred direct summary now also exports its
-   solver proof as `direct_scc` (`size` and deterministic member `ordinal`) in
+   solver proof as `direct_scc` (`anchor_section_index`,
+   `anchor_entry_offset`, `size`, and deterministic member `ordinal`) in
    source-analysis JSON; self and mutual fixtures assert the stable proof
-   fields alongside the terminal reason. A third fixture places an unresolved
+   fields alongside the terminal reason. The equal-size disjoint-cycle fixture
+   proves that distinct components receive distinct anchors. A third fixture places an unresolved
    indirect nested call inside a two-member SCC and proves that the whole SCC
    remains terminal with the same durable graph proof; no member transfers a
    provisional value. This is solver-owned evidence, not a renderer-derived
@@ -1884,6 +1897,8 @@ not optional refactoring and not a reason to retain transitional state.
 Atari typed contracts are not a B5/B6 workaround. They become eligible only
 when generated Atari metadata can express equivalent typed ABI input/output
 rows; until then the existing scalar-return boundary remains explicit.
+
+**Historical B effect-matrix ledger (2026-07-30).**
 
 1. Complete the focused effect matrix for writing stack, memory, and escape
    effects.  Exact static-storage and input subjects now have a stable caller

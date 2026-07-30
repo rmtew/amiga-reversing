@@ -218,6 +218,8 @@ typedef struct M68kRenderPlatformDerivedSummary {
 typedef struct M68kRenderInferredFunctionSummary {
   M68kAnalysisFunctionSummary summary;
   uint8_t terminal_reason;
+  uint32_t direct_scc_anchor_section_index;
+  uint32_t direct_scc_anchor_entry_offset;
   uint8_t direct_scc_size;
   uint8_t direct_scc_ordinal;
   uint8_t reserved;

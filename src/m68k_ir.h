@@ -1705,6 +1705,8 @@ typedef struct M68kFunctionSummaryIR {
   /* Direct solver proof: a nonzero component size identifies the inferred
    * direct-call SCC that owns this summary. Configured/callback summaries use
    * zero because they are not graph-solver nodes. */
+  uint32_t direct_scc_anchor_section_index;
+  uint32_t direct_scc_anchor_entry_offset;
   uint8_t direct_scc_size;
   uint8_t direct_scc_ordinal;
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];

@@ -4688,10 +4688,12 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_appendf(&builder, ",\"callable_kind\":") != 0 ||
           json_builder_append_json_string(&builder, callable_kind) != 0 ||
           json_builder_appendf(&builder,
-            ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,\"direct_scc\":{\"size\":%u,\"ordinal\":%u},\"terminal_reason\":\"%s\","
+            ",\"callable_section_index\":%u,\"entry_offset\":%u,\"table_offset\":%u,\"entry_count\":%u,\"direct_scc\":{\"anchor_section_index\":%u,\"anchor_entry_offset\":%u,\"size\":%u,\"ordinal\":%u},\"terminal_reason\":\"%s\","
             "\"effects\":{\"schema_version\":1,\"registers\":{\"state\":\"%s\"",
             (unsigned)summary->callable_section_index, (unsigned)summary->entry_offset,
             (unsigned)summary->table_offset, (unsigned)summary->entry_count,
+            (unsigned)summary->direct_scc_anchor_section_index,
+            (unsigned)summary->direct_scc_anchor_entry_offset,
             (unsigned)summary->direct_scc_size, (unsigned)summary->direct_scc_ordinal,
             function_summary_terminal_reason_name(summary->terminal_reason),
             function_summary_effect_component_state_name(summary->register_effect_state)) != 0) goto oom;

@@ -6162,13 +6162,37 @@ static int render_lookup_solve_inferred_direct_function_summaries(M68kRenderLook
     size_t member_count = 0U;
     size_t ordinal = 0U;
     size_t member;
+    size_t anchor_member = SIZE_MAX;
     if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
     for (member = 0U; member < summary_count; ++member) {
       if (member == index || (edges[index * summary_count + member] != 0U &&
           edges[member * summary_count + index] != 0U)) {
-        if (member < index) ++ordinal;
+        if (member != index &&
+            (lookup->inferred_function_summaries[member].summary.section_index <
+               record->summary.section_index ||
+             (lookup->inferred_function_summaries[member].summary.section_index ==
+                record->summary.section_index &&
+              lookup->inferred_function_summaries[member].summary.entry_offset <
+                record->summary.entry_offset))) {
+          ++ordinal;
+        }
+        if (anchor_member == SIZE_MAX ||
+            lookup->inferred_function_summaries[member].summary.section_index <
+              lookup->inferred_function_summaries[anchor_member].summary.section_index ||
+            (lookup->inferred_function_summaries[member].summary.section_index ==
+               lookup->inferred_function_summaries[anchor_member].summary.section_index &&
+             lookup->inferred_function_summaries[member].summary.entry_offset <
+               lookup->inferred_function_summaries[anchor_member].summary.entry_offset)) {
+          anchor_member = member;
+        }
         ++member_count;
       }
+    }
+    if (anchor_member != SIZE_MAX) {
+      record->direct_scc_anchor_section_index =
+        lookup->inferred_function_summaries[anchor_member].summary.section_index;
+      record->direct_scc_anchor_entry_offset =
+        lookup->inferred_function_summaries[anchor_member].summary.entry_offset;
     }
     record->direct_scc_size = member_count <= UINT8_MAX ? (uint8_t)member_count : UINT8_MAX;
     record->direct_scc_ordinal = ordinal <= UINT8_MAX ? (uint8_t)ordinal : UINT8_MAX;
@@ -8966,6 +8990,10 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     summary.effects_invalid = inferred->effects_invalid;
     summary.location_effect_count = inferred->location_effect_count;
     summary.terminal_reason = lookup->inferred_function_summaries[index].terminal_reason;
+    summary.direct_scc_anchor_section_index =
+      lookup->inferred_function_summaries[index].direct_scc_anchor_section_index;
+    summary.direct_scc_anchor_entry_offset =
+      lookup->inferred_function_summaries[index].direct_scc_anchor_entry_offset;
     summary.direct_scc_size = lookup->inferred_function_summaries[index].direct_scc_size;
     summary.direct_scc_ordinal = lookup->inferred_function_summaries[index].direct_scc_ordinal;
     memcpy(summary.inputs, inferred->inputs, sizeof(summary.inputs));

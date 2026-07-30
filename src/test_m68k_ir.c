@@ -28162,7 +28162,8 @@ static int test_facts_v2_self_recursive_direct_summary_is_conservative(void) {
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_summary_id\":\"inferred_local_s0_o00000006\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"terminal_reason\":\"recursive_direct_graph\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"direct_scc\":{\"size\":1,\"ordinal\":0}") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"direct_scc\":{\"anchor_section_index\":0,\"anchor_entry_offset\":6,\"size\":1,\"ordinal\":0}") != NULL);
   free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
@@ -28232,12 +28233,13 @@ static int test_facts_v2_mutually_recursive_direct_summaries_are_conservative(vo
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
   M68kAnalysisCustomStruct *custom_structs;
-  uint8_t bytes[16] = {
-    0x61u, 0x04u,                         /* bsr.s first */
-    0x30u, 0x28u, 0x00u, 0x02u,           /* move.w $2(a0),d0 */
-    0x61u, 0x04u, 0x4eu, 0x75u,           /* first: bsr.s second; rts */
-    0x4eu, 0x71u,                         /* alignment nop */
-    0x61u, 0xf8u, 0x4eu, 0x75u            /* second: bsr.s first; rts */
+  char *analysis_json = NULL;
+  uint8_t bytes[26] = {
+    0x61u, 0x14u, 0x61u, 0x02u, 0x4eu, 0x75u, /* caller: fourth; first; rts */
+    0x61u, 0x04u, 0x4eu, 0x75u, 0x4eu, 0x71u, /* first: second; rts; nop */
+    0x61u, 0xf8u, 0x4eu, 0x75u,              /* second: first; rts */
+    0x61u, 0x04u, 0x4eu, 0x75u, 0x4eu, 0x71u, /* third: fourth; rts; nop */
+    0x61u, 0xf8u, 0x4eu, 0x75u               /* fourth: third; rts */
   };
   memset(&section, 0, sizeof(section));
   memset(&analysis, 0, sizeof(analysis));
@@ -28275,24 +28277,58 @@ static int test_facts_v2_mutually_recursive_direct_summaries_are_conservative(vo
   snprintf(policy.register_seeds[0].type_name, sizeof(policy.register_seeds[0].type_name), "mutual_context");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_U32(2U, (uint32_t)analysis.sections[0].function_summary_count);
-  M68K_C_ASSERT_STR("inferred_local_s0_o00000006", analysis.sections[0].function_summaries[0].function_summary_id);
-  M68K_C_ASSERT_STR("inferred_local_s0_o0000000C", analysis.sections[0].function_summaries[1].function_summary_id);
+  M68K_C_ASSERT_U32(4U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_STR("inferred_local_s0_o00000016", analysis.sections[0].function_summaries[0].function_summary_id);
+  M68K_C_ASSERT_STR("inferred_local_s0_o00000006", analysis.sections[0].function_summaries[1].function_summary_id);
+  M68K_C_ASSERT_STR("inferred_local_s0_o0000000C", analysis.sections[0].function_summaries[2].function_summary_id);
+  M68K_C_ASSERT_STR("inferred_local_s0_o00000010", analysis.sections[0].function_summaries[3].function_summary_id);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
     analysis.sections[0].function_summaries[0].terminal_reason);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
     analysis.sections[0].function_summaries[1].terminal_reason);
   M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[0].direct_scc_size);
   M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[1].direct_scc_size);
-  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].direct_scc_ordinal);
-  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[1].direct_scc_ordinal);
+  M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[2].direct_scc_size);
+  M68K_C_ASSERT_U32(2U, analysis.sections[0].function_summaries[3].direct_scc_size);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].direct_scc_anchor_section_index);
+  M68K_C_ASSERT_U32(16U, analysis.sections[0].function_summaries[0].direct_scc_anchor_entry_offset);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[1].direct_scc_anchor_section_index);
+  M68K_C_ASSERT_U32(6U, analysis.sections[0].function_summaries[1].direct_scc_anchor_entry_offset);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[2].direct_scc_anchor_section_index);
+  M68K_C_ASSERT_U32(6U, analysis.sections[0].function_summaries[2].direct_scc_anchor_entry_offset);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[3].direct_scc_anchor_section_index);
+  M68K_C_ASSERT_U32(16U, analysis.sections[0].function_summaries[3].direct_scc_anchor_entry_offset);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].direct_scc_ordinal);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[1].direct_scc_ordinal);
   M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].effects_invalid);
   M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[1].effects_invalid);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
+    analysis.sections[0].function_summaries[2].terminal_reason);
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH,
+    analysis.sections[0].function_summaries[3].terminal_reason);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[2].effects_invalid);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[3].effects_invalid);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[2].direct_scc_ordinal);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[3].direct_scc_ordinal);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].result_count);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[1].result_count);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[2].result_count);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[3].result_count);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED,
     analysis.sections[0].function_summaries[0].location_effects[8].effect);
   M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED,
     analysis.sections[0].function_summaries[1].location_effects[8].effect);
   M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].recovered_platform_typed_access_count);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"direct_scc\":{\"anchor_section_index\":0,\"anchor_entry_offset\":6,\"size\":2,\"ordinal\":0}") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"direct_scc\":{\"anchor_section_index\":0,\"anchor_entry_offset\":16,\"size\":2,\"ordinal\":0}") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"direct_scc\":{\"anchor_section_index\":0,\"anchor_entry_offset\":16,\"size\":2,\"ordinal\":1}") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"direct_scc\":{\"anchor_section_index\":0,\"anchor_entry_offset\":6,\"size\":2,\"ordinal\":1}") != NULL);
+  free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
