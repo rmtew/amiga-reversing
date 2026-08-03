@@ -70,13 +70,12 @@ on the current revision.
 
 ### Next bounded action
 
-Finish the current clean eight-worker output, then use the checked comparison
-helper with a clean one-worker output. Use the confirmed main project virtual
-environment (which includes `machine68k`) for any Python runtime dependency.
-Then obtain a clean pre-instrumentation oracle or checked equivalent baseline,
-collect WPR CPU Usage, and set the final R0 target and smaller-target fixed-cost
-budget. Do not begin typed batch or reducer work until those R0 gaps are
-closed.
+Finish the running clean pre-instrumentation eight-worker oracle and compare it
+with a correctly named clean instrumented candidate output. Then run clean
+one-worker candidate/oracle outputs, capture WPR CPU Usage for one selected
+clean run, inspect it in WPA, and set the final R0 target and smaller-target
+fixed-cost budget. Do not begin typed batch or reducer work until those R0 gaps
+are closed.
 
 ### Open observations and questions
 
@@ -126,3 +125,6 @@ comparison helper.
 | 2026-08-04 | R0 | Corrected the profile-output feedback loop: progress snapshots retain aggregate counters only, while detailed target profiles are written only in the final profile. Ran a second clean eight-worker build at `.tmp-041-r0-corrected-8`. | All eight normal artifacts are SHA-256-identical to `.tmp-041-r0-8`; the correction changes measurement overhead, not corpus semantics. | Corrected run: 659.984s elapsed, 8.47GiB peak; file 199.052s, project 267.950s, reports 48.384s, preparation 143.772s. King: 258.587s visit = 246.370s native + 11.570s projection + 0.661s decode. Midwinter II: 192.453s = 169.518s native + 22.230s projection + 0.834s decode. This is not a pre-instrumentation oracle. |
 | 2026-08-04 | R0 | Added native canonical row-JSON and native row-callback timing, plus manifest-executable temporary-file materialization attribution. Rebuilt C and reran focused tests. | Passed. | `cmd /c src/build.bat --lock-held` and `src/build/m68k_c_unit_tests.exe` passed; `uv run pytest tests/test_target_usage_manifest.py -q`: 46 passed; `uv run pytest src/tests/test_target_usage_manifest.py -q`: 65 passed. Final clean corpus measurements must use this completed instrumentation. |
 | 2026-08-04 | R0 | Added `src.scripts.compare_corpus_artifacts`, the checked normal-artifact comparator required for every migration gate. | Passed focused test. | It hashes and compares manifest, xrefs, both snippet files, variants, type-flow, unresolved fields, and coverage; it excludes profiles/progress by design. `uv run pytest tests/test_compare_corpus_artifacts.py tests/test_target_usage_manifest.py -q`: 47 passed. A full clean eight-worker run using completed instrumentation is in progress at `.tmp-041-r0-final-8`; do not use the partially written directory for comparison. |
+| 2026-08-04 | R0 | Completed the clean eight-worker finalized-instrumentation run at `.tmp-041-r0-final-8`. | Completed 378 targets; metrics valid, but the run passed the snippet *index filename* rather than the required snippet output base, so it is not a comparison candidate. | 709.989s elapsed, 8.86GiB peak; file 214.934s, project 305.419s, reports 48.701s, preparation 140.091s. King visit: 295.697s = 283.405s native + 12.292s callback (0.652s JSON decode, 11.657s Python projection), 71.917MiB events. Midwinter II: 209.769s = 190.586s native + 19.183s callback (0.715s decode, 18.590s projection), 65.775MiB. The Midwinter projection boundary is 9.15% of visit time, exceeding the required future 5% target and confirming the R1--R5 replacement is necessary. |
+| 2026-08-04 | R0 | Verified Windows Performance Toolkit installation. | `wpr.exe`, `wpa.exe`, and `wpaexporter.exe` are available at `C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit`. | Use explicit paths because this session predates the PATH update. WPR/WPA evidence remains pending. |
+| 2026-08-04 | R0 | Started the pre-instrumentation oracle from `1711c0ab` against the main repository's corpus and targets, with a monkey-patched data root and isolated output `.tmp-r0-oracle-current-8b`. | Running. | This is a temporary test oracle only. The initial `8` directory failed before work because Windows process quoting truncated the `-c` payload; preserve it as a failed invocation and use only `8b` for evidence. |

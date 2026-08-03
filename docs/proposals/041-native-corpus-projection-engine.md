@@ -339,7 +339,8 @@ benchmark record.
 - All in-repository callers use the new architecture; obsolete private API/ABI
   surfaces and bindings are removed rather than preserved for compatibility.
 - SIMD is used only for measured exact bulk kernels.
-- A normal eight-worker build completes all 428 targets, clears proposal 040's
+- A normal eight-worker build completes all 378 currently scoped targets (319
+  file entries and 59 project targets), clears proposal 040's
   memory and timing gates, and publishes atomically.
 - The stronger R0-derived local performance target passes, with projection
   overhead within the recorded per-target budget: at most five percent of
