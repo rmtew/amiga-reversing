@@ -70,10 +70,8 @@ on the current revision.
 
 ### Next bounded action
 
-Finish the running clean pre-instrumentation eight-worker oracle and compare it
-with a correctly named clean instrumented candidate output. Then run clean
-one-worker candidate/oracle outputs, capture WPR CPU Usage for one selected
-clean run, inspect it in WPA, and set the final R0 target and smaller-target
+Run a clean one-worker candidate/oracle pair, capture WPR CPU Usage for the
+candidate run, inspect it in WPA, and set the final R0 target and smaller-target
 fixed-cost budget. Do not begin typed batch or reducer work until those R0 gaps
 are closed.
 
@@ -129,3 +127,4 @@ comparison helper.
 | 2026-08-04 | R0 | Verified Windows Performance Toolkit installation. | `wpr.exe`, `wpa.exe`, and `wpaexporter.exe` are available at `C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit`. | Use explicit paths because this session predates the PATH update. WPR/WPA evidence remains pending. |
 | 2026-08-04 | R0 | Started the pre-instrumentation oracle from `1711c0ab` against the main repository's corpus and targets, with a monkey-patched data root and isolated output `.tmp-r0-oracle-current-8b`. | Running. | This is a temporary test oracle only. The initial `8` directory failed before work because Windows process quoting truncated the `-c` payload; preserve it as a failed invocation and use only `8b` for evidence. |
 | 2026-08-04 | R0 | Completed the valid pre-instrumentation oracle at `.tmp-r0-oracle-current-8b`. | Completed 378 targets in 584.1s with 5.54GiB peak. | It is ready for the checked artifact comparison. The prior candidate's per-render-row `clock()` instrumentation made its timing materially intrusive, so canonical-row timing was changed to bounded batch timing (one start/end per 8192-row batch); C build/unit tests and both focused Python roots pass. A fresh correctly named batch-timed eight-worker candidate is running at `.tmp-041-r0-batch-timed-8`. |
+| 2026-08-04 | R0 | Diagnosed the `8b` detached oracle mismatch, then reran it as `.tmp-r0-oracle-current-8c` after importing old code and changing its working directory to the main repository before resolving relative target paths. Compared it with `.tmp-041-r0-batch-timed-8` using `python -m src.scripts.compare_corpus_artifacts`. | Passed: all eight normal artifacts are byte-identical. | The batch-timed candidate completed 378 targets in 694.0s/8.48GiB; corrected oracle completed in 650.7s/8.01GiB. This proves R0 instrumentation preserves normal outputs; timing remains diagnostic and is not the replacement performance result. Remaining R0 evidence: one-worker parity, WPR/WPA stack attribution, and numeric target/budget decision. |
