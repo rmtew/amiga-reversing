@@ -23,7 +23,7 @@ ARTIFACT_ARGUMENTS = (
     ("--snippet-rows-output", "target_usage_snippet_rows"),
     ("--variants-output", "target_variant_index.jsonl"),
     ("--type-flow-report-output", "target_type_flow_report.jsonl"),
-    ("--unresolved-typed-fields-output", "target_unresolved_typed_fields.jsonl"),
+    ("--unresolved-typed-field-report-output", "target_unresolved_typed_fields.jsonl"),
     ("--coverage-report-output", "target_usage_coverage.json"),
     ("--profile-output", "target_usage_build_profile.json"),
     ("--progress-output", "progress"),

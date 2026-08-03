@@ -16,6 +16,7 @@ def test_conformance_command_uses_explicit_code_data_and_artifact_roots(tmp_path
     assert "sys.path.insert(0, str(code_root))" in child
     assert "platform_manifest_io.ROOT = data_root" in child
     assert "--workers', '8'" in child
+    assert "--unresolved-typed-field-report-output" in child
     for _option, relative_path in ARTIFACT_ARGUMENTS:
         assert repr(str(output / relative_path)) in child
 
