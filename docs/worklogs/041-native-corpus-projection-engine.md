@@ -70,13 +70,13 @@ on the current revision.
 
 ### Next bounded action
 
-Run the current instrumented revision with clean one- and eight-worker outputs,
-then compare every normal artifact byte-for-byte. Use the confirmed main
-project virtual environment (which includes `machine68k`) for any Python
-runtime dependency. Then obtain a clean pre-instrumentation oracle or checked
-equivalent baseline, collect WPR CPU Usage, and set the final R0 target and
-smaller-target fixed-cost budget. Do not begin typed batch or reducer work
-until those R0 gaps are closed.
+Finish the current clean eight-worker output, then use the checked comparison
+helper with a clean one-worker output. Use the confirmed main project virtual
+environment (which includes `machine68k`) for any Python runtime dependency.
+Then obtain a clean pre-instrumentation oracle or checked equivalent baseline,
+collect WPR CPU Usage, and set the final R0 target and smaller-target fixed-cost
+budget. Do not begin typed batch or reducer work until those R0 gaps are
+closed.
 
 ### Open observations and questions
 
@@ -125,3 +125,4 @@ comparison helper.
 | 2026-08-04 | R0 | Ran `uv run pytest src/tests -q` and isolated the stop with `uv run pytest src/tests/test_c99_assembler_corpus.py::C99AssemblerCorpusTests::test_native_line_cpu_gating_accepts_expected_cases -vv -s`. | Process exited 1 during that C-backed test without pytest diagnostics. | Treat as unresolved broad-suite failure; reproduce/classify before R0 acceptance. |
 | 2026-08-04 | R0 | Corrected the profile-output feedback loop: progress snapshots retain aggregate counters only, while detailed target profiles are written only in the final profile. Ran a second clean eight-worker build at `.tmp-041-r0-corrected-8`. | All eight normal artifacts are SHA-256-identical to `.tmp-041-r0-8`; the correction changes measurement overhead, not corpus semantics. | Corrected run: 659.984s elapsed, 8.47GiB peak; file 199.052s, project 267.950s, reports 48.384s, preparation 143.772s. King: 258.587s visit = 246.370s native + 11.570s projection + 0.661s decode. Midwinter II: 192.453s = 169.518s native + 22.230s projection + 0.834s decode. This is not a pre-instrumentation oracle. |
 | 2026-08-04 | R0 | Added native canonical row-JSON and native row-callback timing, plus manifest-executable temporary-file materialization attribution. Rebuilt C and reran focused tests. | Passed. | `cmd /c src/build.bat --lock-held` and `src/build/m68k_c_unit_tests.exe` passed; `uv run pytest tests/test_target_usage_manifest.py -q`: 46 passed; `uv run pytest src/tests/test_target_usage_manifest.py -q`: 65 passed. Final clean corpus measurements must use this completed instrumentation. |
+| 2026-08-04 | R0 | Added `src.scripts.compare_corpus_artifacts`, the checked normal-artifact comparator required for every migration gate. | Passed focused test. | It hashes and compares manifest, xrefs, both snippet files, variants, type-flow, unresolved fields, and coverage; it excludes profiles/progress by design. `uv run pytest tests/test_compare_corpus_artifacts.py tests/test_target_usage_manifest.py -q`: 47 passed. A full clean eight-worker run using completed instrumentation is in progress at `.tmp-041-r0-final-8`; do not use the partially written directory for comparison. |
