@@ -123,7 +123,7 @@ def _stream_profile_timing_values(profile: dict[str, object]) -> dict[str, float
             if prefix.endswith(("_seconds", "_bytes", "_count")):
                 result[prefix] = round(float(value), 6)
 
-    for section in ("facts_v2", "timing", "transport", "source_staging", "python_projection"):
+    for section in ("facts_v2", "timing", "transport", "source_staging", "python_projection", "shard_writing"):
         value = profile.get(section)
         if isinstance(value, dict):
             collect(section, value)
@@ -152,6 +152,7 @@ class CorpusBuildMonitor:
     stream_timing_totals: dict[str, float] = field(default_factory=dict)
     stream_timing_maxima: dict[str, float] = field(default_factory=dict)
     stream_target_profiles: dict[str, dict[str, object]] = field(default_factory=dict)
+    stage_timing_totals: dict[str, float] = field(default_factory=dict)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def phase_started(self, phase: str) -> None:
@@ -213,6 +214,13 @@ class CorpusBuildMonitor:
             # the entire growing profile on every callback would turn R0
             # measurement into the dominant project-tail cost.
 
+    def record_stage_timing(self, name: str, seconds: float) -> None:
+        """Record a non-semantic whole-corpus stage not owned by a stream callback."""
+        if seconds < 0.0:
+            raise ValueError("stage timing must not be negative")
+        with self._lock:
+            self.stage_timing_totals[name] = round(self.stage_timing_totals.get(name, 0.0) + seconds, 6)
+
     def report(self) -> dict[str, object]:
         with self._lock:
             self._observe_memory_locked()
@@ -262,6 +270,7 @@ class CorpusBuildMonitor:
             # Immutable progress snapshots must stay bounded; the full
             # per-target attribution belongs only in the completed profile.
             "stream_target_profiles": dict(sorted(self.stream_target_profiles.items())) if complete else {},
+            "stage_timing_totals": dict(sorted(self.stage_timing_totals.items())),
             "phases": phases,
         }
 
@@ -296,6 +305,8 @@ class CorpusBuildStaging:
         self._rows: dict[str, dict[str, object]] = {}
         self._shards: dict[str, tuple[Path, Path]] = {}
         self._lock = threading.Lock()
+        self.xref_shard_sort_seconds = 0.0
+        self.xref_shard_sort_targets = 0
 
     def add(
         self,
@@ -357,7 +368,10 @@ class CorpusBuildStaging:
     def iter_sorted_xrefs(self) -> Iterator[dict[str, object]]:
         for target_id in sorted(self._rows):
             xref_path, _snippet_path = self._shards[target_id]
+            started = time.perf_counter()
             _external_sort_dedupe_xref_shard(xref_path)
+            self.xref_shard_sort_seconds += time.perf_counter() - started
+            self.xref_shard_sort_targets += 1
             yield from _read_jsonl_shard(xref_path)
 
 
@@ -426,6 +440,8 @@ class _StreamingSnippetWriter:
         self._batch_rows: dict[int, dict[str, Any]] = {}
         self._active_end = -1
         self._last_appended = -1
+        self._write_seconds = 0.0
+        self._serialized_bytes = 0
         self._output = path.open("w", encoding="utf-8", newline="\n", buffering=1024 * 1024)
 
     def accept_row(self, row_index: int, row: dict[str, Any]) -> None:
@@ -458,17 +474,29 @@ class _StreamingSnippetWriter:
     def close(self) -> None:
         self._output.close()
 
+    @property
+    def profile(self) -> dict[str, object]:
+        return {
+            "snippet_write_seconds": round(self._write_seconds, 6),
+            "snippet_serialized_bytes": self._serialized_bytes,
+        }
+
     def _append(self, row_index: int, compact: dict[str, Any]) -> None:
         if row_index <= self._last_appended:
             return
-        self._output.write(json.dumps({
+        started = time.perf_counter()
+        encoded = json.dumps({
             "schema_version": 1,
             "id": _stable_snippet_row_id(self._target_id, row_index, compact),
             "target_id": self._target_id,
             "row_index": row_index,
             "row": compact,
-        }, sort_keys=True, separators=(",", ":")))
-        self._output.write("\n")
+        }, sort_keys=True, separators=(",", ":")) + "\n"
+        self._output.write(encoded)
+        # json.dumps defaults to ensure_ascii=True, so this character count is
+        # exactly the UTF-8 byte count without allocating an encoded copy.
+        self._serialized_bytes += len(encoded)
+        self._write_seconds += time.perf_counter() - started
         self._last_appended = row_index
 
 
@@ -490,6 +518,8 @@ class _StreamingXrefWriter:
     def __init__(self, path: Path) -> None:
         self._path = path
         self._pending_lines: list[str] = []
+        self._write_seconds = 0.0
+        self._serialized_bytes = 0
         self._output = path.open("w", encoding="utf-8", newline="\n", buffering=1024 * 1024)
 
     def accept(self, xrefs: Iterable[dict[str, object]]) -> None:
@@ -503,9 +533,21 @@ class _StreamingXrefWriter:
         self._output.close()
         return _XrefShard(self._path)
 
+    @property
+    def profile(self) -> dict[str, object]:
+        return {
+            "xref_write_seconds": round(self._write_seconds, 6),
+            "xref_serialized_bytes": self._serialized_bytes,
+        }
+
     def _flush(self) -> None:
         if self._pending_lines:
-            self._output.write("".join(self._pending_lines))
+            started = time.perf_counter()
+            encoded = "".join(self._pending_lines)
+            self._output.write(encoded)
+            # See _StreamingSnippetWriter._append: the JSON is ASCII-only.
+            self._serialized_bytes += len(encoded)
+            self._write_seconds += time.perf_counter() - started
             self._pending_lines.clear()
 
 
@@ -708,6 +750,15 @@ class _OrderedListingProjector:
             "finish_seconds": round(self._finish_seconds, 6),
             "total_seconds": round(sum(self._event_seconds.values()) + self._finish_seconds, 6),
         }
+
+    @property
+    def shard_writing_profile(self) -> dict[str, object]:
+        profile: dict[str, object] = {}
+        if self._snippet_writer is not None:
+            profile.update(self._snippet_writer.profile)
+        if self._xref_writer is not None:
+            profile.update(self._xref_writer.profile)
+        return profile
 
     def accept(self, kind: str, payload: dict[str, object]) -> None:
         started = time.perf_counter()
@@ -2420,6 +2471,7 @@ def project_binary_source_listing_stream(
         profile = dict(projector.summary_profile)
         profile.update(transport_profile)
         profile["python_projection"] = projector.projection_profile
+        profile["shard_writing"] = projector.shard_writing_profile
         profile_sink(profile)
     return projector.analysis, xrefs, snippets
 
@@ -12721,6 +12773,7 @@ def main(argv: list[str] | None = None) -> int:
             monitor.phase_started("prepare_artifacts")
             write_usage_manifest(prepared_output, rows)
             xref_count = write_usage_xrefs_from_staging(prepared_xrefs, staging)
+            monitor.record_stage_timing("xref_shard_sort_seconds", staging.xref_shard_sort_seconds)
             snippet_row_count = write_usage_snippet_rows_from_staging(prepared_snippets, staging)
             write_variant_index(prepared_variants, variant_rows)
             write_type_flow_report(prepared_type_flow, type_flow_rows)

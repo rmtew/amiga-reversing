@@ -186,6 +186,8 @@ def test_streaming_xref_writer_orders_and_deduplicates_without_retaining_rows() 
         replacement = {**first, "text": "last"}
         writer.accept([first, second, replacement])
         shard = writer.close()
+        assert writer.profile["xref_serialized_bytes"] > 0
+        assert writer.profile["xref_write_seconds"] >= 0.0
         _external_sort_dedupe_xref_shard(shard.path)
         assert _read_jsonl_shard(shard.path) == [second, replacement]
 
@@ -230,6 +232,8 @@ def test_streaming_snippet_writer_merges_overlapping_windows_without_row_retenti
         writer.close()
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     assert [row["row_index"] for row in rows] == list(range(1, 8))
+    assert writer.profile["snippet_serialized_bytes"] > 0
+    assert writer.profile["snippet_write_seconds"] >= 0.0
 
 
 def test_pending_analysis_xrefs_uses_canonical_location_rank() -> None:
@@ -308,6 +312,13 @@ def test_build_monitor_records_per_target_transport_projection_and_staging_attri
         "transport.json_decode_seconds": 0.125,
     }
     assert report["stream_target_profiles"]["project_target:fixture"]["allocation"] == {"transient_json_bytes": 256}
+
+
+def test_build_monitor_records_whole_corpus_stage_timing() -> None:
+    monitor = CorpusBuildMonitor(worker_count=1)
+    monitor.record_stage_timing("xref_shard_sort_seconds", 0.125)
+    monitor.record_stage_timing("xref_shard_sort_seconds", 0.375)
+    assert monitor.report()["stage_timing_totals"] == {"xref_shard_sort_seconds": 0.5}
 
 
 def test_build_monitor_keeps_progress_snapshots_bounded_while_retaining_final_target_profiles(tmp_path: Path) -> None:
