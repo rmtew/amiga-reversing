@@ -198,7 +198,9 @@ int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream 
 int platform_listing_canonical_stream_finish(PlatformListingCanonicalStream *stream, char **out_navigation_json,
   M68kDiagSink diagnostics);
 void platform_listing_canonical_stream_allocation_stats(const PlatformListingCanonicalStream *stream,
-  size_t *out_max_rows, size_t *out_transient_json_bytes);
+    size_t *out_max_rows, size_t *out_transient_json_bytes);
+void platform_listing_canonical_stream_timing_stats(const PlatformListingCanonicalStream *stream,
+    double *out_row_json_seconds, double *out_row_callback_seconds);
 void platform_listing_canonical_stream_destroy(PlatformListingCanonicalStream *stream);
 int platform_type_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
 int platform_naming_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);

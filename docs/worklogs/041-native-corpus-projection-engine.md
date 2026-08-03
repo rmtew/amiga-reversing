@@ -1,6 +1,8 @@
 # Worklog: Proposal 041 Native Corpus Projection Engine
 
-Status: Active research ledger. Current gate: R0 -- not started.
+Status: Active research ledger. Current gate: R0 -- the instrumentation is
+complete enough for the final clean measurements; baseline/oracle and profiling
+evidence remain.
 
 This is the required resume ledger for
 [Proposal 041](../proposals/041-native-corpus-projection-engine.md). It tracks
@@ -68,13 +70,25 @@ on the current revision.
 
 ### Next bounded action
 
-Locate the current corpus build timing and collector boundaries, then propose
-the smallest instrumentation patch and its focused tests. Do not begin typed
-batch or reducer work until R0 attribution exists.
+Run the current instrumented revision with clean one- and eight-worker outputs,
+then compare every normal artifact byte-for-byte. Use the confirmed main
+project virtual environment (which includes `machine68k`) for any Python
+runtime dependency. Then obtain a clean pre-instrumentation oracle or checked
+equivalent baseline, collect WPR CPU Usage, and set the final R0 target and
+smaller-target fixed-cost budget. Do not begin typed batch or reducer work
+until those R0 gaps are closed.
 
 ### Open observations and questions
 
-- No per-stage R0 attribution has been recorded yet.
+- The current tracked `corpus/target_usage_*` artifacts predate the inherited
+  Proposal 040 changes: their sizes differ from the clean R0 output, so they
+  cannot prove instrumentation parity. A clean pre-instrumentation worktree
+  build is required as the oracle.
+- The full `src/tests` root currently terminates during
+  `C99AssemblerCorpusTests::test_native_line_cpu_gating_accepts_expected_cases`
+  without a pytest failure report. The R0 modules are not on that test's import
+  path, but this is not yet proven independent; diagnose before claiming the
+  relevant broad-suite gate.
 - The smaller-target fixed-cost projection budget is deliberately unset until
   R0 measures the unavoidable fixed costs.
 - Identify the exact clean corpus-manifest invocation and add the checked
@@ -101,8 +115,13 @@ comparison helper.
 
 ## Evidence Log
 
-No Proposal 041 gate evidence has been recorded yet.
-
 | Date | Gate | Action and command | Result | Evidence / next action |
 | --- | --- | --- | --- | --- |
 | 2026-08-04 | Setup | Created required resume ledger. | Ready for R0. | Start with the R0 bounded action above. |
+| 2026-08-04 | R0 | Added non-semantic source-staging, ctypes transport, JSON-decode, Python projection, event-byte/count, allocation, and per-target profile attribution. | Focused tests pass. | `uv run pytest tests/test_target_usage_manifest.py -q`: 45 passed; `uv run pytest src/tests/test_target_usage_manifest.py -q`: 65 passed. |
+| 2026-08-04 | R0 | Ran `cmd /c src/build.bat --lock-held`, then `src/build/m68k_c_unit_tests.exe`, then `uv run pytest tests -q`. | Passed. | C unit suite passed; Python root: 1,376 passed, 58 skipped, 355 deselected. |
+| 2026-08-04 | R0 | Clean isolated eight-worker build to `.tmp-041-r0-8` using `python -m src.scripts.target_usage_manifest build --workers 8` with every output path redirected there. | Completed all 378 stream targets (319 file + 59 project); 727.139s elapsed; 10.462GiB peak process memory. | Phases: file 196.220s, project 334.169s, reports 49.107s, artifact preparation 146.592s. Preserve command/output location until a checked benchmark helper replaces it. |
+| 2026-08-04 | R0 | Inspected `.tmp-041-r0-8/target_usage_build_profile.json`. | Attribution established; R0 remains open. | King: 321.342s visit = 300.801s native + 19.553s Python projection + 1.003s JSON decode, 75.410MiB event JSON. Midwinter: 217.834s = 196.168s native + 21.029s projection + 0.759s decode, 68.970MiB. Need oracle comparison, one-worker, WPR, and target/budget decision. |
+| 2026-08-04 | R0 | Ran `uv run pytest src/tests -q` and isolated the stop with `uv run pytest src/tests/test_c99_assembler_corpus.py::C99AssemblerCorpusTests::test_native_line_cpu_gating_accepts_expected_cases -vv -s`. | Process exited 1 during that C-backed test without pytest diagnostics. | Treat as unresolved broad-suite failure; reproduce/classify before R0 acceptance. |
+| 2026-08-04 | R0 | Corrected the profile-output feedback loop: progress snapshots retain aggregate counters only, while detailed target profiles are written only in the final profile. Ran a second clean eight-worker build at `.tmp-041-r0-corrected-8`. | All eight normal artifacts are SHA-256-identical to `.tmp-041-r0-8`; the correction changes measurement overhead, not corpus semantics. | Corrected run: 659.984s elapsed, 8.47GiB peak; file 199.052s, project 267.950s, reports 48.384s, preparation 143.772s. King: 258.587s visit = 246.370s native + 11.570s projection + 0.661s decode. Midwinter II: 192.453s = 169.518s native + 22.230s projection + 0.834s decode. This is not a pre-instrumentation oracle. |
+| 2026-08-04 | R0 | Added native canonical row-JSON and native row-callback timing, plus manifest-executable temporary-file materialization attribution. Rebuilt C and reran focused tests. | Passed. | `cmd /c src/build.bat --lock-held` and `src/build/m68k_c_unit_tests.exe` passed; `uv run pytest tests/test_target_usage_manifest.py -q`: 46 passed; `uv run pytest src/tests/test_target_usage_manifest.py -q`: 65 passed. Final clean corpus measurements must use this completed instrumentation. |

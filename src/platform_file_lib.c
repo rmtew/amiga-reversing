@@ -13642,6 +13642,8 @@ int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *strea
   char *summary_json = NULL;
   size_t max_live_rows = 0U;
   size_t transient_json_bytes = 0U;
+  double row_json_seconds = 0.0;
+  double row_callback_seconds = 0.0;
   clock_t start;
   if (out_error != NULL) *out_error = NULL;
   if (stream == NULL || sink == NULL || out_error == NULL || stream->visited) {
@@ -13663,6 +13665,7 @@ int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *strea
   stream->analysis_live = 1U;
   stream->visited = 1U;
   platform_listing_canonical_stream_allocation_stats(adapter.canonical, &max_live_rows, &transient_json_bytes);
+  platform_listing_canonical_stream_timing_stats(adapter.canonical, &row_json_seconds, &row_callback_seconds);
   if (json_builder_create(&builder) != 0 ||
       json_builder_append(&builder, "{\"generation\":\"facts_v2_listing_stream\","
         "\"corpus_generation\":\"facts_v2_listing_artifact_window\",\"backend\":") != 0 ||
@@ -13676,11 +13679,12 @@ int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *strea
         "\"finalization_overlap_bytes\":0,\"semantic_layout_bytes\":0,\"source_analysis_bytes\":%llu,"
         "\"live_row_batch_bytes\":%llu,\"max_live_rows\":%llu,\"transient_json_bytes\":%llu,"
         "\"complete_render_plan_bytes\":0,\"complete_listing_row_index_bytes\":0},"
-        "\"timing\":{\"source_seconds\":%.6f,\"total_seconds\":%.6f}}",
+        "\"timing\":{\"source_seconds\":%.6f,\"canonical_row_json_seconds\":%.6f,"
+        "\"native_row_callback_seconds\":%.6f,\"total_seconds\":%.6f}}",
         (unsigned long long)arena_stats(stream->source_analysis.arena).current_used,
         (unsigned long long)transient_json_bytes, (unsigned long long)max_live_rows,
         (unsigned long long)transient_json_bytes,
-        stream->source_seconds, stream->source_seconds) != 0) goto fail;
+        stream->source_seconds, row_json_seconds, row_callback_seconds, stream->source_seconds) != 0) goto fail;
   summary_json = json_builder_build(&builder);
   if (summary_json == NULL || navigation_json == NULL ||
       sink(PLATFORM_FILE_LISTING_STREAM_EVENT_NAVIGATION, navigation_json, strlen(navigation_json), sink_user) != 0 ||

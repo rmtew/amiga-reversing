@@ -12,6 +12,8 @@
 #include "generated/platform_executable_formats.h"
 #include "util_arena.h"
 
+#include <time.h>
+
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
 static const char *app_slot_access_kind_name(uint8_t access_kind);
@@ -9616,6 +9618,8 @@ struct PlatformListingCanonicalStream {
   size_t max_transient_json_bytes;
   JsonBuilder batch_builder;
   size_t batch_rows;
+  clock_t row_json_ticks;
+  clock_t row_callback_ticks;
   uint8_t header_capture_open;
   ListingNavigationJsonContext *navigation;
 };
@@ -9634,6 +9638,7 @@ static int canonical_stream_begin_batch(PlatformListingCanonicalStream *stream) 
 
 static int canonical_stream_flush_batch(PlatformListingCanonicalStream *stream, M68kDiagSink diagnostics) {
   char *json = NULL;
+  clock_t callback_start;
   int result = -1;
   if (stream == NULL) return -1;
   if (stream->batch_rows == 0U) {
@@ -9646,11 +9651,14 @@ static int canonical_stream_flush_batch(PlatformListingCanonicalStream *stream, 
   if (stream->batch_builder.size > stream->max_transient_json_bytes)
     stream->max_transient_json_bytes = stream->batch_builder.size;
   json = json_builder_build(&stream->batch_builder);
+  callback_start = clock();
   if (json == NULL || stream->sink(json, strlen(json), stream->sink_user) != 0) {
+    stream->row_callback_ticks += clock() - callback_start;
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
       "listing stream row sink failed");
     goto done;
   }
+  stream->row_callback_ticks += clock() - callback_start;
   result = 0;
 done:
   free(json);
@@ -9731,11 +9739,13 @@ int platform_listing_canonical_stream_create(uint8_t platform_backend_kind,
 int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream *stream,
     const M68kRenderPlanRow *row, M68kDiagSink diagnostics) {
   const char *cursor;
+  clock_t row_json_start;
   uint32_t subline = 0U;
   if (stream == NULL || row == NULL || row->text == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
+  row_json_start = clock();
   cursor = row->text;
   while (*cursor != '\0') {
     const char *line_start = cursor;
@@ -9751,6 +9761,7 @@ int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream 
     }
     ++subline;
   }
+  stream->row_json_ticks += clock() - row_json_start;
   stream->batch_rows = stream->context.emitted_count;
   if (stream->batch_rows >= PLATFORM_LISTING_STREAM_BATCH_ROWS &&
       canonical_stream_flush_batch(stream, diagnostics) != 0) return -1;
@@ -9784,6 +9795,14 @@ void platform_listing_canonical_stream_allocation_stats(const PlatformListingCan
   if (out_max_rows != NULL) *out_max_rows = stream != NULL ? stream->max_rows : 0U;
   if (out_transient_json_bytes != NULL)
     *out_transient_json_bytes = stream != NULL ? stream->max_transient_json_bytes : 0U;
+}
+
+void platform_listing_canonical_stream_timing_stats(const PlatformListingCanonicalStream *stream,
+    double *out_row_json_seconds, double *out_row_callback_seconds) {
+  if (out_row_json_seconds != NULL)
+    *out_row_json_seconds = stream != NULL ? (double)stream->row_json_ticks / (double)CLOCKS_PER_SEC : 0.0;
+  if (out_row_callback_seconds != NULL)
+    *out_row_callback_seconds = stream != NULL ? (double)stream->row_callback_ticks / (double)CLOCKS_PER_SEC : 0.0;
 }
 
 void platform_listing_canonical_stream_destroy(PlatformListingCanonicalStream *stream) {

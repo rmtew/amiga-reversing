@@ -110,6 +110,26 @@ def _windows_process_memory_counters() -> tuple[int, int] | None:
     return int(counters.PrivateUsage), int(counters.PeakPagefileUsage)
 
 
+def _stream_profile_timing_values(profile: dict[str, object]) -> dict[str, float]:
+    """Flatten only measured timing/copy counters; never inspect semantic payloads."""
+    result: dict[str, float] = {}
+
+    def collect(prefix: str, value: object) -> None:
+        if isinstance(value, dict):
+            for key, nested in value.items():
+                if isinstance(key, str):
+                    collect(f"{prefix}.{key}" if prefix else key, nested)
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            if prefix.endswith(("_seconds", "_bytes", "_count")):
+                result[prefix] = round(float(value), 6)
+
+    for section in ("facts_v2", "timing", "transport", "source_staging", "python_projection"):
+        value = profile.get(section)
+        if isinstance(value, dict):
+            collect(section, value)
+    return dict(sorted(result.items()))
+
+
 @dataclass
 class CorpusBuildMonitor:
     """Thread-safe, derived build progress and resource measurements."""
@@ -129,6 +149,9 @@ class CorpusBuildMonitor:
     progress_sequence: int = 0
     stream_allocation_totals: dict[str, int] = field(default_factory=dict)
     stream_allocation_maxima: dict[str, int] = field(default_factory=dict)
+    stream_timing_totals: dict[str, float] = field(default_factory=dict)
+    stream_timing_maxima: dict[str, float] = field(default_factory=dict)
+    stream_target_profiles: dict[str, dict[str, object]] = field(default_factory=dict)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def phase_started(self, phase: str) -> None:
@@ -165,17 +188,30 @@ class CorpusBuildMonitor:
             self._observe_memory_locked()
             self._write_progress_locked()
 
-    def record_stream_profile(self, profile: dict[str, object]) -> None:
-        """Aggregate native stream ownership counters outside corpus semantics."""
+    def record_stream_profile(self, profile: dict[str, object], *, target_id: str | None = None) -> None:
+        """Record non-semantic native/transport/projection attribution for one target."""
         allocation = profile.get("allocation")
-        if not isinstance(allocation, dict):
-            return
         with self._lock:
-            for key, value in allocation.items():
-                if isinstance(value, int):
-                    self.stream_allocation_totals[key] = self.stream_allocation_totals.get(key, 0) + value
-                    self.stream_allocation_maxima[key] = max(self.stream_allocation_maxima.get(key, 0), value)
-            self._write_progress_locked()
+            if isinstance(allocation, dict):
+                for key, value in allocation.items():
+                    if isinstance(value, int):
+                        self.stream_allocation_totals[key] = self.stream_allocation_totals.get(key, 0) + value
+                        self.stream_allocation_maxima[key] = max(self.stream_allocation_maxima.get(key, 0), value)
+            timing_values = _stream_profile_timing_values(profile)
+            for key, value in timing_values.items():
+                self.stream_timing_totals[key] = round(self.stream_timing_totals.get(key, 0.0) + value, 6)
+                self.stream_timing_maxima[key] = max(self.stream_timing_maxima.get(key, 0.0), value)
+            if target_id:
+                self.stream_target_profiles[target_id] = {
+                    "timing": timing_values,
+                    "allocation": {
+                        key: value for key, value in allocation.items()
+                        if isinstance(value, int)
+                    } if isinstance(allocation, dict) else {},
+                }
+            # Per-target profiles are retained for the final report.  Writing
+            # the entire growing profile on every callback would turn R0
+            # measurement into the dominant project-tail cost.
 
     def report(self) -> dict[str, object]:
         with self._lock:
@@ -221,6 +257,11 @@ class CorpusBuildMonitor:
             "progress_snapshot_count": self.progress_sequence,
             "stream_allocation_totals": dict(sorted(self.stream_allocation_totals.items())),
             "stream_allocation_maxima": dict(sorted(self.stream_allocation_maxima.items())),
+            "stream_timing_totals": dict(sorted(self.stream_timing_totals.items())),
+            "stream_timing_maxima": dict(sorted(self.stream_timing_maxima.items())),
+            # Immutable progress snapshots must stay bounded; the full
+            # per-target attribution belongs only in the completed profile.
+            "stream_target_profiles": dict(sorted(self.stream_target_profiles.items())) if complete else {},
             "phases": phases,
         }
 
@@ -647,6 +688,9 @@ class _OrderedListingProjector:
         self._seen_navigation = False
         self._seen_summary = False
         self._summary_profile: dict[str, object] = {}
+        self._event_seconds: dict[str, float] = {}
+        self._event_counts: dict[str, int] = {}
+        self._finish_seconds = 0.0
 
     @property
     def analysis(self) -> dict[str, Any] | None:
@@ -656,7 +700,24 @@ class _OrderedListingProjector:
     def summary_profile(self) -> dict[str, object]:
         return self._summary_profile
 
+    @property
+    def projection_profile(self) -> dict[str, object]:
+        return {
+            "event_seconds": {key: round(value, 6) for key, value in sorted(self._event_seconds.items())},
+            "event_counts": dict(sorted(self._event_counts.items())),
+            "finish_seconds": round(self._finish_seconds, 6),
+            "total_seconds": round(sum(self._event_seconds.values()) + self._finish_seconds, 6),
+        }
+
     def accept(self, kind: str, payload: dict[str, object]) -> None:
+        started = time.perf_counter()
+        try:
+            self._accept_event(kind, payload)
+        finally:
+            self._event_seconds[kind] = self._event_seconds.get(kind, 0.0) + (time.perf_counter() - started)
+            self._event_counts[kind] = self._event_counts.get(kind, 0) + 1
+
+    def _accept_event(self, kind: str, payload: dict[str, object]) -> None:
         if kind == "analysis":
             if self._seen_analysis or self._next_row_index != 0:
                 raise RuntimeError("listing stream emitted analysis out of order")
@@ -721,17 +782,21 @@ class _OrderedListingProjector:
         raise RuntimeError(f"listing stream emitted unknown event: {kind}")
 
     def finish(self) -> tuple[list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
-        if not self._seen_analysis or not self._seen_navigation or not self._seen_summary:
-            raise RuntimeError("listing stream terminated before its required terminal events")
-        if self._pending_analysis is not None:
-            self._emit_xrefs(self._pending_analysis.finish())
-        xrefs: list[dict[str, object]] | _XrefShard = (
-            self._xref_writer.close() if self._xref_writer is not None else _dedupe_xrefs(self._xrefs)
-        )
-        if self._snippet_writer is not None:
-            self._snippet_writer.close()
-            return xrefs, _SnippetShard(self._snippet_writer._path)
-        return xrefs, []
+        started = time.perf_counter()
+        try:
+            if not self._seen_analysis or not self._seen_navigation or not self._seen_summary:
+                raise RuntimeError("listing stream terminated before its required terminal events")
+            if self._pending_analysis is not None:
+                self._emit_xrefs(self._pending_analysis.finish())
+            xrefs: list[dict[str, object]] | _XrefShard = (
+                self._xref_writer.close() if self._xref_writer is not None else _dedupe_xrefs(self._xrefs)
+            )
+            if self._snippet_writer is not None:
+                self._snippet_writer.close()
+                return xrefs, _SnippetShard(self._snippet_writer._path)
+            return xrefs, []
+        finally:
+            self._finish_seconds += time.perf_counter() - started
 
     def _accept_row(
         self,
@@ -1692,7 +1757,10 @@ def build_usage_outputs(
             task_tmp_dir.mkdir()
             return collect_file_usage_catalog_entry(
                 entry, resolver, task_tmp_dir, root=root,
-                profile_sink=monitor.record_stream_profile if monitor is not None else None,
+                profile_sink=(
+                    lambda profile: monitor.record_stream_profile(profile, target_id=f"platform_file_manifest:{entry.get('id', index)}")
+                    if monitor is not None else None
+                ),
             )
 
         if monitor is not None:
@@ -1714,7 +1782,10 @@ def build_usage_outputs(
             task_tmp_dir.mkdir()
             return collect_project_usage_catalog_entry(
                 target_dir, task_tmp_dir, root=root,
-                profile_sink=monitor.record_stream_profile if monitor is not None else None,
+                profile_sink=(
+                    lambda profile: monitor.record_stream_profile(profile, target_id=f"project_target:{_project_target_source_id(target_dir, root=root)}")
+                    if monitor is not None else None
+                ),
             )
 
         if monitor is not None:
@@ -1795,7 +1866,10 @@ def build_usage_staging(
             return collect_file_usage_catalog_entry(entry, resolver, task_tmp_dir, root=root,
                 snippet_path=task_tmp_dir / "snippets.jsonl",
                 xref_path=task_tmp_dir / "xrefs.jsonl",
-                profile_sink=monitor.record_stream_profile if monitor is not None else None)
+                profile_sink=(
+                    lambda profile: monitor.record_stream_profile(profile, target_id=f"platform_file_manifest:{entry.get('id', index)}")
+                    if monitor is not None else None
+                ))
 
         if monitor is not None:
             monitor.phase_started("analyze_file_entries")
@@ -1816,7 +1890,10 @@ def build_usage_staging(
             return collect_project_usage_catalog_entry(target_dir, task_tmp_dir, root=root,
                 snippet_path=task_tmp_dir / "snippets.jsonl",
                 xref_path=task_tmp_dir / "xrefs.jsonl",
-                profile_sink=monitor.record_stream_profile if monitor is not None else None)
+                profile_sink=(
+                    lambda profile: monitor.record_stream_profile(profile, target_id=f"project_target:{_project_target_source_id(target_dir, root=root)}")
+                    if monitor is not None else None
+                ))
 
         if monitor is not None:
             monitor.phase_started("analyze_project_targets")
@@ -2335,12 +2412,15 @@ def project_binary_source_listing_stream(
     if not isinstance(source, (DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource)):
         raise RuntimeError("unsupported native listing stream source")
     projector = _OrderedListingProjector(target_row, bag, snippet_path=snippet_path, xref_path=xref_path)
-    c_backend.visit_listing_stream_from_binary_source(
+    transport_profile = c_backend.visit_listing_stream_from_binary_source(
         source, projector.accept, metadata_path=metadata_path, project_root=root
     )
     xrefs, snippets = projector.finish()
     if profile_sink is not None:
-        profile_sink(projector.summary_profile)
+        profile = dict(projector.summary_profile)
+        profile.update(transport_profile)
+        profile["python_projection"] = projector.projection_profile
+        profile_sink(profile)
     return projector.analysis, xrefs, snippets
 
 
@@ -2372,14 +2452,32 @@ def project_executable_file_listing_stream(
 ) -> tuple[dict[str, Any] | None, list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
     suffix = ".prg" if platform == "atari-st" else ".hunk"
     path = tmp_dir / f"usage_{platform.replace('-', '_')}_{sha256(file_bytes)[:12]}{suffix}"
+    staging_started = time.perf_counter()
     path.write_bytes(file_bytes)
+    materialization_profile = {
+        "kind": "manifest_executable_temp_file",
+        "file_materialization_bytes": len(file_bytes),
+        "file_materialization_seconds": round(time.perf_counter() - staging_started, 6),
+    }
+
+    def profile_sink_with_materialization(profile: dict[str, object]) -> None:
+        if profile_sink is None:
+            return
+        merged = dict(profile)
+        source_staging = merged.get("source_staging")
+        merged["source_staging"] = {
+            **(dict(source_staging) if isinstance(source_staging, dict) else {}),
+            **materialization_profile,
+        }
+        profile_sink(merged)
+
     source = HunkFileBinarySource(
         BinarySourceKind.HUNK_FILE, path, str(path), path
     )
     return project_binary_source_listing_stream(
         source, target_row, bag, metadata_path=None, root=root, snippet_path=snippet_path,
         xref_path=xref_path,
-        profile_sink=profile_sink,
+        profile_sink=profile_sink_with_materialization if profile_sink is not None else None,
     )
 
 

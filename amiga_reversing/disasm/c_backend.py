@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import time
 import zipfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -811,20 +812,22 @@ def visit_listing_stream_from_binary_source(
     *,
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
-) -> None:
+) -> dict[str, object]:
     """Visit the native forward-only stream for a non-Mac corpus source."""
     if isinstance(binary_source, MacosCodeResourceSource):
         raise RuntimeError("native listing stream does not yet support macOS code resources")
     metadata_text = _metadata_path_text(metadata_path)
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+    staging_profile: dict[str, object] = {}
+    with _source_file_for_c_backend(binary_source, project_root=project_root, staging_profile=staging_profile) as source_file:
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
         stream = CListingStream.create(
             source_file, metadata_text=metadata_text, include_dir=str(include_dir), project_root=project_root
         )
         try:
-            stream.visit(sink)
+            transport_profile = stream.visit(sink)
         finally:
             stream.close()
+    return {"transport": transport_profile, "source_staging": staging_profile}
 
 
 def build_macos_code_bytes_listing_artifact_profile(
@@ -2157,26 +2160,47 @@ class CListingStream:
 
     def visit(
         self, sink: Callable[[str, dict[str, object]], None]
-    ) -> None:
+    ) -> dict[str, object]:
         """Consume ordered typed native events once without retaining rows."""
         if not self._handle.value:
             raise RuntimeError("C listing stream is closed")
         callback_error: BaseException | None = None
+        visit_started = time.perf_counter()
+        callback_seconds = 0.0
+        json_decode_seconds = 0.0
+        sink_seconds = 0.0
+        event_count = 0
+        event_bytes = 0
+        event_counts: dict[str, int] = {}
+        event_byte_counts: dict[str, int] = {}
 
         event_names = {1: "analysis", 2: "rows", 3: "navigation", 4: "summary"}
 
         def accept(event_kind: int, json_ptr: int, size: int, _user: object) -> int:
-            nonlocal callback_error
+            nonlocal callback_error, callback_seconds, json_decode_seconds, sink_seconds, event_count, event_bytes
+            callback_started = time.perf_counter()
             try:
-                payload = json.loads(string_at(json_ptr, size).decode("utf-8"))
                 name = event_names.get(event_kind)
-                if name is None or not isinstance(payload, dict):
+                if name is None:
                     raise RuntimeError("C listing stream emitted an invalid event")
+                decode_started = time.perf_counter()
+                payload = json.loads(string_at(json_ptr, size).decode("utf-8"))
+                json_decode_seconds += time.perf_counter() - decode_started
+                if not isinstance(payload, dict):
+                    raise RuntimeError("C listing stream emitted an invalid event")
+                sink_started = time.perf_counter()
                 sink(name, cast(dict[str, object], payload))
+                sink_seconds += time.perf_counter() - sink_started
+                event_count += 1
+                event_bytes += size
+                event_counts[name] = event_counts.get(name, 0) + 1
+                event_byte_counts[name] = event_byte_counts.get(name, 0) + size
                 return 0
             except BaseException as exc:  # ctypes callbacks must report failure as an integer.
                 callback_error = exc
                 return -1
+            finally:
+                callback_seconds += time.perf_counter() - callback_started
 
         callback = self._dll._listing_stream_event_sink_type(accept)
         out_error = c_void_p()
@@ -2192,6 +2216,18 @@ class CListingStream:
         finally:
             if out_error.value:
                 self._dll.platform_file_free_text(out_error)
+        visit_seconds = time.perf_counter() - visit_started
+        return {
+            "visit_seconds": round(visit_seconds, 6),
+            "native_seconds": round(max(0.0, visit_seconds - callback_seconds), 6),
+            "callback_seconds": round(callback_seconds, 6),
+            "json_decode_seconds": round(json_decode_seconds, 6),
+            "python_sink_seconds": round(sink_seconds, 6),
+            "event_count": event_count,
+            "event_bytes": event_bytes,
+            "event_counts": dict(sorted(event_counts.items())),
+            "event_byte_counts": dict(sorted(event_byte_counts.items())),
+        }
 
     def close(self) -> None:
         if self._handle.value:
@@ -2226,23 +2262,41 @@ def _source_file_for_c_backend(
     binary_source: BinarySource,
     *,
     project_root: Path,
+    staging_profile: dict[str, object] | None = None,
 ) -> Iterator[_CBackendSourceFile]:
     if isinstance(binary_source, HunkFileBinarySource):
+        if staging_profile is not None:
+            staging_profile.update({"kind": "direct_path", "source_read_bytes": 0, "source_staging_bytes": 0,
+                                    "source_read_seconds": 0.0, "source_staging_seconds": 0.0})
         yield _CBackendSourceFile(binary_source.path, _platform_file_name_for_path(binary_source.path))
         return
     if isinstance(binary_source, DiskEntryBinarySource):
+        read_started = time.perf_counter()
         data = binary_source.read_bytes()
+        read_seconds = time.perf_counter() - read_started
         temp_path: Path | None = None
         try:
+            staging_started = time.perf_counter()
             with tempfile.NamedTemporaryFile(delete=False, suffix=Path(binary_source.entry_path).suffix) as temp_file:
                 temp_file.write(data)
                 temp_path = Path(temp_file.name)
+            if staging_profile is not None:
+                staging_profile.update({
+                    "kind": "disk_entry_temp_file",
+                    "source_read_bytes": len(data),
+                    "source_staging_bytes": len(data),
+                    "source_read_seconds": round(read_seconds, 6),
+                    "source_staging_seconds": round(time.perf_counter() - staging_started, 6),
+                })
             yield _CBackendSourceFile(temp_path, _platform_file_name_for_disk_path(binary_source.adf_path))
         finally:
             if temp_path is not None:
                 temp_path.unlink(missing_ok=True)
         return
     if isinstance(binary_source, RawBinarySource):
+        if staging_profile is not None:
+            staging_profile.update({"kind": "direct_path", "source_read_bytes": 0, "source_staging_bytes": 0,
+                                    "source_read_seconds": 0.0, "source_staging_seconds": 0.0})
         yield _CBackendSourceFile(
             binary_source.path,
             "amiga-raw",

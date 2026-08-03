@@ -116,7 +116,7 @@ def test_native_listing_stream_matches_artifact_without_retaining_a_row_plan() -
             if kind == "rows":
               streamed_rows.extend(c_backend._c_listing_row_dicts(payload.get("rows")))
 
-          stream.visit(accept)
+          transport = stream.visit(accept)
         finally:
           artifact.close()
           stream.close()
@@ -128,6 +128,14 @@ def test_native_listing_stream_matches_artifact_without_retaining_a_row_plan() -
         allocation = payloads["summary"]["allocation"]
         assert allocation["complete_render_plan_bytes"] == 0
         assert allocation["complete_listing_row_index_bytes"] == 0
+        native_timing = payloads["summary"]["timing"]
+        assert native_timing["canonical_row_json_seconds"] >= 0.0
+        assert native_timing["native_row_callback_seconds"] >= 0.0
+        assert native_timing["source_seconds"] >= native_timing["canonical_row_json_seconds"]
+        assert transport["event_count"] == len(events)
+        assert transport["event_counts"] == {"analysis": 1, "navigation": 1, "rows": 1, "summary": 1}
+        assert transport["event_bytes"] > 0
+        assert transport["visit_seconds"] >= transport["callback_seconds"] >= transport["python_sink_seconds"] >= 0.0
 
 
 def test_native_listing_stream_bounds_canonical_row_batches() -> None:
@@ -276,6 +284,46 @@ def test_build_monitor_aggregates_native_stream_allocation_counters() -> None:
     assert monitor.report()["stream_allocation_totals"] == {"max_live_rows": 5, "semantic_layout_bytes": 72}
 
 
+def test_build_monitor_records_per_target_transport_projection_and_staging_attribution() -> None:
+    monitor = CorpusBuildMonitor(worker_count=1)
+    monitor.record_stream_profile(
+        {
+            "facts_v2": {"decode_seconds": 1.25},
+            "timing": {"source_seconds": 2.5},
+            "transport": {"json_decode_seconds": 0.125, "event_bytes": 64},
+            "source_staging": {"source_staging_seconds": 0.25, "source_staging_bytes": 128},
+            "python_projection": {"total_seconds": 0.5, "event_counts": {"rows": 2}},
+            "allocation": {"transient_json_bytes": 256},
+        },
+        target_id="project_target:fixture",
+    )
+    report = monitor.report()
+    assert report["stream_timing_totals"] == {
+        "facts_v2.decode_seconds": 1.25,
+        "python_projection.total_seconds": 0.5,
+        "source_staging.source_staging_bytes": 128.0,
+        "source_staging.source_staging_seconds": 0.25,
+        "timing.source_seconds": 2.5,
+        "transport.event_bytes": 64.0,
+        "transport.json_decode_seconds": 0.125,
+    }
+    assert report["stream_target_profiles"]["project_target:fixture"]["allocation"] == {"transient_json_bytes": 256}
+
+
+def test_build_monitor_keeps_progress_snapshots_bounded_while_retaining_final_target_profiles(tmp_path: Path) -> None:
+    monitor = CorpusBuildMonitor(worker_count=1, progress_output=tmp_path / "progress")
+    monitor.record_stream_profile(
+        {"transport": {"visit_seconds": 0.25}, "allocation": {"transient_json_bytes": 64}},
+        target_id="project_target:fixture",
+    )
+    monitor.phase_started("analysis")
+    snapshot = json.loads(next((tmp_path / "progress").glob("*.json")).read_text(encoding="utf-8"))
+    assert snapshot["stream_target_profiles"] == {}
+    assert monitor.complete()["stream_target_profiles"]["project_target:fixture"]["timing"] == {
+        "transport.visit_seconds": 0.25
+    }
+
+
 def test_ordered_projector_matches_all_list_xrefs_and_snippets(tmp_path: Path) -> None:
     target = {"id": "target", "platform": "amiga-raw", "source_id": "source", "origin": {}}
 
@@ -300,6 +348,9 @@ def test_ordered_projector_matches_all_list_xrefs_and_snippets(tmp_path: Path) -
     actual_xrefs, shard = projector.finish()
     assert isinstance(shard, _SnippetShard)
     actual_snippets = [json.loads(line) for line in shard.path.read_text(encoding="utf-8").splitlines()]
+    projection = projector.projection_profile
+    assert projection["event_counts"] == {"analysis": 1, "navigation": 1, "rows": 1, "summary": 1}
+    assert projection["total_seconds"] >= projection["finish_seconds"] >= 0.0
     assert _sorted_usage_xrefs(actual_xrefs) == _sorted_usage_xrefs([
         _xref(target, "analysis:facts_v2", "analysis_profile", text="facts_v2"), *expected_xrefs
     ])
