@@ -26,6 +26,7 @@
 #include <string.h>
 #include <time.h>
 
+
 static const char *manual_representation_symbol_name(const M68kRenderLookup *lookup,
     const M68kAnalysisManualRepresentation *representation);
 static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t size, const char *expr,
@@ -133,9 +134,24 @@ static void hash_asm_text(M68kRenderIRPreview *preview, const char *text) {
   preview->asm_source_bytes += (uint32_t)length;
 }
 
+static int flush_transient_asm_source_row(M68kRenderIRPreview *preview) {
+  if (preview == NULL || !preview->transient_row_live) return 0;
+  if (preview->transient_row_sink == NULL ||
+      preview->transient_row_sink(&preview->transient_row, preview->transient_row_sink_user) != 0) {
+    return -1;
+  }
+  memset(&preview->transient_row, 0, sizeof(preview->transient_row));
+  preview->transient_row_live = 0U;
+  return 0;
+}
+
 static void begin_asm_source_plan_row(M68kRenderIRPreview *preview, uint32_t kind, uint32_t region_id) {
   if (preview == NULL || !preview->collect_asm_source_text || preview->asm_source_row_builder.active) return;
-  if (m68k_render_plan_row_builder_begin(&preview->asm_source_row_builder, &preview->asm_source_plan,
+  if (flush_transient_asm_source_row(preview) != 0) {
+    preview->asm_source_allocation_failed = 1U;
+    return;
+  }
+  if (m68k_render_plan_row_builder_begin(&preview->asm_source_row_builder, &preview->asm_source_rows,
       kind, region_id) != 0) {
     preview->asm_source_allocation_failed = 1U;
   }
@@ -149,7 +165,34 @@ static M68kRenderPlanRow *finish_asm_source_plan_row(M68kRenderIRPreview *previe
     m68k_render_plan_row_builder_cancel(&preview->asm_source_row_builder);
     return NULL;
   }
-  if (m68k_render_plan_row_builder_commit(&preview->asm_source_row_builder, &row) != 0) {
+  if (preview->transient_row_sink != NULL) {
+    M68kRenderPlanRowBuilder *builder = &preview->asm_source_row_builder;
+    memset(&preview->transient_row, 0, sizeof(preview->transient_row));
+    preview->transient_row.kind = builder->kind;
+    preview->transient_row.region_id = builder->region_id;
+    preview->transient_row.start_line = preview->asm_source_lines;
+    preview->transient_row.line_count = builder->current_line;
+    preview->transient_row.start_byte = preview->asm_source_bytes - builder->size;
+    preview->transient_row.byte_count = builder->size;
+    preview->transient_row.directive_line_mask = builder->directive_line_mask;
+    preview->transient_row.source_line_mask = builder->source_line_mask;
+    memcpy(preview->transient_row.source_line_offsets, builder->source_line_offsets,
+      sizeof(preview->transient_row.source_line_offsets));
+    memcpy(preview->transient_row.source_line_sizes, builder->source_line_sizes,
+      sizeof(preview->transient_row.source_line_sizes));
+    preview->transient_row.label_line_mask = builder->label_line_mask;
+    memcpy(preview->transient_row.label_line_source_offsets, builder->label_line_source_offsets,
+      sizeof(preview->transient_row.label_line_source_offsets));
+    preview->transient_row.label_line_runtime_mask = builder->label_line_runtime_mask;
+    memcpy(preview->transient_row.label_line_runtime_addresses, builder->label_line_runtime_addresses,
+      sizeof(preview->transient_row.label_line_runtime_addresses));
+    preview->transient_row.text = builder->text;
+    preview->transient_row_live = 1U;
+    preview->asm_source_lines += builder->current_line;
+    builder->active = 0U;
+    builder->plan = NULL;
+    row = &preview->transient_row;
+  } else if (m68k_render_plan_row_builder_commit(&preview->asm_source_row_builder, &row) != 0) {
     preview->asm_source_allocation_failed = 1U;
     return NULL;
   }
@@ -484,7 +527,7 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
   scratch_arena = render_preview_scratch_arena(preview);
   if (scratch_arena == NULL) return 0;
   if (preview->asm_source_row_builder.active) cancel_asm_source_plan_row(preview);
-  if (preview->asm_source_plan.total_bytes != (size_t)preview->asm_source_bytes) return 0;
+  if (preview->asm_source_rows.total_bytes != (size_t)preview->asm_source_bytes) return 0;
   m68k_render_plan_init(&final_plan);
   for (row_index = 0U; row_index < preview->asm_source_plan.expression_count; ++row_index) {
     if (m68k_render_plan_append_expression(&final_plan,
@@ -520,8 +563,8 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
       return 0;
     }
   }
-  for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
-    const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
+  for (row_index = 0U; row_index < preview->asm_source_rows.row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &preview->asm_source_rows.rows[row_index];
     if ((row->start_byte >= (size_t)preview->asm_source_body_start_byte &&
           !asm_source_plan_row_is_late_header(row, (size_t)preview->asm_source_body_start_byte)) ||
         row->kind != M68K_RENDER_PLAN_ROW_DIAGNOSTIC) {
@@ -542,8 +585,8 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
     m68k_render_plan_destroy(&final_plan);
     return 0;
   }
-  for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
-    const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
+  for (row_index = 0U; row_index < preview->asm_source_rows.row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &preview->asm_source_rows.rows[row_index];
     if (row->start_byte >= (size_t)preview->asm_source_body_start_byte) continue;
     if (row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC) continue;
     if (!append_asm_source_plan_row_copy(&final_plan, scratch_arena, row)) {
@@ -561,8 +604,8 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
     m68k_render_plan_destroy(&final_plan);
     return 0;
   }
-  for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
-    const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
+  for (row_index = 0U; row_index < preview->asm_source_rows.row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &preview->asm_source_rows.rows[row_index];
     if (asm_source_plan_row_is_late_header(row, (size_t)preview->asm_source_body_start_byte)) continue;
     if (row->start_byte < (size_t)preview->asm_source_body_start_byte) continue;
     if (!append_asm_source_plan_row_copy(&final_plan, scratch_arena, row)) {
@@ -581,7 +624,13 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
     preview->asm_source_text = source_text;
     preview->asm_source_text_capacity = final_plan.total_bytes + 1U;
   }
+  if (m68k_render_plan_finalize(&final_plan) != 0) {
+    m68k_render_plan_destroy(&final_plan);
+    return 0;
+  }
   recompute_asm_source_plan_metrics(preview, &final_plan);
+  m68k_render_plan_destroy(&preview->asm_source_rows);
+  m68k_render_plan_destroy(&preview->asm_source_plan);
   m68k_render_plan_move(&preview->asm_source_plan, &final_plan);
   return 1;
 }
@@ -1061,19 +1110,25 @@ static int render_asm_should_emit_label_statement(const M68kRenderIRPreview *pre
 
 static int record_rendered_symbol_access(M68kRenderIRPreview *preview, size_t source_section_index,
     const M68kRenderedSymbolAccessIR *access) {
+  M68kRenderedSymbolAccessIR ordered_access;
   if (source_section_index > UINT32_MAX || access == NULL) return 0;
-  if (preview != NULL && preview->render_evidence != NULL &&
-      m68k_ir_render_evidence_append_rendered_symbol_access(preview->render_evidence,
-        (uint32_t)source_section_index, access) != 0) {
-    return -1;
+  ordered_access = *access;
+  if (preview == NULL || preview->render_evidence == NULL) return 0;
+  if (preview->precomputing_planned_evidence) {
+    ordered_access.emission_order = preview->planned_evidence_next_order++;
+    return m68k_ir_render_evidence_append_unique_rendered_symbol_access(preview->render_evidence,
+      (uint32_t)source_section_index, &ordered_access);
   }
+  if (m68k_ir_render_evidence_append_rendered_symbol_access(preview->render_evidence,
+        (uint32_t)source_section_index, &ordered_access) != 0) return -1;
   return 0;
 }
 
 static int record_planned_instruction_symbol_accesses(M68kRenderIRPreview *preview, size_t section_index,
     const M68kRenderPlannedInstruction *instruction) {
   size_t access_index;
-  if (instruction == NULL) return -1;
+  if (preview == NULL || instruction == NULL) return -1;
+  if (preview->planned_evidence_precomputed) return 0;
   for (access_index = 0U; access_index < instruction->symbol_access_count; ++access_index) {
     const M68kRenderPlannedSymbolAccess *planned_access = &instruction->symbol_accesses[access_index];
     M68kRenderedSymbolAccessIR access;
@@ -1086,6 +1141,7 @@ static int record_planned_instruction_symbol_accesses(M68kRenderIRPreview *previ
     access.access_kind = planned_access->access_kind;
     access.has_target = planned_access->has_target;
     access.comment_only = planned_access->comment_only;
+    access.source_order_class = M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_BODY;
     if (record_rendered_symbol_access(preview, section_index, &access) != 0) return -1;
   }
   return 0;
@@ -1095,7 +1151,9 @@ static int record_planned_expression_target_access(M68kRenderIRPreview *preview,
     const M68kRenderPlannedExpression *expression, int use_base_target) {
   M68kRenderedSymbolAccessIR access;
   const char *name;
-  if (expression == NULL || expression->outcome != M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC) return -1;
+  if (preview == NULL || expression == NULL ||
+      expression->outcome != M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC) return -1;
+  if (preview->planned_evidence_precomputed) return 0;
   if (use_base_target) {
     if (expression->has_base_target == 0U || expression->base_symbol[0] == '\0') return -1;
     name = expression->base_symbol;
@@ -1111,19 +1169,23 @@ static int record_planned_expression_target_access(M68kRenderIRPreview *preview,
   access.operand_index = expression->operand_index;
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
   access.has_target = 1U;
+  access.source_order_class = M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_BODY;
   return record_rendered_symbol_access(preview, source_section_index, &access);
 }
 
 static int record_planned_equate_expression_access(M68kRenderIRPreview *preview, size_t source_section_index,
     const M68kRenderPlannedExpression *expression) {
   M68kRenderedSymbolAccessIR access;
-  if (expression == NULL || expression->outcome != M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC ||
+  if (preview == NULL || expression == NULL ||
+      expression->outcome != M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC ||
       expression->kind != M68K_RENDER_PLANNED_EXPRESSION_EQUATE) return -1;
+  if (preview->planned_evidence_precomputed) return 0;
   memset(&access, 0, sizeof(access));
   access.symbol_name = (char *)expression->expression;
   access.offset = expression->source_offset;
   access.operand_index = UINT32_MAX;
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
+  access.source_order_class = M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_BODY;
   return record_rendered_symbol_access(preview, source_section_index, &access);
 }
 
@@ -1131,7 +1193,8 @@ static int record_planned_label_statement_access(M68kRenderIRPreview *preview, s
     const M68kRenderPlannedLabel *label, int storage_label) {
   M68kRenderedSymbolAccessIR access;
   const char *name;
-  if (label == NULL) return -1;
+  if (preview == NULL || label == NULL) return -1;
+  if (preview->planned_evidence_precomputed) return 0;
   name = storage_label ? label->storage_name : label->name;
   if (name[0] == '\0') return -1;
   memset(&access, 0, sizeof(access));
@@ -1142,10 +1205,14 @@ static int record_planned_label_statement_access(M68kRenderIRPreview *preview, s
   access.operand_index = UINT32_MAX;
   access.access_kind = storage_label ? M68K_RENDERED_SYMBOL_ACCESS_STORAGE_LABEL :
     M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
+  access.source_order_class = storage_label ? M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_STORAGE_LABEL :
+    M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_LABEL;
   access.has_target = 1U;
   return record_rendered_symbol_access(preview, source_section_index, &access);
 }
 
+/* Runtime aliases are semantic planning decisions. The stream records them
+ * before row delivery; the row renderer then only materializes their text. */
 static int render_planned_runtime_alias_labels(M68kRenderIRPreview *preview, size_t section_index,
     uint32_t offset) {
   size_t alias_index;
@@ -1173,7 +1240,8 @@ static int render_planned_runtime_alias_labels(M68kRenderIRPreview *preview, siz
     access.operand_index = UINT32_MAX;
     access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
     access.has_target = 1U;
-    if (record_rendered_symbol_access(preview, section_index, &access) != 0) return 0;
+    if (!preview->planned_evidence_precomputed &&
+        record_rendered_symbol_access(preview, section_index, &access) != 0) return 0;
     emitted = 1;
   }
   return emitted;
@@ -2000,10 +2068,16 @@ static int render_asm_os_compatibility_summary_row(M68kRenderIRPreview *preview,
     }
     if (append_summary_text(text, sizeof(text), &text_size, "\n") != 0) return -1;
   }
-  if (m68k_render_plan_append_text_row(&preview->asm_source_plan, M68K_RENDER_PLAN_ROW_DIAGNOSTIC,
-      M68K_RENDER_PLAN_NO_SECTION, text, NULL) != 0) {
-    return -1;
+  if (preview->transient_row_sink != NULL) {
+    const char *cursor;
+    hash_asm_text(preview, text);
+    for (cursor = text; *cursor != '\0'; ++cursor) {
+      if (*cursor == '\n') ++preview->asm_source_lines;
+    }
+    return preview->asm_source_allocation_failed ? -1 : 0;
   }
+  if (m68k_render_plan_append_text_row(&preview->asm_source_rows, M68K_RENDER_PLAN_ROW_DIAGNOSTIC,
+      M68K_RENDER_PLAN_NO_SECTION, text, NULL) != 0) return -1;
   if (text_size > (size_t)UINT32_MAX - (size_t)preview->asm_source_bytes) return -1;
   preview->asm_source_bytes += (uint32_t)text_size;
   return 0;
@@ -4295,13 +4369,15 @@ static int append_planned_source_label_declaration(const M68kRenderLookup *looku
   return m68k_render_plan_append_declaration(plan, &declaration);
 }
 
-static int derive_rendered_pointer_declarations(M68kRenderLookup *lookup, M68kRenderPlan *plan) {
+static int derive_rendered_pointer_declarations(M68kRenderIRPreview *preview, M68kRenderLookup *lookup) {
   size_t expression_index;
-  if (lookup == NULL || plan == NULL) return -1;
+  M68kRenderPlan *plan;
+  if (preview == NULL || lookup == NULL) return -1;
+  plan = &preview->asm_source_plan;
   for (expression_index = 0U; expression_index < plan->expression_count; ++expression_index) {
     M68kRenderPlannedExpression *expression = &plan->expressions[expression_index];
     if (expression->outcome != M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC ||
-        expression->requires_declaration == 0U || expression->has_target == 0U) {
+        expression->has_target == 0U) {
       continue;
     }
     (void)format_rendered_asm_label_with_generation(lookup, expression->target_symbol,
@@ -4311,6 +4387,8 @@ static int derive_rendered_pointer_declarations(M68kRenderLookup *lookup, M68kRe
       (void)format_rendered_asm_label_with_generation(lookup, expression->base_symbol,
         sizeof(expression->base_symbol), expression->base_section_index, expression->base_offset);
       if (expression->base_symbol[0] == '\0') return -1;
+    }
+    if (expression->requires_declaration != 0U && expression->has_base_target != 0U) {
       if (expression->has_base_addend != 0U)
         snprintf(expression->expression, sizeof(expression->expression), "%s%+d",
           expression->base_symbol, expression->addend);
@@ -4320,15 +4398,22 @@ static int derive_rendered_pointer_declarations(M68kRenderLookup *lookup, M68kRe
       else
         snprintf(expression->expression, sizeof(expression->expression), "%s-%s",
           expression->target_symbol, expression->base_symbol);
-    } else {
+    } else if (expression->requires_declaration != 0U) {
       snprintf(expression->expression, sizeof(expression->expression), "%s", expression->target_symbol);
     }
-    if (expression->has_base_addend == 0U &&
+    if (expression->requires_declaration != 0U && expression->has_base_addend == 0U &&
         append_planned_source_label_declaration(lookup, plan, expression->target_section_index,
           expression->target_offset, expression->target_symbol) != 0) return -1;
-    if (expression->has_base_target != 0U &&
+    if (expression->requires_declaration != 0U && expression->has_base_target != 0U &&
         append_planned_source_label_declaration(lookup, plan, expression->base_section_index,
           expression->base_offset, expression->base_symbol) != 0) return -1;
+    if (!preview->precomputing_planned_evidence ||
+        expression->kind == M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND) continue;
+    if (record_planned_expression_target_access(preview, expression->source_section_index,
+          expression, 0) != 0 ||
+        (expression->kind == M68K_RENDER_PLANNED_EXPRESSION_RELATIVE &&
+         record_planned_expression_target_access(preview, expression->source_section_index,
+           expression, 1) != 0)) return -1;
   }
   return 0;
 }
@@ -4346,12 +4431,12 @@ static int render_plan_has_source_label_declaration(const M68kRenderPlan *plan,
   return 0;
 }
 
-static int append_planned_label_statement(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    size_t section_index, uint32_t offset, M68kRenderPlan *plan) {
+static int append_planned_label_statement(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, size_t section_index, uint32_t offset, M68kRenderPlan *plan) {
   M68kRenderPlannedLabel label;
   uint32_t runtime_address = 0U;
   int has_runtime_address;
-  if (lookup == NULL || section == NULL || plan == NULL || section_index > UINT32_MAX ||
+  if (preview == NULL || lookup == NULL || section == NULL || plan == NULL || section_index > UINT32_MAX ||
       offset > render_section_extent(section)) return -1;
   if (m68k_render_plan_find_label(plan, (uint32_t)section_index, offset) != NULL) return 0;
   memset(&label, 0, sizeof(label));
@@ -4371,13 +4456,17 @@ static int append_planned_label_statement(const M68kRenderLookup *lookup, const 
   if (label.name[0] == '\0' || (label.has_storage_label != 0U && label.storage_name[0] == '\0')) return -1;
   if (append_planned_source_label_declaration(lookup, plan, label.source_section_index,
         label.source_offset, label.name) != 0) return -1;
-  return m68k_render_plan_append_label(plan, &label);
+  if (m68k_render_plan_append_label(plan, &label) != 0) return -1;
+  if (!preview->precomputing_planned_evidence) return 0;
+  if (label.has_storage_label != 0U &&
+      record_planned_label_statement_access(preview, label.source_section_index, &label, 1) != 0) return -1;
+  return record_planned_label_statement_access(preview, label.source_section_index, &label, 0);
 }
 
-static int plan_rendered_label_statements(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted_start, M68kRenderPlan *plan) {
+static int plan_rendered_label_statements(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, M68kRenderPlan *plan) {
   size_t section_index;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || plan == NULL) return -1;
+  if (preview == NULL || lookup == NULL || decode == NULL || accepted_start == NULL || plan == NULL) return -1;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     size_t source_section_index = section->section_index;
@@ -4389,7 +4478,8 @@ static int plan_rendered_label_statements(const M68kRenderLookup *lookup, const 
           !render_plan_has_source_label_declaration(plan, source_section_index, offset)) {
         continue;
       }
-      if (append_planned_label_statement(lookup, section, source_section_index, offset, plan) != 0) return -1;
+      if (append_planned_label_statement(preview, lookup, section, source_section_index, offset, plan) != 0)
+        return -1;
     }
   }
   /* A symbolic source expression makes a declaration obligation.  Close it
@@ -4407,15 +4497,16 @@ static int plan_rendered_label_statements(const M68kRenderLookup *lookup, const 
         break;
       }
     }
-    if (target_section == NULL || append_planned_label_statement(lookup, target_section,
+    if (target_section == NULL || append_planned_label_statement(preview, lookup, target_section,
           declaration->section_index, declaration->offset, plan) != 0) return -1;
   }
   return 0;
 }
 
-static int plan_rendered_runtime_aliases(const M68kRenderLookup *lookup, M68kRenderPlan *plan) {
+static int plan_rendered_runtime_aliases(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    M68kRenderPlan *plan) {
   size_t label_index;
-  if (lookup == NULL || plan == NULL) return -1;
+  if (preview == NULL || lookup == NULL || plan == NULL) return -1;
   for (label_index = 0U; label_index < plan->label_count; ++label_index) {
     const M68kRenderPlannedLabel *label = &plan->labels[label_index];
     size_t ref_index;
@@ -4437,6 +4528,19 @@ static int plan_rendered_runtime_aliases(const M68kRenderLookup *lookup, M68kRen
         runtime_alias.source_section_index, runtime_alias.source_offset, runtime_alias.runtime_address);
       if (runtime_alias.name[0] == '\0' ||
           m68k_render_plan_append_runtime_alias(plan, &runtime_alias) != 0) return -1;
+      if (preview->precomputing_planned_evidence) {
+        M68kRenderedSymbolAccessIR access;
+        memset(&access, 0, sizeof(access));
+        access.symbol_name = runtime_alias.name;
+        access.offset = runtime_alias.source_offset;
+        access.target_section_index = runtime_alias.source_section_index;
+        access.target_offset = runtime_alias.source_offset;
+        access.operand_index = UINT32_MAX;
+        access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
+        access.has_target = 1U;
+        access.source_order_class = M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_RUNTIME_ALIAS;
+        if (record_rendered_symbol_access(preview, runtime_alias.source_section_index, &access) != 0) return -1;
+      }
     }
   }
   return 0;
@@ -4481,7 +4585,10 @@ static int plan_rendered_copper_equate_expressions(M68kRenderIRPreview *preview,
       expression.kind = M68K_RENDER_PLANNED_EXPRESSION_EQUATE;
       expression.outcome = M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC;
       snprintf(expression.expression, sizeof(expression.expression), "%s", symbol);
-      if (m68k_render_plan_append_expression(&preview->asm_source_plan, &expression) != 0) return -1;
+      if (m68k_render_plan_append_expression(&preview->asm_source_plan, &expression) != 0 ||
+          (preview->precomputing_planned_evidence &&
+           record_planned_equate_expression_access(preview, expression.source_section_index, &expression) != 0))
+        return -1;
     }
   }
   return 0;
@@ -9891,8 +9998,12 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
         if (m68k_diag_has_errors(&diagnostics) || rendered.text[0] == '\0' ||
             plan_rendered_instruction_symbol_accesses(preview, lookup, section->section_index, candidate,
               source_analysis, &render_instruction, rendered.rendered_operand_symbol_mask,
-              &planned_instruction) != 0 ||
-            m68k_render_plan_append_instruction(&preview->asm_source_plan, &planned_instruction) != 0)
+              &planned_instruction) != 0)
+          return -1;
+        if (m68k_render_plan_append_instruction(&preview->asm_source_plan, &planned_instruction) != 0 ||
+            (preview->precomputing_planned_evidence &&
+             record_planned_instruction_symbol_accesses(preview, planned_instruction.source_section_index,
+               &planned_instruction) != 0))
           return -1;
       } else {
         memset(&planned_instruction, 0, sizeof(planned_instruction));
@@ -9905,7 +10016,10 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
           lookup_instruction_comment(lookup, section->section_index, candidate->offset));
         (void)append_comment_part_local(planned_instruction.comment, sizeof(planned_instruction.comment),
           platform_comment);
-        if (m68k_render_plan_append_instruction(&preview->asm_source_plan, &planned_instruction) != 0) return -1;
+        if (m68k_render_plan_append_instruction(&preview->asm_source_plan, &planned_instruction) != 0 ||
+            (preview->precomputing_planned_evidence &&
+             record_planned_instruction_symbol_accesses(preview, planned_instruction.source_section_index,
+               &planned_instruction) != 0)) return -1;
       }
       platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
       platform_state_update_after_instruction(&platform_state, lookup, &instruction);
@@ -10245,6 +10359,31 @@ static const M68kAddressExpressionIR *source_analysis_address_expression_for_con
   return NULL;
 }
 
+static const M68kAddressValueIR *source_analysis_address_value_for_table_origin(
+    const M68kSourceAnalysisIR *source_analysis, uint32_t consumer_section_index,
+    uint32_t consumer_offset, uint32_t address_expression_id, size_t *out_section_index) {
+  size_t section_index, value_index;
+  const M68kAddressValueIR *match = NULL;
+  if (out_section_index != NULL) *out_section_index = SIZE_MAX;
+  if (source_analysis == NULL || address_expression_id == 0U) return NULL;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    for (value_index = 0U; value_index < section->address_value_count; ++value_index) {
+      const M68kAddressValueIR *value = &section->address_values[value_index];
+      if (value->table_origin.has_origin == 0U ||
+          value->table_origin.consumer_section_index != consumer_section_index ||
+          value->table_origin.consumer_offset != consumer_offset ||
+          value->table_origin.address_expression_id != address_expression_id ||
+          value->render_outcome != M68K_ADDRESS_VALUE_RENDER_SYMBOLIC ||
+          value->has_source_expression == 0U) continue;
+      if (match != NULL) return NULL;
+      match = value;
+      if (out_section_index != NULL) *out_section_index = section_index;
+    }
+  }
+  return match;
+}
+
 static int source_analysis_address_value_has_consumer(const M68kSectionAnalysisIR *section,
     const M68kAddressValueIR *value) {
   size_t consumer_index;
@@ -10292,9 +10431,11 @@ static int validate_planned_address_value_expressions(M68kRenderIRPreview *previ
             expression->has_address_value != 0U) {
           const M68kAddressValueIR *planned_value = source_analysis_address_value_by_id(source_analysis,
             expression->address_value_section_index, expression->address_value_id);
-          if (planned_value != NULL && planned_value->producer_section_index == value->producer_section_index &&
-              planned_value->producer_offset == value->producer_offset &&
-              planned_value->producer_operand_index == value->producer_operand_index) {
+          if ((value->table_origin.has_origin != 0U && planned_value == value) ||
+              (value->table_origin.has_origin == 0U && planned_value != NULL &&
+               planned_value->producer_section_index == value->producer_section_index &&
+               planned_value->producer_offset == value->producer_offset &&
+               planned_value->producer_operand_index == value->producer_operand_index)) {
             found = 1;
             break;
           }
@@ -10354,6 +10495,17 @@ static int append_rendered_instruction_expression(M68kRenderIRPreview *preview, 
       expression.address_expression_section_index = (uint32_t)address_expression_section_index;
       expression.address_expression_id = address_expression->id;
       expression.has_address_expression = 1U;
+    }
+  }
+  if (address_expression != NULL && address_expression->kind == M68K_ADDRESS_EXPRESSION_INDEXED_TABLE) {
+    size_t table_value_section_index = SIZE_MAX;
+    const M68kAddressValueIR *table_value = source_analysis_address_value_for_table_origin(source_analysis,
+      address_expression->consumer_section_index, address_expression->consumer_offset,
+      address_expression->id, &table_value_section_index);
+    if (table_value != NULL) {
+      expression.address_value_section_index = (uint32_t)table_value_section_index;
+      expression.address_value_id = table_value->id;
+      expression.has_address_value = 1U;
     }
   }
   if (address_expression != NULL && address_expression->kind == M68K_ADDRESS_EXPRESSION_STATIC_INTERIOR &&
@@ -10492,6 +10644,7 @@ void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
     preview->render_evidence = NULL;
   }
   m68k_render_plan_init(&preview->asm_source_plan);
+  m68k_render_plan_init(&preview->asm_source_rows);
   m68k_render_plan_row_builder_init(&preview->asm_source_row_builder);
 }
 
@@ -10504,6 +10657,7 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   }
   m68k_render_plan_free_text(preview->asm_source_text);
   m68k_render_plan_row_builder_destroy(&preview->asm_source_row_builder);
+  m68k_render_plan_destroy(&preview->asm_source_rows);
   m68k_render_plan_destroy(&preview->asm_source_plan);
   memset(preview, 0, sizeof(*preview));
 }
@@ -10527,6 +10681,10 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();
   if (render_asm_source) {
+    /* Semantic planning owns the complete rendered-symbol evidence.  The
+     * planner's identities are unique, so avoid rediscovering them during the
+     * later forward row walk. */
+    out_preview->precomputing_planned_evidence = out_preview->prepared_sink != NULL ? 1U : 0U;
     /* Concrete data renderers create labels only for expressions selected by
      * the same ownership walk that emits the body.  Semantic pointer facts
      * alone never create source labels or source-reference obligations. */
@@ -10535,13 +10693,33 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
       goto cleanup;
     }
     if (plan_rendered_instruction_expressions(out_preview, lookup, decode, policy, accepted_start,
-        accepted_bytes, source_analysis) != 0 ||
-        derive_rendered_pointer_declarations(lookup, &out_preview->asm_source_plan) != 0 ||
-        plan_rendered_label_statements(lookup, decode, accepted_start, &out_preview->asm_source_plan) != 0 ||
-        plan_rendered_runtime_aliases(lookup, &out_preview->asm_source_plan) != 0 ||
-        plan_rendered_copper_equate_expressions(out_preview, lookup, decode, accepted_bytes,
-          source_analysis) != 0) {
+        accepted_bytes, source_analysis) != 0) goto cleanup;
+    if (derive_rendered_pointer_declarations(out_preview, lookup) != 0) goto cleanup;
+    if (plan_rendered_label_statements(out_preview, lookup, decode, accepted_start,
+          &out_preview->asm_source_plan) != 0) goto cleanup;
+    if (plan_rendered_runtime_aliases(out_preview, lookup, &out_preview->asm_source_plan) != 0) goto cleanup;
+    if (plan_rendered_copper_equate_expressions(out_preview, lookup, decode, accepted_bytes,
+          source_analysis) != 0) goto cleanup;
+    if (out_preview->precomputing_planned_evidence) {
+      out_preview->precomputing_planned_evidence = 0U;
+      m68k_ir_render_evidence_sort_source_order(out_preview->render_evidence);
+      out_preview->planned_evidence_precomputed = 1U;
+    }
+    if (out_preview->prepared_sink != NULL &&
+        out_preview->prepared_sink(out_preview, out_preview->prepared_sink_user) != 0) {
       goto cleanup;
+    }
+    /* The normal random-access assembly hoists this late diagnostic while
+     * finalizing its row plan.  A transient sink cannot retain body rows for
+     * that final pass, so emit it before every other preamble row instead. */
+    if (out_preview->transient_row_sink != NULL) {
+      begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U);
+      if (render_asm_os_compatibility_summary_row(out_preview, source_analysis,
+          object->platform_backend_kind) != 0) {
+        cancel_asm_source_plan_row(out_preview);
+        goto cleanup;
+      }
+      finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     }
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U);
     render_asm_memory_map_header(out_preview, lookup, decode, source_analysis);
@@ -10847,9 +11025,13 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   phase_end = clock();
   out_preview->walk_seconds = elapsed_seconds_local(phase_start, phase_end);
   if (out_preview->asm_source_allocation_failed) goto cleanup;
-  if (render_asm_source && collect_asm_source_text &&
+  if (render_asm_source && collect_asm_source_text && out_preview->transient_row_sink == NULL &&
       render_asm_os_compatibility_summary_row(out_preview, source_analysis,
         object->platform_backend_kind) != 0) {
+    out_preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
+  if (render_asm_source && flush_transient_asm_source_row(out_preview) != 0) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }
@@ -10859,7 +11041,16 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     goto cleanup;
   }
   phase_start = clock();
-  if (render_asm_source && collect_asm_source_text &&
+  /* Semantic declarations, labels, and expression decisions are useful on
+   * their own to sequential consumers.  Finalize them even when row text is
+   * deliberately not collected; this keeps the no-row semantic product from
+   * retaining builder generations. */
+  if (render_asm_source &&
+      m68k_render_plan_finalize(&out_preview->asm_source_plan) != 0) {
+    out_preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
+  if (render_asm_source && collect_asm_source_text && out_preview->transient_row_sink == NULL &&
       !assemble_asm_source_plan_regions(out_preview, emit_asm_source_text)) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
@@ -10871,5 +11062,20 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   out_preview->footer_seconds = elapsed_seconds_local(phase_start, phase_end);
   result = 0;
 cleanup:
+  out_preview->precomputing_planned_evidence = 0U;
   return result;
+}
+
+void m68k_render_ir_preview_set_transient_row_sink(M68kRenderIRPreview *preview,
+    M68kRenderTransientRowSink sink, void *user) {
+  if (preview == NULL) return;
+  preview->transient_row_sink = sink;
+  preview->transient_row_sink_user = user;
+}
+
+void m68k_render_ir_preview_set_prepared_sink(M68kRenderIRPreview *preview,
+    M68kRenderIRPreparedSink sink, void *user) {
+  if (preview == NULL) return;
+  preview->prepared_sink = sink;
+  preview->prepared_sink_user = user;
 }

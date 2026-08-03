@@ -120,6 +120,7 @@ typedef struct PlatformDecompressionCandidate {
   uint32_t packed_size;
   uint32_t decompressed_size;
   char codec_hint[32];
+  char codec_name[160];
 } PlatformDecompressionCandidate;
 
 void platform_decompression_identify_result_init(PlatformDecompressionIdentifyResult *result);
@@ -136,6 +137,13 @@ int platform_decompression_decompress_path_range(const char *provider_id, const 
   PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size);
 int platform_decompression_decompress_buffer_range(const char *provider_id, const char *provider_path,
   const uint8_t *data, uint32_t data_size, uint32_t offset, uint32_t size, const char *output_path,
+  PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size);
+/* Decompress a range already validated by platform_decompression_find_candidates_in_buffer.
+   The provider scan establishes the codec and sizes, so this avoids repeating a separate
+   identify process for the exact same byte range. */
+int platform_decompression_decompress_scanned_buffer_candidate(const char *provider_id,
+  const char *provider_path, const uint8_t *data, uint32_t data_size,
+  const PlatformDecompressionCandidate *candidate, const char *output_path,
   PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size);
 int platform_decompression_decompress_path_range_json_alloc(const char *provider_id, const char *provider_path,
   const char *path, uint32_t offset, uint32_t size, const char *output_path, char **out_text);

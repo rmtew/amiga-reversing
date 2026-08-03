@@ -193,6 +193,10 @@ typedef struct M68kFactsV2Profile {
   uint64_t asm_source_hash;
 } M68kFactsV2Profile;
 
+typedef int (*M68kFactsV2SourceAnalysisSink)(const M68kSourceAnalysisIR *analysis,
+  const M68kRenderEvidenceIR *render_evidence, const M68kFactsV2Profile *profile, void *user);
+
+
 void m68k_facts_v2_profile_init(M68kFactsV2Profile *profile);
 int m68k_facts_v2_collect_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
   M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics);
@@ -211,6 +215,19 @@ int m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(const M
     const M68kAnalysisPolicy *policy, char **out_source, M68kRenderPlan *out_source_plan,
     M68kFactsV2Profile *out_profile, M68kSourceAnalysisIR *out_source_analysis,
     M68kRenderEvidenceIR *out_render_evidence, uint8_t fail_on_refused, M68kDiagSink diagnostics);
+/* Finalized semantic layout only: no rendered rows, listing index, or source text. */
+int m68k_facts_v2_collect_semantic_render_layout_profile_alloc(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, M68kRenderPlan *out_layout, M68kFactsV2Profile *out_profile,
+    M68kSourceAnalysisIR *out_source_analysis, M68kRenderEvidenceIR *out_render_evidence,
+    uint8_t fail_on_refused, M68kDiagSink diagnostics);
+int m68k_facts_v2_visit_asm_source_rows_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    M68kFactsV2Profile *out_profile, M68kSourceAnalysisIR *out_source_analysis,
+    M68kRenderTransientRowSink sink, void *sink_user, uint8_t fail_on_refused, M68kDiagSink diagnostics);
+int m68k_facts_v2_visit_asm_source_rows_with_analysis_profile(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, M68kFactsV2Profile *out_profile,
+    M68kSourceAnalysisIR *out_source_analysis, M68kFactsV2SourceAnalysisSink analysis_sink,
+    void *analysis_sink_user, M68kRenderTransientRowSink row_sink, void *row_sink_user,
+    uint8_t fail_on_refused, M68kDiagSink diagnostics);
 int m68k_facts_v2_collect_source_analysis_profile(const M68kObject *object,
   const M68kAnalysisPolicy *policy, M68kFactsV2Profile *out_profile,
   M68kSourceAnalysisIR *out_source_analysis, M68kDiagSink diagnostics);

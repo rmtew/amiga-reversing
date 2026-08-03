@@ -4855,7 +4855,36 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append_json_string(&builder, value->terminal_reason) != 0 ||
           json_builder_append(&builder, ",\"pointee_struct_name\":") != 0 ||
           json_builder_append_json_string(&builder, value->pointee_struct_name) != 0 ||
-          json_builder_append(&builder, ",\"transfers\":[") != 0) goto oom;
+          json_builder_appendf(&builder, ",\"table_origin\":{\"has_origin\":%u,\"selection_kind_id\":%u,\"selection_kind\":",
+            (unsigned)value->table_origin.has_origin, (unsigned)value->table_origin.selection_kind) != 0 ||
+          json_builder_append_json_string(&builder,
+            m68k_address_value_table_selection_name(value->table_origin.selection_kind)) != 0 ||
+          json_builder_appendf(&builder,
+            ",\"table_section_index\":%u,\"table_start_offset\":%u,"
+            "\"consumer_section_index\":%u,\"consumer_offset\":%u,"
+            "\"address_expression_id\":%u,\"entry_index\":%u,"
+            "\"index_min\":%u,\"index_max\":%u,\"terminal_kind_id\":%u}",
+            (unsigned)value->table_origin.table_section_index, (unsigned)value->table_origin.table_start_offset,
+            (unsigned)value->table_origin.consumer_section_index, (unsigned)value->table_origin.consumer_offset,
+            (unsigned)value->table_origin.address_expression_id, (unsigned)value->table_origin.entry_index,
+            (unsigned)value->table_origin.index_min, (unsigned)value->table_origin.index_max,
+            (unsigned)value->table_origin.terminal_kind) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"candidate_target_count\":%u,\"candidate_source_values\":[",
+          (unsigned)value->candidate_target_count) != 0) goto oom;
+      for (transfer_index = 0U; transfer_index < value->candidate_target_count; ++transfer_index) {
+        if (transfer_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+        if (json_builder_appendf(&builder, "%u", (unsigned)value->candidate_source_values[transfer_index]) != 0)
+          goto oom;
+      }
+      if (json_builder_append(&builder, "],\"candidate_targets\":[") != 0) goto oom;
+      for (transfer_index = 0U; transfer_index < value->candidate_target_count; ++transfer_index) {
+        if (transfer_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+        if (json_builder_appendf(&builder, "{\"section_index\":%u,\"offset\":%u}",
+            (unsigned)value->candidate_target_section_indices[transfer_index],
+            (unsigned)value->candidate_target_offsets[transfer_index]) != 0) goto oom;
+      }
+      if (json_builder_append(&builder, "],\"transfers\":[") != 0) goto oom;
       for (transfer_index = 0U; transfer_index < value->transfer_count; ++transfer_index) {
         const M68kAddressValueTransferIR *transfer = &value->transfers[transfer_index];
         if (transfer_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
@@ -5745,10 +5774,20 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           type_provenance_kind_name(access->type_provenance_kind)) != 0)
         goto oom;
       if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE) {
-        if (json_builder_appendf(&builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u",
-            (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset) != 0)
+        if (json_builder_appendf(&builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u,\"type_provenance_operand_index\":%u",
+            (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset,
+            (unsigned)access->type_provenance_operand_index) != 0)
           goto oom;
       }
+      if (access->has_table_origin != 0U &&
+          json_builder_appendf(&builder,
+            ",\"table_origin\":{\"table_section\":%u,\"table_start_offset\":%u,\"consumer_section\":%u,\"consumer_offset\":%u,\"address_expression_id\":%u,\"entry_index\":%u,\"index_min\":%u,\"index_max\":%u,\"selection_kind_id\":%u,\"terminal_kind_id\":%u}",
+            (unsigned)access->table_section_index, (unsigned)access->table_start_offset,
+            (unsigned)access->table_consumer_section_index, (unsigned)access->table_consumer_offset,
+            (unsigned)access->table_address_expression_id, (unsigned)access->table_entry_index,
+            (unsigned)access->table_index_min, (unsigned)access->table_index_max, (unsigned)access->table_selection_kind,
+            (unsigned)access->table_terminal_kind) != 0)
+        goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
@@ -9561,6 +9600,200 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   return 0;
 }
 
+typedef struct ListingNavigationJsonContext ListingNavigationJsonContext;
+static ListingNavigationJsonContext *listing_navigation_stream_create(uint8_t platform_backend_kind,
+    const M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *analysis_policy);
+static char *listing_navigation_stream_finish_json(ListingNavigationJsonContext *navigation,
+    const char *analysis_generation, size_t total_rows);
+static void listing_navigation_stream_destroy(ListingNavigationJsonContext *navigation);
+
+struct PlatformListingCanonicalStream {
+  ListingSourceHeaderRows header_rows;
+  ListingRenderPlanJsonContext context;
+  PlatformListingCanonicalRowSink sink;
+  void *sink_user;
+  size_t max_rows;
+  size_t max_transient_json_bytes;
+  JsonBuilder batch_builder;
+  size_t batch_rows;
+  uint8_t header_capture_open;
+  ListingNavigationJsonContext *navigation;
+};
+
+#define PLATFORM_LISTING_STREAM_BATCH_ROWS 8192U
+
+static int canonical_stream_begin_batch(PlatformListingCanonicalStream *stream) {
+  if (stream == NULL || json_builder_create(&stream->batch_builder) != 0 ||
+      json_builder_append(&stream->batch_builder, "{\"rows\":[") != 0)
+    return -1;
+  stream->context.builder = &stream->batch_builder;
+  stream->context.emitted_count = 0U;
+  stream->batch_rows = 0U;
+  return 0;
+}
+
+static int canonical_stream_flush_batch(PlatformListingCanonicalStream *stream, M68kDiagSink diagnostics) {
+  char *json = NULL;
+  int result = -1;
+  if (stream == NULL) return -1;
+  if (stream->batch_rows == 0U) {
+    json_builder_destroy(&stream->batch_builder);
+    stream->context.builder = NULL;
+    return 0;
+  }
+  if (json_builder_append(&stream->batch_builder, "]}") != 0) goto oom;
+  if (stream->batch_rows > stream->max_rows) stream->max_rows = stream->batch_rows;
+  if (stream->batch_builder.size > stream->max_transient_json_bytes)
+    stream->max_transient_json_bytes = stream->batch_builder.size;
+  json = json_builder_build(&stream->batch_builder);
+  if (json == NULL || stream->sink(json, strlen(json), stream->sink_user) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
+      "listing stream row sink failed");
+    goto done;
+  }
+  result = 0;
+done:
+  free(json);
+  json_builder_destroy(&stream->batch_builder);
+  stream->context.builder = NULL;
+  stream->batch_rows = 0U;
+  return result;
+oom:
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+  goto done;
+}
+
+static int canonical_stream_capture_header_line(PlatformListingCanonicalStream *stream,
+    const M68kRenderPlanRow *row, const char *line_start, size_t line_length) {
+  int group;
+  char *line_copy;
+  uint8_t row_kind_id;
+  if (stream == NULL || row == NULL || line_start == NULL || !stream->header_capture_open) return 0;
+  if (row->kind == M68K_RENDER_PLAN_ROW_SECTION) {
+    stream->header_capture_open = 0U;
+    return 0;
+  }
+  group = listing_source_header_group_for_plan_row(row);
+  if (group < 0) return 0;
+  line_copy = (char *)arena_alloc(stream->header_rows.arena, line_length);
+  if (line_copy == NULL) return -1;
+  memcpy(line_copy, line_start, line_length);
+  row_kind_id = listing_row_kind_id_for_plan_row(row);
+  return listing_source_header_rows_append(&stream->header_rows, line_copy, line_length, row_kind_id, -1, group);
+}
+
+int platform_listing_canonical_stream_create(uint8_t platform_backend_kind,
+    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
+    const char *analysis_generation, PlatformListingCanonicalRowSink sink, void *sink_user,
+    PlatformListingCanonicalStream **out_stream, M68kDiagSink diagnostics) {
+  PlatformListingCanonicalStream *stream;
+  (void)platform_backend_kind;
+  if (out_stream != NULL) *out_stream = NULL;
+  if (out_stream == NULL || analysis_policy == NULL || source_analysis == NULL || sink == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  stream = (PlatformListingCanonicalStream *)calloc(1U, sizeof(*stream));
+  if (stream == NULL || listing_source_header_rows_init(&stream->header_rows) != 0) {
+    free(stream);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
+  stream->context.header_rows = &stream->header_rows;
+  stream->context.analysis_policy = analysis_policy;
+  stream->context.source_analysis = source_analysis;
+  stream->context.analysis_generation = analysis_generation;
+  stream->context.active_section_index = -1;
+  stream->context.emit_preamble_headers = 1;
+  stream->context.include_source_only_rows = 0;
+  stream->navigation = listing_navigation_stream_create(platform_backend_kind, source_analysis, analysis_policy);
+  if (stream->navigation == NULL) {
+    listing_source_header_rows_destroy(&stream->header_rows);
+    free(stream);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
+  stream->context.navigation = stream->navigation;
+  stream->sink = sink;
+  stream->sink_user = sink_user;
+  stream->header_capture_open = 1U;
+  if (canonical_stream_begin_batch(stream) != 0) {
+    listing_navigation_stream_destroy(stream->navigation);
+    listing_source_header_rows_destroy(&stream->header_rows);
+    free(stream);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
+  *out_stream = stream;
+  return 0;
+}
+
+int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream *stream,
+    const M68kRenderPlanRow *row, M68kDiagSink diagnostics) {
+  const char *cursor;
+  uint32_t subline = 0U;
+  if (stream == NULL || row == NULL || row->text == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  cursor = row->text;
+  while (*cursor != '\0') {
+    const char *line_start = cursor;
+    size_t line_length;
+    while (*cursor != '\0' && *cursor != '\n') ++cursor;
+    if (*cursor == '\n') ++cursor;
+    line_length = (size_t)(cursor - line_start);
+    if (canonical_stream_capture_header_line(stream, row, line_start, line_length) != 0 ||
+        append_full_listing_render_plan_line(row, subline, row->start_line + subline, line_start, line_length,
+          &stream->context) != 0) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "listing stream emission failed");
+      return -1;
+    }
+    ++subline;
+  }
+  stream->batch_rows = stream->context.emitted_count;
+  if (stream->batch_rows >= PLATFORM_LISTING_STREAM_BATCH_ROWS &&
+      canonical_stream_flush_batch(stream, diagnostics) != 0) return -1;
+  if (stream->context.builder == NULL && canonical_stream_begin_batch(stream) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
+  return 0;
+}
+
+int platform_listing_canonical_stream_finish(PlatformListingCanonicalStream *stream, char **out_navigation_json,
+    M68kDiagSink diagnostics) {
+  if (stream == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  if (canonical_stream_flush_batch(stream, diagnostics) != 0) return -1;
+  if (out_navigation_json != NULL) {
+    *out_navigation_json = listing_navigation_stream_finish_json(stream->navigation,
+      stream->context.analysis_generation, stream->context.row_index);
+    if (*out_navigation_json == NULL) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+      return -1;
+    }
+  }
+  return 0;
+}
+
+void platform_listing_canonical_stream_allocation_stats(const PlatformListingCanonicalStream *stream,
+    size_t *out_max_rows, size_t *out_transient_json_bytes) {
+  if (out_max_rows != NULL) *out_max_rows = stream != NULL ? stream->max_rows : 0U;
+  if (out_transient_json_bytes != NULL)
+    *out_transient_json_bytes = stream != NULL ? stream->max_transient_json_bytes : 0U;
+}
+
+void platform_listing_canonical_stream_destroy(PlatformListingCanonicalStream *stream) {
+  if (stream == NULL) return;
+  json_builder_destroy(&stream->batch_builder);
+  listing_navigation_stream_destroy(stream->navigation);
+  listing_source_header_rows_destroy(&stream->header_rows);
+  free(stream);
+}
+
 typedef struct ListingNavigationLabelRef {
   char symbol[128];
   uint8_t access_kind;
@@ -11041,6 +11274,46 @@ oom:
   listing_source_header_rows_destroy(&header_rows);
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
   return -1;
+}
+
+/* The forward-only corpus renderer shares the same navigation observer as the
+ * random-access artifact.  It retains navigation facts, never rows or a row
+ * index, and serializes them only after the final canonical row. */
+static ListingNavigationJsonContext *listing_navigation_stream_create(uint8_t platform_backend_kind,
+    const M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *analysis_policy) {
+  ListingNavigationJsonContext *navigation = (ListingNavigationJsonContext *)calloc(1U, sizeof(*navigation));
+  if (navigation == NULL) return NULL;
+  if (listing_navigation_init(navigation, platform_backend_kind, source_analysis, analysis_policy) != 0) {
+    free(navigation);
+    return NULL;
+  }
+  return navigation;
+}
+
+static char *listing_navigation_stream_finish_json(ListingNavigationJsonContext *navigation,
+    const char *analysis_generation, size_t total_rows) {
+  JsonBuilder builder = {0};
+  char *json = NULL;
+  if (navigation == NULL || json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"analysis_generation\":") != 0 ||
+      json_builder_append_json_string(&builder, analysis_generation != NULL ? analysis_generation : "full") != 0 ||
+      json_builder_appendf(&builder, ",\"total_rows\":%u,\"groups\":{", (unsigned)total_rows) != 0 ||
+      append_listing_navigation_groups_json(&builder, navigation) != 0 ||
+      json_builder_append(&builder, "},\"app_slot_analysis\":") != 0 ||
+      append_listing_app_slot_analysis_json(&builder, &navigation->app_slot_analysis) != 0 ||
+      json_builder_append(&builder, ",\"type_flow_analysis\":{}}") != 0) {
+    json_builder_destroy(&builder);
+    return NULL;
+  }
+  json = json_builder_build(&builder);
+  json_builder_destroy(&builder);
+  return json;
+}
+
+static void listing_navigation_stream_destroy(ListingNavigationJsonContext *navigation) {
+  if (navigation == NULL) return;
+  listing_navigation_destroy(navigation);
+  free(navigation);
 }
 
 int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *source_file,

@@ -5318,6 +5318,7 @@ cleanup:
 
 static const char *provider_candidate_codec_name_local(const PlatformDecompressionCandidate *candidate) {
   if (candidate == NULL || candidate->codec_hint[0] == '\0') return "unknown";
+  if (candidate->codec_name[0] != '\0') return candidate->codec_name;
   if (strcmp(candidate->codec_hint, "bk") == 0) return "bk";
   if (strcmp(candidate->codec_hint, "rnc1-old") == 0) return "rnc1-old";
   return candidate->codec_hint;
@@ -6369,8 +6370,8 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       }
       if (make_temp_output_path(output_path, sizeof(output_path)) != 0) goto cleanup;
       phase_start = clock();
-      if (platform_decompression_decompress_buffer_range("ancient-cli", "", section->data, section->data_size,
-          candidate->offset, candidate->packed_size, output_path, &result, error, sizeof(error)) != 0) {
+      if (platform_decompression_decompress_scanned_buffer_candidate("ancient-cli", "", section->data,
+          section->data_size, candidate, output_path, &result, error, sizeof(error)) != 0) {
         if (timing != NULL) timing->provider_probe_seconds += elapsed_seconds(phase_start, clock());
         remove(output_path);
         continue;
@@ -11899,8 +11900,23 @@ struct PlatformFileListingArtifact {
   Arena *listing_index_arena;
   PlatformListingRowIndex listing_row_index;
   size_t listing_total_rows;
+  size_t listing_index_bytes;
   double source_seconds;
   uint8_t render_evidence_live;
+};
+
+struct PlatformFileListingStream {
+  char *backend_name;
+  char *path;
+  M68kObject object;
+  M68kAnalysisPolicy policy;
+  M68kSourceAnalysisIR source_analysis;
+  M68kRenderEvidenceIR render_evidence;
+  M68kFactsV2Profile profile;
+  double source_seconds;
+  uint8_t analysis_live;
+  uint8_t render_evidence_live;
+  uint8_t visited;
 };
 
 static int listing_artifact_set_error(char **out_error, const M68kDiagList *diagnostics,
@@ -11986,6 +12002,7 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
     return -1;
   }
   artifact->listing_total_rows = artifact->listing_row_index.row_count;
+  artifact->listing_index_bytes = arena_stats(artifact->listing_index_arena).current_used;
   artifact->source_seconds = elapsed_seconds(source_start, source_end);
   return 0;
 }
@@ -12149,6 +12166,29 @@ static int append_analysis_executable_ranges_json(JsonBuilder *builder, const ch
   return 0;
 }
 
+static int listing_artifact_append_allocation_json(JsonBuilder *builder, const PlatformFileListingArtifact *artifact,
+    size_t live_row_count, size_t transient_json_bytes) {
+  ArenaStats source_analysis_stats;
+  size_t source_analysis_bytes = 0U;
+  if (builder == NULL || artifact == NULL) return -1;
+  source_analysis_stats = arena_stats(artifact->source_analysis.arena);
+  source_analysis_bytes = source_analysis_stats.current_used;
+  return json_builder_appendf(builder,
+    ",\"allocation\":{\"builder_arena_bytes\":%llu,\"final_plan_arena_bytes\":%llu,"
+    "\"finalization_overlap_bytes\":%llu,\"semantic_layout_bytes\":0,"
+    "\"source_analysis_bytes\":%llu,\"live_row_batch_bytes\":0,\"max_live_rows\":%llu,"
+    "\"transient_json_bytes\":%llu,\"complete_render_plan_bytes\":%llu,"
+    "\"complete_listing_row_index_bytes\":%llu}",
+    (unsigned long long)artifact->source_plan.builder_peak_bytes,
+    (unsigned long long)artifact->source_plan.final_plan_bytes,
+    (unsigned long long)artifact->source_plan.finalization_overlap_bytes,
+    (unsigned long long)source_analysis_bytes,
+    (unsigned long long)live_row_count,
+    (unsigned long long)transient_json_bytes,
+    (unsigned long long)artifact->source_plan.final_plan_bytes,
+    (unsigned long long)artifact->listing_index_bytes);
+}
+
 static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifact *artifact,
     const char *generation, const char *timing_key, double timing_seconds, M68kDiagList *diagnostics) {
   JsonBuilder builder = {0};
@@ -12165,6 +12205,7 @@ static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifa
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      listing_artifact_append_allocation_json(&builder, artifact, 0U, 0U) != 0 ||
       json_builder_appendf(&builder, ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,",
         (unsigned)artifact->listing_total_rows, artifact->source_seconds) != 0 ||
       json_builder_append_json_string(&builder, timing_key) != 0 ||
@@ -12920,6 +12961,7 @@ int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListin
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      listing_artifact_append_allocation_json(&builder, artifact, count, builder.size) != 0 ||
       json_builder_appendf(&builder,
         ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"window_emit_seconds\":%.6f,"
         "\"total_seconds\":%.6f}}}",
@@ -12979,6 +13021,8 @@ int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(PlatformFileL
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      listing_artifact_append_allocation_json(&builder, artifact, (size_t)before + (size_t)after + 1U,
+        builder.size) != 0 ||
       json_builder_appendf(&builder,
         ",\"listing_total_rows\":%u,\"listing_addr_block_count\":%u,"
         "\"timing\":{\"source_seconds\":%.6f,\"window_emit_seconds\":%.6f,\"total_seconds\":%.6f}}}",
@@ -13050,6 +13094,7 @@ int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(Platfor
       json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
       json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      listing_artifact_append_allocation_json(&builder, artifact, found ? 1U : 0U, builder.size) != 0 ||
       json_builder_appendf(&builder,
         ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"lookup_emit_seconds\":%.6f,"
         "\"total_seconds\":%.6f}}}",
@@ -13118,6 +13163,7 @@ int platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc(Platf
       json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
       json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      listing_artifact_append_allocation_json(&builder, artifact, found ? 1U : 0U, builder.size) != 0 ||
       json_builder_appendf(&builder,
         ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"lookup_emit_seconds\":%.6f,"
         "\"total_seconds\":%.6f}}}",
@@ -13184,6 +13230,7 @@ int platform_file_facts_v2_listing_artifact_anchor_window_json_alloc(PlatformFil
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      listing_artifact_append_allocation_json(&builder, artifact, safe_count, builder.size) != 0 ||
       json_builder_appendf(&builder,
         ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"window_emit_seconds\":%.6f,"
         "\"total_seconds\":%.6f}}}",
@@ -13422,6 +13469,244 @@ void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact
   free(artifact->path);
   memset(artifact, 0, sizeof(*artifact));
   free(artifact);
+}
+
+static PlatformFileListingStream *listing_stream_alloc(const char *backend_name, const char *path,
+    M68kDiagList *diagnostics) {
+  PlatformFileListingStream *stream = (PlatformFileListingStream *)calloc(1U, sizeof(*stream));
+  if (stream == NULL) goto oom;
+  stream->backend_name = m68k_platform_dup_string(backend_name);
+  stream->path = m68k_platform_dup_string(path);
+  if (stream->backend_name == NULL || stream->path == NULL) goto oom;
+  return stream;
+oom:
+  platform_file_facts_v2_listing_stream_destroy(stream);
+  platform_file_add_error(diagnostics, "out of memory");
+  return NULL;
+}
+
+int platform_file_facts_v2_listing_stream_path_create(const char *backend_name, const char *path,
+    const char *metadata_path, const char *include_dir, PlatformFileListingStream **out_stream, char **out_error) {
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingStream *stream = NULL;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  (void)include_dir;
+  if (out_stream == NULL || out_error == NULL) return -1;
+  *out_stream = NULL;
+  *out_error = NULL;
+  if (backend_name == NULL || path == NULL) goto invalid;
+  stream = listing_stream_alloc(backend_name, path, &diagnostics);
+  if (stream == NULL) goto fail;
+  if (configure_analysis_policy_for_alloc(&stream->policy, backend_name, metadata_path, NULL, &diagnostics) != 0 ||
+      load_object_from_path(backend, path, &stream->object, m68k_diag_sink(&diagnostics)) != 0 ||
+      enrich_policy_from_object_target_info_local(&stream->policy, backend, &stream->object, NULL, 0U,
+        &diagnostics) != 0) goto fail;
+  enrich_policy_pointer_targets_from_object_local(&stream->policy, &stream->object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &stream->object, &stream->policy) ||
+      !listing_validate_shared_executable_ranges(backend_name, &stream->object, &diagnostics)) goto fail;
+  *out_stream = stream;
+  return 0;
+invalid:
+  platform_file_add_error(&diagnostics, "invalid listing stream request");
+fail:
+  platform_file_facts_v2_listing_stream_destroy(stream);
+  return listing_artifact_set_error(out_error, &diagnostics, "listing stream create failed");
+}
+
+int platform_file_facts_v2_listing_stream_raw_path_create(const char *platform_name, const char *path,
+    uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+    const char *metadata_path, const char *include_dir, PlatformFileListingStream **out_stream, char **out_error) {
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingStream *stream = NULL;
+  (void)include_dir;
+  if (out_stream == NULL || out_error == NULL) return -1;
+  *out_stream = NULL;
+  *out_error = NULL;
+  if (platform_name == NULL || path == NULL) goto invalid;
+  stream = listing_stream_alloc(platform_name, path, &diagnostics);
+  if (stream == NULL) goto fail;
+  if (configure_analysis_policy_for_alloc(&stream->policy, platform_name, metadata_path, NULL, &diagnostics) != 0 ||
+      load_raw_object_from_path(platform_name, path, &stream->object, m68k_diag_sink(&diagnostics)) != 0 ||
+      !policy_add_raw_runtime_load_range_local(&stream->policy, &stream->object,
+        (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, &diagnostics) ||
+      !policy_set_raw_entry_address_local(&stream->policy, &stream->object, entry_address,
+        (uint8_t)(has_runtime_load_address != 0U), &diagnostics)) goto fail;
+  enrich_policy_pointer_targets_from_object_local(&stream->policy, &stream->object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &stream->object, &stream->policy)) goto fail;
+  *out_stream = stream;
+  return 0;
+invalid:
+  platform_file_add_error(&diagnostics, "invalid listing stream request");
+fail:
+  platform_file_facts_v2_listing_stream_destroy(stream);
+  return listing_artifact_set_error(out_error, &diagnostics, "listing stream create failed");
+}
+
+static int listing_stream_analysis_json_alloc(PlatformFileListingStream *stream,
+    const M68kRenderEvidenceIR *render_evidence, char **out_text) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  char *analysis_json = NULL;
+  char *json = NULL;
+  PlatformDecompressionAnalysisTiming decompression_timing;
+  memset(&result, 0, sizeof(result));
+  memset(&decompression_timing, 0, sizeof(decompression_timing));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (stream == NULL) {
+    platform_file_add_error(&result.diagnostics, "invalid listing stream");
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (source_analysis_to_json_with_render_evidence(&stream->source_analysis, render_evidence, &analysis_json,
+      m68k_diag_sink(&result.diagnostics)) != 0 ||
+      json_builder_create(&builder) != 0 || json_builder_append(&builder, "{\"analysis\":") != 0 ||
+      analysis_json == NULL || append_analysis_json_with_decompression_profile(&builder, analysis_json,
+        stream->backend_name, &stream->object, &stream->source_analysis, NULL, NULL,
+        &decompression_timing) != 0 ||
+      json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing_stream_analysis\","
+        "\"corpus_generation\":\"facts_v2_listing_artifact_window\","
+        "\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, stream->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, stream->path) != 0 ||
+      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+      json_builder_append_facts_v2_profile(&builder, &stream->profile) != 0 ||
+      json_builder_append(&builder, ",\"decompression\":") != 0 ||
+      append_decompression_timing_json(&builder, &decompression_timing) != 0 ||
+      json_builder_appendf(&builder, ",\"timing\":{\"source_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        stream->source_seconds, stream->source_seconds) != 0) {
+    platform_file_add_error(&result.diagnostics, "facts_v2 listing stream analysis json failed");
+    goto cleanup;
+  }
+  json = json_builder_build(&builder);
+  if (json == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  result.text = json;
+  json = NULL;
+cleanup:
+  json_builder_destroy(&builder);
+  free(json);
+  free(analysis_json);
+  return text_result_to_alloc(&result, out_text);
+}
+
+typedef struct ListingStreamRowAdapter {
+  PlatformFileListingStream *stream;
+  PlatformListingCanonicalStream *canonical;
+  PlatformFileListingStreamEventSink sink;
+  void *sink_user;
+} ListingStreamRowAdapter;
+
+static int listing_stream_accept_row_batch(const char *json, size_t size, void *user);
+
+static int listing_stream_accept_completed_analysis(const M68kSourceAnalysisIR *analysis,
+    const M68kRenderEvidenceIR *render_evidence, const M68kFactsV2Profile *profile, void *user) {
+  ListingStreamRowAdapter *adapter = (ListingStreamRowAdapter *)user;
+  char *analysis_text = NULL;
+  (void)profile;
+  if (adapter == NULL || adapter->stream == NULL || analysis == NULL || adapter->sink == NULL ||
+      analysis != &adapter->stream->source_analysis) return -1;
+  if (platform_listing_canonical_stream_create(adapter->stream->object.platform_backend_kind,
+        &adapter->stream->policy, analysis, "full", listing_stream_accept_row_batch, adapter,
+        &adapter->canonical, m68k_diag_sink(NULL)) != 0 ||
+      listing_stream_analysis_json_alloc(adapter->stream, render_evidence, &analysis_text) != 0 || analysis_text == NULL ||
+      adapter->sink(PLATFORM_FILE_LISTING_STREAM_EVENT_ANALYSIS, analysis_text, strlen(analysis_text),
+        adapter->sink_user) != 0) {
+    free(analysis_text);
+    return -1;
+  }
+  free(analysis_text);
+  return 0;
+}
+
+static int listing_stream_accept_row_batch(const char *json, size_t size, void *user) {
+  ListingStreamRowAdapter *adapter = (ListingStreamRowAdapter *)user;
+  if (adapter == NULL || adapter->sink == NULL) return -1;
+  return adapter->sink(PLATFORM_FILE_LISTING_STREAM_EVENT_ROWS, json, size, adapter->sink_user);
+}
+
+static int listing_stream_accept_transient_row(const M68kRenderPlanRow *row, void *user) {
+  ListingStreamRowAdapter *adapter = (ListingStreamRowAdapter *)user;
+  if (adapter == NULL || adapter->canonical == NULL) return -1;
+  return platform_listing_canonical_stream_accept_row(adapter->canonical, row, m68k_diag_sink(NULL));
+}
+
+int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *stream,
+    PlatformFileListingStreamEventSink sink, void *sink_user, char **out_error) {
+  M68kDiagList diagnostics = {0};
+  ListingStreamRowAdapter adapter = {0};
+  JsonBuilder builder = {0};
+  char *navigation_json = NULL;
+  char *summary_json = NULL;
+  size_t max_live_rows = 0U;
+  size_t transient_json_bytes = 0U;
+  clock_t start;
+  if (out_error != NULL) *out_error = NULL;
+  if (stream == NULL || sink == NULL || out_error == NULL || stream->visited) {
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid or already consumed listing stream");
+    return -1;
+  }
+  adapter.stream = stream;
+  adapter.sink = sink;
+  adapter.sink_user = sink_user;
+  start = clock();
+  if (m68k_facts_v2_visit_asm_source_rows_with_analysis_profile(&stream->object, &stream->policy,
+      &stream->profile, &stream->source_analysis, listing_stream_accept_completed_analysis, &adapter,
+      listing_stream_accept_transient_row, &adapter, 1U,
+      m68k_diag_sink(&diagnostics)) != 0 ||
+      adapter.canonical == NULL ||
+      platform_listing_canonical_stream_finish(adapter.canonical, &navigation_json,
+        m68k_diag_sink(&diagnostics)) != 0) goto fail;
+  stream->source_seconds = elapsed_seconds(start, clock());
+  stream->analysis_live = 1U;
+  stream->visited = 1U;
+  platform_listing_canonical_stream_allocation_stats(adapter.canonical, &max_live_rows, &transient_json_bytes);
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"generation\":\"facts_v2_listing_stream\","
+        "\"corpus_generation\":\"facts_v2_listing_artifact_window\",\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, stream->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, stream->path) != 0 ||
+      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+      json_builder_append_facts_v2_profile(&builder, &stream->profile) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"allocation\":{\"builder_arena_bytes\":0,\"final_plan_arena_bytes\":0,"
+        "\"finalization_overlap_bytes\":0,\"semantic_layout_bytes\":0,\"source_analysis_bytes\":%llu,"
+        "\"live_row_batch_bytes\":%llu,\"max_live_rows\":%llu,\"transient_json_bytes\":%llu,"
+        "\"complete_render_plan_bytes\":0,\"complete_listing_row_index_bytes\":0},"
+        "\"timing\":{\"source_seconds\":%.6f,\"total_seconds\":%.6f}}",
+        (unsigned long long)arena_stats(stream->source_analysis.arena).current_used,
+        (unsigned long long)transient_json_bytes, (unsigned long long)max_live_rows,
+        (unsigned long long)transient_json_bytes,
+        stream->source_seconds, stream->source_seconds) != 0) goto fail;
+  summary_json = json_builder_build(&builder);
+  if (summary_json == NULL || navigation_json == NULL ||
+      sink(PLATFORM_FILE_LISTING_STREAM_EVENT_NAVIGATION, navigation_json, strlen(navigation_json), sink_user) != 0 ||
+      sink(PLATFORM_FILE_LISTING_STREAM_EVENT_SUMMARY, summary_json, strlen(summary_json), sink_user) != 0) goto fail;
+  platform_listing_canonical_stream_destroy(adapter.canonical);
+  json_builder_destroy(&builder);
+  free(navigation_json);
+  free(summary_json);
+  return 0;
+fail:
+  platform_listing_canonical_stream_destroy(adapter.canonical);
+  json_builder_destroy(&builder);
+  free(navigation_json);
+  free(summary_json);
+  return listing_artifact_set_error(out_error, &diagnostics, "listing stream visit failed");
+}
+
+void platform_file_facts_v2_listing_stream_destroy(PlatformFileListingStream *stream) {
+  if (stream == NULL) return;
+  if (stream->render_evidence_live) m68k_ir_render_evidence_destroy(&stream->render_evidence);
+  if (stream->analysis_live) m68k_ir_source_analysis_destroy(&stream->source_analysis);
+  m68k_analysis_policy_destroy(&stream->policy);
+  m68k_object_destroy(&stream->object);
+  free(stream->backend_name);
+  free(stream->path);
+  free(stream);
 }
 
 int platform_file_type_catalog_json_alloc(const char *backend_name, char **out_text) {

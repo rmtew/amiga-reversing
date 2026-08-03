@@ -332,7 +332,7 @@ typedef struct M68kRenderTypedRegValue {
   uint8_t raw_long_value_known;
   uint8_t raw_long_candidate_count;
   uint8_t address_value_candidate_overflow;
-  uint8_t reserved0;
+  uint8_t pointer_target_known;
   uint32_t pointer_value;
   uint32_t pointer_candidates[4];
   uint32_t raw_long_value;
@@ -344,6 +344,9 @@ typedef struct M68kRenderTypedRegValue {
   uint16_t array_element_index;
   int32_t byte_cursor;
   M68kRenderTypedStorageOrigin origin;
+  M68kAddressValueTableOriginIR table_origin;
+  size_t pointer_target_section_index;
+  uint32_t pointer_target_offset;
   M68kRenderTypedProvenance provenance;
 } M68kRenderTypedRegValue;
 
@@ -389,7 +392,8 @@ typedef struct M68kRenderTypedStoredValue {
   uint8_t raw_long_value_known;
   uint8_t raw_long_candidate_count;
   uint8_t address_value_candidate_overflow;
-  uint8_t reserved0[2];
+  uint8_t pointer_target_known;
+  uint8_t reserved0;
   uint32_t pointer_value;
   uint32_t pointer_candidates[4];
   uint32_t raw_long_value;
@@ -401,6 +405,9 @@ typedef struct M68kRenderTypedStoredValue {
   int32_t byte_cursor;
   uint8_t app_address_known;
   int16_t app_displacement;
+  M68kAddressValueTableOriginIR table_origin;
+  size_t pointer_target_section_index;
+  uint32_t pointer_target_offset;
   M68kRenderTypedProvenance provenance;
 } M68kRenderTypedStoredValue;
 
@@ -505,6 +512,7 @@ typedef struct M68kRenderTypedAccess {
   uint8_t inherited;
   uint8_t nested;
   M68kRenderTypedProvenance provenance;
+  M68kAddressValueTableOriginIR table_origin;
   char root_struct_name[64];
   char owner_struct_name[64];
   char field_name[64];
@@ -1082,6 +1090,12 @@ int m68k_analysis_render_lookup_append_base_layout_fields(Arena *scratch_arena,
 int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis, M68kSourceAnalysisBuildStats *out_stats);
+/* The renderer may tentatively propagate a pointee type before the canonical
+ * source-analysis table-entry binder has validated the selection.  Remove
+ * only table-derived renderer facts whose final durable address value is not
+ * a unique symbolic contract. */
+void m68k_analysis_render_lookup_reconcile_typed_table_contracts(M68kRenderLookup *lookup,
+  M68kSourceAnalysisIR *source_analysis);
 void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(const M68kRenderLookup *lookup,
   const M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,

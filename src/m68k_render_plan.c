@@ -11,11 +11,12 @@
 
 static Arena *render_plan_arena(M68kRenderPlan *plan) {
   if (plan == NULL) return NULL;
-  if (plan->arena == NULL) {
-    plan->arena = arena_create(4096U);
-    if (plan->arena == NULL) return NULL;
+  if (plan->finalized) return NULL;
+  if (plan->builder_arena == NULL) {
+    plan->builder_arena = arena_create(4096U);
+    if (plan->builder_arena == NULL) return NULL;
   }
-  return plan->arena;
+  return plan->builder_arena;
 }
 
 static char *render_plan_strdup(M68kRenderPlan *plan, const char *text) {
@@ -207,10 +208,12 @@ void m68k_render_plan_init(M68kRenderPlan *plan) {
   if (plan == NULL) return;
   memset(plan, 0, sizeof(*plan));
   plan->next_row_id = 1U;
+  plan->instructions_source_ordered = 1U;
 }
 
 void m68k_render_plan_destroy(M68kRenderPlan *plan) {
   if (plan == NULL) return;
+  arena_destroy(plan->builder_arena);
   arena_destroy(plan->arena);
   memset(plan, 0, sizeof(*plan));
 }
@@ -220,6 +223,80 @@ void m68k_render_plan_move(M68kRenderPlan *dest, M68kRenderPlan *src) {
   m68k_render_plan_destroy(dest);
   *dest = *src;
   m68k_render_plan_init(src);
+}
+
+static int render_plan_copy_array(Arena *arena, const void *items, size_t count, size_t item_size,
+    void **out_items) {
+  void *copy;
+  if (out_items == NULL || item_size == 0U || (count != 0U && items == NULL)) return -1;
+  *out_items = NULL;
+  if (count == 0U) return 0;
+  if (count > ((size_t)-1) / item_size) return -1;
+  copy = arena_memdup(arena, items, count * item_size);
+  if (copy == NULL) return -1;
+  *out_items = copy;
+  return 0;
+}
+
+int m68k_render_plan_finalize(M68kRenderPlan *plan) {
+  Arena *final_arena;
+  ArenaStats builder_stats;
+  ArenaStats final_stats;
+  M68kRenderPlanRow *rows = NULL;
+  M68kRenderPlannedExpression *expressions = NULL;
+  M68kRenderPlannedDeclaration *declarations = NULL;
+  M68kRenderPlannedInstruction *instructions = NULL;
+  M68kRenderPlannedLabel *labels = NULL;
+  M68kRenderPlannedRuntimeAlias *runtime_aliases = NULL;
+  size_t index;
+  if (plan == NULL) return -1;
+  if (plan->finalized) return 0;
+  builder_stats = arena_stats(plan->builder_arena);
+  final_arena = arena_create(4096U);
+  if (final_arena == NULL) return -1;
+  if (render_plan_copy_array(final_arena, plan->rows, plan->row_count, sizeof(*plan->rows),
+        (void **)&rows) != 0 ||
+      render_plan_copy_array(final_arena, plan->expressions, plan->expression_count,
+        sizeof(*plan->expressions), (void **)&expressions) != 0 ||
+      render_plan_copy_array(final_arena, plan->declarations, plan->declaration_count,
+        sizeof(*plan->declarations), (void **)&declarations) != 0 ||
+      render_plan_copy_array(final_arena, plan->instructions, plan->instruction_count,
+        sizeof(*plan->instructions), (void **)&instructions) != 0 ||
+      render_plan_copy_array(final_arena, plan->labels, plan->label_count, sizeof(*plan->labels),
+        (void **)&labels) != 0 ||
+      render_plan_copy_array(final_arena, plan->runtime_aliases, plan->runtime_alias_count,
+        sizeof(*plan->runtime_aliases), (void **)&runtime_aliases) != 0) {
+    arena_destroy(final_arena);
+    return -1;
+  }
+  for (index = 0U; index < plan->row_count; ++index) {
+    rows[index].text = arena_strdup(final_arena, plan->rows[index].text);
+    if (rows[index].text == NULL) {
+      arena_destroy(final_arena);
+      return -1;
+    }
+  }
+  final_stats = arena_stats(final_arena);
+  plan->builder_peak_bytes = builder_stats.peak_used;
+  plan->final_plan_bytes = final_stats.current_used;
+  plan->finalization_overlap_bytes = builder_stats.current_used + final_stats.current_used;
+  arena_destroy(plan->builder_arena);
+  plan->builder_arena = NULL;
+  plan->arena = final_arena;
+  plan->rows = rows;
+  plan->expressions = expressions;
+  plan->declarations = declarations;
+  plan->instructions = instructions;
+  plan->labels = labels;
+  plan->runtime_aliases = runtime_aliases;
+  plan->row_capacity = plan->row_count;
+  plan->expression_capacity = plan->expression_count;
+  plan->declaration_capacity = plan->declaration_count;
+  plan->instruction_capacity = plan->instruction_count;
+  plan->label_capacity = plan->label_count;
+  plan->runtime_alias_capacity = plan->runtime_alias_count;
+  plan->finalized = 1U;
+  return 0;
 }
 
 int m68k_render_plan_append_expression(M68kRenderPlan *plan,
@@ -287,10 +364,19 @@ int m68k_render_plan_append_declaration(M68kRenderPlan *plan,
 
 int m68k_render_plan_append_instruction(M68kRenderPlan *plan,
     const M68kRenderPlannedInstruction *instruction) {
+  const M68kRenderPlannedInstruction *previous;
   if (plan == NULL || instruction == NULL) return -1;
   if (m68k_render_plan_find_instruction(plan, instruction->source_section_index, instruction->source_offset) != NULL)
     return -1;
   if (render_plan_reserve_instructions(plan, plan->instruction_count + 1U) != 0) return -1;
+  if (plan->instruction_count != 0U) {
+    previous = &plan->instructions[plan->instruction_count - 1U];
+    if (previous->source_section_index > instruction->source_section_index ||
+        (previous->source_section_index == instruction->source_section_index &&
+         previous->source_offset > instruction->source_offset)) {
+      plan->instructions_source_ordered = 0U;
+    }
+  }
   plan->instructions[plan->instruction_count++] = *instruction;
   return 0;
 }
@@ -299,6 +385,27 @@ const M68kRenderPlannedInstruction *m68k_render_plan_find_instruction(const M68k
     uint32_t source_section_index, uint32_t source_offset) {
   size_t index;
   if (plan == NULL) return NULL;
+  if (plan->instructions_source_ordered) {
+    size_t lo = 0U;
+    size_t hi = plan->instruction_count;
+    while (lo < hi) {
+      size_t mid = lo + ((hi - lo) / 2U);
+      const M68kRenderPlannedInstruction *instruction = &plan->instructions[mid];
+      if (instruction->source_section_index < source_section_index ||
+          (instruction->source_section_index == source_section_index &&
+           instruction->source_offset < source_offset)) {
+        lo = mid + 1U;
+      } else {
+        hi = mid;
+      }
+    }
+    if (lo < plan->instruction_count) {
+      const M68kRenderPlannedInstruction *instruction = &plan->instructions[lo];
+      if (instruction->source_section_index == source_section_index && instruction->source_offset == source_offset)
+        return instruction;
+    }
+    return NULL;
+  }
   for (index = 0U; index < plan->instruction_count; ++index) {
     const M68kRenderPlannedInstruction *instruction = &plan->instructions[index];
     if (instruction->source_section_index == source_section_index && instruction->source_offset == source_offset)
@@ -911,6 +1018,10 @@ int m68k_render_plan_build_text_lines(const char *text, uint32_t kind, uint32_t 
     }
   }
   m68k_render_plan_row_builder_destroy(&builder);
+  if (m68k_render_plan_finalize(out_plan) != 0) {
+    m68k_render_plan_destroy(out_plan);
+    return -1;
+  }
   return 0;
 }
 
@@ -1120,6 +1231,11 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
           stmt->offset + line_provenance[line_index].source_offset, line_provenance[line_index].source_size);
       }
     }
+  }
+  if (m68k_render_plan_finalize(out_plan) != 0) {
+    m68k_render_plan_destroy(out_plan);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
   }
   return 0;
 }

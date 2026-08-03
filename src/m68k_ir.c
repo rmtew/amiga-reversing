@@ -331,6 +331,15 @@ const char *m68k_analysis_table_kind_name(uint8_t table_kind_id) {
   }
 }
 
+const char *m68k_address_value_table_selection_name(uint8_t selection_kind) {
+  switch (selection_kind) {
+    case M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON: return "singleton";
+    case M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE: return "finite";
+    case M68K_ADDRESS_VALUE_TABLE_SELECTION_TERMINAL: return "terminal";
+    default: return "none";
+  }
+}
+
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id) {
   switch (base_expression_id) {
     case M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL:
@@ -2794,8 +2803,8 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
     uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
     int32_t base_cursor, int16_t field_offset, uint16_t struct_size, uint16_t field_size, const char *root_struct_name,
     const char *owner_struct_name, const char *field_name, const char *field_expr, uint8_t inherited,
-    uint8_t nested, uint8_t type_provenance_kind, size_t type_provenance_section_index,
-    uint32_t type_provenance_offset) {
+    uint8_t nested, uint8_t type_provenance_kind, uint8_t type_provenance_operand_index, size_t type_provenance_section_index,
+    uint32_t type_provenance_offset, const M68kAddressValueTableOriginIR *table_origin) {
   size_t index;
   char *copy_root_struct_name, *copy_owner_struct_name, *copy_field_name, *copy_field_expr;
   M68kRecoveredPlatformTypedAccessIR *new_access;
@@ -2821,6 +2830,7 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
         existing->field_size == field_size && existing->inherited == (uint8_t)(inherited != 0U) &&
         existing->nested == (uint8_t)(nested != 0U) &&
         existing->type_provenance_kind == type_provenance_kind &&
+        existing->type_provenance_operand_index == type_provenance_operand_index &&
         existing->type_provenance_section_index == type_provenance_section_index &&
         existing->type_provenance_offset == type_provenance_offset &&
         m68k_platform_name_matches(&existing->root_struct_ref, existing->root_struct_name, &root_struct_ref,
@@ -2853,6 +2863,10 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
   if (copy_field_expr == NULL) return -1;
   new_access = &section_analysis->recovered_platform_typed_accesses[
     section_analysis->recovered_platform_typed_access_count];
+  /* arena_grow_array preserves existing entries but does not initialize the
+   * newly allocated slot.  The optional table-origin fields must therefore
+   * start absent rather than inherit bytes from a prior arena allocation. */
+  memset(new_access, 0, sizeof(*new_access));
   new_access->offset = offset;
   new_access->operand_index = operand_index;
   new_access->base_reg = base_reg;
@@ -2864,8 +2878,22 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
   new_access->struct_size = struct_size;
   new_access->field_size = field_size;
   new_access->type_provenance_kind = type_provenance_kind;
+  new_access->type_provenance_operand_index = type_provenance_operand_index;
   new_access->type_provenance_section_index = type_provenance_section_index;
   new_access->type_provenance_offset = type_provenance_offset;
+  if (table_origin != NULL && table_origin->has_origin != 0U) {
+    new_access->has_table_origin = 1U;
+    new_access->table_selection_kind = table_origin->selection_kind;
+    new_access->table_terminal_kind = table_origin->terminal_kind;
+    new_access->table_section_index = table_origin->table_section_index;
+    new_access->table_start_offset = table_origin->table_start_offset;
+    new_access->table_consumer_section_index = table_origin->consumer_section_index;
+    new_access->table_consumer_offset = table_origin->consumer_offset;
+    new_access->table_address_expression_id = table_origin->address_expression_id;
+    new_access->table_entry_index = table_origin->entry_index;
+    new_access->table_index_min = table_origin->index_min;
+    new_access->table_index_max = table_origin->index_max;
+  }
   new_access->root_struct_name = copy_root_struct_name;
   new_access->owner_struct_name = copy_owner_struct_name;
   new_access->field_name = copy_field_name;
@@ -3629,8 +3657,8 @@ static M68kRenderEvidenceSectionIR *render_evidence_get_or_add_section(
   return section;
 }
 
-int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
-    uint32_t section_index, const M68kRenderedSymbolAccessIR *access) {
+static int render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
+    uint32_t section_index, const M68kRenderedSymbolAccessIR *access, int dedupe) {
   M68kRenderEvidenceSectionIR *section;
   M68kRenderedSymbolAccessIR copy;
   size_t index;
@@ -3639,16 +3667,18 @@ int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *
       access->symbol_name == NULL || access->symbol_name[0] == '\0') return 0;
   section = render_evidence_get_or_add_section(evidence, section_index);
   if (section == NULL) return -1;
-  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
-    const M68kRenderedSymbolAccessIR *existing = &section->rendered_symbol_accesses[index];
-    if (existing->offset == access->offset &&
-        existing->target_section_index == access->target_section_index &&
-        existing->target_offset == access->target_offset &&
-        existing->operand_index == access->operand_index &&
-        existing->access_kind == access->access_kind &&
-        existing->comment_only == access->comment_only &&
-        strcmp(existing->symbol_name, access->symbol_name) == 0) {
-      return 0;
+  if (dedupe) {
+    for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
+      const M68kRenderedSymbolAccessIR *existing = &section->rendered_symbol_accesses[index];
+      if (existing->offset == access->offset &&
+          existing->target_section_index == access->target_section_index &&
+          existing->target_offset == access->target_offset &&
+          existing->operand_index == access->operand_index &&
+          existing->access_kind == access->access_kind &&
+          existing->comment_only == access->comment_only &&
+          strcmp(existing->symbol_name, access->symbol_name) == 0) {
+        return 0;
+      }
     }
   }
   section->rendered_symbol_accesses = (M68kRenderedSymbolAccessIR *)arena_grow_array(evidence->arena,
@@ -3660,6 +3690,40 @@ int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *
   if (copy.symbol_name == NULL) return -1;
   section->rendered_symbol_accesses[section->rendered_symbol_access_count++] = copy;
   return 0;
+}
+
+int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
+    uint32_t section_index, const M68kRenderedSymbolAccessIR *access) {
+  return render_evidence_append_rendered_symbol_access(evidence, section_index, access, 1);
+}
+
+int m68k_ir_render_evidence_append_unique_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
+    uint32_t section_index, const M68kRenderedSymbolAccessIR *access) {
+  return render_evidence_append_rendered_symbol_access(evidence, section_index, access, 0);
+}
+
+static int compare_rendered_symbol_access_source_order(const void *left, const void *right) {
+  const M68kRenderedSymbolAccessIR *left_access = (const M68kRenderedSymbolAccessIR *)left;
+  const M68kRenderedSymbolAccessIR *right_access = (const M68kRenderedSymbolAccessIR *)right;
+  if (left_access->offset != right_access->offset)
+    return left_access->offset < right_access->offset ? -1 : 1;
+  if (left_access->source_order_class != right_access->source_order_class)
+    return left_access->source_order_class < right_access->source_order_class ? -1 : 1;
+  if (left_access->emission_order != right_access->emission_order)
+    return left_access->emission_order < right_access->emission_order ? -1 : 1;
+  return 0;
+}
+
+void m68k_ir_render_evidence_sort_source_order(M68kRenderEvidenceIR *evidence) {
+  size_t section_index;
+  if (evidence == NULL) return;
+  for (section_index = 0U; section_index < evidence->section_count; ++section_index) {
+    M68kRenderEvidenceSectionIR *section = &evidence->sections[section_index];
+    if (section->rendered_symbol_access_count > 1U) {
+      qsort(section->rendered_symbol_accesses, section->rendered_symbol_access_count,
+        sizeof(*section->rendered_symbol_accesses), compare_rendered_symbol_access_source_order);
+    }
+  }
 }
 
 int m68k_ir_render_evidence_append_all(M68kRenderEvidenceIR *evidence,
@@ -5034,6 +5098,7 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->recovered_platform_typed_access_count; ++index) {
     const M68kRecoveredPlatformTypedAccessIR *access =
       &section_analysis->recovered_platform_typed_accesses[index];
+    M68kAddressValueTableOriginIR table_origin;
     const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
     const char *owner_struct_name = m68k_platform_name_ref_display_text(&access->owner_struct_ref,
@@ -5050,11 +5115,26 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
       platform_kind = m68k_platform_kind_from_ref_or_text(&access->field_ref,
         M68K_PLATFORM_NAME_FIELD, field_name);
     }
+    memset(&table_origin, 0, sizeof(table_origin));
+    if (access->has_table_origin != 0U) {
+      table_origin.has_origin = 1U;
+      table_origin.selection_kind = access->table_selection_kind;
+      table_origin.terminal_kind = access->table_terminal_kind;
+      table_origin.table_section_index = access->table_section_index;
+      table_origin.table_start_offset = access->table_start_offset;
+      table_origin.consumer_section_index = access->table_consumer_section_index;
+      table_origin.consumer_offset = access->table_consumer_offset;
+      table_origin.address_expression_id = access->table_address_expression_id;
+      table_origin.entry_index = access->table_entry_index;
+      table_origin.index_min = access->table_index_min;
+      table_origin.index_max = access->table_index_max;
+    }
     if (m68k_ir_section_analysis_append_recovered_platform_typed_access(&copy, platform_kind,
           access->offset, access->operand_index, access->base_reg, access->displacement, access->base_cursor,
           access->field_offset, access->struct_size, access->field_size, root_struct_name, owner_struct_name,
-          field_name, access->field_expr, access->inherited, access->nested, access->type_provenance_kind,
-          access->type_provenance_section_index, access->type_provenance_offset) != 0) {
+          field_name, access->field_expr, access->inherited, access->nested, access->type_provenance_kind, access->type_provenance_operand_index,
+          access->type_provenance_section_index, access->type_provenance_offset,
+          table_origin.has_origin != 0U ? &table_origin : NULL) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

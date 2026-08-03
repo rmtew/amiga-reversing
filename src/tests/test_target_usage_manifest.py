@@ -4484,7 +4484,7 @@ class TargetUsageManifestTests(unittest.TestCase):
 
             with mock.patch.object(
                 usage,
-                "analyze_executable_file",
+                "project_executable_file_listing_stream",
                 side_effect=RuntimeError("exception: access violation reading 0x00000230950BC3B0"),
             ):
                 rows = usage.build_usage_manifest(disk_manifest, file_manifest, root=tmpdir)
@@ -4539,24 +4539,30 @@ class TargetUsageManifestTests(unittest.TestCase):
                 self.assertEqual(target, target_dir)
                 yield metadata_path
 
-            def fake_analyze_project_hunk_file(
-                platform: str, path: Path, target: Path, *, root: Path
-            ) -> dict[str, object]:
-                calls.append((platform, path, target, root))
-                return {
-                    "profile": {"generation": "facts_v2_listing_artifact_window"},
-                    "analysis": {"sections": []},
-                    "listing": {"rows": []},
-                }
+            def fake_project_binary_source_listing_stream(
+                source: object, _row: object, _bag: object, *, metadata_path: Path, root: Path,
+                snippet_path: Path | None = None,
+                xref_path: Path | None = None,
+                profile_sink: object = None,
+            ) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+                calls.append((getattr(source, "kind", None), getattr(source, "path", None), metadata_path, root))
+                getattr(_bag, "add")("analysis:facts_v2")
+                if callable(profile_sink):
+                    profile_sink({"allocation": {"semantic_layout_bytes": 12}})
+                return {"sections": []}, [], []
 
             with mock.patch.object(usage, "effective_metadata_file", fake_effective_metadata_file):
-                with mock.patch.object(usage, "analyze_project_hunk_file", fake_analyze_project_hunk_file):
-                    rows, xrefs, snippets = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir)
+                with mock.patch.object(usage, "project_binary_source_listing_stream", fake_project_binary_source_listing_stream):
+                    monitor = usage.CorpusBuildMonitor(worker_count=1)
+                    rows, xrefs, snippets = usage.build_usage_outputs(
+                        disk_manifest, file_manifest, root=tmpdir, monitor=monitor
+                    )
 
             self.assertEqual([row["id"] for row in rows], ["project_target:demo_project"])
             self.assertEqual(rows[0]["feature_counts"]["project_target:any"], 1)
             self.assertEqual(rows[0]["feature_counts"]["analysis:facts_v2"], 1)
-            self.assertEqual(calls[0], ("amiga-hunk", binary_path, target_dir, tmpdir))
+            self.assertEqual(monitor.report()["stream_allocation_totals"], {"semantic_layout_bytes": 12})
+            self.assertEqual(calls[0], ("hunk_file", binary_path, metadata_path, tmpdir))
             self.assertIn("project_target:any", {xref["feature"] for xref in xrefs})
             self.assertEqual(snippets, [])
 
@@ -4595,9 +4601,11 @@ class TargetUsageManifestTests(unittest.TestCase):
             def fake_effective_metadata_file(_target: Path):
                 yield None
 
-            def fake_analyze_project_hunk_file(
-                _platform: str, path: Path, _target: Path, *, root: Path
+            def fake_analyze_project_binary_source(
+                source: object, _target: Path, *, root: Path
             ) -> dict[str, object]:
+                path = getattr(source, "path")
+                assert isinstance(path, Path)
                 return {
                     "profile": {"generation": "facts_v2_listing_artifact_window"},
                     "analysis": {"sections": []},
@@ -4613,7 +4621,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 }
 
             with mock.patch.object(usage, "effective_metadata_file", fake_effective_metadata_file):
-                with mock.patch.object(usage, "analyze_project_hunk_file", fake_analyze_project_hunk_file):
+                with mock.patch.object(usage, "analyze_project_binary_source", fake_analyze_project_binary_source):
                     serial = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir, max_workers=1)
                     parallel = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir, max_workers=2)
 

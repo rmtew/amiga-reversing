@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from ctypes import (
     CDLL,
+    CFUNCTYPE,
     POINTER,
     byref,
     c_char_p,
@@ -804,6 +805,28 @@ def build_listing_artifact_profile_from_binary_source(
         return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
 
 
+def visit_listing_stream_from_binary_source(
+    binary_source: BinarySource,
+    sink: Callable[[str, dict[str, object]], None],
+    *,
+    metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> None:
+    """Visit the native forward-only stream for a non-Mac corpus source."""
+    if isinstance(binary_source, MacosCodeResourceSource):
+        raise RuntimeError("native listing stream does not yet support macOS code resources")
+    metadata_text = _metadata_path_text(metadata_path)
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
+        stream = CListingStream.create(
+            source_file, metadata_text=metadata_text, include_dir=str(include_dir), project_root=project_root
+        )
+        try:
+            stream.visit(sink)
+        finally:
+            stream.close()
+
+
 def build_macos_code_bytes_listing_artifact_profile(
     code_bytes: bytes,
     *,
@@ -1525,6 +1548,38 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll.platform_file_facts_v2_listing_artifact_navigation_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_destroy.argtypes = [c_void_p]
     dll.platform_file_facts_v2_listing_artifact_destroy.restype = None
+    dll.platform_file_facts_v2_listing_stream_path_create.argtypes = [
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        POINTER(c_void_p),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_stream_path_create.restype = c_int
+    dll.platform_file_facts_v2_listing_stream_raw_path_create.argtypes = [
+        c_char_p,
+        c_char_p,
+        c_uint32,
+        c_uint32,
+        c_uint32,
+        c_char_p,
+        c_char_p,
+        POINTER(c_void_p),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_stream_raw_path_create.restype = c_int
+    listing_stream_event_sink = CFUNCTYPE(c_int, c_uint32, c_void_p, c_size_t, c_void_p)
+    dll.platform_file_facts_v2_listing_stream_visit.argtypes = [
+        c_void_p,
+        listing_stream_event_sink,
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_stream_visit.restype = c_int
+    dll._listing_stream_event_sink_type = listing_stream_event_sink
+    dll.platform_file_facts_v2_listing_stream_destroy.argtypes = [c_void_p]
+    dll.platform_file_facts_v2_listing_stream_destroy.restype = None
     _configure_text_function(dll, "platform_file_type_catalog_json_alloc", 1)
     _configure_text_function(dll, "platform_file_naming_catalog_json_alloc", 1)
     _configure_text_function(dll, "platform_file_os_metadata_catalog_json_alloc", 1)
@@ -2041,6 +2096,107 @@ class CListingArtifact:
         finally:
             if out_text.value:
                 self._dll.platform_file_free_text(out_text)
+
+    def __del__(self) -> None:
+        self.close()
+
+
+class CListingStream:
+    """Forward-only listing rows for corpus generation.
+
+    This deliberately has no random-access helpers: callers must consume rows
+    in the order supplied by the native renderer and keep only bounded local
+    state.
+    """
+
+    def __init__(self, dll: CDLL, handle: c_void_p) -> None:
+        self._dll = dll
+        self._handle = handle
+
+    @classmethod
+    def create(
+        cls,
+        source_file: _CBackendSourceFile,
+        *,
+        metadata_text: str,
+        include_dir: str,
+        project_root: Path,
+    ) -> CListingStream:
+        dll = _platform_file_dll(project_root)
+        stream = c_void_p()
+        error = c_void_p()
+        if source_file.entry_offset is None:
+            result = dll.platform_file_facts_v2_listing_stream_path_create(
+                _c_arg(source_file.platform_name),
+                _c_arg(str(source_file.path)),
+                _c_arg(metadata_text),
+                _c_arg(include_dir),
+                byref(stream),
+                byref(error),
+            )
+        else:
+            result = dll.platform_file_facts_v2_listing_stream_raw_path_create(
+                _c_arg(source_file.platform_name),
+                _c_arg(str(source_file.path)),
+                _c_arg(source_file.entry_offset),
+                _c_arg(1 if source_file.runtime_load_address is not None else 0),
+                _c_arg(source_file.runtime_load_address or 0),
+                _c_arg(metadata_text),
+                _c_arg(include_dir),
+                byref(stream),
+                byref(error),
+            )
+        try:
+            error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
+            if result != 0 or not stream.value:
+                raise RuntimeError(f"C backend DLL failed: {error_text}")
+            return cls(dll, stream)
+        finally:
+            if error.value:
+                dll.platform_file_free_text(error)
+
+    def visit(
+        self, sink: Callable[[str, dict[str, object]], None]
+    ) -> None:
+        """Consume ordered typed native events once without retaining rows."""
+        if not self._handle.value:
+            raise RuntimeError("C listing stream is closed")
+        callback_error: BaseException | None = None
+
+        event_names = {1: "analysis", 2: "rows", 3: "navigation", 4: "summary"}
+
+        def accept(event_kind: int, json_ptr: int, size: int, _user: object) -> int:
+            nonlocal callback_error
+            try:
+                payload = json.loads(string_at(json_ptr, size).decode("utf-8"))
+                name = event_names.get(event_kind)
+                if name is None or not isinstance(payload, dict):
+                    raise RuntimeError("C listing stream emitted an invalid event")
+                sink(name, cast(dict[str, object], payload))
+                return 0
+            except BaseException as exc:  # ctypes callbacks must report failure as an integer.
+                callback_error = exc
+                return -1
+
+        callback = self._dll._listing_stream_event_sink_type(accept)
+        out_error = c_void_p()
+        result = self._dll.platform_file_facts_v2_listing_stream_visit(
+            self._handle, callback, c_void_p(), byref(out_error)
+        )
+        try:
+            error_text = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
+            if callback_error is not None:
+                raise callback_error
+            if result != 0:
+                raise RuntimeError(f"C backend DLL failed: {error_text}")
+        finally:
+            if out_error.value:
+                self._dll.platform_file_free_text(out_error)
+
+    def close(self) -> None:
+        if self._handle.value:
+            self._dll.platform_file_facts_v2_listing_stream_destroy(self._handle)
+            self._handle = c_void_p()
 
     def __del__(self) -> None:
         self.close()

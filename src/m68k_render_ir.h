@@ -14,8 +14,11 @@ typedef struct Arena Arena;
 typedef struct M68kAnalysisPolicy M68kAnalysisPolicy;
 typedef struct M68kRenderEvidenceIR M68kRenderEvidenceIR;
 typedef struct M68kSourceAnalysisIR M68kSourceAnalysisIR;
+typedef struct M68kRenderIRPreview M68kRenderIRPreview;
 
-typedef struct M68kRenderIRPreview {
+typedef int (*M68kRenderIRPreparedSink)(M68kRenderIRPreview *preview, void *user);
+
+struct M68kRenderIRPreview {
   uint32_t statement_count;
   uint32_t label_statement_count;
   uint32_t instruction_statement_count;
@@ -51,20 +54,35 @@ typedef struct M68kRenderIRPreview {
   uint32_t asm_source_first_failure_aux_offset;
   char *asm_source_text;
   size_t asm_source_text_capacity;
+  /* Immutable rendering decisions, separate from temporary emitted rows. */
   M68kRenderPlan asm_source_plan;
+  M68kRenderPlan asm_source_rows;
   M68kRenderPlanRowBuilder asm_source_row_builder;
+  M68kRenderPlanRow transient_row;
   M68kRenderEvidenceIR *render_evidence;
   Arena *scratch_arena;
   uint32_t asm_source_body_start_byte;
   uint8_t platform_backend_kind;
   const M68kAnalysisPolicy *analysis_policy;
+  M68kRenderTransientRowSink transient_row_sink;
+  void *transient_row_sink_user;
+  M68kRenderIRPreparedSink prepared_sink;
+  void *prepared_sink_user;
+  uint8_t transient_row_live;
+  uint8_t precomputing_planned_evidence;
+  uint8_t planned_evidence_precomputed;
   uint8_t collect_asm_source_text;
   uint8_t collect_asm_source_hash;
   uint8_t asm_source_allocation_failed;
-} M68kRenderIRPreview;
+  uint32_t planned_evidence_next_order;
+};
 
 void m68k_render_ir_preview_init(M68kRenderIRPreview *preview);
 void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview);
+void m68k_render_ir_preview_set_transient_row_sink(M68kRenderIRPreview *preview,
+  M68kRenderTransientRowSink sink, void *user);
+void m68k_render_ir_preview_set_prepared_sink(M68kRenderIRPreview *preview,
+  M68kRenderIRPreparedSink sink, void *user);
 int candidate_calls_a6_lvo(const M68kDecodeCandidate *candidate, int16_t *out_lvo);
 
 #endif

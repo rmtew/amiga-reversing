@@ -1065,7 +1065,8 @@ static int section_has_rendered_symbol_access(const M68kRenderedSymbolAccessOffs
 
 static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisIR *section,
     const M68kExpectedSymbolAccessIR *access,
-    const M68kRenderEvidenceSectionIR *render_evidence_section) {
+    const M68kRenderEvidenceSectionIR *render_evidence_section,
+    const M68kRenderedSymbolAccessOffsetIndex *rendered_index) {
   M68kSourceQualityDiagnosticIR diagnostic;
   char evidence_source[M68K_DIAG_MESSAGE_SIZE];
   const char *producer;
@@ -1085,11 +1086,13 @@ static int append_missing_expected_symbol_access_diagnostic(M68kSectionAnalysisI
       producer, m68k_expected_symbol_access_kind_name(access->access_kind), symbol_name,
       (unsigned)access->operand_index);
   }
-  if (render_evidence_section != NULL) {
+  if (render_evidence_section != NULL && rendered_index != NULL) {
     size_t index;
     size_t shown = 0U;
-    for (index = 0U; index < render_evidence_section->rendered_symbol_access_count && shown < 3U; ++index) {
-      const M68kRenderedSymbolAccessIR *rendered = &render_evidence_section->rendered_symbol_accesses[index];
+    for (index = rendered_symbol_access_offset_index_lower_bound(rendered_index, access->offset);
+        index < rendered_index->count && rendered_index->items[index]->offset == access->offset && shown < 3U;
+        ++index) {
+      const M68kRenderedSymbolAccessIR *rendered = rendered_index->items[index];
       size_t used;
       if (rendered->offset != access->offset || rendered->symbol_name == NULL) continue;
       used = strlen(evidence_source);
@@ -1257,7 +1260,7 @@ static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSec
     }
     if (!section_has_rendered_symbol_access(&rendered_index, access)) {
       if (append_missing_expected_symbol_access_diagnostic(section, access,
-            render_evidence_section) != 0) goto done;
+            render_evidence_section, &rendered_index) != 0) goto done;
     }
   }
   result = 0;

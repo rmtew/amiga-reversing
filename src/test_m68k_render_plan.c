@@ -430,6 +430,40 @@ static int test_render_plan_builds_source_file_body_genam_fixture(void) {
   return 0;
 }
 
+static int test_render_plan_finalize_releases_builder_and_publishes_exact_arrays(void) {
+  M68kRenderPlan plan;
+  M68kRenderPlannedExpression expression;
+  char line[32];
+  char *full_text = NULL;
+  size_t index;
+  m68k_render_plan_init(&plan);
+  memset(&expression, 0, sizeof(expression));
+  expression.source_section_index = 0U;
+  expression.kind = M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER;
+  for (index = 0U; index < 40U; ++index) {
+    snprintf(line, sizeof(line), "row_%02u\n", (unsigned)index);
+    expression.source_offset = (uint32_t)index;
+    M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_DATA, 0U, line, NULL));
+    M68K_C_ASSERT_INT(0, m68k_render_plan_append_expression(&plan, &expression));
+  }
+  M68K_C_ASSERT(plan.builder_arena != NULL);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_finalize(&plan));
+  M68K_C_ASSERT(plan.finalized != 0U);
+  M68K_C_ASSERT(plan.builder_arena == NULL);
+  M68K_C_ASSERT(plan.arena != NULL);
+  M68K_C_ASSERT_U32((uint32_t)plan.row_count, (uint32_t)plan.row_capacity);
+  M68K_C_ASSERT_U32((uint32_t)plan.expression_count, (uint32_t)plan.expression_capacity);
+  M68K_C_ASSERT_STR("row_00\n", plan.rows[0].text);
+  M68K_C_ASSERT_STR("row_39\n", plan.rows[39].text);
+  M68K_C_ASSERT_INT(-1, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
+    "late_row\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&plan, &full_text));
+  M68K_C_ASSERT(strstr(full_text, "row_38\nrow_39\n") != NULL);
+  m68k_render_plan_free_text(full_text);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 static int test_render_plan_splits_multiline_data_source_ranges(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -589,6 +623,8 @@ int m68k_c_render_plan_tests(void) {
     {"declaration_namespace_rejects_aliases", test_render_plan_declaration_namespace_rejects_aliases},
     {"runtime_aliases_are_unique_and_move_with_plan", test_render_plan_runtime_aliases_are_unique_and_move_with_plan},
     {"arena_owned_rows_survive_growth", test_render_plan_arena_owned_rows_survive_growth},
+    {"finalize_releases_builder_and_publishes_exact_arrays",
+      test_render_plan_finalize_releases_builder_and_publishes_exact_arrays},
     {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture},
     {"splits_multiline_data_source_ranges", test_render_plan_splits_multiline_data_source_ranges}
   };

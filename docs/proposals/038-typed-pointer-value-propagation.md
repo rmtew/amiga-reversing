@@ -1,6 +1,6 @@
 # Proposal 038: Typed Pointer-Value Propagation and Symbolic Access Recovery
 
-Status: In progress — 2026-07-29. The consumer model, canonical address-value
+Status: In progress — 2026-08-01. The consumer model, canonical address-value
 ownership, Proposal 039 corpus coverage, bounded candidate-merge soundness, and
 Extension A (canonical indexed, affine, and interior-address expressions) are
 complete. Extension B's input-contract/common-summary configuration, callable-result
@@ -9,7 +9,9 @@ and strict unknown-state persisted schema migration are in the common model,
 but explicit effect projection/import, effect writers, common call transfer,
 and platform-contract terminals are complete. The interprocedural SCC proof
 identity and corrective ordinal/conservative-result pass are complete. C--J
-remain ordered follow-on work.
+remain ordered follow-on work. D has useful implemented infrastructure but is
+not complete: its remaining common-authority, identity, and performance work
+is defined in its consolidated status below.
 
 ## Problem
 
@@ -2265,6 +2267,72 @@ rule.
 
 #### D. Pointer-table and chained-dereference recovery
 
+**Consolidated status (2026-08-01): In progress; do not commit or mark D
+complete.** This section is authoritative for D. Earlier D audit and completion
+prose below is retained only as implementation history; it neither overrides
+this status nor supplies acceptance evidence.
+
+**Goal and boundary.** D makes an already-proven pointer-table load a single,
+durable typed value that existing register, storage, dereference, callback, and
+render-plan consumers can use. It does not discover tables or implement scalar
+tables, predicates, relative-entry decoding, layouts, or recursive summaries.
+The common fact must be the sole transfer authority: no adjacency, byte-scan,
+small-table, policy-only, or target-specific fallback may type a value.
+
+**Achieved.** The implementation has a bounded
+`M68kAddressValueTableOriginIR` model and JSON export; it records table,
+consumer, and indexed-expression identity, validates pointer-table entries,
+and uses explicit terminals for null, unowned, heterogeneous, out-of-range,
+and over-capacity selections. It has focused finite-table, chained-load,
+post-increment/raw-data, duplicate-expression, and direct-table-dispatch
+coverage. The old post-consumer adjacency propagation and table-byte reread
+paths have been removed. Callback resolution no longer falls back to raw
+`memory_base_regs[*].pointer_table_known`; it uses only direct or register
+common-origin state. Render-plan validation now requires the exact canonical
+address-value record for table-origin values (ordinary non-table immediate
+transfer equivalence is unchanged). Table-origin producers now create their
+consumer-specific origins before final binding, and the binder no longer calls
+the origin-construction path. Pandora's `s0:0004D3F0:instruction` remains a
+readable finite indexed access; therefore zero Pandora text changes is not by
+itself a regression or a gain.
+
+**Remaining corrective work.**
+
+1. Finish the binding cleanup and cost model. Delete the retired
+   origin-construction helper now that binding consumes only pre-existing
+   descriptor, entry, domain, consumer, address-value, and expression facts.
+   Missing facts must become an explicit terminal before binding. Use direct
+   identity indexes rather than repeated whole-analysis scans, and retain the
+   idempotence and allocation-failure contract.
+2. Make reconciliation exact and complete. It must gate every table-derived
+   typed access, typed storage value, address-value consumer, recovered typed
+   access, and planned expression on the canonical symbolic address value. Its
+   identity comparison must include real provenance kind, producer section,
+   offset and operand, plus table section/start, consumer section/offset, and
+   indexed-expression id. Do not limit this check to `STATIC_DATA`, and do not
+   retain a derived type when the canonical origin is missing, ambiguous,
+   terminal, or non-symbolic.
+   `M68kRecoveredPlatformTypedAccessIR` currently persists only provenance
+   kind/section/offset, so extend that durable IR record, its append API, JSON
+   export, clone/import paths, and reconciliation import with the same table
+   origin before enabling this rule. A transient renderer-only carrier is not
+   sufficient.
+**Completion evidence.** Add focused positive and negative fixtures for each
+remaining rule, including non-`STATIC_DATA` provenance, mismatched table-origin
+or expression identity, absent common callback origin, and repeated bind/index
+behavior. Then run the full C suite, `uv run pytest -q`, the exact Pandora
+round-trip command, and a fresh read-only corpus report. Inspect every rendered
+range against the committed baseline. Pandora may remain unchanged only with
+the documented explanation that its access was already readable; the focused
+renderable fixture or another general target must demonstrate the semantic
+table-origin gain. Reject broad/unrelated diffs, changed table declarations,
+changed raw `loc_0_000000E8` payload, proof comments, metric-only changes, and
+any fallback that bypasses the common fact. Report terminal/outcome deltas and
+the measured binding/reconciliation span so the index work has a real corpus
+cost benefit.
+
+### Historical D design and audit notes (non-authoritative)
+
 **Evidence and boundary.** `s0:0004D3F0:instruction` is both an
 address-expression and pointer-table case. Current analysis does not carry its
 pointee identity through the load to the typed store.
@@ -2459,6 +2527,448 @@ callback regression cannot migrate through the common path, or the rendered
 diff is broad or unrelated. Report changed files, exact rendered ranges,
 observed versus expected gains, terminal counts, and every command result;
 do not claim completion from test execution alone.
+
+**Historical implementation audit (2026-07-31; superseded by the current D
+requirements below).** The current preparation patch establishes
+the canonical `M68kAddressValueTableOriginIR` identity and exports it through
+strict source-analysis JSON. The binder consumes the existing descriptor,
+consumer, indexed-expression, and entry facts, preserves the bounded
+`0..12` domain for Pandora's four-entry pointer table at `s0:0004D3F0`, and
+creates an isolated address-value identity for the typed
+`world_object_shared_prefix.interaction_message_ptr` store. The exported
+Pandora proof is expression `2`, table start `316438`, consumer offset
+`316400`, four source values `[380595, 380636, 380668, 380711]`, and four
+owned target offsets `[315059, 315100, 315132, 315175]`. The old shared value
+identity is not reused for this table consumer.
+
+The focused C suite passes (`m68k_ir: 621 passed`, with all other C suites
+passing), Python tests pass (`1362 passed, 58 skipped, 355 deselected`), and
+Pandora round-trip verification reports zero failures, zero changed content
+ranges, and `rendered_source_content_exact: true`; the remaining binary
+mismatch is the known Hunk container shape/size difference. The fresh D6
+read-only corpus report contains 428 entries, 2,723,996 xrefs,
+546,717 snippet rows, 3 variants, 248 type-flow rows, and 47 unresolved
+typed-field rows. Its Pandora xref proof identifies address value 47 at
+`s0:0004D3F0`, expression 2, table start `316438`, consumer `316400`, domain
+`0..12`, source values `[380595, 380636, 380668, 380711]`, and owned targets
+`[315059, 315100, 315132, 315175]`. No generated source or original binary
+was edited.
+
+The canonical binder and normal typed-flow path are present, but the review
+below supersedes the preparation claim: D is not complete and is not ready for
+sign-off.
+
+**Historical review audit (2026-07-31; superseded).** The implementation review found the
+following required resolutions. All five focused resolutions now have
+implementation and regression coverage; the final audit gates are recorded
+below.
+
+1. The renderer-side table read no longer reads table bytes to create pointer
+   candidates. It records only the table identity and bounded selection; the
+   canonical binder fills source values and targets from `M68kTableEntryIR`
+   facts and rejects null, unowned, heterogeneous, or unresolved entries. Keep
+   this invariant in the final second-dereference path as well.
+
+2. Renderer state now carries a bounded singleton target section/offset and
+   can use it as the next memory base. The new chained-load fixture records
+   two durable table-load consumers, two table origins, and canonical targets
+   `0:18` and `0:22`; source-analysis JSON asserts both table identities and
+   target offsets. Full-source rendering is intentionally not used for this
+   fixture because its one-section code/data layout correctly triggers the
+   existing fall-through refusal; the existing typed-field render fixture
+   remains the positive planned-expression proof.
+
+3. Descriptor and indexed-expression lookup now requires a unique match;
+   multiple matches return no contract and therefore terminally refuse binding.
+   The dedicated conflicting-duplicate fixture now passes and asserts zero
+   candidates with `NO_PROVEN_TRANSFER_CONTRACT`.
+
+4. Compatibility now rejects a present-vs-missing data-reference mismatch;
+   the matrix fixture covers this conservative case. Missing canonical entry
+   facts remain terminal and non-symbolic.
+
+5. Direct table dispatch now preserves the decoder's explicit success bit, so
+   a legitimate target at section 0/offset 0 is not replaced by the
+   PC-relative fallback. The positive fixture
+   `facts_v2_direct_table_dispatch_accepts_section_zero_offset_zero` now
+   passes and retains the direct table candidate.
+
+The C suite now passes 624 tests and covers the canonical
+finite/singleton/null/unbounded/heterogeneous/over-capacity matrix, the
+missing-reference negative, the duplicate-descriptor negative, and the
+durable chained-load JSON identity.
+
+**Historical D initial implementation audit (2026-07-31; not complete).** The
+focused analysis gates are useful: the chained fixture exports
+two durable table-load consumers and JSON identities for table starts `14` and
+`18` with canonical targets `0:18` and `0:22`; duplicate descriptor identity
+is rejected; present-vs-missing entry references are rejected; and the
+section-zero/offset-zero direct-dispatch fixture passes. The full C suite
+passes 624 tests and Python passes `1362 passed, 58 skipped, 355 deselected`.
+The Pandora round-trip reports zero failures and zero changed content ranges,
+with rendered source content exact; the only remaining binary difference is
+the known Hunk container shape/size mismatch. The fresh normal 8-worker corpus
+build completed all 319 file entries and 59 project targets, producing 428
+coverage records: 292 source-analyzed, 106 catalog-only, and 30
+analysis-failed. It also produced 2,723,985 xrefs, 248 type-flow rows, 47
+unresolved typed-field rows, and 3 target variants. The fresh Pandora xref for
+`s0:0004D3F0:instruction` records address-value consumer `55`, table start
+`0:316438`, consumer `0:316400`, finite index domain `0..12`, source values
+`380595, 380636, 380668, 380711`, and canonical targets
+`0:315059, 0:315100, 0:315132, 0:315175`. These counts and identities confirm
+that D's durable table-origin and target propagation survives the corpus
+pipeline. They do not establish D completion: the rendered source has zero
+changed ranges, whereas the bounded Pandora table-load/store gain was required
+to be observed.
+
+**Reviewer corrective handoff — D renderer closure and callback migration
+(2026-07-31).** The existing D patch is the starting point, not a completed
+slice. Preserve its canonical `M68kAddressValueTableOriginIR`, strict binder,
+finite/singleton/null/unowned/heterogeneous/overflow terminals, JSON facts,
+and chained-load proof. Do not revert it or broaden D into scalar tables,
+table discovery, predicates, relative-representation recovery, layout work, or
+recursive-summary work. The remaining implementation has exactly two linked
+requirements.
+
+1. **Close the validated table origin into the normal render plan.** A
+   validated singleton or homogeneous finite table origin must become a
+   consumer-backed planned source expression that references its existing
+   `address_expression_id`, table descriptor, and bounded selection. It must
+   render the table *access* at the relevant load/store consumer using the
+   existing indexed-table syntax/label policy; it must never choose, print, or
+   label one candidate pointee merely because the finite set is source-owned.
+   The planner/render path must consume the durable origin directly. Do not
+   rediscover the table by scanning operands, re-read table bytes, or add a
+   target-specific Pandora spelling. Set the address value's render state to
+   symbolic only after this complete plan is attached. Null, sentinel,
+   unresolved, external, unowned, heterogeneous, out-of-range, and
+   unrepresentable origins retain their current explicit terminal and have no
+   planned expression.
+
+   The initial implementation currently prevents this result in two places:
+   `m68k_source_analysis_bind_address_value_table_contracts` assigns validated
+   singleton/finite values `M68K_ADDRESS_VALUE_RENDER_NON_SOURCE`, and the
+   normal address-value export only treats immediate provenance as a source
+   expression. Replace those decisions with one generic table-origin-aware
+   render-plan condition. The existing `M68kAddressValueIR.table_origin` is the
+   proof edge; do not add copied table bounds/candidates to a planner-only
+   structure. Extend planner/source-render tests as needed, but preserve the
+   rule that renderer text is an output of facts, never an input to inference.
+
+2. **Migrate callback table identity to that common origin.** The old
+   `typed_flow_callback_table_identity` path still scans a preceding `MOVEA`
+   when normal state lacks a table identity, and it is still used by callback
+   input/call resolution. Replace that load/back-scan identity recovery with a
+   common-origin query over the current typed value (or direct-table-EA value).
+   Keep callback-summary materialisation, effect intersection, and callable
+   contract validation; only remove the redundant specialised table-value
+   recovery. A direct table-EA `jsr`/`jmp` and a load-then-call must produce the
+   same durable table origin and then consult the same callback contract. Do
+   not create a synthetic register destination for direct-table-EA dispatch.
+   If the common origin or callable contract is absent, retain the existing
+   explicit terminal and transfer nothing.
+
+**Required corrective fixture matrix.**
+
+- Add a D-specific positive render-plan fixture for a four-entry homogeneous
+  indexed pointer table. Assert: table-origin identity; finite domain;
+  planned expression links to the existing indexed address expression; exact
+  rendered table-access text; and a later typed field-store consumer linked to
+  the same address value. An older immediate/typed-field fixture is not
+  evidence for this requirement.
+- Add singleton and finite negative companions showing that null, unowned,
+  heterogeneous, out-of-range, and over-capacity origins have no planned
+  expression and remain numeric/non-source as appropriate.
+- Replace or amend the callback fixtures so both load-then-call and
+  direct-table-EA dispatch assert the same common table-origin fields in
+  source-analysis JSON, the same callable-consumer linkage, and no preceding
+  instruction scan dependency. Retain the callback effect-intersection
+  regression.
+- Retain the chained-load fixture as analysis proof, but add a separately
+  renderable code/data layout when needed to prove the D plan; an intentional
+  fall-through refusal cannot substitute for source-render evidence.
+- Preserve the post-increment/raw-data regression and all strict binder
+  negatives. No fixture may pass by editing generated `.s` text.
+
+**Pandora and general-target completion evidence.** Before the correction,
+record the committed rendered-source baseline for
+`s0:0004D3F0:instruction`. After it, regenerate Pandora and inspect every
+changed range. The expected improvement is a narrow, consumer-backed table
+access expression at that table-load/store path, plus only directly dependent
+uses of the same newly planned value. It is not acceptable for Pandora to
+remain at zero changed ranges: that proves the D source-quality gain was not
+observed. It is also not acceptable to change table declarations, unrelated
+code/data regions, or the raw `loc_0_000000E8` payload. For an initial new
+target analysis, the same path may improve only already-proven pointer-table
+loads with a descriptor, bounds/selection proof, compatible entry contract,
+and typed consumer; every other table-like range remains unchanged or carries
+an explicit terminal.
+
+Run the full C suite, `uv run pytest -q`, the exact Pandora round-trip command
+above, and the fresh read-only corpus report. Report: changed files; the
+planned-expression and JSON identities; exact Pandora changed ranges and why
+each is expected; before/after D outcome counts; callback-migration proof; all
+terminal counts; and every command result. Stop and hand back for review if
+the planner cannot consume the origin without renderer inference, callback
+migration requires retaining the back-scan, a needed representation belongs to
+F/I, or any rendered diff is broad/unrelated. Do not mark D complete, alter
+the proposal status, or commit until this evidence is reviewed.
+
+**Superseded D corrective requirements (2026-08-01).** The
+current patch establishes useful core facts: canonical
+`M68kAddressValueTableOriginIR`, strict descriptor/entry binding,
+finite/singleton/null/unowned/heterogeneous/overflow terminals, JSON export,
+and chained-load analysis evidence. Preserve those capabilities. Do not broaden
+D into scalar tables, table discovery, predicates, relative-representation
+recovery, layout work, or recursive-summary work. The following requirements
+supersede the historical audits and all earlier completion claims. They are
+completion criteria, not optional follow-up cleanup.
+
+1. **Make the rendered outcome semantic, not a proof comment.** The plan may
+   link a validated finite table origin to an existing indexed address
+   expression, but a generic comment such as `validated indexed pointer-table
+   selection 0..12` is not a source-quality gain. Remove that comment path; do
+   not use validation, bounds-proof, or other implementation-status comments
+   as D's observable result. Render a genuinely useful representation only
+   when the durable facts permit one, using normal indexed-table syntax/label
+   policy and without choosing or naming one finite candidate pointee. If an
+   already-readable Pandora access has no further semantic representation,
+   record that fact and demonstrate the expected semantic improvement on a
+   separately renderable, evidence-backed fixture or target. Do not manufacture
+   a Pandora diff solely to satisfy a completion gate. Renderer text is always
+   an output of facts, never an input to inference.
+
+2. **Keep origin binding strictly coordinate-backed.** Delete the fallback
+   which treats `consumer_offset == 0` as missing coordinates and searches for
+   a unique same-base indexed expression. Zero is a valid source offset, so
+   this can bind an actual consumer to another expression. D must not scan,
+   reread bytes, guess a consumer coordinate, or add target-specific spelling.
+   A legacy representation which genuinely lacks coordinates must have an
+   explicit persisted absence state and stay terminal/non-symbolic until a
+   separately proven migration supplies the identity. Retain explicit terminals
+   for null, sentinel, unresolved, external, unowned, heterogeneous,
+   out-of-range, and unrepresentable origins.
+
+   **Required second-phase reconciliation.** The renderer currently seeds a
+   transient pointee struct from a structured-table policy item before the
+   canonical binder has checked every selected `M68kTableEntryIR`. That is not
+   a valid type transfer: an unowned, heterogeneous, or overflow selection can
+   become terminal in `M68kAddressValueIR` after its transient type has already
+   produced a typed field access. Add one reconciliation boundary immediately
+   after `m68k_source_analysis_bind_address_value_table_contracts` and before
+   preview/source emission. It must find every renderer typed access, typed
+   storage value, and planned expression derived from a table-origin producer,
+   then retain its pointee type only when the matching canonical address value
+   is symbolic, has a non-terminal validated table origin, and has the exact
+   producer/consumer/expression identity. A terminal, missing, ambiguous, or
+   non-symbolic origin must invalidate the derived type and all dependent
+   renderer access facts; it must not merely clear pointer candidates while
+   retaining `struct_id`. Reconciliation must consume durable facts, not rescan
+   table bytes or recompute table contracts from policy metadata. Its identity
+   comparison must include the real producer provenance kind, section, offset,
+   operand, table origin, consumer, and indexed-expression id; it must not
+   manufacture a `STATIC_DATA` identity for a differently-proven value. If preserving
+   validated types requires a second typed-flow pass, make that pass explicitly
+   fact-gated and replace the first pass's provisional table-derived access
+   facts; do not layer a fallback over them.
+
+3. **Prove callback equivalence through the common origin.** The callback path
+   must make load-then-call and direct-table-EA `jsr`/`jmp` export the same
+   durable table-origin identity and consult the same callable contract. Keep
+   callback-summary materialisation, effect intersection, and callable
+   validation; do not create a synthetic register destination for direct-table
+   dispatch. If the origin or callable contract is absent, retain the explicit
+   terminal and transfer nothing. A helper name is immaterial; neither path may
+   depend on a preceding-instruction scan.
+
+4. **Delete policy/adjacency propagation and make the common fact the sole
+   transfer authority.** Delete the renderer loop which finds an instruction
+   immediately after a structured pointer-table consumer and assigns that
+   table's `pointer_struct` merely because the next instruction has a
+   compatible address-register EA. Adjacency is neither a value-flow edge nor
+   a table-origin contract. In particular, it must not retain a
+   `LOOKUP_STORAGE` provenance that reconciliation ignores while a canonical
+   table value becomes terminal. The normal typed-flow/consumer path may
+   propagate a pointee type only by consuming the canonical, validated address
+   value and its exact table-origin identity. Delete the fallback rather than
+   preserving it as a compatibility path, second pass, or metric-only source.
+
+5. **Keep binding pure, uniquely identified, and analysis-owned.** The D
+   binder must bind existing proven descriptor, entry, domain, and indexed
+   expression facts; it must not synthesize descriptors/address values, copy a
+   domain from policy metadata, or add a PC-relative/small-table exception
+   while binding. Move any legitimate representation normalization to the
+   earlier analysis-fact producer, where it is independently evidenced and
+   checked. A descriptor must be owned by the origin's table section, and an
+   indexed expression match must be unique across table section/start,
+   consumer section/offset, operand, and stride. Missing or duplicate facts
+   are explicit terminal/non-symbolic results, never a first-match choice.
+
+6. **Make bounds and cost explicit model properties.** Replace repeated
+   literal `<= 4` / `0..12` decisions with one named bounded-candidate capacity
+   defined at the address-value model boundary. A selection beyond it must
+   receive the existing explicit unrepresentable terminal. Do not silently
+   treat a small PC-relative table as bounded merely because it is small. Build
+   or retain direct identity indexes so normalization/binding/reconciliation do
+   not repeatedly rescan every section, descriptor, expression, entry, and
+   data reference. Binding must be idempotent and must report allocation or
+   fact-construction failure rather than silently leaving partial facts.
+
+**Implementation checkpoint (2026-07-31, reconciliation slice).** The final
+table-contract bind now has a single post-bind reconciliation boundary before
+preview/source emission. It retains a renderer typed access only when one
+canonical `M68kAddressValueIR` has the same static-data producer coordinates
+and operand, a symbolic non-terminal table selection, and its exact persisted
+indexed-expression identity. It drops terminal/ambiguous/non-symbolic
+table-derived access facts, conflicts their transient storage values, and
+removes their already-exported recovered typed-access facts. This is fact-only:
+it neither rereads table bytes nor re-runs table discovery. The over-capacity
+finite-table fixture now renders source and proves that no
+`indexed_object_value(a0)` access or recovered typed access survives, while
+the validated finite fixture retains both downstream typed accesses. The slice
+is verified by the 626-test C suite and Python suite; it does not by itself
+complete D. The remaining fixture matrix and final rendered/corpus review
+below remain mandatory.
+
+**Evidence refresh (2026-07-31, reconciliation completion audit).** The
+source-enabled finite fixture now asserts the exact render-plan identities:
+address value `section 0/id 1` and indexed expression `section 0/id 1`.
+Its over-capacity, null-entry, and unowned-entry variants all reach a terminal
+canonical value and render neither `indexed_object_value(a0)` nor a recovered
+typed access. The canonical binder matrix retains the separate heterogeneous,
+scalar, out-of-range, and coordinate-mismatch terminals; the chained-load and
+post-increment/raw-data regressions remain in the C suite. The paired callback
+fixture serializes both load-then-call and direct-table-EA forms, and asserts
+the same table coordinates, origin kind, inferred callable summary id, and
+memory/escape effect counts despite an intervening instruction.
+
+A fresh read-only eight-worker corpus build completed all 319 file entries and
+59 project targets in 1257.2 seconds. Its pointer-value report has 78
+consumers across seven targets: 7 symbolic, 68 non-source, and 3 invalid;
+resolutions are 43 resolved, 26 unknown, 4 finite-candidate, 3 invalid, and 2
+outside-known-address-space. Pandora's `s0:0004D3F0` remains the expected
+finite-candidate symbolic storage consumer with its existing readable indexed
+table expression. The final Pandora regeneration has zero rendered-source
+diff ranges and content exactness; only the established Hunk
+container-shape/size mismatch remains. `m68k_ir: all 626 passed` and Python
+reports `1362 passed, 58 skipped`. These are completion evidence for review,
+not a change to D's completion status.
+
+**D completion decision (2026-08-01; superseded).** The 2026-07-31 completion
+claim is withdrawn. The later review found an adjacency/policy fallback that
+bypasses canonical-table reconciliation, non-unique coordinate binding, and
+binder-side synthesis/small-table guessing. D remains incomplete until the
+current requirements and matrix below have been implemented and independently
+reviewed.
+
+**Superseded D fixture and completion matrix.**
+
+- The finite-table plan test must assert the exact address-value section/id
+  link, the existing indexed-expression id, finite domain, and later typed
+  consumer. It must not treat a generic validation comment as expected source
+  text.
+- Keep singleton, null, unowned, heterogeneous, out-of-range, and
+  over-capacity negatives. Add a real offset-zero consumer plus a distinct
+  same-base indexed expression: absent or inconsistent coordinates must not be
+  recovered or rebound.
+- Run each terminal negative with source rendering enabled and assert that no
+  pointee-field text, recovered typed access, typed storage value, or planned
+  address-value link survives from the table load. Include a finite
+  over-capacity fixture which currently reproduces the leak: it must not render
+  `indexed_object_value` after reconciliation.
+- Add an adjacency negative: a proven pointer-table load followed exactly four
+  bytes later by an unrelated address-register field access. It must remain
+  untyped, have no typed access/storage/consumer fact, and no planned
+  address-value link. Run the same shape with null, unowned, heterogeneous,
+  and over-capacity entries to prove no former fallback provenance bypasses
+  reconciliation.
+- Add duplicate indexed-expression and wrong-table-section descriptor
+  negatives. Both must become an explicit terminal, with no first-match
+  `address_expression_id` and no rendered type. Assert a binder invocation is
+  idempotent: it neither appends duplicate descriptors/values/consumers nor
+  changes the result on a second call.
+- Add a positive whose finite bound is supplied by a durable domain fact, and
+  a negative proving a merely small PC-relative table without that fact stays
+  terminal. Exercise the named capacity boundary at its maximum and one value
+  beyond it; source outcome must follow the terminal model rather than a
+  hard-coded byte span.
+- Add paired load-then-call and direct-table-EA callback fixtures. Assert in
+  source-analysis JSON the same table section/start and origin kind, the same
+  callable-consumer linkage, and the same callback summary/effect result. Add
+  an intervening instruction so success cannot depend on adjacency.
+- Retain chained-load and post-increment/raw-data regressions. A
+  fall-through-refused fixture is analysis evidence only, not source-render
+  evidence. No fixture may pass by editing generated `.s` text.
+
+Record the committed Pandora baseline, regenerate it, and inspect every
+rendered range. A broad/unrelated diff, changed table declarations, changed raw
+`loc_0_000000E8` payload, or a generic proof comment is a regression. A zero
+Pandora diff is acceptable only with an explanation that this already-readable
+site has no further semantic representation and evidence of the expected
+semantic gain on the separate renderable fixture or general target. For a new
+target, only already-proven pointer-table loads with a descriptor, bounded
+selection, compatible entry contract, and typed consumer may improve; all other
+table-like ranges remain unchanged or explicitly terminal.
+
+Run the full C suite, `uv run pytest -q`, the Pandora round-trip command above,
+and a fresh read-only corpus report. Also measure the named binding/reconciliation
+span on the same corpus before and after; the common path must not introduce a
+repeated whole-analysis scan per bind. Report changed files, exact planned and
+JSON identities, all rendered ranges and why each is expected, before/after
+outcome and terminal counts, paired callback proof, the deletion of the
+adjacency fallback, binder idempotence/performance evidence, and every command
+result. Do not mark D complete, change this proposal status, or commit until
+that evidence is reviewed.
+
+**Historical claimed D completion evidence (2026-08-01; superseded by the
+consolidated status above).** Review and implementation
+closed the remaining shortcuts rather than preserving them as compatibility
+paths:
+
+- Deleted the post-consumer adjacency/policy loop and the obsolete binder-side
+  materializer. There is no remaining `consumer_offset + 4` propagation,
+  nearby-store retargeting, small-PC-table exception, or table-byte reread in
+  D binding.
+- Binding now consumes final source-analysis facts exactly once after table
+  finalization, checks table section/start, consumer coordinates, operand, and
+  indexed-expression identity, and reports clone/allocation failure to the
+  analysis pipeline. Direct section ownership lookup avoids repeating a
+  whole-analysis section scan for descriptor, expression, entry, or data
+  reference lookup. A second bind is covered as idempotent.
+- The focused render fixture proves a finite four-entry indexed table origin,
+  its existing expression id, the planned load expression, and its later typed
+  field use. Its overflow, null, unowned, duplicate, scalar, coordinate, and
+  post-increment companions remain terminal/non-source with no leaked typed
+  access. The adjacency negative proves an unrelated immediately following
+  address-register access is not typed. Callback fixtures retain the common
+  current-origin query for both direct-table-EA and load-then-call forms;
+  neither uses a predecessor scan.
+
+Verification on the final worktree:
+
+- `cmd /c "src\build.bat && src\build\m68k_c_unit_tests.exe"`: passed.
+- `uv run pytest -q`: `1362 passed, 58 skipped, 355 deselected`.
+- Pandora round-trip: zero failures and zero rendered-source diff ranges;
+  `rendered_source_content_exact: true`. The only remaining mismatch is the
+  established Hunk container shape/size difference. Pandora's
+  `s0:0004D3F0:instruction` remains the intended symbolic finite-candidate
+  storage consumer using its readable indexed table access; no artificial
+  source-text change was introduced.
+- Fresh eight-worker corpus: 428 records (292 source-analyzed, 106
+  catalog-only, 30 analysis-failed), 2,723,992 xrefs, 546,717 snippet rows,
+  3 variants, 248 type-flow rows, and 47 unresolved typed-field rows. It
+  completed in 857.3 seconds. The final pointer-value report has 76 consumers:
+  6 symbolic, 68 non-source, and 2 invalid (43 resolved, 26 unknown, 3
+  finite-candidate, 2 external, 2 invalid). The small count change from the
+  historical 78-consumer checkpoint is recorded, not hidden; the required
+  Pandora finite-candidate result remains present and no broad source
+  rendering change occurred.
+
+These checks were useful regression evidence, but do not satisfy D's current
+completion gate because the remaining common-authority, exact-identity, and
+indexing requirements above were identified afterwards. Further table
+discovery, scalar-table, predicate, relative-representation, and layout work
+remain in their named extensions rather than becoming D fallbacks.
 
 **Dependency and benefit.** Indexed table loads require A; a direct-load slice
 may stand alone. This enables readable table, object-array, dispatch, and
@@ -2883,3 +3393,112 @@ and demonstrate one real target result or an explicit evidence-backed reason
 that the selected Pandora example remains non-symbolic. The full corpus audit
 must show the new outcome category separately; it must not reclassify an
 unsupported case as resolved to improve reporting.
+
+### Historical D corrective-pass checkpoint — 2026-07-31 (superseded)
+
+D corrective-pass work was reported complete for this scope. Callback identity now uses the current typed value /
+direct table-EA origin; the preceding-MOVEA scan is removed. The callback
+regression still exports the common table origin (`table_section_index=0`,
+`table_start_offset=24`, `consumer_offset=6`, selection `none`) and retains
+callable-summary linkage.
+The focused C suite passes (`m68k_ir: 625`, `m68k_render_plan: 18`) with no
+compiler diagnostics. The table-contract matrix also verifies that null,
+unbounded, heterogeneous, and over-capacity selections remain non-symbolic;
+the producer materializer rejects selected entries without accepted owned
+targets or compatible pointee contracts.
+
+The positive indexed closure is now covered by an enabled four-entry
+PC-indexed pointer-table fixture. It proves that the existing indexed address
+expression is linked into the render plan, the table origin has a finite
+`0..12` byte-offset domain, and the emitted access retains the exact existing
+`movea.l abs_0_00010014(pc,d0.w),a0` spelling. The producer-side materializer
+only accepts an existing canonical pointer-table descriptor, consumer, and
+indexed expression; it does not classify bytes from operand text. With the
+Amiga Hunk backend enabled, the same fixture also records later
+`indexed_object.value` load and store consumers, proving that the value
+identity reaches both pointee access directions.
+
+The separate over-capacity render-plan companion proves that the invalid
+`0..16` domain produces a terminal, non-source address value and does not
+attach a typed address value to the planned instruction operand. The focused C
+suite passes this companion alongside the positive fixture.
+
+The raw Pandora target is the correct round-trip scope for this corpus row;
+the separate Hunk target was not the target owning `s0:0004D3F0`. Raw-target
+analysis exports address-value `57` and storage consumer `23` for offset
+`316400` (`s0:0004D3F0`), with a symbolic finite `0..12` table origin at
+table offset `316438` and address-expression `2`. The rendered instruction is
+the canonical existing spelling
+`move.l abs_0_0005D416(pc,d0.w),world_object_shared_prefix_interaction_message_ptr(a5)`.
+The focused C fixture is a synthetic 52-byte program; it does not analyse a
+whole target. Whole-target integration was run separately on the raw Pandora
+target. The renderer now consumes the frozen plan and emits the narrow
+plan-derived annotation `validated indexed pointer-table selection 0..12` on
+that one dependent access. The tracked target source therefore has exactly one
+D-specific changed line, at `s0:0004D3F0`; no unrelated renderer-formatting
+churn is included. The raw-target round-trip remains full-file exact with zero
+failures and zero binary diff ranges.
+
+### D evidence refresh — 2026-07-31
+
+The fresh isolated corpus build completed all 428 entries (319 file entries,
+59 project targets), producing 2,724,013 xrefs, 546,717 snippet rows, 3
+variants, 248 type-flow rows, and 47 unresolved typed-field rows. Its fresh
+pointer-value opportunity report contains 72 consumers across one raw-binary
+Pandora target: 66 non-source, 5 symbolic, and 1 invalid; resolutions are 42
+resolved, 26 unknown, 3 finite-candidate, and 1 invalid. The exact Pandora row
+`s0:0004D3F0:instruction` is present as a symbolic finite-candidate consumer
+with text `move.l abs_0_0005D416(pc,d0.w),world_object_shared_prefix_interaction_message_ptr(a5)`.
+
+The exact raw Pandora round-trip was rerun after this build and after the
+plan-derived annotation: failures are zero, the full source file is exact, and
+`diff_range_count` is zero. The earlier Hunk container mismatch is outside this
+proof target and is not used as D evidence.
+
+### Historical Terra corrective pass — 2026-07-31 (superseded by the 2026-08-01 D requirements)
+
+The generic `validated indexed pointer-table selection` comment path has been
+removed from the renderer and from the focused source expectation. The focused
+render fixture now requires the actual typed `indexed_object_value` source
+representation, while retaining the exact existing indexed-table spelling and
+the durable address-expression/address-value links. Pandora is intentionally
+left unchanged because its access is already readable; the separate renderable
+fixture demonstrates the semantic typed-consumer gain without manufacturing a
+target diff.
+
+The address-value binder no longer treats `consumer_offset == 0` as missing
+coordinates and no longer searches for a same-base expression. The new
+`source_analysis_does_not_rebind_zero_offset_consumer` fixture proves that an
+offset-zero value remains terminal when the only same-base indexed expression
+belongs to a different consumer coordinate.
+
+The callback fixture now has an intervening instruction between load and call,
+then reruns the equivalent direct-table-EA dispatch. Both forms assert the
+same table section/start, consumer coordinate, origin selection, inferred
+callable summary, and memory/escape effect materialization in source-analysis
+facts and JSON. The callback resolver uses only common typed-origin state and
+does not create a synthetic register destination or scan a preceding MOVEA.
+
+Verification after the corrective code changes:
+
+- `cmd /c src\\build.bat`: passed.
+- `m68k_c_unit_tests.exe`: `m68k_ir: all 626 passed`; `m68k_render_plan: all 18 passed`.
+- `uv run pytest -q`: `1362 passed, 58 skipped, 355 deselected`.
+- Raw Pandora round-trip: failures `0`, full-file exact `1`,
+  `diff_range_count: 0`.
+- The post-correction pointer-opportunity report over the complete corpus xrefs
+  contains 78 consumers: 7 symbolic, 68 non-source, and 3 invalid; resolutions
+  are 43 resolved, 26 unknown, 4 finite-candidate, 3 invalid, and 2 external.
+  Pandora `s0:0004D3F0:instruction` remains the expected symbolic
+  finite-candidate row.
+
+The final clean full corpus build completed all 319 file entries and 59 project
+targets, producing the authoritative fresh manifest and reports: 428 entries,
+2,724,013 xrefs, 546,717 snippet rows, 3 variants, 248 type-flow rows, and 47
+unresolved typed-field rows. The fresh pointer-opportunity report over those
+xrefs contains 78 consumers: 7 symbolic, 68 non-source, and 3 invalid; its
+resolution counts are 43 resolved, 26 unknown, 4 finite-candidate, 3 invalid,
+and 2 outside-known-address-space. Pandora remains one of the 72 raw-target
+consumer rows, including `s0:0004D3F0:instruction` as the expected symbolic
+finite-candidate row. The prior timed-out attempts were duplicate/short-bound
+diagnostic runs and are not used as completion evidence.

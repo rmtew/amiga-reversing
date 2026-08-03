@@ -143,6 +143,12 @@ typedef struct PlatformListingRowIndex {
   size_t block_size;
 } PlatformListingRowIndex;
 
+/* Sequential canonical listing serialization.  The adapter owns only the
+ * preamble rows needed to reproduce canonical header ordering; body rows are
+ * serialized and delivered immediately. */
+typedef struct PlatformListingCanonicalStream PlatformListingCanonicalStream;
+typedef int (*PlatformListingCanonicalRowSink)(const char *json, size_t size, void *user);
+
 int section_analysis_context_init(SectionAnalysisContext *ctx, const M68kObject *object, size_t section_index,
     const M68kSection *section, const M68kSectionAnalysisIR *prior_section_analyses,
     size_t prior_section_analysis_count, const M68kAnalysisPolicy *analysis_policy, Arena *arena);
@@ -183,6 +189,17 @@ int source_file_listing_navigation_from_render_plan_append_json(JsonBuilder *bui
   const M68kSourceFileIR *source_file, const M68kRenderPlan *render_plan, uint8_t platform_backend_kind,
   const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
   const char *analysis_generation, int include_source_only_rows, M68kDiagSink diagnostics);
+int platform_listing_canonical_stream_create(uint8_t platform_backend_kind,
+  const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
+  const char *analysis_generation, PlatformListingCanonicalRowSink sink, void *sink_user,
+  PlatformListingCanonicalStream **out_stream, M68kDiagSink diagnostics);
+int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream *stream,
+  const M68kRenderPlanRow *row, M68kDiagSink diagnostics);
+int platform_listing_canonical_stream_finish(PlatformListingCanonicalStream *stream, char **out_navigation_json,
+  M68kDiagSink diagnostics);
+void platform_listing_canonical_stream_allocation_stats(const PlatformListingCanonicalStream *stream,
+  size_t *out_max_rows, size_t *out_transient_json_bytes);
+void platform_listing_canonical_stream_destroy(PlatformListingCanonicalStream *stream);
 int platform_type_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
 int platform_naming_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
 int platform_os_metadata_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);

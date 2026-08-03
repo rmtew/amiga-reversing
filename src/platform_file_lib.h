@@ -25,6 +25,14 @@ typedef struct PlatformFileBufferResult {
 } PlatformFileBufferResult;
 
 typedef struct PlatformFileListingArtifact PlatformFileListingArtifact;
+typedef struct PlatformFileListingStream PlatformFileListingStream;
+typedef enum PlatformFileListingStreamEventKind {
+  PLATFORM_FILE_LISTING_STREAM_EVENT_ANALYSIS = 1,
+  PLATFORM_FILE_LISTING_STREAM_EVENT_ROWS = 2,
+  PLATFORM_FILE_LISTING_STREAM_EVENT_NAVIGATION = 3,
+  PLATFORM_FILE_LISTING_STREAM_EVENT_SUMMARY = 4
+} PlatformFileListingStreamEventKind;
+typedef int (*PlatformFileListingStreamEventSink)(uint32_t event_kind, const char *json, size_t size, void *user);
 
 PLATFORM_FILE_API PlatformFileTextResult platform_file_inspect_path_json(const char *backend_name, const char *path);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_inspect_buffer_json(const char *backend_name,
@@ -127,6 +135,19 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_allo
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
+/* Forward-only corpus listing ABI.  Unlike listing artifacts it exposes no random row lookup. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_stream_path_create(const char *backend_name,
+    const char *path, const char *metadata_path, const char *include_dir,
+    PlatformFileListingStream **out_stream, char **out_error);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_stream_raw_path_create(const char *platform_name,
+    const char *path, uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+    const char *metadata_path, const char *include_dir, PlatformFileListingStream **out_stream, char **out_error);
+/* Calls ``sink`` with one analysis event, bounded canonical row-batch events,
+ * one navigation event, then one summary event.  This corpus ABI is
+ * deliberately forward-only and single-pass. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *stream,
+    PlatformFileListingStreamEventSink sink, void *sink_user, char **out_error);
+PLATFORM_FILE_API void platform_file_facts_v2_listing_stream_destroy(PlatformFileListingStream *stream);
 PLATFORM_FILE_API int platform_file_type_catalog_json_alloc(const char *backend_name, char **out_text);
 PLATFORM_FILE_API int platform_file_naming_catalog_json_alloc(const char *backend_name, char **out_text);
 PLATFORM_FILE_API int platform_file_os_metadata_catalog_json_alloc(const char *backend_name, char **out_text);

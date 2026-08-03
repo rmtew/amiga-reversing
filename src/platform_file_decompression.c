@@ -321,6 +321,7 @@ static int parse_scan_json_line_local(const char *line, PlatformDecompressionCan
       !parse_json_string_field_local(line, "codec_id", candidate->codec_hint, sizeof(candidate->codec_hint))) {
     return 0;
   }
+  (void)parse_json_string_field_local(line, "codec_name", candidate->codec_name, sizeof(candidate->codec_name));
   return candidate->packed_size != 0U && candidate->decompressed_size != 0U;
 }
 
@@ -737,6 +738,55 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
   }
   if (result == 0) result = ancient_decompress_temp_file_local(actual_provider_path, temp_path, output_path,
     error, error_size);
+  remove(temp_path);
+  if (result != 0) return result;
+  if (file_sha256_hex_local(output_path, &out_result->decompressed_size, out_result->decompressed_sha256) != 0) {
+    set_error_local(error, error_size, "failed hashing decompressed output");
+    return -1;
+  }
+  out_result->decompressed = 1;
+  return 0;
+}
+
+int platform_decompression_decompress_scanned_buffer_candidate(const char *provider_id,
+    const char *provider_path, const uint8_t *data, uint32_t data_size,
+    const PlatformDecompressionCandidate *candidate, const char *output_path,
+    PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size) {
+  char temp_path[512];
+  PlatformDecompressionProviderLocal provider;
+  const char *actual_provider_path;
+  int result;
+  if (out_result == NULL) return -1;
+  platform_decompression_identify_result_init(out_result);
+  if (candidate == NULL || output_path == NULL || output_path[0] == '\0' || data == NULL ||
+      candidate->packed_size == 0U || candidate->decompressed_size == 0U ||
+      candidate->offset > data_size || candidate->packed_size > data_size - candidate->offset) {
+    set_error_local(error, error_size, "invalid scanned decompression candidate");
+    return -1;
+  }
+  provider = provider_from_id_local(provider_id);
+  actual_provider_path = (provider_path != NULL && provider_path[0] != '\0') ? provider_path : default_ancient_path_local();
+  if (provider != PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL) {
+    set_error_local(error, error_size, "unsupported decompression provider");
+    return -1;
+  }
+  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", provider_id_name_local(provider));
+  fill_provider_metadata_local(out_result, actual_provider_path);
+  snprintf(out_result->codec_id, sizeof(out_result->codec_id), "%s",
+    candidate->codec_hint[0] != '\0' ? candidate->codec_hint : "unknown");
+  snprintf(out_result->codec_name, sizeof(out_result->codec_name), "%s",
+    candidate->codec_name[0] != '\0' ? candidate->codec_name : out_result->codec_id);
+  snprintf(out_result->confidence, sizeof(out_result->confidence), "provider-scanned");
+  snprintf(out_result->decompressed_path, sizeof(out_result->decompressed_path), "%s", output_path);
+  out_result->found = 1;
+  out_result->source_offset = candidate->offset;
+  out_result->packed_size = candidate->packed_size;
+  out_result->decompressed_size = candidate->decompressed_size;
+  temp_path[0] = '\0';
+  if (write_buffer_range_local(data, data_size, candidate->offset, candidate->packed_size,
+      temp_path, sizeof(temp_path), error, error_size) != 0) return -1;
+  (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
+  result = ancient_decompress_temp_file_local(actual_provider_path, temp_path, output_path, error, error_size);
   remove(temp_path);
   if (result != 0) return result;
   if (file_sha256_hex_local(output_path, &out_result->decompressed_size, out_result->decompressed_sha256) != 0) {

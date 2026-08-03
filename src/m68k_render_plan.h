@@ -169,8 +169,12 @@ typedef struct M68kRenderPlanRow {
   char *text;
 } M68kRenderPlanRow;
 
+typedef int (*M68kRenderTransientRowSink)(const M68kRenderPlanRow *row, void *user);
+
 typedef struct M68kRenderPlan {
   M68kRenderPlanRow *rows;
+  /* Append operations own this arena.  A published plan owns only arena. */
+  Arena *builder_arena;
   Arena *arena;
   size_t row_count;
   size_t row_capacity;
@@ -192,6 +196,14 @@ typedef struct M68kRenderPlan {
   M68kRenderPlannedRuntimeAlias *runtime_aliases;
   size_t runtime_alias_count;
   size_t runtime_alias_capacity;
+  size_t builder_peak_bytes;
+  size_t final_plan_bytes;
+  size_t finalization_overlap_bytes;
+  /* Source-order appends permit logarithmic instruction lookup.  The public
+   * append API preserves correctness for unordered clients by falling back to
+   * a linear lookup after the first out-of-order append. */
+  uint8_t instructions_source_ordered;
+  uint8_t finalized;
 } M68kRenderPlan;
 
 typedef struct M68kRenderPlanRowBuilder {
@@ -219,6 +231,8 @@ typedef int (*M68kRenderPlanLineVisitor)(const M68kRenderPlanRow *row, uint32_t 
 void m68k_render_plan_init(M68kRenderPlan *plan);
 void m68k_render_plan_destroy(M68kRenderPlan *plan);
 void m68k_render_plan_move(M68kRenderPlan *dest, M68kRenderPlan *src);
+/* Publish a plan with exact-size arrays and independently-owned row text. */
+int m68k_render_plan_finalize(M68kRenderPlan *plan);
 int m68k_render_plan_append_expression(M68kRenderPlan *plan,
   const M68kRenderPlannedExpression *expression);
 const M68kRenderPlannedExpression *m68k_render_plan_find_expression(const M68kRenderPlan *plan,

@@ -1175,8 +1175,21 @@ typedef struct M68kRecoveredPlatformTypedAccessIR {
   uint16_t struct_size;
   uint16_t field_size;
   uint8_t type_provenance_kind;
+  uint8_t type_provenance_operand_index;
+  uint8_t has_table_origin;
+  uint8_t table_selection_kind;
+  uint8_t table_terminal_kind;
+  uint8_t reserved_table_origin;
   size_t type_provenance_section_index;
   uint32_t type_provenance_offset;
+  uint32_t table_section_index;
+  uint32_t table_start_offset;
+  uint32_t table_consumer_section_index;
+  uint32_t table_consumer_offset;
+  uint32_t table_address_expression_id;
+  uint32_t table_entry_index;
+  uint32_t table_index_min;
+  uint32_t table_index_max;
   char *root_struct_name;
   char *owner_struct_name;
   char *field_name;
@@ -1761,10 +1774,43 @@ typedef struct M68kAddressValueTransferIR {
   uint8_t destination_operand_index;
 } M68kAddressValueTransferIR;
 
+/* The table contract which produced an address-valued load.  This is an
+ * identity link, not a copy of descriptor bounds or entry classification.
+ * The descriptor/consumer/expression/entry records remain the owners of
+ * those facts. */
+typedef enum M68kAddressValueTableSelectionKind {
+  M68K_ADDRESS_VALUE_TABLE_SELECTION_NONE = 0,
+  M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON = 1,
+  M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE = 2,
+  M68K_ADDRESS_VALUE_TABLE_SELECTION_TERMINAL = 3
+} M68kAddressValueTableSelectionKind;
+
+const char *m68k_address_value_table_selection_name(uint8_t selection_kind);
+
+typedef struct M68kAddressValueTableOriginIR {
+  uint32_t table_section_index;
+  uint32_t table_start_offset;
+  uint32_t consumer_section_index;
+  uint32_t consumer_offset;
+  uint32_t address_expression_id;
+  uint32_t entry_index;
+  uint32_t index_min;
+  uint32_t index_max;
+  uint8_t has_origin;
+  uint8_t selection_kind;
+  uint8_t terminal_kind;
+  uint8_t reserved;
+} M68kAddressValueTableOriginIR;
+
 /* A durable, pre-render address-value fact. Typed consumers refer here;
  * render planning consumes this fact by identity and never re-infers pointer
  * meaning from operand text. */
-typedef struct M68kAddressValueIR {
+  /* Maximum exact finite set retained by the canonical address-value model.
+   * A larger proven table selection remains evidence, but is explicitly
+   * unrepresentable for pointer-value transfer rather than partially kept. */
+  #define M68K_ADDRESS_VALUE_CANDIDATE_LIMIT 4U
+
+  typedef struct M68kAddressValueIR {
   char pointee_struct_name[64];
   char terminal_reason[96];
   uint32_t id;
@@ -1773,10 +1819,11 @@ typedef struct M68kAddressValueIR {
   uint32_t producer_offset;
   uint32_t target_section_index;
   uint32_t target_offset;
-  uint32_t candidate_source_values[4];
-  uint32_t candidate_target_section_indices[4];
-  uint32_t candidate_target_offsets[4];
+    uint32_t candidate_source_values[M68K_ADDRESS_VALUE_CANDIDATE_LIMIT];
+    uint32_t candidate_target_section_indices[M68K_ADDRESS_VALUE_CANDIDATE_LIMIT];
+    uint32_t candidate_target_offsets[M68K_ADDRESS_VALUE_CANDIDATE_LIMIT];
   M68kAddressValueTransferIR transfers[8];
+  M68kAddressValueTableOriginIR table_origin;
   uint8_t producer_operand_index;
   uint8_t origin_kind;
   uint8_t pointer_width;
@@ -2362,6 +2409,13 @@ typedef struct M68kExpectedSymbolAccessIR {
   uint8_t reserved[1];
 } M68kExpectedSymbolAccessIR;
 
+typedef enum M68kRenderedSymbolAccessSourceOrderClass {
+  M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_STORAGE_LABEL = 0,
+  M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_RUNTIME_ALIAS = 1,
+  M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_LABEL = 2,
+  M68K_RENDERED_SYMBOL_ACCESS_SOURCE_ORDER_BODY = 3
+} M68kRenderedSymbolAccessSourceOrderClass;
+
 typedef struct M68kRenderedSymbolAccessIR {
   char *symbol_name;
   uint32_t offset;
@@ -2371,7 +2425,10 @@ typedef struct M68kRenderedSymbolAccessIR {
   uint8_t access_kind;
   uint8_t has_target;
   uint8_t comment_only;
-  uint8_t reserved[1];
+  /* Source statement order at one offset: storage, runtime alias, label, body. */
+  uint8_t source_order_class;
+  /* Internal source-render ordering metadata; not part of serialized facts. */
+  uint32_t emission_order;
 } M68kRenderedSymbolAccessIR;
 
 typedef struct M68kRenderEvidenceSectionIR {
@@ -2812,8 +2869,8 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
     uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
     int32_t base_cursor, int16_t field_offset, uint16_t struct_size, uint16_t field_size, const char *root_struct_name,
     const char *owner_struct_name, const char *field_name, const char *field_expr, uint8_t inherited,
-    uint8_t nested, uint8_t type_provenance_kind, size_t type_provenance_section_index,
-    uint32_t type_provenance_offset);
+    uint8_t nested, uint8_t type_provenance_kind, uint8_t type_provenance_operand_index, size_t type_provenance_section_index,
+    uint32_t type_provenance_offset, const M68kAddressValueTableOriginIR *table_origin);
 int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, uint8_t operand_index,
     uint8_t base_reg, int32_t displacement, uint16_t struct_size, uint8_t access_size, const char *root_struct_name,
@@ -2880,6 +2937,9 @@ int m68k_ir_section_analysis_append_platform_call_thunk(M68kSectionAnalysisIR *s
     const M68kPlatformCallThunkIR *thunk);
 int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressValueIR *address_value);
+/* Bind only already-proven pointer-table descriptors/entries to existing
+ * address-value consumers. This never discovers or classifies table data. */
+int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use);
 int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR *section_analysis,
@@ -2896,6 +2956,10 @@ int m68k_ir_render_evidence_create(M68kRenderEvidenceIR *evidence);
 void m68k_ir_render_evidence_destroy(M68kRenderEvidenceIR *evidence);
 int m68k_ir_render_evidence_append_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
     uint32_t section_index, const M68kRenderedSymbolAccessIR *access);
+/* For a semantic plan whose identities are already unique and ordered. */
+int m68k_ir_render_evidence_append_unique_rendered_symbol_access(M68kRenderEvidenceIR *evidence,
+    uint32_t section_index, const M68kRenderedSymbolAccessIR *access);
+void m68k_ir_render_evidence_sort_source_order(M68kRenderEvidenceIR *evidence);
 int m68k_ir_render_evidence_append_all(M68kRenderEvidenceIR *evidence,
     const M68kRenderEvidenceIR *source);
 const M68kRenderEvidenceSectionIR *m68k_ir_render_evidence_section_by_index(

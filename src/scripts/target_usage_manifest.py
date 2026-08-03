@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import heapq
 import concurrent.futures
 import functools
 import hashlib
@@ -11,12 +12,14 @@ import tempfile
 import threading
 import time
 import zlib
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Iterator, cast
+from typing import Any, Callable, Iterable, Iterator, Sequence, cast
 
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
     DiskEntryBinarySource,
     HunkFileBinarySource,
     RawBinarySource,
@@ -119,10 +122,13 @@ class CorpusBuildMonitor:
     task_counts: dict[str, int] = field(default_factory=dict)
     task_elapsed_seconds: dict[str, float] = field(default_factory=dict)
     active_tasks: dict[str, int] = field(default_factory=dict)
+    active_task_labels: dict[str, set[str]] = field(default_factory=dict)
     max_active_tasks: dict[str, int] = field(default_factory=dict)
     peak_process_memory_bytes: int = 0
     current_phase: str = "initializing"
     progress_sequence: int = 0
+    stream_allocation_totals: dict[str, int] = field(default_factory=dict)
+    stream_allocation_maxima: dict[str, int] = field(default_factory=dict)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def phase_started(self, phase: str) -> None:
@@ -139,19 +145,36 @@ class CorpusBuildMonitor:
             self._observe_memory_locked()
             self._write_progress_locked()
 
-    def task_started(self, phase: str) -> float:
+    def task_started(self, phase: str, label: str | None = None) -> float:
         with self._lock:
             self.active_tasks[phase] = self.active_tasks.get(phase, 0) + 1
+            if label is not None:
+                self.active_task_labels.setdefault(phase, set()).add(label)
             self.max_active_tasks[phase] = max(self.max_active_tasks.get(phase, 0), self.active_tasks[phase])
             self._write_progress_locked()
         return time.perf_counter()
 
-    def task_finished(self, phase: str, started_at: float) -> None:
+    def task_finished(self, phase: str, started_at: float, label: str | None = None) -> None:
         with self._lock:
             self.active_tasks[phase] = max(0, self.active_tasks.get(phase, 0) - 1)
+            labels = self.active_task_labels.get(phase)
+            if labels is not None and label is not None:
+                labels.discard(label)
             self.task_counts[phase] = self.task_counts.get(phase, 0) + 1
             self.task_elapsed_seconds[phase] = self.task_elapsed_seconds.get(phase, 0.0) + (time.perf_counter() - started_at)
             self._observe_memory_locked()
+            self._write_progress_locked()
+
+    def record_stream_profile(self, profile: dict[str, object]) -> None:
+        """Aggregate native stream ownership counters outside corpus semantics."""
+        allocation = profile.get("allocation")
+        if not isinstance(allocation, dict):
+            return
+        with self._lock:
+            for key, value in allocation.items():
+                if isinstance(value, int):
+                    self.stream_allocation_totals[key] = self.stream_allocation_totals.get(key, 0) + value
+                    self.stream_allocation_maxima[key] = max(self.stream_allocation_maxima.get(key, 0), value)
             self._write_progress_locked()
 
     def report(self) -> dict[str, object]:
@@ -181,6 +204,7 @@ class CorpusBuildMonitor:
             phases[phase] = {
                 "completed_tasks": self.task_counts.get(phase, 0),
                 "active_tasks": self.active_tasks.get(phase, 0),
+                "active_task_labels": sorted(self.active_task_labels.get(phase, set())),
                 "max_active_tasks": self.max_active_tasks.get(phase, 0),
                 "task_elapsed_seconds": round(task_elapsed, 6),
                 "elapsed_seconds": round(elapsed, 6) if elapsed is not None else None,
@@ -195,6 +219,8 @@ class CorpusBuildMonitor:
             "process_memory_bytes": _process_memory_bytes(),
             "peak_process_memory_bytes": self.peak_process_memory_bytes or None,
             "progress_snapshot_count": self.progress_sequence,
+            "stream_allocation_totals": dict(sorted(self.stream_allocation_totals.items())),
+            "stream_allocation_maxima": dict(sorted(self.stream_allocation_maxima.items())),
             "phases": phases,
         }
 
@@ -233,8 +259,8 @@ class CorpusBuildStaging:
     def add(
         self,
         row: dict[str, object],
-        xrefs: list[dict[str, object]],
-        snippet_rows: list[dict[str, object]],
+        xrefs: list[dict[str, object]] | _XrefShard,
+        snippet_rows: list[dict[str, object]] | _SnippetShard,
     ) -> None:
         target_id = _string_value(row.get("id"))
         if target_id is None:
@@ -245,8 +271,14 @@ class CorpusBuildStaging:
                 raise ValueError(f"Duplicate corpus target id: {target_id}")
             xref_path = self.path / f"{digest}.xrefs.jsonl"
             snippet_path = self.path / f"{digest}.snippets.jsonl"
-            _write_jsonl_shard(xref_path, _sorted_usage_xrefs(xrefs))
-            _write_jsonl_shard(snippet_path, _sorted_snippet_rows(snippet_rows))
+            if isinstance(xrefs, _XrefShard):
+                xrefs.path.replace(xref_path)
+            else:
+                _write_jsonl_shard(xref_path, _sorted_usage_xrefs(xrefs))
+            if isinstance(snippet_rows, _SnippetShard):
+                snippet_rows.path.replace(snippet_path)
+            else:
+                _write_jsonl_shard(snippet_path, _sorted_snippet_rows(snippet_rows))
             self._rows[target_id] = row
             self._shards[target_id] = (xref_path, snippet_path)
 
@@ -258,9 +290,527 @@ class CorpusBuildStaging:
             xref_path, snippet_path = self._shards[target_id]
             yield self._rows[target_id], _read_jsonl_shard(xref_path), _read_jsonl_shard(snippet_path)
 
+    def records_with_xrefs(self) -> Iterator[tuple[dict[str, object], list[dict[str, object]]]]:
+        """Replay rows with xrefs without materialising their snippet shards."""
+        for target_id in sorted(self._rows):
+            xref_path, _snippet_path = self._shards[target_id]
+            yield self._rows[target_id], _read_jsonl_shard(xref_path)
+
+    def snippet_rows_for(self, row: dict[str, object]) -> list[dict[str, object]]:
+        target_id = _string_value(row.get("id"))
+        if target_id is None or target_id not in self._shards:
+            raise ValueError("Corpus row has no staged snippet shard")
+        _xref_path, snippet_path = self._shards[target_id]
+        return _read_jsonl_shard(snippet_path)
+
+    def snippet_records(self) -> Iterator[tuple[dict[str, object], list[dict[str, object]]]]:
+        """Replay rows with snippets without materialising their xref shards."""
+        for target_id in sorted(self._rows):
+            _xref_path, snippet_path = self._shards[target_id]
+            yield self._rows[target_id], _read_jsonl_shard(snippet_path)
+
     def iter_xrefs(self) -> Iterator[dict[str, object]]:
-        for _row, xrefs, _snippet_rows in self.records():
+        for _row, xrefs in self.records_with_xrefs():
             yield from xrefs
+
+    def iter_sorted_xrefs(self) -> Iterator[dict[str, object]]:
+        for target_id in sorted(self._rows):
+            xref_path, _snippet_path = self._shards[target_id]
+            _external_sort_dedupe_xref_shard(xref_path)
+            yield from _read_jsonl_shard(xref_path)
+
+
+@dataclass
+class _DirectControlRunState:
+    """Confirm canonical direct-control runs without retaining listing history."""
+
+    pending: tuple[int, dict[str, Any], tuple[str, ...]] | None = None
+    run_length: int = 0
+    previous_section: int | None = None
+    previous_end: int | None = None
+    previous_width: int | None = None
+
+    def accept(self, row_index: int, row: dict[str, Any]) -> list[tuple[int, dict[str, Any], set[str]]]:
+        section = _int_value(row.get("section_index"))
+        start = _int_value(row.get("start_offset"))
+        end = _int_value(row.get("end_offset"))
+        width = end - start if start is not None and end is not None and end >= start else None
+        if _listing_row_is_kind(row, LISTING_ROW_KIND_LABEL) and width == 0:
+            return [(row_index, row, set())]
+        features = _listing_row_direct_control_stub_features(row)
+        contiguous = (
+            bool(features) and section is not None and start is not None and end is not None and width is not None and
+            width > 0 and self.previous_section == section and self.previous_end == start and
+            self.previous_width == width and self.pending is not None and self.pending[2] == features
+        )
+        emitted: list[tuple[int, dict[str, Any], set[str]]] = []
+        if contiguous:
+            previous_index, previous_row, previous_features = self.pending
+            emitted.append((previous_index, previous_row, set(previous_features)))
+            self.pending = (row_index, row, features)
+            self.run_length += 1
+        else:
+            if self.pending is not None:
+                previous_index, previous_row, previous_features = self.pending
+                emitted.append((previous_index, previous_row,
+                    set(previous_features) if self.run_length >= 2 else set()))
+            self.pending = (row_index, row, features) if features and width is not None and width > 0 else None
+            self.run_length = 1 if self.pending is not None else 0
+            if not features:
+                emitted.append((row_index, row, set()))
+        self.previous_section = section
+        self.previous_end = end
+        self.previous_width = width
+        return emitted
+
+    def finish(self) -> list[tuple[int, dict[str, Any], set[str]]]:
+        if self.pending is None or self.run_length < 2:
+            return []
+        row_index, row, features = self.pending
+        self.pending = None
+        return [(row_index, row, set(features))]
+
+
+class _StreamingSnippetWriter:
+    """Append merged xref windows directly to a target-local snippet shard."""
+
+    def __init__(self, path: Path, target_row: dict[str, object], *, radius: int = 20) -> None:
+        self._path = path
+        self._target_id = str(target_row["id"])
+        self._radius = radius
+        self._recent: deque[tuple[int, dict[str, Any]]] = deque(maxlen=radius + 1)
+        # A native stream callback supplies one bounded row batch.  Retain its
+        # compact rows until its xref locations are projected so batch-level
+        # projection can still render windows preceding an xref.
+        self._batch_rows: dict[int, dict[str, Any]] = {}
+        self._active_end = -1
+        self._last_appended = -1
+        self._output = path.open("w", encoding="utf-8", newline="\n", buffering=1024 * 1024)
+
+    def accept_row(self, row_index: int, row: dict[str, Any]) -> None:
+        compact = _compact_listing_row(row)
+        self._recent.append((row_index, compact))
+        self._batch_rows[row_index] = compact
+        if row_index <= self._active_end:
+            self._append(row_index, compact)
+
+    def accept_xrefs(self, xrefs: Iterable[dict[str, object]]) -> None:
+        self.accept_row_indices(
+            xref.get("row_index") for xref in xrefs if isinstance(xref.get("row_index"), int)
+        )
+
+    def accept_row_indices(self, row_indices: Iterable[int]) -> None:
+        row_indices = sorted(set(row_indices))
+        for row_index in row_indices:
+            self._active_end = max(self._active_end, row_index + self._radius)
+            first = max(self._last_appended + 1, row_index - self._radius)
+            for snippet_index in range(first, row_index + 1):
+                compact = self._batch_rows.get(snippet_index)
+                if compact is None:
+                    compact = next((value for recent_index, value in self._recent if recent_index == snippet_index), None)
+                if compact is not None:
+                    self._append(snippet_index, compact)
+
+    def finish_batch(self) -> None:
+        self._batch_rows.clear()
+
+    def close(self) -> None:
+        self._output.close()
+
+    def _append(self, row_index: int, compact: dict[str, Any]) -> None:
+        if row_index <= self._last_appended:
+            return
+        self._output.write(json.dumps({
+            "schema_version": 1,
+            "id": _stable_snippet_row_id(self._target_id, row_index, compact),
+            "target_id": self._target_id,
+            "row_index": row_index,
+            "row": compact,
+        }, sort_keys=True, separators=(",", ":")))
+        self._output.write("\n")
+        self._last_appended = row_index
+
+
+@dataclass(frozen=True)
+class _SnippetShard:
+    path: Path
+
+
+@dataclass(frozen=True)
+class _XrefShard:
+    path: Path
+
+
+class _StreamingXrefWriter:
+    """Spool target-local xrefs without retaining the target's xref list."""
+
+    _CHUNK_ROWS = 8192
+
+    def __init__(self, path: Path) -> None:
+        self._path = path
+        self._pending_lines: list[str] = []
+        self._output = path.open("w", encoding="utf-8", newline="\n", buffering=1024 * 1024)
+
+    def accept(self, xrefs: Iterable[dict[str, object]]) -> None:
+        for xref in xrefs:
+            self._pending_lines.append(json.dumps(xref, sort_keys=True, separators=(",", ":")) + "\n")
+            if len(self._pending_lines) == 4096:
+                self._flush()
+
+    def close(self) -> _XrefShard:
+        self._flush()
+        self._output.close()
+        return _XrefShard(self._path)
+
+    def _flush(self) -> None:
+        if self._pending_lines:
+            self._output.write("".join(self._pending_lines))
+            self._pending_lines.clear()
+
+
+def _xref_sort_key(row: dict[str, object]) -> tuple[str, str, int, int, int, str]:
+    return (
+        str(row.get("target_id")), str(row.get("feature")), _sort_int(row.get("section")),
+        _sort_int(row.get("offset")), _sort_int(row.get("row_index")), str(row.get("id")),
+    )
+
+
+def _external_sort_dedupe_xref_shard(path: Path, chunk_rows: int = 8192) -> Path:
+    """Replace a chronological xref spool with its canonical ordered unique shard."""
+    if chunk_rows <= 0:
+        raise ValueError("xref chunk size must be positive")
+    chunk_paths: list[Path] = []
+    try:
+        with path.open(encoding="utf-8") as source:
+            sequence = 0
+            while True:
+                records: dict[str, tuple[int, dict[str, object]]] = {}
+                for _ in range(chunk_rows):
+                    line = source.readline()
+                    if not line:
+                        break
+                    raw = json.loads(line)
+                    if not isinstance(raw, dict):
+                        raise ValueError("invalid xref spool record")
+                    xref = cast(dict[str, object], raw)
+                    xref_id = str(xref["id"])
+                    records[xref_id] = (sequence, xref)
+                    sequence += 1
+                if not records:
+                    break
+                chunk_path = path.with_name(f".{path.name}.{len(chunk_paths):05d}.chunk")
+                _write_jsonl_shard(chunk_path, [
+                    {"sequence": sequence, "xref": xref}
+                    for sequence, xref in sorted(records.values(), key=lambda item: (_xref_sort_key(item[1]), item[0]))
+                ])
+                chunk_paths.append(chunk_path)
+        result_path = path.with_name(f".{path.name}.sorted")
+        streams = [chunk_path.open(encoding="utf-8") for chunk_path in chunk_paths]
+        try:
+            heap: list[tuple[tuple[str, str, int, int, int, str], int, int, dict[str, object]]] = []
+            for stream_index, stream in enumerate(streams):
+                line = stream.readline()
+                if line:
+                    raw = cast(dict[str, object], json.loads(line))
+                    xref = cast(dict[str, object], raw["xref"])
+                    heapq.heappush(heap, (_xref_sort_key(xref), cast(int, raw["sequence"]), stream_index, xref))
+            with result_path.open("w", encoding="utf-8", newline="\n") as output:
+                pending_id: str | None = None
+                pending_sequence = -1
+                pending_xref: dict[str, object] | None = None
+                while heap:
+                    _key, sequence, stream_index, xref = heapq.heappop(heap)
+                    xref_id = str(xref["id"])
+                    if pending_id is not None and xref_id != pending_id:
+                        output.write(json.dumps(pending_xref, sort_keys=True, separators=(",", ":")) + "\n")
+                        pending_sequence = -1
+                        pending_xref = None
+                    if pending_xref is None or sequence >= pending_sequence:
+                        pending_id, pending_sequence, pending_xref = xref_id, sequence, xref
+                    line = streams[stream_index].readline()
+                    if line:
+                        raw = cast(dict[str, object], json.loads(line))
+                        next_xref = cast(dict[str, object], raw["xref"])
+                        heapq.heappush(heap, (_xref_sort_key(next_xref), cast(int, raw["sequence"]), stream_index, next_xref))
+                if pending_xref is not None:
+                    output.write(json.dumps(pending_xref, sort_keys=True, separators=(",", ":")) + "\n")
+        finally:
+            for stream in streams:
+                stream.close()
+        path.unlink()
+        result_path.replace(path)
+        return path
+    finally:
+        for chunk_path in chunk_paths:
+            chunk_path.unlink(missing_ok=True)
+
+
+def _merge_xref_shard_rows(shard: _XrefShard, rows: Iterable[dict[str, object]]) -> _XrefShard:
+    """Merge compact non-stream xrefs into a canonical target-local shard."""
+    merge_path = shard.path.with_name(f".{shard.path.name}.merge")
+    writer = _StreamingXrefWriter(merge_path)
+    with shard.path.open(encoding="utf-8") as source:
+        for line in source:
+            if line.strip():
+                writer.accept([cast(dict[str, object], json.loads(line))])
+    writer.accept(rows)
+    merged = writer.close()
+    merged.path.replace(shard.path)
+    return _XrefShard(shard.path)
+
+
+class _PendingAnalysisXrefs:
+    """Resolve analysis relationships at their canonical listing location."""
+
+    def __init__(self, xrefs: Iterable[dict[str, object]] = ()) -> None:
+        self.ready: list[dict[str, object]] = []
+        self._pending: dict[tuple[int, int], list[dict[str, object]]] = {}
+        self.extend(xrefs)
+
+    def append(self, xref: dict[str, object]) -> None:
+            section = _int_value(xref.get("section"))
+            offset = _int_value(xref.get("offset"))
+            if section is None or offset is None:
+                self.ready.append(xref)
+            else:
+                self._pending.setdefault((section, offset), []).append(xref)
+
+    def extend(self, xrefs: Iterable[dict[str, object]]) -> None:
+        for xref in xrefs:
+            self.append(xref)
+
+    def resolve(self, rows: Iterable[tuple[int, dict[str, Any]]]) -> list[dict[str, object]]:
+        candidates = list(rows)
+        if not candidates:
+            return []
+        locations: set[tuple[int, int]] = set()
+        for _row_index, row in candidates:
+            section = _int_value(row.get("section_index"))
+            if section is None:
+                continue
+            for key in ("start_offset", "addr", "storage_address"):
+                offset = _int_value(row.get(key))
+                if offset is not None:
+                    locations.add((section, offset))
+        result: list[dict[str, object]] = []
+        for location in locations:
+            xrefs = self._pending.pop(location, [])
+            if not xrefs:
+                continue
+            matching = [candidate for candidate in candidates if _listing_row_matches_location(candidate[1], location)]
+            if not matching:
+                self._pending[location] = xrefs
+                continue
+            row_index, row = min(matching, key=lambda candidate: _listing_row_location_rank(candidate[1]))
+            stable_key = _string_value(row.get("stable_key"))
+            text = (_string_value(row.get("text")) or "").strip()
+            for xref in xrefs:
+                xref["row_index"] = row_index
+                xref["stable_key"] = stable_key
+                if text:
+                    xref["text"] = text
+                xref["id"] = _stable_xref_id(xref)
+                result.append(xref)
+        return result
+
+    def finish(self) -> list[dict[str, object]]:
+        result = [xref for xrefs in self._pending.values() for xref in xrefs]
+        self._pending.clear()
+        return result
+
+
+def _listing_row_matches_location(row: dict[str, Any], location: tuple[int, int]) -> bool:
+    section, offset = location
+    return _int_value(row.get("section_index")) == section and any(
+        _int_value(row.get(key)) == offset for key in ("start_offset", "addr", "storage_address")
+    )
+
+
+class _OrderedListingProjector:
+    """Project one typed native listing stream without retaining its row list."""
+
+    def __init__(self, target_row: dict[str, object], bag: FeatureBag, *, snippet_path: Path | None = None,
+                 xref_path: Path | None = None) -> None:
+        self._target_row = target_row
+        self._bag = bag
+        self._snippet_writer = _StreamingSnippetWriter(snippet_path, target_row) if snippet_path is not None else None
+        self._xref_writer = _StreamingXrefWriter(xref_path) if xref_path is not None else None
+        self._analysis_summary: dict[str, Any] | None = None
+        self._pending_analysis: _PendingAnalysisXrefs | None = None
+        self._location_rows: list[tuple[int, dict[str, Any]]] = []
+        self._location_key: tuple[int, int] | None = None
+        self._direct_control = _DirectControlRunState()
+        self._xrefs: list[dict[str, object]] = []
+        self._deferred_snippet_row_indices: set[int] = set()
+        self._next_row_index = 0
+        self._seen_analysis = False
+        self._seen_navigation = False
+        self._seen_summary = False
+        self._summary_profile: dict[str, object] = {}
+
+    @property
+    def analysis(self) -> dict[str, Any] | None:
+        return self._analysis_summary
+
+    @property
+    def summary_profile(self) -> dict[str, object]:
+        return self._summary_profile
+
+    def accept(self, kind: str, payload: dict[str, object]) -> None:
+        if kind == "analysis":
+            if self._seen_analysis or self._next_row_index != 0:
+                raise RuntimeError("listing stream emitted analysis out of order")
+            analysis = payload.get("analysis")
+            if not isinstance(analysis, dict):
+                raise RuntimeError("listing stream analysis payload is invalid")
+            self._seen_analysis = True
+            self._bag.add("analysis:facts_v2")
+            profile = payload.get("profile")
+            generation = _string_value(profile.get("corpus_generation")) if isinstance(profile, dict) else None
+            generation = generation or (_string_value(profile.get("generation")) if isinstance(profile, dict) else None)
+            if generation:
+                self._bag.add(f"analysis_generation:{_safe_part(generation)}")
+                self._emit_xrefs([_xref(self._target_row, f"analysis_generation:{_safe_part(generation)}",
+                    "analysis_profile", text=generation)])
+            self._emit_xrefs([_xref(self._target_row, "analysis:facts_v2", "analysis_profile", text="facts_v2")])
+            typed_analysis = cast(dict[str, Any], analysis)
+            _add_analysis_features(typed_analysis, self._bag)
+            self._pending_analysis = _PendingAnalysisXrefs()
+            _analysis_xrefs(self._target_row, typed_analysis, {}, sink=self._pending_analysis)
+            self._emit_xrefs(self._pending_analysis.ready)
+            self._pending_analysis.ready = []
+            # The row pass needs only compact, scheduled relation obligations.
+            # Do not retain the decoded source-analysis document alongside it.
+            self._analysis_summary = (
+                {"decompression_events": [{}]}
+                if _analysis_has_decompression_relationship(typed_analysis)
+                else {}
+            )
+            return
+        if kind == "rows":
+            if not self._seen_analysis or self._seen_navigation or self._seen_summary:
+                raise RuntimeError("listing stream emitted rows out of order")
+            emitted_rows: list[tuple[int, dict[str, Any], set[str]]] = []
+            for row in _dict_items(payload.get("rows")):
+                self._accept_row(row, emitted_rows, defer_snippets=True)
+            self._emit_listing_rows(emitted_rows, defer_snippets=True)
+            self._flush_deferred_snippets()
+            if self._snippet_writer is not None:
+                self._snippet_writer.finish_batch()
+            return
+        if kind == "navigation":
+            if not self._seen_analysis or self._seen_navigation or self._seen_summary:
+                raise RuntimeError("listing stream emitted navigation out of order")
+            emitted_rows: list[tuple[int, dict[str, Any], set[str]]] = []
+            self._flush_location_rows(defer_snippets=True)
+            for row_index, row, features in self._direct_control.finish():
+                emitted_rows.append((row_index, row, features))
+            self._emit_listing_rows(emitted_rows, defer_snippets=True)
+            self._flush_deferred_snippets()
+            if self._snippet_writer is not None:
+                self._snippet_writer.finish_batch()
+            self._seen_navigation = True
+            self._accept_navigation(cast(dict[str, Any], payload))
+            return
+        if kind == "summary":
+            if not self._seen_navigation or self._seen_summary:
+                raise RuntimeError("listing stream emitted summary out of order")
+            self._seen_summary = True
+            self._summary_profile = payload
+            return
+        raise RuntimeError(f"listing stream emitted unknown event: {kind}")
+
+    def finish(self) -> tuple[list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
+        if not self._seen_analysis or not self._seen_navigation or not self._seen_summary:
+            raise RuntimeError("listing stream terminated before its required terminal events")
+        if self._pending_analysis is not None:
+            self._emit_xrefs(self._pending_analysis.finish())
+        xrefs: list[dict[str, object]] | _XrefShard = (
+            self._xref_writer.close() if self._xref_writer is not None else _dedupe_xrefs(self._xrefs)
+        )
+        if self._snippet_writer is not None:
+            self._snippet_writer.close()
+            return xrefs, _SnippetShard(self._snippet_writer._path)
+        return xrefs, []
+
+    def _accept_row(
+        self,
+        row: dict[str, Any],
+        emitted_rows: list[tuple[int, dict[str, Any], set[str]]],
+        *,
+        defer_snippets: bool,
+    ) -> None:
+        row_index = self._next_row_index
+        self._next_row_index += 1
+        if self._snippet_writer is not None:
+            self._snippet_writer.accept_row(row_index, row)
+        location = _listing_row_primary_location(row)
+        if location != self._location_key:
+            self._flush_location_rows(defer_snippets=defer_snippets)
+            self._location_key = location
+        if location is not None:
+            self._location_rows.append((row_index, row))
+        emitted_rows.extend(self._direct_control.accept(row_index, row))
+
+    def _flush_location_rows(self, *, defer_snippets: bool = False) -> None:
+        if self._pending_analysis is not None and self._location_rows:
+            self._emit_xrefs(self._pending_analysis.resolve(self._location_rows), defer_snippets=defer_snippets)
+        self._location_rows = []
+
+    def _emit_listing_rows(
+        self,
+        emitted_rows: list[tuple[int, dict[str, Any], set[str]]],
+        *,
+        defer_snippets: bool = False,
+    ) -> None:
+        if not emitted_rows:
+            return
+        row_indices = [row_index for row_index, _row, _features in emitted_rows]
+        rows = [listing_row for _row_index, listing_row, _features in emitted_rows]
+        direct_features = {
+            row_index: features for row_index, _row, features in emitted_rows if features
+        }
+        self._emit_xrefs(_listing_xrefs(
+            self._target_row, {"rows": rows}, feature_bag=self._bag, row_indices=row_indices,
+            direct_control_features_by_row=direct_features,
+        ), defer_snippets=defer_snippets)
+
+    def _emit_xrefs(self, xrefs: Iterable[dict[str, object]], *, defer_snippets: bool = False) -> None:
+        values = list(xrefs)
+        if self._xref_writer is not None:
+            self._xref_writer.accept(values)
+        else:
+            self._xrefs.extend(values)
+        if self._snippet_writer is not None:
+            if defer_snippets:
+                self._deferred_snippet_row_indices.update(
+                    row_index for xref in values if isinstance((row_index := xref.get("row_index")), int)
+                )
+            else:
+                self._snippet_writer.accept_xrefs(values)
+
+    def _flush_deferred_snippets(self) -> None:
+        if self._snippet_writer is not None and self._deferred_snippet_row_indices:
+            self._snippet_writer.accept_row_indices(self._deferred_snippet_row_indices)
+        self._deferred_snippet_row_indices.clear()
+
+    def _accept_navigation(self, navigation: dict[str, Any]) -> None:
+        _add_listing_navigation_label_features(navigation, self._bag)
+        app_slot_analysis = navigation.get("app_slot_analysis")
+        if isinstance(app_slot_analysis, dict):
+            _add_app_slot_layout_features(cast(dict[str, object], app_slot_analysis), self._bag)
+            self._emit_xrefs(_app_slot_layout_xrefs(self._target_row, cast(dict[str, Any], app_slot_analysis)))
+
+
+def _listing_row_primary_location(row: dict[str, Any]) -> tuple[int, int] | None:
+    section = _int_value(row.get("section_index"))
+    if section is None:
+        return None
+    for key in ("start_offset", "addr", "storage_address"):
+        offset = _int_value(row.get(key))
+        if offset is not None:
+            return section, offset
+    return None
 
 
 def _write_jsonl_shard(path: Path, rows: Iterable[dict[str, object]]) -> None:
@@ -1140,12 +1690,16 @@ def build_usage_outputs(
             index, entry = task
             task_tmp_dir = tmp_dir / f"file_{index:06d}"
             task_tmp_dir.mkdir()
-            return collect_file_usage_catalog_entry(entry, resolver, task_tmp_dir, root=root)
+            return collect_file_usage_catalog_entry(
+                entry, resolver, task_tmp_dir, root=root,
+                profile_sink=monitor.record_stream_profile if monitor is not None else None,
+            )
 
         if monitor is not None:
             monitor.phase_started("analyze_file_entries")
         for row, row_xrefs, row_snippets in _run_usage_tasks(
-            file_tasks, collect_file_task, worker_count, phase="analyze_file_entries", monitor=monitor
+            file_tasks, collect_file_task, worker_count, phase="analyze_file_entries", monitor=monitor,
+            task_label=lambda task: str(task[1].get("id", task[0])),
         ):
             rows.append(row)
             xrefs.extend(row_xrefs)
@@ -1158,12 +1712,16 @@ def build_usage_outputs(
             index, target_dir = task
             task_tmp_dir = tmp_dir / f"project_{index:06d}"
             task_tmp_dir.mkdir()
-            return collect_project_usage_catalog_entry(target_dir, task_tmp_dir, root=root)
+            return collect_project_usage_catalog_entry(
+                target_dir, task_tmp_dir, root=root,
+                profile_sink=monitor.record_stream_profile if monitor is not None else None,
+            )
 
         if monitor is not None:
             monitor.phase_started("analyze_project_targets")
         for row, row_xrefs, row_snippets in _run_usage_tasks(
-            project_tasks, collect_project_task, worker_count, phase="analyze_project_targets", monitor=monitor
+            project_tasks, collect_project_task, worker_count, phase="analyze_project_targets", monitor=monitor,
+            task_label=lambda task: str(task[1]),
         ):
             rows.append(row)
             xrefs.extend(row_xrefs)
@@ -1230,16 +1788,20 @@ def build_usage_staging(
         tmp_dir = Path(tmp)
         file_tasks = list(enumerate(file_entries))
 
-        def collect_file_task(task: tuple[int, dict[str, Any]]) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+        def collect_file_task(task: tuple[int, dict[str, Any]]) -> tuple[dict[str, object], list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
             index, entry = task
             task_tmp_dir = tmp_dir / f"file_{index:06d}"
             task_tmp_dir.mkdir()
-            return collect_file_usage_catalog_entry(entry, resolver, task_tmp_dir, root=root)
+            return collect_file_usage_catalog_entry(entry, resolver, task_tmp_dir, root=root,
+                snippet_path=task_tmp_dir / "snippets.jsonl",
+                xref_path=task_tmp_dir / "xrefs.jsonl",
+                profile_sink=monitor.record_stream_profile if monitor is not None else None)
 
         if monitor is not None:
             monitor.phase_started("analyze_file_entries")
         for row, row_xrefs, row_snippets in _run_usage_tasks(
-            file_tasks, collect_file_task, worker_count, phase="analyze_file_entries", monitor=monitor
+            file_tasks, collect_file_task, worker_count, phase="analyze_file_entries", monitor=monitor,
+            task_label=lambda task: str(task[1].get("id", task[0])),
         ):
             staging.add(row, row_xrefs, row_snippets)
         if monitor is not None:
@@ -1247,16 +1809,20 @@ def build_usage_staging(
 
         project_tasks = list(enumerate(_project_target_dirs(root)))
 
-        def collect_project_task(task: tuple[int, Path]) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+        def collect_project_task(task: tuple[int, Path]) -> tuple[dict[str, object], list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
             index, target_dir = task
             task_tmp_dir = tmp_dir / f"project_{index:06d}"
             task_tmp_dir.mkdir()
-            return collect_project_usage_catalog_entry(target_dir, task_tmp_dir, root=root)
+            return collect_project_usage_catalog_entry(target_dir, task_tmp_dir, root=root,
+                snippet_path=task_tmp_dir / "snippets.jsonl",
+                xref_path=task_tmp_dir / "xrefs.jsonl",
+                profile_sink=monitor.record_stream_profile if monitor is not None else None)
 
         if monitor is not None:
             monitor.phase_started("analyze_project_targets")
         for row, row_xrefs, row_snippets in _run_usage_tasks(
-            project_tasks, collect_project_task, worker_count, phase="analyze_project_targets", monitor=monitor
+            project_tasks, collect_project_task, worker_count, phase="analyze_project_targets", monitor=monitor,
+            task_label=lambda task: str(task[1]),
         ):
             staging.add(row, row_xrefs, row_snippets)
         if monitor is not None:
@@ -1284,28 +1850,45 @@ def _run_usage_tasks(
     *,
     phase: str,
     monitor: CorpusBuildMonitor | None = None,
+    task_label: Callable[[Any], str] | None = None,
 ) -> Iterator[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]]:
     def run(task: Any) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
-        started_at = monitor.task_started(phase) if monitor is not None else None
+        label = task_label(task) if task_label is not None else repr(task)
+        started_at = monitor.task_started(phase, label) if monitor is not None else None
         try:
             return collect(task)
         finally:
             if monitor is not None and started_at is not None:
-                monitor.task_finished(phase, started_at)
+                monitor.task_finished(phase, started_at, label=label)
 
     if max_workers <= 1 or len(tasks) <= 1:
         for task in tasks:
             yield run(task)
         return
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(run, task) for task in tasks}
+        # Keep only one bounded window of result-bearing futures alive.  A
+        # generator pauses at ``yield`` while the caller stages a completed
+        # row; submitting the entire corpus up front allowed every queued
+        # future to complete during that pause and retain its full payload in
+        # memory.  The corpus contract is streaming, so retained worker
+        # results are bounded by the worker window, plus the one row currently
+        # being staged by the caller.
+        task_iterator = iter(tasks)
+        no_task = object()
+        futures: set[concurrent.futures.Future[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]]] = set()
+        for _ in range(min(max_workers, len(tasks))):
+            futures.add(executor.submit(run, next(task_iterator)))
         while futures:
-            completed, futures = concurrent.futures.wait(
+            completed, _pending = concurrent.futures.wait(
                 futures,
                 return_when=concurrent.futures.FIRST_COMPLETED,
             )
-            for future in completed:
-                yield future.result()
+            future = next(iter(completed))
+            futures.remove(future)
+            task = next(task_iterator, no_task)
+            if task is not no_task:
+                futures.add(executor.submit(run, task))
+            yield future.result()
 
 
 def build_variant_index(
@@ -1460,32 +2043,47 @@ def collect_file_usage_catalog_entry(
     tmp_dir: Path,
     *,
     root: Path = ROOT,
-) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+    snippet_path: Path | None = None,
+    xref_path: Path | None = None,
+    profile_sink: Callable[[dict[str, object]], None] | None = None,
+) -> tuple[dict[str, object], list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
     bag = FeatureBag()
     _add_file_manifest_features(entry, bag)
     platform = str(entry.get("platform", "unknown"))
-    combined: dict[str, Any] | None = None
+    row = _base_row("platform_file_manifest", entry, bag)
+    analysis: dict[str, Any] | None = None
+    stream_xrefs: list[dict[str, object]] | _XrefShard = []
+    snippets: list[dict[str, object]] | _SnippetShard = []
     analysis_error: str | None = None
     if _status(entry) == "ok" and platform in {"amiga-hunk", "atari-st"}:
         try:
             if resolver is None:
                 raise RuntimeError("No disk resolver supplied")
             file_bytes = resolver.file_bytes(entry)
-            combined = analyze_executable_file(platform, file_bytes, tmp_dir, root=root)
-            _add_executable_analysis_features(combined, bag, platform=platform, root=root, include_listing=False)
+            stream_snippet_path = snippet_path or (tmp_dir / "stream-snippets.jsonl")
+            analysis, stream_xrefs, snippets = project_executable_file_listing_stream(
+                platform, file_bytes, tmp_dir, row, bag, root=root, snippet_path=stream_snippet_path,
+                xref_path=xref_path,
+                profile_sink=profile_sink,
+            )
+            if snippet_path is None and isinstance(snippets, _SnippetShard):
+                snippets = _read_jsonl_shard(snippets.path)
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
-    row = _base_row("platform_file_manifest", entry, bag)
     row["analysis_coverage"] = _analysis_coverage_record(
         source_kind="manifest_executable",
-        analysis=combined,
+        analysis=analysis,
         analysis_error=analysis_error,
-        reason="unsupported_platform" if combined is None and analysis_error is None else None,
+        reason="unsupported_platform" if analysis is None and analysis_error is None else None,
     )
-    xrefs = _file_usage_xrefs(row, entry, combined, analysis_error, listing_feature_bag=bag)
+    xrefs = _file_manifest_xrefs(row, entry)
+    if analysis_error is not None:
+        xrefs.append(_xref(row, "diagnostic:analysis_error", "diagnostic", text=analysis_error))
     _finalize_row_features(row, bag)
-    return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
+    if isinstance(stream_xrefs, _XrefShard):
+        return row, _merge_xref_shard_rows(stream_xrefs, xrefs), snippets
+    return row, _dedupe_xrefs([*xrefs, *stream_xrefs]), snippets
 
 
 def _project_target_dirs(root: Path = ROOT) -> list[Path]:
@@ -1512,7 +2110,10 @@ def collect_project_usage_catalog_entry(
     tmp_dir: Path,
     *,
     root: Path = ROOT,
-) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+    snippet_path: Path | None = None,
+    xref_path: Path | None = None,
+    profile_sink: Callable[[dict[str, object]], None] | None = None,
+) -> tuple[dict[str, object], list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
     bag = FeatureBag()
     bag.add("project_target:any", example={"target": target_dir.name})
     entry, source = _project_target_manifest_entry(target_dir, root=root)
@@ -1523,34 +2124,58 @@ def collect_project_usage_catalog_entry(
     if _status(entry) != "ok":
         expect = entry.get("expect") if isinstance(entry.get("expect"), dict) else {}
         bag.add("diagnostic:manifest_error", example={"message": expect.get("error") if isinstance(expect, dict) else None})
-    combined: dict[str, Any] | None = None
+    row = _base_row("project_target", entry, bag)
+    analysis: dict[str, Any] | None = None
+    stream_xrefs: list[dict[str, object]] | _XrefShard = []
+    snippets: list[dict[str, object]] | _SnippetShard = []
     analysis_error: str | None = None
     if _status(entry) == "ok" and isinstance(source, (DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource)):
         try:
-            combined = analyze_project_binary_source(source, target_dir, root=root)
-            _add_executable_analysis_features(combined, bag, platform=platform, root=root, include_listing=False)
+            with effective_metadata_file(target_dir) as metadata_path:
+                stream_snippet_path = snippet_path or (tmp_dir / "stream-snippets.jsonl")
+                analysis, stream_xrefs, snippets = project_binary_source_listing_stream(
+                    source, row, bag, metadata_path=metadata_path, root=root, snippet_path=stream_snippet_path,
+                    xref_path=xref_path,
+                    profile_sink=profile_sink,
+                )
+                if snippet_path is None and isinstance(snippets, _SnippetShard):
+                    snippets = _read_jsonl_shard(snippets.path)
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     reproduction = entry.get("reproduction")
-    if isinstance(reproduction, dict) and combined is not None:
-        analysis = combined.get("analysis")
-        if isinstance(analysis, dict) and _analysis_has_decompression_relationship(analysis):
+    if isinstance(reproduction, dict) and isinstance(analysis, dict):
+        if _analysis_has_decompression_relationship(analysis):
             status = _string_value(reproduction.get("status"))
             if status:
                 bag.add(f"decompression:parent_reproduction_status:{_safe_part(status)}", example=reproduction)
             if reproduction.get("exact") is True:
                 bag.add("decompression:parent_reproduction_exact", example=reproduction)
-    row = _base_row("project_target", entry, bag)
     row["analysis_coverage"] = _analysis_coverage_record(
         source_kind=_safe_part(source.kind) if source is not None else "unknown",
-        analysis=combined,
+        analysis=analysis,
         analysis_error=analysis_error,
-        reason=("unsupported_source" if source is not None else "missing_source") if combined is None and analysis_error is None else None,
+        reason=("unsupported_source" if source is not None else "missing_source") if analysis is None and analysis_error is None else None,
     )
-    xrefs = _project_target_xrefs(row, entry, combined, analysis_error, listing_feature_bag=bag)
+    xrefs = [
+        _xref(row, "project_target:any", "project_target", text=str(row.get("source_id") or "")),
+        *_project_target_metadata_xrefs(row, entry),
+        *_file_manifest_xrefs(row, entry),
+    ]
+    if analysis_error is not None:
+        xrefs.append(_xref(row, "diagnostic:analysis_error", "diagnostic", text=analysis_error))
+    if isinstance(reproduction, dict) and isinstance(analysis, dict) and _analysis_has_decompression_relationship(analysis):
+        status = _string_value(reproduction.get("status"))
+        if status:
+            xrefs.append(_xref(row, f"decompression:parent_reproduction_status:{_safe_part(status)}",
+                "decompression_parent_reproduction", symbol=status, text=status))
+        if reproduction.get("exact") is True:
+            xrefs.append(_xref(row, "decompression:parent_reproduction_exact", "decompression_parent_reproduction",
+                symbol=status, text=status or "exact"))
     _finalize_row_features(row, bag)
-    return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
+    if isinstance(stream_xrefs, _XrefShard):
+        return row, _merge_xref_shard_rows(stream_xrefs, xrefs), snippets
+    return row, _dedupe_xrefs([*xrefs, *stream_xrefs]), snippets
 
 
 def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tuple[dict[str, Any], object | None]:
@@ -1695,6 +2320,30 @@ def analyze_project_binary_source(source: object, target_dir: Path, *, root: Pat
     return result
 
 
+def project_binary_source_listing_stream(
+    source: object,
+    target_row: dict[str, object],
+    bag: FeatureBag,
+    *,
+    metadata_path: Path | None,
+    root: Path = ROOT,
+    snippet_path: Path | None = None,
+    xref_path: Path | None = None,
+    profile_sink: Callable[[dict[str, object]], None] | None = None,
+) -> tuple[dict[str, Any] | None, list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
+    """Consume the single native stream through the shared bounded projector."""
+    if not isinstance(source, (DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource)):
+        raise RuntimeError("unsupported native listing stream source")
+    projector = _OrderedListingProjector(target_row, bag, snippet_path=snippet_path, xref_path=xref_path)
+    c_backend.visit_listing_stream_from_binary_source(
+        source, projector.accept, metadata_path=metadata_path, project_root=root
+    )
+    xrefs, snippets = projector.finish()
+    if profile_sink is not None:
+        profile_sink(projector.summary_profile)
+    return projector.analysis, xrefs, snippets
+
+
 def analyze_executable_file(platform: str, file_bytes: bytes, tmp_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
     suffix = ".prg" if platform == "atari-st" else ".hunk"
     path = tmp_dir / f"usage_{platform.replace('-', '_')}_{sha256(file_bytes)[:12]}{suffix}"
@@ -1706,6 +2355,31 @@ def analyze_executable_file(platform: str, file_bytes: bytes, tmp_dir: Path, *, 
         "",
         str(include_dir),
         root=root,
+    )
+
+
+def project_executable_file_listing_stream(
+    platform: str,
+    file_bytes: bytes,
+    tmp_dir: Path,
+    target_row: dict[str, object],
+    bag: FeatureBag,
+    *,
+    root: Path = ROOT,
+    snippet_path: Path | None = None,
+    xref_path: Path | None = None,
+    profile_sink: Callable[[dict[str, object]], None] | None = None,
+) -> tuple[dict[str, Any] | None, list[dict[str, object]] | _XrefShard, list[dict[str, object]] | _SnippetShard]:
+    suffix = ".prg" if platform == "atari-st" else ".hunk"
+    path = tmp_dir / f"usage_{platform.replace('-', '_')}_{sha256(file_bytes)[:12]}{suffix}"
+    path.write_bytes(file_bytes)
+    source = HunkFileBinarySource(
+        BinarySourceKind.HUNK_FILE, path, str(path), path
+    )
+    return project_binary_source_listing_stream(
+        source, target_row, bag, metadata_path=None, root=root, snippet_path=snippet_path,
+        xref_path=xref_path,
+        profile_sink=profile_sink,
     )
 
 
@@ -4820,13 +5494,12 @@ def _listing_code_start_reason_features(row: dict[str, object]) -> tuple[str, ..
 
 
 def _listing_direct_control_stub_table_row_features(listing: dict[str, Any]) -> dict[int, set[str]]:
-    rows = _dict_items(listing.get("rows"))
     result: dict[int, set[str]] = {}
     run: list[tuple[int, tuple[str, ...]]] = []
     previous_section: int | None = None
     previous_end: int | None = None
     previous_width: int | None = None
-    for row_index, row in enumerate(rows):
+    for row_index, row in enumerate(_dict_items(listing.get("rows"))):
         section = _int_value(row.get("section_index"))
         start = _int_value(row.get("start_offset"))
         end = _int_value(row.get("end_offset"))
@@ -6541,8 +7214,10 @@ def _analysis_xrefs(
     row: dict[str, object],
     analysis: dict[str, Any],
     row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    sink: _PendingAnalysisXrefs | None = None,
 ) -> list[dict[str, object]]:
-    xrefs: list[dict[str, object]] = []
+    xrefs: list[dict[str, object]] | _PendingAnalysisXrefs = sink if sink is not None else []
     findings = analysis.get("findings")
     if isinstance(findings, dict):
         required_cpu = findings.get("required_cpu")
@@ -7099,7 +7774,7 @@ def _analysis_xrefs(
                     _xref(row, "analysis:indirect_site", "analysis_count", section=section_index, value=index,
                         text="recovered_indirect_site_count")
                 )
-    return xrefs
+    return [] if sink is not None else xrefs
 
 
 def _listing_xrefs(
@@ -7107,10 +7782,21 @@ def _listing_xrefs(
     listing: dict[str, Any],
     *,
     feature_bag: FeatureBag | None = None,
+    row_index_base: int = 0,
+    row_indices: Sequence[int] | None = None,
+    direct_control_features_by_row: dict[int, set[str]] | None = None,
 ) -> list[dict[str, object]]:
     xrefs: list[dict[str, object]] = []
-    direct_control_stub_rows = _listing_direct_control_stub_table_row_features(listing)
-    for row_index, listing_row in enumerate(_dict_items(listing.get("rows"))):
+    listing_rows = _dict_items(listing.get("rows"))
+    if row_indices is not None and len(row_indices) != len(listing_rows):
+        raise ValueError("listing row indexes must match listing rows")
+    direct_control_stub_rows = (
+        direct_control_features_by_row
+        if direct_control_features_by_row is not None
+        else _listing_direct_control_stub_table_row_features(listing)
+    )
+    for local_row_index, listing_row in enumerate(listing_rows):
+        row_index = row_indices[local_row_index] if row_indices is not None else row_index_base + local_row_index
         text = _string_value(listing_row.get("text")) or ""
         stripped_text = text.strip()
         opcode_or_directive = (_string_value(listing_row.get("opcode_or_directive")) or "").upper()
@@ -7894,7 +8580,7 @@ def write_usage_xrefs_from_staging(path: Path, staging: CorpusBuildStaging) -> i
     count = 0
     try:
         with temporary_path.open("w", encoding="utf-8", newline="\n") as output:
-            for row in staging.iter_xrefs():
+            for row in staging.iter_sorted_xrefs():
                 output.write(json.dumps(row, sort_keys=True))
                 output.write("\n")
                 count += 1
@@ -7953,7 +8639,7 @@ def write_usage_snippet_rows_from_staging(path: Path, staging: CorpusBuildStagin
     count = 0
     try:
         with temporary_blob_path.open("wb") as blob, temporary_index_path.open("w", encoding="utf-8", newline="\n") as index:
-            for row, _xrefs, snippet_rows in staging.records():
+            for row, snippet_rows in staging.snippet_records():
                 if not snippet_rows:
                     continue
                 target_id = str(row["id"])
@@ -9973,14 +10659,18 @@ def build_type_flow_report_from_staging(
     return sorted(rows, key=lambda row: str(row.get("target_id")))
 
 
-def build_unresolved_typed_field_report_from_staging(
+def build_type_flow_and_unresolved_typed_field_reports_from_staging(
     manifest_rows: list[dict[str, object]], staging: CorpusBuildStaging
-) -> list[dict[str, object]]:
-    """Retain only targets that actually contribute unresolved typed fields."""
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Derive both xref-backed reports in one deterministic shard replay."""
+    type_flow_rows: list[dict[str, object]] = []
     selected_manifest_rows: list[dict[str, Any]] = []
     selected_xrefs: list[dict[str, Any]] = []
     selected_snippet_rows: list[dict[str, Any]] = []
+    manifest_by_id = {str(row["id"]): row for row in manifest_rows}
     for manifest_row, xrefs, snippet_rows in staging.records():
+        target_id = str(manifest_row["id"])
+        type_flow_rows.extend(build_type_flow_report([manifest_by_id[target_id]], xrefs, snippet_rows))
         if not any(
             _xref_kind_id(xref) == XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS
             and _xref_feature_id(xref) == XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD
@@ -9990,6 +10680,29 @@ def build_unresolved_typed_field_report_from_staging(
         selected_manifest_rows.append(cast(dict[str, Any], manifest_row))
         selected_xrefs.extend(cast(list[dict[str, Any]], xrefs))
         selected_snippet_rows.extend(cast(list[dict[str, Any]], snippet_rows))
+    unresolved_rows = build_unresolved_typed_field_report(
+        selected_manifest_rows, selected_xrefs, selected_snippet_rows
+    )
+    return sorted(type_flow_rows, key=lambda row: str(row.get("target_id"))), unresolved_rows
+
+
+def build_unresolved_typed_field_report_from_staging(
+    manifest_rows: list[dict[str, object]], staging: CorpusBuildStaging
+) -> list[dict[str, object]]:
+    """Retain only targets that actually contribute unresolved typed fields."""
+    selected_manifest_rows: list[dict[str, Any]] = []
+    selected_xrefs: list[dict[str, Any]] = []
+    selected_snippet_rows: list[dict[str, Any]] = []
+    for manifest_row, xrefs in staging.records_with_xrefs():
+        if not any(
+            _xref_kind_id(xref) == XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS
+            and _xref_feature_id(xref) == XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD
+            for xref in xrefs
+        ):
+            continue
+        selected_manifest_rows.append(cast(dict[str, Any], manifest_row))
+        selected_xrefs.extend(cast(list[dict[str, Any]], xrefs))
+        selected_snippet_rows.extend(cast(list[dict[str, Any]], staging.snippet_rows_for(manifest_row)))
     return build_unresolved_typed_field_report(selected_manifest_rows, selected_xrefs, selected_snippet_rows)
 
 
@@ -11894,8 +12607,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             monitor.phase_started("derive_reports")
             variant_rows = build_variant_index(args.file_manifest)
-            type_flow_rows = build_type_flow_report_from_staging(rows, staging)
-            unresolved_typed_field_rows = build_unresolved_typed_field_report_from_staging(rows, staging)
+            type_flow_rows, unresolved_typed_field_rows = \
+                build_type_flow_and_unresolved_typed_field_reports_from_staging(rows, staging)
             coverage_report = build_corpus_coverage_report(rows)
             monitor.phase_finished("derive_reports")
             prepared_dir = Path(temporary_staging_dir) / "prepared"

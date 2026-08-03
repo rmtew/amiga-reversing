@@ -1,5 +1,9 @@
 import json
+import threading
 from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from amiga_reversing.disasm import c_backend
 
 from src.scripts.target_usage_manifest import (
     CODE_START_REASON_CONTROL_TARGET,
@@ -32,13 +36,274 @@ from src.scripts.target_usage_manifest import (
     _add_listing_features,
     _analysis_xrefs,
     _listing_xrefs,
+    _xref,
+    _DirectControlRunState,
+    _listing_direct_control_stub_table_row_features,
+    _StreamingSnippetWriter,
+    _PendingAnalysisXrefs,
+    _OrderedListingProjector,
+    FeatureBag,
+    CorpusBuildStaging,
+    _SnippetShard,
+    CorpusBuildMonitor,
+    _run_usage_tasks,
+    _snippet_rows_for_xrefs,
+    _sorted_snippet_rows,
+    _sorted_usage_xrefs,
+    build_type_flow_and_unresolved_typed_field_reports_from_staging,
+    build_type_flow_report_from_staging,
     build_typed_pointer_value_opportunity_report,
     build_corpus_coverage_report,
+    build_unresolved_typed_field_report_from_staging,
     publish_prepared_artifacts,
     write_usage_snippet_rows,
     write_usage_snippet_rows_from_staging,
     write_usage_xrefs_from_staging,
 )
+
+
+def test_usage_task_scheduler_bounds_completed_payloads_to_worker_window() -> None:
+    first_task_finished = threading.Event()
+    fourth_task_started = threading.Event()
+    release_blocked_task = threading.Event()
+
+    def collect(task: int) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+        if task == 0:
+            first_task_finished.set()
+        elif task == 1:
+            release_blocked_task.wait(timeout=2)
+        elif task == 3:
+            fourth_task_started.set()
+        return {"task": task}, [], []
+
+    results = _run_usage_tasks([0, 1, 2, 3], collect, max_workers=2, phase="test")
+    first = next(results)
+    assert first[0]["task"] == 0
+    assert first_task_finished.is_set()
+    # The generator is paused while the caller stages ``first``.  One
+    # replacement may run to keep the worker window full, but the fourth task
+    # must remain unscheduled rather than accumulating result payloads.
+    assert not fourth_task_started.wait(timeout=0.1)
+    release_blocked_task.set()
+    assert sorted(result[0]["task"] for result in results) == [1, 2, 3]
+
+
+def test_native_listing_stream_matches_artifact_without_retaining_a_row_plan() -> None:
+    for payload in (bytes.fromhex("4e75"), bytes.fromhex("60024e714e75"),
+                    bytes.fromhex("4e714e7500010203")):
+      with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "tiny.bin"
+        path.write_bytes(payload)
+        source = c_backend._CBackendSourceFile(path, "amiga-raw", 0, None)
+        artifact = c_backend.CListingArtifact.create(
+          source, metadata_text="", include_dir="", project_root=Path.cwd()
+        )
+        stream = c_backend.CListingStream.create(
+          source, metadata_text="", include_dir="", project_root=Path.cwd()
+        )
+        try:
+          summary, _ = artifact.summary_payload()
+          artifact_analysis, _ = artifact.analysis_payload()
+          listing, _ = artifact.window_payload(start=0, count=int(summary["total_rows"]))
+          navigation, _ = artifact.navigation_payload()
+          streamed_rows: list[dict[str, object]] = []
+          events: list[str] = []
+          payloads: dict[str, dict[str, object]] = {}
+
+          def accept(kind: str, payload: dict[str, object]) -> None:
+            events.append(kind)
+            payloads[kind] = payload
+            if kind == "rows":
+              streamed_rows.extend(c_backend._c_listing_row_dicts(payload.get("rows")))
+
+          stream.visit(accept)
+        finally:
+          artifact.close()
+          stream.close()
+        assert streamed_rows == listing["rows"]
+        assert payloads["analysis"]["analysis"] == artifact_analysis
+        assert events[0] == "analysis"
+        assert events[-2:] == ["navigation", "summary"]
+        assert payloads["navigation"] == navigation
+        allocation = payloads["summary"]["allocation"]
+        assert allocation["complete_render_plan_bytes"] == 0
+        assert allocation["complete_listing_row_index_bytes"] == 0
+
+
+def test_native_listing_stream_bounds_canonical_row_batches() -> None:
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "many-rows.bin"
+        path.write_bytes(bytes.fromhex("4e71") * 8300 + bytes.fromhex("4e75"))
+        source = c_backend._CBackendSourceFile(path, "amiga-raw", 0, None)
+        stream = c_backend.CListingStream.create(
+            source, metadata_text="", include_dir="", project_root=Path.cwd()
+        )
+        row_batch_sizes: list[int] = []
+        try:
+            def accept(kind: str, payload: dict[str, object]) -> None:
+                if kind == "rows":
+                    row_batch_sizes.append(len(c_backend._c_listing_row_dicts(payload.get("rows"))))
+            stream.visit(accept)
+        finally:
+            stream.close()
+    assert len(row_batch_sizes) >= 2
+    assert max(row_batch_sizes) <= 8192
+
+
+def test_listing_xrefs_accept_an_absolute_row_index_for_stream_projection() -> None:
+    target = {"id": "target", "platform": "amiga-raw", "source_id": "source", "origin": {}}
+    listing_row = {
+        "kind_id": 2,
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 6,
+        "end_offset": 8,
+        "stable_key": "section:0:6:data",
+        "text": "\tdc.w\t$1234\n",
+        "operand_parts": [{"text": "loc_0_0010", "segment_addr": 16, "symbol": "loc_0_0010"}],
+    }
+    xrefs = _listing_xrefs(target, {"rows": [listing_row]}, row_index_base=37)
+    assert xrefs
+    assert {xref["row_index"] for xref in xrefs} == {37}
+
+
+def test_streaming_xref_writer_orders_and_deduplicates_without_retaining_rows() -> None:
+    from src.scripts.target_usage_manifest import _StreamingXrefWriter, _external_sort_dedupe_xref_shard, _read_jsonl_shard
+
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "xrefs.jsonl"
+        writer = _StreamingXrefWriter(path)
+        first = {"id": "a", "target_id": "target", "feature": "z", "section": 1, "offset": 2, "row_index": 3}
+        second = {"id": "b", "target_id": "target", "feature": "a", "section": 1, "offset": 2, "row_index": 3}
+        replacement = {**first, "text": "last"}
+        writer.accept([first, second, replacement])
+        shard = writer.close()
+        _external_sort_dedupe_xref_shard(shard.path)
+        assert _read_jsonl_shard(shard.path) == [second, replacement]
+
+
+def test_direct_control_run_state_matches_listing_run_rules() -> None:
+    def branch(offset: int) -> dict[str, object]:
+        return {
+            "kind_id": 3, "kind": "instruction", "section_index": 0,
+            "start_offset": offset, "end_offset": offset + 2,
+            "opcode_or_directive": "bra", "operand_accesses": ["branch_target"],
+            "operand_parts": [{"symbol": "loc_0_0010"}],
+            "code_start_refs": [{"reason": CODE_START_REASON_CONTROL_TARGET}],
+        }
+
+    rows = [branch(0), {"kind_id": 2, "kind": "label", "section_index": 0, "start_offset": 2,
+                        "end_offset": 2}, branch(2), branch(4)]
+    expected = _listing_direct_control_stub_table_row_features({"rows": rows})
+    state = _DirectControlRunState()
+    observed: dict[int, set[str]] = {}
+    for index, row in enumerate(rows):
+        for emitted_index, _emitted_row, features in state.accept(index, row):
+            if features:
+                observed[emitted_index] = features
+    for emitted_index, _emitted_row, features in state.finish():
+        if features:
+            observed[emitted_index] = features
+    assert observed == expected
+
+
+def test_streaming_snippet_writer_merges_overlapping_windows_without_row_retention(tmp_path: Path) -> None:
+    target = {"id": "target"}
+    path = tmp_path / "snippets.jsonl"
+    writer = _StreamingSnippetWriter(path, target, radius=2)
+    try:
+        for index in range(8):
+            writer.accept_row(index, {"text": f"row {index}", "stable_key": f"row:{index}"})
+            if index == 3:
+                writer.accept_xrefs([{ "row_index": 3 }])
+            if index == 5:
+                writer.accept_xrefs([{ "row_index": 5 }])
+    finally:
+        writer.close()
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    assert [row["row_index"] for row in rows] == list(range(1, 8))
+
+
+def test_pending_analysis_xrefs_uses_canonical_location_rank() -> None:
+    pending = _PendingAnalysisXrefs([{
+        "id": "temporary", "section": 0, "offset": 4, "row_index": None, "stable_key": None,
+        "text": "fallback", "feature": "analysis:facts_v2", "kind": "analysis_profile", "target_id": "target",
+    }])
+    resolved = pending.resolve([
+        (8, {"kind_id": 2, "section_index": 0, "start_offset": 4, "stable_key": "label", "text": "label:"}),
+        (9, {"kind_id": 3, "section_index": 0, "start_offset": 4, "stable_key": "instruction", "text": "rts"}),
+    ])
+    assert len(resolved) == 1
+    assert resolved[0]["row_index"] == 9
+    assert resolved[0]["stable_key"] == "instruction"
+    assert resolved[0]["text"] == "rts"
+
+
+def test_ordered_listing_projector_requires_typed_terminal_event_order() -> None:
+    row = {"id": "target", "platform": "amiga-raw", "source_id": "source", "origin": {}}
+    projector = _OrderedListingProjector(row, FeatureBag())
+    projector.accept("analysis", {"analysis": {}})
+    projector.accept("rows", {"rows": [{
+        "kind_id": 3, "kind": "instruction", "section_index": 0, "start_offset": 0, "end_offset": 2,
+        "stable_key": "instruction", "text": "rts\n", "operand_parts": [],
+    }]})
+    projector.accept("navigation", {"labels": [], "app_slot_analysis": {}})
+    projector.accept("summary", {"allocation": {}})
+    xrefs, snippets = projector.finish()
+    assert snippets == []
+    assert [xref["feature"] for xref in xrefs] == ["analysis:facts_v2"]
+
+
+def test_ordered_listing_projector_releases_decoded_analysis_before_rows() -> None:
+    projector = _OrderedListingProjector({"id": "target"}, FeatureBag())
+    projector.accept("analysis", {"analysis": {"sections": [{"instructions": [{"offset": 0}]}]}})
+    assert projector.analysis == {}
+
+
+def test_corpus_staging_adopts_streamed_snippet_shard(tmp_path: Path) -> None:
+    shard = tmp_path / "worker-snippets.jsonl"
+    shard.write_text(json.dumps({"id": "snippet", "target_id": "target", "row_index": 0}) + "\n", encoding="utf-8")
+    staging = CorpusBuildStaging(tmp_path / "staging")
+    staging.add({"id": "target"}, [], _SnippetShard(shard))
+    assert not shard.exists()
+    assert staging.snippet_rows_for({"id": "target"}) == [{"id": "snippet", "target_id": "target", "row_index": 0}]
+
+
+def test_build_monitor_aggregates_native_stream_allocation_counters() -> None:
+    monitor = CorpusBuildMonitor(worker_count=1)
+    monitor.record_stream_profile({"allocation": {"semantic_layout_bytes": 64, "max_live_rows": 2}})
+    monitor.record_stream_profile({"allocation": {"semantic_layout_bytes": 8, "max_live_rows": 3}})
+    assert monitor.report()["stream_allocation_totals"] == {"max_live_rows": 5, "semantic_layout_bytes": 72}
+
+
+def test_ordered_projector_matches_all_list_xrefs_and_snippets(tmp_path: Path) -> None:
+    target = {"id": "target", "platform": "amiga-raw", "source_id": "source", "origin": {}}
+
+    def branch(offset: int) -> dict[str, object]:
+        return {
+            "kind_id": 3, "kind": "instruction", "section_index": 0,
+            "start_offset": offset, "end_offset": offset + 2, "stable_key": f"branch:{offset}",
+            "text": f"bra loc_0_{offset + 4:04X}\n", "opcode_or_directive": "bra",
+            "operand_accesses": ["branch_target"], "operand_parts": [{"symbol": f"loc_0_{offset + 4:04X}"}],
+            "code_start_refs": [{"reason": CODE_START_REASON_CONTROL_TARGET}],
+        }
+
+    rows = [branch(0), {"kind_id": 2, "kind": "label", "section_index": 0, "start_offset": 2,
+                          "end_offset": 2, "stable_key": "label:2", "text": "loc_0_0002:\n"}, branch(2)]
+    expected_xrefs = _listing_xrefs(target, {"rows": rows})
+    expected_snippets = _snippet_rows_for_xrefs(target, {"listing": {"rows": rows}}, expected_xrefs)
+    projector = _OrderedListingProjector(target, FeatureBag(), snippet_path=tmp_path / "snippets.jsonl")
+    projector.accept("analysis", {"analysis": {}})
+    projector.accept("rows", {"rows": rows})
+    projector.accept("navigation", {"labels": [], "app_slot_analysis": {}})
+    projector.accept("summary", {"allocation": {}})
+    actual_xrefs, shard = projector.finish()
+    assert isinstance(shard, _SnippetShard)
+    actual_snippets = [json.loads(line) for line in shard.path.read_text(encoding="utf-8").splitlines()]
+    assert _sorted_usage_xrefs(actual_xrefs) == _sorted_usage_xrefs([
+        _xref(target, "analysis:facts_v2", "analysis_profile", text="facts_v2"), *expected_xrefs
+    ])
+    assert actual_snippets == expected_snippets
 
 
 def test_runtime_copied_entry_stub_feature_and_xref() -> None:
@@ -283,6 +548,15 @@ def test_corpus_staging_preserves_deterministic_xref_and_snippet_artifacts(tmp_p
     second_snippets = [{"id": "a1", "target_id": "target/a", "row_index": 0}]
     staging.add(first_row, first_xrefs, first_snippets)
     staging.add(second_row, second_xrefs, second_snippets)
+
+    assert [row["id"] for row, _xrefs in staging.records_with_xrefs()] == ["target/a", "target/b"]
+    assert [row["id"] for row, _snippets in staging.snippet_records()] == ["target/a", "target/b"]
+    assert [row["id"] for row in staging.snippet_rows_for(first_row)] == ["b1", "b2"]
+
+    expected_type_flow = build_type_flow_report_from_staging(staging.rows(), staging)
+    expected_unresolved = build_unresolved_typed_field_report_from_staging(staging.rows(), staging)
+    assert build_type_flow_and_unresolved_typed_field_reports_from_staging(staging.rows(), staging) == \
+        (expected_type_flow, expected_unresolved)
 
     staged_xrefs = tmp_path / "staged-xrefs.jsonl"
     assert write_usage_xrefs_from_staging(staged_xrefs, staging) == 3

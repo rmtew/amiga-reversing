@@ -41,6 +41,293 @@
 #define M68K_FACTS_V2_WORD_DISPATCH_FAR_BOUNDARY_MIN 0x1000
 #define M68K_FACTS_V2_EXTERNAL_RUNTIME_ADDRESS_MIN 0x1000U
 
+static void address_value_table_terminal(M68kAddressValueIR *value, uint8_t terminal_kind,
+    const char *reason) {
+  if (value == NULL) return;
+  value->resolution = terminal_kind == M68K_ADDRESS_VALUE_TERMINAL_INVALID ?
+    M68K_ADDRESS_VALUE_RESOLUTION_INVALID_TARGET : M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET;
+  value->terminal_kind = terminal_kind;
+  value->render_outcome = terminal_kind == M68K_ADDRESS_VALUE_TERMINAL_INVALID ?
+    M68K_ADDRESS_VALUE_RENDER_INVALID : M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
+  value->has_target = 0U;
+  value->candidate_target_count = 0U;
+  if (value->table_origin.has_origin != 0U) {
+    value->table_origin.selection_kind = M68K_ADDRESS_VALUE_TABLE_SELECTION_TERMINAL;
+    value->table_origin.terminal_kind = terminal_kind;
+  }
+  if (reason != NULL) snprintf(value->terminal_reason, sizeof(value->terminal_reason), "%s", reason);
+}
+
+static M68kSectionAnalysisIR *find_source_analysis_section(M68kSourceAnalysisIR *analysis,
+    uint32_t section_index) {
+  size_t index;
+  if (analysis == NULL) return NULL;
+  for (index = 0U; index < analysis->section_count; ++index)
+    if (analysis->sections[index].section_index == section_index) return &analysis->sections[index];
+  return NULL;
+}
+
+static M68kTableDescriptorIR *find_table_descriptor_for_address_value(M68kSourceAnalysisIR *analysis,
+    const M68kAddressValueTableOriginIR *origin) {
+  size_t descriptor_index;
+  M68kTableDescriptorIR *match = NULL;
+  M68kSectionAnalysisIR *section;
+  if (analysis == NULL || origin == NULL || origin->has_origin == 0U) return NULL;
+  section = find_source_analysis_section(analysis, origin->table_section_index);
+  if (section == NULL) return NULL;
+  for (descriptor_index = 0U; descriptor_index < section->table_descriptor_count; ++descriptor_index) {
+    M68kTableDescriptorIR *descriptor = &section->table_descriptors[descriptor_index];
+    if (descriptor->start_offset != origin->table_start_offset ||
+        descriptor->consumer_section_index != origin->consumer_section_index ||
+        descriptor->consumer_offset != origin->consumer_offset) continue;
+    if (match != NULL) return NULL;
+    match = descriptor;
+  }
+  return match;
+}
+
+static M68kTableEntryIR *find_table_entry_for_address_value(M68kSourceAnalysisIR *analysis,
+    const M68kAddressValueTableOriginIR *origin, uint32_t entry_index) {
+  size_t entry_cursor;
+  M68kSectionAnalysisIR *section;
+  if (analysis == NULL || origin == NULL) return NULL;
+  section = find_source_analysis_section(analysis, origin->table_section_index);
+  if (section == NULL) return NULL;
+  for (entry_cursor = 0U; entry_cursor < section->table_entry_count; ++entry_cursor) {
+    M68kTableEntryIR *entry = &section->table_entries[entry_cursor];
+    if (entry->table_start_offset == origin->table_start_offset && entry->entry_index == entry_index)
+      return entry;
+  }
+  return NULL;
+}
+
+static const M68kDataReferenceIR *find_table_entry_data_reference(M68kSourceAnalysisIR *analysis,
+    const M68kAddressValueTableOriginIR *origin, const M68kTableEntryIR *entry) {
+  size_t reference_index;
+  M68kSectionAnalysisIR *section;
+  if (analysis == NULL || origin == NULL || entry == NULL) return NULL;
+  section = find_source_analysis_section(analysis, origin->table_section_index);
+  if (section == NULL) return NULL;
+  for (reference_index = 0U; reference_index < section->data_reference_count; ++reference_index) {
+    const M68kDataReferenceIR *reference = &section->data_references[reference_index];
+    if (reference->source_kind == M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY &&
+        reference->table_start_offset == origin->table_start_offset &&
+        reference->table_entry_index == entry->entry_index &&
+        reference->source_offset == entry->entry_offset) return reference;
+  }
+  return NULL;
+}
+
+static int table_entries_have_compatible_pointee_contract(M68kSourceAnalysisIR *analysis,
+    const M68kAddressValueTableOriginIR *origin, const M68kTableEntryIR *first,
+    const M68kTableEntryIR *candidate) {
+  const M68kDataReferenceIR *first_reference;
+  const M68kDataReferenceIR *candidate_reference;
+  if (first == NULL || candidate == NULL) return 0;
+  if (first->table_kind_id != candidate->table_kind_id ||
+      first->source_pattern_id != candidate->source_pattern_id) return 0;
+  first_reference = find_table_entry_data_reference(analysis, origin, first);
+  candidate_reference = find_table_entry_data_reference(analysis, origin, candidate);
+  if ((first_reference == NULL) != (candidate_reference == NULL)) return 0;
+  if (first_reference != NULL && candidate_reference != NULL &&
+      (first_reference->target_kind != candidate_reference->target_kind ||
+       first_reference->target_role_flags != candidate_reference->target_role_flags ||
+       first_reference->target_table_kind_id != candidate_reference->target_table_kind_id ||
+       first_reference->target_source_pattern_id != candidate_reference->target_source_pattern_id)) return 0;
+  return 1;
+}
+
+static M68kAddressValueIR *find_address_value_by_id(M68kSectionAnalysisIR *section,
+    uint32_t id) {
+  size_t index;
+  if (section == NULL || id == 0U) return NULL;
+  for (index = 0U; index < section->address_value_count; ++index)
+    if (section->address_values[index].id == id) return &section->address_values[index];
+  return NULL;
+}
+
+static M68kAddressExpressionIR *find_indexed_table_expression_for_descriptor(
+    M68kSourceAnalysisIR *analysis, const M68kTableDescriptorIR *descriptor,
+    uint32_t table_section_index, uint8_t operand_index) {
+  size_t expression_index;
+  M68kAddressExpressionIR *match = NULL;
+  M68kSectionAnalysisIR *section;
+  if (analysis == NULL || descriptor == NULL || descriptor->consumer_section_index == UINT32_MAX)
+    return NULL;
+  section = find_source_analysis_section(analysis, descriptor->consumer_section_index);
+  if (section == NULL) return NULL;
+  for (expression_index = 0U; expression_index < section->address_expression_count;
+      ++expression_index) {
+    M68kAddressExpressionIR *expression = &section->address_expressions[expression_index];
+    if (expression->kind == M68K_ADDRESS_EXPRESSION_INDEXED_TABLE &&
+        expression->consumer_section_index == descriptor->consumer_section_index &&
+        expression->consumer_offset == descriptor->consumer_offset &&
+        expression->base_section_index == table_section_index &&
+        expression->base_offset == descriptor->start_offset &&
+        expression->operand_index == operand_index) {
+      if (match != NULL) return NULL;
+      match = expression;
+    }
+  }
+  return match;
+}
+
+int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR *analysis) {
+  size_t section_index, value_index;
+  if (analysis == NULL) return 0;
+  for (section_index = 0U; section_index < analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section = &analysis->sections[section_index];
+    for (value_index = 0U; value_index < section->address_value_count; ++value_index) {
+      M68kAddressValueIR *value = &section->address_values[value_index];
+      M68kTableDescriptorIR *descriptor;
+      M68kAddressExpressionIR *expression;
+      uint32_t entry_index, first_index, last_index;
+      uint32_t entry_stride = 4U;
+      uint32_t candidate_count = 0U;
+      if (value->table_origin.has_origin == 0U) continue;
+      /* Callback contracts share table identity, but do not represent a
+       * pointer-table selection for the renderer.  Their callable summary
+       * owns entry validation and effect intersection. */
+      if (value->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_NONE)
+        continue;
+      descriptor = find_table_descriptor_for_address_value(analysis, &value->table_origin);
+      if (descriptor == NULL || descriptor->table_kind_id != M68K_ANALYSIS_TABLE_KIND_POINTER ||
+          descriptor->entry_size != 4U || descriptor->entry_count == 0U || descriptor->conflict_state != 0U) {
+        address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT,
+          "table descriptor contract is missing or incompatible");
+        continue;
+      }
+      if (value->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE) {
+        expression = find_indexed_table_expression_for_descriptor(analysis, descriptor,
+          value->table_origin.table_section_index, value->producer_operand_index);
+        if (expression == NULL || expression->element_stride == 0U ||
+            (value->table_origin.address_expression_id != 0U &&
+             value->table_origin.address_expression_id != expression->id)) {
+          address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT,
+            "table origin does not identify one exact indexed expression");
+          continue;
+        }
+        value->table_origin.address_expression_id = expression->id;
+        entry_stride = expression->element_stride;
+      } else if (value->table_origin.address_expression_id != 0U) {
+        expression = find_indexed_table_expression_for_descriptor(analysis, descriptor,
+          value->table_origin.table_section_index, value->producer_operand_index);
+        if (expression == NULL || expression->id != value->table_origin.address_expression_id ||
+            expression->element_stride == 0U) {
+          address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT,
+            "table origin has a mismatched indexed expression identity");
+          continue;
+        }
+        entry_stride = expression->element_stride;
+      }
+      if (value->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON) {
+        entry_index = value->table_origin.entry_index;
+        if (entry_index == UINT32_MAX || entry_index >= descriptor->entry_count) {
+          address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_INVALID,
+            "table singleton is outside the proven descriptor bounds");
+          continue;
+        }
+        {
+          M68kTableEntryIR *entry = find_table_entry_for_address_value(analysis, &value->table_origin, entry_index);
+          if (entry == NULL || entry->raw_value == 0U || entry->has_target == 0U ||
+              entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET) {
+            address_value_table_terminal(value, entry != NULL && entry->raw_value == 0U ?
+              M68K_ADDRESS_VALUE_TERMINAL_INVALID : M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT,
+              entry != NULL && entry->raw_value == 0U ? "table entry is null" :
+              "table singleton target is not source-owned");
+            continue;
+          }
+          value->has_target = 1U;
+          value->target_section_index = entry->target_section_index;
+          value->target_offset = entry->target_offset;
+          value->candidate_target_count = 1U;
+          value->candidate_source_values[0] = entry->raw_value;
+          value->candidate_target_section_indices[0] = entry->target_section_index;
+          value->candidate_target_offsets[0] = entry->target_offset;
+          value->resolution = M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED;
+          value->terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
+          value->table_origin.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
+          value->has_source_expression = 1U;
+          value->render_outcome = M68K_ADDRESS_VALUE_RENDER_SYMBOLIC;
+          value->review_class = M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE;
+          snprintf(value->terminal_reason, sizeof(value->terminal_reason),
+            "validated table singleton access");
+        }
+      } else if (value->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE) {
+        if (value->table_origin.index_max < value->table_origin.index_min ||
+            value->table_origin.index_min % entry_stride != 0U ||
+            value->table_origin.index_max % entry_stride != 0U) {
+          address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_INVALID,
+            "table selection domain is not representable at the declared entry stride");
+          continue;
+        }
+        first_index = value->table_origin.index_min / entry_stride;
+        last_index = value->table_origin.index_max / entry_stride;
+        if (last_index < first_index || last_index >= descriptor->entry_count ||
+            last_index - first_index + 1U > M68K_ADDRESS_VALUE_CANDIDATE_LIMIT) {
+          address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_UNREPRESENTABLE,
+            "table selection exceeds the bounded candidate representation");
+          continue;
+        }
+        M68kTableEntryIR *first_entry = NULL;
+        uint32_t existing_candidate_count = value->candidate_target_count;
+        if (existing_candidate_count > last_index - first_index + 1U) {
+          address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT,
+            "table candidate facts exceed the canonical selection");
+          continue;
+        }
+        for (entry_index = first_index; entry_index <= last_index; ++entry_index) {
+          M68kTableEntryIR *entry = find_table_entry_for_address_value(analysis, &value->table_origin, entry_index);
+          if (entry == NULL || entry->raw_value == 0U || entry->has_target == 0U ||
+              entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET) {
+            address_value_table_terminal(value, entry != NULL && entry->raw_value == 0U ?
+              M68K_ADDRESS_VALUE_TERMINAL_INVALID : M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT,
+              entry != NULL && entry->raw_value == 0U ? "table selection contains a null entry" :
+              "table selection contains an unowned or unresolved entry");
+            break;
+          }
+          if (first_entry == NULL) first_entry = entry;
+          else if (!table_entries_have_compatible_pointee_contract(analysis, &value->table_origin,
+              first_entry, entry)) {
+            address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS,
+              "table selection contains heterogeneous pointee contracts");
+            break;
+          }
+          if (candidate_count < existing_candidate_count) {
+            if (value->candidate_source_values[candidate_count] != entry->raw_value) {
+              address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT,
+                "table candidate raw value disagrees with the canonical entry fact");
+              break;
+            }
+            value->candidate_target_section_indices[candidate_count] = entry->target_section_index;
+            value->candidate_target_offsets[candidate_count] = entry->target_offset;
+          } else {
+            value->candidate_source_values[candidate_count] = entry->raw_value;
+          }
+          value->candidate_target_section_indices[candidate_count] = entry->target_section_index;
+          value->candidate_target_offsets[candidate_count] = entry->target_offset;
+          ++candidate_count;
+        }
+        if (candidate_count == last_index - first_index + 1U) {
+          value->candidate_target_count = (uint8_t)candidate_count;
+          value->resolution = candidate_count > 1U ? M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS :
+            M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED;
+          value->terminal_kind = candidate_count > 1U ? M68K_ADDRESS_VALUE_TERMINAL_AMBIGUOUS :
+            M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
+          value->table_origin.terminal_kind = value->terminal_kind;
+          value->has_source_expression = 1U;
+          value->render_outcome = M68K_ADDRESS_VALUE_RENDER_SYMBOLIC;
+          value->review_class = M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE;
+          snprintf(value->terminal_reason, sizeof(value->terminal_reason), "%s",
+            candidate_count > 1U ? "validated finite homogeneous table access" :
+            "validated table access");
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 typedef struct M68kFactsV2TraceValue {
   uint8_t kind;
   uint8_t has_table_base_address;
@@ -124,6 +411,7 @@ typedef struct M68kFactsV2WorkItem {
 
 typedef struct M68kFactsV2WorkQueue {
   Arena *arena;
+  uint8_t owns_arena;
   M68kFactsV2WorkItem *items;
   size_t *stateful_next;
   size_t count;
@@ -392,27 +680,34 @@ static void facts_v2_workflow_destroy(M68kFactsV2Workflow *workflow) {
 
 static void work_queue_destroy(M68kFactsV2WorkQueue *queue) {
   if (queue == NULL) return;
+  if (queue->owns_arena) arena_destroy(queue->arena);
   memset(queue, 0, sizeof(*queue));
 }
 
-static int work_queue_init_for_decode(M68kFactsV2WorkQueue *queue, const M68kDecodeIR *decode, Arena *arena) {
+static int work_queue_init_for_decode(M68kFactsV2WorkQueue *queue, const M68kDecodeIR *decode) {
   size_t section_index;
-  if (queue == NULL || decode == NULL || arena == NULL) return -1;
+  if (queue == NULL || decode == NULL) return -1;
   memset(queue, 0, sizeof(*queue));
-  queue->arena = arena;
+  /* The fixed-point queue owns large trace-state variants.  They are only
+   * needed while reachability is being solved, so keeping them in the
+   * workflow arena unnecessarily overlaps them with source analysis and
+   * rendering. */
+  queue->arena = arena_create(4096U);
+  if (queue->arena == NULL) return -1;
+  queue->owns_arena = 1U;
   queue->section_count = decode->section_count;
-  queue->queued_confidence = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
+  queue->queued_confidence = (uint8_t **)arena_calloc(queue->arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->queued_confidence));
-  queue->stateful_heads = (size_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
+  queue->stateful_heads = (size_t **)arena_calloc(queue->arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->stateful_heads));
-  queue->extents = (uint32_t *)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
+  queue->extents = (uint32_t *)arena_calloc(queue->arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->extents));
   if (queue->queued_confidence == NULL || queue->stateful_heads == NULL || queue->extents == NULL) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     uint32_t extent = decode->sections[section_index].size;
     queue->extents[section_index] = extent;
     if (extent == 0U) continue;
-    queue->queued_confidence[section_index] = (uint8_t *)arena_calloc(arena, extent,
+    queue->queued_confidence[section_index] = (uint8_t *)arena_calloc(queue->arena, extent,
       sizeof(*queue->queued_confidence[section_index]));
     if (queue->queued_confidence[section_index] == NULL) goto fail;
   }
@@ -10041,6 +10336,31 @@ static void facts_v2_record_source_quality_diagnostics_from_analysis(M68kFactsV2
   }
 }
 
+typedef struct FactsV2PreparedAnalysisState {
+  M68kSourceAnalysisIR *analysis;
+  M68kFactsV2Profile *profile;
+  M68kFactsV2SourceAnalysisSink sink;
+  void *sink_user;
+  uint8_t emitted;
+} FactsV2PreparedAnalysisState;
+
+static int facts_v2_emit_prepared_analysis(M68kRenderIRPreview *preview, void *user) {
+  FactsV2PreparedAnalysisState *state = (FactsV2PreparedAnalysisState *)user;
+  (void)preview;
+  if (state == NULL || state->analysis == NULL || state->profile == NULL || state->sink == NULL) return -1;
+  if (m68k_source_quality_analyze_rendered_symbol_accesses(state->analysis,
+      preview->render_evidence) != 0) return -1;
+  facts_v2_record_source_quality_diagnostics_from_analysis(state->profile, state->analysis);
+  /* This callback is the analysis-before-rows boundary.  A rendered-symbol
+   * blocker cannot be repaired by the subsequent row walk, so reject before
+   * a streaming consumer builds unpublished navigation state from rows that
+   * will never be accepted. */
+  if (facts_v2_has_source_blockers(state->profile)) return -1;
+  if (state->sink(state->analysis, preview->render_evidence, state->profile, state->sink_user) != 0) return -1;
+  state->emitted = 1U;
+  return 0;
+}
+
 static const M68kSourceQualityDiagnosticIR *facts_v2_first_source_quality_blocker_for_profile(
     const M68kFactsV2Profile *profile, const M68kSourceAnalysisIR *source_analysis) {
   size_t index, section_index;
@@ -10112,7 +10432,9 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     M68kFactsV2Profile *out_profile, int force_asm_source, int collect_asm_source_text,
     int allow_env_asm_source, int fail_on_asm_refused, int mark_source_blockers, char **out_asm_source,
     M68kSourceAnalysisIR *out_source_analysis, M68kRenderPlan *out_asm_source_plan,
-    M68kRenderEvidenceIR *out_render_evidence, M68kDiagSink diagnostics) {
+    M68kRenderEvidenceIR *out_render_evidence, M68kRenderTransientRowSink transient_row_sink,
+    void *transient_row_sink_user, M68kFactsV2SourceAnalysisSink analysis_sink,
+    void *analysis_sink_user, M68kDiagSink diagnostics) {
   M68kDecodeIR decode;
   M68kFactIR facts;
   M68kFactsV2WorkQueue queue;
@@ -10127,6 +10449,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kRenderLookup render_lookup;
   M68kSourceAnalysisBuildStats source_analysis_stats;
   M68kPlatformAnalysisPassStats platform_analysis_stats;
+  FactsV2PreparedAnalysisState prepared_analysis = {0};
   int render_text_preview;
   int render_asm_source;
   int source_analysis_required;
@@ -10182,7 +10505,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   end = clock();
   out_profile->decode_seconds = elapsed_seconds_local(start, end);
   fail_stage = "work queue initialization";
-  if (work_queue_init_for_decode(&queue, &decode, workflow.arena) != 0) goto fail;
+  if (work_queue_init_for_decode(&queue, &decode) != 0) goto fail;
   fail_stage = "accepted map allocation";
   if (allocate_section_maps(&decode, workflow.arena, &accepted_start, &accepted_bytes) != 0) goto fail;
   start = clock();
@@ -10421,9 +10744,22 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->interior_conflicts = out_profile->interior_conflicts_resolved_by_demote +
       out_profile->interior_conflicts_unresolved;
   }
+  out_profile->queue_iterations = (uint32_t)queue.cursor;
+  /* No later source-analysis or rendering stage consults reachability queue
+   * state.  Release its trace variants before those independently large
+   * products are built. */
+  work_queue_destroy(&queue);
   start = clock();
   fail_stage = "render lookup build";
   m68k_render_ir_preview_init(render_preview);
+  m68k_render_ir_preview_set_transient_row_sink(render_preview, transient_row_sink, transient_row_sink_user);
+  if (analysis_sink != NULL && source_analysis != NULL) {
+    prepared_analysis.analysis = source_analysis;
+    prepared_analysis.profile = out_profile;
+    prepared_analysis.sink = analysis_sink;
+    prepared_analysis.sink_user = analysis_sink_user;
+    m68k_render_ir_preview_set_prepared_sink(render_preview, facts_v2_emit_prepared_analysis, &prepared_analysis);
+  }
   render_preview->platform_backend_kind = object->platform_backend_kind;
   if (m68k_render_lookup_build(&render_lookup, object, &decode, &facts, policy, accepted_start,
       label_lookup.points, label_lookup.point_count) != 0) goto fail;
@@ -10504,12 +10840,21 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     }
     m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
     m68k_ir_source_analysis_finalize_base_layout_conflicts(source_analysis);
+    /* Finalization can add the descriptor projection for a table consumer.
+     * Bind exactly once after all table facts are final and before the render
+     * lookup imports them. */
+    if (m68k_source_analysis_bind_address_value_table_contracts(source_analysis) != 0) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 table-contract binding failed");
+      goto fail;
+    }
     if (render_asm_source &&
         m68k_analysis_render_lookup_import_source_analysis_structured_data(&render_lookup, source_analysis) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 source-analysis structured data import failed");
       goto fail;
     }
+    m68k_analysis_render_lookup_reconcile_typed_table_contracts(&render_lookup, source_analysis);
     if (render_asm_source) m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   }
   if ((render_asm_source || mark_source_blockers) && facts_v2_has_source_blockers(out_profile)) {
@@ -10532,7 +10877,6 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   }
   out_profile->labels_created = (uint32_t)label_lookup.point_count;
   out_profile->labels_referenced = (uint32_t)facts.label_request_count;
-  out_profile->queue_iterations = (uint32_t)queue.cursor;
   start = clock();
   fail_stage = "render preview build";
   if (m68k_render_ir_preview_emit_prepared(object, &decode, &render_lookup, policy, accepted_start, accepted_bytes,
@@ -10551,6 +10895,10 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         (unsigned)out_profile->asm_source_first_failure_section,
         (unsigned)out_profile->asm_source_first_failure_offset,
         (unsigned)out_profile->asm_source_first_failure_aux_offset);
+    } else if (facts_v2_has_source_blockers(out_profile)) {
+      facts_v2_add_source_quality_failure_diagnostic(diagnostics,
+        "facts_v2 render preview build refused because source rendering invariants failed",
+        out_profile, source_analysis);
     } else {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 render preview build failed");
@@ -10614,7 +10962,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->asm_source_first_failure_offset = render_preview->asm_source_first_failure_offset;
     out_profile->asm_source_first_failure_aux_offset = render_preview->asm_source_first_failure_aux_offset;
   }
-  if (source_analysis != NULL && render_asm_source) {
+  if (source_analysis != NULL && render_asm_source && !prepared_analysis.emitted) {
     if (m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis,
         render_preview->render_evidence) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
@@ -10707,14 +11055,14 @@ fail:
 
 int m68k_facts_v2_collect_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 0, NULL, NULL, NULL, NULL,
-    diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_collect_direct_rebuild_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 1, NULL, NULL, NULL, NULL,
-    diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_render_asm_source_alloc(const M68kObject *object, const M68kAnalysisPolicy *policy,
@@ -10723,8 +11071,8 @@ int m68k_facts_v2_render_asm_source_alloc(const M68kObject *object, const M68kAn
   M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
   if (out_source == NULL) return -1;
   *out_source = NULL;
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, 1, 0, out_source, NULL, NULL, NULL,
-    diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, 1, 0, out_source, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *object,
@@ -10736,7 +11084,7 @@ int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *obj
   *out_source = NULL;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
   return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
-    out_source, out_source_analysis, NULL, NULL, diagnostics);
+    out_source, out_source_analysis, NULL, NULL, NULL, NULL, NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(const M68kObject *object,
@@ -10760,9 +11108,44 @@ int m68k_facts_v2_render_asm_source_plan_analysis_profile_evidence_alloc(const M
   m68k_render_plan_init(out_source_plan);
   if (out_render_evidence != NULL && m68k_ir_render_evidence_create(out_render_evidence) != 0) return -1;
   result = facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
-    out_source, out_source_analysis, out_source_plan, out_render_evidence, diagnostics);
+    out_source, out_source_analysis, out_source_plan, out_render_evidence, NULL, NULL, NULL, NULL, diagnostics);
   if (result != 0 && out_render_evidence != NULL) m68k_ir_render_evidence_destroy(out_render_evidence);
   return result;
+}
+
+int m68k_facts_v2_collect_semantic_render_layout_profile_alloc(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, M68kRenderPlan *out_layout, M68kFactsV2Profile *out_profile,
+    M68kSourceAnalysisIR *out_source_analysis, M68kRenderEvidenceIR *out_render_evidence,
+    uint8_t fail_on_refused, M68kDiagSink diagnostics) {
+  M68kFactsV2Profile local_profile;
+  M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
+  int result;
+  if (out_layout == NULL || out_source_analysis == NULL) return -1;
+  memset(out_source_analysis, 0, sizeof(*out_source_analysis));
+  m68k_render_plan_init(out_layout);
+  if (out_render_evidence != NULL && m68k_ir_render_evidence_create(out_render_evidence) != 0) return -1;
+  result = facts_v2_collect_profile_internal(object, policy, profile, 1, 0, 1, fail_on_refused != 0U, 0,
+    NULL, out_source_analysis, out_layout, out_render_evidence, NULL, NULL, NULL, NULL, diagnostics);
+  if (result != 0 && out_render_evidence != NULL) m68k_ir_render_evidence_destroy(out_render_evidence);
+  return result;
+}
+
+int m68k_facts_v2_visit_asm_source_rows_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    M68kFactsV2Profile *out_profile, M68kSourceAnalysisIR *out_source_analysis,
+    M68kRenderTransientRowSink sink, void *sink_user, uint8_t fail_on_refused, M68kDiagSink diagnostics) {
+  if (sink == NULL || out_profile == NULL || out_source_analysis == NULL) return -1;
+  return m68k_facts_v2_visit_asm_source_rows_with_analysis_profile(object, policy, out_profile,
+    out_source_analysis, NULL, NULL, sink, sink_user, fail_on_refused, diagnostics);
+}
+
+int m68k_facts_v2_visit_asm_source_rows_with_analysis_profile(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, M68kFactsV2Profile *out_profile,
+    M68kSourceAnalysisIR *out_source_analysis, M68kFactsV2SourceAnalysisSink analysis_sink,
+    void *analysis_sink_user, M68kRenderTransientRowSink row_sink, void *row_sink_user,
+    uint8_t fail_on_refused, M68kDiagSink diagnostics) {
+  if (row_sink == NULL || out_profile == NULL || out_source_analysis == NULL) return -1;
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 1, 1, 1, fail_on_refused != 0U, 0,
+    NULL, out_source_analysis, NULL, NULL, row_sink, row_sink_user, analysis_sink, analysis_sink_user, diagnostics);
 }
 
 int m68k_facts_v2_collect_source_analysis_profile(const M68kObject *object,
@@ -10773,7 +11156,7 @@ int m68k_facts_v2_collect_source_analysis_profile(const M68kObject *object,
   if (out_source_analysis == NULL) return -1;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
   return facts_v2_collect_profile_internal(object, policy, profile, 0, 0, 0, 0, 0, NULL,
-    out_source_analysis, NULL, NULL, diagnostics);
+    out_source_analysis, NULL, NULL, NULL, NULL, NULL, NULL, diagnostics);
 }
 
 void m68k_facts_v2_free_text(char *text) {
