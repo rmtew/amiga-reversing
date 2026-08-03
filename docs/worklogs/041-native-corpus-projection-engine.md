@@ -70,10 +70,11 @@ on the current revision.
 
 ### Next bounded action
 
-Run a clean one-worker candidate/oracle pair, capture WPR CPU Usage for the
-candidate run, inspect it in WPA, and set the final R0 target and smaller-target
-fixed-cost budget. Do not begin typed batch or reducer work until those R0 gaps
-are closed.
+From an elevated terminal, capture WPR CPU Usage for a fresh clean one-worker
+candidate/oracle conformance run via `run_corpus_projection_conformance`,
+inspect the candidate process stacks in WPA, then set the final R0 target and
+smaller-target fixed-cost budget. Do not begin typed batch or reducer work until
+those R0 gaps are closed.
 
 ### Open observations and questions
 
