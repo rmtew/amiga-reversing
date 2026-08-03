@@ -9618,6 +9618,7 @@ struct PlatformListingCanonicalStream {
   size_t max_transient_json_bytes;
   JsonBuilder batch_builder;
   size_t batch_rows;
+  clock_t batch_json_start;
   clock_t row_json_ticks;
   clock_t row_callback_ticks;
   uint8_t header_capture_open;
@@ -9633,6 +9634,7 @@ static int canonical_stream_begin_batch(PlatformListingCanonicalStream *stream) 
   stream->context.builder = &stream->batch_builder;
   stream->context.emitted_count = 0U;
   stream->batch_rows = 0U;
+  stream->batch_json_start = clock();
   return 0;
 }
 
@@ -9651,6 +9653,7 @@ static int canonical_stream_flush_batch(PlatformListingCanonicalStream *stream, 
   if (stream->batch_builder.size > stream->max_transient_json_bytes)
     stream->max_transient_json_bytes = stream->batch_builder.size;
   json = json_builder_build(&stream->batch_builder);
+  stream->row_json_ticks += clock() - stream->batch_json_start;
   callback_start = clock();
   if (json == NULL || stream->sink(json, strlen(json), stream->sink_user) != 0) {
     stream->row_callback_ticks += clock() - callback_start;
@@ -9739,13 +9742,11 @@ int platform_listing_canonical_stream_create(uint8_t platform_backend_kind,
 int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream *stream,
     const M68kRenderPlanRow *row, M68kDiagSink diagnostics) {
   const char *cursor;
-  clock_t row_json_start;
   uint32_t subline = 0U;
   if (stream == NULL || row == NULL || row->text == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
-  row_json_start = clock();
   cursor = row->text;
   while (*cursor != '\0') {
     const char *line_start = cursor;
@@ -9761,7 +9762,6 @@ int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream 
     }
     ++subline;
   }
-  stream->row_json_ticks += clock() - row_json_start;
   stream->batch_rows = stream->context.emitted_count;
   if (stream->batch_rows >= PLATFORM_LISTING_STREAM_BATCH_ROWS &&
       canonical_stream_flush_batch(stream, diagnostics) != 0) return -1;
