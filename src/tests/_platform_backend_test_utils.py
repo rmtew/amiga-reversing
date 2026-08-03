@@ -22,7 +22,7 @@ HARNESS_EXE = BUILD_DIR / "platform_backend_harness.exe"
 HARNESS_SOURCE = BUILD_DIR / "platform_backend_harness.c"
 HARNESS_COMPILE = BUILD_DIR / "platform_backend_harness_compile.bat"
 M68K_DIAG_SEVERITY_ERROR = 3
-M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_MESSAGE_SIZE = 512
 M68K_DIAG_LIST_CAPACITY = 8
 
 

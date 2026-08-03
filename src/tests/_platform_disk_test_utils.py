@@ -9,7 +9,7 @@ from src.tests._build_helpers import prepare_test_dll
 ROOT = Path(__file__).resolve().parents[2]
 DISK_DLL = ROOT / "src" / "build" / "platform_disk_lib.dll"
 M68K_DIAG_SEVERITY_ERROR = 3
-M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_MESSAGE_SIZE = 512
 M68K_DIAG_LIST_CAPACITY = 8
 
 
