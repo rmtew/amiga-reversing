@@ -26,6 +26,42 @@ typedef struct PlatformFileBufferResult {
 
 typedef struct PlatformFileListingArtifact PlatformFileListingArtifact;
 typedef struct PlatformFileListingStream PlatformFileListingStream;
+/* R2 corpus reduction ABI.  Python supplies only normalized canonical-row
+ * facts while C owns the cross-row location and direct-control state. */
+typedef struct PlatformCorpusProjectionRowSignal {
+  uint32_t row_index;
+  uint32_t section_index;
+  uint32_t start_offset;
+  uint32_t end_offset;
+  uint32_t direct_feature_flags;
+  uint8_t has_location;
+  uint8_t is_zero_width_label;
+  /* start/end are present and form a valid canonical span.  This is distinct
+   * from a source location: direct-control runs are defined by spans, while
+   * location grouping is an independent projection concern. */
+  uint8_t has_span;
+} PlatformCorpusProjectionRowSignal;
+typedef struct PlatformCorpusProjectionRowSelection {
+  uint32_t row_index;
+  uint32_t direct_feature_flags;
+  uint8_t location_changed;
+} PlatformCorpusProjectionRowSelection;
+typedef struct PlatformCorpusProjectionReducer PlatformCorpusProjectionReducer;
+#define PLATFORM_CORPUS_PROJECTION_DIRECT_STUB 1U
+#define PLATFORM_CORPUS_PROJECTION_RELOCATED_JMP_STUB 2U
+typedef struct PlatformCorpusLocationRowSignal {
+  uint32_t row_index;
+  uint32_t section_index;
+  uint32_t offset;
+  uint8_t has_location;
+  uint8_t rank;
+} PlatformCorpusLocationRowSignal;
+typedef struct PlatformCorpusLocationSelection {
+  uint32_t row_index;
+  uint32_t section_index;
+  uint32_t offset;
+} PlatformCorpusLocationSelection;
+typedef struct PlatformCorpusLocationReducer PlatformCorpusLocationReducer;
 typedef enum PlatformFileListingStreamEventKind {
   PLATFORM_FILE_LISTING_STREAM_EVENT_ANALYSIS = 1,
   PLATFORM_FILE_LISTING_STREAM_EVENT_ROWS = 2,
@@ -135,6 +171,22 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_allo
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
+PLATFORM_FILE_API PlatformCorpusProjectionReducer *platform_corpus_projection_reducer_create(void);
+PLATFORM_FILE_API void platform_corpus_projection_reducer_destroy(PlatformCorpusProjectionReducer *reducer);
+/* Appends zero, one, or two selections.  A two-entry caller buffer is enough
+ * because the direct-control automaton retains at most one candidate row. */
+PLATFORM_FILE_API int platform_corpus_projection_reducer_accept(PlatformCorpusProjectionReducer *reducer,
+    const PlatformCorpusProjectionRowSignal *signal, PlatformCorpusProjectionRowSelection *out_selections,
+    size_t selection_capacity, size_t *out_selection_count);
+PLATFORM_FILE_API int platform_corpus_projection_reducer_finish(PlatformCorpusProjectionReducer *reducer,
+    PlatformCorpusProjectionRowSelection *out_selection, size_t selection_capacity, size_t *out_selection_count);
+PLATFORM_FILE_API PlatformCorpusLocationReducer *platform_corpus_location_reducer_create(void);
+PLATFORM_FILE_API void platform_corpus_location_reducer_destroy(PlatformCorpusLocationReducer *reducer);
+PLATFORM_FILE_API int platform_corpus_location_reducer_accept(PlatformCorpusLocationReducer *reducer,
+    const PlatformCorpusLocationRowSignal *signal, PlatformCorpusLocationSelection *out_selection,
+    size_t selection_capacity, size_t *out_selection_count);
+PLATFORM_FILE_API int platform_corpus_location_reducer_finish(PlatformCorpusLocationReducer *reducer,
+    PlatformCorpusLocationSelection *out_selection, size_t selection_capacity, size_t *out_selection_count);
 /* Forward-only corpus listing ABI.  Unlike listing artifacts it exposes no random row lookup. */
 PLATFORM_FILE_API int platform_file_facts_v2_listing_stream_path_create(const char *backend_name,
     const char *path, const char *metadata_path, const char *include_dir,

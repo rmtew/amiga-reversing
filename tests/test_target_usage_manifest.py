@@ -38,7 +38,9 @@ from src.scripts.target_usage_manifest import (
     _listing_xrefs,
     _xref,
     _DirectControlRunState,
+    _listing_row_direct_control_stub_features,
     _listing_direct_control_stub_table_row_features,
+    _listing_row_location_rank,
     _StreamingSnippetWriter,
     _PendingAnalysisXrefs,
     _OrderedListingProjector,
@@ -249,6 +251,73 @@ def test_direct_control_run_state_matches_listing_run_rules() -> None:
     for emitted_index, _emitted_row, features in state.finish():
         if features:
             observed[emitted_index] = features
+    assert observed == expected
+
+
+def test_native_direct_control_reducer_matches_python_oracle_across_batches() -> None:
+    def branch(offset: int, *, section: int = 0) -> dict[str, object]:
+        return {
+            "kind_id": 3, "kind": "instruction", "section_index": section,
+            "start_offset": offset, "end_offset": offset + 2,
+            "opcode_or_directive": "bra", "operand_accesses": ["branch_target"],
+            "operand_parts": [{"symbol": "loc_0_0010"}],
+            "code_start_refs": [{"reason": CODE_START_REASON_CONTROL_TARGET}],
+        }
+
+    rows = [
+        branch(0), {"kind_id": 2, "kind": "label", "section_index": 0, "start_offset": 2, "end_offset": 2},
+        branch(2), branch(4), {"kind_id": 1, "kind": "data", "section_index": 0, "start_offset": 6, "end_offset": 8},
+        branch(8), branch(10), branch(0, section=1),
+    ]
+    oracle = _DirectControlRunState()
+    expected: list[tuple[int, set[str]]] = []
+    for index, row in enumerate(rows):
+        expected.extend((row_index, features) for row_index, _row, features in oracle.accept(index, row))
+    expected.extend((row_index, features) for row_index, _row, features in oracle.finish())
+
+    observed: list[tuple[int, set[str]]] = []
+    with c_backend.NativeCorpusProjectionReducer() as reducer:
+        for index, row in enumerate(rows):
+            features = _listing_row_direct_control_stub_features(row)
+            for row_index, flags, _location_changed in reducer.accept(
+                index, section_index=row.get("section_index"), start_offset=row.get("start_offset"),
+                end_offset=row.get("end_offset"), has_location=True,
+                is_zero_width_label=row.get("kind_id") == 2 and row.get("start_offset") == row.get("end_offset"),
+                direct_feature_flags=(1 if "analysis:direct_control_stub_table" in features else 0) |
+                    (2 if "analysis:relocated_absolute_jmp_stub_table" in features else 0),
+            ):
+                observed.append((row_index, {
+                    *(["analysis:direct_control_stub_table"] if flags & 1 else []),
+                    *(["analysis:relocated_absolute_jmp_stub_table"] if flags & 2 else []),
+                }))
+        for row_index, flags, _location_changed in reducer.finish():
+            observed.append((row_index, {
+                *(["analysis:direct_control_stub_table"] if flags & 1 else []),
+                *(["analysis:relocated_absolute_jmp_stub_table"] if flags & 2 else []),
+            }))
+    assert observed == expected
+
+
+def test_native_location_reducer_matches_canonical_rank_and_group_boundaries() -> None:
+    rows = [
+        {"kind_id": 2, "section_index": 0, "start_offset": 4},
+        {"kind_id": 1, "section_index": 0, "start_offset": 4},
+        {"kind_id": 3, "section_index": 0, "start_offset": 4},
+        {"kind_id": 3, "section_index": 0, "start_offset": 6},
+        {"kind_id": 2},
+    ]
+    expected = [(2, 0, 4), (3, 0, 6)]
+    reducer = c_backend.NativeCorpusLocationReducer()
+    observed: list[tuple[int, int, int]] = []
+    try:
+        for index, row in enumerate(rows):
+            section = row.get("section_index")
+            offset = row.get("start_offset")
+            location = (section, offset) if isinstance(section, int) and isinstance(offset, int) else None
+            observed.extend(reducer.accept(index, location, _listing_row_location_rank(row)))
+        observed.extend(reducer.finish())
+    finally:
+        reducer.close()
     assert observed == expected
 
 

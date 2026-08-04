@@ -49,27 +49,25 @@ on the current revision.
 | File phase | 256.62 s | Passed the 286.07 s gate |
 | Project phase | 367.19 s | Failed the 309.87 s gate |
 
-## Current Gate: R0
+## Current Gate: R2
 
-### Required evidence
+### Required evidence before R2 can complete
 
-- Add non-semantic timers and allocation/copy counters for semantic planning,
-  canonical typed-row production, JSON construction, FFI callback time, Python
-  decode/projection, shard writing, sorting, and source-byte staging.
-- Run clean representative and full-corpus measurements, including King and
-  other observed project-tail targets.
-- Record the irreducible native analysis/render baseline, stronger local target,
-  and exact projection budget before R1. The projection/staging/final-encoding
-  budget is at most 5% of end-to-end time for targets with at least one second
-  of native semantic work; smaller-target overhead is at most 50ms p95 and
-  100ms maximum; a clean eight-worker corpus build is at most 480s.
-- Prove instrumentation does not change normal artifacts.
+- Move both direct-control confirmation and location-key/rank reduction from
+  Python's ordered projector into the native typed-row path. The existing
+  JSON/ctypes stream is still the temporary oracle, not the intended R2 input.
+- Add native-versus-oracle tests for direct-control selections and resolved
+  location xrefs at every typed-batch boundary, including zero-width labels,
+  missing locations, aliases, and code/data rank rules.
+- Run the required C suite, both Python roots, random-access fixtures, and
+  checked clean one- and eight-worker candidate/oracle corpus comparisons.
 
 ### Next bounded action
 
-Begin R2 by moving location resolution and direct-control reduction to C while
-retaining the JSON oracle only for checked comparison. Preserve the R1 owned
-copy rule for transient producer rows.
+Move location-key/rank resolution beside the native direct-control reducer,
+then expose compact typed selection records directly from the canonical row
+batch. Preserve the R1 owned-copy rule for transient producer rows. Do not
+mistake the current ctypes reducer seam for the final no-JSON architecture.
 
 ### Open observations and questions
 
@@ -130,3 +128,6 @@ comparison helper.
 | 2026-08-04 | R1 | Implemented bounded typed canonical-row batches below the temporary JSON serializer. | Local checks pass; gate remains open. | The producer reuses transient row storage, so the batch owns a contiguous copy of each row's text and mirrors selected fields in SoA arrays. It preserves batch storage between flushes, handles a single row larger than the initial text capacity, and has focused C/Python variable-boundary tests. `cmd /c src/build.bat --lock-held`, `src/build/m68k_c_unit_tests.exe`, and `uv run pytest tests/test_target_usage_manifest.py -q` passed. |
 | 2026-08-04 | R1 | Repaired the checked conformance runner before using R1 evidence. | Earlier `r1-typed-conformance-1` and `1b` output is invalid/disposable. | The runner now imports the selected Python code root, reads shared data-root corpus resources, and explicitly binds ctypes to the selected code root's DLL. Focused runner/comparator/manifest tests: 51 passed. |
 | 2026-08-04 | R1 | Corrected the conformance harness and the typed-row text-arena relocation path. | Passed. | The harness shares current corpus data while explicitly binding each side to its selected native DLL. The transient producer reuses rows, so batch text is owned; a growing text arena repoints every buffered row from stored offsets. This fixed corrupted non-UTF-8 JSON in the first valid gate. C build/all native unit groups and 51 focused Python tests pass. `r1-typed-conformance-1f`: oracle 1,094.4s, candidate 1,191.2s; `r1-typed-conformance-8a`: oracle 817.5s, candidate 781.6s; all eight compared normal artifacts identical in both runs. |
+| 2026-08-04 | R2 | Replaced the production projector’s Python direct-control run state with the C-owned `PlatformCorpusProjectionReducer`, retaining only unreleased lookahead rows in Python. Corrected the reducer so valid contiguous spans, rather than source-location presence, define a run. | Focused parity passed; R2 remains open. | `cmd /c src/build.bat --lock-held`; `uv run python -m py_compile amiga_reversing/disasm/c_backend.py src/scripts/target_usage_manifest.py`; `uv run pytest tests/test_target_usage_manifest.py -q`: 50 passed. New test exercises native versus Python direct-control selections across rows/batches, zero-width labels, run breaks, and section changes. Location resolution is still Python and typed batches do not yet feed the reducer directly, so neither corpus conformance nor R2 acceptance has been claimed. |
+| 2026-08-04 | R2 | Ran broad verification after the direct-control integration. | Changed-path suites pass; repository style gate remains pre-existing. | `src/build/m68k_c_unit_tests.exe` passed; `uv run pytest tests -q`: 1,384 passed, 58 skipped, 355 deselected; `uv run pytest src/tests -q`: 241 passed, 78 subtests passed, 1 failed. The sole failure is the existing selected-C-files style checker, with its long-standing unrelated style findings; it is not suppressed and does not validate R2. |
+| 2026-08-04 | R2 | Added a C-owned primary-location reducer with the canonical instruction/data/directive/label rank order. The production projector feeds every row to it and asserts its selected row at each location-group boundary against the existing full Python location resolver. | Focused parity passed; R2 remains open. | `cmd /c src/build.bat --lock-held`; `uv run python -m py_compile amiga_reversing/disasm/c_backend.py src/scripts/target_usage_manifest.py`; `uv run pytest tests/test_target_usage_manifest.py -q`: 51 passed. This proves the native primary-key rule including ties, group boundaries, and no-location rows, but Python still resolves secondary `addr`/`storage_address` matches and emits xrefs, so it is not yet the final C location path. |

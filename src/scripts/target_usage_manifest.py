@@ -728,7 +728,11 @@ class _OrderedListingProjector:
         self._pending_analysis: _PendingAnalysisXrefs | None = None
         self._location_rows: list[tuple[int, dict[str, Any]]] = []
         self._location_key: tuple[int, int] | None = None
-        self._direct_control = _DirectControlRunState()
+        self._location_reducer = c_backend.NativeCorpusLocationReducer()
+        # R2 owns the one-row direct-control confirmation state natively.  The
+        # Python projector keeps only rows native lookahead has not yet released.
+        self._direct_control = c_backend.NativeCorpusProjectionReducer()
+        self._direct_control_rows: dict[int, dict[str, Any]] = {}
         self._xrefs: list[dict[str, object]] = []
         self._deferred_snippet_row_indices: set[int] = set()
         self._next_row_index = 0
@@ -821,9 +825,9 @@ class _OrderedListingProjector:
             if not self._seen_analysis or self._seen_navigation or self._seen_summary:
                 raise RuntimeError("listing stream emitted navigation out of order")
             emitted_rows: list[tuple[int, dict[str, Any], set[str]]] = []
+            self._finish_location_reduction()
             self._flush_location_rows(defer_snippets=True)
-            for row_index, row, features in self._direct_control.finish():
-                emitted_rows.append((row_index, row, features))
+            emitted_rows.extend(self._finish_direct_control())
             self._emit_listing_rows(emitted_rows, defer_snippets=True)
             self._flush_deferred_snippets()
             if self._snippet_writer is not None:
@@ -852,8 +856,12 @@ class _OrderedListingProjector:
             if self._snippet_writer is not None:
                 self._snippet_writer.close()
                 self._writers_closed = True
+                self._direct_control.close()
+                self._location_reducer.close()
                 return xrefs, _SnippetShard(self._snippet_writer._path)
             self._writers_closed = True
+            self._direct_control.close()
+            self._location_reducer.close()
             return xrefs, []
         finally:
             self._finish_seconds += time.perf_counter() - started
@@ -866,6 +874,8 @@ class _OrderedListingProjector:
             self._xref_writer.close()
         if self._snippet_writer is not None:
             self._snippet_writer.close()
+        self._direct_control.close()
+        self._location_reducer.close()
         self._writers_closed = True
 
     def _accept_row(
@@ -880,12 +890,71 @@ class _OrderedListingProjector:
         if self._snippet_writer is not None:
             self._snippet_writer.accept_row(row_index, row)
         location = _listing_row_primary_location(row)
+        selections = self._location_reducer.accept(row_index, location, _listing_row_location_rank(row))
+        if selections:
+            self._validate_location_selection(selections)
         if location != self._location_key:
             self._flush_location_rows(defer_snippets=defer_snippets)
             self._location_key = location
         if location is not None:
             self._location_rows.append((row_index, row))
-        emitted_rows.extend(self._direct_control.accept(row_index, row))
+        self._direct_control_rows[row_index] = row
+        features = _listing_row_direct_control_stub_features(row)
+        direct_flags = (
+            (1 if "analysis:direct_control_stub_table" in features else 0) |
+            (2 if "analysis:relocated_absolute_jmp_stub_table" in features else 0)
+        )
+        start = _int_value(row.get("start_offset"))
+        end = _int_value(row.get("end_offset"))
+        selections = self._direct_control.accept(
+            row_index,
+            section_index=_int_value(row.get("section_index")),
+            start_offset=start,
+            end_offset=end,
+            has_location=location is not None,
+            is_zero_width_label=(
+                _listing_row_is_kind(row, LISTING_ROW_KIND_LABEL) and start is not None and end == start
+            ),
+            direct_feature_flags=direct_flags,
+        )
+        emitted_rows.extend(self._consume_direct_control_selections(selections))
+
+    def _validate_location_selection(self, selections: list[tuple[int, int, int]]) -> None:
+        if not self._location_rows or self._location_key is None or len(selections) != 1:
+            raise RuntimeError("native corpus location reducer diverged from canonical grouping")
+        expected_index, expected_row = min(
+            self._location_rows, key=lambda candidate: _listing_row_location_rank(candidate[1])
+        )
+        observed_index, observed_section, observed_offset = selections[0]
+        if (observed_index, observed_section, observed_offset) != (expected_index, *self._location_key):
+            raise RuntimeError("native corpus location reducer diverged from canonical rank selection")
+
+    def _finish_location_reduction(self) -> None:
+        selections = self._location_reducer.finish()
+        if selections:
+            self._validate_location_selection(selections)
+
+    def _consume_direct_control_selections(
+        self, selections: Iterable[tuple[int, int, bool]],
+    ) -> list[tuple[int, dict[str, Any], set[str]]]:
+        emitted: list[tuple[int, dict[str, Any], set[str]]] = []
+        for row_index, flags, _location_changed in selections:
+            row = self._direct_control_rows.pop(row_index, None)
+            if row is None:
+                raise RuntimeError("native corpus projection reducer released an unknown row")
+            features: set[str] = set()
+            if flags & 1:
+                features.add("analysis:direct_control_stub_table")
+            if flags & 2:
+                features.add("analysis:relocated_absolute_jmp_stub_table")
+            emitted.append((row_index, row, features))
+        return emitted
+
+    def _finish_direct_control(self) -> list[tuple[int, dict[str, Any], set[str]]]:
+        emitted = self._consume_direct_control_selections(self._direct_control.finish())
+        if self._direct_control_rows:
+            raise RuntimeError("native corpus projection reducer retained rows at stream end")
+        return emitted
 
     def _flush_location_rows(self, *, defer_snippets: bool = False) -> None:
         if self._pending_analysis is not None and self._location_rows:

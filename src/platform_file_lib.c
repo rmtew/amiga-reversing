@@ -13472,6 +13472,160 @@ void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact
   free(artifact);
 }
 
+struct PlatformCorpusProjectionReducer {
+  PlatformCorpusProjectionRowSignal pending;
+  uint32_t run_length;
+  uint32_t previous_section;
+  uint32_t previous_end;
+  uint32_t previous_width;
+  uint8_t has_pending;
+  uint8_t has_previous;
+  uint8_t has_location;
+  uint32_t location_section;
+  uint32_t location_offset;
+};
+
+PlatformCorpusProjectionReducer *platform_corpus_projection_reducer_create(void) {
+  return (PlatformCorpusProjectionReducer *)calloc(1U, sizeof(PlatformCorpusProjectionReducer));
+}
+
+void platform_corpus_projection_reducer_destroy(PlatformCorpusProjectionReducer *reducer) {
+  free(reducer);
+}
+
+static int corpus_projection_append_selection(PlatformCorpusProjectionRowSelection *out, size_t capacity,
+    size_t *count, uint32_t row_index, uint32_t flags, uint8_t location_changed) {
+  if (out == NULL || count == NULL || *count >= capacity) return -1;
+  out[*count].row_index = row_index;
+  out[*count].direct_feature_flags = flags;
+  out[*count].location_changed = location_changed;
+  ++*count;
+  return 0;
+}
+
+int platform_corpus_projection_reducer_accept(PlatformCorpusProjectionReducer *reducer,
+    const PlatformCorpusProjectionRowSignal *signal, PlatformCorpusProjectionRowSelection *out, size_t capacity,
+    size_t *out_count) {
+  uint32_t width;
+  uint8_t location_changed;
+  int contiguous;
+  if (out_count != NULL) *out_count = 0U;
+  if (reducer == NULL || signal == NULL || out == NULL || out_count == NULL || capacity < 2U ||
+      (signal->has_span && signal->end_offset < signal->start_offset)) return -1;
+  location_changed = signal->has_location && (!reducer->has_location ||
+    reducer->location_section != signal->section_index || reducer->location_offset != signal->start_offset);
+  if (signal->has_location) {
+    reducer->has_location = 1U;
+    reducer->location_section = signal->section_index;
+    reducer->location_offset = signal->start_offset;
+  } else {
+    reducer->has_location = 0U;
+  }
+  width = signal->has_span ? signal->end_offset - signal->start_offset : 0U;
+  if (signal->is_zero_width_label && signal->has_span && width == 0U) {
+    return corpus_projection_append_selection(out, capacity, out_count, signal->row_index, 0U, location_changed);
+  }
+  contiguous = signal->direct_feature_flags != 0U && signal->has_span && width != 0U &&
+    reducer->has_previous && reducer->previous_section == signal->section_index &&
+    reducer->previous_end == signal->start_offset && reducer->previous_width == width && reducer->has_pending &&
+    reducer->pending.direct_feature_flags == signal->direct_feature_flags;
+  if (contiguous) {
+    if (corpus_projection_append_selection(out, capacity, out_count, reducer->pending.row_index,
+        reducer->pending.direct_feature_flags, 0U) != 0) return -1;
+    reducer->pending = *signal;
+    ++reducer->run_length;
+  } else {
+    if (reducer->has_pending && corpus_projection_append_selection(out, capacity, out_count,
+        reducer->pending.row_index, reducer->run_length >= 2U ? reducer->pending.direct_feature_flags : 0U,
+        0U) != 0) return -1;
+    reducer->has_pending = signal->direct_feature_flags != 0U && signal->has_span && width != 0U;
+    reducer->run_length = reducer->has_pending ? 1U : 0U;
+    if (reducer->has_pending) reducer->pending = *signal;
+    /* Preserve the legacy reducer's conservative malformed-candidate rule:
+     * direct-feature rows without a valid positive span are not released as a
+     * confirmed row. */
+    else if (signal->direct_feature_flags == 0U && corpus_projection_append_selection(out, capacity, out_count,
+        signal->row_index, 0U, location_changed) != 0) return -1;
+  }
+  reducer->has_previous = signal->has_span;
+  reducer->previous_section = signal->section_index;
+  reducer->previous_end = signal->end_offset;
+  reducer->previous_width = width;
+  return 0;
+}
+
+int platform_corpus_projection_reducer_finish(PlatformCorpusProjectionReducer *reducer,
+    PlatformCorpusProjectionRowSelection *out, size_t capacity, size_t *out_count) {
+  if (out_count != NULL) *out_count = 0U;
+  if (reducer == NULL || out == NULL || out_count == NULL || capacity == 0U) return -1;
+  if (reducer->has_pending && reducer->run_length >= 2U && corpus_projection_append_selection(out, capacity,
+      out_count, reducer->pending.row_index, reducer->pending.direct_feature_flags, 0U) != 0) return -1;
+  reducer->has_pending = 0U;
+  return 0;
+}
+
+struct PlatformCorpusLocationReducer {
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t selected_row_index;
+  uint8_t selected_rank;
+  uint8_t has_location;
+};
+
+PlatformCorpusLocationReducer *platform_corpus_location_reducer_create(void) {
+  return (PlatformCorpusLocationReducer *)calloc(1U, sizeof(PlatformCorpusLocationReducer));
+}
+
+void platform_corpus_location_reducer_destroy(PlatformCorpusLocationReducer *reducer) {
+  free(reducer);
+}
+
+static int corpus_location_emit(PlatformCorpusLocationReducer *reducer, PlatformCorpusLocationSelection *out,
+    size_t capacity, size_t *count) {
+  if (reducer == NULL || out == NULL || count == NULL || *count >= capacity) return -1;
+  if (!reducer->has_location) return 0;
+  out[*count].row_index = reducer->selected_row_index;
+  out[*count].section_index = reducer->section_index;
+  out[*count].offset = reducer->offset;
+  ++*count;
+  return 0;
+}
+
+int platform_corpus_location_reducer_accept(PlatformCorpusLocationReducer *reducer,
+    const PlatformCorpusLocationRowSignal *signal, PlatformCorpusLocationSelection *out, size_t capacity,
+    size_t *out_count) {
+  int same_location;
+  if (out_count != NULL) *out_count = 0U;
+  if (reducer == NULL || signal == NULL || out == NULL || out_count == NULL || capacity == 0U) return -1;
+  same_location = signal->has_location && reducer->has_location && reducer->section_index == signal->section_index &&
+    reducer->offset == signal->offset;
+  if (!same_location && corpus_location_emit(reducer, out, capacity, out_count) != 0) return -1;
+  if (!signal->has_location) {
+    reducer->has_location = 0U;
+    return 0;
+  }
+  if (!same_location) {
+    reducer->section_index = signal->section_index;
+    reducer->offset = signal->offset;
+    reducer->selected_row_index = signal->row_index;
+    reducer->selected_rank = signal->rank;
+    reducer->has_location = 1U;
+  } else if (signal->rank < reducer->selected_rank) {
+    reducer->selected_row_index = signal->row_index;
+    reducer->selected_rank = signal->rank;
+  }
+  return 0;
+}
+
+int platform_corpus_location_reducer_finish(PlatformCorpusLocationReducer *reducer,
+    PlatformCorpusLocationSelection *out, size_t capacity, size_t *out_count) {
+  if (out_count != NULL) *out_count = 0U;
+  if (reducer == NULL || out == NULL || out_count == NULL || capacity == 0U) return -1;
+  if (corpus_location_emit(reducer, out, capacity, out_count) != 0) return -1;
+  reducer->has_location = 0U;
+  return 0;
+}
+
 static PlatformFileListingStream *listing_stream_alloc(const char *backend_name, const char *path,
     M68kDiagList *diagnostics) {
   PlatformFileListingStream *stream = (PlatformFileListingStream *)calloc(1U, sizeof(*stream));

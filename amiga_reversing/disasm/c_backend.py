@@ -5,6 +5,7 @@ import os
 import tempfile
 import time
 import zipfile
+import ctypes
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from ctypes import (
@@ -44,6 +45,114 @@ from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 
 type ApiCallRowKey = tuple[int, int]
+
+
+class _CCorpusProjectionRowSignal(ctypes.Structure):
+    _fields_ = [("row_index", c_uint32), ("section_index", c_uint32), ("start_offset", c_uint32),
+               ("end_offset", c_uint32), ("direct_feature_flags", c_uint32),
+               ("has_location", ctypes.c_uint8), ("is_zero_width_label", ctypes.c_uint8),
+               ("has_span", ctypes.c_uint8)]
+
+
+class _CCorpusProjectionRowSelection(ctypes.Structure):
+    _fields_ = [("row_index", c_uint32), ("direct_feature_flags", c_uint32),
+               ("location_changed", ctypes.c_uint8)]
+
+
+class _CCorpusLocationRowSignal(ctypes.Structure):
+    _fields_ = [("row_index", c_uint32), ("section_index", c_uint32), ("offset", c_uint32),
+               ("has_location", ctypes.c_uint8), ("rank", ctypes.c_uint8)]
+
+
+class _CCorpusLocationSelection(ctypes.Structure):
+    _fields_ = [("row_index", c_uint32), ("section_index", c_uint32), ("offset", c_uint32)]
+
+
+class NativeCorpusProjectionReducer:
+    """Small owned wrapper for the native cross-row corpus reducer.
+
+    The caller retains only rows awaiting the reducer's one-row lookahead;
+    feature classification stays explicit at this migration seam so its Python
+    oracle can compare the exact same normalized row facts.
+    """
+
+    def __init__(self, *, project_root: Path = PROJECT_ROOT) -> None:
+        self._dll = _platform_file_dll(project_root)
+        self._handle = c_void_p(self._dll.platform_corpus_projection_reducer_create())
+        if not self._handle.value:
+            raise MemoryError("native corpus projection reducer allocation failed")
+
+    def close(self) -> None:
+        if self._handle.value:
+            self._dll.platform_corpus_projection_reducer_destroy(self._handle)
+            self._handle = c_void_p()
+
+    def __enter__(self) -> NativeCorpusProjectionReducer:
+        return self
+
+    def __exit__(self, _type: object, _value: object, _traceback: object) -> None:
+        self.close()
+
+    def accept(
+        self, row_index: int, *, section_index: int | None, start_offset: int | None, end_offset: int | None,
+        has_location: bool, is_zero_width_label: bool, direct_feature_flags: int,
+    ) -> list[tuple[int, int, bool]]:
+        has_span = start_offset is not None and end_offset is not None and end_offset >= start_offset
+        signal = _CCorpusProjectionRowSignal(
+            row_index, section_index or 0, start_offset or 0, end_offset or 0, direct_feature_flags,
+            int(has_location), int(is_zero_width_label), int(has_span),
+        )
+        out = (_CCorpusProjectionRowSelection * 2)()
+        count = c_size_t()
+        if self._dll.platform_corpus_projection_reducer_accept(
+            self._handle, byref(signal), out, len(out), byref(count)
+        ) != 0:
+            raise RuntimeError("native corpus projection reducer failed")
+        return [(int(out[index].row_index), int(out[index].direct_feature_flags),
+                 bool(out[index].location_changed)) for index in range(count.value)]
+
+    def finish(self) -> list[tuple[int, int, bool]]:
+        out = (_CCorpusProjectionRowSelection * 1)()
+        count = c_size_t()
+        if self._dll.platform_corpus_projection_reducer_finish(self._handle, out, len(out), byref(count)) != 0:
+            raise RuntimeError("native corpus projection reducer failed")
+        return [(int(out[index].row_index), int(out[index].direct_feature_flags),
+                 bool(out[index].location_changed)) for index in range(count.value)]
+
+
+class NativeCorpusLocationReducer:
+    """Native canonical primary-location rank selection with owned state."""
+
+    def __init__(self, *, project_root: Path = PROJECT_ROOT) -> None:
+        self._dll = _platform_file_dll(project_root)
+        self._handle = c_void_p(self._dll.platform_corpus_location_reducer_create())
+        if not self._handle.value:
+            raise MemoryError("native corpus location reducer allocation failed")
+
+    def close(self) -> None:
+        if self._handle.value:
+            self._dll.platform_corpus_location_reducer_destroy(self._handle)
+            self._handle = c_void_p()
+
+    def accept(self, row_index: int, location: tuple[int, int] | None, rank: int) -> list[tuple[int, int, int]]:
+        signal = _CCorpusLocationRowSignal(
+            row_index, location[0] if location is not None else 0, location[1] if location is not None else 0,
+            int(location is not None), rank,
+        )
+        out = (_CCorpusLocationSelection * 1)()
+        count = c_size_t()
+        if self._dll.platform_corpus_location_reducer_accept(self._handle, byref(signal), out, len(out), byref(count)) != 0:
+            raise RuntimeError("native corpus location reducer failed")
+        return [(int(out[index].row_index), int(out[index].section_index), int(out[index].offset))
+                for index in range(count.value)]
+
+    def finish(self) -> list[tuple[int, int, int]]:
+        out = (_CCorpusLocationSelection * 1)()
+        count = c_size_t()
+        if self._dll.platform_corpus_location_reducer_finish(self._handle, out, len(out), byref(count)) != 0:
+            raise RuntimeError("native corpus location reducer failed")
+        return [(int(out[index].row_index), int(out[index].section_index), int(out[index].offset))
+                for index in range(count.value)]
 
 class UnsupportedCBackendProject(ValueError):
     pass
@@ -1585,6 +1694,32 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll._listing_stream_event_sink_type = listing_stream_event_sink
     dll.platform_file_facts_v2_listing_stream_destroy.argtypes = [c_void_p]
     dll.platform_file_facts_v2_listing_stream_destroy.restype = None
+    dll.platform_corpus_projection_reducer_create.argtypes = []
+    dll.platform_corpus_projection_reducer_create.restype = c_void_p
+    dll.platform_corpus_projection_reducer_destroy.argtypes = [c_void_p]
+    dll.platform_corpus_projection_reducer_destroy.restype = None
+    dll.platform_corpus_projection_reducer_accept.argtypes = [
+        c_void_p, POINTER(_CCorpusProjectionRowSignal), POINTER(_CCorpusProjectionRowSelection), c_size_t,
+        POINTER(c_size_t),
+    ]
+    dll.platform_corpus_projection_reducer_accept.restype = c_int
+    dll.platform_corpus_projection_reducer_finish.argtypes = [
+        c_void_p, POINTER(_CCorpusProjectionRowSelection), c_size_t, POINTER(c_size_t),
+    ]
+    dll.platform_corpus_projection_reducer_finish.restype = c_int
+    dll.platform_corpus_location_reducer_create.argtypes = []
+    dll.platform_corpus_location_reducer_create.restype = c_void_p
+    dll.platform_corpus_location_reducer_destroy.argtypes = [c_void_p]
+    dll.platform_corpus_location_reducer_destroy.restype = None
+    dll.platform_corpus_location_reducer_accept.argtypes = [
+        c_void_p, POINTER(_CCorpusLocationRowSignal), POINTER(_CCorpusLocationSelection), c_size_t,
+        POINTER(c_size_t),
+    ]
+    dll.platform_corpus_location_reducer_accept.restype = c_int
+    dll.platform_corpus_location_reducer_finish.argtypes = [
+        c_void_p, POINTER(_CCorpusLocationSelection), c_size_t, POINTER(c_size_t),
+    ]
+    dll.platform_corpus_location_reducer_finish.restype = c_int
     _configure_text_function(dll, "platform_file_type_catalog_json_alloc", 1)
     _configure_text_function(dll, "platform_file_naming_catalog_json_alloc", 1)
     _configure_text_function(dll, "platform_file_os_metadata_catalog_json_alloc", 1)

@@ -1,6 +1,6 @@
 # Proposal 041: Native Corpus Projection Engine
 
-Status: Research proposed -- 2026-08-04.
+Status: R0/R1 complete; R2 in progress -- 2026-08-04.
 
 ## Decision
 
@@ -128,7 +128,7 @@ until the preceding phase proves semantic parity and identifies a real cost.
 | --- | --- | --- |
 | R0 | Add stage timers/copy/allocation counters around current JSON encoding, ctypes decoding, Python reduction, JSONL shard sort/merge, and source-byte staging. A trace profiler may supplement counters only when it can be analysed non-interactively and without a disproportionate storage cost. | Per-target attribution for King and other project tails; counters do not change artifacts. Establish the irreducible native analysis/render baseline, a stronger local-machine end-to-end target, and a numerical projection budget before R1. |
 | R1 | Introduce typed canonical row batches beneath the current JSON serializer. | Typed batches serialize to byte-identical current row JSON across fixtures and corpus samples. |
-| R2 | Move location resolution and direct-control reduction to C. | Native reducer and Python oracle emit identical xrefs and row-index selections at every batch boundary. |
+| R2 | Move location resolution and direct-control reduction to C. | Native reducer and Python oracle emit identical xrefs and row-index selections at every batch boundary. The intermediate ctypes seam may exercise state for parity, but does not satisfy this gate until typed batches feed the reducer without JSON-row transport. |
 | R3 | Move snippet interval merging and compact shard writing to C. | Identical snippet index/blob and xref shards; bounded live rows/bytes proven. |
 | R4 | Move listing/navigation feature reduction and target manifest contribution to C. | Identical target manifest rows, variants, type-flow inputs, unresolved-field inputs, and coverage. |
 | R5 | Replace JSONL intermediate sort/reparse with compact sorted shard records and one final encoder. Upgrade the corpus CLI and only the call sites that consume the shared native semantic/canonical foundations; retain the web/LLM/manual-action random-access artifact as its own consumer. | Byte-identical final artifacts, fewer copies/allocations measured, and all updated in-repository integrations pass. |
