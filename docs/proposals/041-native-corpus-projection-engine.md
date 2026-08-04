@@ -125,7 +125,7 @@ until the preceding phase proves semantic parity and identifies a real cost.
 
 | Gate | Change | Required proof before proceeding |
 | --- | --- | --- |
-| R0 | Add stage timers/copy/allocation counters around current JSON encoding, ctypes decoding, Python reduction, JSONL shard sort/merge, and source-byte staging. Use Windows Performance Recorder's CPU Usage profile, analysed in Windows Performance Analyzer, for thread/stack attribution. | Per-target attribution for King and other project tails; counters do not change artifacts. Establish the irreducible native analysis/render baseline, a stronger local-machine end-to-end target, and a numerical projection budget before R1. |
+| R0 | Add stage timers/copy/allocation counters around current JSON encoding, ctypes decoding, Python reduction, JSONL shard sort/merge, and source-byte staging. A trace profiler may supplement counters only when it can be analysed non-interactively and without a disproportionate storage cost. | Per-target attribution for King and other project tails; counters do not change artifacts. Establish the irreducible native analysis/render baseline, a stronger local-machine end-to-end target, and a numerical projection budget before R1. |
 | R1 | Introduce typed canonical row batches beneath the current JSON serializer. | Typed batches serialize to byte-identical current row JSON across fixtures and corpus samples. |
 | R2 | Move location resolution and direct-control reduction to C. | Native reducer and Python oracle emit identical xrefs and row-index selections at every batch boundary. |
 | R3 | Move snippet interval merging and compact shard writing to C. | Identical snippet index/blob and xref shards; bounded live rows/bytes proven. |
@@ -141,10 +141,11 @@ writing, and sorting. It is not enough to report a single `source_seconds`
 value. Before R1, record the exact budget in this proposal: for targets with
 at least one second of unavoidable native semantic work, total projection,
 staging, and final encoding overhead must be at most five percent of that
-target's end-to-end time. R0 must also set a separately measured fixed-cost
-budget for smaller targets. These budgets may be tightened by evidence, but
-not relaxed without an explicit proposal update. This determines whether
-R1--R5 are sufficient before SIMD work begins.
+target's end-to-end time. For smaller targets, the same overhead must be at
+most 50ms at p95 and 100ms maximum. A clean normal eight-worker corpus build
+must complete in at most 480 seconds on this machine. These budgets may be
+tightened by evidence, but not relaxed without an explicit proposal update.
+This determines whether R1--R5 are sufficient before SIMD work begins.
 
 ## Required Worklog
 
@@ -238,13 +239,14 @@ Instrument current and candidate paths with the same per-target values:
 3. row/byte/operand/xref/snippet counts, allocation count/bytes, copied bytes,
    and peak live bytes; and
 4. cycles, instructions, cache misses, branch misses, and per-target tail
-   latency where an optional Intel VTune hardware-counter capture is available
-   on this machine and agrees with the WPR/WPA timing attribution.
+   latency where an optional hardware-counter capture is available and agrees
+   with the deterministic stage counters.
 
-WPR/WPA is the required profiler for scheduler and stack attribution. VTune is
-an optional hardware-counter diagnostic, never a gate and never a condition of
-correctness. Neither profiler may affect content or scheduling. Research must
-identify dominant costs before changing record layout or adding SIMD.
+WPR/WPA and VTune are optional diagnostics, never gates or conditions of
+correctness. Use them only when their capture, storage, and analysis overhead
+is proportionate and their results can be retained non-interactively. Neither
+profiler may affect content or scheduling. Deterministic per-target counters
+are the required evidence for record-layout and SIMD decisions.
 
 ## Transition and Shared Tests
 
@@ -315,11 +317,11 @@ and coverage output. The implementation must add a checked test helper or
 script that supplies those isolated paths and comparison inputs; handwritten
 ad-hoc invocations are not acceptance evidence.
 
-Capture R0 and R6 scheduler/stack profiles with Windows Performance Recorder's
-CPU Usage profile and inspect them in Windows Performance Analyzer. If Intel
-VTune is installed and supports this host, capture its hardware counters for
-the same clean corpus build and retain the capture command and summary with the
-benchmark record.
+If a practical non-interactive trace or hardware-counter profiler is available,
+capture R0 and R6 scheduler/stack or counter evidence for the same clean corpus
+build and retain its command and summary with the benchmark record. Do not make
+manual GUI inspection, a retry, or a large temporary trace a prerequisite for
+the migration.
 
 ## Acceptance Criteria
 

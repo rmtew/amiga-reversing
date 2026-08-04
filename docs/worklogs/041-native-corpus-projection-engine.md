@@ -1,8 +1,9 @@
 # Worklog: Proposal 041 Native Corpus Projection Engine
 
-Status: Active research ledger. Current gate: R0 -- clean one- and eight-worker
-oracle parity and current-stage attribution are recorded. The final required
-WPR/WPA stack inspection and numerical R0 decision remain.
+Status: Active research ledger. Current gate: R0 is complete: clean one- and
+eight-worker oracle parity, current-stage attribution, and the numerical
+performance decision are recorded. R1 may begin with typed-row equivalence
+coverage.
 
 This is the required resume ledger for
 [Proposal 041](../proposals/041-native-corpus-projection-engine.md). It tracks
@@ -58,27 +59,22 @@ on the current revision.
   decode/projection, shard writing, sorting, and source-byte staging.
 - Run clean representative and full-corpus measurements, including King and
   other observed project-tail targets.
-- Capture scheduler/stack attribution with WPR's CPU Usage profile and inspect
-  it in WPA. If available, collect matching Intel VTune counter evidence only
-  as a diagnostic.
 - Record the irreducible native analysis/render baseline, stronger local target,
   and exact projection budget before R1. The projection/staging/final-encoding
   budget is at most 5% of end-to-end time for targets with at least one second
-  of native semantic work; R0 must set the fixed-cost budget for smaller
-  targets.
+  of native semantic work; smaller-target overhead is at most 50ms p95 and
+  100ms maximum; a clean eight-worker corpus build is at most 480s.
 - Prove instrumentation does not change normal artifacts.
 
 ### Next bounded action
 
-Finish the already-running elevated WPR CPU Usage capture for the fresh clean
-one-worker checked conformance run, inspect the candidate process stacks in
-WPA, then set the final R0 target and smaller-target fixed-cost budget. Do not
-begin typed batch or reducer work until those R0 gaps are closed.
+Begin R1 by defining a borrowed bounded typed canonical-row batch beneath the
+temporary JSON oracle and covering byte-identical row JSON across variable
+batch boundaries. Do not put the typed batch on the production collector route
+until its focused and applicable broad checks pass.
 
 ### Open observations and questions
 
-- The smaller-target fixed-cost projection budget is deliberately unset until
-  R0 measures the unavoidable fixed costs.
 - `src/tests` now reaches the style checker; its remaining 342 reported style
   issues in 21 C/header files are pre-existing repository hygiene failures.
   They must be repaired, not suppressed, before claiming a full-suite pass.
@@ -131,3 +127,5 @@ comparison helper.
 | 2026-08-04 | R0 | Moved production corpus and fixture scratch directories from `src/build` to standard user Temp with `amiga-reversing2-*` prefixes. | `uv run pytest tests/test_target_usage_manifest.py tests/test_run_corpus_projection_conformance.py -q`: 49 passed; `uv run pytest src/tests/test_target_usage_manifest.py -q`: 65 passed. | Explicit corpus artifacts remain at caller-provided output paths; only automatic temporary staging moved. This prevents future corpus failures from littering repository-local build directories. |
 | 2026-08-04 | R0 | Attempted elevated WPR CPU capture through the checked runner. | The oracle completed under tracing, but the candidate failed when the drive filled; WPR's two repository-local temporary ETLs used 15.68GiB and prior `src/build/tmp*` folders used 34.01GiB. The trace was stopped/discarded and was not accepted as R0 evidence. | User cleaned the completed temporary data (61.83GiB then free). Subsequent noninteractive elevation attempts return `0xc5585011`; run `wpr -start CPU -filemode` from a real Administrator terminal before retrying. WPR default temp or `%LOCALAPPDATA%\\Temp` must be used, never `src/build`. |
 | 2026-08-04 | R0 | Ran the checked fresh one-worker candidate/oracle conformance capture under the user's elevated `wpr -start CPU -filemode`. | Passed: both runs completed and all eight normal artifacts are byte-identical. | `r0-wpr-conformance-4`: old oracle 1274.3s, current candidate 1336.4s; retained only pending WPR/WPA inspection. The active finalized trace is `%LOCALAPPDATA%\\Temp\\proposal041-r0-one-worker.etl`; do not delete it before inspecting candidate stacks and recording the numerical decision. |
+| 2026-08-04 | R0 | Read the candidate's completed output-neutral per-target profile from the checked capture. | Current collector overhead is substantial and confirms the native cutover is warranted. | Across 270 stream targets: 689.452s visit, 563.686s native, and 125.766s callback/transport; Python projection is 119.721s, JSON decode 6.896s, direct shard writes 9.348s, and final xref-shard sorting 111.624s. For the 36 targets with at least 1s native work, callback-plus-staging is 24.92% median and 54.57% p95 of visit time (maximum 59.82%), versus the final 5% ceiling. For the 234 smaller targets it is 20.91% median/57.64% p95. |
+| 2026-08-04 | R0 | Validated the final ETL, researched `0x80070032`, and opened it in Store WPA 11.8.423.0. | The ETL has zero lost buffers/events; bundled WPA 11.1.5.2 and xperf stop on an unsupported `Microsoft-Windows-DotNETRuntime` event, while the Store analyzer opens it. | Manual WPA stack navigation is slow and non-reproducible at this scale, so it is not a migration gate. The deterministic profile already identifies the dominant Python transport/projection and shard-sort costs. The ETL and checked output directory are now disposable. R0 fixes the final target: <=480s clean eight-worker corpus build; large-target projection/staging/final-encoding <=5% end-to-end; small-target overhead <=50ms p95 and <=100ms maximum. |
