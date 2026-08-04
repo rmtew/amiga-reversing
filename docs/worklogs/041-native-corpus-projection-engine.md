@@ -92,6 +92,9 @@ those R0 gaps are closed.
 - Identify the exact clean corpus-manifest invocation and add the checked
   comparison helper with isolated output/temporary paths before R1 comparison
   gates rely on it.
+- Corpus scratch directories must use the user Temp location, not `src/build`.
+  Failed WPR/corpus runs made that repository directory grow beyond 54GiB; only
+  explicit durable output paths belong in the worktree.
 
 ## Required Verification Commands
 
@@ -135,3 +138,4 @@ comparison helper.
 | 2026-08-04 | R0 | Diagnosed and repaired the abrupt `src/tests` C-backed assembler stop. | The isolated accepting CPU-gating test and `src/tests/test_c99_disassembler_corpus.py` pass after correcting every stale ctypes `M68K_DIAG_MESSAGE_SIZE` declaration from 160 to the C header's 512. Commit `c9cebe69`. | `uv run pytest src/tests -q` now runs to completion but fails only `test_c_style.py::CStyleCheckerTests::test_repo_selected_c_files_pass_style_check`: 241 passed, 78 subtests passed, 1 failed. The style failures are pre-existing across 21 C/header files and must be repaired as independent repository hygiene before a full-suite green claim; do not suppress the checker. |
 | 2026-08-04 | R0 | Completed the corrected old-code one-worker oracle and compared it with `.tmp-041-r0-candidate-1` using `python -m src.scripts.compare_corpus_artifacts`. | Passed: all eight normal artifacts are byte-identical. | Candidate: 1064.400s / 3.50GiB. Oracle: 1129.095s / 3.50GiB. This closes one-worker and eight-worker R0 output parity. The completed temporary output directories are no longer evidence dependencies; their requested deletion was blocked by the execution environment, not retained intentionally. Outstanding R0 gate: elevated WPR CPU Usage capture inspected in WPA, then exact target/budget decision. |
 | 2026-08-04 | R0 | Added `src.scripts.run_corpus_projection_conformance`, the required checked isolated migration-gate runner. | `uv run pytest tests/test_run_corpus_projection_conformance.py tests/test_compare_corpus_artifacts.py tests/test_target_usage_manifest.py -q`: 50 passed. | It takes explicit oracle/candidate code roots and one data root, creates fresh distinct output directories without deleting/reusing old evidence, runs the selected 1- or 8-worker build, and invokes the normal-artifact comparator. Use it for the elevated clean candidate/oracle comparison and every R1--R7 gate. |
+| 2026-08-04 | R0 | Moved production corpus and fixture scratch directories from `src/build` to standard user Temp with `amiga-reversing2-*` prefixes. | `uv run pytest tests/test_target_usage_manifest.py tests/test_run_corpus_projection_conformance.py -q`: 49 passed; `uv run pytest src/tests/test_target_usage_manifest.py -q`: 65 passed. | Explicit corpus artifacts remain at caller-provided output paths; only automatic temporary staging moved. This prevents future corpus failures from littering repository-local build directories. |

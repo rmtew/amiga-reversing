@@ -1795,10 +1795,10 @@ def build_usage_outputs(
         xrefs.extend(_disk_usage_xrefs(row, entry))
     if monitor is not None:
         monitor.phase_finished("catalog_disk_entries")
-    build_dir = root / "src" / "build"
-    build_dir.mkdir(parents=True, exist_ok=True)
     worker_count = _target_usage_worker_count(max_workers)
-    with tempfile.TemporaryDirectory(dir=build_dir) as tmp:
+    # Corpus scratch can be very large.  Keep it in the user's standard temp
+    # location rather than accumulating abandoned runs under src/build.
+    with tempfile.TemporaryDirectory(prefix="amiga-reversing2-usage-") as tmp:
         tmp_dir = Path(tmp)
         file_tasks = list(enumerate(file_entries))
 
@@ -1903,10 +1903,8 @@ def build_usage_staging(
     if monitor is not None:
         monitor.phase_finished("catalog_disk_entries")
 
-    build_dir = root / "src" / "build"
-    build_dir.mkdir(parents=True, exist_ok=True)
     worker_count = _target_usage_worker_count(max_workers)
-    with tempfile.TemporaryDirectory(dir=build_dir) as tmp:
+    with tempfile.TemporaryDirectory(prefix="amiga-reversing2-usage-") as tmp:
         tmp_dir = Path(tmp)
         file_tasks = list(enumerate(file_entries))
 
@@ -12748,9 +12746,7 @@ def main(argv: list[str] | None = None) -> int:
             f"{args.profile_output.stem}.progress"
         )
         monitor = CorpusBuildMonitor(worker_count=worker_count, progress_output=progress_output)
-        build_dir = ROOT / "src" / "build"
-        build_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=build_dir) as temporary_staging_dir:
+        with tempfile.TemporaryDirectory(prefix="amiga-reversing2-usage-") as temporary_staging_dir:
             staging = CorpusBuildStaging(Path(temporary_staging_dir))
             rows = build_usage_staging(
                 staging, args.disk_manifest, args.file_manifest, max_workers=worker_count, monitor=monitor

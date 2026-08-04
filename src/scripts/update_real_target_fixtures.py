@@ -85,7 +85,7 @@ def main() -> int:
         best_time = None
         disassembly = None
         baseline_stats = None
-        with tempfile.TemporaryDirectory(dir=str(ROOT / "src" / "build")) as tmp:
+        with tempfile.TemporaryDirectory(prefix="amiga-reversing2-fixture-") as tmp:
             temp_benchmark_path = Path(tmp) / "benchmark.json"
             for _ in range(BENCHMARK_SAMPLE_COUNT):
                 current_disassembly, payload = run_disassembly_with_benchmark(
