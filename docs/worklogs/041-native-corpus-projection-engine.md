@@ -1,8 +1,8 @@
 # Worklog: Proposal 041 Native Corpus Projection Engine
 
-Status: Active research ledger. Current gate: R0 -- the instrumentation is
-complete enough for the final clean measurements; baseline/oracle and profiling
-evidence remain.
+Status: Active research ledger. Current gate: R0 -- clean one- and eight-worker
+oracle parity and current-stage attribution are recorded. The final required
+WPR/WPA stack inspection and numerical R0 decision remain.
 
 This is the required resume ledger for
 [Proposal 041](../proposals/041-native-corpus-projection-engine.md). It tracks
@@ -70,31 +70,21 @@ on the current revision.
 
 ### Next bounded action
 
-From an elevated terminal, capture WPR CPU Usage for a fresh clean one-worker
-candidate/oracle conformance run via `run_corpus_projection_conformance`,
-inspect the candidate process stacks in WPA, then set the final R0 target and
-smaller-target fixed-cost budget. Do not begin typed batch or reducer work until
-those R0 gaps are closed.
+Finish the already-running elevated WPR CPU Usage capture for the fresh clean
+one-worker checked conformance run, inspect the candidate process stacks in
+WPA, then set the final R0 target and smaller-target fixed-cost budget. Do not
+begin typed batch or reducer work until those R0 gaps are closed.
 
 ### Open observations and questions
 
-- The current tracked `corpus/target_usage_*` artifacts predate the inherited
-  Proposal 040 changes: their sizes differ from the clean R0 output, so they
-  cannot prove instrumentation parity. A clean pre-instrumentation worktree
-  build is required as the oracle.
-- The full `src/tests` root currently terminates during
-  `C99AssemblerCorpusTests::test_native_line_cpu_gating_accepts_expected_cases`
-  without a pytest failure report. The R0 modules are not on that test's import
-  path, but this is not yet proven independent; diagnose before claiming the
-  relevant broad-suite gate.
 - The smaller-target fixed-cost projection budget is deliberately unset until
   R0 measures the unavoidable fixed costs.
-- Identify the exact clean corpus-manifest invocation and add the checked
-  comparison helper with isolated output/temporary paths before R1 comparison
-  gates rely on it.
-- Corpus scratch directories must use the user Temp location, not `src/build`.
-  Failed WPR/corpus runs made that repository directory grow beyond 54GiB; only
-  explicit durable output paths belong in the worktree.
+- `src/tests` now reaches the style checker; its remaining 342 reported style
+  issues in 21 C/header files are pre-existing repository hygiene failures.
+  They must be repaired, not suppressed, before claiming a full-suite pass.
+- Checked conformance now has an exact executable helper and automatic scratch
+  uses user Temp. Its explicit output directories remain durable evidence until
+  their gate's trace/decision review is complete.
 
 ## Required Verification Commands
 
@@ -140,3 +130,4 @@ comparison helper.
 | 2026-08-04 | R0 | Added `src.scripts.run_corpus_projection_conformance`, the required checked isolated migration-gate runner. | `uv run pytest tests/test_run_corpus_projection_conformance.py tests/test_compare_corpus_artifacts.py tests/test_target_usage_manifest.py -q`: 50 passed. | It takes explicit oracle/candidate code roots and one data root, creates fresh distinct output directories without deleting/reusing old evidence, runs the selected 1- or 8-worker build, and invokes the normal-artifact comparator. Use it for the elevated clean candidate/oracle comparison and every R1--R7 gate. |
 | 2026-08-04 | R0 | Moved production corpus and fixture scratch directories from `src/build` to standard user Temp with `amiga-reversing2-*` prefixes. | `uv run pytest tests/test_target_usage_manifest.py tests/test_run_corpus_projection_conformance.py -q`: 49 passed; `uv run pytest src/tests/test_target_usage_manifest.py -q`: 65 passed. | Explicit corpus artifacts remain at caller-provided output paths; only automatic temporary staging moved. This prevents future corpus failures from littering repository-local build directories. |
 | 2026-08-04 | R0 | Attempted elevated WPR CPU capture through the checked runner. | The oracle completed under tracing, but the candidate failed when the drive filled; WPR's two repository-local temporary ETLs used 15.68GiB and prior `src/build/tmp*` folders used 34.01GiB. The trace was stopped/discarded and was not accepted as R0 evidence. | User cleaned the completed temporary data (61.83GiB then free). Subsequent noninteractive elevation attempts return `0xc5585011`; run `wpr -start CPU -filemode` from a real Administrator terminal before retrying. WPR default temp or `%LOCALAPPDATA%\\Temp` must be used, never `src/build`. |
+| 2026-08-04 | R0 | Ran the checked fresh one-worker candidate/oracle conformance capture under the user's elevated `wpr -start CPU -filemode`. | Passed: both runs completed and all eight normal artifacts are byte-identical. | `r0-wpr-conformance-4`: old oracle 1274.3s, current candidate 1336.4s; retained only pending WPR/WPA inspection. The active finalized trace is `%LOCALAPPDATA%\\Temp\\proposal041-r0-one-worker.etl`; do not delete it before inspecting candidate stacks and recording the numerical decision. |
