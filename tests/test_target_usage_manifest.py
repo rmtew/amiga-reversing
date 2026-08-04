@@ -321,6 +321,17 @@ def test_native_location_reducer_matches_canonical_rank_and_group_boundaries() -
     assert observed == expected
 
 
+def test_pending_analysis_xrefs_native_selected_row_matches_ranked_resolution() -> None:
+    base_xref = {"section": 0, "offset": 4, "feature": "analysis:test", "target_id": "target"}
+    rows = [
+        (3, {"kind_id": 2, "section_index": 0, "start_offset": 4, "stable_key": "label", "text": "loc:"}),
+        (4, {"kind_id": 3, "section_index": 0, "start_offset": 4, "stable_key": "instruction", "text": "bra loc"}),
+    ]
+    oracle = _PendingAnalysisXrefs([dict(base_xref)])
+    native = _PendingAnalysisXrefs([dict(base_xref)])
+    assert native.resolve_selected((0, 4), 4, rows[1][1]) == oracle.resolve(rows)
+
+
 def test_streaming_snippet_writer_merges_overlapping_windows_without_row_retention(tmp_path: Path) -> None:
     target = {"id": "target"}
     path = tmp_path / "snippets.jsonl"

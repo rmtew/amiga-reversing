@@ -702,6 +702,25 @@ class _PendingAnalysisXrefs:
                 result.append(xref)
         return result
 
+    def resolve_selected(
+        self, location: tuple[int, int], row_index: int, row: dict[str, Any],
+    ) -> list[dict[str, object]]:
+        """Resolve one canonical location selected by the native rank reducer."""
+        xrefs = self._pending.pop(location, [])
+        if not xrefs:
+            return []
+        stable_key = _string_value(row.get("stable_key"))
+        text = (_string_value(row.get("text")) or "").strip()
+        result: list[dict[str, object]] = []
+        for xref in xrefs:
+            xref["row_index"] = row_index
+            xref["stable_key"] = stable_key
+            if text:
+                xref["text"] = text
+            xref["id"] = _stable_xref_id(xref)
+            result.append(xref)
+        return result
+
     def finish(self) -> list[dict[str, object]]:
         result = [xref for xrefs in self._pending.values() for xref in xrefs]
         self._pending.clear()
@@ -825,8 +844,8 @@ class _OrderedListingProjector:
             if not self._seen_analysis or self._seen_navigation or self._seen_summary:
                 raise RuntimeError("listing stream emitted navigation out of order")
             emitted_rows: list[tuple[int, dict[str, Any], set[str]]] = []
-            self._finish_location_reduction()
-            self._flush_location_rows(defer_snippets=True)
+            selection = self._finish_location_reduction()
+            self._flush_location_rows(defer_snippets=True, native_selection=selection)
             emitted_rows.extend(self._finish_direct_control())
             self._emit_listing_rows(emitted_rows, defer_snippets=True)
             self._flush_deferred_snippets()
@@ -894,7 +913,9 @@ class _OrderedListingProjector:
         if selections:
             self._validate_location_selection(selections)
         if location != self._location_key:
-            self._flush_location_rows(defer_snippets=defer_snippets)
+            self._flush_location_rows(
+                defer_snippets=defer_snippets, native_selection=selections[0] if selections else None,
+            )
             self._location_key = location
         if location is not None:
             self._location_rows.append((row_index, row))
@@ -933,10 +954,12 @@ class _OrderedListingProjector:
         if (observed_index, observed_section, observed_offset) != (expected_index, *self._location_key):
             raise RuntimeError("native corpus location reducer diverged from canonical rank selection")
 
-    def _finish_location_reduction(self) -> None:
+    def _finish_location_reduction(self) -> tuple[int, int, int] | None:
         selections = self._location_reducer.finish()
         if selections:
             self._validate_location_selection(selections)
+            return selections[0]
+        return None
 
     def _consume_direct_control_selections(
         self, selections: Iterable[tuple[int, int, bool]],
@@ -960,9 +983,22 @@ class _OrderedListingProjector:
             raise RuntimeError("native corpus projection reducer retained rows at stream end")
         return emitted
 
-    def _flush_location_rows(self, *, defer_snippets: bool = False) -> None:
+    def _flush_location_rows(
+        self, *, defer_snippets: bool = False, native_selection: tuple[int, int, int] | None = None,
+    ) -> None:
         if self._pending_analysis is not None and self._location_rows:
-            self._emit_xrefs(self._pending_analysis.resolve(self._location_rows), defer_snippets=defer_snippets)
+            resolved: list[dict[str, object]] = []
+            if native_selection is not None:
+                selected_index, selected_section, selected_offset = native_selection
+                selected_row = next((row for row_index, row in self._location_rows if row_index == selected_index), None)
+                if selected_row is None:
+                    raise RuntimeError("native corpus location reducer selected an unavailable row")
+                resolved.extend(self._pending_analysis.resolve_selected(
+                    (selected_section, selected_offset), selected_index, selected_row,
+                ))
+            # Temporary oracle coverage for secondary addr/storage aliases.
+            resolved.extend(self._pending_analysis.resolve(self._location_rows))
+            self._emit_xrefs(resolved, defer_snippets=defer_snippets)
         self._location_rows = []
 
     def _emit_listing_rows(
