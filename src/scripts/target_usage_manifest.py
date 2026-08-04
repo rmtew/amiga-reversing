@@ -762,6 +762,7 @@ class _OrderedListingProjector:
         self._event_seconds: dict[str, float] = {}
         self._event_counts: dict[str, int] = {}
         self._finish_seconds = 0.0
+        self._native_location_secondary_xrefs = 0
         self._writers_closed = False
 
     @property
@@ -778,6 +779,7 @@ class _OrderedListingProjector:
             "event_seconds": {key: round(value, 6) for key, value in sorted(self._event_seconds.items())},
             "event_counts": dict(sorted(self._event_counts.items())),
             "finish_seconds": round(self._finish_seconds, 6),
+            "native_location_secondary_xrefs": self._native_location_secondary_xrefs,
             "total_seconds": round(sum(self._event_seconds.values()) + self._finish_seconds, 6),
         }
 
@@ -997,7 +999,9 @@ class _OrderedListingProjector:
                     (selected_section, selected_offset), selected_index, selected_row,
                 ))
             # Temporary oracle coverage for secondary addr/storage aliases.
-            resolved.extend(self._pending_analysis.resolve(self._location_rows))
+            secondary = self._pending_analysis.resolve(self._location_rows)
+            self._native_location_secondary_xrefs += len(secondary)
+            resolved.extend(secondary)
             self._emit_xrefs(resolved, defer_snippets=defer_snippets)
         self._location_rows = []
 
