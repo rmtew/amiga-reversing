@@ -8912,7 +8912,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
     const char *analysis_generation, const char *plan_data_class, uint32_t plan_data_class_flags,
     int has_plan_runtime_address, uint32_t plan_runtime_address, int has_plan_source_range,
-    uint32_t plan_source_offset, uint32_t plan_source_size) {
+    uint32_t plan_source_offset, uint32_t plan_source_size, uint32_t native_direct_feature_flags) {
   char text[1200];
   char label_text[1024];
   const char *row_kind = listing_row_kind_name(row_kind_id);
@@ -9113,6 +9113,9 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_appendf(builder, ",\"data_class_flags\":%u", (unsigned)row_data_class_flags) != 0)
       return -1;
   }
+  if (json_builder_appendf(builder, ",\"_native_direct_feature_flags\":%u",
+      (unsigned)native_direct_feature_flags) != 0)
+    return -1;
   return json_builder_append(builder, "}");
 }
 
@@ -9127,7 +9130,7 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     sizeof(operand), comment, sizeof(comment));
   return append_listing_row_json_parsed(builder, row_index, line_start, line_length, row_kind_id, stripped, opcode,
     operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation, NULL, 0U, 0, 0U,
-    0, 0U, 0U);
+    0, 0U, 0U, 0U);
 }
 
 typedef struct ListingSourceHeaderRow {
@@ -9224,6 +9227,7 @@ typedef struct ListingRenderPlanJsonContext {
   int window_enabled;
   int has_anchor_addr;
   int has_anchor_code_row;
+  uint32_t current_native_direct_feature_flags;
 } ListingRenderPlanJsonContext;
 
 static uint8_t listing_row_kind_id_for_plan_row(const M68kRenderPlanRow *row) {
@@ -9373,7 +9377,7 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
           context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL,
           context->current_plan_row != NULL ? context->current_plan_row->data_class_flags : 0U,
           has_plan_runtime_address, plan_runtime_address, has_plan_source_range, plan_source_offset,
-          plan_source_size) != 0)
+          plan_source_size, context->current_native_direct_feature_flags) != 0)
         return -1;
     } else if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind_id,
         section_index, stmt, context->analysis_policy, context->source_analysis, context->analysis_generation) != 0)
@@ -9528,6 +9532,52 @@ static int collect_listing_source_header_rows_from_plan(const M68kRenderPlan *re
   return 0;
 }
 
+static uint32_t listing_native_direct_control_feature_flags(const M68kStatementIR *stmt,
+    const M68kSourceAnalysisIR *source_analysis, int section_index) {
+  const M68kInstructionIR *instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  int has_symbol = 0;
+  int has_control_target = 0;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || source_analysis == NULL || section_index < 0 ||
+      (size_t)section_index >= source_analysis->section_count)
+    return 0U;
+  instruction = &stmt->u.instruction;
+  metadata = instruction_sim_metadata(instruction);
+  if (metadata == NULL) return 0U;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET &&
+        instruction->operands[operand_index].symbol_ref.has_name &&
+        instruction->operands[operand_index].symbol_ref.name[0] != '\0') {
+      has_symbol = 1;
+      break;
+    }
+  }
+  if (!has_symbol) return 0U;
+  for (operand_index = 0U; operand_index < source_analysis->sections[section_index].code_start_ref_count;
+      ++operand_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis->sections[section_index].code_start_refs[operand_index];
+    if (ref->offset == stmt->offset && ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET) {
+      has_control_target = 1;
+      break;
+    }
+  }
+  if (!has_control_target) return 0U;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_BRA) return PLATFORM_CORPUS_PROJECTION_DIRECT_STUB;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+    for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+      const char *name = instruction->operands[operand_index].symbol_ref.name;
+      char *end = NULL;
+      unsigned long target_section;
+      if (!instruction->operands[operand_index].symbol_ref.has_name || strncmp(name, "loc_", 4U) != 0) continue;
+      target_section = strtoul(name + 4U, &end, 10);
+      if (end != name + 4U && end != NULL && *end == '_' && target_section != (unsigned long)section_index)
+        return PLATFORM_CORPUS_PROJECTION_DIRECT_STUB | PLATFORM_CORPUS_PROJECTION_RELOCATED_JMP_STUB;
+    }
+  }
+  return 0U;
+}
+
 static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
     const char *line_start, size_t line_length, void *user) {
   ListingRenderPlanJsonContext *context = (ListingRenderPlanJsonContext *)user;
@@ -9553,6 +9603,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   (void)line;
   m68k_ir_statement_init(&plan_stmt);
   if (context == NULL) return -1;
+  context->current_native_direct_feature_flags = 0U;
   line_has_source_range = m68k_render_plan_row_source_line_range(row, subline, &line_source_offset,
     &line_source_size);
   if (!line_has_source_range && row != NULL && row->has_source_range && row->line_count == 1U) {
@@ -9584,6 +9635,8 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
     if (section_index >= 0) context->active_section_index = section_index;
   }
+  context->current_native_direct_feature_flags = listing_native_direct_control_feature_flags(stmt,
+    context->source_analysis, section_index);
   if (context->emit_preamble_headers && !context->include_source_only_rows &&
       !context->preamble_emitted && is_section_directive) {
     if (append_listing_source_header_rows(context) != 0)

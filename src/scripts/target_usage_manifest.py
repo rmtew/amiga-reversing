@@ -899,11 +899,15 @@ class _OrderedListingProjector:
         if location is not None:
             self._location_rows.append((row_index, row))
         self._direct_control_rows[row_index] = row
-        features = _listing_row_direct_control_stub_features(row)
-        direct_flags = (
-            (1 if "analysis:direct_control_stub_table" in features else 0) |
-            (2 if "analysis:relocated_absolute_jmp_stub_table" in features else 0)
+        legacy_features = _listing_row_direct_control_stub_features(row)
+        legacy_direct_flags = (
+            (1 if "analysis:direct_control_stub_table" in legacy_features else 0) |
+            (2 if "analysis:relocated_absolute_jmp_stub_table" in legacy_features else 0)
         )
+        native_direct_flags = _int_value(row.get("_native_direct_feature_flags"))
+        if native_direct_flags is not None and native_direct_flags != legacy_direct_flags:
+            raise RuntimeError("native direct-control classification diverged from the Python oracle")
+        direct_flags = native_direct_flags if native_direct_flags is not None else legacy_direct_flags
         start = _int_value(row.get("start_offset"))
         end = _int_value(row.get("end_offset"))
         selections = self._direct_control.accept(
