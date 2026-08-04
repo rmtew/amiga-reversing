@@ -38005,6 +38005,41 @@ static int test_facts_v2_render_asm_source_alloc_fails_on_invalid_relocation(voi
   return 0;
 }
 
+static int test_platform_canonical_row_batch_copies_borrowed_row_data(void) {
+  PlatformCanonicalRowBatch batch;
+  M68kRenderPlanRow row;
+  char text[] = "loc_0_00000000:\n";
+  size_t index;
+  memset(&row, 0, sizeof(row));
+  row.kind = M68K_RENDER_PLAN_ROW_LABEL;
+  row.start_line = 7U;
+  row.line_count = 1U;
+  row.source_section_index = 3U;
+  row.source_offset = 0x42U;
+  row.runtime_address = 0x10042U;
+  row.text = text;
+  platform_canonical_row_batch_init(&batch);
+  M68K_C_ASSERT_INT(0, platform_canonical_row_batch_append(&batch, &row));
+  text[0] = 'X';
+  memset(&row, 0, sizeof(row));
+  M68K_C_ASSERT_U32(1U, (uint32_t)batch.count);
+  M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_LABEL, batch.kinds[0]);
+  M68K_C_ASSERT_U32(7U, batch.start_lines[0]);
+  M68K_C_ASSERT_U32(1U, batch.line_counts[0]);
+  M68K_C_ASSERT_U32(3U, batch.source_section_indices[0]);
+  M68K_C_ASSERT_U32(0x42U, batch.source_offsets[0]);
+  M68K_C_ASSERT_U32(0x10042U, batch.runtime_addresses[0]);
+  M68K_C_ASSERT(strcmp(batch.texts[0], "loc_0_00000000:\n") == 0);
+  for (index = 1U; index < PLATFORM_CANONICAL_ROW_BATCH_CAPACITY; ++index) {
+    M68K_C_ASSERT_INT(0, platform_canonical_row_batch_append(&batch, &batch.render_rows[0]));
+  }
+  M68K_C_ASSERT(strcmp(batch.texts[0], "loc_0_00000000:\n") == 0);
+  M68K_C_ASSERT(batch.render_rows[0].text == batch.texts[0]);
+  M68K_C_ASSERT_INT(-1, platform_canonical_row_batch_append(&batch, &batch.render_rows[0]));
+  platform_canonical_row_batch_destroy(&batch);
+  return 0;
+}
+
 static int test_function_summary_effect_identities_are_canonical(void) {
   M68kFunctionSummaryAbiLocation location;
   M68kFunctionSummaryEffectSubjectIR subject;
@@ -38057,6 +38092,8 @@ static int test_function_summary_append_rejects_invalid_effect_state(void) {
 
 int m68k_c_ir_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"platform_canonical_row_batch_copies_borrowed_row_data",
+      test_platform_canonical_row_batch_copies_borrowed_row_data},
     {"render_evidence_source_order_finalization", test_render_evidence_source_order_finalization},
     {"function_summary_append_rejects_invalid_effect_state",
       test_function_summary_append_rejects_invalid_effect_state},

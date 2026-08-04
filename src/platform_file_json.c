@@ -9627,6 +9627,96 @@ struct PlatformListingCanonicalStream {
 
 #define PLATFORM_LISTING_STREAM_BATCH_ROWS 8192U
 
+void platform_canonical_row_batch_init(PlatformCanonicalRowBatch *batch) {
+  if (batch == NULL) return;
+  memset(batch, 0, sizeof(*batch));
+  batch->capacity = PLATFORM_CANONICAL_ROW_BATCH_CAPACITY;
+}
+
+void platform_canonical_row_batch_destroy(PlatformCanonicalRowBatch *batch) {
+  if (batch == NULL) return;
+  free(batch->text_bytes);
+  memset(batch, 0, sizeof(*batch));
+}
+
+static int platform_canonical_row_batch_reserve_text(PlatformCanonicalRowBatch *batch, size_t needed) {
+  char *grown;
+  size_t capacity;
+  size_t index;
+  if (batch == NULL || needed <= batch->text_capacity) return batch != NULL ? 0 : -1;
+  capacity = batch->text_capacity != 0U ? batch->text_capacity : 4096U;
+  while (capacity < needed) {
+    if (capacity > SIZE_MAX / 2U) {
+      capacity = needed;
+      break;
+    }
+    capacity *= 2U;
+  }
+  grown = (char *)realloc(batch->text_bytes, capacity);
+  if (grown == NULL) return -1;
+  batch->text_bytes = grown;
+  batch->text_capacity = capacity;
+  /* realloc may move the owned byte arena.  Rows already queued in this
+   * batch refer to offsets inside it, so repoint them before the serializer
+   * can observe a stale address. */
+  for (index = 0U; index < batch->count; ++index) {
+    batch->texts[index] = grown + batch->text_offsets[index];
+    batch->render_rows[index].text = grown + batch->text_offsets[index];
+  }
+  return 0;
+}
+
+size_t platform_canonical_row_batch_storage_bytes(const PlatformCanonicalRowBatch *batch) {
+  return batch != NULL ? sizeof(*batch) + batch->text_capacity : 0U;
+}
+
+int platform_canonical_row_batch_append(PlatformCanonicalRowBatch *batch, const M68kRenderPlanRow *row) {
+  const char *source_text;
+  uintptr_t source_address;
+  uintptr_t batch_address;
+  size_t source_text_offset = 0U;
+  size_t index;
+  size_t text_size;
+  char *text_copy;
+  if (batch == NULL || row == NULL || row->text == NULL || batch->capacity == 0U ||
+      batch->capacity > PLATFORM_CANONICAL_ROW_BATCH_CAPACITY || batch->count >= batch->capacity)
+    return -1;
+  source_text = row->text;
+  text_size = strlen(source_text);
+  /* A caller may append a row already held by this batch.  Preserve its byte
+   * offset before reserve_text potentially relocates the owned text arena. */
+  source_address = (uintptr_t)(const void *)source_text;
+  batch_address = (uintptr_t)(const void *)batch->text_bytes;
+  if (batch->text_bytes != NULL && source_address >= batch_address &&
+      source_address - batch_address <= batch->text_used &&
+      text_size < batch->text_used - (size_t)(source_address - batch_address)) {
+    source_text_offset = (size_t)(source_address - batch_address);
+  } else {
+    source_text_offset = SIZE_MAX;
+  }
+  if (text_size == SIZE_MAX || batch->text_used > SIZE_MAX - text_size - 1U ||
+      platform_canonical_row_batch_reserve_text(batch, batch->text_used + text_size + 1U) != 0)
+    return -1;
+  if (source_text_offset != SIZE_MAX) source_text = batch->text_bytes + source_text_offset;
+  index = batch->count;
+  text_copy = batch->text_bytes + batch->text_used;
+  memcpy(text_copy, source_text, text_size + 1U);
+  batch->render_rows[index] = *row;
+  batch->render_rows[index].text = text_copy;
+  batch->texts[index] = text_copy;
+  batch->text_offsets[index] = batch->text_used;
+  batch->text_sizes[index] = text_size;
+  batch->kinds[index] = row->kind;
+  batch->start_lines[index] = row->start_line;
+  batch->line_counts[index] = row->line_count;
+  batch->source_section_indices[index] = row->source_section_index;
+  batch->source_offsets[index] = row->source_offset;
+  batch->runtime_addresses[index] = row->runtime_address;
+  batch->text_used += text_size + 1U;
+  batch->count = index + 1U;
+  return 0;
+}
+
 static int canonical_stream_begin_batch(PlatformListingCanonicalStream *stream) {
   if (stream == NULL || json_builder_create(&stream->batch_builder) != 0 ||
       json_builder_append(&stream->batch_builder, "{\"rows\":[") != 0)
@@ -9739,20 +9829,22 @@ int platform_listing_canonical_stream_create(uint8_t platform_backend_kind,
   return 0;
 }
 
-int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream *stream,
-    const M68kRenderPlanRow *row, M68kDiagSink diagnostics) {
+static int canonical_stream_accept_typed_row(PlatformListingCanonicalStream *stream,
+    const M68kRenderPlanRow *row, const char *text, size_t text_size, M68kDiagSink diagnostics) {
   const char *cursor;
+  const char *end;
   uint32_t subline = 0U;
-  if (stream == NULL || row == NULL || row->text == NULL) {
+  if (stream == NULL || row == NULL || text == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
-  cursor = row->text;
-  while (*cursor != '\0') {
+  cursor = text;
+  end = text + text_size;
+  while (cursor < end) {
     const char *line_start = cursor;
     size_t line_length;
-    while (*cursor != '\0' && *cursor != '\n') ++cursor;
-    if (*cursor == '\n') ++cursor;
+    while (cursor < end && *cursor != '\n') ++cursor;
+    if (cursor < end && *cursor == '\n') ++cursor;
     line_length = (size_t)(cursor - line_start);
     if (canonical_stream_capture_header_line(stream, row, line_start, line_length) != 0 ||
         append_full_listing_render_plan_line(row, subline, row->start_line + subline, line_start, line_length,
@@ -9770,6 +9862,43 @@ int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream 
     return -1;
   }
   return 0;
+}
+
+int platform_listing_canonical_stream_accept_batch(PlatformListingCanonicalStream *stream,
+    const PlatformCanonicalRowBatch *batch, M68kDiagSink diagnostics) {
+  size_t index;
+  if (stream == NULL || batch == NULL || batch->count > PLATFORM_CANONICAL_ROW_BATCH_CAPACITY) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  for (index = 0U; index < batch->count; ++index) {
+    const M68kRenderPlanRow *row = &batch->render_rows[index];
+    if (batch->texts[index] != row->text || batch->kinds[index] != row->kind ||
+        batch->start_lines[index] != row->start_line || batch->line_counts[index] != row->line_count ||
+        batch->source_section_indices[index] != row->source_section_index ||
+        batch->source_offsets[index] != row->source_offset ||
+        batch->runtime_addresses[index] != row->runtime_address ||
+        canonical_stream_accept_typed_row(stream, row, batch->texts[index], batch->text_sizes[index],
+          diagnostics) != 0)
+      return -1;
+  }
+  return 0;
+}
+
+int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream *stream,
+    const M68kRenderPlanRow *row, M68kDiagSink diagnostics) {
+  PlatformCanonicalRowBatch batch;
+  platform_canonical_row_batch_init(&batch);
+  if (platform_canonical_row_batch_append(&batch, row) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    platform_canonical_row_batch_destroy(&batch);
+    return -1;
+  }
+  {
+    int result = platform_listing_canonical_stream_accept_batch(stream, &batch, diagnostics);
+    platform_canonical_row_batch_destroy(&batch);
+    return result;
+  }
 }
 
 int platform_listing_canonical_stream_finish(PlatformListingCanonicalStream *stream, char **out_navigation_json,

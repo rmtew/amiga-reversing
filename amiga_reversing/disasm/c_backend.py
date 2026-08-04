@@ -1572,6 +1572,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_stream_raw_path_create.restype = c_int
+    dll.platform_file_facts_v2_listing_stream_set_typed_row_batch_limit.argtypes = [c_void_p, c_uint32]
+    dll.platform_file_facts_v2_listing_stream_set_typed_row_batch_limit.restype = c_int
     listing_stream_event_sink = CFUNCTYPE(c_int, c_uint32, c_void_p, c_size_t, c_void_p)
     dll.platform_file_facts_v2_listing_stream_visit.argtypes = [
         c_void_p,
@@ -1702,7 +1704,11 @@ def _platform_disk_dll(project_root: Path) -> CDLL:
 
 
 def _load_dll(project_root: Path, name: str) -> CDLL:
-    build_dir = project_root.resolve() / "src" / "build"
+    # Corpus conformance runs deliberately share mutable input data while
+    # comparing distinct native implementations.  The override is process
+    # scoped and test-harness-only; ordinary callers retain project_root.
+    dll_root = Path(os.environ.get("AMIGA_C_BACKEND_DLL_ROOT", project_root)).resolve()
+    build_dir = dll_root / "src" / "build"
     dll_path = build_dir / name
     if not dll_path.exists():
         raise FileNotFoundError(f"Missing C backend DLL: {dll_path}")
@@ -2124,6 +2130,7 @@ class CListingStream:
         metadata_text: str,
         include_dir: str,
         project_root: Path,
+        typed_row_batch_limit: int | None = None,
     ) -> CListingStream:
         dll = _platform_file_dll(project_root)
         stream = c_void_p()
@@ -2153,6 +2160,14 @@ class CListingStream:
             error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
             if result != 0 or not stream.value:
                 raise RuntimeError(f"C backend DLL failed: {error_text}")
+            if typed_row_batch_limit is not None:
+                limit_result = dll.platform_file_facts_v2_listing_stream_set_typed_row_batch_limit(
+                    stream, typed_row_batch_limit
+                )
+                if limit_result != 0:
+                    dll.platform_file_facts_v2_listing_stream_destroy(stream)
+                    stream = c_void_p()
+                    raise ValueError("typed_row_batch_limit must be between 1 and 256")
             return cls(dll, stream)
         finally:
             if error.value:

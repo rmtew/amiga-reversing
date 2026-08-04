@@ -149,6 +149,35 @@ typedef struct PlatformListingRowIndex {
 typedef struct PlatformListingCanonicalStream PlatformListingCanonicalStream;
 typedef int (*PlatformListingCanonicalRowSink)(const char *json, size_t size, void *user);
 
+/* R1 typed boundary for the corpus route.  Storage is caller-owned and valid
+ * only for the synchronous accept call.  The parallel metadata arrays give
+ * the native projection consumer a cache-friendly starting point; render_rows
+ * is retained only by the temporary JSON oracle, which still needs complete
+ * statement metadata while R1 proves equivalence. */
+#define PLATFORM_CANONICAL_ROW_BATCH_CAPACITY 256U
+typedef struct PlatformCanonicalRowBatch {
+  M68kRenderPlanRow render_rows[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  char *text_bytes;
+  const char *texts[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  size_t text_offsets[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  size_t text_sizes[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  uint32_t kinds[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  uint32_t start_lines[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  uint32_t line_counts[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  uint32_t source_section_indices[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  uint32_t source_offsets[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  uint32_t runtime_addresses[PLATFORM_CANONICAL_ROW_BATCH_CAPACITY];
+  size_t capacity;
+  size_t text_capacity;
+  size_t text_used;
+  size_t count;
+} PlatformCanonicalRowBatch;
+
+void platform_canonical_row_batch_init(PlatformCanonicalRowBatch *batch);
+void platform_canonical_row_batch_destroy(PlatformCanonicalRowBatch *batch);
+int platform_canonical_row_batch_append(PlatformCanonicalRowBatch *batch, const M68kRenderPlanRow *row);
+size_t platform_canonical_row_batch_storage_bytes(const PlatformCanonicalRowBatch *batch);
+
 int section_analysis_context_init(SectionAnalysisContext *ctx, const M68kObject *object, size_t section_index,
     const M68kSection *section, const M68kSectionAnalysisIR *prior_section_analyses,
     size_t prior_section_analysis_count, const M68kAnalysisPolicy *analysis_policy, Arena *arena);
@@ -195,6 +224,8 @@ int platform_listing_canonical_stream_create(uint8_t platform_backend_kind,
   PlatformListingCanonicalStream **out_stream, M68kDiagSink diagnostics);
 int platform_listing_canonical_stream_accept_row(PlatformListingCanonicalStream *stream,
   const M68kRenderPlanRow *row, M68kDiagSink diagnostics);
+int platform_listing_canonical_stream_accept_batch(PlatformListingCanonicalStream *stream,
+  const PlatformCanonicalRowBatch *batch, M68kDiagSink diagnostics);
 int platform_listing_canonical_stream_finish(PlatformListingCanonicalStream *stream, char **out_navigation_json,
   M68kDiagSink diagnostics);
 void platform_listing_canonical_stream_allocation_stats(const PlatformListingCanonicalStream *stream,

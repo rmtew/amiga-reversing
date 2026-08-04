@@ -1,9 +1,8 @@
 # Worklog: Proposal 041 Native Corpus Projection Engine
 
-Status: Active research ledger. Current gate: R0 is complete: clean one- and
-eight-worker oracle parity, current-stage attribution, and the numerical
-performance decision are recorded. R1 may begin with typed-row equivalence
-coverage.
+Status: Active research ledger. Current gate: R1 is complete: clean one- and
+eight-worker oracle parity proves the owned typed canonical-row seam. Begin
+R2 native location/direct-control reduction.
 
 This is the required resume ledger for
 [Proposal 041](../proposals/041-native-corpus-projection-engine.md). It tracks
@@ -68,10 +67,9 @@ on the current revision.
 
 ### Next bounded action
 
-Begin R1 by defining a borrowed bounded typed canonical-row batch beneath the
-temporary JSON oracle and covering byte-identical row JSON across variable
-batch boundaries. Do not put the typed batch on the production collector route
-until its focused and applicable broad checks pass.
+Begin R2 by moving location resolution and direct-control reduction to C while
+retaining the JSON oracle only for checked comparison. Preserve the R1 owned
+copy rule for transient producer rows.
 
 ### Open observations and questions
 
@@ -129,3 +127,6 @@ comparison helper.
 | 2026-08-04 | R0 | Ran the checked fresh one-worker candidate/oracle conformance capture under the user's elevated `wpr -start CPU -filemode`. | Passed: both runs completed and all eight normal artifacts are byte-identical. | `r0-wpr-conformance-4`: old oracle 1274.3s, current candidate 1336.4s; retained only pending WPR/WPA inspection. The active finalized trace is `%LOCALAPPDATA%\\Temp\\proposal041-r0-one-worker.etl`; do not delete it before inspecting candidate stacks and recording the numerical decision. |
 | 2026-08-04 | R0 | Read the candidate's completed output-neutral per-target profile from the checked capture. | Current collector overhead is substantial and confirms the native cutover is warranted. | Across 270 stream targets: 689.452s visit, 563.686s native, and 125.766s callback/transport; Python projection is 119.721s, JSON decode 6.896s, direct shard writes 9.348s, and final xref-shard sorting 111.624s. For the 36 targets with at least 1s native work, callback-plus-staging is 24.92% median and 54.57% p95 of visit time (maximum 59.82%), versus the final 5% ceiling. For the 234 smaller targets it is 20.91% median/57.64% p95. |
 | 2026-08-04 | R0 | Validated the final ETL, researched `0x80070032`, and opened it in Store WPA 11.8.423.0. | The ETL has zero lost buffers/events; bundled WPA 11.1.5.2 and xperf stop on an unsupported `Microsoft-Windows-DotNETRuntime` event, while the Store analyzer opens it. | Manual WPA stack navigation is slow and non-reproducible at this scale, so it is not a migration gate. The deterministic profile already identifies the dominant Python transport/projection and shard-sort costs. The ETL and checked output directory are now disposable. R0 fixes the final target: <=480s clean eight-worker corpus build; large-target projection/staging/final-encoding <=5% end-to-end; small-target overhead <=50ms p95 and <=100ms maximum. |
+| 2026-08-04 | R1 | Implemented bounded typed canonical-row batches below the temporary JSON serializer. | Local checks pass; gate remains open. | The producer reuses transient row storage, so the batch owns a contiguous copy of each row's text and mirrors selected fields in SoA arrays. It preserves batch storage between flushes, handles a single row larger than the initial text capacity, and has focused C/Python variable-boundary tests. `cmd /c src/build.bat --lock-held`, `src/build/m68k_c_unit_tests.exe`, and `uv run pytest tests/test_target_usage_manifest.py -q` passed. |
+| 2026-08-04 | R1 | Repaired the checked conformance runner before using R1 evidence. | Earlier `r1-typed-conformance-1` and `1b` output is invalid/disposable. | The runner now imports the selected Python code root, reads shared data-root corpus resources, and explicitly binds ctypes to the selected code root's DLL. Focused runner/comparator/manifest tests: 51 passed. |
+| 2026-08-04 | R1 | Corrected the conformance harness and the typed-row text-arena relocation path. | Passed. | The harness shares current corpus data while explicitly binding each side to its selected native DLL. The transient producer reuses rows, so batch text is owned; a growing text arena repoints every buffered row from stored offsets. This fixed corrupted non-UTF-8 JSON in the first valid gate. C build/all native unit groups and 51 focused Python tests pass. `r1-typed-conformance-1f`: oracle 1,094.4s, candidate 1,191.2s; `r1-typed-conformance-8a`: oracle 817.5s, candidate 781.6s; all eight compared normal artifacts identical in both runs. |

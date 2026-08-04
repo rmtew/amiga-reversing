@@ -45,16 +45,27 @@ def _build_command(
     output_dir: Path,
     workers: int,
 ) -> list[str]:
-    """Build an explicit child command without letting its cwd choose code."""
+    """Build against shared data while binding ctypes to the selected DLL root."""
     build_arguments = ["build", "--workers", str(workers)]
     for option, relative_path in ARTIFACT_ARGUMENTS:
         build_arguments.extend((option, str(output_dir / relative_path)))
     child = (
-        "import os, sys; from pathlib import Path; "
+        "import hashlib, os, sys; from pathlib import Path; "
         f"code_root = Path({str(code_root)!r}); data_root = Path({str(data_root)!r}); "
+        "manifest_paths = ('corpus/platform_disk_manifest.jsonl', 'corpus/platform_file_manifest.jsonl'); "
+        "assert all((code_root / path).is_file() and (data_root / path).is_file() and "
+        "hashlib.sha256((code_root / path).read_bytes()).digest() == "
+        "hashlib.sha256((data_root / path).read_bytes()).digest() for path in manifest_paths), "
+        "'code and data roots do not share the declared corpus manifests'; "
         "sys.path.insert(0, str(code_root)); "
+        "os.environ['AMIGA_C_BACKEND_DLL_ROOT'] = str(code_root); "
         "import src.scripts.platform_manifest_io as platform_manifest_io; "
         "platform_manifest_io.ROOT = data_root; "
+        "import amiga_reversing.disasm.c_backend as c_backend; "
+        "c_backend._load_dll = lambda project_root, name: ("
+        "c_backend._dll_directory_handles.append(os.add_dll_directory(str(code_root / 'src' / 'build'))) "
+        "if hasattr(os, 'add_dll_directory') else None, "
+        "c_backend.CDLL(str(code_root / 'src' / 'build' / name)))[1]; "
         "import src.scripts.target_usage_manifest as target_usage_manifest; "
         "os.chdir(data_root); "
         f"raise SystemExit(target_usage_manifest.main({build_arguments!r}))"

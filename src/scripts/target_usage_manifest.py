@@ -443,6 +443,7 @@ class _StreamingSnippetWriter:
         self._write_seconds = 0.0
         self._serialized_bytes = 0
         self._output = path.open("w", encoding="utf-8", newline="\n", buffering=1024 * 1024)
+        self._closed = False
 
     def accept_row(self, row_index: int, row: dict[str, Any]) -> None:
         compact = _compact_listing_row(row)
@@ -472,7 +473,9 @@ class _StreamingSnippetWriter:
         self._batch_rows.clear()
 
     def close(self) -> None:
-        self._output.close()
+        if not self._closed:
+            self._output.close()
+            self._closed = True
 
     @property
     def profile(self) -> dict[str, object]:
@@ -521,6 +524,7 @@ class _StreamingXrefWriter:
         self._write_seconds = 0.0
         self._serialized_bytes = 0
         self._output = path.open("w", encoding="utf-8", newline="\n", buffering=1024 * 1024)
+        self._closed = False
 
     def accept(self, xrefs: Iterable[dict[str, object]]) -> None:
         for xref in xrefs:
@@ -529,8 +533,10 @@ class _StreamingXrefWriter:
                 self._flush()
 
     def close(self) -> _XrefShard:
-        self._flush()
-        self._output.close()
+        if not self._closed:
+            self._flush()
+            self._output.close()
+            self._closed = True
         return _XrefShard(self._path)
 
     @property
@@ -733,6 +739,7 @@ class _OrderedListingProjector:
         self._event_seconds: dict[str, float] = {}
         self._event_counts: dict[str, int] = {}
         self._finish_seconds = 0.0
+        self._writers_closed = False
 
     @property
     def analysis(self) -> dict[str, Any] | None:
@@ -844,10 +851,22 @@ class _OrderedListingProjector:
             )
             if self._snippet_writer is not None:
                 self._snippet_writer.close()
+                self._writers_closed = True
                 return xrefs, _SnippetShard(self._snippet_writer._path)
+            self._writers_closed = True
             return xrefs, []
         finally:
             self._finish_seconds += time.perf_counter() - started
+
+    def close(self) -> None:
+        """Release spool handles when stream construction aborts before finish."""
+        if self._writers_closed:
+            return
+        if self._xref_writer is not None:
+            self._xref_writer.close()
+        if self._snippet_writer is not None:
+            self._snippet_writer.close()
+        self._writers_closed = True
 
     def _accept_row(
         self,
@@ -2461,10 +2480,14 @@ def project_binary_source_listing_stream(
     if not isinstance(source, (DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource)):
         raise RuntimeError("unsupported native listing stream source")
     projector = _OrderedListingProjector(target_row, bag, snippet_path=snippet_path, xref_path=xref_path)
-    transport_profile = c_backend.visit_listing_stream_from_binary_source(
-        source, projector.accept, metadata_path=metadata_path, project_root=root
-    )
-    xrefs, snippets = projector.finish()
+    try:
+        transport_profile = c_backend.visit_listing_stream_from_binary_source(
+            source, projector.accept, metadata_path=metadata_path, project_root=root
+        )
+        xrefs, snippets = projector.finish()
+    except BaseException:
+        projector.close()
+        raise
     if profile_sink is not None:
         profile = dict(projector.summary_profile)
         profile.update(transport_profile)

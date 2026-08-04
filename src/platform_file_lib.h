@@ -142,6 +142,10 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_stream_path_create(const ch
 PLATFORM_FILE_API int platform_file_facts_v2_listing_stream_raw_path_create(const char *platform_name,
     const char *path, uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
     const char *metadata_path, const char *include_dir, PlatformFileListingStream **out_stream, char **out_error);
+/* Test-only R1 control.  It alters only the borrowed typed batch boundary;
+ * canonical JSON batching and published corpus semantics are unchanged. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_stream_set_typed_row_batch_limit(
+    PlatformFileListingStream *stream, uint32_t row_limit);
 /* Calls ``sink`` with one analysis event, bounded canonical row-batch events,
  * one navigation event, then one summary event.  This corpus ABI is
  * deliberately forward-only and single-pass. */

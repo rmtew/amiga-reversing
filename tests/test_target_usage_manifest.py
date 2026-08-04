@@ -128,6 +128,8 @@ def test_native_listing_stream_matches_artifact_without_retaining_a_row_plan() -
         allocation = payloads["summary"]["allocation"]
         assert allocation["complete_render_plan_bytes"] == 0
         assert allocation["complete_listing_row_index_bytes"] == 0
+        assert allocation["typed_row_batch_bytes"] > 0
+        assert allocation["live_row_batch_bytes"] >= allocation["typed_row_batch_bytes"]
         native_timing = payloads["summary"]["timing"]
         assert native_timing["canonical_row_json_seconds"] >= 0.0
         assert native_timing["native_row_callback_seconds"] >= 0.0
@@ -156,6 +158,39 @@ def test_native_listing_stream_bounds_canonical_row_batches() -> None:
             stream.close()
     assert len(row_batch_sizes) >= 2
     assert max(row_batch_sizes) <= 8192
+
+
+def test_native_listing_stream_typed_batch_capacities_preserve_canonical_rows() -> None:
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "typed-batch-boundaries.bin"
+        path.write_bytes(bytes.fromhex("4e71") * 17 + bytes.fromhex("4e75"))
+        source = c_backend._CBackendSourceFile(path, "amiga-raw", 0, None)
+        artifact = c_backend.CListingArtifact.create(
+            source, metadata_text="", include_dir="", project_root=Path.cwd()
+        )
+        try:
+            summary, _ = artifact.summary_payload()
+            expected, _ = artifact.window_payload(start=0, count=int(summary["total_rows"]))
+            expected_rows = expected["rows"]
+            for batch_limit in (1, 7, 256):
+                stream = c_backend.CListingStream.create(
+                    source,
+                    metadata_text="",
+                    include_dir="",
+                    project_root=Path.cwd(),
+                    typed_row_batch_limit=batch_limit,
+                )
+                actual_rows: list[dict[str, object]] = []
+                try:
+                    def accept(kind: str, payload: dict[str, object]) -> None:
+                        if kind == "rows":
+                            actual_rows.extend(c_backend._c_listing_row_dicts(payload.get("rows")))
+                    stream.visit(accept)
+                finally:
+                    stream.close()
+                assert actual_rows == expected_rows
+        finally:
+            artifact.close()
 
 
 def test_listing_xrefs_accept_an_absolute_row_index_for_stream_projection() -> None:
@@ -270,6 +305,20 @@ def test_ordered_listing_projector_releases_decoded_analysis_before_rows() -> No
     projector = _OrderedListingProjector({"id": "target"}, FeatureBag())
     projector.accept("analysis", {"analysis": {"sections": [{"instructions": [{"offset": 0}]}]}})
     assert projector.analysis == {}
+
+
+def test_ordered_listing_projector_closes_spools_after_aborted_stream(tmp_path: Path) -> None:
+    snippet_path = tmp_path / "snippets.jsonl"
+    xref_path = tmp_path / "xrefs.jsonl"
+    projector = _OrderedListingProjector(
+        {"id": "target", "platform": "amiga-raw", "source_id": "source", "origin": {}},
+        FeatureBag(), snippet_path=snippet_path, xref_path=xref_path,
+    )
+    projector.accept("analysis", {"analysis": {}})
+    projector.close()
+    projector.close()
+    snippet_path.replace(tmp_path / "closed-snippets.jsonl")
+    xref_path.replace(tmp_path / "closed-xrefs.jsonl")
 
 
 def test_corpus_staging_adopts_streamed_snippet_shard(tmp_path: Path) -> None:

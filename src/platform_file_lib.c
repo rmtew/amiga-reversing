@@ -11914,6 +11914,7 @@ struct PlatformFileListingStream {
   M68kRenderEvidenceIR render_evidence;
   M68kFactsV2Profile profile;
   double source_seconds;
+  size_t typed_row_batch_limit;
   uint8_t analysis_live;
   uint8_t render_evidence_live;
   uint8_t visited;
@@ -13477,12 +13478,22 @@ static PlatformFileListingStream *listing_stream_alloc(const char *backend_name,
   if (stream == NULL) goto oom;
   stream->backend_name = m68k_platform_dup_string(backend_name);
   stream->path = m68k_platform_dup_string(path);
+  stream->typed_row_batch_limit = PLATFORM_CANONICAL_ROW_BATCH_CAPACITY;
   if (stream->backend_name == NULL || stream->path == NULL) goto oom;
   return stream;
 oom:
   platform_file_facts_v2_listing_stream_destroy(stream);
   platform_file_add_error(diagnostics, "out of memory");
   return NULL;
+}
+
+int platform_file_facts_v2_listing_stream_set_typed_row_batch_limit(PlatformFileListingStream *stream,
+    uint32_t row_limit) {
+  if (stream == NULL || stream->visited || row_limit == 0U ||
+      row_limit > PLATFORM_CANONICAL_ROW_BATCH_CAPACITY)
+    return -1;
+  stream->typed_row_batch_limit = row_limit;
+  return 0;
 }
 
 int platform_file_facts_v2_listing_stream_path_create(const char *backend_name, const char *path,
@@ -13595,11 +13606,31 @@ cleanup:
 typedef struct ListingStreamRowAdapter {
   PlatformFileListingStream *stream;
   PlatformListingCanonicalStream *canonical;
+  PlatformCanonicalRowBatch *typed_rows;
   PlatformFileListingStreamEventSink sink;
   void *sink_user;
 } ListingStreamRowAdapter;
 
 static int listing_stream_accept_row_batch(const char *json, size_t size, void *user);
+
+static int listing_stream_flush_typed_rows(ListingStreamRowAdapter *adapter) {
+  char *text_bytes;
+  size_t text_capacity;
+  size_t capacity;
+  int result;
+  if (adapter == NULL || adapter->canonical == NULL || adapter->typed_rows == NULL) return -1;
+  if (adapter->typed_rows->count == 0U) return 0;
+  result = platform_listing_canonical_stream_accept_batch(adapter->canonical, adapter->typed_rows,
+    m68k_diag_sink(NULL));
+  capacity = adapter->typed_rows->capacity;
+  text_bytes = adapter->typed_rows->text_bytes;
+  text_capacity = adapter->typed_rows->text_capacity;
+  platform_canonical_row_batch_init(adapter->typed_rows);
+  adapter->typed_rows->capacity = capacity;
+  adapter->typed_rows->text_bytes = text_bytes;
+  adapter->typed_rows->text_capacity = text_capacity;
+  return result;
+}
 
 static int listing_stream_accept_completed_analysis(const M68kSourceAnalysisIR *analysis,
     const M68kRenderEvidenceIR *render_evidence, const M68kFactsV2Profile *profile, void *user) {
@@ -13629,8 +13660,12 @@ static int listing_stream_accept_row_batch(const char *json, size_t size, void *
 
 static int listing_stream_accept_transient_row(const M68kRenderPlanRow *row, void *user) {
   ListingStreamRowAdapter *adapter = (ListingStreamRowAdapter *)user;
-  if (adapter == NULL || adapter->canonical == NULL) return -1;
-  return platform_listing_canonical_stream_accept_row(adapter->canonical, row, m68k_diag_sink(NULL));
+  if (adapter == NULL || adapter->canonical == NULL || adapter->typed_rows == NULL) return -1;
+  if (platform_canonical_row_batch_append(adapter->typed_rows, row) == 0) return 0;
+  if (listing_stream_flush_typed_rows(adapter) != 0 ||
+      platform_canonical_row_batch_append(adapter->typed_rows, row) != 0)
+    return -1;
+  return 0;
 }
 
 int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *stream,
@@ -13640,10 +13675,8 @@ int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *strea
   JsonBuilder builder = {0};
   char *navigation_json = NULL;
   char *summary_json = NULL;
-  size_t max_live_rows = 0U;
-  size_t transient_json_bytes = 0U;
-  double row_json_seconds = 0.0;
-  double row_callback_seconds = 0.0;
+  size_t max_live_rows = 0U, transient_json_bytes = 0U, typed_row_batch_bytes = 0U;
+  double row_json_seconds = 0.0, row_callback_seconds = 0.0;
   clock_t start;
   if (out_error != NULL) *out_error = NULL;
   if (stream == NULL || sink == NULL || out_error == NULL || stream->visited) {
@@ -13653,17 +13686,27 @@ int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *strea
   adapter.stream = stream;
   adapter.sink = sink;
   adapter.sink_user = sink_user;
+  adapter.typed_rows = (PlatformCanonicalRowBatch *)malloc(sizeof(*adapter.typed_rows));
+  if (adapter.typed_rows == NULL) {
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("out of memory");
+    return -1;
+  }
+  typed_row_batch_bytes = sizeof(*adapter.typed_rows);
+  platform_canonical_row_batch_init(adapter.typed_rows);
+  adapter.typed_rows->capacity = stream->typed_row_batch_limit;
   start = clock();
   if (m68k_facts_v2_visit_asm_source_rows_with_analysis_profile(&stream->object, &stream->policy,
       &stream->profile, &stream->source_analysis, listing_stream_accept_completed_analysis, &adapter,
       listing_stream_accept_transient_row, &adapter, 1U,
       m68k_diag_sink(&diagnostics)) != 0 ||
       adapter.canonical == NULL ||
+      listing_stream_flush_typed_rows(&adapter) != 0 ||
       platform_listing_canonical_stream_finish(adapter.canonical, &navigation_json,
         m68k_diag_sink(&diagnostics)) != 0) goto fail;
   stream->source_seconds = elapsed_seconds(start, clock());
   stream->analysis_live = 1U;
   stream->visited = 1U;
+  typed_row_batch_bytes = platform_canonical_row_batch_storage_bytes(adapter.typed_rows);
   platform_listing_canonical_stream_allocation_stats(adapter.canonical, &max_live_rows, &transient_json_bytes);
   platform_listing_canonical_stream_timing_stats(adapter.canonical, &row_json_seconds, &row_callback_seconds);
   if (json_builder_create(&builder) != 0 ||
@@ -13676,26 +13719,32 @@ int platform_file_facts_v2_listing_stream_visit(PlatformFileListingStream *strea
       json_builder_append_facts_v2_profile(&builder, &stream->profile) != 0 ||
       json_builder_appendf(&builder,
         ",\"allocation\":{\"builder_arena_bytes\":0,\"final_plan_arena_bytes\":0,"
-        "\"finalization_overlap_bytes\":0,\"semantic_layout_bytes\":0,\"source_analysis_bytes\":%llu,"
-        "\"live_row_batch_bytes\":%llu,\"max_live_rows\":%llu,\"transient_json_bytes\":%llu,"
+        "\"finalization_overlap_bytes\":0,\"semantic_layout_bytes\":0,\"source_analysis_bytes\":%" PRIu64 ","
+        "\"live_row_batch_bytes\":%" PRIu64 ",\"typed_row_batch_bytes\":%" PRIu64 ","
+        "\"max_live_rows\":%" PRIu64 ",\"transient_json_bytes\":%" PRIu64 ","
         "\"complete_render_plan_bytes\":0,\"complete_listing_row_index_bytes\":0},"
         "\"timing\":{\"source_seconds\":%.6f,\"canonical_row_json_seconds\":%.6f,"
         "\"native_row_callback_seconds\":%.6f,\"total_seconds\":%.6f}}",
-        (unsigned long long)arena_stats(stream->source_analysis.arena).current_used,
-        (unsigned long long)transient_json_bytes, (unsigned long long)max_live_rows,
-        (unsigned long long)transient_json_bytes,
+        (uint64_t)arena_stats(stream->source_analysis.arena).current_used,
+        (uint64_t)(typed_row_batch_bytes + transient_json_bytes),
+        (uint64_t)typed_row_batch_bytes, (uint64_t)max_live_rows,
+        (uint64_t)transient_json_bytes,
         stream->source_seconds, row_json_seconds, row_callback_seconds, stream->source_seconds) != 0) goto fail;
   summary_json = json_builder_build(&builder);
   if (summary_json == NULL || navigation_json == NULL ||
       sink(PLATFORM_FILE_LISTING_STREAM_EVENT_NAVIGATION, navigation_json, strlen(navigation_json), sink_user) != 0 ||
       sink(PLATFORM_FILE_LISTING_STREAM_EVENT_SUMMARY, summary_json, strlen(summary_json), sink_user) != 0) goto fail;
   platform_listing_canonical_stream_destroy(adapter.canonical);
+  platform_canonical_row_batch_destroy(adapter.typed_rows);
+  free(adapter.typed_rows);
   json_builder_destroy(&builder);
   free(navigation_json);
   free(summary_json);
   return 0;
 fail:
   platform_listing_canonical_stream_destroy(adapter.canonical);
+  platform_canonical_row_batch_destroy(adapter.typed_rows);
+  free(adapter.typed_rows);
   json_builder_destroy(&builder);
   free(navigation_json);
   free(summary_json);

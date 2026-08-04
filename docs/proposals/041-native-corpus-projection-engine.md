@@ -106,11 +106,12 @@ PlatformCorpusProjection
   finish(PlatformCorpusTargetSummary)
 ```
 
-`PlatformCanonicalRowBatch` is a borrowed bounded structure. It has parallel
+`PlatformCanonicalRowBatch` is a bounded, synchronously consumed structure. It has parallel
 arrays for fixed-width fields (`row_kind`, section, offsets, addresses, line
 metadata, symbolic-part ranges) plus append-only byte spans for text and
-symbols. It is valid only for `accept_batch`; batch storage is reset/reused
-afterward. The projection copies only selected compact row text into a snippet
+symbols. When an upstream visitor reuses transient rows, the batch owns copies
+of the borrowed text until `accept_batch` returns; otherwise it may borrow
+stable producer storage. Batch storage is reset/reused afterward. The projection copies only selected compact row text into a snippet
 writer and only final xref/string values needed by output records.
 
 `PlatformCorpusProjection` owns one target-scoped reducer state and shard
