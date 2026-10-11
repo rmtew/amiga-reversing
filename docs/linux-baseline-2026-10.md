@@ -212,3 +212,28 @@ Sources: [Copperline release](https://github.com/CopperlineHQ/Copperline/release
 [pinned control protocol](https://github.com/CopperlineHQ/Copperline/blob/v1.0.0/docs/debugger/control.md),
 [pinned GDB protocol](https://github.com/CopperlineHQ/Copperline/blob/v1.0.0/docs/debugger/gdb.md),
 plus repository Proposal 036 and `.agents/skills/headless-amiga-runtime/SKILL.md`.
+
+## Follow-up review: Windows open-reader sharing
+
+Independent review identified a source-level portability risk in the original
+atomic publication fix: Windows can reject replacement while another server
+request holds the destination open. A shared process-local `RLock` now covers
+complete `_load_state` reads (including closing their handles) and `_save_state`
+publication. Atomic JSON replacement remains in place.
+
+The added regression holds a real read handle open, simulates Windows'
+deny-delete sharing behavior, verifies the writer waits, then verifies it
+publishes successfully after the reader closes. Disabling the lock in an
+isolated test run makes that regression fail with the modeled `PermissionError`.
+This is simulated Windows sharing behavior, not native Windows execution.
+
+Follow-up checks: **51 project/API workflow tests passed**, changed Python lint
+and diff checks passed, and the real native/HTTP/Chromium/C-and-vasm smoke passed
+again (`amiga_hunk_cloud-smoke-6`). An independent reviewer found no blocking
+issues and separately ran the two browser-state regressions successfully.
+
+Scope: synchronization covers threads in this server process. Separate server
+processes, external readers, and the pre-existing possibility of lost updates
+between separate load/save transactions are not solved by this change. The
+full-suite counts above describe the preceding baseline, not a rerun after this
+follow-up. No emulator behavior or generated instruction data changed.

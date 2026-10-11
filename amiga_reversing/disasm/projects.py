@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import tempfile
+import threading
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -46,6 +47,10 @@ from amiga_reversing.disasm.project_paths import (
 )
 from amiga_reversing.disasm.reproduction import reproduction_report_path
 from amiga_reversing.disasm.target_metadata import load_target_metadata
+
+# Readers must close their handles before publication: Windows may refuse a
+# replacement while another request in this server holds the destination open.
+_BROWSER_STATE_LOCK = threading.RLock()
 
 STATE_FILE_NAME = ".browser_state.json"
 PROJECT_METADATA_FILE_NAME = ".project.json"
@@ -208,36 +213,38 @@ def set_project_origin(project_dir: Path, *, origin: dict[str, object], timestam
 
 
 def _load_state(project_root: Path) -> BrowserState:
-    state_path = _state_path(project_root)
-    if not state_path.exists():
-        return BrowserState(recent_projects={})
-    payload = json.loads(state_path.read_text(encoding="utf-8"))
-    assert isinstance(payload, dict)
-    recent_projects = payload["recent_projects"]
-    assert isinstance(recent_projects, dict)
-    result: dict[str, str] = {}
-    for key, value in recent_projects.items():
-        assert isinstance(key, str)
-        assert isinstance(value, str)
-        result[key] = value
-    return BrowserState(recent_projects=result)
+    with _BROWSER_STATE_LOCK:
+        state_path = _state_path(project_root)
+        if not state_path.exists():
+            return BrowserState(recent_projects={})
+        payload = json.loads(state_path.read_text(encoding="utf-8"))
+        assert isinstance(payload, dict)
+        recent_projects = payload["recent_projects"]
+        assert isinstance(recent_projects, dict)
+        result: dict[str, str] = {}
+        for key, value in recent_projects.items():
+            assert isinstance(key, str)
+            assert isinstance(value, str)
+            result[key] = value
+        return BrowserState(recent_projects=result)
 
 
 def _save_state(project_root: Path, state: BrowserState) -> None:
-    state_path = _state_path(project_root)
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    # Project GET and /open run concurrently in the threaded web server.
-    # Publish complete JSON so readers cannot observe a truncated state file.
-    with tempfile.NamedTemporaryFile(
-        mode="w", encoding="utf-8", dir=state_path.parent, delete=False,
-    ) as stream:
-        temporary_path = Path(stream.name)
-        try:
-            stream.write(json.dumps(asdict(state), indent=2, sort_keys=True) + "\n")
-            stream.close()
-            temporary_path.replace(state_path)
-        finally:
-            temporary_path.unlink(missing_ok=True)
+    with _BROWSER_STATE_LOCK:
+        state_path = _state_path(project_root)
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        # Project GET and /open run concurrently in the threaded web server.
+        # Publish complete JSON so readers cannot observe a truncated state file.
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=state_path.parent, delete=False,
+        ) as stream:
+            temporary_path = Path(stream.name)
+            try:
+                stream.write(json.dumps(asdict(state), indent=2, sort_keys=True) + "\n")
+                stream.close()
+                temporary_path.replace(state_path)
+            finally:
+                temporary_path.unlink(missing_ok=True)
 
 
 def _binary_project_record(

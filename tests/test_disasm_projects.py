@@ -1479,3 +1479,60 @@ def test_browser_state_remains_readable_during_publication(tmp_path, monkeypatch
     projects._save_state(tmp_path, projects.BrowserState(recent_projects={"new": "now"}))
     assert observed == [{"old": "then"}]
     assert projects._load_state(tmp_path).recent_projects == {"new": "now"}
+
+
+def test_browser_state_writer_waits_for_open_reader(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError
+    from threading import Event
+
+    from amiga_reversing.disasm import projects
+
+    projects._save_state(tmp_path, projects.BrowserState(recent_projects={"old": "then"}))
+    state_path = projects._state_path(tmp_path)
+    reader_open = Event()
+    release_reader = Event()
+    writer_started = Event()
+    published = Event()
+    read_text = Path.read_text
+    replace = Path.replace
+
+    def held_read(path, *args, **kwargs):
+        if path != state_path:
+            return read_text(path, *args, **kwargs)
+        with path.open("r", encoding="utf-8") as stream:
+            reader_open.set()
+            try:
+                assert release_reader.wait(5), "reader was not released"
+                return stream.read()
+            finally:
+                reader_open.clear()
+
+    def windows_style_replace(source, destination):
+        # Model Windows' deny-delete sharing rule while the real handle is open.
+        if reader_open.is_set():
+            raise PermissionError("destination is open in another request")
+        result = replace(source, destination)
+        published.set()
+        return result
+
+    def save():
+        writer_started.set()
+        projects._save_state(tmp_path, projects.BrowserState(recent_projects={"new": "now"}))
+
+    monkeypatch.setattr(Path, "read_text", held_read)
+    monkeypatch.setattr(Path, "replace", windows_style_replace)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        reader = executor.submit(projects._load_state, tmp_path)
+        assert reader_open.wait(5)
+        writer = executor.submit(save)
+        try:
+            assert writer_started.wait(5)
+            with pytest.raises(TimeoutError):
+                writer.result(timeout=0.1)
+            assert not published.is_set()
+        finally:
+            release_reader.set()
+        assert reader.result(timeout=5).recent_projects == {"old": "then"}
+        writer.result(timeout=5)
+    assert published.is_set()
+    assert projects._load_state(tmp_path).recent_projects == {"new": "now"}
