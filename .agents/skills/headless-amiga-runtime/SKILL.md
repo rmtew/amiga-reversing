@@ -1,122 +1,70 @@
 ---
 name: headless-amiga-runtime
-description: Operate, diagnose, and improve the repository's strictly headless WinUAE/GDB runtime harness for Amiga reversing. Use when observing a target at runtime, mapping runtime PCs to reconstructed source, setting bounded source-key breakpoints, debugging the harness, rebuilding the pinned WinUAE fork, or verifying runtime-tool changes. Never use it to launch visible WinUAE.
+description: Operate and diagnose the strictly headless Copperline runtime through canonical target-aware observations and bounded scenarios.
 ---
 
 # Headless Amiga Runtime
 
-Use runtime evidence to resolve a concrete reversing ambiguity. Static analysis and the normal reversing loop remain the primary source of reconstructed source facts.
+Use runtime evidence to resolve a concrete reversing ambiguity. Static analysis
+and the normal reversing loop remain the source of reconstructed source facts.
+Read `docs/agents/reversing-loop.md` before target interpretation work.
 
-## Non-negotiable constraints
+## Constraints
 
-- Never launch a visible WinUAE window. This applies locally and in CI.
-- Use the public target-aware session interface; do not give an agent arbitrary GDB commands or write target facts directly.
-- Use a legal user-supplied Kickstart ROM by explicit path. Do not add ROM images to the repository.
-- Do not edit exported target `.s` files. Record target discoveries through normal framework commands/manual actions, then render and round-trip verify.
-- Treat a runtime mapping as an observation, not proof of a loader, copy routine, or static control-flow edge.
+- Use `amiga_reversing.tools.copperline_session`; never launch a visible emulator
+  or expose arbitrary control commands to an agent.
+- Supply a legal Kickstart ROM by explicit path; never add ROMs to the repository.
+- Keep A500OCS, PAL, 68000, 512 KiB chip + 512 KiB slow RAM explicit.
+- Require payload-byte identity and canonical source-offset agreement before
+  treating a runtime PC as target evidence. A configured address alone is not proof.
+- Runtime mappings remain observations, not proof of a loader or static edge.
+- Record useful discoveries through normal manual actions, then render and
+  exact-round-trip verify. Never directly edit exported `.s` files.
 
-## Owned implementation surface
+## Implementation
 
-Read the relevant implementation before changing it.
+- `amiga_reversing/tools/copperline_control.py`: pinned Copperline 1.0.0 native
+  JSON-RPC, authenticated ephemeral loopback endpoint, owned process lifecycle.
+- `amiga_reversing/tools/copperline_runtime.py`: bounded observations, marker
+  verification, scenario execution, capture and joystick state cleanup.
+- `amiga_reversing/tools/copperline_session.py`: restricted target-aware CLI,
+  canonical stable keys and declarative scenario validation.
+- `amiga_reversing/tools/runtime_symbols.py`: disposable JSON metadata from
+  canonical accepted contiguous named function facts, without target bytes.
+- `docs/copperline-runtime.md`: installation provenance, reproduction and limits.
 
-| Path | Responsibility |
-| --- | --- |
-| `tools/run_winuae_headless.ps1` | Strict headless launcher, A500/Kickstart 1.3 profile, GDB process management. |
-| `tools/winuae_gdb_session.py` | WinUAE/GDB MI protocol, pause/continue, bounded breakpoint handling, observation capture. |
-| `amiga_reversing/tools/winuae_session.py` | Restricted target-aware agent API: stable source keys, observation views, structured results. |
-| `amiga_reversing/tools/gdb_symbols.py` | Disposable M68K ELF/DWARF artifacts from canonical function facts. |
-| `tests/test_winuae_session.py`, `tests/test_gdb_symbols.py` | Focused public-session and symbol-generation contracts. |
-| `ext/tools/winuae/windows-x64/` | Committed Windows WinUAE and m68k GDB binaries used by the harness. |
-| `resources/clone_amiga/WinUAE/` | Local Bartman-derived WinUAE fork, on `codex/local-workspace-build`. |
-| `docs/proposals/036-agent-operable-winuae-runtime-harness.md` | Architecture, decisions, limitations, and environment notes. |
+The old patched WinUAE, PowerShell and GDB transport is retired. Proposal 036
+records historical evidence only; do not revive it as a second runtime backend.
 
-The fork has a local breakpoint fix in `od-win32/barto_gdbserver.cpp`: reused GDB breakpoint slots must reset `cnt` and `chain`. Preserve that behavior when rebasing or updating the fork.
+## Bounded workflow
 
-## Run a target observation
+1. Inspect static labels, xrefs and candidate source offsets first.
+2. Invoke the public CLI with a target, ROM, explicit Copperline executable and
+   original media or a validated direct-payload contract.
+3. Use canonical stable keys for breakpoints. Confirm payload identity and
+   mapping; reject unexpected stops, stale views and ambiguous byte samples.
+4. Consume status, PC, SP and stack return address. Negative results apply only
+   to the observed time window. Input holds are bounded by named phases and
+   released on completion or failure.
+5. For `enter_function`, require an accepted exact function entry, unique name
+   and contiguous owned range. Do not approximate disjoint or ambiguous facts.
 
-1. Follow `docs/agents/reversing-loop.md` and the relevant parts of Proposal 010 before target work.
-2. Establish static evidence first: inspect labels, xrefs, the target entry/load behavior, and candidate source offsets.
-3. Invoke `amiga_reversing.tools.winuae_session` with a target id, legal ROM, disk/image input, and a bounded `--continue-seconds` value.
-4. Read its structured observation. A valid target mapping requires a uniquely matched payload PC; do not infer it from a guessed base address.
-5. If the observation answers the question, express the resulting source-quality fact through the normal framework command path and exact round-trip verification.
+Direct contracts in `runtime/direct_payload_contracts/` declare target identity,
+SHA256, load address, entrypoint/registers and a four-byte handoff marker. The
+shared builder creates an isolated boot ADF; the runtime verifies loaded bytes
+before releasing the marker. The debugger memory write is followed by a new
+reverse-history anchor; replay across that injected write is not evidence.
 
-The current intended machine profile is A500/Kickstart 1.3 with 512 KiB chip RAM and 512 KiB slow RAM, OCS/68000-compatible behavior, and accelerated floppy reads. Keep profile changes explicit and justified by the target.
-
-## Breakpoint workflow
-
-Use canonical stable source keys such as `s0:00000BA8:instruction:755`, never a hand-derived runtime address in the public interface.
-
-1. Boot normally and allow the target payload to become uniquely observable.
-2. Pause in the confirmed target state.
-3. Arm a bounded stable-key breakpoint through `amiga_reversing.tools.winuae_session`.
-4. Continue only for the configured wait period; consume `hit` or `not_hit` plus PC, SP, stop reason, and stack return address.
-5. Use the stack return address to inspect static predecessors and justify labels or reachability facts.
-
-Do not set target code breakpoints from reset: WinUAE checks them while executing Kickstart and this is prohibitively slow. The supported pattern is boot, confirm, pause, arm, continue.
-
-## Canonical GDB symbols
-
-Use generated symbols when a bounded scenario must resolve or enter a reconstructed function. Generate the disposable artifact through the public scenario path; never accept a user-managed symbol file or raw GDB symbol command.
-
-- Derive each function from the canonical function-fact projection: a unique named entry plus accepted CFG ownership. The fact records every owned block, merged ranges, shared terminal blocks, and an explicit rejection reason when ownership is ambiguous or incomplete.
-- Emit an ELF symbol only when that accepted fact has one contiguous range beginning at its entry. Do not approximate disjoint ranges with a broad symbol-table extent; report them as omitted until the artifact can represent them exactly.
-- Generate an M68K ELF/DWARF artifact into the isolated session state directory. It must contain no target bytes and must not alter exported source.
-- Load it only after a scenario phase uniquely confirms the payload runtime base. Map source offsets through that confirmed observation view.
-- Use `enter_function` for an adjacent call that must enter a named callee. It is a symbolic GDB breakpoint transition, not an instruction-step fallback; do not invent a caller name merely to make native GDB stepping work.
-- Include the resolved function and accepted source range in phase results when the hit lies in an emitted function.
-
-For symbol-path changes, test accepted emission and ambiguous omission, non-default runtime-base planning, public-session loading, a real strictly headless scenario, and exact target round trip.
-
-## Improve the harness only when needed
-
-Make a runtime-tool change only for a concrete reversing blocker: a missing observation, a reproducible protocol failure, an unsafe headless behavior, or a required verification contract.
-
-For a change in `resources/clone_amiga/WinUAE/`:
-
-1. Preserve unrelated clone changes; work on `codex/local-workspace-build`.
-2. Build `od-win32/winuae_msvc15/winuae_msvc.vcxproj` as `FullRelease|x64` with the installed Visual Studio MSBuild.
-3. Ensure the post-build artifact updates `ext/tools/winuae/windows-x64/winuae-gdb.exe` deliberately; committed binaries are a permanent Windows resource, not an ignored post-step.
-4. Commit fork-source changes in the clone separately from repository harness changes when appropriate.
-
-For every harness change, run:
-
-1. `uv run pytest tests/test_winuae_session.py -q`
-2. Python/PowerShell syntax checks for touched scripts.
-3. A real strictly headless target smoke session.
-4. A bounded target-aware breakpoint probe when breakpoint behavior changed.
-
-Do not add GUI fallbacks, hidden interactive prompts, raw agent GDB consoles, or untracked dependency locations.
-
-## Direct-payload contracts
-
-When static and runtime evidence prove that a decoded payload can be entered
-without reproducing its original loader, create a generic direct-payload
-contract instead of a target-specific launcher. Contracts live in
-`runtime/direct_payload_contracts/`; the shared builder is
-`amiga_reversing.tools.direct_payload_adapter`.
-
-Each contract must declare the target id, decoded-payload SHA-256, load
-address, entrypoint, and a four-byte handoff marker. Build and launch it only
-through the public session interface:
-
-```text
-python -m amiga_reversing.tools.winuae_session --target <target> --rom <legal-rom> \
-  --direct-payload-contract <contract> --state-directory <isolated-run-dir> --run
+```sh
+python -m amiga_reversing.tools.copperline_session \
+  --target <target-id> --rom <legal-rom> --copperline <binary> \
+  --direct-payload-contract <contract> --state-directory <isolated-run-dir> \
+  --scenario <scenario.json> --continue-seconds 60 --run
 ```
 
-This selection creates a disposable raw boot ADF, embeds the validated target
-payload, and stops at the declared marker. It has no fallback to original
-media. Do not create a contract from decompression metadata alone: prove the
-load/entry contract, cold-boot marker, and byte-identified payload execution.
-Keep a contract only when it provides a required observation or improves the
-measured original-media path; otherwise retain the evidence in Proposal 036
-and do not keep an adapter.
+## Verification
 
-## Interpret outcomes
-
-- `pc_matched`: useful runtime/source observation; still not a loader claim.
-- `breakpoint.status = hit`: combine the PC and stack return address with static xrefs before creating a source fact.
-- `breakpoint.status = timeout` or `not_hit`: negative evidence only for that bounded, observed execution window.
-- crash/minidump: preserve the diagnostic path, reproduce with the same headless command, and inspect the harness/fork before attributing the fault to target code.
-
-Consult Proposal 036 for environment recreation details and historical failure modes. Update that proposal when a material harness decision, dependency requirement, or reproducible limitation changes.
+Run focused control/session/runtime/symbol tests, real strictly headless target
+scenarios for changed behaviors, and exact target round trip when source output
+is affected. Keep logs bounded and record unavailable inputs precisely. Transport
+synthetic tests alone do not establish original-loader or gameplay parity.

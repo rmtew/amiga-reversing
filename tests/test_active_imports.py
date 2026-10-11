@@ -109,6 +109,8 @@ def test_active_source_import_boundaries_are_current() -> None:
         "shlex",
         "subprocess",
         "struct",
+        "socket",  # native Copperline control transport
+        "warnings",  # retired runtime registry migration
         "sys",
         "tempfile",
         "threading",

@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import warnings
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import cast
@@ -16,8 +17,8 @@ TOOL_REGISTRY_DIR_NAME = ".amiga_reversing"
 TOOL_REGISTRY_VERSION = 2
 TOOL_REGISTRY_KEYS = frozenset({"version", "runtime_tools", "functional_tools"})
 
-RUNTIME_TOOL_IDS = ("host", "vamos", "winuae")
-PERSISTED_RUNTIME_TOOL_IDS = ("vamos", "winuae")
+RUNTIME_TOOL_IDS = ("host", "vamos", "copperline")
+PERSISTED_RUNTIME_TOOL_IDS = ("vamos", "copperline")
 FUNCTIONAL_TOOL_IDS = ("vasm", "genam")
 CAPABILITY_IDS = ("assemble_vasm_source", "assemble_devpac_source", "assemble_m68k_source")
 TOOL_STATUS_VALUES = ("available", "missing", "unsupported", "error")
@@ -26,7 +27,7 @@ _TOOL_EXECUTABLE_NAMES: dict[str, tuple[str, ...]] = {
     "vasm": ("vasmm68k_mot.exe", "vasmm68k_mot"),
     "genam": ("GenAm", "GenAm.exe", "genam"),
     "vamos": ("vamos", "vamos.exe"),
-    "winuae": ("winuae", "winuae.exe"),
+    "copperline": ("copperline", "copperline.exe"),
 }
 _BUNDLED_FUNCTIONAL_PATHS: dict[str, tuple[Path, ...]] = {
     "vasm": (Path("tools") / "vasmm68k_mot.exe", Path("ext") / "vasm" / "vasmm68k_mot.exe"),
@@ -61,6 +62,13 @@ def load_tool_registry(*, project_root: Path = PROJECT_ROOT) -> dict[str, object
     if not isinstance(payload, dict):
         raise ValueError(f"Bad {path.name}: expected object")
     registry = cast(dict[str, object], payload)
+    # Retire the legacy entry on read without modifying the user's file. A
+    # WinUAE executable can never be reused as a Copperline executable. The
+    # next explicit registry save persists this removal and preserves peers.
+    runtime_entries = registry.get("runtime_tools")
+    if registry.get("version") == TOOL_REGISTRY_VERSION and isinstance(runtime_entries, dict) and "winuae" in runtime_entries:
+        runtime_entries.pop("winuae")
+        warnings.warn("Ignoring retired winuae runtime path; configure copperline explicitly", RuntimeWarning, stacklevel=2)
     _validate_registry_payload(registry)
     return _normalized_registry(registry)
 

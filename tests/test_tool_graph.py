@@ -310,3 +310,36 @@ def test_hash_only_tool_does_not_run_native_probe(monkeypatch, tmp_path: Path) -
     assert evidence["probe_method"] == "hash_only"
     assert evidence["probe_status"] == "available"
     assert evidence["version_text"] is None
+
+
+def test_retired_winuae_path_is_never_reused_for_copperline(tmp_path: Path) -> None:
+    path = tool_graph.tool_registry_path(project_root=tmp_path)
+    path.parent.mkdir()
+    legacy = {
+        'version': 2,
+        'runtime_tools': {'winuae': {'path': 'old.exe'}, 'vamos': {'path': 'vamos'}},
+        'functional_tools': {'vasm': {'path': 'vasm'}},
+    }
+    path.write_text(json.dumps(legacy))
+    with pytest.warns(RuntimeWarning, match='retired winuae'):
+        loaded = tool_graph.load_tool_registry(project_root=tmp_path)
+    assert loaded['runtime_tools'] == {'vamos': {'path': 'vamos'}}
+    assert loaded['functional_tools'] == legacy['functional_tools']
+    assert json.loads(path.read_text()) == legacy  # read-only migration
+    record = tool_graph.runtime_tool_record('copperline', registry=loaded, project_root=tmp_path, env_path='')
+    assert record['status'] == 'missing'
+    with pytest.raises(ValueError, match='unsupported runtime tool id'):
+        tool_graph.runtime_tool_record('winuae', registry=loaded)
+    tool_graph.save_tool_registry(loaded, project_root=tmp_path)
+    assert 'winuae' not in json.loads(path.read_text())['runtime_tools']
+
+
+def test_copperline_registry_path_is_supported(monkeypatch, tmp_path: Path) -> None:
+    binary = tmp_path / 'copperline'
+    binary.write_bytes(b'fake')
+    monkeypatch.setattr(subprocess, 'run', lambda *a, **kw: subprocess.CompletedProcess(a[0], 0, 'copperline 1.0.0', ''))
+    tool_graph.set_tool_artifact_path('runtime', 'copperline', str(binary), project_root=tmp_path)
+    record = tool_graph.runtime_tool_record('copperline', project_root=tmp_path)
+    assert record['status'] == 'available'
+    assert record['resolved_path'] == str(binary)
+    assert record['discovery_source'] == 'configured_path'

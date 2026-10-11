@@ -14,6 +14,11 @@
       "wait_seconds": 20
     },
     {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
       "name": "gameplay_loop",
       "breakpoint_stable_key": "s0:000005D6:instruction",
       "wait_seconds": 20
@@ -24,9 +29,16 @@
       "wait_seconds": 20,
       "transition": "enter_function",
       "capture": {
-        "registers": ["a4", "a5"],
+        "registers": [
+          "a4",
+          "a5"
+        ],
         "memory_reads": [
-          {"base_register": "a4", "offset": 70, "size": 1}
+          {
+            "base_register": "a4",
+            "offset": 70,
+            "size": 1
+          }
         ]
       }
     }
@@ -35,8 +47,7 @@
     {
       "after_phase": "title_menu_loop",
       "control": "port1 fire",
-      "delay_seconds": 3,
-      "duration_seconds": 1
+      "release_after_phase": "ui_overlay_initialization"
     }
   ]
 }

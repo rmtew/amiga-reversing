@@ -71,7 +71,7 @@ tests together with the target's `manual_actions.jsonl` and regenerated `.s`.
 
 Use `$headless-amiga-runtime` only to resolve a concrete static ambiguity:
 reachability, an unpacked payload mapping, dynamic state, or a disputed field.
-Keep WinUAE strictly headless. Convert useful observations into normal static
+Keep Copperline strictly headless. Convert useful observations into normal static
 facts and still pass exact round-trip verification.
 
 ## Report progress
