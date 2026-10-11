@@ -1462,3 +1462,20 @@ def test_list_projects_requires_project_metadata(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError, match=r"Missing \.project\.json for project: demo"):
         list_projects(project_root=tmp_path)
+
+
+def test_browser_state_remains_readable_during_publication(tmp_path, monkeypatch):
+    from amiga_reversing.disasm import projects
+
+    projects._save_state(tmp_path, projects.BrowserState(recent_projects={"old": "then"}))
+    replace = Path.replace
+    observed = []
+
+    def inspect_before_replace(source, destination):
+        observed.append(projects._load_state(tmp_path).recent_projects)
+        return replace(source, destination)
+
+    monkeypatch.setattr(Path, "replace", inspect_before_replace)
+    projects._save_state(tmp_path, projects.BrowserState(recent_projects={"new": "now"}))
+    assert observed == [{"old": "then"}]
+    assert projects._load_state(tmp_path).recent_projects == {"new": "now"}

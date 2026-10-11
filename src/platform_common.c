@@ -10,6 +10,8 @@
 #include <windows.h>
 #include <bcrypt.h>
 #pragma comment(lib, "bcrypt.lib")
+#else
+#include <openssl/sha.h>
 #endif
 
 char *m68k_platform_dup_string(const char *text) {
@@ -73,10 +75,13 @@ fail:
   if (out_hex != NULL) out_hex[0] = '\0';
   return -1;
 #else
-  (void)data;
-  (void)size;
-  if (out_hex != NULL) out_hex[0] = '\0';
-  return -1;
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+  size_t i;
+  if (data == NULL || out_hex == NULL) return -1;
+  out_hex[0] = '\0';
+  if (SHA256(data, size, digest) == NULL) return -1;
+  for (i = 0; i < sizeof(digest); ++i) snprintf(out_hex + i * 2U, 3U, "%02x", digest[i]);
+  return 0;
 #endif
 }
 

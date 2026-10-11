@@ -7,13 +7,16 @@
 
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 typedef struct TestPair {
   uint32_t left;
   uint32_t right;
 } TestPair;
 
+#ifdef _WIN32
 typedef struct TestVirtualReservedArena {
   unsigned char *base;
   size_t reserve_size;
@@ -23,6 +26,7 @@ typedef struct TestVirtualReservedArena {
   size_t peak_used;
   size_t commit_count;
 } TestVirtualReservedArena;
+#endif
 
 typedef struct TestPoolNode {
   uint32_t left;
@@ -31,6 +35,7 @@ typedef struct TestPoolNode {
   uint32_t flags;
 } TestPoolNode;
 
+#ifdef _WIN32
 static size_t test_align_up(size_t value, size_t alignment) {
   return (value + alignment - 1U) & ~(alignment - 1U);
 }
@@ -79,6 +84,8 @@ static void *test_virtual_arena_alloc(TestVirtualReservedArena *arena, size_t si
 static void test_virtual_arena_reset(TestVirtualReservedArena *arena) {
   if (arena != NULL) arena->used = 0U;
 }
+
+#endif
 
 static int test_builder_appends_and_flattens_growth(void) {
   Arena *arena = arena_create(64U);
@@ -194,6 +201,7 @@ static int test_binary_writer_build_returns_caller_freed_heap_bytes(void) {
   return 0;
 }
 
+#ifdef _WIN32
 static int test_virtual_reserved_arena_prototype_commits_on_demand(void) {
   TestVirtualReservedArena arena;
   unsigned char *first;
@@ -218,6 +226,8 @@ static int test_virtual_reserved_arena_prototype_commits_on_demand(void) {
   M68K_C_ASSERT(arena.base == NULL);
   return 0;
 }
+
+#endif
 
 static int test_growable_pool_reuses_fixed_size_nodes(void) {
   Arena *plain_arena = arena_create(64U);
@@ -337,7 +347,9 @@ int m68k_c_util_arena_tests(void) {
     {"builder_typed_pair_append_uninit", test_builder_typed_pair_append_uninit},
     {"builder_rewind_discards_chunks_and_finalized_storage", test_builder_rewind_discards_chunks_and_finalized_storage},
     {"binary_writer_build_returns_caller_freed_heap_bytes", test_binary_writer_build_returns_caller_freed_heap_bytes},
+#ifdef _WIN32
     {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},
+#endif
     {"growable_pool_reuses_fixed_size_nodes", test_growable_pool_reuses_fixed_size_nodes},
     {"growable_pool_rejects_invalid_config", test_growable_pool_rejects_invalid_config},
     {"decode_ir_result_arrays_use_result_arena", test_decode_ir_result_arrays_use_result_arena},

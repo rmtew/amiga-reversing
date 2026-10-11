@@ -4,7 +4,11 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#ifdef _WIN32
 #include <process.h>
+#else
+#include <unistd.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -120,9 +124,9 @@ static int make_temp_path_local(char *out, size_t out_size) {
   char temp_file[MAX_PATH];
   DWORD dir_len;
 #else
-  const char *dir = getenv("TEMP");
-  uint32_t pid = (uint32_t)_getpid();
-  uint32_t tick = (uint32_t)clock();
+  const char *dir = getenv("TMPDIR");
+  int length;
+  int fd;
 #endif
   if (out == NULL || out_size == 0U) return 0;
 #ifdef _WIN32
@@ -136,8 +140,13 @@ static int make_temp_path_local(char *out, size_t out_size) {
   strcpy(out, temp_file);
   return 1;
 #else
-  if (dir == NULL || dir[0] == '\0') dir = ".";
-  return snprintf(out, out_size, "%s\\amiga_depack_%u_%u.bin", dir, (unsigned)pid, (unsigned)tick) > 0;
+  if (dir == NULL || dir[0] == '\0') dir = "/tmp";
+  length = snprintf(out, out_size, "%s/amiga_depack_XXXXXX", dir);
+  if (length < 0 || (size_t)length >= out_size) return 0;
+  fd = mkstemp(out);
+  if (fd < 0) return 0;
+  close(fd);
+  return 1;
 #endif
 }
 

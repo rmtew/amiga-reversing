@@ -1,3 +1,4 @@
+#include <limits.h>
 /* Internal JSON/inspection implementation for platform_file_lib. */
 #include "platform_file_internal.h"
 #include "m68k_fact_ir.h"

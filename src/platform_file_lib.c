@@ -1,3 +1,6 @@
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #include "platform_file_lib.h"
 #include "platform_file_internal.h"
 #include "json_builder.h"
@@ -106,6 +109,7 @@ static int text_result_to_alloc(PlatformFileTextResult *result, char **out_text)
 }
 
 static int make_temp_output_path(char *path_buf, size_t path_buf_size) {
+#ifdef _WIN32
   char temp_name[L_tmpnam];
   if (tmpnam_s(temp_name, sizeof(temp_name)) != 0)
     return -1;
@@ -113,6 +117,15 @@ static int make_temp_output_path(char *path_buf, size_t path_buf_size) {
     return -1;
   strcpy(path_buf, temp_name);
   strcat(path_buf, ".bin");
+#else
+  char temp_name[] = "/tmp/amiga_rebuild_XXXXXX";
+  int fd;
+  if (path_buf == NULL || path_buf_size < sizeof(temp_name)) return -1;
+  fd = mkstemp(temp_name);
+  if (fd < 0) return -1;
+  close(fd);
+  strcpy(path_buf, temp_name);
+#endif
   return 0;
 }
 

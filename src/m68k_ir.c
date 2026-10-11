@@ -1,3 +1,4 @@
+#include "platform_host_compat.h"
 #include "m68k_ir.h"
 
 #include "generated/amiga_os_runtime.h"

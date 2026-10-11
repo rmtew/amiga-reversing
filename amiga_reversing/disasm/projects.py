@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -225,10 +226,18 @@ def _load_state(project_root: Path) -> BrowserState:
 def _save_state(project_root: Path, state: BrowserState) -> None:
     state_path = _state_path(project_root)
     state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(
-        json.dumps(asdict(state), indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    # Project GET and /open run concurrently in the threaded web server.
+    # Publish complete JSON so readers cannot observe a truncated state file.
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", dir=state_path.parent, delete=False,
+    ) as stream:
+        temporary_path = Path(stream.name)
+        try:
+            stream.write(json.dumps(asdict(state), indent=2, sort_keys=True) + "\n")
+            stream.close()
+            temporary_path.replace(state_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
 
 def _binary_project_record(

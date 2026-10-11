@@ -3705,7 +3705,7 @@ static int format_amiga_value_domain_symbolic_value(const char *domain_name, int
         buf[used] = '\0';
       }
       if (strlen(buf) + strlen(best_name) + 1U > buf_size) return 0;
-      strcat_s(buf, buf_size, best_name);
+      strcat(buf, best_name); /* Capacity checked above. */
       remaining &= ~(uint32_t)best_value;
       wrote = 1;
       if (remaining == 0U) return 1;

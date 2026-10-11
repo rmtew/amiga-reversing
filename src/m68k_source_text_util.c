@@ -1,3 +1,4 @@
+#include "platform_host_compat.h"
 #include "m68k_source_text_util.h"
 
 #include "m68k_parse_util.h"

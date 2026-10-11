@@ -1,3 +1,4 @@
+#include "platform_host_compat.h"
 #include "m68k_c_unit_test.h"
 #include "m68k_analysis_facts_v2.h"
 #include "m68k_backend.h"
