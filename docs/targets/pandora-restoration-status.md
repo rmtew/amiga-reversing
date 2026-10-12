@@ -586,3 +586,42 @@ These are different identities. The earlier ZIP and its receipts remain preserve
   --binary-assets --minimum-asset-size 128 --verify-package \
   --output .runtime-state/pandora-analysis/pandora-reviewed-text-and-audio.zip --json
 ```
+
+## Audio command decoder and configuration cursor
+
+Seven independently reviewed, journal-accepted catalog facts improve the decoder
+through the existing framework.
+Three handler names now describe their actual effects: command `83` enables
+channel DMA and reloads duration; `85` sets the global note-offset byte; `8A`
+stores a sign-extended operand byte in the newly named `audio_duration_multiplier`
+word. The multiplier's consumer uses unsigned `MULU.W` and saves the low 16-bit
+product, so neither positive values nor a real-time tempo rate is asserted.
+Command `83` does not install a sample or clear the pending flag. The existing
+silence handler's hardware writes remain conditional on its shadow-config flag.
+
+The 48-byte channel structure gains only `channel_configuration_cursor_offset`,
+a word at `0x0A`; all 22 previous fields and their attributes remain unchanged.
+The configuration walker advances this byte offset by two, resetting the next
+offset to two on a zero entry. The configuration-selection handler resets it to
+zero. Complete configuration-list bounds and arbitrary-input safety are unknown.
+
+A conservative `data` layout and 11-word array describe the physical dispatch
+prefix `0x4DCE8..0x4DCFE` (22 bytes). The normal zero-extended byte decoder maps
+conditional inputs `80..8A` to the 11 independently checked signed offsets and
+accepted handler entries. Inputs `8B..9F`, a complete 32-word table and exclusive
+allocation are not established. The mutable multiplier word at `0x4DCFE` is
+excluded. The native indirect jump remains unresolved; no fabricated relative
+references or register bindings were added. Eight already meaningful handler
+names, neighboring layouts, disputed code and overlapping banks are preserved.
+
+All 91 inspected instructions (340 bytes) match the original binary. Both
+dependent stages reproduce the complete original with C and independent vasm.
+Final receipt:
+`9b785af8bae5901a731329b6290091db56bd980b57ab1a933afc603392ec5aaa`;
+generated source SHA256:
+`5ea74748e5d50cc51d615dd869ddf7a1de65125ee56c8d750204b56c2dc2cf59`.
+Original output remains 376,832 bytes with SHA256 `70480017...`. Both histories
+retain their earlier prefixes. Existing framework tests, gameplay observations
+and the package at commit `61202504` retain their recorded scope and were reused;
+the package was not regenerated for this semantic source slice. Copied-code
+returns, temporal overwrites, late lineage and alternate execution remain open.

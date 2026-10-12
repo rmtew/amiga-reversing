@@ -314,7 +314,7 @@ audio_channel_runtime_state_current_note RS.B 1
 audio_channel_runtime_state_note_offset RS.B 1
 audio_channel_runtime_state_program_ptr RS.L 1
 audio_channel_runtime_state_channel_configuration_offset RS.W 1
-    RS.B 2
+audio_channel_runtime_state_channel_configuration_cursor_offset RS.W 1
 audio_channel_runtime_state_pitch_sequence_start_ptr RS.L 1
 audio_channel_runtime_state_pitch_sequence_cursor RS.L 1
 audio_channel_runtime_state_pitch_delta_step RS.B 1
@@ -28860,7 +28860,7 @@ abs_0_0005D81C:
 	lea.l audio_player_initialization_presets(pc),a0
 	movea.w $2(a0,d0.w),a0
 	move.w a0,audio_channel_runtime_state_channel_configuration_offset(a1)
-	move.w #$2,$000A(a1)
+	move.w #$2,audio_channel_runtime_state_channel_configuration_cursor_offset(a1)
 	movea.w $0(a3,a0.w),a0
 	adda.l a3,a0
 	move.l a0,audio_channel_runtime_state_program_ptr(a1)
@@ -29135,7 +29135,7 @@ abs_0_0005DBA8:
 	cmp.b #$E0,d0
 	blt.b abs_0_0005DBBE
 	subi.b #223,d0
-	mulu.w abs_0_0005DCFE(pc),d0
+	mulu.w audio_duration_multiplier(pc),d0
 	move.w d0,$001C(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBBE:
@@ -29171,7 +29171,7 @@ abs_0_0005DBFE:
 	bra.w abs_0_0005DA1A
 abs_0_0005DC20:
 	add.b d0,d0
-	lea.l audio_sequence_command_dispatch_offsets(pc),a2
+	lea.l opcode_80_through_8A_relative_words(pc),a2
 	movea.w $0(a2,d0.w),a2
 	jmp $0(a3,a2.w)
 advance_audio_sequence_program:
@@ -29205,11 +29205,11 @@ start_audio_silence_sample:
 	move.w #$20,$00A4(a6)
 abs_0_0005DC92:
 	bra.w abs_0_0005DAAE
-continue_audio_channel_update:
+enable_audio_channel_dma_and_reload_duration:
 	bra.w abs_0_0005DA98
 reset_audio_channels_command:
 	bra.w reset_audio_channels
-set_audio_player_control_byte:
+set_audio_global_note_offset:
 	move.b (a1)+,$052A(a3)
 	bra.w abs_0_0005DA1A
 enable_audio_pitch_modulation:
@@ -29229,15 +29229,15 @@ set_audio_channel_program_configuration:
 	move.b (a1)+,$0009(a0)
 	move.w #$0,$000A(a0)
 	bra.w abs_0_0005DA1A
-set_audio_player_base_note:
+set_audio_duration_multiplier_from_signed_byte:
 	move.b (a1)+,d0
 	ext.w d0
 	move.w d0,$0520(a3)
 	bra.w abs_0_0005DA1A
-audio_sequence_command_dispatch_offsets:
-	dc.b $04,$50,$04,$76,$04,$8C,$04,$B8,$04,$BC,$04,$C0,$04,$C8,$04,$DC
-	dc.b $04,$E4,$04,$EC,$04,$FE
-abs_0_0005DCFE:
+opcode_80_through_8A_relative_words:
+	dc.w $0450,$0476,$048C,$04B8,$04BC,$04C0,$04C8,$04DC	; data
+	dc.w $04E4,$04EC,$04FE	; data
+audio_duration_multiplier:
 	dc.w $0000	; lookup_table
 audio_master_volume:
 	dc.w $0040	; lookup_table
@@ -29257,8 +29257,7 @@ audio_channel_state_records:
 	dc.b $00	; note_offset
 	dc.l $00000000	; program_ptr
 	dc.w $0000	; channel_configuration_offset
-audio_channel_state_records_gap_A_0:
-	dc.w $0000	; typed data block gap
+	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
 	dc.l $00000000	; pitch_sequence_cursor
 	dc.b $00	; pitch_delta_step
@@ -29285,8 +29284,7 @@ audio_channel_state_records_gap_2F_0:
 	dc.b $00	; note_offset
 	dc.l $00000000	; program_ptr
 	dc.w $0000	; channel_configuration_offset
-audio_channel_state_records_gap_3A_1:
-	dc.w $0000	; typed data block gap
+	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
 	dc.l $00000000	; pitch_sequence_cursor
 	dc.b $00	; pitch_delta_step
@@ -29313,8 +29311,7 @@ audio_channel_state_records_gap_5F_1:
 	dc.b $00	; note_offset
 	dc.l $00000000	; program_ptr
 	dc.w $0000	; channel_configuration_offset
-audio_channel_state_records_gap_6A_2:
-	dc.w $0000	; typed data block gap
+	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
 	dc.l $00000000	; pitch_sequence_cursor
 	dc.b $00	; pitch_delta_step
@@ -29341,8 +29338,7 @@ audio_channel_state_records_gap_8F_2:
 	dc.b $00	; note_offset
 	dc.l $00000000	; program_ptr
 	dc.w $0000	; channel_configuration_offset
-audio_channel_state_records_gap_9A_3:
-	dc.w $0000	; typed data block gap
+	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
 	dc.l $00000000	; pitch_sequence_cursor
 	dc.b $00	; pitch_delta_step
