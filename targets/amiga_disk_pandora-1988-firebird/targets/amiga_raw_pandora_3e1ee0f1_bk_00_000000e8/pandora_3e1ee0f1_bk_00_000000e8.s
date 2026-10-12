@@ -304,6 +304,8 @@ world_object_shared_prefix_SIZEOF EQU __RS
 world_position_descriptor_prefix_position_state_ptr RS.L 1
 world_position_descriptor_prefix_world_x RS.W 1
 world_position_descriptor_prefix_world_y RS.W 1
+world_position_descriptor_prefix_previous_world_x RS.W 1
+world_position_descriptor_prefix_previous_world_y RS.W 1
 world_position_descriptor_prefix_SIZEOF EQU __RS
 
 ; STRUCT audio_channel_runtime_state
@@ -347,8 +349,8 @@ audio_player_initialization_preset_SIZEOF EQU __RS
 
 ; STRUCT world_position_state_record
     RSRESET
-world_position_state_record_collision_bounds_ptr RS.L 1
-    RS.B 4
+world_position_state_record_current_geometry_ptr RS.L 1
+world_position_state_record_previous_geometry_ptr RS.L 1
 world_position_state_record_state_node_ptr RS.L 1
 world_position_state_record_world_x_offset RS.W 1
 world_position_state_record_world_y_offset RS.W 1
@@ -362,16 +364,18 @@ world_position_state_record_SIZEOF EQU __RS
 ; STRUCT WorldPositionStateNode
     RSRESET
 WorldPositionStateNode_position_descriptor_ptr RS.L 1
-    RS.B 2
-WorldPositionStateNode_position_descriptor_sequence_ptr RS.L 1
-WorldPositionStateNode_active_flag RS.B 1
-    RS.B 5
-WorldPositionStateNode_position_descriptor_sequence_index RS.W 1
+WorldPositionStateNode_frame_count RS.B 1
+WorldPositionStateNode_phase_step RS.B 1
+WorldPositionStateNode_frame_sequence_ptr RS.L 1
+WorldPositionStateNode_mode_flags RS.B 1
+    RS.B 1
+WorldPositionStateNode_xy_sequence_ptr RS.L 1
+WorldPositionStateNode_frame_index_and_phase RS.W 1
 WorldPositionStateNode_SIZEOF EQU __RS
 
 ; STRUCT WorldPositionDescriptorPointer
     RSRESET
-WorldPositionDescriptorPointer_position_descriptor_ptr RS.L 1
+WorldPositionDescriptorPointer_frame_ptr RS.L 1
 WorldPositionDescriptorPointer_SIZEOF EQU __RS
 
 ; STRUCT WorldPositionAnimationFrame
@@ -666,7 +670,7 @@ abs_0_00010498:
 	bsr.w abs_0_000124F0
 	bsr.w abs_0_000124FE
 	bsr.w update_nearby_object_detection
-	bsr.w snapshot_active_world_object_links
+	bsr.w snapshot_entity_draw_state
 	bsr.w wait_for_next_frame_counter
 	lea.l _custom.l,a5
 	move.w #DMAF_SETCLR|DMAF_RASTER|DMAF_SPRITE,dmacon(a5)
@@ -688,7 +692,7 @@ wait_for_completed_frame:
 	bsr.w update_inventory_panel_availability
 	bsr.w abs_0_00017D48
 	bsr.w handle_inventory_panel_input
-	bsr.w snapshot_active_world_object_links
+	bsr.w snapshot_entity_draw_state
 	bsr.w abs_0_000124FE
 	bsr.w abs_0_0001253C
 	bsr.w update_nearby_object_detection
@@ -1640,7 +1644,7 @@ world_object_command_jump_absolute:
 world_object_command_jump_relative:
 	adda.w $0002(a4),a4
 	rts
-    ; If current position-state bit 3 is clear, set its node from script+2; clear node sequence index and active bit 0. Advance A4 by 6.
+    ; Node selection resets both frame index and phase and clears held-header mode. Attachment variants choose the first state matching flag 3.
 world_object_command_set_node_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1648,12 +1652,11 @@ world_object_command_set_node_if_flag3_clear:
 	bne.b abs_0_000112A2
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a1)
-	bclr.b #0,WorldPositionStateNode_active_flag(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
 abs_0_000112A2:
 	addq.l #6,a4
 	rts
-    ; Follow attachment links to first position state with bit 3 set. Set node from script+2; clear node sequence index and active bit 0. Null link skips update; A4 += 6.
 world_object_command_set_node_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1667,12 +1670,11 @@ abs_0_000112AE:
 abs_0_000112C0:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a1)
-	bclr.b #0,WorldPositionStateNode_active_flag(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
 abs_0_000112D2:
 	addq.l #6,a4
 	rts
-    ; Follow attachment links to first position state with bit 3 clear. Set node from script+2; clear node sequence index and active bit 0. Null link skips update; A4 += 6.
 world_object_command_set_node_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1686,12 +1688,11 @@ abs_0_000112DE:
 abs_0_000112F0:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a1)
-	bclr.b #0,WorldPositionStateNode_active_flag(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
 abs_0_00011302:
 	addq.l #6,a4
 	rts
-    ; If current position-state bit 3 is clear, set node from script+2; clear its sequence index/active bit 0 and set sequence pointer from script+6. Advance A4 by 10.
 world_object_command_set_node_sequence_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1699,13 +1700,12 @@ world_object_command_set_node_sequence_if_flag3_clear:
 	bne.b abs_0_0001132E
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a1)
-	bclr.b #0,WorldPositionStateNode_active_flag(a1)
-	move.l $0006(a4),WorldPositionStateNode_position_descriptor_sequence_ptr(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_0001132E:
 	lea.l $000A(a4),a4
 	rts
-    ; Seek first bit-3-set state via attachments; null skips update. Set node from script+2, clear index/active bit 0, set node sequence pointer from script+6. A4 += 10.
 world_object_command_set_node_sequence_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1719,13 +1719,12 @@ abs_0_0001133C:
 abs_0_0001134E:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a1)
-	bclr.b #0,WorldPositionStateNode_active_flag(a1)
-	move.l $0006(a4),WorldPositionStateNode_position_descriptor_sequence_ptr(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_00011366:
 	lea.l $000A(a4),a4
 	rts
-    ; Seek first bit-3-clear state via attachments; null skips update. Set node from script+2, clear index/active bit 0, set node sequence pointer from script+6. A4 += 10.
 world_object_command_set_node_sequence_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1739,13 +1738,13 @@ abs_0_00011374:
 abs_0_00011386:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
-	clr.w WorldPositionStateNode_position_descriptor_sequence_index(a1)
-	bclr.b #0,WorldPositionStateNode_active_flag(a1)
-	move.l $0006(a4),WorldPositionStateNode_position_descriptor_sequence_ptr(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_0001139E:
 	lea.l $000A(a4),a4
 	rts
-    ; Follow attachments to first position state with bit 3 set, then toggle its node active bit 0. Null link skips update; advance A4 by 2.
+    ; Toggle held-header mode on the first attachment state matching the command's flag-3 predicate.
 world_object_command_toggle_node_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1758,11 +1757,10 @@ abs_0_000113AC:
 	bra.b abs_0_000113AC
 abs_0_000113BE:
 	movea.l world_position_state_record_state_node_ptr(a0),a1
-	bchg.b #0,WorldPositionStateNode_active_flag(a1)
+	bchg.b #0,WorldPositionStateNode_mode_flags(a1)
 abs_0_000113C8:
 	addq.l #2,a4
 	rts
-    ; Follow attachments to first position state with bit 3 clear, then toggle its node active bit 0. Null link skips update; advance A4 by 2.
 world_object_command_toggle_node_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -1775,7 +1773,7 @@ abs_0_000113D4:
 	bra.b abs_0_000113D4
 abs_0_000113E6:
 	movea.l world_position_state_record_state_node_ptr(a0),a1
-	bchg.b #0,WorldPositionStateNode_active_flag(a1)
+	bchg.b #0,WorldPositionStateNode_mode_flags(a1)
 abs_0_000113F0:
 	addq.l #2,a4
 	rts
@@ -2139,7 +2137,7 @@ process_active_world_object_chains:
 abs_0_00012476:
 	movea.l (a1)+,a0
 	movem.l d7/a1,-(a7)
-	bsr.w render_world_object_geometry_chain
+	bsr.w draw_entity_geometry_chain
 	movem.l (a7)+,d7/a1
 	dbf.w d7,abs_0_00012476
 abs_0_00012488:
@@ -2154,12 +2152,13 @@ update_active_world_object_tile_regions:
 abs_0_0001249A:
 	movea.l (a1)+,a0
 	movem.l d7/a1,-(a7)
-	bsr.w update_world_object_tile_region
+	bsr.w restore_entity_background
 	movem.l (a7)+,d7/a1
 	dbf.w d7,abs_0_0001249A
 abs_0_000124AC:
 	rts
-snapshot_active_world_object_links:
+    ; Save current XY and geometry pointers as the footprint used by dirty-tile restoration.
+snapshot_entity_draw_state:
 	move.l app_active_world_object_ptr_table(a6),d0
 	beq.b abs_0_000124DE
 	movea.l d0,a0
@@ -2168,12 +2167,12 @@ snapshot_active_world_object_links:
 	subq.w #1,d7
 abs_0_000124BE:
 	movea.l (a0)+,a1
-	move.l world_position_descriptor_prefix_world_x(a1),$0008(a1)
+	move.l world_position_descriptor_prefix_world_x(a1),world_position_descriptor_prefix_previous_world_x(a1)
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
 	beq.b abs_0_000124DA
 abs_0_000124CC:
 	movea.l d0,a2
-	move.l world_position_state_record_collision_bounds_ptr.w(a2),$0004(a2)
+	move.l world_position_state_record_current_geometry_ptr.w(a2),world_position_state_record_previous_geometry_ptr(a2)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	bne.b abs_0_000124CC
 abs_0_000124DA:
@@ -2211,7 +2210,7 @@ abs_0_0001250E:
 abs_0_0001251C:
 	btst.b #0,$0018(a4)
 	bne.b abs_0_00012528
-	bsr.w abs_0_0001951A
+	bsr.w advance_entity_animation
 abs_0_00012528:
 	move.l $0014(a4),d0
 	beq.b abs_0_00012532
@@ -2380,7 +2379,7 @@ is_player_within_world_object_collision_bounds:
 	movem.l d0-d2/a0-a2,-(a7)
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a1
-	movea.l world_position_state_record_collision_bounds_ptr.w(a1),a2
+	movea.l world_position_state_record_current_geometry_ptr.w(a1),a2
 	move.w world_position_descriptor_prefix_world_x(a0),d0
 	add.w world_position_state_record_world_x_offset(a1),d0
 	add.w world_position_collision_bounds_world_x_origin_offset(a2),d0
@@ -5163,27 +5162,28 @@ copy_world_object_field_36_to_indirect_slot_4:
 copy_world_object_field_30_to_field_36:
 	move.l $0030(a5),$0036(a5)
 	rts
-update_world_object_tile_region:
-	move.l $0000(a0),d0
+    ; Restore background tiles in the saved entity/attachment rectangle, rounded to 16-pixel tile bounds and clipped to the view.
+restore_entity_background:
+	move.l world_position_descriptor_prefix_position_state_ptr.w(a0),d0
 abs_0_00016E02:
 	beq.b abs_0_00016E5A
 	movea.l d0,a4
-	tst.l $0004(a4)
+	tst.l world_position_state_record_previous_geometry_ptr(a4)
 	bne.b abs_0_00016E12
-	move.l $0014(a4),d0
+	move.l world_position_state_record_attachment_state_ptr(a4),d0
 	bra.b abs_0_00016E02
 abs_0_00016E12:
-	move.w $0008(a0),d0
-	move.w $000A(a0),d1
-	bsr.b abs_0_00016E5C
-	bsr.b abs_0_00016E72
+	move.w world_position_descriptor_prefix_previous_world_x(a0),d0
+	move.w world_position_descriptor_prefix_previous_world_y(a0),d1
+	bsr.b get_previous_rect_start
+	bsr.b get_previous_rect_end
 	move.l d4,d2
 	move.l d5,d3
 abs_0_00016E22:
 	move.l $0014(a4),d6
 	beq.w abs_0_00016E9C
 	movea.l d6,a4
-	bsr.b abs_0_00016E5C
+	bsr.b get_previous_rect_start
 	cmp.w d2,d4
 	bcc.b abs_0_00016E34
 	move.w d4,d2
@@ -5192,7 +5192,7 @@ abs_0_00016E34:
 	bcc.b abs_0_00016E3A
 	move.w d5,d3
 abs_0_00016E3A:
-	bsr.b abs_0_00016E72
+	bsr.b get_previous_rect_end
 	swap.w d2
 	swap.w d4
 	cmp.w d2,d4
@@ -5212,20 +5212,21 @@ abs_0_00016E54:
 	bra.b abs_0_00016E22
 abs_0_00016E5A:
 	rts
-abs_0_00016E5C:
-	movea.l $0004(a4),a3
-	move.w $000C(a4),d4
-	move.w $000E(a4),d5
+get_previous_rect_start:
+	movea.l world_position_state_record_previous_geometry_ptr(a4),a3
+	move.w world_position_state_record_world_x_offset(a4),d4
+	move.w world_position_state_record_world_y_offset(a4),d5
 	add.w d0,d4
 	add.w d1,d5
 	add.w $0010(a3),d5
 	rts
-abs_0_00016E72:
-	movea.l $0004(a4),a3
+    ; D4/D5 return packed end:start coordinate pairs for the rectangle union.
+get_previous_rect_end:
+	movea.l world_position_state_record_previous_geometry_ptr(a4),a3
 	swap.w d4
 	swap.w d5
-	move.w $000C(a4),d4
-	move.w $000E(a4),d5
+	move.w world_position_state_record_world_x_offset(a4),d4
+	move.w world_position_state_record_world_y_offset(a4),d5
 	add.w d0,d4
 	add.w d1,d5
 	add.w $000E(a3),d4
@@ -5323,42 +5324,43 @@ abs_0_00016F48:
 abs_0_00016F58:
 	movea.l (a7)+,a0
 	rts
-render_world_object_geometry_chain:
-	movea.l $0000(a0),a0
+draw_entity_geometry_chain:
+	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 abs_0_00016F60:
-	bsr.b render_world_object_geometry_node
+	bsr.b draw_entity_geometry
 	move.l $0014(a0),d0
 	beq.b abs_0_00016F6C
 	movea.l d0,a0
 	bra.b abs_0_00016F60
 abs_0_00016F6C:
 	rts
-render_world_object_geometry_node:
+    ; Draw current geometry at object XY plus animation offsets into the back bitplanes. Fully clipped geometry sets interaction bit 0.
+draw_entity_geometry:
 	movem.l a0/a5,-(a7)
-	tst.l $0000(a0)
+	tst.l world_position_state_record_current_geometry_ptr.w(a0)
 	beq.w abs_0_00017166
-	movea.l $0010(a0),a1
-	move.w $000C(a0),d0
-	move.w $000E(a0),d1
-	add.w $0004(a1),d0
-	add.w $0006(a1),d1
-	movea.l $0000(a0),a2
-	add.w $0010(a2),d1
+	movea.l world_position_state_record_position_descriptor_ptr(a0),a1
+	move.w world_position_state_record_world_x_offset(a0),d0
+	move.w world_position_state_record_world_y_offset(a0),d1
+	add.w world_position_descriptor_prefix_world_x(a1),d0
+	add.w world_position_descriptor_prefix_world_y(a1),d1
+	movea.l world_position_state_record_current_geometry_ptr.w(a0),a2
+	add.w world_position_collision_bounds_world_y_origin_offset(a2),d1
 	movea.l $0000(a2),a3
 	movea.l $0004(a2),a4
 	move.w d0,d2
-	add.w $000E(a2),d2
-	add.w $000C(a2),d2
+	add.w world_position_collision_bounds_world_x_origin_offset(a2),d2
+	add.w world_position_collision_bounds_world_x_extent(a2),d2
 	swap.w d2
 	move.w d0,d2
 	move.w d1,d3
-	add.w $000A(a2),d3
+	add.w world_position_collision_bounds_world_y_extent(a2),d3
 	swap.w d3
 	move.w d1,d3
 	bsr.w clip_tile_region_to_view
 	cmp.b #$F,d4
 	beq.w abs_0_0001716C
-	bclr.b #0,$0018(a0)
+	bclr.b #0,world_position_state_record_interaction_flags(a0)
 	move.w $000A(a2),d7
 	tst.b d4
 	beq.w abs_0_00017174
@@ -5530,7 +5532,7 @@ abs_0_00017166:
 	movem.l (a7)+,a0/a5
 	rts
 abs_0_0001716C:
-	bset.b #0,$0018(a0)
+	bset.b #0,world_position_state_record_interaction_flags(a0)
 	bra.b abs_0_00017166
 abs_0_00017174:
 	bra.b abs_0_0001711E
@@ -6475,13 +6477,13 @@ abs_0_00017E74:
 	add.w d1,d0
 	cmp.w #$2C,d0
 	bcc.b abs_0_00017EC2
-	lea.l abs_0_00059134.l,a3
+	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_5.l,a3
 	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017E90
-	lea.l abs_0_0005916C.l,a3
+	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_19.l,a3
 abs_0_00017E90:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
-	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
+	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
@@ -6495,13 +6497,13 @@ abs_0_00017E90:
 	movea.l (a7)+,a0
 	bra.b abs_0_00017F02
 abs_0_00017EC2:
-	lea.l abs_0_00059150.l,a3
+	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_12.l,a3
 	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017ED6
-	lea.l abs_0_00059188.l,a3
+	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_26.l,a3
 abs_0_00017ED6:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
-	cmpa.l WorldPositionStateNode_position_descriptor_sequence_ptr(a5),a3
+	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
 	beq.b abs_0_00017F02
 	move.l a0,-(a7)
 	move.w #$30F,d0
@@ -6588,14 +6590,14 @@ abs_0_00017FC2:
 	addq.b #1,app_0338(a6)
 abs_0_00017FDE:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
-	bset.b #0,WorldPositionStateNode_active_flag(a3)
+	bset.b #0,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FDE
 abs_0_00017FF4:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
-	bclr.b #0,WorldPositionStateNode_active_flag(a3)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
@@ -7542,7 +7544,7 @@ abs_0_00018D36:
 update_terminal_mode:
 	bsr.w swap_tilemap_context
 	bsr.w render_tilemap_view_to_back_buffer
-	bsr.w snapshot_active_world_object_links
+	bsr.w snapshot_entity_draw_state
 	move.l app_front_bitplane_base(a6),d1
 	move.l app_back_bitplane_base(a6),d0
 	move.l d0,app_front_bitplane_base(a6)
@@ -7809,7 +7811,7 @@ abs_0_0001933A:
 	bne.w abs_0_000193DA
 	move.w world_position_descriptor_prefix_world_x(a1),d4
 	move.w world_position_descriptor_prefix_world_y(a1),d5
-	movea.l world_position_state_record_collision_bounds_ptr.w(a2),a3
+	movea.l world_position_state_record_current_geometry_ptr.w(a2),a3
 	add.w world_position_state_record_world_x_offset(a2),d4
 	add.w world_position_state_record_world_y_offset(a2),d5
 	add.w world_position_collision_bounds_world_x_origin_offset(a3),d4
@@ -7944,66 +7946,68 @@ bind_cursor_sprites_and_palette:
 	move.l (a0)+,(a1)+
 	movem.l (a7)+,a0-a1
 	rts
-abs_0_0001951A:
-	tst.l $0008(a4)
+    ; Animate frames and XY offsets with a byte phase clock. A negative wrapped phase advances the cycle. Headers supply the held pose; mode flags choose chaining, holding or looping at the end.
+advance_entity_animation:
+	tst.l world_position_state_record_state_node_ptr(a4)
 	beq.w abs_0_000195E0
-	movea.l $0008(a4),a0
-	movea.l $0006(a0),a1
-	btst.b #1,$000A(a0)
+	movea.l world_position_state_record_state_node_ptr(a4),a0
+	movea.l WorldPositionStateNode_frame_sequence_ptr(a0),a1
+	btst.b #1,WorldPositionStateNode_mode_flags(a0)
 	bne.w abs_0_000195E0
-	btst.b #0,$000A(a0)
+	btst.b #0,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_00019556
-	move.l (a1),$0000(a4)
-	move.l $000C(a0),d0
+	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)
+	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d0
 	beq.w abs_0_000195E0
 	movea.l d0,a1
-	move.w (a1)+,$000C(a4)
-	move.w (a1),$000E(a4)
+	move.w (a1)+,world_position_state_record_world_x_offset(a4)
+	move.w (a1),world_position_state_record_world_y_offset(a4)
 	bra.w abs_0_000195E0
 abs_0_00019556:
-	move.b $0011(a0),d0
-	add.b $0005(a0),d0
+	move.b WorldPositionStateNode_frame_index_and_phase+1(a0),d0
+	add.b WorldPositionStateNode_phase_step(a0),d0
 	bmi.b abs_0_00019568
-	move.b d0,$0011(a0)
+	move.b d0,WorldPositionStateNode_frame_index_and_phase+1(a0)
 	bra.w abs_0_000195E0
 abs_0_00019568:
-	clr.b $0011(a0)
+	clr.b WorldPositionStateNode_frame_index_and_phase+1(a0)
 	moveq.l #0,d0
-	move.b $0010(a0),d0
+	move.b WorldPositionStateNode_frame_index_and_phase(a0),d0
 	addq.b #1,d0
-	cmp.b $0004(a0),d0
+	cmp.b WorldPositionStateNode_frame_count(a0),d0
 	bcs.b abs_0_000195BE
-	btst.b #3,$000A(a0)
+	btst.b #3,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_00019596
+    ; Chained mode uses an extended node: its next-node pointer at +$12 lies beyond the 18-byte basic record.
 	movea.l $0012(a0),a0
 	clr.w $0010(a0)
 	bclr.b #0,$000A(a0)
-	move.l a0,$0008(a4)
+	move.l a0,world_position_state_record_state_node_ptr(a4)
 	bra.b abs_0_000195E0
 abs_0_00019596:
-	btst.b #2,$000A(a0)
+	btst.b #2,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_000195AA
-	bset.b #0,$000A(a0)
-	move.l (a1),$0000(a4)
+	bset.b #0,WorldPositionStateNode_mode_flags(a0)
+	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)
 	bra.b abs_0_000195E0
 abs_0_000195AA:
-	tst.l $000C(a0)
+	tst.l WorldPositionStateNode_xy_sequence_ptr(a0)
 	beq.b abs_0_000195BC
-	movea.l $000C(a0),a2
-	move.w (a2)+,$000C(a4)
-	move.w (a2),$000E(a4)
+	movea.l WorldPositionStateNode_xy_sequence_ptr(a0),a2
+	move.w (a2)+,world_position_state_record_world_x_offset(a4)
+	move.w (a2),world_position_state_record_world_y_offset(a4)
 abs_0_000195BC:
 	clr.b d0
 abs_0_000195BE:
-	move.b d0,$0010(a0)
+	move.b d0,WorldPositionStateNode_frame_index_and_phase(a0)
 	add.w d0,d0
 	add.w d0,d0
-	move.l $4(a1,d0.w),$0000(a4)
-	move.l $000C(a0),d2
+	move.l $4(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)
+	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d2
 	beq.b abs_0_000195E0
 	movea.l d2,a2
-	move.w $4(a2,d0.w),$000C(a4)
-	move.w $6(a2,d0.w),$000E(a4)
+	move.w $4(a2,d0.w),world_position_state_record_world_x_offset(a4)
+	move.w $6(a2,d0.w),world_position_state_record_world_y_offset(a4)
 abs_0_000195E0:
 	rts
 update_player_world_movement:
@@ -8040,7 +8044,7 @@ abs_0_00019644:
 	add.w $0032(a4),d1
 	movea.l $002C(a4),a1
 	lea.l player_position_state.l,a2
-	movea.l world_position_state_record_collision_bounds_ptr.w(a2),a3
+	movea.l world_position_state_record_current_geometry_ptr.w(a2),a3
 	add.w world_position_state_record_world_x_offset(a2),d0
 	add.w world_position_collision_bounds_world_x_origin_offset(a3),d0
 	move.w d0,d2
@@ -8296,7 +8300,7 @@ abs_0_0001996A:
 	bra.w abs_0_00017D24
 abs_0_00019984:
 	lea.l player_position_state_state_node_ptr.l,a0
-	movea.l (a0),a0	; operand 1: world_position_state_record_collision_bounds_ptr at (a0)
+	movea.l (a0),a0	; operand 1: world_position_state_record_current_geometry_ptr at (a0)
 	clr.w world_position_state_record_position_descriptor_ptr(a0)
 	bset.b #0,$000A(a0)
 	bclr.b #1,$000A(a0)
@@ -8444,7 +8448,7 @@ abs_0_00019BB8:
 run_gameplay_update_loop:
 	bsr.w swap_tilemap_context
 	bsr.w render_tilemap_view_to_back_buffer
-	bsr.w snapshot_active_world_object_links
+	bsr.w snapshot_entity_draw_state
 	move.l app_front_bitplane_base(a6),d1
 	move.l app_back_bitplane_base(a6),d0
 	move.l d0,app_front_bitplane_base(a6)
@@ -26364,113 +26368,134 @@ world_position_descriptors:
 	dc.l world_position_state_records	; position_state_ptr
 	dc.w $0180	; world_x
 	dc.w $0090	; world_y
-	dc.b $01,$80,$00,$90
+	dc.w $0180	; previous_world_x
+	dc.w $0090	; previous_world_y
 world_position_descriptors_position_state_ptr_1:
 	dc.l abs_0_00058D1A	; position_state_ptr
 	dc.w $00D0	; world_x
 	dc.w $01C0	; world_y
-	dc.b $00,$D0,$01,$C0
+	dc.w $00D0	; previous_world_x
+	dc.w $01C0	; previous_world_y
 world_position_descriptors_position_state_ptr_2:
 	dc.l abs_0_00058D34	; position_state_ptr
 	dc.w $01D0	; world_x
 	dc.w $0170	; world_y
-	dc.b $01,$D0,$01,$70
+	dc.w $01D0	; previous_world_x
+	dc.w $0170	; previous_world_y
 world_position_descriptors_position_state_ptr_3:
 	dc.l abs_0_00058D4E	; position_state_ptr
 	dc.w $02A0	; world_x
 	dc.w $01F0	; world_y
-	dc.b $02,$A0,$01,$F0
+	dc.w $02A0	; previous_world_x
+	dc.w $01F0	; previous_world_y
 world_position_descriptors_position_state_ptr_4:
 	dc.l abs_0_00058D68	; position_state_ptr
 	dc.w $03B0	; world_x
 	dc.w $01D0	; world_y
-	dc.b $03,$B0,$01,$D0
+	dc.w $03B0	; previous_world_x
+	dc.w $01D0	; previous_world_y
 world_position_descriptors_position_state_ptr_5:
 	dc.l abs_0_00058D82	; position_state_ptr
 	dc.w $0420	; world_x
 	dc.w $01F0	; world_y
-	dc.b $04,$20,$01,$F0
+	dc.w $0420	; previous_world_x
+	dc.w $01F0	; previous_world_y
 world_position_descriptors_position_state_ptr_6:
 	dc.l abs_0_00058D9C	; position_state_ptr
 	dc.w $04F0	; world_x
 	dc.w $01B0	; world_y
-	dc.b $04,$F0,$01,$B0
+	dc.w $04F0	; previous_world_x
+	dc.w $01B0	; previous_world_y
 world_position_descriptors_position_state_ptr_7:
 	dc.l abs_0_00058DB6	; position_state_ptr
 	dc.w $0240	; world_x
 	dc.w $02C0	; world_y
-	dc.b $02,$40,$02,$C0
+	dc.w $0240	; previous_world_x
+	dc.w $02C0	; previous_world_y
 world_position_descriptors_position_state_ptr_8:
 	dc.l abs_0_00058DD0	; position_state_ptr
 	dc.w $03A0	; world_x
 	dc.w $0300	; world_y
-	dc.b $03,$A0,$03,$00
+	dc.w $03A0	; previous_world_x
+	dc.w $0300	; previous_world_y
 world_position_descriptors_position_state_ptr_9:
 	dc.l abs_0_00058DEA	; position_state_ptr
 	dc.w $0200	; world_x
 	dc.w $0500	; world_y
-	dc.b $02,$00,$05,$00
+	dc.w $0200	; previous_world_x
+	dc.w $0500	; previous_world_y
 world_position_descriptors_position_state_ptr_10:
 	dc.l abs_0_00058E04	; position_state_ptr
 	dc.w $01B0	; world_x
 	dc.w $05B0	; world_y
-	dc.b $01,$B0,$05,$B0
+	dc.w $01B0	; previous_world_x
+	dc.w $05B0	; previous_world_y
 world_position_descriptors_position_state_ptr_11:
 	dc.l abs_0_00058E1E	; position_state_ptr
 	dc.w $02B0	; world_x
 	dc.w $05D0	; world_y
-	dc.b $02,$B0,$05,$D0
+	dc.w $02B0	; previous_world_x
+	dc.w $05D0	; previous_world_y
 world_position_descriptors_position_state_ptr_12:
 	dc.l abs_0_00058E38	; position_state_ptr
 	dc.w $0390	; world_x
 	dc.w $06F0	; world_y
-	dc.b $03,$90,$06,$F0
+	dc.w $0390	; previous_world_x
+	dc.w $06F0	; previous_world_y
 world_position_descriptors_position_state_ptr_13:
 	dc.l abs_0_00058E52	; position_state_ptr
 	dc.w $0390	; world_x
 	dc.w $0580	; world_y
-	dc.b $03,$90,$05,$80
+	dc.w $0390	; previous_world_x
+	dc.w $0580	; previous_world_y
 world_position_descriptors_position_state_ptr_14:
 	dc.l abs_0_00058E6C	; position_state_ptr
 	dc.w $0420	; world_x
 	dc.w $0080	; world_y
-	dc.b $04,$20,$00,$80
+	dc.w $0420	; previous_world_x
+	dc.w $0080	; previous_world_y
 world_position_descriptors_position_state_ptr_15:
 	dc.l abs_0_00058E86	; position_state_ptr
 	dc.w $01C0	; world_x
 	dc.w $06F0	; world_y
-	dc.b $01,$C0,$06,$F0
+	dc.w $01C0	; previous_world_x
+	dc.w $06F0	; previous_world_y
 world_position_descriptors_position_state_ptr_16:
 	dc.l abs_0_00058EA0	; position_state_ptr
 	dc.w $0490	; world_x
 	dc.w $0330	; world_y
-	dc.b $04,$90,$03,$30
+	dc.w $0490	; previous_world_x
+	dc.w $0330	; previous_world_y
 world_position_descriptors_position_state_ptr_17:
 	dc.l abs_0_00058EBA	; position_state_ptr
 	dc.w $0490	; world_x
 	dc.w $0370	; world_y
-	dc.b $04,$90,$03,$70
+	dc.w $0490	; previous_world_x
+	dc.w $0370	; previous_world_y
 world_position_descriptors_position_state_ptr_18:
 	dc.l abs_0_00058ED4	; position_state_ptr
 	dc.w $0234	; world_x
 	dc.w $03C0	; world_y
-	dc.b $02,$34,$03,$C0
+	dc.w $0234	; previous_world_x
+	dc.w $03C0	; previous_world_y
 world_position_descriptors_position_state_ptr_19:
 	dc.l abs_0_00058EEE	; position_state_ptr
 	dc.w $0084	; world_x
 	dc.w $00D0	; world_y
-	dc.b $00,$84,$00,$D0
+	dc.w $0084	; previous_world_x
+	dc.w $00D0	; previous_world_y
 world_position_descriptors_position_state_ptr_20:
 	dc.l abs_0_00058F08	; position_state_ptr
 	dc.w $04F4	; world_x
 	dc.w $06E0	; world_y
-	dc.b $04,$F4,$06,$E0
+	dc.w $04F4	; previous_world_x
+	dc.w $06E0	; previous_world_y
 world_position_descriptors_position_state_ptr_21:
 	dc.l abs_0_00058F22	; position_state_ptr
 	dc.w $00A0	; world_x
 	dc.w $0320	; world_y
-world_position_descriptors_gap_104:
-	dc.l $00A00320	; typed data block gap
+	dc.w $00A0	; previous_world_x
+	dc.w $0320	; previous_world_y
 world_position_state_records:
 	dcb.b $9,$00
 	dc.b $05,$8F,$DC,$00,$00,$00,$00,$00,$05,$8B,$F8,$00,$00,$00,$00,$00
@@ -26567,251 +26592,275 @@ abs_0_00058F22:
 	dc.b $10
 world_position_state_nodes:
 	dc.l world_position_descriptors_position_state_ptr_18	; position_descriptor_ptr
-world_position_state_nodes_gap_4_0:
-	dc.w $0440	; typed data block gap
-	dc.b $00,$05,$91,$20	; position_descriptor_sequence_ptr
-	dc.b $00	; active_flag
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$20	; frame_sequence_ptr
+	dc.b $00	; mode_flags
 world_position_state_nodes_gap_B_0:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_19	; position_descriptor_ptr
-world_position_state_nodes_gap_16_1:
-	dc.w $0440	; typed data block gap
-	dc.l $00059120	; position_descriptor_sequence_ptr
-	dc.b $00	; active_flag
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059120	; frame_sequence_ptr
+	dc.b $00	; mode_flags
 world_position_state_nodes_gap_1D_1:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
-world_position_state_nodes_gap_28_2:
-	dc.w $0440	; typed data block gap
-	dc.b $00,$05,$91,$20	; position_descriptor_sequence_ptr
-	dc.b $00	; active_flag
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$20	; frame_sequence_ptr
+	dc.b $00	; mode_flags
 world_position_state_nodes_gap_2F_2:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
-world_position_state_nodes_gap_3A_3:
-	dc.w $0440	; typed data block gap
-	dc.l $00059120	; position_descriptor_sequence_ptr
-	dc.b $00	; active_flag
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059120	; frame_sequence_ptr
+	dc.b $00	; mode_flags
 world_position_state_nodes_gap_41_3:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
-world_position_state_nodes_gap_4C_4:
-	dc.w $0440	; typed data block gap
-	dc.b $00,$05,$91,$20	; position_descriptor_sequence_ptr
-	dc.b $00	; active_flag
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$20	; frame_sequence_ptr
+	dc.b $00	; mode_flags
 world_position_state_nodes_gap_53_4:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
-world_position_state_nodes_gap_5E_5:
-	dc.w $0440	; typed data block gap
-	dc.l $00059120	; position_descriptor_sequence_ptr
-	dc.b $00	; active_flag
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059120	; frame_sequence_ptr
+	dc.b $00	; mode_flags
 world_position_state_nodes_gap_65_5:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors	; position_descriptor_ptr
-world_position_state_nodes_gap_70_6:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$88	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$88	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_77_6:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
-world_position_state_nodes_gap_82_7:
-	dc.w $0640	; typed data block gap
-	dc.l $00059150	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059150	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_89_7:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
-world_position_state_nodes_gap_94_8:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$88	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$88	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_9B_8:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
-world_position_state_nodes_gap_A6_9:
-	dc.w $0640	; typed data block gap
-	dc.l $00059150	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059150	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_AD_9:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
-world_position_state_nodes_gap_B8_10:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$88	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$88	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_BF_10:
-	dc.b $00,$00,$00
+	dc.b $00	; typed data block gap
 	dc.w $0000
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.w $0000
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
-world_position_state_nodes_gap_CA_11:
-	dc.w $0640	; typed data block gap
-	dc.l $00059150	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059150	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_D1_11:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_6	; position_descriptor_ptr
-world_position_state_nodes_gap_DC_12:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$88	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$88	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_E3_12:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_7	; position_descriptor_ptr
-world_position_state_nodes_gap_EE_13:
-	dc.w $0640	; typed data block gap
-	dc.l $00059188	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059188	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_F5_13:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_8	; position_descriptor_ptr
-world_position_state_nodes_gap_100_14:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$50	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$50	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_107_14:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_9	; position_descriptor_ptr
-world_position_state_nodes_gap_112_15:
-	dc.w $0640	; typed data block gap
-	dc.l $00059188	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059188	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_119_15:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_10	; position_descriptor_ptr
-world_position_state_nodes_gap_124_16:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$50	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$50	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_12B_16:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_11	; position_descriptor_ptr
-world_position_state_nodes_gap_136_17:
-	dc.w $0640	; typed data block gap
-	dc.l $00059188	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059188	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_13D_17:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_12	; position_descriptor_ptr
-world_position_state_nodes_gap_148_18:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$88	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$88	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_14F_18:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_13	; position_descriptor_ptr
-world_position_state_nodes_gap_15A_19:
-	dc.w $0640	; typed data block gap
-	dc.l $00059150	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059150	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_161_19:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_14	; position_descriptor_ptr
-world_position_state_nodes_gap_16C_20:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$88	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$88	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_173_20:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_15	; position_descriptor_ptr
-world_position_state_nodes_gap_17E_21:
-	dc.w $0640	; typed data block gap
-	dc.l $00059188	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059188	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_185_21:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_16	; position_descriptor_ptr
-world_position_state_nodes_gap_190_22:
-	dc.w $0640	; typed data block gap
-	dc.b $00,$05,$91,$88	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$91,$88	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_197_22:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 	dc.l world_position_descriptors_position_state_ptr_17	; position_descriptor_ptr
-world_position_state_nodes_gap_1A2_23:
-	dc.w $0640	; typed data block gap
-	dc.l $00059188	; position_descriptor_sequence_ptr
-	dc.b $01	; active_flag
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $00059188	; frame_sequence_ptr
+	dc.b $01	; mode_flags
 world_position_state_nodes_gap_1A9_23:
-	dc.b $00,$00,$00,$00,$00	; typed data block gap
-	dc.w $0000	; position_descriptor_sequence_index
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 world_position_descriptor_sequence_ptrs:
-	dc.l $00000000	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_18	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_19	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_20	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_21	; position_descriptor_ptr
-abs_0_00059134:
+	dc.l $00000000	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_18	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_19	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_20	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_21	; frame_ptr
+world_position_descriptor_sequence_ptrs_frame_ptr_5:
 	dc.b $00,$05
 	dc.b $8A,$C6
-	dc.l world_position_animation_frames	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_1	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_2	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_3	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_4	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_5	; position_descriptor_ptr
-abs_0_00059150:
-	dc.l world_position_animation_frames	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_5	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_4	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_3	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_2	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_1	; position_descriptor_ptr
-	dc.l world_position_animation_frames	; position_descriptor_ptr
-abs_0_0005916C:
-	dc.l world_position_animation_frames_bitplane_data_ptr_11	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_6	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_7	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_8	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_9	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_10	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_11	; position_descriptor_ptr
-abs_0_00059188:
-	dc.l world_position_animation_frames_bitplane_data_ptr_6	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_11	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_10	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_9	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_8	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_7	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_6	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_17	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_12	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_13	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_14	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_15	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_16	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_17	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_12	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_17	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_16	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_15	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_14	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_13	; position_descriptor_ptr
-	dc.l world_position_animation_frames_bitplane_data_ptr_12	; position_descriptor_ptr
+	dc.l world_position_animation_frames	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_1	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_2	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_3	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_4	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
+world_position_descriptor_sequence_ptrs_frame_ptr_12:
+	dc.l world_position_animation_frames	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_4	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_3	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_2	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_1	; frame_ptr
+	dc.l world_position_animation_frames	; frame_ptr
+world_position_descriptor_sequence_ptrs_frame_ptr_19:
+	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_7	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_8	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_9	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_10	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
+world_position_descriptor_sequence_ptrs_frame_ptr_26:
+	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_10	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_9	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_8	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_7	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_17	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_12	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_13	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_14	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_15	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_16	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_17	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_12	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_17	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_16	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_15	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_14	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_13	; frame_ptr
+	dc.l world_position_animation_frames_bitplane_data_ptr_12	; frame_ptr
 	dc.b $00,$05,$0E,$08,$00,$06,$85,$FC,$00,$02,$00,$20,$00,$20,$00,$00
 	dc.b $00,$00
 abs_0_000591EE:
@@ -27958,7 +28007,7 @@ abs_0_0005AF90:
 abs_0_0005AFFA:
 	lea.l player_position_state_interaction_data_ptr.l,a0
 	lea.l player_position_state_state_node_ptr.l,a4
-	move.l a0,(a4)	; operand 2: world_position_state_record_collision_bounds_ptr at (a4)
+	move.l a0,(a4)	; operand 2: world_position_state_record_current_geometry_ptr at (a4)
 	lea.l abs_0_0005C96E.l,a0
 	move.w #$2710,d0
 	move.w d0,$0004(a0)
@@ -28963,11 +29012,11 @@ player_position_descriptor:
 	dc.l player_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
-	dc.b $00,$00,$00,$00
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
 player_position_state:
-	dc.l $00000000	; collision_bounds_ptr
-player_position_state_gap_4:
-	dc.b $00,$00,$00,$00	; typed data block gap
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
 player_position_state_state_node_ptr:
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset

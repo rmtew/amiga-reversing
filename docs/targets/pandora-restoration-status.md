@@ -95,7 +95,7 @@ than a new coverage metric. No row claims complete subsystem recovery.
 | Title / starfield | Selected star routines, opcode handlers and dispatch identities | State ownership and continuation contracts | Remaining table bounds and indirect paths |
 | World commands / objects | All 33 handler identities and operand contracts; selected object prefixes | Proximity, links and command callee effects | Script instances, arbitrary pointer targets and object lifetime |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks | Geometry consumers and allocation/chain limits | Disputed banks, complete write ownership and DMA constraints |
-| Entity animation / updates | Existing record bindings and frame-sequence identities | Frame clock, current/previous geometry and position snapshots prepared but unapplied | Conditional extended nodes, sequence bounds and attachment cycles |
+| Entity animation / updates | Byte phase/count/mode fields, packed clock, saved XY/geometry, rectangle union and current drawing | Eligibility, variant geometry and complete caller/lifetime coverage | Conditional extended nodes, sequence bounds and attachment cycles |
 | Inventory / trading / NPC | Four-entry records, 81 table identities, selected offer/reset/panel/name/pocket paths | Cursor domains, unmatched-search writes and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
 | Text / fonts / overlays | Reviewed compact and large fonts, masks and rendering contracts | Overlay callback ownership and 128-byte clear versus 64-byte layout | Queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume, secondary streams; eleven sample extents and mutable writers | Phase, arbitrary selector and storage lifetime limits | Remaining caller/state combinations and write ownership |
@@ -833,3 +833,47 @@ and history prefixes are preserved. The four focused catalog, effective
 metadata, exact-addressing and function-fact suites pass: 126 tests. Ruff and
 diff checks pass. The Python service was restarted to load the producer fix;
 the native backend was unchanged. No new runtime execution claim is made.
+
+## Entity animation and saved draw-state restoration
+
+The next programmer-source batch connects animation updates, saved draw state,
+background-tile restoration and current entity drawing. Shared comments explain
+these purposes and the rectangle-union register contract instead of narrating
+loads and stores. Concise routine names connect the phases; scoped input-only
+summaries expose the existing state/descriptor fields in the generated bodies
+without adding register-seed provenance comments. Both null-frame search and
+attachment validity remain qualified in the evidence; later attachments do not
+repeat the initial missing-saved-frame guard.
+
+The descriptor's saved X/Y words fill its existing four-byte gap. Its world
+array remains 22 records with stride 12; the player prefix widens from 8 to 12 bytes
+without moving the state at offset 12 or changing its 30-byte extent. State pointers now
+distinguish current and previous geometry while retaining the existing current
+geometry binding and its collision variant. Animation nodes retain their 18-byte
+basic extent: count and phase-step are bytes, index/phase remain a packed word,
+mode flags and frame/XY sequence pointers have meaningful names, and byte +0xB
+remains unknown. The conditional next-node pointer at+$12 is documented beyond
+the basic record rather than silently expanding every record. The existing
+47-entry frame-pointer array and its bindings remain unchanged.
+
+The byte phase clock advances the index when its wrapped result is negative;
+this is a bit7 test rather than carry or an asserted frame rate. End modes can
+chain, hold the header or loop. Header-frame holding and later eligible XY
+restoration have distinct timing, retained in sidecar evidence. Source review
+also caught stale script comments that called held-header mode an active bit
+and described only an index reset. Two shared node-selection/toggle contracts
+now replace that wording; the redundant narrations were withdrawn through
+normal undo, preserving historical evidence.
+
+Independent review inspected the complete generated diff, actual node/sequence
+records, symbolic geometry accesses, packed-byte expressions and all affected
+consumer comments. Field/layout, typed-input and final consumer-documentation
+checkpoints each reproduce all 376,832 original bytes with C and independent
+vasm. Final receipt: `195e1f5f48c57d733c30c85e7902c6bb956b980d51d1d173651757bc4d4fc858`;
+source SHA256: `ddbca66b055c06179eaae387d8b19047bb7320af23c7dda84ca02532c61e35e4`.
+All unrelated types, data layouts, register/code-entry seeds, runtime references,
+execution views and history prefixes are preserved. No analyzer/renderer
+expansion, new input, native rebuild or runtime execution claim was needed.
+Copied-code return lineage, temporal/late lineage, arbitrary pointer/chain
+safety, complete sequence bounds and alternate placement remain unresolved.
+The remaining script-handler presentation is the next coherent quality pass.
