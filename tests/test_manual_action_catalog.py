@@ -298,6 +298,7 @@ def test_target_code_seed_payload_creates_named_source_entrypoint() -> None:
             "callable_kind": "direct",
             "entry_offset": 0x7BBA,
             "inputs": [{"location": {"kind": "register", "register": "A5", "width": 4}, "value_kind": "struct_ptr", "struct_name": "world_object_shared_prefix"}],
+            "results": [],
                 "effects": {
                     "schema_version": 1,
                     "registers": {"state": "unknown"},

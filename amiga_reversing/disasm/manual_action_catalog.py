@@ -5946,6 +5946,7 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
         "hunk": hunk,
         "callable_kind": callable_kind,
         "inputs": inputs,
+        "results": [],
         "effects": {
             "schema_version": 1,
             "registers": {"state": "unknown"},

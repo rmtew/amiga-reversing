@@ -83,23 +83,24 @@ self-modification. Startup copying executable bytes is already established.
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
 
-| Subsystem / source region | Status | Evidence and next question |
-| --- | --- | --- |
-| Bootstrap `0x00..0x52` | Reviewed interpretation; exact rebuild passed | Four labels and two comments describe fixed-base overlap-safe movement. Full-file C and vasm match; this does not establish alternate-base execution. |
-| Runtime initialization `0x46A..0x5D6` | Setup interpretation reviewed; deeper callees partial | Fixed workspace/supervisor entry, stack reset, initial buffer banks and IRQ setup are accepted. Continue dependent world/resource initialization. |
-| Interrupt hub `0x8E4`, frame service `0x94E` | Dispatch and frame-latch semantics reviewed | Sampled source priority, bounded saves, display pointer updates and completion latch are accepted. Helper/callback effects and allocation bounds remain partial. |
-| Title/starfield `0xBA8..0xF54` | Partial | Existing named star routines and dispatch facts; audit table bounds, continuations and state ownership. |
-| World command interpreter `0x13F4`, table `0x1432..0x14B6` | Handler identity and operand behavior reviewed | All 33 displaced labels corrected through real catalog/runtime identities; 34 comments describe handlers and dispatch. Delay/equality/flag predicates corrected. Script instances, pointer targets and callee effects remain to recover. |
-| World/object/map logic and records | Partial | Existing object structures and link tables; follow interpreter consumers, proximity and object lifetimes. |
-| Inventory `0x26EC..0x2B7E`, trading/reset consumers | Bounded records and selected paths reviewed; subsystem partial | Four-entry tables, panel swaps, name lookup and offer predicates are reviewed below. Arbitrary cursor/input safety, unmatched-search writes and complete lifecycle/caller coverage remain open. |
-| Text/overlay `0x6332..0x66A0` | Partial | Reconcile 128-byte clear versus 64-byte layout and indirect callback ownership. |
-| Tile/geometry `0x6728..0x7216` | Partial | Identify buffer ownership, geometry extents and blitter/DMA address constraints. |
-| Frame/gameplay `0x9C00` | Partial | Resolve absolute callees, frame wait/input helpers and front/back/display pointer lifetimes. |
-| Security/trade/NPC callbacks | Partial | Existing names require contracts and cross-checks against world state/message consumers. |
-| Audio `0x4D7DE..0x4E9D6` | Partial | Four-channel structures exist; recover command/state contracts and distinguish A3 module base/A6 hardware base. |
-| Samples `0x4EAD8` onward | Partial / boundaries pending | Existing eleven packed-sample lengths need owner/consumer and exact extent reconciliation. |
-| Large unclaimed intervals and uncopied tail | Unknown | Trace consumers and address-bearing content before claiming resource boundaries or opaque export safety. |
-| Alternate execution layout | Not implemented/proven | Classify every address family, then test actual changed code/data/DMA placements and reject illegal layouts. |
+Current checklist (2026-10-12): “documented” means the selected facts and
+consumer contracts below are reviewed; “partial” retains a known semantic or
+lifecycle limit. “Unanalysed” identifies the next evidence dependency, rather
+than a new coverage metric. No row claims complete subsystem recovery.
+
+| Subsystem | Documented | Partial | Unanalysed / next dependency |
+| --- | --- | --- | --- |
+| Bootstrap / initialization | Fixed-base overlap-safe copy, continuation, supervisor/stack/workspace and initial buffers | Dependent resource setup and storage lifetimes | Copy-helper return lineage, temporal overwrites and alternate placement |
+| IRQ / frame / gameplay | Dispatch priority, display pointer programming, completion latch; front/back swap with display alias | Callback effects, input phases and buffer ownership | Complete allocation/lifetime and caller coverage |
+| Title / starfield | Selected star routines, opcode handlers and dispatch identities | State ownership and continuation contracts | Remaining table bounds and indirect paths |
+| World commands / objects | All 33 handler identities and operand contracts; selected object prefixes | Proximity, links and command callee effects | Script instances, arbitrary pointer targets and object lifetime |
+| Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks | Geometry consumers and allocation/chain limits | Disputed banks, complete write ownership and DMA constraints |
+| Entity animation / updates | Existing record bindings and frame-sequence identities | Frame clock, current/previous geometry and position snapshots prepared but unapplied | Conditional extended nodes, sequence bounds and attachment cycles |
+| Inventory / trading / NPC | Four-entry records, 81 table identities, selected offer/reset/panel/name/pocket paths | Cursor domains, unmatched-search writes and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
+| Text / fonts / overlays | Reviewed compact and large fonts, masks and rendering contracts | Overlay callback ownership and 128-byte clear versus 64-byte layout | Queue-processing reachability and adjacent storage ownership |
+| Audio / samples | Four-channel commands, lists, programs, pitch/volume, secondary streams; eleven sample extents and mutable writers | Phase, arbitrary selector and storage lifetime limits | Remaining caller/state combinations and write ownership |
+| Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly | Known consumers establish only selected physical prefixes | Purpose and boundaries of remaining spans; no opaque-export safety claim |
+| Alternate execution layout | Address-class constraints identified | Current source identities are conditional on native views | Changed code/data/DMA placement and temporal/late lineage remain unimplemented or unproven |
 
 The parallel asset-export task owns INCBIN packaging and assembler support.
 This ledger can supply reviewed boundaries; it will not create a competing
@@ -790,3 +791,45 @@ scope and were reused; no new runtime claim is made. No analyzer expansion,
 backend rebuild, service restart or new input was required. Copy-helper returns,
 temporal overwrites, late lineage, complete caller/state coverage and alternate
 execution remain unresolved.
+
+## Representative object-script programmer-source correction
+
+A bounded source-quality pass replaces repetitive instruction narration in the
+movement-flags, pointer-copy and six X/Y comparison handlers with concise names
+and three command-specific operand layouts. `cmd_flags`, `cmd_copy` and `cmd_xy`
+emit real RSRESET/RS declarations, and scoped typed input summaries render A4
+operand fields, including the shared comparison tail. All known incoming tail
+edges belong to the same comparison family. No command type is assigned to the
+heterogeneous interpreter cursor. A5's existing object type and names remain
+stable; the copy handler's final LEA length remains numeric.
+
+The interpreter documentation now explains its object-script role, A4/A5 inputs,
+word opcode and variable operand formats, stored continuation, delay countdown
+and entry-only flag gate. One comparison-family comment explains unsigned
+coordinate ordering and the signed displacement's command+6 base; the flags
+handler retains its exceptional low-byte operand convention. The unknown flags
+byte remains an explicit declaration gap. No gameplay motive, arbitrary pointer
+validity, guaranteed loop termination or callee-effect contract is invented.
+Other subsystems' comments and renderer-injected provenance remain outside this
+representative correction; the entity preparation is preserved and unapplied.
+
+The first exact-byte gate did not produce symbolic A4 operands. Its input
+summaries were silently discarded because the existing command builder omitted
+the required empty `results` list. Those ineffective actions were rejected and
+retained in history, then replaced at the same canonical summary identities
+through the corrected command. The producer repair adds only `results: []`; a
+regression follows direct and callback-table catalog commands through Manual
+Action projection into strict effective metadata with empty results and unknown
+effects. There is no new renderer, LEA substitution or ABI machinery.
+
+Independent final generated-source review checked all six comparison bodies and both tails,
+the command fields, unchanged bare-indirect forms and unaffected source outside
+the declarations, selected handlers/interpreter and dispatch references. The
+corrected source reproduces all 376,832 original bytes with C and independent
+vasm. Verification receipt: `e33fd57042d3807286a1938ef560539b879305722a19e81a3ef2f9f99421aaea`;
+generated source SHA256: `f2838777d4157c2195525b832e8c58beede27100aaf1d76d4baa494480ccb367`.
+All previous types, data bindings, register/code-entry seeds, runtime mappings
+and history prefixes are preserved. The four focused catalog, effective
+metadata, exact-addressing and function-fact suites pass: 126 tests. Ruff and
+diff checks pass. The Python service was restarted to load the producer fix;
+the native backend was unchanged. No new runtime execution claim is made.

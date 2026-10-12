@@ -442,6 +442,27 @@ npc_trade_offer_entry_item_id RS.B 1
 npc_trade_offer_entry_trade_threshold RS.B 1
 npc_trade_offer_entry_SIZEOF EQU __RS
 
+; STRUCT cmd_flags
+    RSRESET
+cmd_flags_opcode RS.W 1
+    RS.B 1
+cmd_flags_bits RS.B 1
+cmd_flags_SIZEOF EQU __RS
+
+; STRUCT cmd_copy
+    RSRESET
+cmd_copy_opcode RS.W 1
+cmd_copy_src RS.L 1
+cmd_copy_dst RS.L 1
+cmd_copy_SIZEOF EQU __RS
+
+; STRUCT cmd_xy
+    RSRESET
+cmd_xy_opcode RS.W 1
+cmd_xy_limit RS.L 1
+cmd_xy_disp RS.W 1
+cmd_xy_SIZEOF EQU __RS
+
 DMAF_CLRALL	EQU	$7FFF
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
@@ -1557,66 +1578,60 @@ world_object_command_call_relative:
 	movem.l (a7)+,a4-a5
 	addq.l #4,a4
 	rts
-    ; Store byte script+3 in the object movement-direction flags; advance A4 by 4.
-world_object_command_set_movement_direction_flags:
-	move.b $0003(a4),world_object_shared_prefix_movement_direction_flags(a5)
+    ; Flags use the low byte of a two-byte operand slot; the preceding byte is ignored.
+script_set_move_flags:
+	move.b cmd_flags_bits(a4),world_object_shared_prefix_movement_direction_flags(a5)
 	addq.l #4,a4
 	rts
-    ; Copy a word from the long pointer at script+2 to the long pointer at script+6; advance A4 by 10.
-world_object_command_copy_word:
-	movea.l $0002(a4),a0
-	movea.l $0006(a4),a1
+script_copy_word:
+	movea.l cmd_copy_src(a4),a0
+	movea.l cmd_copy_dst(a4),a1
 	move.w (a0),(a1)
 	lea.l $000A(a4),a4
 	rts
-    ; Compare object X unsigned with the word pointed to by script+2. If X < word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
-world_object_command_branch_if_x_below:
-	movea.l $0002(a4),a0
+    ; Unsigned X/Y tests compare with a referenced word. Taken displacement is signed and relative to its own field (command+6); untaken advances by 8.
+script_x_below:
+	movea.l cmd_xy_limit(a4),a0
 	move.w world_object_shared_prefix_world_x(a5),d0
 	cmp.w (a0),d0
-	bcc.b abs_0_0001122A
-abs_0_00011222:
-	adda.w $0006(a4),a4
+	bcc.b script_compare_next
+script_compare_taken:
+	adda.w cmd_xy_disp(a4),a4
 	addq.l #6,a4
 	rts
-abs_0_0001122A:
+script_compare_next:
 	addq.l #8,a4
 	rts
-    ; Compare object X unsigned with the word pointed to by script+2. If X > word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
-world_object_command_branch_if_x_above:
-	movea.l $0002(a4),a0
+script_x_above:
+	movea.l cmd_xy_limit(a4),a0
 	move.w world_object_shared_prefix_world_x(a5),d0
 	cmp.w (a0),d0
-	bls.b abs_0_0001122A
-	bra.b abs_0_00011222
-    ; Compare object Y unsigned with the word pointed to by script+2. If Y < word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
-world_object_command_branch_if_y_below:
-	movea.l $0002(a4),a0
+	bls.b script_compare_next
+	bra.b script_compare_taken
+script_y_below:
+	movea.l cmd_xy_limit(a4),a0
 	move.w world_object_shared_prefix_world_y(a5),d0
 	cmp.w (a0),d0
-	bcc.b abs_0_0001122A
-	bra.b abs_0_00011222
-    ; Compare object Y unsigned with the word pointed to by script+2. If Y > word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
-world_object_command_branch_if_y_above:
-	movea.l $0002(a4),a0
+	bcc.b script_compare_next
+	bra.b script_compare_taken
+script_y_above:
+	movea.l cmd_xy_limit(a4),a0
 	move.w world_object_shared_prefix_world_y(a5),d0
 	cmp.w (a0),d0
-	bls.b abs_0_0001122A
-	bra.b abs_0_00011222
-    ; Compare object X with the word pointed to by script+2. On equality add signed word script+6 plus 6 to A4; otherwise advance by 8.
-world_object_command_branch_if_x_equal:
-	movea.l $0002(a4),a0
+	bls.b script_compare_next
+	bra.b script_compare_taken
+script_x_equal:
+	movea.l cmd_xy_limit(a4),a0
 	move.w world_object_shared_prefix_world_x(a5),d0
 	cmp.w (a0),d0
-	bne.b abs_0_0001122A
-	bra.b abs_0_00011222
-    ; Compare object Y with the word pointed to by script+2. On equality add signed word script+6 plus 6 to A4; otherwise advance by 8.
-world_object_command_branch_if_y_equal:
-	movea.l $0002(a4),a0
+	bne.b script_compare_next
+	bra.b script_compare_taken
+script_y_equal:
+	movea.l cmd_xy_limit(a4),a0
 	move.w world_object_shared_prefix_world_y(a5),d0
 	cmp.w (a0),d0
-	bne.b abs_0_0001122A
-	bra.b abs_0_00011222
+	bne.b script_compare_next
+	bra.b script_compare_taken
     ; Replace A4 with the long script pointer at script+2; no additional advance.
 world_object_command_jump_absolute:
 	movea.l $0002(a4),a4
@@ -1764,11 +1779,12 @@ abs_0_000113E6:
 abs_0_000113F0:
 	addq.l #2,a4
 	rts
-    ; A5 is the object; A4 is its script pointer. Start dispatch at zero delay with flag 1 clear. Save A4 after each opcode 0..32; loop while delay is zero. Later calls count down pending delay.
+    ; Run an object's behavior script. A5=object; A4=current command. A word opcode (0..32) selects its operand layout; handlers return the next A4, saved back to the object.
 run_world_object_behavior_script:
 	move.l world_object_shared_prefix_behavior_script_ptr(a5),d0
 	beq.b abs_0_00011408
 	movea.l d0,a4
+    ; Null scripts return. Pending delay counts down once per call; flag 1 inhibits dispatch at entry. Valid commands continue until a command sets delay; loop termination is not guaranteed.
 	tst.w world_object_shared_prefix_behavior_script_delay_ticks(a5)
 	beq.b abs_0_0001140A
 	subq.w #1,world_object_shared_prefix_behavior_script_delay_ticks(a5)
@@ -1799,14 +1815,14 @@ world_object_handler_ptrs:
 	dc.l world_object_command_set_delay_ticks
 	dc.l world_object_command_repeat_branch_or_reload
 	dc.l world_object_command_call_absolute
-	dc.l world_object_command_set_movement_direction_flags
-	dc.l world_object_command_copy_word
-	dc.l world_object_command_branch_if_x_below
-	dc.l world_object_command_branch_if_x_above
-	dc.l world_object_command_branch_if_y_below
-	dc.l world_object_command_branch_if_y_above
-	dc.l world_object_command_branch_if_x_equal
-	dc.l world_object_command_branch_if_y_equal
+	dc.l script_set_move_flags
+	dc.l script_copy_word
+	dc.l script_x_below
+	dc.l script_x_above
+	dc.l script_y_below
+	dc.l script_y_above
+	dc.l script_x_equal
+	dc.l script_y_equal
 	dc.l world_object_command_set_x
 	dc.l world_object_command_load_x
 	dc.l world_object_command_set_y

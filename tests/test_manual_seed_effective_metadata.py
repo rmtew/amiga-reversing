@@ -881,6 +881,52 @@ def test_effective_metadata_includes_manual_function_summary(tmp_path: Path) -> 
     ]
 
 
+def test_catalog_function_summaries_survive_manual_projection(tmp_path: Path) -> None:
+    from amiga_reversing.disasm.manual_action_catalog import (
+        target_catalog_manual_payload,
+    )
+
+    for callable_kind, coordinates in (
+        ("direct", {"entry_offset": 0x1206}),
+        ("callback_table", {"table_offset": 0x1432, "entry_count": 33}),
+    ):
+        target_dir = tmp_path / callable_kind
+        target_dir.mkdir()
+        write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+        kind, action_payload = target_catalog_manual_payload(
+            "target.function_summary.add",
+            {
+                "hunk": 0,
+                "callable_kind": callable_kind,
+                **coordinates,
+                "inputs": [
+                    {"location": {"kind": "register", "register": "A4", "width": 4}, "struct_name": "cmd_copy"}
+                ],
+            },
+        )
+        _append_jsonl(
+            target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+            [
+                {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+                _action("a1", 1, kind, **action_payload),
+            ],
+        )
+
+        projected = json.loads(effective_metadata_text(target_dir))["function_summaries"]
+        assert len(projected) == 1, "The command must produce effective metadata, not a discarded annotation"
+        summary = FunctionSummaryMetadata.from_dict(projected[0])
+        assert summary.callable_kind == callable_kind
+        assert summary.inputs[0].location.register == "A4"
+        assert summary.inputs[0].struct_name == "cmd_copy"
+        assert summary.results == ()
+        assert projected[0]["effects"] == {
+            "schema_version": 1,
+            "registers": {"state": "unknown"},
+            "memory": {"state": "unknown"},
+            "escapes": {"state": "unknown"},
+        }
+
+
 def test_function_summary_metadata_rejects_retired_unknown_contract_fields() -> None:
     payload: dict[str, object] = {
         "function_summary_id": "retired-contract-shape",
