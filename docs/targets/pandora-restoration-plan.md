@@ -1,7 +1,8 @@
 # Pandora full source restoration
 
 Status: inventory and plan reviewed; startup, world-command, runtime initialization,
-input, selected world tiles, scene mask banks and selected title records reviewed. The full restoration and
+input, selected world tiles, scene mask banks, selected title records and audio
+input records reviewed. The full restoration and
 alternate-layout gates remain open. Initial baseline: merged `22e55bb5`.
 This is a work plan and derived evidence index, not another semantic fact store.
 Canonical native facts, Manual Action Log and Decision Journal remain authoritative.

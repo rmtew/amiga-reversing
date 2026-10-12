@@ -338,6 +338,8 @@ section_index	start_offset	end_offset	size	classification	ownership_overlap
 0	320682	320686	4	accepted_noncode	False
 0	320686	321014	328	code	False
 0	321014	321870	856	accepted_noncode	False
-0	321870	348894	27024	unclaimed	False
+0	321870	322264	394	unclaimed	False
+0	322264	348170	25906	accepted_noncode	False
+0	348170	348894	724	unclaimed	False
 0	348894	349040	146	code	False
 0	349040	376832	27792	unclaimed	False

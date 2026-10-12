@@ -418,3 +418,37 @@ native reference resolves the call to `0x4D310`. The inferred caller runtime
 265 scoped events with no drops and left backend, metadata and histories
 unchanged. A reviewed generic context/provenance repair is in progress; neither
 the questioned code nor its overlapping resources has been reclassified here.
+
+## Bounded audio input records
+
+Fifty-eight independently reviewed actions clarify `audio_sample_record_stream`
+and define 11 six-byte headers plus 11 sound-sample payloads, with scalar fields,
+byte arrays and two qualified comments. Native PC-relative references establish
+stream source `0x4EAD8` and metadata source `0x4DEB0`. The initializer's DBF count
+10 proves 11 records, each containing a big-endian 32-bit byte length, 16-bit
+period divisor and exactly that many payload bytes. It references payloads
+directly; no decompression occurs on this path. Metadata stride is 12 bytes;
+the initializer stores pointer, length/2 and low word of `0x369E99/divisor`.
+All observed lengths are positive/even and fit DMA word counts; all divisors
+are nonzero with 16-bit quotients. Records end at `0x5500A`: 25,906 bytes total,
+including 66 header bytes and 25,840 payload bytes.
+
+The recognized command path selects metadata by index, stores it at channel
+state+18, and the playback path reads pointer0/length8/period10 into audio DMA
+configuration. Custom-register base and 16-byte channel stride are established
+by native instructions. This does not prove every command index or indirect
+user. Record 7 is mutable: initialization fills its 64-byte payload with 32
+bytes `0xC0` then 32 bytes `0x3F`. A later indexed word writer has unresolved
+complete index bounds. No immutable/exclusive-allocation claim is made. The
+following 64-byte silence-buffer candidate remains excluded pending lifecycle
+and write evidence.
+
+All 249 unique instructions across the saved audio packets match original bytes.
+Both durable histories retain their prefixes. Final full C and vasm equality:
+receipt `23a29bb05d7a0b65c8f7cf9f59eb5aa7b79170fedb57ccda6362e7348d3e7a53`,
+source subject `41d1dff7118d62915d97b66323dcd662410648f8302c8d49966628961e5779a1`.
+The current native partition has 344 disjoint intervals: accepted code 24,394
+bytes, accepted noncode 263,587 bytes, unclaimed 88,851 bytes. Accepted ownership
+is 287,981 bytes (76.42%), still distinct from semantic completion. Audio
+sequence formats, remaining raw regions and actual alternate execution remain
+open, as does the separate native discovery repair.
