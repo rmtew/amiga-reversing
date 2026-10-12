@@ -337,11 +337,12 @@ audio_channel_runtime_state_SIZEOF EQU __RS
 
 ; STRUCT audio_player_initialization_preset
     RSRESET
-    RS.B 2
-audio_player_initialization_preset_channel_0_program_offset RS.W 1
-audio_player_initialization_preset_channel_1_program_offset RS.W 1
-audio_player_initialization_preset_channel_2_program_offset RS.W 1
-audio_player_initialization_preset_channel_3_program_offset RS.W 1
+audio_player_initialization_preset_initial_duration_multiplier_byte RS.B 1
+audio_player_initialization_preset_update_phase_increment RS.B 1
+audio_player_initialization_preset_channel_0_configuration_list_offset RS.W 1
+audio_player_initialization_preset_channel_1_configuration_list_offset RS.W 1
+audio_player_initialization_preset_channel_2_configuration_list_offset RS.W 1
+audio_player_initialization_preset_channel_3_configuration_list_offset RS.W 1
 audio_player_initialization_preset_SIZEOF EQU __RS
 
 ; STRUCT world_position_state_record
@@ -28923,9 +28924,10 @@ update_audio_channels:
 	bne.b abs_0_0005D92A
 	move.b #$6,$052B(a3)
 	bra.b abs_0_0005D8FA
+    ; Sample 7: from zero state, a valid 64B pointer and only these updates, writes use even offsets 0..44 (initial 0..42, then 32..44). Other writers and runtime initialization remain unknown.
 abs_0_0005D92A:
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
-	move.w audio_sample_visualization_offset(pc),d0
+	move.w audio_sample_7_word_write_offset(pc),d0
 	tst.w $0532(a3)
 	bmi.b abs_0_0005D950
 	move.w #$C0C0,$0(a0,d0.w)
@@ -29247,9 +29249,10 @@ audio_global_note_offset:
 	dc.b $00,$06,$00,$00	; lookup_table
 audio_silence_sample_ptr:
 	dc.l $00000000	; lookup_table
-	dc.w $0000
-audio_sample_visualization_offset:
-	dc.w $0000	; lookup_table
+direction_word:
+	dc.w $0000	; data
+audio_sample_7_word_write_offset:
+	dc.w $0000	; data
 audio_channel_state_records:
 	dc.b $00	; channel_flags
 	dc.b $00	; pitch_modulation_flags
@@ -29429,8 +29432,8 @@ audio_pitch_scalars:
 	dc.w $00B5
 	dc.w $00AA
 	dc.w $00A1
-	dc.w audio_player_initialization_presets_gap_14_2-audio_sample_metadata
-	dc.w $008F
+	dc.w $0098
+	dc.w audio_player_initialization_presets_update_phase_increment_1-audio_sample_metadata
 	dc.w $0087
 audio_pitch_sequence_offset_table:
 	dc.b $06,$A0,$06,$A2,$06,$A5,$06,$A8,$06,$AB,$06,$AE,$06,$B0,$06,$B8
@@ -29519,95 +29522,175 @@ audio_sample_metadata_gap_7C_10:
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 audio_player_initialization_presets:
-	dc.w $0304	; typed data block gap
-	dc.w $078E	; channel_0_program_offset
-	dc.w $0774	; channel_1_program_offset
-	dc.w $079A	; channel_2_program_offset
-	dc.w $07A4	; channel_3_program_offset
-audio_player_initialization_presets_gap_A_1:
-	dc.w $0305	; typed data block gap
-	dc.w $0954	; channel_0_program_offset
-	dc.w $094A	; channel_1_program_offset
-	dc.w $095A	; channel_2_program_offset
-	dc.w $0960	; channel_3_program_offset
-audio_player_initialization_presets_gap_14_2:
-	dc.w $0505	; typed data block gap
-	dc.w $0A7E	; channel_0_program_offset
-	dc.w $0A7A	; channel_1_program_offset
-	dc.w $0A82	; channel_2_program_offset
-	dc.w $0A8C	; channel_3_program_offset
-	dc.b $07,$A8,$07,$A8,$07,$EF,$07,$EF,$08,$18,$08,$18,$08,$18,$08,$18
-	dc.b $08,$16,$08,$16,$08,$16,$08,$16,$00,$00,$08,$41,$08,$41,$08,$50
-	dc.b $08,$61,$08,$5F,$00,$00,$08,$7B,$08,$B9,$08,$DC,$08,$DA,$00,$00
-	dc.b $09,$29,$00,$00,$B2,$C7,$86,$04,$04,$E3
+	dc.b $03	; initial_duration_multiplier_byte
+	dc.b $04	; update_phase_increment
+	dc.w $078E	; channel_0_configuration_list_offset
+	dc.w $0774	; channel_1_configuration_list_offset
+	dc.w $079A	; channel_2_configuration_list_offset
+	dc.w $07A4	; channel_3_configuration_list_offset
+	dc.b $03	; initial_duration_multiplier_byte
+audio_player_initialization_presets_update_phase_increment_1:
+	dc.b $05	; update_phase_increment
+	dc.w $0954	; channel_0_configuration_list_offset
+	dc.w $094A	; channel_1_configuration_list_offset
+	dc.w $095A	; channel_2_configuration_list_offset
+	dc.w $0960	; channel_3_configuration_list_offset
+	dc.b $05	; initial_duration_multiplier_byte
+	dc.b $05	; update_phase_increment
+	dc.w $0A7E	; channel_0_configuration_list_offset
+	dc.w $0A7A	; channel_1_configuration_list_offset
+	dc.w $0A82	; channel_2_configuration_list_offset
+	dc.w $0A8C	; channel_3_configuration_list_offset
+program_offsets_with_wrap_zero:
+	dc.w $07A8,$07A8,$07EF,$07EF,$0818,$0818,$0818,$0818	; data
+	dc.w $0816,$0816,$0816,$0816,$0000	; data
+program_offsets_with_wrap_zero_2:
+	dc.w $0841,$0841,$0850,$0861,$085F,$0000	; data
+program_offsets_with_wrap_zero_3:
+	dc.w $087B,$08B9,$08DC,$08DA,$0000	; data
+program_offsets_with_wrap_zero_4:
+	dc.w $0929,$0000	; data
+tokens_and_operands_with_advance_token:
+	dc.b $B2,$C7,$86,$04,$04,$E3	; data
+	dcb.b $8,$18	; data
+	dc.b $1B,$1B	; data
+	dc.b $1B,$1B,$1B,$1B,$1B,$1B
 	dcb.b $8,$18
-	dcb.b $8,$1B
+	dc.b $16,$16
+	dc.b $16,$16,$16,$16,$16,$16
 	dcb.b $8,$18
-	dcb.b $8,$16
-	dcb.b $8,$18
-	dcb.b $8,$1B
-	dcb.b $10,$1D
-	dc.b $80,$B2,$C7,$86,$04,$04,$E3
-	dcb.b $10,$18
-	dcb.b $10,$1D
-	dc.b $80,$88,$01,$B2,$C7,$86,$04,$04,$E3
-	dcb.b $10,$1A
-	dcb.b $10,$18
-	dc.b $88,$00,$80,$C7,$B7,$86,$06,$06,$FF,$24,$27,$24,$22,$24,$27,$29
-	dc.b $1D,$80,$C7,$B7,$86,$06,$06,$FF,$24,$24,$29,$29,$24,$24,$29,$1D
-	dc.b $80,$88,$01,$C0,$FF,$86,$01,$02,$BB,$32,$32,$30,$30,$32,$32,$30
-	dc.b $30,$B5,$26,$26,$24,$24,$32,$32,$30,$30,$88,$00,$80,$C7,$B7,$86
-	dc.b $03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86,$04
-	dc.b $04,$F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7,$86,$03,$03
-	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86,$02,$02,$F3
-	dc.b $33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80,$C2,$BE,$87,$F3,$24
-	dc.b $E3,$1F,$24,$29,$FB,$28,$E3,$1F,$FB,$21,$E3,$2B,$FF,$2D,$F3,$24
-	dc.b $E3,$1F,$24,$29,$FB,$28,$E3,$2B,$FF,$2D,$83,$80,$88,$01,$E3,$83
-	dc.b $C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B,$E7
-	dc.b $2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E7,$2B,$C1
-	dc.b $B3,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B,$E7,$2D
-	dc.b $E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E3,$2B,$BF,$FF
-	dcb.b $8,$82
-	dc.b $88,$00,$80,$87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5
-	dc.b $24,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$20,$E2,$BD,$C5,$24,$E0,$BE
-	dc.b $C3,$24,$80,$00,$09,$86,$09,$86,$09,$9D,$09,$9D,$00,$00,$09,$AE
-	dc.b $09,$D2,$00,$00,$09,$FB,$0A,$22,$00,$00,$0B,$74,$0B,$7D,$0A,$4B
-	dc.b $0A,$4B,$0A,$4B,$0A,$4B,$0B,$77,$0B,$80,$0A,$4B,$0A,$4B,$0A,$4B
-	dc.b $0A,$4B,$0B,$7A,$0B,$83,$0A,$4B,$0A,$4B,$0A,$4B,$0A,$4B,$00,$00
-	dc.b $C7,$B3,$86,$02,$02,$E1
-	dcb.b $10,$1F
+	dc.b $1B,$1B
+	dc.b $1B,$1B,$1B,$1B,$1B,$1B
+	dcb.b $A,$1D
+	dc.b $1D,$1D,$1D,$1D,$1D,$1D,$80
+tokens_and_operands_with_advance_token_2:
+	dc.b $B2,$C7,$86,$04,$04,$E3	; data
+	dcb.b $A,$18	; data
+	dc.b $18,$18,$18,$18,$18,$18
+	dcb.b $A,$1D
+	dc.b $1D,$1D,$1D,$1D,$1D,$1D,$80
+set_note_offset_one_prefix:
+	dc.b $88,$01	; data
+shared_tail_entry_with_advance_token:
+	dc.b $B2,$C7,$86,$04,$04,$E3	; data
+	dcb.b $A,$1A	; data
+	dc.b $1A,$1A,$1A,$1A,$1A,$1A
+	dcb.b $A,$18
+	dc.b $18,$18,$18,$18,$18,$18,$88,$00,$80
+tokens_and_operands_with_advance_token_3:
+	dc.b $C7,$B7,$86,$06,$06,$FF,$24,$27,$24,$22,$24,$27,$29,$1D,$80	; data
+tokens_and_operands_with_advance_token_4:
+	dc.b $C7,$B7,$86,$06,$06,$FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80	; data
+set_note_offset_one_prefix_2:
+	dc.b $88,$01	; data
+shared_tail_entry_with_advance_token_2:
+	dc.b $C0,$FF,$86,$01,$02,$BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26	; data
+	dc.b $26,$24,$24,$32,$32,$30,$30,$88,$00,$80
+tokens_and_operands_with_advance_token_5:
+	dc.b $C7,$B7,$86,$03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83	; data
+	dc.b $C6,$86,$04,$04,$F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7
+	dc.b $86,$03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86
+	dc.b $02,$02,$F3,$33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80
+tokens_and_operands_with_advance_token_6:
+	dc.b $C2,$BE,$87,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$1F,$FB,$21,$E3	; data
+	dc.b $2B,$FF,$2D,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$2B,$FF,$2D,$83
 	dc.b $80
-	dcb.b $10,$1D
-	dc.b $80,$B5,$87,$C0,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$E5,$37,$EB,$37
-	dc.b $E3,$37,$E9,$37,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$E5,$35,$EB,$35
-	dc.b $E3,$35,$E9,$35,$80,$B5,$86,$02,$02,$C7,$E5,$2B,$EB,$2B,$E3,$2B
-	dc.b $E9,$2B,$C6,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C7,$E5,$29,$EB,$29
-	dc.b $E3,$29,$E9,$29,$C6,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$80,$B5,$87
-	dc.b $C0,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E,$E3,$2F
-	dc.b $E9,$2E,$C0,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C1,$E5,$2E,$EB,$2D
-	dc.b $E3,$2E,$E9,$30,$80,$B5,$86,$02,$02,$C7,$E5,$2F,$EB,$2E,$E3,$2F
-	dc.b $E9,$2E,$C6,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C7,$E5,$2E,$EB,$2D
-	dc.b $E3,$2E,$E9,$2D,$C6,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$80,$E1,$BE
-	dc.b $C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5
-	dc.b $24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24
-	dc.b $C3,$24,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$80,$0A,$90,$00
-	dc.b $00,$0A,$C2,$00,$00,$0B,$71,$0B,$0F,$0B,$6E,$0B,$0F,$00,$00,$0B
-	dc.b $5C,$00,$00,$C7,$B3,$86,$04,$04,$88,$03,$E1,$18,$24,$18,$24,$18
-	dc.b $24,$18,$24,$18,$24,$18,$24,$18,$E0,$18,$24,$17,$23,$16,$22,$E1
-	dc.b $15,$21,$15,$21,$15,$21,$15,$21,$15,$21,$15,$21,$15,$E0,$15,$21
-	dc.b $16,$22,$17,$23,$80,$C7,$88,$03,$B5,$86,$03,$03,$E1,$24,$E3,$28
-	dc.b $E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3
-	dc.b $28,$E1,$28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$C6,$E1
-	dc.b $24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28
-	dc.b $E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8
-	dc.b $2B,$80,$C7,$88,$03,$B5,$86,$03,$03,$E1,$28,$E3,$2B,$E1,$2B,$2D
-	dc.b $2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B
-	dc.b $2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$C6,$E1,$28,$E3,$2B
-	dc.b $E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3
-	dc.b $2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$80,$E1
-	dc.b $BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18,$A0
-	dc.b $80,$85,$FF,$80,$85,$00,$80,$85,$01,$80,$85,$02,$80,$85,$03,$80
-	dc.b $88,$FF,$80,$88,$FE,$80,$88,$FD,$80,$BF,$C0,$FF
+set_note_offset_one_prefix_3:
+	dc.b $88,$01	; data
+shared_tail_entry_with_advance_token_3:
+	dc.b $E3,$83,$C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32	; data
+	dc.b $2B,$E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E7
+	dc.b $2B,$C1,$B3,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B
+	dc.b $E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E3,$2B
+	dc.b $BF,$FF
+	dcb.b $8,$82
+	dc.b $88,$00,$80
+tokens_and_operands_with_advance_token_7:
+	dc.b $87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3	; data
+	dc.b $24,$BD,$C5,$24,$BE,$C4,$20,$E2,$BD,$C5,$24,$E0,$BE,$C3,$24,$80
+	dc.b $00
+program_offsets_with_wrap_zero_5:
+	dc.w $0986,$0986,$099D,$099D,$0000	; data
+program_offsets_with_wrap_zero_6:
+	dc.w $09AE,$09D2,$0000	; data
+program_offsets_with_wrap_zero_7:
+	dc.w $09FB,$0A22,$0000	; data
+program_offsets_with_wrap_zero_8:
+	dc.w $0B74,$0B7D,$0A4B,$0A4B,$0A4B,$0A4B,$0B77,$0B80	; data
+	dc.w $0A4B,$0A4B,$0A4B,$0A4B,$0B7A,$0B83,$0A4B,$0A4B	; data
+	dc.w $0A4B,$0A4B,$0000	; data
+tokens_and_operands_with_advance_token_8:
+	dc.b $C7,$B3,$86,$02,$02,$E1	; data
+	dcb.b $A,$1F	; data
+	dc.b $1F,$1F,$1F,$1F,$1F,$1F,$80
+tokens_and_operands_with_advance_token_9:
+	dcb.b $10,$1D	; data
+	dc.b $80
+tokens_and_operands_with_advance_token_10:
+	dc.b $B5,$87,$C0,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$E5,$37,$EB,$37,$E3	; data
+	dc.b $37,$E9,$37,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$E5,$35,$EB,$35,$E3
+	dc.b $35,$E9,$35,$80
+tokens_and_operands_with_advance_token_11:
+	dc.b $B5,$86,$02,$02,$C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5,$2B	; data
+	dc.b $EB,$2B,$E3,$2B,$E9,$2B,$C7,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$C6
+	dc.b $E5,$29,$EB,$29,$E3,$29,$E9,$29,$80
+tokens_and_operands_with_advance_token_12:
+	dc.b $B5,$87,$C0,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E	; data
+	dc.b $E3,$2F,$E9,$2E,$C0,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C1,$E5,$2E
+	dc.b $EB,$2D,$E3,$2E,$E9,$30,$80
+tokens_and_operands_with_advance_token_13:
+	dc.b $B5,$86,$02,$02,$C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C6,$E5,$2F	; data
+	dc.b $EB,$2E,$E3,$2F,$E9,$2E,$C7,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C6
+	dc.b $E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$80
+tokens_and_operands_with_advance_token_14:
+	dc.b $E1,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24	; data
+	dc.b $BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE
+	dc.b $C4,$24,$C3,$24,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$80
+program_offsets_with_wrap_zero_9:
+	dc.w $0A90,$0000	; data
+program_offsets_with_wrap_zero_10:
+	dc.w $0AC2,$0000	; data
+program_offsets_with_wrap_zero_11:
+	dc.w $0B71,$0B0F,$0B6E,$0B0F,$0000	; data
+program_offsets_with_wrap_zero_12:
+	dc.w $0B5C,$0000	; data
+tokens_and_operands_with_advance_token_15:
+	dc.b $C7,$B3,$86,$04,$04,$88,$03,$E1,$18,$24,$18,$24,$18,$24,$18,$24	; data
+	dc.b $18,$24,$18,$24,$18,$E0,$18,$24,$17,$23,$16,$22,$E1,$15,$21,$15
+	dc.b $21,$15,$21,$15,$21,$15,$21,$15,$21,$15,$E0,$15,$21,$16,$22,$17
+	dc.b $23,$80
+tokens_and_operands_with_advance_token_16:
+	dc.b $C7,$88,$03,$B5,$86,$03,$03,$E1,$24,$E3,$28,$E1,$28,$28,$28,$24	; data
+	dc.b $28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1,$28,$28,$28
+	dc.b $25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$C6,$E1,$24,$E3,$28,$E1,$28
+	dc.b $28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1
+	dc.b $28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$80
+tokens_and_operands_with_advance_token_17:
+	dc.b $C7,$88,$03,$B5,$86,$03,$03,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28	; data
+	dc.b $2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B
+	dc.b $28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$C6,$E1,$28,$E3,$2B,$E1,$2B
+	dc.b $2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1
+	dc.b $2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$80
+tokens_and_operands_with_advance_token_18:
+	dc.b $E1,$BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18	; data
+	dc.b $A0,$80
+tokens_and_operands_with_advance_token_19:
+	dc.b $85,$FF,$80	; data
+tokens_and_operands_with_advance_token_20:
+	dc.b $85,$00,$80	; data
+tokens_and_operands_with_advance_token_21:
+	dc.b $85,$01,$80	; data
+tokens_and_operands_with_advance_token_22:
+	dc.b $85,$02,$80	; data
+tokens_and_operands_with_advance_token_23:
+	dc.b $85,$03,$80	; data
+tokens_and_operands_with_advance_token_24:
+	dc.b $88,$FF,$80	; data
+tokens_and_operands_with_advance_token_25:
+	dc.b $88,$FE,$80	; data
+tokens_and_operands_with_advance_token_26:
+	dc.b $88,$FD,$80	; data
+	dc.b $BF,$C0,$FF
 	dcb.b $10,$82
 	dc.b $80
 initialize_audio_sample_metadata:

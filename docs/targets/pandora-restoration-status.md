@@ -625,3 +625,44 @@ retain their earlier prefixes. Existing framework tests, gameplay observations
 and the package at commit `61202504` retain their recorded scope and were reused;
 the package was not regenerated for this semantic source slice. Copied-code
 returns, temporal overwrites, late lineage and alternate execution remain open.
+
+## Connected audio presets, configuration lists and programs
+
+Ninety-six independently reviewed, journal-accepted facts connect the three
+10-byte initialization presets to 12 zero-wrapped configuration lists (134
+bytes), 32 logical program roots and 29 maximal physical program intervals (907
+bytes). Three static immediate callers select presets 0, 1 and 2; this is
+conditional source evidence, not complete caller coverage or runtime reachability.
+Preset fields now distinguish configuration-list offsets from program offsets,
+and expose the duration-multiplier and phase-increment bytes. Existing structure,
+layout and field attributes are preserved except for the intended field names.
+
+All 32 selected programs terminate in command `80`. Three shared-tail entries
+remain visible at `0x4DFF6`, `0x4E03F` and `0x4E0BA`. Their containing programs
+begin with `88 01`, which sets a per-channel note offset; entering the shared tail
+skips that assignment and inherits state. Identical tails do not establish
+identical execution. The single byte at `0x4E127` is excluded. Native indirect
+dispatch remains unresolved; no fabricated relative references, register seeds
+or copied-phase facts were introduced.
+
+A four-byte layout names waveform direction and word-write offset at
+`0x4DD10..0x4DD14`. From the original zero/zero state, a valid reviewed 64-byte
+sample-7 pointer and only the inspected writer updates, offsets are even
+`0..44`: an initial ascending pass followed by a `32..44` cycle. This conditional
+relation does not establish actual initialization, complete writers or lifetime.
+A separately inspected guarded sample initializer resets direction/offset to
+zero/32 after filling the sample; that producer linkage remains the next connected
+refinement rather than changing the original stored zero words.
+
+The new physical layouts describe 1,045 bytes; including the existing 30-byte
+preset records, this checkpoint connects 1,075 bytes. Neither count is a current
+ownership percentage. Both dependent stages reproduce all 376,832 original bytes
+with the C assembler and independent vasm. Final receipt:
+`2ca4d0073643e30bc6608fab4b24d1f3b1ba02044c4d7a36f719c0fb38da0891`;
+generated source SHA256:
+`2e213f628357bbafc1c7f57f0b821cdb4c017377a860737c5ad2898b20a2701c`.
+All 96 actions are accepted with that receipt, preserving both historical prefixes.
+Existing framework tests, gameplay evidence and the package snapshot at
+`61202504` retain their recorded scope and were reused. Disputed copied-code
+bodies, overlapping banks, returns, temporal overwrites and late lineage remain
+unresolved.
