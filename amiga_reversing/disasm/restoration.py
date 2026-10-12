@@ -208,6 +208,8 @@ def _query(target_id, body, current):
     if "field_offset" in filters and (type(filters["field_offset"]) is not int or not -0x80000000 <= filters["field_offset"] <= 0x7FFFFFFF):
         raise ValueError("field_offset must be a signed 32-bit integer")
     kind = filters.get("kind")
+    if filters.get("query") and kind in {"references", "fields", "edges", "gaps"}:
+        raise ValueError(f"query text is unsupported for {kind}")
     artifact = _artifact(target_id)
     if kind == "functions":
         from amiga_reversing.disasm.function_facts import analysis_function_facts

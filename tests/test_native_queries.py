@@ -177,3 +177,25 @@ def test_navigation_keeps_summaries_without_competing_reference_arrays():
         assert target["ref_count"] == 2
         assert target["access_counts"] == {"definition": 1, "reference": 1}
         assert a.query_payload("references", symbol=target["symbol"])["total"] == 1
+
+
+def test_native_instruction_text_query_filters_before_pagination():
+    with artifact("61024e754e75") as a:
+        unfiltered = a.query_payload("instructions", limit=1)
+        assert a.query_payload("instructions", query="", limit=1) == unfiltered
+        first = a.query_payload("instructions", query="rts", limit=1)
+        second = a.query_payload("instructions", query="rts", offset=1, limit=1)
+        assert first["total"] == second["total"] == 2
+        assert first["items"][0]["source_offset"] == 2
+        assert first["has_more"] is True
+        assert second["items"][0]["source_offset"] == 4
+        assert second["has_more"] is False
+        assert a.query_payload("instructions", query="rts", offset=2)["items"] == []
+        assert a.query_payload("instructions", query="RTS")["total"] == 0
+        assert a.query_payload("instructions", query="65370")["total"] == 0
+        assert a.query_payload("instructions", query="ts")["total"] == 2
+        exact = a.query_payload("instructions", query="rts", section_index=0, source_offset=4)
+        assert exact["total"] == 1 and exact["items"][0]["source_offset"] == 4
+        ranged = a.query_payload("instructions", query="rts", source_offset=0, end_offset=4)
+        assert ranged["total"] == 1 and ranged["items"][0]["source_offset"] == 2
+        assert a.query_payload("instructions", query="rts", section_index=99)["total"] == 0

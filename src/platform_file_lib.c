@@ -13573,10 +13573,15 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
         M68kRenderPolicy policy;
         M68kIrRenderResult rendered;
         if (!COORD(ins->source_section_index, ins->source_offset)) continue;
+        m68k_render_policy_init_default(&policy);
+        if (*query) {
+          rendered = m68k_ir_render_one_at_with_policy(&ins->render_instruction, ins->source_offset,
+            &policy, m68k_diag_sink(NULL));
+          if (!strstr(rendered.text, query)) continue;
+        }
         PAGE(); ID(ins->source_section_index, ins->source_offset);
         STR("mnemonic", m68k_ir_instruction_mnemonic_name(&ins->instruction));
-        m68k_render_policy_init_default(&policy);
-        rendered = m68k_ir_render_one_at_with_policy(&ins->render_instruction, ins->source_offset,
+        if (!*query) rendered = m68k_ir_render_one_at_with_policy(&ins->render_instruction, ins->source_offset,
           &policy, m68k_diag_sink(NULL));
         STR("text", rendered.text);
         STR("annotation", ins->comment);

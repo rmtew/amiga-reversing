@@ -471,3 +471,22 @@ def test_symbol_evidence_matches_concrete_source_identity_including_zero(
     ]
     assert item["interpretations"][0]["evidence"]["subject"] == subject
     assert "interpretation_status" not in item
+
+
+@pytest.mark.parametrize("kind", ["references", "fields", "edges", "gaps"])
+def test_unsupported_text_query_refused_before_native_reads(target, kind):
+    with pytest.raises(ValueError, match=f"query text is unsupported for {kind}"):
+        invoke("query", kind=kind, query="65370")
+    assert target.calls == []
+
+
+def test_instruction_text_query_passed_to_native_provider(target):
+    invoke("query", kind="instructions", query="rts", limit=1)
+    assert target.calls[-1]["query"] == "rts"
+    assert target.calls[-1]["kind"] == "instructions"
+
+
+@pytest.mark.parametrize("kind", ["references", "fields", "edges"])
+def test_empty_text_query_keeps_native_query_compatibility(target, kind):
+    invoke("query", kind=kind, query="", limit=1)
+    assert target.calls[-1]["query"] == ""

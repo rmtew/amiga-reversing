@@ -49,6 +49,12 @@ start a new build. Responses include `revision`,
 and `next_cursor`; send that cursor with the same query and revision to continue.
 The server rejects stale cursors rather than joining different snapshots.
 
+`query` text is a case-sensitive literal substring of symbol names for `symbols`
+and generated instruction text for `instructions`; it does not normalize numeric
+values or search instruction annotations. Function queries match names without
+case sensitivity. Nonempty text queries for `references`, `fields`, `edges` and
+`gaps` are refused. Use their supported symbol, field or coordinate filters.
+
 `inspect --row-kind label` selects the label catalog at an address. Function
 relations include `callers`, `callees`, `ranges`, `owned_blocks`,
 `unresolved_transfers`, `entry_evidence` and `name_evidence`. Ownership is a
