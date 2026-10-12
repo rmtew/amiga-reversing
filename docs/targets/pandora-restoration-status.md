@@ -86,8 +86,8 @@ No subsystem is declared fully restored by the inventory.
 | Subsystem / source region | Status | Evidence and next question |
 | --- | --- | --- |
 | Bootstrap `0x00..0x52` | Reviewed interpretation; exact rebuild passed | Four labels and two comments describe fixed-base overlap-safe movement. Full-file C and vasm match; this does not establish alternate-base execution. |
-| Runtime initialization `0x46A..0x5D6` | Hypothesis / partial | Audit stack/application memory, interrupt installation, framebuffers and initial resource consumers. |
-| Interrupt hub `0x8E4`, frame service `0x94E` | Partial | INTREQR handling and callback slots exist; recover callback effects and inherited register context. |
+| Runtime initialization `0x46A..0x5D6` | Setup interpretation reviewed; deeper callees partial | Fixed workspace/supervisor entry, stack reset, initial buffer banks and IRQ setup are accepted. Continue dependent world/resource initialization. |
+| Interrupt hub `0x8E4`, frame service `0x94E` | Dispatch and frame-latch semantics reviewed | Sampled source priority, bounded saves, display pointer updates and completion latch are accepted. Helper/callback effects and allocation bounds remain partial. |
 | Title/starfield `0xBA8..0xF54` | Partial | Existing named star routines and dispatch facts; audit table bounds, continuations and state ownership. |
 | World command interpreter `0x13F4`, table `0x1432..0x14B6` | Handler identity and operand behavior reviewed | All 33 displaced labels corrected through real catalog/runtime identities; 34 comments describe handlers and dispatch. Delay/equality/flag predicates corrected. Script instances, pointer targets and callee effects remain to recover. |
 | World/object/map logic and records | Partial | Existing object structures and link tables; follow interpreter consumers, proximity and object lifetimes. |
@@ -132,7 +132,7 @@ Exporter PR2 was integrated from `3d68fba0` without conflicts. After rebuilding
 the combined backend, 116 focused restoration/runtime-label/package tests passed.
 No new resource classification was added just to enable asset extraction.
 
-## Current original-layout proof
+## Preserved startup original-layout proof
 
 The combined backend produced exact original bytes with both the project
 assembler and vasm: 376,832 bytes, SHA-256
@@ -207,3 +207,32 @@ Next connected audit covers runtime initialization and frame service. 165 saved
 instructions establish the fixed workspace clear, supervisor entry, sampled IRQ
 priority and frame-completion latch. Cursor-buffer ownership, callback clobbers
 and complete buffer placement constraints remain questions for focused consumers.
+
+## Completed initialization/frame/sprite batch
+
+The second connected batch adds 11 canonical labels, 19 comments and three typed
+app slots: status byte at `0x27B`, sprite-0 DMA pointer at `0x20C`, sprite-1 DMA
+pointer at `0x210`. All 33 actions are independently reviewed and accepted in
+the Decision Journal. Their evidence captures workspace clear `[0x39FC,0x3D68)`,
+supervisor/TRAP0 entry and stack reset, fixed framebuffer setup, sampled IRQ
+priority/fallback, precise saved-register subsets, frame-completion signalling,
+blitter setup and cursor pointer/palette binding. All 472 distinct saved
+instruction encodings were corroborated against the original.
+
+The new slot names propagate to all 25 status-byte and four references per sprite
+pointer. Full C and vasm output again matches the complete original payload,
+receipt `c3e8572c84d71c55de745ed1c8eb8049f4c74f0960b5e04706008315ec45faf3`.
+The earlier startup and handler receipts remain preserved historical evidence.
+
+Native instruction queries now filter literal text before pagination; unsupported
+text queries are refused rather than silently ignored. This narrowly supports
+consumer discovery without another analysis store. 67 focused native-query and
+restoration tests pass. Current native searches find exactly two `$65370` uses,
+and confirm the pointer slots' blank/current/reset transitions.
+
+Allocation extents, cursor pixel-data origin, all callback clobbers and legal
+alternate placements remain unresolved. In particular, the seeded blit inherits
+BLTCON1; its stated geometry is not proof of the whole framebuffer allocation.
+A parallel read-only graphics audit has corroborated larger selector/definition
+table bounds; canonical corrections and raw tile-read ownership are the next
+resource slice, with descending-blit direction an explicit precondition.

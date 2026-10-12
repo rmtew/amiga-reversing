@@ -90,8 +90,8 @@ app_01F6 RS.W 1
     RS.B 18
 app_020A RS.B 1
 app_020B RS.B 1
-app_020C RS.L 1
-app_0210 RS.L 1
+app_cursor_sprite0_dma_ptr RS.L 1
+app_cursor_sprite1_dma_ptr RS.L 1
 app_inventory_cursor_x RS.W 1
 app_inventory_cursor_y RS.W 1
 app_0218 RS.W 1
@@ -113,7 +113,7 @@ app_scrolling_message_queue_head RS.L 1
 app_0272 RS.L 1
 app_scrolling_message_queue_tail RS.L 1
 app_message_palette_flash_countdown RS.B 1
-app_027B RS.B 1
+app_status_flags RS.B 1
 app_current_palette RS.L 1
 app_0280 RS.L 1
 app_0284 RS.B 1
@@ -530,7 +530,7 @@ abs_0_0001001E:
     ; At $300, copy $55370 bytes from A1 to $10000, then jump to $1046A. Use forward copy for source >= destination, backward otherwise. The remaining file tail is not copied here.
 fixed_base_image_copy_stub:
 	lea.l abs_0_00010000.l,a2
-	lea.l abs_0_0001046A.l,a3
+	lea.l initialize_runtime_workspace.l,a3
 	move.l #$55370,d0
 	cmpa.l a2,a1
 	bcs.b abs_0_00010046
@@ -559,39 +559,43 @@ abs_0_0001045C:
 	bne.b abs_0_0001045C
 	move #$2700,sr
 	bra.b abs_0_00010498
-abs_0_0001046A:
+    ; Clear $36C bytes at fixed workspace $39FC, then install TRAP0 to enter supervisor setup. This workspace is separate from the copied program image.
+initialize_runtime_workspace:
 	lea.l absolute_slot_000039FC.l,a0
 	move.w #$36B,d0
-abs_0_00010474:
+clear_runtime_workspace_bytes:
 	clr.b (a0)+
-	dbf.w d0,abs_0_00010474
+	dbf.w d0,clear_runtime_workspace_bytes
 	lea.l abs_0_00010452(pc),a7
-	lea.l abs_0_00010488(pc),a0
+	lea.l supervisor_runtime_entry(pc),a0
 	move.l a0,m68k_vector_trap_0_instruction_vector.w
 	trap #0
-abs_0_00010488:
+    ; Set SR=$2700 and bind A6=$39FC. This TRAP0 handler falls into setup without RTE; the later A7 reset discards the trap frame.
+supervisor_runtime_entry:
 	move #$2700,sr
 	lea.l absolute_slot_000039FC.l,a6
 	jsr initialize_world_tilemap_state.l
 abs_0_00010498:
 	lea.l _custom.l,a5
-	lea.l abs_0_00010750(pc),a0
+	lea.l noop_runtime_callback(pc),a0
 	move.w #$7FFF,d0
 	move.w d0,dmacon(a5)
 	move.w d0,intena(a5)
 	move.w d0,intreq(a5)
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l a0,$0190(a6)
+    ; Reset the active stack to source $452 (runtime $10452 here) after supervisor entry. The temporary TRAP0 frame is not returned through.
 	lea.l abs_0_00010452(pc),a7
 	moveq.l #-1,d0
 	move.w d0,bltafwm(a5)
 	move.w d0,bltalwm(a5)
 	clr.w bltcon1(a5)
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_BLITTER,dmacon(a5)
-	bsr.w abs_0_000107CC
+	bsr.w prime_blitter_completion_request
 	jsr initialize_world_state.l
 	lea.l handle_level_3_interrupts(pc),a0
 	move.l a0,m68k_vector_level_3_interrupt_autovector.w
+    ; Configure four bitplanes with modulo 120. The frame callback sets plane starts 40 bytes apart, forming an interleaved plane layout.
 	moveq.l #120,d0
 	move.w d0,bpl1mod(a5)
 	move.w d0,bpl2mod(a5)
@@ -602,6 +606,7 @@ abs_0_00010498:
 	move.w #$D0,ddfstop(a5)	; display fetch stop $D0
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_COPPER|DMAF_BLITTER,dmacon(a5)
 	move #$2000,sr
+    ; Enable master, vertical-blank and Copper interrupts here; BLIT is not enabled by this write. The level-3 handler samples raw request bits.
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
 	bsr.w abs_0_00010F88
 	move.w #DMAF_RASTER,dmacon(a5)
@@ -613,7 +618,8 @@ abs_0_00010498:
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_0001076E(pc),a0
 	move.l a0,app_current_palette(a6)
-	bsr.w abs_0_000166D6
+	bsr.w start_seeded_zero_copy_blit
+    ; Render both fixed buffer banks ($78000, then $70000). Initial front/display is $78000 and back is $70000; these chip-visible placements are not arbitrary-base relocation.
 	move.l #$78000,app_display_bitplane_base(a6)
 	move.l #$78000,app_back_bitplane_base(a6)
 	bsr.w render_tilemap_view_to_back_buffer
@@ -627,21 +633,23 @@ abs_0_00010498:
 	bsr.w abs_0_000124FE
 	bsr.w update_nearby_object_detection
 	bsr.w snapshot_active_world_object_links
-	bsr.w abs_0_0001078E
+	bsr.w wait_for_next_frame_counter
 	lea.l _custom.l,a5
 	move.w #DMAF_SETCLR|DMAF_RASTER|DMAF_SPRITE,dmacon(a5)
 	move.b #$19,app_0284(a6)
-	bra.b abs_0_000105C2
-abs_0_000105A8:
+	bra.b wait_for_completed_frame
+    ; Exchange front/back pointers, select the new front for display, then clear completion bit 5 before waiting for the next completed frame callback.
+swap_front_back_display_buffers:
 	move.l app_front_bitplane_base(a6),d1
 	move.l app_back_bitplane_base(a6),d0
 	move.l d0,app_front_bitplane_base(a6)
 	move.l d1,app_back_bitplane_base(a6)
 	move.l d0,app_display_bitplane_base(a6)
-	bclr.b #5,app_027B(a6)
-abs_0_000105C2:
-	btst.b #5,app_027B(a6)
-	beq.b abs_0_000105C2
+	bclr.b #5,app_status_flags(a6)
+    ; Wait for frame-callback completion bit 5. Initial entry skips the buffer exchange/clear; later loop iterations clear the latch before waiting.
+wait_for_completed_frame:
+	btst.b #5,app_status_flags(a6)
+	beq.b wait_for_completed_frame
 	bsr.w abs_0_00012EE6
 	bsr.w update_inventory_panel_availability
 	bsr.w abs_0_00017D48
@@ -689,7 +697,7 @@ abs_0_00010676:
 	bne.b abs_0_00010688
 	bra.w abs_0_00010456
 abs_0_00010688:
-	btst.b #4,app_027B(a6)
+	btst.b #4,app_status_flags(a6)
 	bne.b abs_0_000106D2
 	lea.l absolute_slot_0000397C.l,a0
 	tst.b $0056(a0)
@@ -711,7 +719,7 @@ abs_0_000106BA:
 	move.w #$1,app_02CA(a6)
 	jsr abs_0_0001A152.l
 abs_0_000106D2:
-	bra.w abs_0_000105A8
+	bra.w swap_front_back_display_buffers
 return_immediately:
 	rts
 abs_0_000106D8:
@@ -740,8 +748,9 @@ abs_0_00010724:
 	move.b #$46,app_02CC(a6)
 	jsr abs_0_0005C9AE.l
 abs_0_0001074C:
-	bra.w abs_0_000105A8
-abs_0_00010750:
+	bra.w swap_front_back_display_buffers
+    ; No-op callback used as the initial vertical-blank target until setup installs the full frame callback.
+noop_runtime_callback:
 	rts
 apply_current_palette:
 	movea.l app_current_palette(a6),a0
@@ -760,7 +769,8 @@ abs_0_0001076E:
 abs_0_00010772:
 	dc.b $0A,$AA,$0E,$4E,$08,$0C,$0E,$00,$00,$8E,$00,$2C,$00,$A0,$00,$60
 	dc.b $0E,$C0,$0E,$A6,$0A,$60,$06,$20,$00,$00,$0E,$EE
-abs_0_0001078E:
+    ; Snapshot the long frame counter and wait until it changes; preserve D0. This requires the active frame callback to keep advancing the counter.
+wait_for_next_frame_counter:
 	move.l d0,-(a7)
 	move.l app_frame_counter(a6),d0
 abs_0_00010794:
@@ -785,7 +795,8 @@ abs_0_0001079E:
 abs_0_000107C6:
 	bsr.w enqueue_ui_overlay_update
 	rts
-abs_0_000107CC:
+    ; Start a one-row, one-word A-to-D copy with source and destination both $77D00. No local wait; the later seeded-copy routine waits for the BLIT completion request.
+prime_blitter_completion_request:
 	movea.l #$77D00,a0
 	move.l a0,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
@@ -870,10 +881,12 @@ abs_0_00010886:
 	clr.b ciacra(a0)
 	move.w #$809,$009C(a5)
 	rts
+    ; Save D0/A0-A1/A5-A6 and bind workspace/custom bases. Callbacks must return with A5 still pointing to custom registers for acknowledgement; other clobbers need separate contracts.
 handle_level_3_interrupts:
 	movem.l d0/a0-a1/a5-a6,-(a7)
 	lea.l absolute_slot_000039FC.l,a6
 	lea.l _custom.l,a5
+    ; Sample raw INTREQR without INTENA filtering. Prefer Copper, then VBL, then BLIT; service/ack one selected source and return. If none matches, clear remaining sampled request bits.
 	move.w intreqr(a5),d0	; interrupt request state
 	btst #4,d0
 	beq.b abs_0_00010910
@@ -903,8 +916,9 @@ abs_0_00010940:
 	move.w d0,$009C(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
+    ; Clear frame-completion bit 5 on entry, increment the frame counter and install display pointers. Completion is signalled only after the later keyboard poll.
 handle_vertical_blank_frame_update:
-	bclr.b #5,app_027B(a6)
+	bclr.b #5,app_status_flags(a6)
 	movem.l d1/a2,-(a7)
 	addq.l #1,app_frame_counter(a6)
 	movea.l app_display_bitplane_base(a6),a0
@@ -932,18 +946,20 @@ handle_vertical_blank_frame_update:
 	lea.l $0040(a0),a0
 	move.w d0,(a0)+
 	move.w d1,(a0)+
-	move.l app_020C(a6),$0120(a5)
-	move.l app_0210(a6),$0124(a5)
+	move.l app_cursor_sprite0_dma_ptr(a6),$0120(a5)
+	move.l app_cursor_sprite1_dma_ptr(a6),$0124(a5)
 	btst.b #7,app_ui_flags(a6)
 	bne.b abs_0_000109CC
 	bsr.w update_scrolling_message_ticker
+    ; Preserve D2-D7/A3-A6 around audio service, in addition to the callback D1/A2 save. This wrapper does not prove the other helpers preserve all remaining registers.
 abs_0_000109CC:
 	movem.l d2-d7/a3-a6,-(a7)
 	jsr update_audio_channels.l
 	movem.l (a7)+,d2-d7/a3-a6
 	movem.l (a7)+,d1/a2
 	bsr.w poll_keyboard_serial_input
-	bset.b #5,app_027B(a6)
+    ; Signal frame-callback completion after keyboard polling. Main-loop waits use this latch; it is not an input-event flag.
+	bset.b #5,app_status_flags(a6)
 	rts
 abs_0_000109EA:
     ; display layout 4 bitmap planes $00075000..$00075078 step $28
@@ -1001,7 +1017,7 @@ abs_0_00010AA2:
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 abs_0_00010AB8:
-	bset.b #7,app_027B(a6)
+	bset.b #7,app_status_flags(a6)
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
@@ -1194,7 +1210,7 @@ finish_starfield_initialization:
 abs_0_00010D76:
 	clr.w (a0)+
 	dbf.w d7,abs_0_00010D76
-	bset.b #2,app_027B(a6)
+	bset.b #2,app_status_flags(a6)
 	move.b #$10,app_0285(a6)
 	rts
 update_starfield:
@@ -1213,7 +1229,7 @@ abs_0_00010DA6:
 abs_0_00010DAE:
 	lea.l $000A(a2),a2
 	dbf.w d7,abs_0_00010D94
-	btst.b #2,app_027B(a6)
+	btst.b #2,app_status_flags(a6)
 	beq.b abs_0_00010DDE
 	moveq.l #7,d7
 	lea.l abs_0_00010AF8(pc),a2
@@ -1222,7 +1238,7 @@ abs_0_00010DAE:
 	jsr add_rgb12_palette_components.l
 	subq.b #1,app_0285(a6)
 	bne.b abs_0_00010DDE
-	bclr.b #2,app_027B(a6)
+	bclr.b #2,app_status_flags(a6)
 abs_0_00010DDE:
 	rts
 abs_0_00010DE0:
@@ -1345,7 +1361,7 @@ abs_0_00010F86:
 	rts
 abs_0_00010F88:
 	move.l #$70000,app_front_bitplane_base(a6)
-	bsr.w abs_0_000166D6
+	bsr.w start_seeded_zero_copy_blit
 	move.w #INTF_INTEN,intena(a5)
 	move.w #DMAF_MASTER,dmacon(a5)
 	bsr.w initialize_starfield
@@ -1409,7 +1425,7 @@ abs_0_00011070:
 	bsr.w abs_0_000107F0
 	tst.b app_022F(a6)
 	beq.w abs_0_00010FD2
-	bset.b #1,app_027B(a6)
+	bset.b #1,app_status_flags(a6)
 	jsr reset_audio_channels.l
 	move.w #$107,d0
 	jsr start_feedback_audio_sequence.l
@@ -2393,10 +2409,10 @@ abs_0_00012754:
 	bsr.w enqueue_ui_overlay_update
 	clr.w app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
-	bra.w abs_0_000194E2
+	bra.w bind_cursor_sprites_and_palette
 close_inventory_panel:
 	bsr.w reset_inventory_panel_state
-	bsr.w abs_0_000194C0
+	bsr.w hide_cursor_sprite_pointers
 	bclr.b #1,app_033C(a6)
 	move.b #$6C,d0
 	lea.l app_carried_item_ids(a6),a0
@@ -2447,7 +2463,7 @@ open_nearby_object_inventory_panel:
 	bsr.w enqueue_ui_overlay_update
 	move.w #$C0,app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
-	bsr.w abs_0_000194E2
+	bsr.w bind_cursor_sprites_and_palette
 	rts
 build_carried_item_name_list:
 	movem.l d0/d7/a0-a2,-(a7)
@@ -2496,7 +2512,7 @@ abs_0_000128BC:
 	or.w d0,$000A(a0)
 	or.w d0,$000C(a0)
 abs_0_000128CC:
-	bsr.w abs_0_000194E2
+	bsr.w bind_cursor_sprites_and_palette
 	movea.l (a7)+,a0
 	rts
 handle_inventory_panel_input:
@@ -2566,7 +2582,7 @@ advance_inventory_cursor_move:
 	move.w app_inventory_cursor_y_step(a6),d0
 	add.w d0,app_inventory_cursor_y(a6)
 	subq.w #1,app_inventory_cursor_move_countdown(a6)
-	bra.w abs_0_000194E2
+	bra.w bind_cursor_sprites_and_palette
 finalize_inventory_selection:
 	bset.b #5,app_ui_flags(a6)
 	bsr.w refresh_selected_item_name_display
@@ -2942,7 +2958,7 @@ abs_0_00012E79:
 abs_0_00012E8A:
 	movem.l d0-d2/d7/a0-a1,-(a7)
 	moveq.l #3,d7
-	bclr.b #3,app_027B(a6)
+	bclr.b #3,app_status_flags(a6)
 	lea.l abs_0_00012E79(pc),a0
 	lea.l abs_0_00012EE0(pc),a1
 	movea.l a1,a3
@@ -2953,12 +2969,12 @@ abs_0_00012EA0:
 	move.b $0(a0,d0.w),d2
 	cmp.b #$30,d2
 	bne.b abs_0_00012EC0
-	btst.b #3,app_027B(a6)
+	btst.b #3,app_status_flags(a6)
 	bne.b abs_0_00012EC6
 	move.b #$20,d2
 	bra.b abs_0_00012EC6
 abs_0_00012EC0:
-	bset.b #3,app_027B(a6)
+	bset.b #3,app_status_flags(a6)
 abs_0_00012EC6:
 	btst.b d7,app_02C2(a6)
 	beq.b abs_0_00012ECE
@@ -4526,7 +4542,8 @@ abs_0_000166C2:
 	bsr.w abs_0_000165E0
 	bset.b #7,$0006(a5)
 	rts
-abs_0_000166D6:
+    ; Wait/ack BLIT completion; seed 40 zero bytes at $70000, then start A-to-D copy $70000->$70028, 656 rows x 40 words, zero modulo. BLTCON1 is inherited; full allocation bounds remain open.
+start_seeded_zero_copy_blit:
 	movea.l #$70000,a0	; bitmap memory plane 4 base $00070000
 	move.l a0,app_front_bitplane_base(a6)
 	lea.l _custom.l,a5
@@ -6315,11 +6332,11 @@ objects_traded_message:
 start_trade_result_countdown:
 	move.l d0,d7
 abs_0_00017D24:
-	bset.b #4,app_027B(a6)
+	bset.b #4,app_status_flags(a6)
 	move.b app_02C9(a6),app_0289(a6)
 	rts
 abs_0_00017D32:
-	bset.b #4,app_027B(a6)
+	bset.b #4,app_status_flags(a6)
 	move.b #$2,app_0289(a6)
 	clr.w app_0296(a6)
 	clr.w app_0298(a6)
@@ -6327,7 +6344,7 @@ abs_0_00017D32:
 abs_0_00017D48:
 	subq.b #1,app_0289(a6)
 	bne.b abs_0_00017D60
-	bclr.b #4,app_027B(a6)
+	bclr.b #4,app_status_flags(a6)
 	clr.w app_0296(a6)
 	clr.w app_0298(a6)
 	bra.w abs_0_00017D9C
@@ -7503,9 +7520,9 @@ abs_0_00019016:
 	jsr abs_0_000107F0.l
 	bne.b abs_0_00019016
 abs_0_0001901E:
-	bclr.b #5,app_027B(a6)
+	bclr.b #5,app_status_flags(a6)
 abs_0_00019024:
-	btst.b #5,app_027B(a6)
+	btst.b #5,app_status_flags(a6)
 	beq.b abs_0_00019024
 	bsr.w abs_0_00012D2A
 	jsr abs_0_000107F0.l
@@ -7535,7 +7552,7 @@ abs_0_00019088:
 	bne.b abs_0_00019088
 	clr.w app_0296(a6)
 	clr.w app_0298(a6)
-	bset.b #4,app_027B(a6)
+	bset.b #4,app_status_flags(a6)
 	move.b #$2,app_0289(a6)
 	bsr.w swap_tilemap_context
 	move.l #$4000,app_tilemap_base(a6)
@@ -7863,23 +7880,25 @@ abs_0_000194AC:
 	move.w app_inventory_cursor_x(a6),app_0218(a6)
 	move.w app_inventory_cursor_y(a6),app_021A(a6)
 	rts
-abs_0_000194C0:
+    ; On the first transition of flag bit 0, replace both cursor sprite pointers with blank sprite data and move cursor X off-screen to 420. Preserve A0.
+hide_cursor_sprite_pointers:
 	bset.b #0,app_020A(a6)
 	bne.b abs_0_000194E0
 	move.l a0,-(a7)
 	lea.l blank_sprite_data.l,a0
-	move.l a0,app_020C(a6)
-	move.l a0,app_0210(a6)
+	move.l a0,app_cursor_sprite0_dma_ptr(a6)
+	move.l a0,app_cursor_sprite1_dma_ptr(a6)
 	move.w #$1A4,app_inventory_cursor_x(a6)
 	movea.l (a7)+,a0
 abs_0_000194E0:
 	rts
-abs_0_000194E2:
+    ; Bind cursor sprite pointers to fixed RAM $65370/$653B4 and copy 16 palette words to COLOR16..31. The buffers begin at the copied image end; original tail ownership is unresolved.
+bind_cursor_sprites_and_palette:
 	movem.l a0-a1,-(a7)
 	lea.l $00065370.l,a0
-	move.l a0,app_020C(a6)
+	move.l a0,app_cursor_sprite0_dma_ptr(a6)
 	lea.l $0044(a0),a0
-	move.l a0,app_0210(a6)
+	move.l a0,app_cursor_sprite1_dma_ptr(a6)
 	lea.l abs_0_000134C2.l,a0
 	lea.l _custom+color+$20.l,a1
 	move.l (a0)+,(a1)+
@@ -7958,7 +7977,7 @@ update_player_world_movement:
 	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
 	bne.w abs_0_00019984
-	btst.b #4,app_027B(a6)
+	btst.b #4,app_status_flags(a6)
 	bne.w abs_0_000199AA
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.w abs_0_000199AA
@@ -8249,7 +8268,7 @@ abs_0_00019984:
 	bset.b #0,$000A(a0)
 	bclr.b #1,$000A(a0)
 	move.w #$1,abs_0_0005C31A.l
-	bclr.b #6,app_027B(a6)
+	bclr.b #6,app_status_flags(a6)
 abs_0_000199AA:
 	rts
 abs_0_000199AC:
@@ -8404,9 +8423,9 @@ abs_0_00019C2A:
 	jsr abs_0_000107F0.l
 	bne.b abs_0_00019C2A
 abs_0_00019C32:
-	bclr.b #5,app_027B(a6)
+	bclr.b #5,app_status_flags(a6)
 abs_0_00019C38:
-	btst.b #5,app_027B(a6)
+	btst.b #5,app_status_flags(a6)
 	beq.b abs_0_00019C38
 	bsr.w abs_0_00012D2A
 	jsr abs_0_000107F0.l
@@ -8433,7 +8452,7 @@ abs_0_00019C88:
 	beq.b abs_0_00019C32
 	clr.w app_0296(a6)
 	clr.w app_0298(a6)
-	bset.b #4,app_027B(a6)
+	bset.b #4,app_status_flags(a6)
 	move.b #$2,app_0289(a6)
 	bsr.w swap_tilemap_context
 	move.l #$4000,app_tilemap_base(a6)
@@ -8669,8 +8688,8 @@ abs_0_00019F82:
 	clr.b app_031B(a6)
 	clr.l app_nearest_object_ptr(a6)
 	clr.l app_02D4(a6)
-	clr.l app_020C(a6)
-	clr.l app_0210(a6)
+	clr.l app_cursor_sprite0_dma_ptr(a6)
+	clr.l app_cursor_sprite1_dma_ptr(a6)
 	moveq.l #15,d7
 	lea.l app_02DA(a6),a0
 abs_0_00019FC4:
@@ -8715,7 +8734,7 @@ abs_0_0001A056:
 	move.l d0,(a0)
 	move.w #$EEE,app_0230(a6)
 	clr.b app_ui_flags(a6)
-	clr.b app_027B(a6)
+	clr.b app_status_flags(a6)
 	clr.b app_02A6(a6)
 	clr.b app_033C(a6)
 	clr.b app_world_interaction_flags(a6)
