@@ -532,3 +532,57 @@ Both histories preserve their earlier prefixes. The new conditional records add
 percentage. The pre-refusal coverage snapshot remains dated. No disputed
 copied-code body, overlapping bank, audio stream grammar or alternate layout was
 accepted as part of this slice.
+
+## Bounded pitch and volume sequence records
+
+Forty-seven independently reviewed actions describe two conservative `data`
+layouts and 45 physical elements. The 13 reviewed pitch streams occupy
+`0x4DE7E..0x4DEB0` (50 bytes), represented as byte arrays including their first
+flagged byte. The consumer applies that byte's low seven bits to the note index,
+then resets the next cursor to the selected start when bit 7 was set. Selectors
+13..15 remain outside the reviewed table prefix; this does not establish invalid
+input or the end of the complete table.
+
+The 16 volume records occupy `0x4E9D6..0x4EAD6` (256 bytes), each with an unsigned
+byte countdown-reload header and a byte-array body. Their first body bytes all
+have bit 7 clear. Later flagged bytes hold the saved cursor and are reread on
+eligible updates; their low seven bits supply the value scaled by master volume.
+After initialization/reload, header values 1, 2 and 255 imply 2, 3 and 256 visits
+to this update path between eligible reads, without a wall-clock timing claim.
+The original NOP at `0x4EAD6..0x4EAD8` remains excluded.
+
+All 83 newly inspected instructions (286 bytes) and the earlier 249 audio
+instructions (956 bytes) match the original input. The signed selector-word
+targets use the native PC-relative source anchor, without manual runtime-base
+subtraction or fabricated relative-reference actions. Existing neighboring
+layouts and all their elements/attributes are unchanged. Conditional consumer
+bounds do not establish exclusive allocation, complete input coverage or memory
+lifetime. Disputed copied code, its overlapping banks and alternate execution
+remain unresolved.
+
+Both dependent stages pass full C and independent vasm equality against all
+376,832 original bytes. Final receipt:
+`6a2b7d84d3aa66fa57343926d283e23e9da5e1105aaca079716536a534213ed5`;
+generated source SHA256:
+`88ebe7b17a8d3350357dae85d3bfd00f21819d2352aee3ccd99498160dde5a6c`.
+Both existing histories retain their prior prefixes. The 306 newly structured
+bytes are not a recomputed ownership percentage or a claim of full restoration.
+
+The refreshed local package is
+`.runtime-state/pandora-analysis/pandora-reviewed-text-and-audio.zip`. Its source
+incorporates the narrow native refusal, font records and sequence layouts; both
+C and vasm reproduce the complete original exactly. All 70 assets (175,072
+bytes) and nine SDK includes are byte-identical to the previous reviewed package,
+and all 80 source/asset/include manifest entries have matching sizes and hashes.
+ZIP SHA256:
+`730ccdfb11c2135fc052c3b70793771cbeea9fe223b92b89284ae14fbcbe0401`;
+package manifest fingerprint:
+`3edb6206d490bcc7c3b5a91084a05912f0ccf6b1b57f37e0c231c31077898102`.
+These are different identities. The earlier ZIP and its receipts remain preserved.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.source_export \
+  amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --binary-assets --minimum-asset-size 128 --verify-package \
+  --output .runtime-state/pandora-analysis/pandora-reviewed-text-and-audio.zip --json
+```

@@ -28854,7 +28854,7 @@ abs_0_0005D81C:
 	sf.b audio_channel_runtime_state_pitch_modulation_flags(a1)
 	sf.b audio_channel_runtime_state_note_offset(a1)
 	st.b audio_channel_runtime_state_sample_start_pending(a1)
-	lea.l default_audio_pitch_sequence_stream(pc),a0
+	lea.l pitch_selector_00_offsets_with_loop_flag(pc),a0
 	move.l a0,audio_channel_runtime_state_pitch_sequence_start_ptr(a1)
 	move.l a0,audio_channel_runtime_state_pitch_sequence_cursor(a1)
 	lea.l audio_player_initialization_presets(pc),a0
@@ -29382,7 +29382,7 @@ audio_pitch_scalars:
 	dc.w $0D74
 	dc.w $0CB4
 	dc.w $0BFC
-	dc.w $0B50
+	dc.w volume_selector_03_countdown_reload-audio_sample_metadata
 	dc.w $0AAC
 	dc.w audio_sequence_channel_configurations_sample_address_offset_23-audio_sample_metadata
 	dc.w audio_sequence_channel_configurations_sequence_index_16-audio_sample_metadata
@@ -29439,11 +29439,32 @@ audio_pitch_scalars:
 audio_pitch_sequence_offset_table:
 	dc.b $06,$A0,$06,$A2,$06,$A5,$06,$A8,$06,$AB,$06,$AE,$06,$B0,$06,$B8
 	dc.b $06,$BF,$06,$C5,$06,$C7,$06,$C9,$06,$CB
-default_audio_pitch_sequence_stream:
-	dc.b $00,$80,$07,$0C,$8F,$03,$07,$8C,$00,$03,$87,$00,$04,$87,$00,$8C
-	dc.b $0C,$00,$00,$00,$00,$00,$00,$80,$0C,$00,$00,$00,$00,$00,$80,$0C
-	dc.b $00,$00,$00,$00,$80,$00,$83,$00,$84,$00,$85,$18,$00,$00,$00,$00
-	dc.b $00,$80
+pitch_selector_00_offsets_with_loop_flag:
+	dc.b $00,$80	; data
+pitch_selector_01_offsets_with_loop_flag:
+	dc.b $07,$0C,$8F	; data
+pitch_selector_02_offsets_with_loop_flag:
+	dc.b $03,$07,$8C	; data
+pitch_selector_03_offsets_with_loop_flag:
+	dc.b $00,$03,$87	; data
+pitch_selector_04_offsets_with_loop_flag:
+	dc.b $00,$04,$87	; data
+pitch_selector_05_offsets_with_loop_flag:
+	dc.b $00,$8C	; data
+pitch_selector_06_offsets_with_loop_flag:
+	dc.b $0C,$00,$00,$00,$00,$00,$00,$80	; data
+pitch_selector_07_offsets_with_loop_flag:
+	dc.b $0C,$00,$00,$00,$00,$00,$80	; data
+pitch_selector_08_offsets_with_loop_flag:
+	dc.b $0C,$00,$00,$00,$00,$80	; data
+pitch_selector_09_offsets_with_loop_flag:
+	dc.b $00,$83	; data
+pitch_selector_10_offsets_with_loop_flag:
+	dc.b $00,$84	; data
+pitch_selector_11_offsets_with_loop_flag:
+	dc.b $00,$85	; data
+pitch_selector_12_offsets_with_loop_flag:
+	dc.b $18,$00,$00,$00,$00,$00,$80	; data
 audio_sample_metadata:
 	dc.l $00000000	; sample_ptr
 audio_sample_metadata_gap_4_0:
@@ -30311,22 +30332,78 @@ envelope_offsets:
 audio_volume_sequence_offset_table:
 	dc.b $11,$F9,$11,$FC,$12,$02,$12,$23,$12,$51,$12,$57,$12,$7B,$12,$7F
 	dc.b $12,$9D,$12,$A9,$12,$C8,$12,$E6,$12,$EB,$12,$F0,$12,$F3,$12,$F6
-	dc.b $FF,$22,$A2,$01,$20,$18,$10,$08,$80,$01,$40,$30,$20,$18,$30,$20
-	dc.b $18,$10,$20,$18,$10,$08,$18,$10,$0C,$08,$10,$0C,$08,$06,$0C,$08
-	dc.b $06,$04,$08,$06,$04,$02,$06,$04,$02,$81,$01,$40,$30,$20,$18,$10
-	dc.b $30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10,$0C,$08,$04,$10
-	dc.b $0C,$0A,$08,$06,$0C,$0A,$08,$06,$04,$0A,$08,$06,$04,$03,$08,$06
-	dc.b $04,$03,$02,$06,$04,$03,$02,$81,$01,$40,$40,$38,$20,$98,$02,$40
-	dc.b $30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10
-	dc.b $0C,$08,$04,$10,$0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04,$02
-	dc.b $01,$80,$02,$38,$30,$A8,$02,$10,$18,$20,$28,$30,$38,$38,$38,$30
-	dc.b $30,$28,$28,$20,$20,$20,$20,$18,$18,$18,$18,$14,$14,$10,$10,$0C
-	dc.b $0C,$0A,$0A,$88,$01,$28,$20,$18,$10,$08,$04,$18,$10,$08,$04,$82
-	dc.b $02,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10,$0C,$08,$04
-	dc.b $10,$0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04,$02,$01,$80,$02
-	dc.b $08,$10,$18,$20,$28,$30,$30,$30,$28,$28,$20,$20,$20,$20,$18,$18
-	dc.b $18,$18,$14,$14,$10,$10,$0C,$0C,$0A,$0A,$08,$08,$86,$02,$30,$28
-	dc.b $24,$9A,$02,$38,$30,$28,$A0,$FF,$18,$98,$FF,$40,$C0,$FF,$00,$80
+volume_selector_00_countdown_reload:
+	dc.b $FF	; data
+volume_selector_00_values_with_hold_flag:
+	dc.b $22,$A2	; data
+volume_selector_01_countdown_reload:
+	dc.b $01	; data
+volume_selector_01_values_with_hold_flag:
+	dc.b $20,$18,$10,$08,$80	; data
+volume_selector_02_countdown_reload:
+	dc.b $01	; data
+volume_selector_02_values_with_hold_flag:
+	dc.b $40,$30,$20,$18,$30,$20,$18,$10,$20,$18,$10,$08,$18,$10,$0C,$08	; data
+	dc.b $10,$0C,$08,$06,$0C,$08,$06,$04,$08,$06,$04,$02,$06,$04,$02,$81
+volume_selector_03_countdown_reload:
+	dc.b $01	; data
+volume_selector_03_values_with_hold_flag:
+	dc.b $40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18	; data
+	dc.b $10,$0C,$08,$04,$10,$0C,$0A,$08,$06,$0C,$0A,$08,$06,$04,$0A,$08
+	dc.b $06,$04,$03,$08,$06,$04,$03,$02,$06,$04,$03,$02,$81
+volume_selector_04_countdown_reload:
+	dc.b $01	; data
+volume_selector_04_values_with_hold_flag:
+	dc.b $40,$40,$38,$20,$98	; data
+volume_selector_05_countdown_reload:
+	dc.b $02	; data
+volume_selector_05_values_with_hold_flag:
+	dc.b $40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18	; data
+	dc.b $10,$0C,$08,$04,$10,$0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04
+	dc.b $02,$01,$80
+volume_selector_06_countdown_reload:
+	dc.b $02	; data
+volume_selector_06_values_with_hold_flag:
+	dc.b $38,$30,$A8	; data
+volume_selector_07_countdown_reload:
+	dc.b $02	; data
+volume_selector_07_values_with_hold_flag:
+	dc.b $10,$18,$20,$28,$30,$38,$38,$38,$30,$30,$28,$28,$20,$20,$20,$20	; data
+	dc.b $18,$18,$18,$18,$14,$14,$10,$10,$0C,$0C,$0A,$0A,$88
+volume_selector_08_countdown_reload:
+	dc.b $01	; data
+volume_selector_08_values_with_hold_flag:
+	dc.b $28,$20,$18,$10,$08,$04,$18,$10,$08,$04,$82	; data
+volume_selector_09_countdown_reload:
+	dc.b $02	; data
+volume_selector_09_values_with_hold_flag:
+	dc.b $30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10,$0C,$08,$04,$10	; data
+	dc.b $0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04,$02,$01,$80
+volume_selector_10_countdown_reload:
+	dc.b $02	; data
+volume_selector_10_values_with_hold_flag:
+	dc.b $08,$10,$18,$20,$28,$30,$30,$30,$28,$28,$20,$20,$20,$20,$18,$18	; data
+	dc.b $18,$18,$14,$14,$10,$10,$0C,$0C,$0A,$0A,$08,$08,$86
+volume_selector_11_countdown_reload:
+	dc.b $02	; data
+volume_selector_11_values_with_hold_flag:
+	dc.b $30,$28,$24,$9A	; data
+volume_selector_12_countdown_reload:
+	dc.b $02	; data
+volume_selector_12_values_with_hold_flag:
+	dc.b $38,$30,$28,$A0	; data
+volume_selector_13_countdown_reload:
+	dc.b $FF	; data
+volume_selector_13_values_with_hold_flag:
+	dc.b $18,$98	; data
+volume_selector_14_countdown_reload:
+	dc.b $FF	; data
+volume_selector_14_values_with_hold_flag:
+	dc.b $40,$C0	; data
+volume_selector_15_countdown_reload:
+	dc.b $FF	; data
+volume_selector_15_values_with_hold_flag:
+	dc.b $00,$80	; data
 	dc.b $4E,$71
 audio_sample_record_stream:
 	dc.l $000013EE	; data
