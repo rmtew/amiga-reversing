@@ -666,3 +666,49 @@ Existing framework tests, gameplay evidence and the package snapshot at
 `61202504` retain their recorded scope and were reused. Disputed copied-code
 bodies, overlapping banks, returns, temporal overwrites and late lineage remain
 unresolved.
+
+## Secondary audio envelopes, packed selectors and waveform producer
+
+Sixteen independently reviewed and journal-accepted facts complete a connected
+secondary audio slice. Seven elements refine the existing 120-byte layout without
+changing its bounds, role, name or default unit: a separate four-byte sample-address
+base and six marker-inclusive envelope streams (104 bytes), alongside the
+unchanged six-word hex offset array. A negative envelope byte preserves the saved
+pointer and previous volume; it does not apply the marker's low seven bits.
+Reload interval H yields H eligible service visits (zero wraps through 256 byte
+decrements), subject to duration and update-disable gates. This differs from the
+primary volume player's H+1 countdown path and establishes no wall-clock rate.
+
+Four name-only corrections distinguish paired 16-bit alternatives in existing
+longword fields at offsets 4 and 10 of the 22-byte configuration and 38-byte
+playback structures. ROR.B and conditional SWAP select a halfword; period addition
+uses word arithmetic and sample addressing uses signed ADDA.W. Widths, types,
+other fields, full bindings and all other attributes are preserved.
+
+A conservative two-byte data layout at `0x4E68E..0x4E690` exposes the stored
+high-byte voice selector and low-byte parameter selector. EXT.W followed by
+unsigned MULU affects parameter indexing; unsigned physical byte rendering is
+not a valid-input contract. The sole native caller at `0x4D33A` is in the disputed
+helper region and supplies no accepted reachability or caller-domain proof.
+There are no new interpreted relative references, register seeds or phase facts.
+
+The sample initializer's guarded successful path fills 64 bytes, then stores
+waveform direction/offset zero/32. Under a valid reviewed sample-7 pointer and only
+the inspected updates, this begins a 12-state cycle with even offsets 32..44.
+The original stored state remains zero/zero and adds transient offsets 0..30.
+The revised writer comment connects these conditional producer/consumer facts;
+actual initialization order, complete writers, copied phase and lifetime remain
+unknown. The 120 current dispatcher instructions (420 bytes) and saved
+producer/setter evidence match original bytes. No runtime observation was invented.
+
+Both dependent stages rebuild all 376,832 original bytes exactly using C and
+independent vasm. The rebuilt C output was independently byte-compared with the
+original. Final receipt:
+`c41caea3c0ff067fd3b1c411d8722ad7fdeba363ab6d60f5fa59306b3b7e1034`;
+generated source SHA256:
+`619e1212af81573144ad2040d279ed0dc441662a3a823c3a803a8a15f3dfbd75`.
+The existing layout/type snapshots and both history prefixes are preserved.
+This adds two physical bytes to the layout catalog and refines 108 existing bytes;
+it is not a new ownership percentage. Package, framework-test and gameplay
+results retain their earlier scope and were reused. The loopback service remains
+available; no broad analyzer repair, emulator change or new input was required.

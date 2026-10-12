@@ -220,9 +220,9 @@ audio_channel_dma_configuration_SIZEOF EQU __RS
     RSRESET
 audio_channel_playback_state_period_delta RS.W 1
 audio_channel_playback_state_period_reset_value RS.W 1
-audio_channel_playback_state_period_delta_step RS.L 1
+audio_channel_playback_state_period_delta_step_pair RS.L 1
 audio_channel_playback_state_current_period RS.W 1
-audio_channel_playback_state_sample_address_offset RS.L 1
+audio_channel_playback_state_sample_address_offset_pair RS.L 1
 audio_channel_playback_state_period_reset_interval RS.B 1
 audio_channel_playback_state_period_delta_interval RS.B 1
 audio_channel_playback_state_period_delta_select RS.B 1
@@ -251,9 +251,9 @@ audio_sample_metadata_SIZEOF EQU __RS
     RSRESET
 audio_sequence_channel_configuration_period_delta RS.W 1
 audio_sequence_channel_configuration_period_reset_value RS.W 1
-audio_sequence_channel_configuration_period_delta_step RS.L 1
+audio_sequence_channel_configuration_period_delta_step_pair RS.L 1
 audio_sequence_channel_configuration_current_period RS.W 1
-audio_sequence_channel_configuration_sample_address_offset RS.L 1
+audio_sequence_channel_configuration_sample_address_offset_pair RS.L 1
 audio_sequence_channel_configuration_period_reset_interval RS.B 1
 audio_sequence_channel_configuration_period_delta_interval RS.B 1
 audio_sequence_channel_configuration_period_delta_select RS.B 1
@@ -28924,7 +28924,7 @@ update_audio_channels:
 	bne.b abs_0_0005D92A
 	move.b #$6,$052B(a3)
 	bra.b abs_0_0005D8FA
-    ; Sample 7: from zero state, a valid 64B pointer and only these updates, writes use even offsets 0..44 (initial 0..42, then 32..44). Other writers and runtime initialization remain unknown.
+    ; Sample 7: guarded init sets 0/32 after 64B fill; known updates cycle 12 states at even offsets 32..44. Raw 0/0 adds transient 0..30. Requires valid pointer/no other writers; phase unknown.
 abs_0_0005D92A:
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
 	move.w audio_sample_7_word_write_offset(pc),d0
@@ -29383,7 +29383,7 @@ audio_pitch_scalars:
 	dc.w $0BFC
 	dc.w volume_selector_03_countdown_reload-audio_sample_metadata
 	dc.w $0AAC
-	dc.w audio_sequence_channel_configurations_sample_address_offset_23-audio_sample_metadata
+	dc.w $0A14
 	dc.w audio_sequence_channel_configurations_sequence_index_16-audio_sample_metadata
 	dc.w audio_sequence_channel_configurations_period_delta_select_10-audio_sample_metadata
 	dc.w audio_sequence_channel_configurations_period_delta_select_4-audio_sample_metadata
@@ -29739,7 +29739,7 @@ start_audio_sequence:
 	move.w d0,$0EB0(a3)
 	moveq.l #0,d7
 	lea.l audio_channel_dma_configurations(pc),a4
-	move.b abs_0_0005E68E(pc),d7
+	move.b voice_selector_byte(pc),d7
 	mulu.w #$C,d7
 	st.b $B(a4,d7.w)
 	ext.w d0
@@ -29747,7 +29747,7 @@ start_audio_sequence:
 	lea.l audio_channel_playback_states(pc),a1
 	moveq.l #1,d2
 	lea.l _custom+aud0+ac_len.l,a0
-	move.b abs_0_0005E68E(pc),d1
+	move.b voice_selector_byte(pc),d1
 abs_0_0005E430:
 	subq.b #1,d1
 	bmi.b abs_0_0005E440
@@ -29874,6 +29874,7 @@ abs_0_0005E5A0:
 	bne.b abs_0_0005E5BE
 	move.b $0013(a1),$0019(a1)
 	movea.l $001A(a1),a2
+    ; Secondary envelope: negative byte retains pointer and previous volume. Reload H gives H eligible service visits (zero wraps 256), unlike primary H+1; duration/update-disable gates apply.
 	move.b (a2)+,d0
 	bmi.b abs_0_0005E5BE
 	move.l a2,$001A(a1)
@@ -29902,9 +29903,9 @@ abs_0_0005E5DC:
 audio_channel_playback_states:
 	dc.w $0000	; period_delta
 	dc.w $0000	; period_reset_value
-	dc.b $00,$00,$00,$00	; period_delta_step
+	dc.b $00,$00,$00,$00	; period_delta_step_pair
 	dc.w $0000	; current_period
-	dc.l $00000000	; sample_address_offset
+	dc.l $00000000	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $00	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -29923,9 +29924,9 @@ audio_channel_playback_states_gap_1E_0:
 audio_channel_playback_states_period_delta_1:
 	dc.w $0000	; period_delta
 	dc.w $0000	; period_reset_value
-	dc.l $00000000	; period_delta_step
+	dc.l $00000000	; period_delta_step_pair
 	dc.w $0000	; current_period
-	dc.b $00,$00,$00,$00	; sample_address_offset
+	dc.b $00,$00,$00,$00	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $00	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -29944,9 +29945,9 @@ audio_channel_playback_states_gap_44_1:
 audio_channel_playback_states_period_delta_2:
 	dc.w $0000	; period_delta
 	dc.w $0000	; period_reset_value
-	dc.b $00,$00,$00,$00	; period_delta_step
+	dc.b $00,$00,$00,$00	; period_delta_step_pair
 	dc.w $0000	; current_period
-	dc.l $00000000	; sample_address_offset
+	dc.l $00000000	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $00	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -29966,9 +29967,9 @@ audio_channel_playback_states_gap_6A_2:
 audio_channel_playback_states_period_delta_3:
 	dc.w $0000	; period_delta
 	dc.w $0000	; period_reset_value
-	dc.l $00000000	; period_delta_step
+	dc.l $00000000	; period_delta_step_pair
 	dc.w $0000	; current_period
-	dc.b $00,$00,$00,$00	; sample_address_offset
+	dc.b $00,$00,$00,$00	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $00	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -29984,8 +29985,10 @@ audio_channel_playback_states_period_delta_3:
 	dc.b $00,$00,$00,$00	; sequence_ptr
 audio_channel_playback_states_gap_90_3:
 	dcb.b $8,$00	; typed data block gap
-abs_0_0005E68E:
-	dc.b $00,$00	; lookup_table
+voice_selector_byte:
+	dc.b $00	; lookup_table
+parameter_selector_byte:
+	dc.b $00	; data
 audio_channel_dma_configurations:
 	dc.l $00000000	; sample_ptr
 	dc.w $0000	; sample_length
@@ -30018,9 +30021,9 @@ audio_channel_dma_configurations_sample_ptr_3:
 audio_sequence_channel_configurations:
 	dc.w $0001	; period_delta
 	dc.w $0AF0	; period_reset_value
-	dc.l $0064FFFF	; period_delta_step
+	dc.l $0064FFFF	; period_delta_step_pair
 	dc.w $07D0	; current_period
-	dc.b $02,$00,$00,$00	; sample_address_offset
+	dc.b $02,$00,$00,$00	; sample_address_offset_pair
 	dc.b $07	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30031,9 +30034,9 @@ audio_sequence_channel_configurations:
 	dc.b $00	; update_disabled
 	dc.w $000C	; period_delta
 	dc.w $0D48	; period_reset_value
-	dc.b $00,$64,$FF,$F1	; period_delta_step
+	dc.b $00,$64,$FF,$F1	; period_delta_step_pair
 	dc.w $0960	; current_period
-	dc.l $02000000	; sample_address_offset
+	dc.l $02000000	; sample_address_offset_pair
 	dc.b $07	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30044,9 +30047,9 @@ audio_sequence_channel_configurations:
 	dc.b $00	; update_disabled
 	dc.w $0004	; period_delta
 	dc.w $076C	; period_reset_value
-	dc.l $0078FFF1	; period_delta_step
+	dc.l $0078FFF1	; period_delta_step_pair
 	dc.w $06A4	; current_period
-	dc.b $02,$00,$00,$00	; sample_address_offset
+	dc.b $02,$00,$00,$00	; sample_address_offset_pair
 	dc.b $09	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30057,9 +30060,9 @@ audio_sequence_channel_configurations:
 	dc.b $00	; update_disabled
 	dc.w $0004	; period_delta
 	dc.w $012C	; period_reset_value
-	dc.b $00,$64,$FF,$F1	; period_delta_step
+	dc.b $00,$64,$FF,$F1	; period_delta_step_pair
 	dc.w $00C8	; current_period
-	dc.l $02000000	; sample_address_offset
+	dc.l $02000000	; sample_address_offset_pair
 	dc.b $08	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30070,9 +30073,9 @@ audio_sequence_channel_configurations:
 	dc.b $00	; update_disabled
 	dc.w $FFD8	; period_delta
 	dc.w $0AF0	; period_reset_value
-	dc.l $000FFFF1	; period_delta_step
+	dc.l $000FFFF1	; period_delta_step_pair
 	dc.w $0834	; current_period
-	dc.b $02,$00,$01,$80	; sample_address_offset
+	dc.b $02,$00,$01,$80	; sample_address_offset_pair
 	dc.b $03	; period_reset_interval
 	dc.b $01	; period_delta_interval
 audio_sequence_channel_configurations_period_delta_select_4:
@@ -30084,9 +30087,9 @@ audio_sequence_channel_configurations_period_delta_select_4:
 	dc.b $00	; update_disabled
 	dc.w $0004	; period_delta
 	dc.w $1770	; period_reset_value
-	dc.b $00,$0F,$FF,$F1	; period_delta_step
+	dc.b $00,$0F,$FF,$F1	; period_delta_step_pair
 	dc.w $1388	; current_period
-	dc.l $02000000	; sample_address_offset
+	dc.l $02000000	; sample_address_offset_pair
 	dc.b $08	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30097,9 +30100,9 @@ audio_sequence_channel_configurations_period_delta_select_4:
 	dc.b $00	; update_disabled
 	dc.w $0037	; period_delta
 	dc.w $01A4	; period_reset_value
-	dc.l $0046FFB9	; period_delta_step
+	dc.l $0046FFB9	; period_delta_step_pair
 	dc.w $024E	; current_period
-	dc.b $01,$80,$02,$00	; sample_address_offset
+	dc.b $01,$80,$02,$00	; sample_address_offset_pair
 	dc.b $01	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $AA	; period_delta_select
@@ -30110,9 +30113,9 @@ audio_sequence_channel_configurations_period_delta_select_4:
 	dc.b $00	; update_disabled
 	dc.w $FFF9	; period_delta
 	dc.w $0BB8	; period_reset_value
-	dc.b $00,$0A,$FF,$F5	; period_delta_step
+	dc.b $00,$0A,$FF,$F5	; period_delta_step_pair
 	dc.w $07D0	; current_period
-	dc.l $01800000	; sample_address_offset
+	dc.l $01800000	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $AA	; period_delta_select
@@ -30123,9 +30126,9 @@ audio_sequence_channel_configurations_period_delta_select_4:
 	dc.b $00	; update_disabled
 	dc.w $FFF8	; period_delta
 	dc.w $05B4	; period_reset_value
-	dc.l $0004FFF8	; period_delta_step
+	dc.l $0004FFF8	; period_delta_step_pair
 	dc.w $05AA	; current_period
-	dc.b $02,$00,$00,$00	; sample_address_offset
+	dc.b $02,$00,$00,$00	; sample_address_offset_pair
 	dc.b $32	; period_reset_interval
 	dc.b $00	; period_delta_interval
 	dc.b $AA	; period_delta_select
@@ -30136,9 +30139,9 @@ audio_sequence_channel_configurations_period_delta_select_4:
 	dc.b $00	; update_disabled
 	dc.w $FFFF	; period_delta
 	dc.w $0294	; period_reset_value
-	dc.b $00,$14,$FF,$EC	; period_delta_step
+	dc.b $00,$14,$FF,$EC	; period_delta_step_pair
 	dc.w $028A	; current_period
-	dc.l $00800200	; sample_address_offset
+	dc.l $00800200	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $AA	; period_delta_select
@@ -30149,9 +30152,9 @@ audio_sequence_channel_configurations_period_delta_select_4:
 	dc.b $00	; update_disabled
 	dc.w $000C	; period_delta
 	dc.w $0AF0	; period_reset_value
-	dc.l $0064FFF1	; period_delta_step
+	dc.l $0064FFF1	; period_delta_step_pair
 	dc.w $07D0	; current_period
-	dc.b $02,$00,$00,$00	; sample_address_offset
+	dc.b $02,$00,$00,$00	; sample_address_offset_pair
 	dc.b $07	; period_reset_interval
 	dc.b $01	; period_delta_interval
 audio_sequence_channel_configurations_period_delta_select_10:
@@ -30163,9 +30166,9 @@ audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; update_disabled
 	dc.w $000C	; period_delta
 	dc.w $1130	; period_reset_value
-	dc.b $00,$64,$FF,$F1	; period_delta_step
+	dc.b $00,$64,$FF,$F1	; period_delta_step_pair
 	dc.w $06A4	; current_period
-	dc.l $02000000	; sample_address_offset
+	dc.l $02000000	; sample_address_offset_pair
 	dc.b $08	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30176,9 +30179,9 @@ audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; update_disabled
 	dc.w $0004	; period_delta
 	dc.w $02BC	; period_reset_value
-	dc.l $0064FFF1	; period_delta_step
+	dc.l $0064FFF1	; period_delta_step_pair
 	dc.w $0258	; current_period
-	dc.b $01,$00,$00,$80	; sample_address_offset
+	dc.b $01,$00,$00,$80	; sample_address_offset_pair
 	dc.b $06	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30189,9 +30192,9 @@ audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; update_disabled
 	dc.w $0004	; period_delta
 	dc.w $00C8	; period_reset_value
-	dc.b $00,$64,$FF,$F1	; period_delta_step
+	dc.b $00,$64,$FF,$F1	; period_delta_step_pair
 	dc.w $00C8	; current_period
-	dc.l $01000080	; sample_address_offset
+	dc.l $01000080	; sample_address_offset_pair
 	dc.b $08	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30202,9 +30205,9 @@ audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; update_disabled
 	dc.w $0001	; period_delta
 	dc.w $0384	; period_reset_value
-	dc.l $0064FFFF	; period_delta_step
+	dc.l $0064FFFF	; period_delta_step_pair
 	dc.w $044C	; current_period
-	dc.b $01,$00,$00,$80	; sample_address_offset
+	dc.b $01,$00,$00,$80	; sample_address_offset_pair
 	dc.b $0B	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30215,9 +30218,9 @@ audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; update_disabled
 	dc.w $000C	; period_delta
 	dc.w $12C0	; period_reset_value
-	dc.b $00,$64,$FF,$F1	; period_delta_step
+	dc.b $00,$64,$FF,$F1	; period_delta_step_pair
 	dc.w $0FA0	; current_period
-	dc.l $02000200	; sample_address_offset
+	dc.l $02000200	; sample_address_offset_pair
 	dc.b $07	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30228,9 +30231,9 @@ audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; update_disabled
 	dc.w $0000	; period_delta
 	dc.w $0000	; period_reset_value
-	dc.l $00000000	; period_delta_step
+	dc.l $00000000	; period_delta_step_pair
 	dc.w $00C8	; current_period
-	dc.b $00,$00,$00,$00	; sample_address_offset
+	dc.b $00,$00,$00,$00	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $00	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30242,9 +30245,9 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 	dc.w $0000	; period_delta
 	dc.w $0000	; period_reset_value
-	dc.b $00,$00,$00,$00	; period_delta_step
+	dc.b $00,$00,$00,$00	; period_delta_step_pair
 	dc.w $007E	; current_period
-	dc.l $00000000	; sample_address_offset
+	dc.l $00000000	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $00	; period_delta_interval
 	dc.b $00	; period_delta_select
@@ -30255,9 +30258,9 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 	dc.w $0001	; period_delta
 	dc.w $00C8	; period_reset_value
-	dc.l $FFFAFFEE	; period_delta_step
+	dc.l $FFFAFFEE	; period_delta_step_pair
 	dc.w $00C8	; current_period
-	dc.b $00,$00,$00,$00	; sample_address_offset
+	dc.b $00,$00,$00,$00	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $06	; period_delta_interval
 	dc.b $0F	; period_delta_select
@@ -30268,9 +30271,9 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 	dc.w $FFF4	; period_delta
 	dc.w $0168	; period_reset_value
-	dc.b $FF,$FE,$00,$02	; period_delta_step
+	dc.b $FF,$FE,$00,$02	; period_delta_step_pair
 	dc.w $0168	; current_period
-	dc.l $01800000	; sample_address_offset
+	dc.l $01800000	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $55	; period_delta_select
@@ -30281,9 +30284,9 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 	dc.w $0000	; period_delta
 	dc.w $0168	; period_reset_value
-	dc.l $FFE20032	; period_delta_step
+	dc.l $FFE20032	; period_delta_step_pair
 	dc.w $00B4	; current_period
-	dc.b $01,$80,$00,$00	; sample_address_offset
+	dc.b $01,$80,$00,$00	; sample_address_offset_pair
 	dc.b $08	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $3F	; period_delta_select
@@ -30294,9 +30297,9 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 	dc.w $FFF2	; period_delta
 	dc.w $01B8	; period_reset_value
-	dc.b $00,$0C,$FF,$F6	; period_delta_step
+	dc.b $00,$0C,$FF,$F6	; period_delta_step_pair
 	dc.w $01B8	; current_period
-	dc.l $00000000	; sample_address_offset
+	dc.l $00000000	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $55	; period_delta_select
@@ -30307,9 +30310,9 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 	dc.w $0000	; period_delta
 	dc.w $0140	; period_reset_value
-	dc.l $FFF6000A	; period_delta_step
+	dc.l $FFF6000A	; period_delta_step_pair
 	dc.w $00F0	; current_period
-	dc.b $01,$80,$00,$00	; sample_address_offset
+	dc.b $01,$80,$00,$00	; sample_address_offset_pair
 	dc.b $06	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $55	; period_delta_select
@@ -30320,10 +30323,9 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 	dc.w $FFFC	; period_delta
 	dc.w $0168	; period_reset_value
-	dc.b $00,$2E,$FF,$BE	; period_delta_step
+	dc.b $00,$2E,$FF,$BE	; period_delta_step_pair
 	dc.w $012C	; current_period
-audio_sequence_channel_configurations_sample_address_offset_23:
-	dc.l $01800000	; sample_address_offset
+	dc.l $01800000	; sample_address_offset_pair
 	dc.b $0F	; period_reset_interval
 	dc.b $03	; period_delta_interval
 	dc.b $55	; period_delta_select
@@ -30334,9 +30336,9 @@ audio_sequence_channel_configurations_sample_address_offset_23:
 	dc.b $00	; update_disabled
 	dc.w $0000	; period_delta
 	dc.w $0BB8	; period_reset_value
-	dc.l $0064FF9C	; period_delta_step
+	dc.l $0064FF9C	; period_delta_step_pair
 	dc.w $0BB8	; current_period
-	dc.b $02,$00,$00,$00	; sample_address_offset
+	dc.b $02,$00,$00,$00	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $55	; period_delta_select
@@ -30347,9 +30349,9 @@ audio_sequence_channel_configurations_sample_address_offset_23:
 	dc.b $00	; update_disabled
 	dc.w $FFFA	; period_delta
 	dc.w $00F0	; period_reset_value
-	dc.b $00,$02,$FF,$FE	; period_delta_step
+	dc.b $00,$02,$FF,$FE	; period_delta_step_pair
 	dc.w $00F0	; current_period
-	dc.l $00000000	; sample_address_offset
+	dc.l $00000000	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $AA	; period_delta_select
@@ -30360,9 +30362,9 @@ audio_sequence_channel_configurations_sample_address_offset_23:
 	dc.b $00	; update_disabled
 	dc.w $FFF8	; period_delta
 	dc.w $0258	; period_reset_value
-	dc.l $0050FFB0	; period_delta_step
+	dc.l $0050FFB0	; period_delta_step_pair
 	dc.w $0258	; current_period
-	dc.b $00,$00,$01,$80	; sample_address_offset
+	dc.b $00,$00,$01,$80	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $02	; period_delta_interval
 	dc.b $A5	; period_delta_select
@@ -30373,9 +30375,9 @@ audio_sequence_channel_configurations_sample_address_offset_23:
 	dc.b $00	; update_disabled
 	dc.w $012C	; period_delta
 	dc.w $0258	; period_reset_value
-	dc.b $FF,$88,$FF,$9C	; period_delta_step
+	dc.b $FF,$88,$FF,$9C	; period_delta_step_pair
 	dc.w $0258	; current_period
-	dc.l $02000000	; sample_address_offset
+	dc.l $02000000	; sample_address_offset_pair
 	dc.b $08	; period_reset_interval
 	dc.b $03	; period_delta_interval
 	dc.b $A5	; period_delta_select
@@ -30386,9 +30388,9 @@ audio_sequence_channel_configurations_sample_address_offset_23:
 	dc.b $00	; update_disabled
 	dc.w $FF9C	; period_delta
 	dc.w $1388	; period_reset_value
-	dc.l $FFCE000F	; period_delta_step
+	dc.l $FFCE000F	; period_delta_step_pair
 	dc.w $1388	; current_period
-	dc.b $02,$00,$00,$00	; sample_address_offset
+	dc.b $02,$00,$00,$00	; sample_address_offset_pair
 	dc.b $00	; period_reset_interval
 	dc.b $01	; period_delta_interval
 	dc.b $55	; period_delta_select
@@ -30398,16 +30400,24 @@ audio_sequence_channel_configurations_sample_address_offset_23:
 	dc.b $00	; sequence_index
 	dc.b $00	; update_disabled
 audio_sample_address_base:
-	dc.l $00000000	; lookup_table
+	dc.l $00000000	; audio_sequence_envelope
 envelope_offsets:
 	dc.w $1170,$11A0,$11B9,$11BB,$11CB,$11D6	; audio_sequence_envelope
-	dc.b $40,$38,$30,$28,$3A,$36,$32,$2C,$28,$30,$2E,$2C,$2A,$24,$26,$24
+secondary_volume_envelope_0:
+	dc.b $40,$38,$30,$28,$3A,$36,$32,$2C,$28,$30,$2E,$2C,$2A,$24,$26,$24	; audio_sequence_envelope
 	dc.b $22,$20,$1E,$1C,$1A,$18,$16,$14,$12,$10,$0E,$0C,$0A,$0C,$08,$04
 	dc.b $03,$02,$08,$06,$04,$02,$01,$06,$04,$02,$01,$04,$03,$02,$01,$FF
-	dc.b $08,$0C,$10,$16,$18,$1C,$1A,$1E,$23,$28,$2D,$32,$38,$40,$38,$30
-	dc.b $28,$23,$1E,$19,$14,$0F,$0A,$05,$FF,$20,$FF,$04,$08,$10,$18,$1E
-	dc.b $23,$28,$2D,$32,$3C,$40,$1E,$0F,$0A,$04,$FF,$40,$38,$30,$28,$20
-	dc.b $10,$08,$04,$02,$01,$FF,$18,$FF
+secondary_volume_envelope_1:
+	dc.b $08,$0C,$10,$16,$18,$1C,$1A,$1E,$23,$28,$2D,$32,$38,$40,$38,$30	; audio_sequence_envelope
+	dc.b $28,$23,$1E,$19,$14,$0F,$0A,$05,$FF
+secondary_volume_envelope_2:
+	dc.b $20,$FF	; audio_sequence_envelope
+secondary_volume_envelope_3:
+	dc.b $04,$08,$10,$18,$1E,$23,$28,$2D,$32,$3C,$40,$1E,$0F,$0A,$04,$FF	; audio_sequence_envelope
+secondary_volume_envelope_4:
+	dc.b $40,$38,$30,$28,$20,$10,$08,$04,$02,$01,$FF	; audio_sequence_envelope
+secondary_volume_envelope_5:
+	dc.b $18,$FF	; audio_sequence_envelope
 audio_volume_sequence_offset_table:
 	dc.b $11,$F9,$11,$FC,$12,$02,$12,$23,$12,$51,$12,$57,$12,$7B,$12,$7F
 	dc.b $12,$9D,$12,$A9,$12,$C8,$12,$E6,$12,$EB,$12,$F0,$12,$F3,$12,$F6
