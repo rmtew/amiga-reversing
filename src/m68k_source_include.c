@@ -414,7 +414,7 @@ static int process_include_line(const M68kSourceIncludeContext *context,
           "bad include path: %.96s", rest);
         return 0;
       }
-      snprintf(full_path, sizeof(full_path), "%s\\%s", state->include_dir,
+      snprintf(full_path, sizeof(full_path), "%s/%s", state->include_dir,
                include_path);
       return m68k_source_include_process_file(context, state, full_path, diagnostics);
     }

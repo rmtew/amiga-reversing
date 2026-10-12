@@ -1,3 +1,4 @@
+#include "platform_host_compat.h"
 #include "m68k_source_model.h"
 
 #include <stdio.h>

@@ -18,6 +18,7 @@ from typing import cast
 
 import pytest
 
+from amiga_reversing.disasm import restoration
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import (
@@ -62,6 +63,50 @@ _FULL_DATA_ROLE_IDS = {
     "audio_table",
     "sprite",
 }
+
+
+def _fixture_paths(directory):
+    directory.mkdir(parents=True, exist_ok=True)
+    binary = directory / "fixture.bin"
+    if not binary.exists():
+        binary.write_bytes(bytes.fromhex("4e75"))
+    source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+        address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
+        code_start_offset=0, display_path=str(binary), analysis_cache_path=directory / "cache")
+    return SimpleNamespace(target_dir=directory, binary_source=source)
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_project_paths(monkeypatch, tmp_path):
+    """Fake ProjectRecords need isolated paths for revision checks and target leases."""
+    original = disasm_server.resolve_project_paths
+    for helper_name in ("_binary_project", "_macos_project", "_macos_container_project"):
+        original_helper = globals()[helper_name]
+        def isolated_project(*args, _helper=original_helper, **kwargs):
+            record = _helper(*args, **kwargs)
+            return replace(record, target_dir=str(tmp_path / record.id))
+        monkeypatch.setitem(globals(), helper_name, isolated_project)
+    def resolve(name, project_root=None):
+        if name in {"bloodwych", "macos_mpw_sample", "macos_hfs_sample", "demo", "carrier-raw"}:
+            directory = tmp_path / name
+            directory.mkdir(exist_ok=True)
+            binary = directory / "binary.bin"
+            if not binary.exists():
+                binary.write_bytes(bytes.fromhex("4e75"))
+            source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+                address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
+                code_start_offset=0, display_path=str(binary), analysis_cache_path=directory / "cache")
+            return SimpleNamespace(target_dir=directory, binary_source=source)
+        return original(name, project_root=project_root or disasm_server.PROJECT_ROOT)
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", resolve)
+
+
+def _mock_action_appends(monkeypatch, append_action):
+    """Capture every action in the command batch using a fixture callback."""
+    monkeypatch.setattr(disasm_server, "append_manual_actions",
+        lambda target_dir, *, actions, binary_source: [
+            append_action(target_dir, kind=kind, payload=payload, binary_source=binary_source)
+            for kind, payload in actions])
 
 
 def test_data_block_layout_range_spans_internal_label_rows() -> None:
@@ -318,8 +363,7 @@ class _FakeCListingArtifact:
                             "symbol": "from_c",
                             "ref_count": 1,
                             "access_counts": {"definition": 1},
-                            "refs": [],
-                        }
+                                }
                     ],
                     "comments": [],
                 },
@@ -450,10 +494,10 @@ def _execute_manual_command_fixture(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda requested, project_root=None: SimpleNamespace(target_dir=tmp_path / requested),
+        lambda requested, project_root=None: _fixture_paths(tmp_path / requested),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     return (
@@ -847,10 +891,8 @@ def _test_listing_navigation_payload(
         if row.label or code.endswith(":"):
             symbol = (row.label or code).rstrip(":")
             entry = _test_navigation_entry(row, row_index, f"{symbol}:")
-            entry.update({"symbol": symbol, "ref_count": 1, "access_counts": {"definition": 1}, "refs": []})
-            cast(list[dict[str, object]], entry["refs"]).append(
-                {**_test_navigation_entry(row, row_index, f"{symbol}:"), "symbol": symbol, "access": "definition"}
-            )
+            entry.update({"symbol": symbol, "ref_count": 1, "access_counts": {"definition": 1}})
+
             label_entries[symbol] = entry
         if row.typed_accesses or (row.kind not in {"instruction", "label"} and (row.comment_text or row.structured_data)):
             summary = row.comment_text or row.kind
@@ -900,17 +942,14 @@ def _test_listing_navigation_payload(
                     "displacement": ref.displacement,
                     "ref_count": 0,
                     "access_counts": {},
-                    "refs": [],
                 }
                 groups["app-slots"].append(slot)
-            refs = cast(list[dict[str, object]], slot["refs"])
-            refs.append({**_test_navigation_entry(row, row_index), "symbol": ref.symbol, "access": ref.access})
             slot["ref_count"] = cast(int, slot["ref_count"]) + 1
             access_counts = cast(dict[str, int], slot["access_counts"])
             access_counts[ref.access] = access_counts.get(ref.access, 0) + 1
         if row.comment_text:
             groups["comments"].append(_test_navigation_entry(row, row_index, row.comment_text))
-    for row_index, row in enumerate(rows):
+    for row in rows:
         if row.addr is None:
             continue
         for operand in row.operand_parts:
@@ -918,15 +957,9 @@ def _test_listing_navigation_payload(
             if not symbol or symbol not in label_entries:
                 continue
             label_entry = label_entries[symbol]
-            refs = cast(list[dict[str, object]], label_entry["refs"])
-            refs.append({**_test_navigation_entry(row, row_index), "symbol": symbol, "access": "reference"})
             label_entry["ref_count"] = cast(int, label_entry["ref_count"]) + 1
             access_counts = cast(dict[str, int], label_entry["access_counts"])
             access_counts["reference"] = access_counts.get("reference", 0) + 1
-    for label_entry in label_entries.values():
-        cast(list[dict[str, object]], label_entry["refs"]).sort(
-            key=lambda entry: cast(int, entry.get("row_index", -1))
-        )
     app_slot_summaries = {
         cast(str, slot["symbol"]): slot
         for slot in cast(list[dict[str, object]], app_slot_analysis.get("slots", []))
@@ -1511,8 +1544,9 @@ def test_route_project_marks_renderer_backed_source_artifact_default(monkeypatch
     assert project["source_artifact_default"] is True
 
 
-def test_macos_container_ui_preferences_are_noop(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_macos_container_ui_preferences_are_noop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     project = _macos_container_project("macos_hfs_sample")
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", lambda *a, **k: _fixture_paths(tmp_path))
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
 
     payload = disasm_server.route_request(
@@ -1578,6 +1612,10 @@ def test_route_macos_listing_open_uses_macos_listing_builder(monkeypatch: pytest
 
     job = disasm_server.route_request("POST", f"/api/projects/{project.id}/listing/open", {})["data"]
 
+    deadline = time.monotonic() + 2
+    while job["status"] in {"queued", "building"} and time.monotonic() < deadline:
+        time.sleep(0.01)
+        job = disasm_server._ASYNC_JOBS[job["job_id"]]
     assert job["status"] == "ready"
     assert job["total_rows"] == 1
     assert calls["project"] == project
@@ -1653,8 +1691,8 @@ def test_route_manual_action_catalog_returns_review_item_actions(monkeypatch: py
     } == _FULL_DATA_ROLE_IDS
     assert named_seed_action["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
     assert named_seed_action["parameter_schema"]["required"] == ["name"]
-    assert named_seed_action["interaction_schema"]["type"] == "text"
-    assert named_seed_action["interaction_schema"]["primary_field"] == "name"
+    assert named_seed_action["interaction_schema"]["type"] == "form"
+    assert "name" in named_seed_action["parameter_schema"]["properties"]
     assert seed_action["effect"] == "manual_mutation"
     assert seed_action["target_context"] == {
         "kind": "review_item",
@@ -2125,8 +2163,8 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert element_named["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
     assert element_named["parameter_schema"]["required"] == ["name"]
     assert element_named["default_key_binding"] == "F2"
-    assert element_named["interaction_schema"]["type"] == "text"
-    assert element_named["interaction_schema"]["primary_field"] == "name"
+    assert element_named["interaction_schema"]["type"] == "form"
+    assert "name" in element_named["parameter_schema"]["properties"]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
@@ -2609,10 +2647,10 @@ def test_route_manual_action_catalog_execute_data_block_type_preserves_context_e
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     catalog_payload = disasm_server.route_request(
@@ -2640,6 +2678,7 @@ def test_route_manual_action_catalog_execute_data_block_type_preserves_context_e
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "row.data_block.element.bind_type",
             "context": context,
             "parameters": {
@@ -3030,10 +3069,10 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     payload = disasm_server.route_request(
@@ -3041,6 +3080,7 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "comment.edit",
             "context": _row_command_context(rows[0]),
             "parameters": {"text": "manual return"},
@@ -3102,14 +3142,10 @@ def test_route_manual_command_resolves_row_without_all_rows_materialization(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(
-        disasm_server,
-        "append_manual_action",
-        lambda target_dir, *, kind, payload, binary_source: {"action_id": "a1", "kind": kind, "payload": payload},
-    )
+    _mock_action_appends(monkeypatch, lambda target_dir, *, kind, payload, binary_source: {"action_id": "a1", "kind": kind, "payload": payload})
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     payload = disasm_server.route_request(
@@ -3117,6 +3153,7 @@ def test_route_manual_command_resolves_row_without_all_rows_materialization(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "comment.edit",
             "context": _row_command_context(rows[0]),
             "parameters": {"text": "manual return"},
@@ -3205,10 +3242,10 @@ def test_route_manual_action_catalog_comment_id_distinguishes_same_address_rows(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     for row_index in (0, 1):
@@ -3217,6 +3254,7 @@ def test_route_manual_action_catalog_comment_id_distinguishes_same_address_rows(
             "/api/projects/bloodwych/commands/execute",
             {},
             {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
                 "command_id": "comment.edit",
                 "context": _row_command_context(rows[row_index]),
                 "parameters": {"text": f"comment {row_index}"},
@@ -3273,10 +3311,10 @@ def test_route_manual_action_catalog_label_id_distinguishes_same_address_rows(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     for row_index in (0, 1):
@@ -3285,6 +3323,7 @@ def test_route_manual_action_catalog_label_id_distinguishes_same_address_rows(
             "/api/projects/bloodwych/commands/execute",
             {},
             {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
                 "command_id": "label.rename",
                 "context": _element_command_context(rows[row_index], f"entry-{chr(97 + row_index)}-key:label:ENTRYPOINT000{row_index + 1}"),
                 "parameters": {"name": f"entry_{row_index}"},
@@ -3437,8 +3476,8 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
     assert named_block["range_availability"] == "partial"
     assert named_block["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
     assert named_block["parameter_schema"]["required"] == ["name"]
-    assert named_block["interaction_schema"]["type"] == "text"
-    assert named_block["interaction_schema"]["primary_field"] == "name"
+    assert named_block["interaction_schema"]["type"] == "form"
+    assert "name" in named_block["parameter_schema"]["properties"]
     assert palette["range_availability"] == "partial"
     assert palette["parameters"] == {"seed_kind": "data", "data_role": "palette", "unit": "word"}
     assert data_block_layout["range_availability"] == "partial"
@@ -3498,7 +3537,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root=None: _fixture_paths(target_dir),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
@@ -3508,13 +3547,14 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         appended_actions.append(action)
         return action
 
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
 
     payload = disasm_server.route_request(
         "POST",
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "range.seed.data.raw",
             "context": _range_command_context(rows),
         },
@@ -3537,6 +3577,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "range.seed.data.named",
             "context": _range_command_context(rows),
             "parameters": {"name": "manual_range"},
@@ -3558,6 +3599,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "range.data_block.layout.create",
             "context": _range_command_context(rows),
             "parameters": {"name": "ascii_hex_digit_value", "role": "lookup_table", "default_unit": "byte"},
@@ -3583,6 +3625,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "range.data_block.element.set",
             "context": _range_command_context(rows),
             "parameters": {
@@ -3619,6 +3662,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "range.data_block.element.represent",
             "context": _range_command_context(rows),
             "parameters": {"layout_id": "ascii-hex", "offset": 0x30, "representation": "hex"},
@@ -3638,6 +3682,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "range.data_block.element.remove",
             "context": _range_command_context(rows),
             "parameters": {"layout_id": "ascii-hex", "offset": 0x30, "removal_state": "raw"},
@@ -3658,6 +3703,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "row.data_block.element.interpret_ref",
             "context": _row_command_context(rows[1]),
             "parameters": {
@@ -3696,6 +3742,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "row.data_block.element.clear_ref",
             "context": _row_command_context(rows[1]),
             "parameters": {
@@ -3911,6 +3958,7 @@ def test_route_command_execute_rejects_locator_without_artifact(
             "/api/projects/bloodwych/commands/execute",
             {},
             {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
                 "command_id": "label.rename",
                 "context": _element_command_context(row, "label-0:label:loc_0_00000000"),
                 "parameters": {"name": "start"},
@@ -4263,10 +4311,10 @@ def test_route_manual_action_catalog_execute_appends_library_base_semantic_actio
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     catalog_payload = disasm_server.route_request(
@@ -4282,6 +4330,7 @@ def test_route_manual_action_catalog_execute_appends_library_base_semantic_actio
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "semantic.library_base.exec.library",
             "context": _element_command_context(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
         },
@@ -4574,6 +4623,7 @@ def test_route_manual_action_catalog_reports_lvo_register_provenance_read_only(
             "/api/projects/bloodwych/commands/execute",
             {},
             {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
                 "command_id": "provenance.definition.report",
                 "context": _element_command_context(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
             },
@@ -4757,10 +4807,10 @@ def test_route_manual_action_catalog_executes_api_specific_library_base_semantic
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     catalog_payload = disasm_server.route_request(
@@ -4776,6 +4826,7 @@ def test_route_manual_action_catalog_executes_api_specific_library_base_semantic
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "semantic.library_base.intuition.library",
             "context": _element_command_context(rows[0], "row-0:symbol:0:_LVOSetPointer"),
         },
@@ -4857,10 +4908,10 @@ def test_route_manual_action_catalog_execute_appends_struct_pointer_register_see
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     catalog_payload = disasm_server.route_request(
@@ -4879,6 +4930,7 @@ def test_route_manual_action_catalog_execute_appends_struct_pointer_register_see
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "semantic.register.struct_ptr",
             "context": _element_command_context(rows[0], "row-0:register:0:operand"),
             "parameters": {"struct_name": "IOStdReq", "context_name": "trackdisk.device"},
@@ -5158,7 +5210,7 @@ def test_route_reproduction_profile_list_show_set_without_manual_log(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root=None: _fixture_paths(target_dir),
     )
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda path: updated.append(path))
     monkeypatch.setattr(
@@ -5215,7 +5267,7 @@ def test_route_reproduction_policy_rejects_invalid_options(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root=None: _fixture_paths(target_dir),
     )
 
     with pytest.raises(ValueError, match="invalid reproduction option 'assembler'"):
@@ -5719,6 +5771,7 @@ def test_corpus_snippet_payload_preserves_explicit_row_indexes(monkeypatch: pyte
 
 
 def test_route_corpus_variants_and_diff(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server.corpus_usage, "_file_manifest_row", lambda target: None)
     left = {
         "id": "left-target",
         "platform": "amiga-hunk",
@@ -6232,6 +6285,7 @@ def test_route_project_create_status_returns_job(monkeypatch: pytest.MonkeyPatch
 
 
 def test_route_delete_project(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     removed_projects: list[str] = []
     monkeypatch.setattr(disasm_server, "delete_project", lambda project_id: removed_projects.append(project_id))
 
@@ -6505,7 +6559,7 @@ def test_route_listing_marks_target_seeded_rows_suppressible(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root=None: _fixture_paths(target_dir),
     )
 
     payload = disasm_server.route_request(
@@ -6638,10 +6692,10 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root=None: _fixture_paths(target_dir),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     payload = disasm_server.route_request(
@@ -6649,6 +6703,7 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": command_id,
             "context": _row_command_context(rows[0]),
             "parameters": {"end": 0x104, "name": "player_table"},
@@ -6715,10 +6770,10 @@ def test_route_manual_action_catalog_execute_renames_referenced_data_symbol(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_paths(tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     element_id = "code-row:data_ref:0:1:00000120"
@@ -6742,6 +6797,7 @@ def test_route_manual_action_catalog_execute_renames_referenced_data_symbol(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],
             "command_id": "data_symbol.rename",
             "context": _element_command_context(rows[0], element_id),
             "parameters": {"name": "player_bitmap"},
@@ -6833,17 +6889,18 @@ def test_route_manual_action_catalog_execute_removes_seeded_data_symbol(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root=None: _fixture_paths(target_dir),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     payload = disasm_server.route_request(
         "POST",
         "/api/projects/bloodwych/commands/execute",
         {},
-        {"command_id": "data_symbol.remove", "context": _row_command_context(rows[0])},
+        {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],"command_id": "data_symbol.remove", "context": _row_command_context(rows[0])},
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
     suppressed = cast(dict[str, object], cast(dict[str, object], action["payload"])["suppressed_seeded_item"])
@@ -6924,10 +6981,10 @@ def test_route_manual_action_catalog_execute_removes_manual_data_symbol_seed(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root=None: _fixture_paths(target_dir),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    _mock_action_appends(monkeypatch, append_action)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
     command_payload = disasm_server.route_request(
@@ -6944,7 +7001,8 @@ def test_route_manual_action_catalog_execute_removes_manual_data_symbol_seed(
         "POST",
         "/api/projects/bloodwych/commands/execute",
         {},
-        {"command_id": "data_symbol.remove", "context": _row_command_context(rows[0])},
+        {
+            "expected_revision": restoration.revisions('bloodwych')["revision"],"command_id": "data_symbol.remove", "context": _row_command_context(rows[0])},
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
     application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
@@ -7428,12 +7486,11 @@ def test_route_listing_navigation_indexes_label_definition_and_refs(monkeypatch:
     data = cast(dict[str, object], payload["data"])
     groups = cast(dict[str, list[dict[str, object]]], data["groups"])
     target = groups["labels"][1]
-    refs = cast(list[dict[str, object]], target["refs"])
 
     assert target["symbol"] == "target"
     assert target["ref_count"] == 2
     assert target["access_counts"] == {"definition": 1, "reference": 1}
-    assert [(ref["access"], ref["row_index"]) for ref in refs] == [("reference", 1), ("definition", 4)]
+    assert "refs" not in target
 
 
 def test_listing_navigation_api_calls_use_instruction_row_and_hunk_context() -> None:
@@ -7605,12 +7662,7 @@ def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.M
     assert app_slots[1]["first_row_index"] == 1
     assert app_slots[1]["last_row_index"] == 2
     assert app_slot_analysis_payload["gap_count"] == 1
-    refs = cast(list[dict[str, object]], app_slots[1]["refs"])
-    assert [(ref["row_index"], ref["access"], ref["stable_key"]) for ref in refs] == [
-        (1, "write", "app-write"),
-        (2, "address", "app-address"),
-    ]
-    assert refs[0]["summary"] == "move.l d0,app_0234(a6)"
+    assert all("refs" not in slot for slot in app_slots)
 
 
 def test_listing_navigation_exposes_type_flow_analysis_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -8112,6 +8164,7 @@ def test_route_listing_does_not_cross_apply_api_call_metadata_between_hunks(
 
 
 def test_route_type_catalog_returns_known_structs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     monkeypatch.setattr(
         disasm_server,
         "type_catalog_from_c_backend",
@@ -8132,6 +8185,7 @@ def test_route_type_catalog_returns_known_structs(monkeypatch: pytest.MonkeyPatc
 def test_route_patch_api_input_struct_writes_global_override(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     corrections_path = tmp_path / "amiga_ndk_corrections.json"
     corrections_path.write_text(json.dumps({
         "_meta": {
@@ -8250,7 +8304,8 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
     assert payload["status"] in {"queued", "building"}
 
 
-def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", lambda *a, **k: _fixture_paths(tmp_path))
     build_calls: list[tuple[str, str]] = []
     artifact = _FakeCListingArtifact()
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
@@ -8372,7 +8427,8 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
     assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is None
 
 
-def test_listing_artifact_job_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_listing_artifact_job_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", lambda *a, **k: _fixture_paths(tmp_path))
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
@@ -8425,6 +8481,7 @@ def test_listing_artifact_job_keeps_c_artifact_without_full_python_rows(monkeypa
 
 
 def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     monkeypatch.setattr(
         disasm_server,
         "_job_payload",
@@ -8563,7 +8620,8 @@ def test_resolve_static_response_rejects_missing_file() -> None:
         disasm_server.resolve_static_response("/assets/missing.txt")
 
 
-def test_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", lambda *a, **k: _fixture_paths(tmp_path))
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
@@ -8649,6 +8707,7 @@ def test_listing_cache_requires_c_artifact(monkeypatch: pytest.MonkeyPatch) -> N
 def test_reproduction_job_does_not_use_stale_cached_rows(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     calls: list[dict[str, object]] = []
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
@@ -8695,6 +8754,7 @@ def test_reproduction_job_does_not_use_stale_cached_rows(
 def test_reproduction_job_reuses_artifact_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     captured_source: list[str | None] = []
     captured_profile: list[object] = []
     artifact = _FakeCListingArtifact()
@@ -8754,6 +8814,7 @@ def test_reproduction_job_reuses_artifact_source(
 def test_reproduction_job_fails_closed_when_artifact_source_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     class BrokenSourceArtifact(_FakeCListingArtifact):
         def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
             raise RuntimeError("source export failed")
@@ -8821,7 +8882,7 @@ def test_target_edits_route_is_removed(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root: _fixture_paths(target_dir),
     )
 
     with pytest.raises(FileNotFoundError, match="Unknown route"):
@@ -8834,100 +8895,15 @@ def test_target_edits_route_is_removed(
     assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is not None
 
 
-def test_manual_action_route_appends_action_and_invalidates_analysis(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    target_dir = tmp_path / "target"
-    target_dir.mkdir()
-    canceled: list[str] = []
-    appended: list[dict[str, object]] = []
-    binary_source = object()
-    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
-        "bloodwych",
-        _RowsCListingArtifact([]),
-        cache_key="cache",
-    )
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root: SimpleNamespace(target_dir=target_dir),
-    )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: binary_source)
-    monkeypatch.setattr(
-        disasm_server,
-        "append_manual_action",
-        lambda target_dir, kind, payload, binary_source: appended.append(
-            {"kind": kind, "payload": payload, "binary_source": binary_source}
-        )
-        or {"kind": kind, **payload},
-    )
-    monkeypatch.setattr(disasm_server, "_cancel_listing_jobs", lambda project_name: canceled.append(f"listing:{project_name}"))
-    monkeypatch.setattr(disasm_server, "_cancel_reproduction_jobs", lambda project_name: canceled.append(f"repro:{project_name}"))
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/manual-actions",
-        {},
-        {"kind": "create_manual_seed", "seed": {"seed_id": "s1", "kind": "data", "addr": 0x20}},
-    )
-
-    assert cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])["kind"] == "create_manual_seed"
-    assert appended == [
-        {
-            "kind": "create_manual_seed",
-            "payload": {"seed": {"seed_id": "s1", "kind": "data", "addr": 0x20}},
-            "binary_source": binary_source,
-        }
-    ]
-    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is not None
-    assert disasm_server._LISTING_PROJECTION_SERVICE.cache_satisfies_listing("bloodwych", "cache") is False
-    assert disasm_server._LISTING_PROJECTION_SERVICE.read_artifact("bloodwych", "cache") is not None
-    assert canceled == ["listing:bloodwych", "repro:bloodwych"]
-
-
-def test_manual_action_route_rejects_reserved_payload_fields(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    target_dir = tmp_path / "target"
-    target_dir.mkdir()
-    appended: list[dict[str, object]] = []
-    binary_source = object()
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root: SimpleNamespace(target_dir=target_dir),
-    )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: binary_source)
-    monkeypatch.setattr(
-        disasm_server,
-        "append_manual_action",
-        lambda target_dir, kind, payload, binary_source: appended.append(payload) or payload,
-    )
-
-    with pytest.raises(ValueError, match="reserved field"):
-        disasm_server.route_request(
-            "POST",
-            "/api/projects/bloodwych/manual-actions",
-            {},
-            {
-                "kind": "create_manual_seed",
-                "action_id": "manual-forged",
-                "seed": {"seed_id": "s1", "kind": "data", "addr": 0x20},
-            },
-        )
-
-    assert appended == []
+@pytest.mark.parametrize("body", [
+    {"kind": "create_manual_seed", "seed": {"seed_id": "s1", "kind": "data", "addr": 0x20}},
+    {"kind": "create_manual_seed", "action_id": "reserved"},
+])
+def test_raw_manual_action_route_is_retired(monkeypatch, tmp_path, body):
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
+    with pytest.raises(FileNotFoundError, match="Unknown route"):
+        disasm_server.route_request("POST", "/api/projects/bloodwych/manual-actions", {}, body)
+    assert not list(tmp_path.rglob("manual_actions.jsonl"))
 
 
 def test_listing_navigation_includes_repro_issues(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -8951,3 +8927,14 @@ def test_listing_navigation_includes_repro_issues(monkeypatch: pytest.MonkeyPatc
     groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
     assert groups["repro-issues"][0]["summary"] == "Diff at file offset 0x20"
+
+
+@pytest.mark.parametrize("revision", [None, "stale"])
+def test_command_route_requires_current_revision(monkeypatch, revision):
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
+    executed = []
+    monkeypatch.setattr(disasm_server, "_execute_command_unchecked", lambda *args: executed.append(args))
+    with pytest.raises(ValueError, match="stale_revision"):
+        disasm_server.route_request("POST", "/api/projects/bloodwych/commands/execute", {},
+            {"expected_revision": revision, "command_id": "label.rename"})
+    assert executed == []

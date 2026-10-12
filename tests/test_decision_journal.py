@@ -477,3 +477,69 @@ def _rsset_packet() -> dict[str, object]:
             "safe_to_mutate": False,
         },
     }
+
+
+def test_domain_subject_identity_needs_no_invented_operand() -> None:
+    for kind in ('row', 'function', 'symbol', 'field', 'action'):
+        record = _decision_record('accept_fact')
+        record['selected_identity'] = {'target_id': 'pandora', 'subject_kind': kind, 'subject_id': 'source:0:20'}
+        assert decision_journal.validate_decision_record(record)['valid'] is True
+        projection = decision_journal.project_decision_journal([record])
+        assert len(projection['by_selected_identity']) == 1
+        record['selected_identity']['subject_id'] = ''
+        assert decision_journal.validate_decision_record(record)['valid'] is False
+
+
+def test_decision_append_preserves_unknown_fields_and_raw_bytes(tmp_path) -> None:
+    first = _decision_record('accept_fact', decision_id='first')
+    first['future_extension'] = {'preserve': True}
+    raw = ('  ' + json.dumps(first) + '\r\n').encode()
+    path = decision_journal.decision_journal_path(tmp_path)
+    path.write_bytes(raw)
+    second = _decision_record('defer_fact', decision_id='second',
+                              prev=decision_journal.decision_journal_next_prev([first]))
+    assert decision_journal.append_decision_record(tmp_path, second)['status'] == 'appended'
+    assert path.read_bytes().startswith(raw)
+    assert decision_journal.read_decision_journal(tmp_path)['records'][0] == first
+
+
+def test_decision_append_refuses_malformed_journal_without_changes(tmp_path) -> None:
+    path = decision_journal.decision_journal_path(tmp_path)
+    path.write_bytes(b'{broken\n')
+    assert decision_journal.append_decision_record(tmp_path, _decision_record('accept_fact'))['status'] == 'rejected'
+    assert path.read_bytes() == b'{broken\n'
+
+
+def test_decision_batch_rejects_invalid_replacement_without_superseding(tmp_path) -> None:
+    first = _decision_record('accept_fact', decision_id='first')
+    decision_journal.append_decision_record(tmp_path, first)
+    path = decision_journal.decision_journal_path(tmp_path)
+    original = path.read_bytes()
+    supersede = _supersede_record('supersede', supersedes='first', replacement='replacement',
+                                 prev=decision_journal.decision_journal_next_prev([first]))
+    replacement = _decision_record('accept_fact', decision_id='replacement',
+                                   prev=decision_journal.decision_journal_next_prev([supersede]))
+    replacement['actor'] = {'kind': 'invalid'}
+    result = decision_journal.append_decision_records(tmp_path, [supersede, replacement])
+    assert result['status'] == 'rejected'
+    assert path.read_bytes() == original
+    assert decision_journal.project_decision_journal([first])['active_decision_ids'] == ['first']
+
+
+def test_decision_batch_supersession_has_one_active_fact(tmp_path) -> None:
+    first = _decision_record('accept_fact', decision_id='first')
+    decision_journal.append_decision_record(tmp_path, first)
+    path = decision_journal.decision_journal_path(tmp_path)
+    original = path.read_bytes()
+    supersede = _supersede_record('supersede', supersedes='first', replacement='replacement',
+                                 prev=decision_journal.decision_journal_next_prev([first]))
+    replacement = _decision_record('accept_fact', decision_id='replacement',
+                                   prev=decision_journal.decision_journal_next_prev([supersede]))
+    result = decision_journal.append_decision_records(tmp_path, [supersede, replacement])
+    assert result['status'] == 'appended'
+    assert result['record_count'] == 3
+    assert result['head_hash'] == decision_journal.decision_record_hash(replacement)
+    assert path.read_bytes().startswith(original)
+    projection = decision_journal.project_decision_journal(decision_journal.read_decision_journal(tmp_path)['records'])
+    assert [record['decision_id'] for record in projection['accepted_facts']] == ['replacement']
+    assert projection['superseded_decision_ids'] == ['first']

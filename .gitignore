@@ -104,3 +104,6 @@ targets/**/*
 
 # Disposable isolated WinUAE/GDB session state.
 .runtime-state/
+
+# Per-target cross-process coordination (stable inode; no durable facts).
+.target-history.lock

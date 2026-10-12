@@ -62,7 +62,10 @@ def test_web_app_annotation_controls_use_manual_review_actions() -> None:
     assert "let entity;" not in app_js
     assert "function reviewItemCatalogActions(item)" in app_js
     assert "data-catalog-action-id" in app_js
-    assert 'if (action === "remove_manual_annotation") {' in app_js
+    assert 'context: "review-item", item_id: item.item_id' in app_js
+    assert "catalog.revision !== state.manualReview.revision" in app_js
+    assert "postManualReviewAction" not in app_js
+    assert "/manual-actions" not in app_js
     assert ".listing-annotation-edit {\n  opacity: 0;" in styles_css
     assert ".listing-row:hover .listing-annotation-edit" in styles_css
     assert ".listing-row:focus-within .listing-annotation-edit" in styles_css
@@ -137,7 +140,7 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "function flashManualActionApplication" in app_js
     assert "function flashManualActionLocations" in app_js
     assert "function manualActionLocationMatchesRow" in app_js
-    assert "function showManualReviewActionSaved" in app_js
+    assert "submitCommandPaletteCatalogAction({...command, expected_revision: catalog.revision}" in app_js
     assert "function renderReviewNoteBadge" in app_js
     assert "function openInlineParameterSession" in app_js
     assert "function renderInlineParameterSession" in app_js
@@ -155,7 +158,6 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "listing-row-manual-saved" in app_js
     assert 'setAnalysisStatus("Manual action saved", "ready", 2000)' not in app_js
     assert 'setAnalysisStatus("Manual seed saved", "ready", 2000)' not in app_js
-    assert "focusTarget: false" in app_js
     assert ".project-badge-review-note" in styles_css
     assert ".command-parameter-editor" in styles_css
     assert ".command-parameter-field-error" in styles_css
@@ -256,17 +258,16 @@ def test_web_app_surfaces_source_quality_explanations_from_source_export_refusal
     assert ".source-quality-proof" in styles_css
 
 
-def test_web_app_typed_navigation_uses_data_class_rows() -> None:
+def test_web_app_navigation_uses_native_groups_without_row_scraping() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent
         / "amiga_reversing" / "web"
         / "app.js"
     ).read_text(encoding="utf-8")
 
-    assert "Boolean(row.data_class)" in app_js
-    assert "row.comment_text || row.data_class || item.semantic_role" in app_js
-    assert "const typedDataSeen = new Set();" in app_js
-    assert "if (!typedDataSeen.has(key)) {" in app_js
+    assert "buildNavigationEntries" not in app_js
+    assert "listing/navigation" in app_js
+    assert "NavigationSession.applyPayload(payload)" in app_js
 
 
 def test_web_app_generation_refresh_restores_only_applied_request() -> None:
@@ -419,7 +420,6 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "data-repro-edit-kind" not in app_js
     assert "applyManualLocalEffect" not in app_js
     assert 'return {label: "Unsupported"' in app_js
-    assert '"repro-issues": []' in app_js
     assert '["repro-issues", "Repro Issues"]' in app_js
     assert "listing-row-repro-issue" in app_js
     assert ".repro-panel" in styles_css

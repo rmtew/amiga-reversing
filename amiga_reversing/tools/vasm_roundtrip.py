@@ -106,7 +106,7 @@ def roundtrip_vasm_target(target: str, *, project_root: Path = ROOT) -> VasmRoun
             "-no-opt",
             "-quiet",
             "-nosym",
-            "-kick1hunks",
+            *(["-kick1hunks"] if output_format == "-Fhunkexe" else []),
             *_include_args(project_root),
             "-o",
             str(output_path),

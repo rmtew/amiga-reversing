@@ -118,3 +118,65 @@ def test_function_facts_reject_named_entry_inside_owned_block(monkeypatch) -> No
         ("outer", "named_entry_inside_owned_block"),
         ("interior", "entry_not_accepted_block"),
     ]
+
+
+def test_analysis_functions_use_entries_not_labels_and_cover_sections() -> None:
+    analysis = {"sections": [
+        {"section_index": 0, "blocks": [
+            {"start_offset": 0, "end_offset": 4, "certainty": 1},
+            {"start_offset": 4, "end_offset": 8, "certainty": 1},
+            {"start_offset": 16, "end_offset": 20, "certainty": 1},
+        ], "code_start_refs": [{"offset": 0, "reason_name": "section_entry"}],
+         "symbol_origins": [{"offset": 4, "symbol_name": "interior_label"},
+                            {"offset": 16, "symbol_name": "manual_callee", "origin_kind": "manual_label"}],
+         "edges": [
+             {"source_block_index": 0, "target_block_index": 2, "source_offset": 0, "target_offset": 16, "kind": 3},
+             {"source_block_index": 0, "target_block_index": 1, "source_offset": 0, "target_offset": 4, "kind": 1},
+             {"source_block_index": 1, "target_block_index": 0xFFFFFFFF, "source_offset": 4, "target_offset": 0xFFFFFFFF, "kind": 4},
+             {"source_block_index": 2, "target_block_index": 0xFFFFFFFF, "source_offset": 16, "target_offset": 0xFFFFFFFF, "kind": 5},
+         ]},
+        {"section_index": 2, "blocks": [{"start_offset": 0, "end_offset": 2}], "edges": [],
+         "code_start_refs": [{"offset": 0, "reason_name": "policy_entry_point"}]},
+    ]}
+    result = function_facts.analysis_function_facts("test", analysis)
+    first, callee, other = result["functions"]
+    assert [(f["section_index"], f["entry_offset"]) for f in result["functions"]] == [(0, 0), (0, 16), (2, 0)]
+    assert first["ranges"] == [{"start_offset": 0, "end_offset": 8}]
+    assert first["ownership_status"] == "partial"
+    assert first["callees"][0]["target_offset"] == 16
+    assert first["unresolved_transfers"][0]["kind"] == "jump"
+    assert callee["name"] == "manual_callee"
+    assert callee["callers"][0]["source_entries"] == [0]
+    assert callee["unresolved_transfers"] == []  # Dynamic returns are expected.
+    assert other["name"] is None
+    assert "native_cfg_is_section_local" in result["unknowns"]
+
+
+def test_analysis_functions_retain_unsupported_and_shared_candidates() -> None:
+    result = function_facts.analysis_function_facts("test", {"sections": [{
+        "section_index": 0,
+        "blocks": [{"start_offset": 0, "end_offset": 2}, {"start_offset": 4, "end_offset": 6},
+                   {"start_offset": 8, "end_offset": 10}],
+        "code_start_refs": [{"offset": x, "reason_name": "policy_entry_offset"} for x in (0, 4, 12)],
+        "edges": [{"source_block_index": i, "target_block_index": 2, "source_offset": x,
+                   "target_offset": 8, "kind": 4} for i, x in enumerate((0, 4))],
+    }]})
+    first, second, unavailable = result["functions"]
+    assert first["ownership_status"] == second["ownership_status"] == "ambiguous"
+    assert first["shared_block_starts"] == [8]
+    assert unavailable["ownership_status"] == "unavailable"
+    assert unavailable["ranges"] == []
+    assert "entry_not_accepted_block" in unavailable["unknowns"]
+
+
+def test_analysis_function_resolved_offset_without_block_is_partial() -> None:
+    result = function_facts.analysis_function_facts("test", {"sections": [{
+        "section_index": 0,
+        "blocks": [{"start_offset": 0, "end_offset": 2}],
+        "code_start_refs": [{"offset": 0, "reason_name": "section_entry"}],
+        "edges": [{"source_block_index": 0, "target_block_index": 0xFFFFFFFF,
+                   "source_offset": 0, "target_offset": 8, "kind": 4}],
+    }]})
+    fact = result["functions"][0]
+    assert fact["ownership_status"] == "partial"
+    assert "flow_target_not_accepted_block" in fact["unknowns"]

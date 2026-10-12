@@ -251,3 +251,16 @@ def test_clean_run_cli_reports_json(tmp_path: Path, capsys: pytest.CaptureFixtur
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "completed"
     assert payload["deleted_files"] == ["reproduction.json"]
+
+
+def test_history_lock_is_generated_but_preserved():
+    from amiga_reversing.reversing_workspace import (
+        TargetFileAction,
+        TargetFileClass,
+        _classify_file,
+    )
+
+    for name in ('.target-history.lock', 'targets/child/.target-history.lock'):
+        entry = _classify_file(name)
+        assert entry.file_class is TargetFileClass.GENERATED_OUTPUT
+        assert entry.action is TargetFileAction.PRESERVE

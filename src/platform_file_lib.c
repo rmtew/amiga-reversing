@@ -1,3 +1,6 @@
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #include "platform_file_lib.h"
 #include "platform_file_internal.h"
 #include "json_builder.h"
@@ -106,6 +109,7 @@ static int text_result_to_alloc(PlatformFileTextResult *result, char **out_text)
 }
 
 static int make_temp_output_path(char *path_buf, size_t path_buf_size) {
+#ifdef _WIN32
   char temp_name[L_tmpnam];
   if (tmpnam_s(temp_name, sizeof(temp_name)) != 0)
     return -1;
@@ -113,6 +117,15 @@ static int make_temp_output_path(char *path_buf, size_t path_buf_size) {
     return -1;
   strcpy(path_buf, temp_name);
   strcat(path_buf, ".bin");
+#else
+  char temp_name[] = "/tmp/amiga_rebuild_XXXXXX";
+  int fd;
+  if (path_buf == NULL || path_buf_size < sizeof(temp_name)) return -1;
+  fd = mkstemp(temp_name);
+  if (fd < 0) return -1;
+  close(fd);
+  strcpy(path_buf, temp_name);
+#endif
   return 0;
 }
 
@@ -13457,6 +13470,182 @@ cleanup:
   json_builder_destroy(&builder);
   platform_file_free_text(json);
   return text_result_to_alloc(&result, out_text);
+}
+
+/* Compact read projection over the same immutable facts and typed render plan
+ * used by the listing. No rendered text is interpreted and only a page is emitted. */
+static int query_coordinate(int has_section, uint32_t section, int has_start,
+    uint32_t start, int has_end, uint32_t end, uint32_t candidate_section, uint32_t candidate) {
+  return (!has_section || section == candidate_section) &&
+    (!has_start || (has_end ? candidate >= start && candidate < end : candidate == start));
+}
+
+int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListingArtifact *artifact,
+    const char *kind, const char *query, int has_section, uint32_t section_index,
+    int has_start, uint32_t start, int has_end, uint32_t end, const char *symbol,
+    const char *struct_name, int has_field, int32_t field_offset, const char *direction,
+    uint32_t offset, uint32_t limit, char **out_text) {
+  JsonBuilder b = {0};
+  size_t i, j, total = 0, emitted = 0;
+  int incoming, outgoing;
+  const M68kRenderPlan *plan;
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (!artifact || !kind || !query || !symbol || !struct_name || !direction ||
+      limit < 1 || limit > 100 || (has_end && (!has_start || end <= start)) ||
+      (strcmp(direction, "incoming") && strcmp(direction, "outgoing") && strcmp(direction, "both")) ||
+      (strcmp(kind, "symbols") && strcmp(kind, "references") && strcmp(kind, "fields") &&
+       strcmp(kind, "instructions") && strcmp(kind, "edges"))) return -1;
+  incoming = strcmp(direction, "outgoing") != 0;
+  outgoing = strcmp(direction, "incoming") != 0;
+  plan = &artifact->source_plan;
+#define Q(expr) do { if ((expr) != 0) goto failure; } while (0)
+#define PAGE() if (total++ < offset || emitted >= limit) continue; \
+  if (emitted++) Q(json_builder_append(&b, ","))
+#define COORD(sec, pos) query_coordinate(has_section, section_index, has_start, start, has_end, end, (uint32_t)(sec), pos)
+#define STR(key, value) do { Q(json_builder_append(&b, ",\"" key "\":")); Q(json_builder_append_json_string(&b, (value) ? (value) : "")); } while (0)
+#define ID(sec, pos) Q(json_builder_appendf(&b, "{\"section_index\":%u,\"source_offset\":%u", (unsigned)(sec), (unsigned)(pos)))
+#define TARGET(has, sec, pos) do { if (has) Q(json_builder_appendf(&b, ",\"target_section_index\":%u,\"target_offset\":%u", (unsigned)(sec), (unsigned)(pos))); \
+  else Q(json_builder_append(&b, ",\"target_section_index\":null,\"target_offset\":null")); } while (0)
+  Q(json_builder_create(&b));
+  Q(json_builder_append(&b, "{\"items\":["));
+  if (!strcmp(kind, "symbols")) {
+    for (i = 0; i < plan->declaration_count; ++i) {
+      const M68kRenderPlannedDeclaration *d = &plan->declarations[i];
+      if (!strstr(d->name, query) || (*symbol && strcmp(symbol, d->name)) ||
+          ((has_section || has_start) && (!d->has_source_target || !COORD(d->section_index, d->offset)))) continue;
+      PAGE();
+      if (d->has_source_target) { ID(d->section_index, d->offset); }
+      else Q(json_builder_append(&b, "{\"section_index\":null,\"source_offset\":null"));
+      STR("name", d->name);
+      STR("expression", d->expression);
+      {
+        size_t si, oi, origin_count = 0;
+        const M68kSymbolOriginIR *first_origin = NULL;
+        for (si = 0; si < artifact->source_analysis.section_count; ++si) {
+          const M68kSectionAnalysisIR *section = &artifact->source_analysis.sections[si];
+          for (oi = 0; oi < section->symbol_origin_count; ++oi) {
+            const M68kSymbolOriginIR *origin = &section->symbol_origins[oi];
+            if (origin->symbol_name && !strcmp(origin->symbol_name, d->name)) {
+              if (!first_origin) first_origin = origin;
+              ++origin_count;
+            }
+          }
+        }
+        Q(json_builder_appendf(&b, ",\"origin_count\":%zu", origin_count));
+        if (first_origin) Q(json_builder_appendf(&b,
+          ",\"origin\":{\"kind\":%u,\"confidence\":%u,\"section_index\":%u,\"source_offset\":%u}",
+          (unsigned)first_origin->origin_kind, (unsigned)first_origin->confidence,
+          (unsigned)first_origin->source_section_index, (unsigned)first_origin->source_offset));
+      }
+      Q(json_builder_appendf(&b, ",\"declaration_kind\":%u,\"provenance\":\"typed_render_declaration\"}", (unsigned)d->kind));
+    }
+  } else if (!strcmp(kind, "instructions") || !strcmp(kind, "references")) {
+    for (i = 0; i < plan->instruction_count; ++i) {
+      const M68kRenderPlannedInstruction *ins = &plan->instructions[i];
+      if (!strcmp(kind, "instructions")) {
+        const M68kSection *sec;
+        M68kRenderPolicy policy;
+        M68kIrRenderResult rendered;
+        if (!COORD(ins->source_section_index, ins->source_offset)) continue;
+        PAGE(); ID(ins->source_section_index, ins->source_offset);
+        STR("mnemonic", m68k_ir_instruction_mnemonic_name(&ins->instruction));
+        m68k_render_policy_init_default(&policy);
+        rendered = m68k_ir_render_one_at_with_policy(&ins->render_instruction, ins->source_offset,
+          &policy, m68k_diag_sink(NULL));
+        STR("text", rendered.text);
+        STR("annotation", ins->comment);
+        Q(json_builder_appendf(&b, ",\"size\":%u,\"bytes\":\"", (unsigned)ins->instruction.byte_count));
+        sec = ins->source_section_index < artifact->object.section_count ? &artifact->object.sections[ins->source_section_index] : NULL;
+        if (sec && ins->source_offset <= sec->data_size && ins->instruction.byte_count <= sec->data_size - ins->source_offset)
+          for (j = 0; j < ins->instruction.byte_count; ++j) Q(json_builder_appendf(&b, "%02x", sec->data[ins->source_offset+j]));
+        Q(json_builder_append(&b, "\",\"provenance\":\"accepted_instruction\"}"));
+      } else {
+        for (j = 0; j < ins->symbol_access_count; ++j) {
+          const M68kRenderPlannedSymbolAccess *a = &ins->symbol_accesses[j];
+          if ((*symbol && strcmp(symbol, a->symbol_name)) ||
+              !(!(has_section || has_start) || (outgoing && COORD(ins->source_section_index, ins->source_offset)) ||
+                (incoming && a->has_target && COORD(a->target_section_index, a->target_offset)))) continue;
+          PAGE(); ID(ins->source_section_index, ins->source_offset); STR("symbol", a->symbol_name);
+          TARGET(a->has_target, a->target_section_index, a->target_offset);
+          Q(json_builder_appendf(&b, ",\"operand_index\":%u,\"comment_only\":%s,\"kind\":\"symbol_reference\",\"provenance\":\"typed_operand\"}",
+            (unsigned)a->operand_index, a->comment_only ? "true" : "false"));
+        }
+      }
+    }
+  }
+  for (i = 0; i < artifact->source_analysis.section_count; ++i) {
+    const M68kSectionAnalysisIR *sec = &artifact->source_analysis.sections[i];
+    if (!strcmp(kind, "edges")) {
+      static const char *names[] = {"unknown", "fallthrough", "branch", "call", "jump", "return"};
+      for (j = 0; j < sec->edge_count; ++j) {
+        const M68kCfgEdgeIR *e = &sec->edges[j];
+        int resolved = e->target_offset != UINT32_MAX;
+        if (!(!(has_section || has_start) || (outgoing && COORD(sec->section_index, e->source_offset)) ||
+              (incoming && resolved && COORD(sec->section_index, e->target_offset)))) continue;
+        PAGE(); ID(sec->section_index, e->source_offset); TARGET(resolved, sec->section_index, e->target_offset);
+        STR("kind", e->kind <= M68K_CFG_EDGE_RETURN ? names[e->kind] : names[0]);
+        STR("status", resolved ? "resolved" : e->kind == M68K_CFG_EDGE_RETURN ? "dynamic_return" : "unresolved");
+        Q(json_builder_append(&b, ",\"provenance\":\"native_cfg\"}"));
+      }
+    } else if (!strcmp(kind, "fields")) {
+      for (j = 0; j < sec->recovered_platform_typed_access_count; ++j) {
+        const M68kRecoveredPlatformTypedAccessIR *a = &sec->recovered_platform_typed_accesses[j];
+        const char *root = m68k_platform_name_ref_display_text(&a->root_struct_ref, a->root_struct_name);
+        const char *owner = m68k_platform_name_ref_display_text(&a->owner_struct_ref, a->owner_struct_name);
+        const char *field = m68k_platform_name_ref_display_text(&a->field_ref, a->field_name);
+        if (!COORD(sec->section_index, a->offset) || (has_field && field_offset != a->field_offset) ||
+            (*struct_name && (!root || strcmp(struct_name, root)) && (!owner || strcmp(struct_name, owner)))) continue;
+        PAGE(); ID(sec->section_index, a->offset); STR("root_struct_name", root); STR("owner_struct_name", owner); STR("field_name", field);
+        Q(json_builder_appendf(&b, ",\"field_offset\":%d,\"operand_index\":%u,\"field_size\":%u,\"provenance\":{\"kind\":%u,\"section_index\":%u,\"source_offset\":%u}}",
+          (int)a->field_offset, (unsigned)a->operand_index, (unsigned)a->field_size,
+          (unsigned)a->type_provenance_kind, (unsigned)a->type_provenance_section_index, (unsigned)a->type_provenance_offset));
+      }
+      for (j = 0; j < sec->recovered_platform_unresolved_typed_access_count; ++j) {
+        const M68kRecoveredPlatformUnresolvedTypedAccessIR *a = &sec->recovered_platform_unresolved_typed_accesses[j];
+        const char *root = m68k_platform_name_ref_display_text(&a->root_struct_ref, a->root_struct_name);
+        if (!COORD(sec->section_index, a->offset) || (has_field && field_offset != a->displacement) ||
+            (*struct_name && (!root || strcmp(struct_name, root)))) continue;
+        PAGE(); ID(sec->section_index, a->offset); STR("root_struct_name", root);
+        Q(json_builder_appendf(&b, ",\"field_offset\":null,\"displacement\":%d,\"operand_index\":%u,\"classification\":%u,\"status\":\"unresolved\",\"provenance\":{\"kind\":%u,\"section_index\":%u,\"source_offset\":%u}}",
+          (int)a->displacement, (unsigned)a->operand_index, (unsigned)a->classification,
+          (unsigned)a->type_provenance_kind, (unsigned)a->type_provenance_section_index, (unsigned)a->type_provenance_offset));
+      }
+    } else if (!strcmp(kind, "references")) {
+      for (j = 0; j < sec->data_reference_count; ++j) {
+        const M68kDataReferenceIR *r = &sec->data_references[j];
+        int resolved = r->target_status == M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+        if (!(!(has_section || has_start) || (outgoing && COORD(sec->section_index, r->source_offset)) ||
+              (incoming && resolved && COORD(r->target_section_index, r->target_offset)))) continue;
+        if (*symbol) {
+          size_t declaration_index;
+          for (declaration_index = 0; declaration_index < plan->declaration_count; ++declaration_index) {
+            const M68kRenderPlannedDeclaration *d = &plan->declarations[declaration_index];
+            if (resolved && d->has_source_target && d->section_index == r->target_section_index &&
+                d->offset == r->target_offset && !strcmp(d->name, symbol)) break;
+          }
+          if (declaration_index == plan->declaration_count) continue;
+        }
+        PAGE(); ID(sec->section_index, r->source_offset); TARGET(resolved, r->target_section_index, r->target_offset);
+        Q(json_builder_appendf(&b, ",\"kind\":\"data_reference\",\"target_status\":%u,\"evidence_flags\":%u,\"provenance\":\"native_data_reference\"}",
+          (unsigned)r->target_status, (unsigned)r->evidence_flags));
+      }
+    }
+  }
+  Q(json_builder_appendf(&b, "],\"total\":%zu,\"offset\":%u,\"limit\":%u,\"has_more\":%s,\"scope\":\"native_artifact\",\"unknowns\":[\"Static facts are incomplete; absent references do not prove unreachability.\",\"CFG edges use section-local targets; unresolved indirect transfers have null targets.\",\"Function ownership is not inferred by this query.\"]}",
+    total, offset, limit, (size_t)offset + emitted < total ? "true" : "false"));
+  *out_text = json_builder_build(&b);
+  json_builder_destroy(&b);
+  return *out_text ? 0 : -1;
+failure:
+  json_builder_destroy(&b);
+  return -1;
+#undef Q
+#undef PAGE
+#undef COORD
+#undef STR
+#undef ID
+#undef TARGET
 }
 
 void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact) {

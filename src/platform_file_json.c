@@ -1,3 +1,4 @@
+#include <limits.h>
 /* Internal JSON/inspection implementation for platform_file_lib. */
 #include "platform_file_internal.h"
 #include "m68k_fact_ir.h"
@@ -8137,14 +8138,12 @@ static int append_listing_resolved_field_path_json(JsonBuilder *builder,
   return json_builder_append(builder, "]");
 }
 
-static int append_listing_field_refs_json(JsonBuilder *builder, const ListingAppSlotAnalysisBuilder *analysis,
+static int append_listing_field_refs_json(JsonBuilder *builder,
     const ListingAppSlotTypedRegion *region, const ListingAppSlotFieldRefSummary *fields, size_t field_count) {
   size_t field_index;
   if (json_builder_append(builder, "[") != 0) return -1;
   for (field_index = 0U; field_index < field_count; ++field_index) {
     const ListingAppSlotFieldRefSummary *field = &fields[field_index];
-    size_t ref_index;
-    int emitted_ref = 0;
     if (field_index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"symbol\":") != 0) return -1;
     if (json_builder_append_json_string(builder, field->symbol) != 0) return -1;
@@ -8189,25 +8188,7 @@ static int append_listing_field_refs_json(JsonBuilder *builder, const ListingApp
         }
       }
     }
-    if (json_builder_append(builder, ",\"refs\":[") != 0) return -1;
-    for (ref_index = 0U; ref_index < analysis->ref_count; ++ref_index) {
-      const ListingAppSlotRefRecord *ref = &analysis->refs[ref_index];
-      if (ref->displacement < region->offset || ref->displacement >= region->end ||
-          (int16_t)(ref->displacement - region->offset) != field->field_offset ||
-          strcmp(ref->symbol, field->symbol) != 0) {
-        continue;
-      }
-      if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
-      if (json_builder_appendf(builder, "{\"row_index\":%u,\"addr\":%u,\"access\":",
-            (unsigned)ref->row_index, (unsigned)ref->addr) != 0)
-        return -1;
-      if (json_builder_append_json_string(builder, app_slot_access_kind_name(ref->access_kind)) != 0) return -1;
-      if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
-      if (json_builder_append_json_string(builder, ref->stable_key) != 0) return -1;
-      if (json_builder_append(builder, "}") != 0) return -1;
-      emitted_ref = 1;
-    }
-    if (json_builder_append(builder, "]}") != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
   }
   return json_builder_append(builder, "]");
 }
@@ -8282,7 +8263,7 @@ static int append_listing_rsset_layout_regions_json(JsonBuilder *builder, const 
         json_builder_append(builder, ",\"evidence\":") != 0 ||
         append_listing_app_slot_region_evidence_json(builder, region) != 0 ||
         json_builder_append(builder, ",\"field_refs\":") != 0 ||
-        append_listing_field_refs_json(builder, analysis, region, fields, field_count) != 0 ||
+        append_listing_field_refs_json(builder, region, fields, field_count) != 0 ||
         json_builder_append(builder, "}") != 0) {
       arena_rewind(analysis->arena, mark);
       return -1;
@@ -10529,26 +10510,7 @@ static int listing_navigation_append_label_ref(ListingNavigationJsonContext *nav
   return 0;
 }
 
-static int listing_navigation_has_label_definition(const ListingNavigationLabelBuilder *labels, const char *symbol) {
-  size_t index;
-  if (labels == NULL || symbol == NULL) return 0;
-  for (index = 0U; index < labels->ref_count; ++index)
-    if (strcmp(labels->refs[index].symbol, symbol) == 0 &&
-        labels->refs[index].access_kind == LISTING_LABEL_ACCESS_DEFINITION)
-      return 1;
-  return 0;
-}
 
-static int listing_navigation_has_equate_definition(const ListingNavigationEquateBuilder *equates,
-    const char *symbol) {
-  size_t index;
-  if (equates == NULL || symbol == NULL) return 0;
-  for (index = 0U; index < equates->ref_count; ++index)
-    if (strcmp(equates->refs[index].symbol, symbol) == 0 &&
-        equates->refs[index].access_kind == LISTING_LABEL_ACCESS_DEFINITION)
-      return 1;
-  return 0;
-}
 
 static int listing_equate_definition_parts(const char *opcode, const char *operand, char *out_symbol,
     size_t out_symbol_size, char *out_operand, size_t out_operand_size) {
@@ -10760,26 +10722,6 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
   return 0;
 }
 
-static int append_listing_navigation_label_ref_json(JsonBuilder *builder, const ListingNavigationLabelRef *ref) {
-  if (json_builder_appendf(builder, "{\"addr\":%u,\"row_index\":%u,\"summary\":",
-        (unsigned)ref->addr, (unsigned)ref->row_index) != 0)
-    return -1;
-  if (json_builder_append_json_string(builder, ref->summary) != 0) return -1;
-  if (json_builder_append(builder, ",\"match_text\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, ref->match_text) != 0) return -1;
-  if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, ref->stable_key) != 0) return -1;
-  if (ref->section_index >= 0 &&
-      json_builder_appendf(builder, ",\"hunk_index\":%d,\"section_index\":%d", ref->section_index,
-        ref->section_index) != 0)
-    return -1;
-  if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, ref->symbol) != 0) return -1;
-  if (json_builder_appendf(builder, ",\"access_kind\":%u,\"access\":", (unsigned)ref->access_kind) != 0)
-    return -1;
-  if (json_builder_append_json_string(builder, listing_label_access_name(ref->access_kind)) != 0) return -1;
-  return json_builder_append(builder, "}");
-}
 
 static int append_listing_navigation_labels_json(JsonBuilder *builder, const ListingNavigationLabelBuilder *labels) {
   size_t def_index;
@@ -10820,24 +10762,7 @@ static int append_listing_navigation_labels_json(JsonBuilder *builder, const Lis
       return -1;
     if (reference_count != 0U && json_builder_appendf(builder, ",\"reference\":%u", (unsigned)reference_count) != 0)
       return -1;
-    if (json_builder_append(builder, "},\"refs\":[") != 0) return -1;
-    {
-      int emitted_ref = 0;
-      for (ref_index = 0U; ref_index < labels->ref_count; ++ref_index) {
-        const ListingNavigationLabelRef *ref = &labels->refs[ref_index];
-        if (strcmp(ref->symbol, def->symbol) != 0) continue;
-        if (ref->access_kind == LISTING_LABEL_ACCESS_REFERENCE &&
-            !listing_navigation_has_label_definition(labels, ref->symbol))
-          continue;
-        if (ref->access_kind != LISTING_LABEL_ACCESS_DEFINITION &&
-            ref->access_kind != LISTING_LABEL_ACCESS_REFERENCE)
-          continue;
-        if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
-        if (append_listing_navigation_label_ref_json(builder, ref) != 0) return -1;
-        emitted_ref = 1;
-      }
-    }
-    if (json_builder_append(builder, "]}") != 0) return -1;
+    if (json_builder_append(builder, "}}") != 0) return -1;
     emitted_def = 1;
   }
   return json_builder_append(builder, "]");
@@ -10873,12 +10798,6 @@ static int append_listing_navigation_equate_ref_fields_json(JsonBuilder *builder
   return 0;
 }
 
-static int append_listing_navigation_equate_ref_json(JsonBuilder *builder, const ListingNavigationEquateRef *ref) {
-  if (json_builder_append(builder, "{") != 0 ||
-      append_listing_navigation_equate_ref_fields_json(builder, ref) != 0)
-    return -1;
-  return json_builder_append(builder, "}");
-}
 
 static int append_listing_navigation_equates_json(JsonBuilder *builder,
     const ListingNavigationEquateBuilder *equates) {
@@ -10909,55 +10828,12 @@ static int append_listing_navigation_equates_json(JsonBuilder *builder,
       return -1;
     if (reference_count != 0U && json_builder_appendf(builder, ",\"reference\":%u", (unsigned)reference_count) != 0)
       return -1;
-    if (json_builder_append(builder, "},\"refs\":[") != 0) return -1;
-    {
-      int emitted_ref = 0;
-      for (ref_index = 0U; ref_index < equates->ref_count; ++ref_index) {
-        const ListingNavigationEquateRef *ref = &equates->refs[ref_index];
-        if (strcmp(ref->symbol, def->symbol) != 0) continue;
-        if (ref->access_kind == LISTING_LABEL_ACCESS_REFERENCE &&
-            !listing_navigation_has_equate_definition(equates, ref->symbol))
-          continue;
-        if (ref->access_kind != LISTING_LABEL_ACCESS_DEFINITION &&
-            ref->access_kind != LISTING_LABEL_ACCESS_REFERENCE)
-          continue;
-        if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
-        if (append_listing_navigation_equate_ref_json(builder, ref) != 0) return -1;
-        emitted_ref = 1;
-      }
-    }
-    if (json_builder_append(builder, "]}") != 0) return -1;
+    if (json_builder_append(builder, "}}") != 0) return -1;
     emitted_def = 1;
   }
   return json_builder_append(builder, "]");
 }
 
-static int append_listing_navigation_app_slot_ref_json(JsonBuilder *builder, const ListingAppSlotRefRecord *ref) {
-  char base_reg[4];
-  if (ref == NULL) return -1;
-  listing_register_name(base_reg, sizeof(base_reg), ref->base_reg);
-  if (json_builder_appendf(builder, "{\"addr\":%u,\"row_index\":%u,\"summary\":",
-        (unsigned)ref->addr, (unsigned)ref->row_index) != 0)
-    return -1;
-  if (json_builder_append_json_string(builder, ref->symbol) != 0) return -1;
-  if (json_builder_append(builder, ",\"match_text\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, ref->symbol) != 0) return -1;
-  if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, ref->stable_key) != 0) return -1;
-  if (ref->section_index >= 0 &&
-      json_builder_appendf(builder, ",\"hunk_index\":%d,\"section_index\":%d", ref->section_index,
-        ref->section_index) != 0)
-    return -1;
-  if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, ref->symbol) != 0) return -1;
-  if (json_builder_appendf(builder, ",\"displacement\":%d,\"base_register\":", (int)ref->displacement) != 0)
-    return -1;
-  if (json_builder_append_json_string(builder, base_reg) != 0) return -1;
-  if (json_builder_appendf(builder, ",\"operand_index\":%u,\"access\":", (unsigned)ref->operand_index) != 0)
-    return -1;
-  if (json_builder_append_json_string(builder, app_slot_access_kind_name(ref->access_kind)) != 0) return -1;
-  return json_builder_append(builder, "}");
-}
 
 static int append_listing_navigation_app_slots_json(JsonBuilder *builder,
     const ListingAppSlotAnalysisBuilder *analysis) {
@@ -10968,8 +10844,6 @@ static int append_listing_navigation_app_slots_json(JsonBuilder *builder,
   if (json_builder_append(builder, "[") != 0) return -1;
   for (summary_index = 0U; summary_index < summary_count; ++summary_index) {
     const ListingAppSlotSummary *summary = &summaries[summary_index];
-    size_t ref_index;
-    int emitted_ref = 0;
     if (summary_index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"symbol\":") != 0) return -1;
     if (json_builder_append_json_string(builder, summary->symbol) != 0) return -1;
@@ -10982,17 +10856,7 @@ static int append_listing_navigation_app_slots_json(JsonBuilder *builder,
     if (append_listing_count_object(builder, "read", summary->access_read, "write", summary->access_write,
         "read-write", summary->access_read_write, "address", summary->access_address) != 0)
       return -1;
-    if (json_builder_append(builder, ",\"refs\":[") != 0) return -1;
-    if (analysis != NULL) {
-      for (ref_index = 0U; ref_index < analysis->ref_count; ++ref_index) {
-        const ListingAppSlotRefRecord *ref = &analysis->refs[ref_index];
-        if (strcmp(ref->symbol, summary->symbol) != 0) continue;
-        if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
-        if (append_listing_navigation_app_slot_ref_json(builder, ref) != 0) return -1;
-        emitted_ref = 1;
-      }
-    }
-    if (json_builder_append(builder, "],\"base_registers\":") != 0) return -1;
+    if (json_builder_append(builder, ",\"base_registers\":") != 0) return -1;
     if (append_listing_app_slot_base_registers(builder, summary->base_reg_mask) != 0) return -1;
     if (json_builder_append(builder, ",\"width_counts\":") != 0) return -1;
     if (append_listing_count_object(builder, "byte", summary->width_byte, "word", summary->width_word,

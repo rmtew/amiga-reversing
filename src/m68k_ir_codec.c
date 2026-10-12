@@ -451,7 +451,10 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
     return append_format(out_text, out_text_size, inout_used, operand->value.value == 0U ? "%s.w(a%u)" : "%s(a%u)",
       name, (unsigned)operand->value.ea_reg);
   if (operand->value.ea_mode == 2)
-    return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
+    /* A symbolic zero displacement changes mode 2 to mode 5 in external
+     * assemblers. Keep the encoded addressing mode; the render plan retains
+     * the field identity as a comment-only symbol access. */
+    return append_format(out_text, out_text_size, inout_used, "(a%u)", (unsigned)operand->value.ea_reg);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2) {
     if (operand->symbol_ref.render_pc_relative_displacement_expr != 0U) {
       uint32_t base_offset = operand->symbol_ref.pc_relative_displacement_base_offset;
@@ -792,7 +795,8 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
           goto overflow;
       } else if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) == 0) {
-          mark_rendered_operand_symbol(&result, operand_index);
+          if (operand->value.ea_mode != 2U)
+            mark_rendered_operand_symbol(&result, operand_index);
         } else if (append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
             operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0) {
           goto overflow;

@@ -3,6 +3,23 @@
 Use the reversing loop as an operator of normal project workflows, not as a
 private mutation path.
 
+## Current restoration workflow
+
+For connected source restoration, use the shared operations described in
+[Restoration interfaces](../restoration-interfaces.md). Open the existing server,
+select a native gap or anonymous function, inspect paged symbols/references/field
+uses and record a concrete interpretation through the command catalog. Preserve
+unknowns. Regenerate and require exact bytes before accepting output changes;
+use a bounded question-led runtime probe only when it resolves an ambiguity.
+Review decisions and undo/redo append to existing histories.
+
+Every mutation needs the revision captured with its inspection/catalog. Never
+silently refresh a stale revision and retry a previously decided write. The
+service serializes UI/CLI/MCP mutations and preserves legacy annotation bytes.
+Exact encoding does not establish semantic truth. Runtime timeouts mean not
+observed in the recorded conditions. The specialized commands below remain for
+their existing analysis lanes; they use the same revision-checked command path.
+
 ## Entry Commands
 
 - `uv run python -m amiga_reversing.reversing_loop hygiene --target <target>`

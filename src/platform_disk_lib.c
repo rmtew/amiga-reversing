@@ -1,3 +1,4 @@
+#include "platform_host_compat.h"
 #include "json_builder.h"
 #include "platform_amiga_disk.h"
 #include "platform_atari_st_disk.h"
@@ -11,10 +12,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
 #include <windows.h>
 #include <bcrypt.h>
 
 #pragma comment(lib, "bcrypt.lib")
+#else
+#include <openssl/sha.h>
+#endif
 
 #define AMIGA_DISK_CONTENT_CLASSIFY_MAX_BYTES (1024U * 1024U)
 #define PLATFORM_DISK_WORKFLOW_ARENA_SIZE 16384U
@@ -203,6 +208,7 @@ static int extract_amiga_entry_payload_from_analysis_arena(const unsigned char *
 }
 
 static int sha1_hex8_text(const char *text, char out_hex[9]) {
+#ifdef _WIN32
     BCRYPT_ALG_HANDLE algorithm = NULL;
     BCRYPT_HASH_HANDLE hash = NULL;
     unsigned char digest[20];
@@ -228,6 +234,15 @@ fail:
     if (hash != NULL) BCryptDestroyHash(hash);
     if (algorithm != NULL) BCryptCloseAlgorithmProvider(algorithm, 0);
     return -1;
+#else
+    unsigned char digest[SHA_DIGEST_LENGTH];
+    size_t i;
+    if (text == NULL || out_hex == NULL) return -1;
+    out_hex[0] = '\0';
+    if (SHA1((const unsigned char *)text, strlen(text), digest) == NULL) return -1;
+    for (i = 0; i < 4U; ++i) snprintf(out_hex + i * 2U, 3U, "%02x", digest[i]);
+    return 0;
+#endif
 }
 
 static int safe_id_char(int ch) {

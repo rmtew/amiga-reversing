@@ -111,6 +111,9 @@ def test_manual_actions_cli_invokes_catalog_action(monkeypatch, capsys) -> None:
         if path == "/api/projects/bloodwych/listing/open":
             assert method == "POST"
             return {"ok": True, "data": {"job_id": "listing-job", "status": "ready"}}
+        if path == "/api/projects/bloodwych/commands":
+            assert method == "GET"
+            return {"ok": True, "data": {"commands": [], "revision": "snapshot"}}
         assert method == "POST"
         assert path == "/api/projects/bloodwych/commands/execute"
         assert query == {}
@@ -135,6 +138,7 @@ def test_manual_actions_cli_invokes_catalog_action(monkeypatch, capsys) -> None:
     payload = json.loads(capsys.readouterr().out)
 
     assert captured_body == {
+        "expected_revision": "snapshot",
         "command_id": "review.seed.data.string",
         "context": {"kind": "review_item", "review_index": 0},
         "parameters": {"unit": "byte"},
@@ -170,6 +174,7 @@ def test_manual_actions_cli_invokes_catalog_action(monkeypatch, capsys) -> None:
     ) == 0
     json.loads(capsys.readouterr().out)
     assert captured_body == {
+        "expected_revision": "snapshot",
         "command_id": "range.review_note.add",
         "context": {
             "kind": "range",
@@ -209,6 +214,9 @@ def test_manual_actions_cli_invokes_target_action_batch_without_listing_session(
 
     def route(method: str, path: str, query, body=None):
         calls.append((path, body))
+        if path == "/api/projects/bloodwych/commands":
+            assert method == "GET"
+            return {"ok": True, "data": {"commands": [], "revision": "snapshot"}}
         assert method == "POST"
         assert path == "/api/projects/bloodwych/commands/execute"
         return {"ok": True, "data": {"command_id": cast(dict[str, object], body)["command_id"]}}
@@ -230,7 +238,9 @@ def test_manual_actions_cli_invokes_target_action_batch_without_listing_session(
         "actions": [{"command_id": "target.seed.remove"}, {"command_id": "target.code.seed"}]
     }
     assert [path for path, _body in calls] == [
+        "/api/projects/bloodwych/commands",
         "/api/projects/bloodwych/commands/execute",
+        "/api/projects/bloodwych/commands",
         "/api/projects/bloodwych/commands/execute",
     ]
 
@@ -240,6 +250,9 @@ def test_manual_actions_cli_invokes_target_action_without_listing_session(monkey
 
     def route(method: str, path: str, query, body=None):
         calls.append(path)
+        if path == "/api/projects/bloodwych/commands":
+            assert method == "GET"
+            return {"ok": True, "data": {"commands": [], "revision": "snapshot"}}
         assert method == "POST"
         assert path == "/api/projects/bloodwych/commands/execute"
         return {"ok": True, "data": {"command_id": cast(dict[str, object], body)["command_id"]}}
@@ -251,7 +264,7 @@ def test_manual_actions_cli_invokes_target_action_without_listing_session(monkey
     ) == 0
 
     assert json.loads(capsys.readouterr().out) == {"command_id": "target.code.seed"}
-    assert calls == ["/api/projects/bloodwych/commands/execute"]
+    assert calls == ["/api/projects/bloodwych/commands", "/api/projects/bloodwych/commands/execute"]
 
 
 def test_manual_actions_cli_reports_invalid_inputs(monkeypatch) -> None:
@@ -268,3 +281,19 @@ def test_manual_actions_cli_reports_invalid_inputs(monkeypatch) -> None:
     with pytest.raises(SystemExit) as invalid_param:
         manual_actions.main(["invoke", "bloodwych", "review.seed.data.string", "--param", "bad"])
     assert str(invalid_param.value) == "Invalid --param value: bad"
+
+
+def test_invoke_preserves_catalog_revision_when_execution_rejects_stale(monkeypatch):
+    calls = []
+
+    def route(method, path, query, body=None):
+        calls.append(path)
+        if path.endswith('/commands'):
+            return {'data': {'revision': 'reviewed-snapshot', 'commands': []}}
+        assert body['expected_revision'] == 'reviewed-snapshot'
+        raise RuntimeError('stale revision')
+
+    monkeypatch.setattr(manual_actions.server, 'route_request', route)
+    with pytest.raises(RuntimeError, match='stale revision'):
+        manual_actions.main(['invoke', 'demo', 'target.code.seed'])
+    assert calls == ['/api/projects/demo/commands', '/api/projects/demo/commands/execute']

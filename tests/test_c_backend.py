@@ -5973,6 +5973,7 @@ start:
         )
         try:
             navigation, _profile = artifact.navigation_payload()
+            references = artifact.query_payload("references", symbol="PLAYER_START_LIVES")
         finally:
             artifact.close()
         rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
@@ -6000,7 +6001,10 @@ start:
     assert equates[0]["symbol"] == "PLAYER_START_LIVES"
     assert equates[0]["operand"] == "$2A"
     assert equates[0]["ref_count"] == 2
-    assert [ref["access"] for ref in equates[0]["refs"]] == ["definition", "reference"]
+    assert equates[0]["access_counts"] == {"definition": 1, "reference": 1}
+    assert "refs" not in equates[0]
+    assert references["total"] == 1
+    assert references["items"][0]["source_offset"] == 0
     assert rebuilt == original
     assert direct_profile["direct_rebuild_exact"] is True
 

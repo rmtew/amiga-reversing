@@ -85,6 +85,9 @@ def test_active_source_import_boundaries_are_current() -> None:
         "argparse",
         "ast",
         "base64",
+        "binascii",
+        "fcntl",  # POSIX target history lock
+        "msvcrt",  # Windows target history lock
         "collections",
         "contextlib",
         "copy",
@@ -109,6 +112,8 @@ def test_active_source_import_boundaries_are_current() -> None:
         "shlex",
         "subprocess",
         "struct",
+        "socket",  # native Copperline control transport
+        "warnings",  # retired runtime registry migration
         "sys",
         "tempfile",
         "threading",
@@ -146,6 +151,7 @@ def test_active_source_import_boundaries_are_current() -> None:
             for root in roots
             if root not in runtime_allowed_roots
             and not (relative == "amiga_reversing/disasm/corpus_usage.py" and root == "src")
+            and not (relative == "amiga_reversing/tools/restoration_mcp.py" and root == "mcp")
         )
         if invalid_roots:
             runtime_import_offenders.append(f"{relative}: {', '.join(invalid_roots)}")

@@ -12,7 +12,8 @@ from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.tools import vasm_roundtrip
 
 
-def test_roundtrip_vasm_target_reports_first_diff(monkeypatch, tmp_path: Path) -> None:
+@pytest.mark.parametrize("kind", [BinarySourceKind.HUNK_FILE, BinarySourceKind.RAW_BINARY])
+def test_roundtrip_vasm_target_reports_first_diff(monkeypatch, tmp_path: Path, kind) -> None:
     target_dir = tmp_path / "targets" / "amiga_hunk_demo"
     tools_dir = tmp_path / "tools"
     include_dir = tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"
@@ -30,7 +31,7 @@ def test_roundtrip_vasm_target_reports_first_diff(monkeypatch, tmp_path: Path) -
         lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=SimpleNamespace(
-                kind=BinarySourceKind.HUNK_FILE,
+                kind=kind,
                 display_path="bin/Demo",
                 read_bytes=lambda: b"\x01\x02\x03\x04",
             ),
@@ -60,10 +61,10 @@ def test_roundtrip_vasm_target_reports_first_diff(monkeypatch, tmp_path: Path) -
         timeout: int,
     ) -> subprocess.CompletedProcess[str]:
         assert cmd[0] == str(tools_dir / "vasmm68k_mot.exe")
-        assert "-Fhunkexe" in cmd
+        assert ("-Fhunkexe" if kind == BinarySourceKind.HUNK_FILE else "-Fbin") in cmd
         assert "-no-opt" in cmd
         assert "-nosym" in cmd
-        assert "-kick1hunks" in cmd
+        assert ("-kick1hunks" in cmd) == (kind == BinarySourceKind.HUNK_FILE)
         assert f"-I{include_dir}" in cmd
         output_path = Path(cmd[cmd.index("-o") + 1])
         output_path.write_bytes(b"\x01\xFF\x03\x04")

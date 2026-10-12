@@ -265,6 +265,19 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
           }
         }
       }
+      /* A decoded indirect transfer has no concrete decode target. Preserve it
+       * as an unresolved CFG edge using the generated flow semantics. Otherwise
+       * an indirect call disappears and an indirect jump looks like a return. */
+      if (!has_control_target) {
+        M68kInstructionIR flow_instruction;
+        const M68kSimFormMetadata *flow = analysis_cfg_candidate_metadata(candidate, &flow_instruction);
+        if (flow != NULL && (flow->flow_kind == M68K_SIM_FLOW_CALL || flow->flow_kind == M68K_SIM_FLOW_JUMP)) {
+          if (analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, UINT32_MAX,
+              flow->flow_kind == M68K_SIM_FLOW_CALL ? M68K_CFG_EDGE_CALL : M68K_CFG_EDGE_JUMP) != 0)
+            goto cleanup;
+          has_control_target = 1;
+        }
+      }
       if (has_control_target) {
         if (has_fallthrough && next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset) &&
             analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, next_offset,

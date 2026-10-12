@@ -75,11 +75,10 @@ from amiga_reversing.disasm.manual_action_catalog import (
 from amiga_reversing.disasm.manual_actions import (
     ManualActionKind,
     ReviewState,
-    append_manual_action,
+    append_manual_actions,
     manual_action_kind,
     manual_action_log_path,
     review_item_is_open,
-    validate_manual_action_payload,
 )
 from amiga_reversing.disasm.manual_review_items import analysis_review_items
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
@@ -418,7 +417,7 @@ def _write_api_input_type_override(
     _OS_CORRECTIONS_PATH.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    _LISTING_PROJECTION_SERVICE.reset()
+    _LISTING_PROJECTION_SERVICE.invalidate_all_lazy()
     _cancel_listing_jobs()
 
 
@@ -1035,6 +1034,12 @@ def _review_note_navigation_entries(notes: list[dict[str, object]]) -> list[dict
 
 
 def _clear_project_listing_cache(project_name: str, *, keep_stale_artifact: bool = False) -> None:
+    from amiga_reversing.disasm.target_history import target_lock
+    with target_lock(resolve_project_paths(project_name, project_root=PROJECT_ROOT).target_dir):
+        _clear_project_listing_cache_locked(project_name, keep_stale_artifact=keep_stale_artifact)
+
+
+def _clear_project_listing_cache_locked(project_name: str, *, keep_stale_artifact: bool = False) -> None:
     if keep_stale_artifact:
         _LISTING_PROJECTION_SERVICE.invalidate_project_keep_artifact(project_name)
     else:
@@ -1355,33 +1360,35 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             if listing_artifact is not None:
                 listing_artifact.close()
             return
-        if _project_listing_cache_key(project_name) != cache_key:
-            if listing_artifact is not None:
-                listing_artifact.close()
-            _set_job_state(
-                job_id,
-                status="failed",
-                phase_id="stale",
-                error="project changed while listing job was building",
-                finished_at=time.time(),
-            )
-            return
-        with _JOB_LOCK:
-            if job_id not in _ASYNC_JOBS:
-                return
-            job_cache_key = _ASYNC_JOBS[job_id].get("cache_key")
-            if job_cache_key is not None and job_cache_key != cache_key:
+        from amiga_reversing.disasm.target_history import target_lock
+        with target_lock(resolve_project_paths(project_name, project_root=PROJECT_ROOT).target_dir):
+            if _project_listing_cache_key(project_name) != cache_key:
                 if listing_artifact is not None:
                     listing_artifact.close()
-                return
-            if listing_artifact is not None:
-                _LISTING_PROJECTION_SERVICE.set_artifact(
-                    project_id=project_name,
-                    cache_key=cache_key,
-                    artifact=listing_artifact,
+                _set_job_state(
+                    job_id,
+                    status="failed",
+                    phase_id="stale",
+                    error="project changed while listing job was building",
+                    finished_at=time.time(),
                 )
-                listing_artifact = None
-        _prewarm_analysis_review_items(project_name)
+                return
+            with _JOB_LOCK:
+                if job_id not in _ASYNC_JOBS:
+                    return
+                job_cache_key = _ASYNC_JOBS[job_id].get("cache_key")
+                if job_cache_key is not None and job_cache_key != cache_key:
+                    if listing_artifact is not None:
+                        listing_artifact.close()
+                    return
+                if listing_artifact is not None:
+                    _LISTING_PROJECTION_SERVICE.set_artifact(
+                        project_id=project_name,
+                        cache_key=cache_key,
+                        artifact=listing_artifact,
+                    )
+                    listing_artifact = None
+            _prewarm_analysis_review_items(project_name)
         _log_event(
             "listing_job artifact_ready",
             job_id=job_id,
@@ -1471,6 +1478,12 @@ def _reproduction_cache_key(project_name: str) -> str:
 
 
 def _build_reproduction_job(job_id: str, project_name: str) -> None:
+    from amiga_reversing.disasm.target_history import target_lock
+    with target_lock(Path(get_project(project_name).target_dir)):
+        _build_reproduction_job_locked(job_id, project_name)
+
+
+def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
     phase_count = _REPRODUCTION_PHASE_COUNT
     try:
         cache_key = _reproduction_cache_key(project_name)
@@ -1828,6 +1841,12 @@ def _asset_data_project_payload(project: ProjectRecord) -> dict[str, object] | N
 
 
 def _project_dict_with_cached_analysis_review(project_name: str, project: ProjectRecord) -> dict[str, object]:
+    from amiga_reversing.disasm.target_history import target_lock
+    with target_lock(Path(project.target_dir)):
+        return _project_dict_with_cached_analysis_review_locked(project_name, project)
+
+
+def _project_dict_with_cached_analysis_review_locked(project_name: str, project: ProjectRecord) -> dict[str, object]:
     project_dict = project.to_dict()
     if _has_default_source_artifact(project):
         project_dict["source_artifact_default"] = True
@@ -1912,11 +1931,12 @@ def _command_contract_error(code: str, message: str) -> CommandContractError:
 
 
 def _command_catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+    from amiga_reversing.disasm.restoration import revisions
     context, rows = _command_context_from_query(project_name, query)
     cache_key = _command_availability_cache_key(project_name, context)
     cached = _COMMAND_AVAILABILITY_CACHE.get(cache_key)
     if cached is not None:
-        return dict(cached)
+        return {**cached, **revisions(project_name)}
     context_kind = context["kind"]
     if context_kind == "target":
         actions = target_action_catalog()
@@ -1942,7 +1962,7 @@ def _command_catalog_payload(project_name: str, query: dict[str, list[str]]) -> 
         "commands": commands,
     }
     _COMMAND_AVAILABILITY_CACHE[cache_key] = dict(payload)
-    return payload
+    return {**payload, **revisions(project_name)}
 
 
 def _public_command_context(context: Mapping[str, object]) -> dict[str, object]:
@@ -2542,6 +2562,11 @@ def _unresolved_typed_access_report_payload(
 
 
 def _execute_command(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
+    from amiga_reversing.disasm.restoration import execute
+    return execute(project_name, {**dict(body or {}), "operation": "command"})
+
+
+def _execute_command_unchecked(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
     workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
     payload_body = dict(body or {})
     command_id = payload_body.get("command_id")
@@ -2570,6 +2595,7 @@ def _execute_command(project_name: str, body: Mapping[str, object] | None) -> di
         rows,
         cast(dict[str, object] | None, parameters),
         workflow_profile=workflow_profile,
+        interpretation=payload_body.get("interpretation"),
     )
     response_started_at = time.perf_counter()
     response = {
@@ -2650,6 +2676,7 @@ def _execute_manual_action_command(
     parameters: dict[str, object] | None,
     *,
     workflow_profile: WorkflowProfile | None = None,
+    interpretation: object = None,
 ) -> dict[str, object]:
     project = get_project(project_name)
     context_kind = context.get("kind")
@@ -2682,28 +2709,18 @@ def _execute_manual_action_command(
     binary_source = resolve_target_binary_source(paths.target_dir)
     if binary_source is None:
         raise ValueError(f"Project {project_name} has no source binary")
-    appended_actions: list[dict[str, object]] = []
+    if interpretation is not None:
+        action_payloads = [(kind, {**payload, "interpretation": interpretation}) for kind, payload in action_payloads]
+    append_started_at = time.perf_counter()
+    appended_actions = append_manual_actions(
+        paths.target_dir,
+        actions=[(manual_action_kind(kind), payload) for kind, payload in action_payloads],
+        binary_source=binary_source,
+    )
+    if workflow_profile is not None:
+        workflow_profile.add_span("manual_action_append", time.perf_counter() - append_started_at, module="manual_action_log")
     application_parts: list[dict[str, object]] = []
     for kind, action_payload in action_payloads:
-        validate_manual_action_payload(action_payload)
-        append_started_at = time.perf_counter()
-        try:
-            appended_actions.append(
-                append_manual_action(
-                    paths.target_dir,
-                    kind=manual_action_kind(kind),
-                    payload=action_payload,
-                    binary_source=binary_source,
-                )
-            )
-        finally:
-            if workflow_profile is not None:
-                workflow_profile.add_span(
-                    "manual_action_append",
-                    time.perf_counter() - append_started_at,
-                    module="manual_action_log",
-                    detail={"kind": kind},
-                )
         application_started_at = time.perf_counter()
         try:
             application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
@@ -3481,6 +3498,23 @@ def route_request(
     query: dict[str, list[str]],
     body: dict[str, object] | None = None,
 ) -> ApiResponse:
+    # The same target lease protects old UI reads, restoration reads, writes and
+    # native artifact replacement. Acquire it before the job lock everywhere.
+    parts = [part for part in path.split("/") if part]
+    if len(parts) >= 3 and parts[:2] == ["api", "projects"] and parts[2] != "create":
+        from amiga_reversing.disasm.target_history import target_lock
+        directory = Path(get_project(parts[2]).target_dir)
+        with target_lock(directory):
+            return _route_request_unlocked(method, path, query, body)
+    return _route_request_unlocked(method, path, query, body)
+
+
+def _route_request_unlocked(
+    method: str,
+    path: str,
+    query: dict[str, list[str]],
+    body: dict[str, object] | None = None,
+) -> ApiResponse:
     if method == "GET" and path == "/api/app-contract":
         return {
             "ok": True,
@@ -3625,6 +3659,9 @@ def route_request(
             return {"ok": True, "data": job}
     if len(parts) >= 3 and parts[0] == "api" and parts[1] == "projects":
         project_name = parts[2]
+        if method == "POST" and len(parts) == 4 and parts[3] == "restoration":
+            from amiga_reversing.disasm.restoration import execute
+            return {"ok": True, "data": execute(project_name, dict(body or {}))}
         if method == "GET" and len(parts) == 3:
             return {"ok": True, "data": _project_payload(project_name)}
         if method == "GET" and len(parts) == 4 and parts[3] == "disk-browser":
@@ -3762,50 +3799,6 @@ def route_request(
             if not job_id:
                 raise ValueError("Missing job_id")
             return {"ok": True, "data": _job_payload(job_id)}
-        if method == "POST" and len(parts) == 4 and parts[3] == "manual-actions":
-            project = get_project(project_name)
-            if project.kind is not ProjectKind.BINARY or not project.ready:
-                raise ValueError(
-                    f"Project {project_name} is not ready for manual review actions"
-                )
-            action_kind = (body or {}).get("kind")
-            if not isinstance(action_kind, str) or not action_kind:
-                raise ValueError("Manual action kind is required")
-            manual_action_kind_id = manual_action_kind(action_kind)
-            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
-            binary_source = resolve_target_binary_source(paths.target_dir)
-            if binary_source is None:
-                raise ValueError(f"Project {project_name} has no source binary")
-            action_payload = {
-                key: value
-                for key, value in (body or {}).items()
-                if key != "kind"
-            }
-            validate_manual_action_payload(action_payload)
-            action = append_manual_action(
-                paths.target_dir,
-                kind=manual_action_kind_id,
-                payload=action_payload,
-                binary_source=binary_source,
-            )
-            if _manual_action_affects_listing_artifact(manual_action_kind_id):
-                _cancel_listing_jobs(project_name)
-                _cancel_reproduction_jobs(project_name)
-                _clear_project_listing_cache(project_name, keep_stale_artifact=True)
-            else:
-                _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
-            mark_project_updated(paths.target_dir)
-            return {
-                "ok": True,
-                "data": {
-                    "action": action,
-                    "mutation": _metadata_mutation_payload(
-                        paths.target_dir,
-                        durable_action_id=str(action.get("action_id") or ""),
-                        affected_locators=[],
-                    ),
-                },
-            }
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
             project = get_project(project_name)
             if not _is_listing_project(project):

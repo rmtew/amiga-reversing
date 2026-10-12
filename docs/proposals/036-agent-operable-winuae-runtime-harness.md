@@ -1,3 +1,5 @@
+> Historical WinUAE/GDB design and evidence. The active backend is now Copperline; see [current runtime guide](../copperline-runtime.md). Commands below describe the retired harness.
+
 # Proposal 036: Agent-Operable WinUAE Runtime Harness
 
 Status: Proposed.

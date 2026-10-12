@@ -1,4 +1,4 @@
-﻿const WEB_APP_CONTRACT_VERSION = 2;
+const WEB_APP_CONTRACT_VERSION = 2;
 const WEB_APP_CONTRACT_HEADER = "X-Amiga-Web-App-Contract";
 const BROWSER_REQUEST_HEADER = "X-Amiga-Browser-Request-Id";
 
@@ -94,8 +94,6 @@ const state = {
     labelSymbol: null,
     equateSymbol: null,
     entries: null,
-    equateNameCacheRows: null,
-    equateNameCache: null,
     appSlotAnalysis: null,
     generation: null,
     originEntry: null,
@@ -351,6 +349,7 @@ if (typeof window !== "undefined") {
 const NavigationSession = {
   applyPayload(payload) {
     state.navigation.entries = payload.groups || null;
+    state.navigation.referencePage = null;
     state.navigation.appSlotAnalysis = payload.app_slot_analysis || null;
     state.navigation.generation = payload.analysis_generation || null;
     return state.navigation.entries;
@@ -1448,9 +1447,14 @@ function renderManualReviewPanel() {
   bindManualReviewPanel();
 }
 
-function openManualReviewPanel() {
-  state.manualReview.panelOpen = true;
-  renderManualReviewPanel();
+async function openManualReviewPanel() {
+  try {
+    const snapshot = await restorationRequest(state.project, "state");
+    state.manualReview.revision = snapshot.revision;
+    await refreshProjectPayload(state.project);
+    state.manualReview.panelOpen = true;
+    renderManualReviewPanel();
+  } catch (error) { setAnalysisStatus(String(error.message || error), "error", 6000); }
 }
 
 function closeManualReviewPanel() {
@@ -1478,58 +1482,6 @@ async function navigateToReviewItem(item) {
   if (jumped && origin && current && !navigationEntriesSameLocation(origin, current)) {
     NavigationSession.pushHistory(origin, current);
   }
-}
-
-function reviewItemSeedPayload(item, button) {
-  const addr = reviewItemAddress(item);
-  if (!Number.isFinite(addr)) {
-    return null;
-  }
-  const end = reviewItemEnd(item);
-  const seedKind = button.dataset.seedKind || "data";
-  const seed = {
-    seed_id: `ui-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
-    kind: seedKind,
-    mode: "required",
-    hunk: Number.isInteger(item.hunk) ? item.hunk : 0,
-    addr,
-  };
-  if (Number.isFinite(end) && end > addr) {
-    seed.end = end;
-  }
-  if (seedKind === "data") {
-    if (button.dataset.dataRole) {
-      seed.data_role = button.dataset.dataRole;
-    }
-    if (button.dataset.unit) {
-      seed.unit = button.dataset.unit;
-    }
-  }
-  return seed;
-}
-
-function reviewResolutionPayload(item, disposition) {
-  return {
-    resolution_id: `ui-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
-    item_id: String(item.item_id || ""),
-    evidence_fingerprint: String(item.evidence_fingerprint || ""),
-    disposition: disposition || "acknowledged",
-  };
-}
-
-async function postManualReviewAction(payload, options = {}) {
-  if (!state.project) {
-    return null;
-  }
-  const result = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-actions`, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payload),
-  });
-  if (options.refreshProject !== false) {
-    await refreshProjectPayload(state.project);
-  }
-  return result;
 }
 
 async function refreshAnalysisAfterManualMetadataAction(projectId, item, options = {}) {
@@ -1566,26 +1518,6 @@ async function refreshAnalysisAfterManualMetadataAction(projectId, item, options
   }
 }
 
-function reviewItemManualActionLocation(item) {
-  const addr = reviewItemAddress(item);
-  if (!Number.isFinite(addr)) {
-    return null;
-  }
-  const end = reviewItemEnd(item);
-  const sectionIndex = Number(item?.hunk ?? item?.section_index);
-  return {
-    hunk: Number.isInteger(sectionIndex) ? sectionIndex : null,
-    addr,
-    end: Number.isFinite(end) && end > addr ? end : null,
-  };
-}
-
-function showManualReviewActionSaved(item, fallbackText) {
-  if (!flashManualActionLocations([reviewItemManualActionLocation(item)])) {
-    setAnalysisStatus(fallbackText, "ready", 1200);
-  }
-}
-
 async function applyReviewAction(item, button) {
   const action = button.dataset.reviewAction || "";
   if (action === "navigate") {
@@ -1600,32 +1532,18 @@ async function applyReviewAction(item, button) {
     await runReproduction(state.project);
     return;
   }
-  if (action === "create_manual_seed") {
-    const seed = reviewItemSeedPayload(item, button);
-    if (!seed) {
-      return;
+  const params = new URLSearchParams({context: "review-item", item_id: item.item_id});
+  try {
+    const catalog = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/commands?${params}`);
+    if (!state.manualReview.revision || catalog.revision !== state.manualReview.revision) {
+      throw new Error("Review evidence changed. Reopen Review and inspect before applying.");
     }
-    await postManualReviewAction({kind: "create_manual_seed", seed}, {refreshProject: false});
-    await refreshAnalysisAfterManualMetadataAction(state.project, item, {focusTarget: false});
-    showManualReviewActionSaved(item, "Manual seed saved");
-    return;
-  }
-  if (action === "remove_manual_annotation") {
-    if (item.label_id) {
-      await postManualReviewAction({kind: "remove_manual_label", label_id: item.label_id}, {refreshProject: false});
-    } else if (item.comment_id) {
-      await postManualReviewAction({kind: "remove_manual_comment", comment_id: item.comment_id}, {refreshProject: false});
-    }
-    await refreshAnalysisAfterManualMetadataAction(state.project, item, {focusTarget: false});
-    showManualReviewActionSaved(item, "Manual annotation removed");
-    return;
-  }
-  if (action === "resolve_review_item") {
-    await postManualReviewAction({
-      kind: "resolve_review_item",
-      resolution: reviewResolutionPayload(item, button.dataset.disposition),
-    });
-    setAnalysisStatus("Review item resolved", "ready", 2000);
+    const command = (catalog.commands || []).find(entry => (entry.command_id || entry.action_id) === button.dataset.catalogActionId);
+    if (!command || command.enabled === false) throw new Error("This review action is no longer available.");
+    await submitCommandPaletteCatalogAction({...command, expected_revision: catalog.revision}, {});
+    await openManualReviewPanel();
+  } catch (error) {
+    setAnalysisStatus(String(error.message || error), "error", 6000);
   }
 }
 
@@ -2316,6 +2234,9 @@ async function loadContextualCommandCatalogs() {
       }
     }
   }
+  for (const catalog of catalogs) {
+    for (const action of catalog.commands || []) action.expected_revision = catalog.revision;
+  }
   return catalogs;
 }
 
@@ -2346,6 +2267,7 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
       return;
     }
     const body = {
+      expected_revision: action.expected_revision,
       command_id: action.command_id || action.action_id,
       context: action.target_context,
     };
@@ -5500,9 +5422,10 @@ function formatNavigationEntryOffset(entry) {
   if (Number.isFinite(Number(entry?.offset)) && Number.isFinite(Number(entry?.end))) {
     return `${formatAppSlotDisplacement({displacement: Number(entry.offset)})}-${formatAppSlotDisplacement({displacement: Number(entry.end)})}`;
   }
-  if (entry?.refs && entry?.symbol && entry?.displacement !== undefined) {
+  if (entry?.symbol && entry?.displacement !== undefined) {
     return formatAppSlotDisplacement(entry);
   }
+  if (Number.isInteger(entry?.section_index) && Number.isFinite(entry?.source_offset)) return `s${entry.section_index}:$${entry.source_offset.toString(16)}`;
   const offset = formatRowOffset(entry.addr);
   const hunkIndex = navigationEntryHunkIndex(entry);
   if (hunkIndex === null || !offset) {
@@ -5621,17 +5544,6 @@ function parseGlobalRsEquRow(row) {
   };
 }
 
-function equateDefinitionFromRow(row) {
-  const parsed = parseGlobalRsEquRow(row);
-  if (!parsed || parsed.directive.toUpperCase() !== "EQU" || !parsed.label) {
-    return null;
-  }
-  return {
-    symbol: parsed.label,
-    operand: parsed.operand,
-  };
-}
-
 function labelNameFromText(text) {
   const trimmed = String(text || "").trim();
   if (!trimmed.endsWith(":")) {
@@ -5669,17 +5581,7 @@ function labelNamesFromNavigation() {
 }
 
 function equateNamesFromNavigation() {
-  if (!state.navigation.entries && state.navigation.equateNameCacheRows === state.listingRows && state.navigation.equateNameCache) {
-    return state.navigation.equateNameCache;
-  }
-  const groups = state.navigation.entries || buildNavigationEntries(state.listingRows || []);
-  const equates = groups.equates || [];
-  const names = new Set(equates.map((entry) => String(entry.symbol || "")).filter(Boolean));
-  if (!state.navigation.entries) {
-    state.navigation.equateNameCacheRows = state.listingRows;
-    state.navigation.equateNameCache = names;
-  }
-  return names;
+  return new Set((state.navigation.entries?.equates || []).map(entry => String(entry.symbol || "")).filter(Boolean));
 }
 
 function isListingSymbolChar(char) {
@@ -6607,6 +6509,7 @@ function modalOrPanelHasKeyboardFocus() {
     state.reproduction.panelOpen ||
     state.manualReview.panelOpen ||
     state.commandPalette.open ||
+    document.getElementById("restoration-panel") ||
     document.getElementById("review-overlay") ||
     document.getElementById("command-palette-overlay") ||
     document.getElementById("corpus-variant-diff-overlay") ||
@@ -6631,490 +6534,33 @@ function listingScrollDirectionForKey(event) {
   return null;
 }
 
-function isLabelRow(row) {
-  return Boolean(row.label) || renderListingCode(row).trim().endsWith(":");
-}
-
-function rowHasSegmentReference(row) {
-  if (!Array.isArray(row.operand_parts)) {
-    return false;
-  }
-  return row.operand_parts.some((operand) => operand.segment_addr !== null && operand.segment_addr !== undefined);
-}
-
-function rowHasTypedData(row) {
-  if (Array.isArray(row.typed_accesses) && row.typed_accesses.length > 0) {
-    return true;
-  }
-  return row.kind !== "instruction" && row.kind !== "label"
-    && (Boolean(row.comment_text) || Boolean(row.data_class) || Boolean(row.structured_data));
-}
-
 function rowHasUnresolvedTypedAccess(row) {
   return Array.isArray(row.unresolved_typed_accesses) && row.unresolved_typed_accesses.length > 0;
 }
 
-function rowHasComment(row) {
-  return Boolean(row.comment_text);
-}
-
-function rowApiCallHasNearLvoReference(rows, row, rowIndex) {
-  const hunkIndex = rowHunkIndex(row);
-  const start = Math.max(0, rowIndex - 8);
-  for (let index = start; index < rowIndex; ++index) {
-    const candidate = rows[index];
-    if (
-      candidate?.api_call
-      && candidate.api_call.note_kind === 0
-      && rowHunkIndex(candidate) === hunkIndex
-      && candidate.addr >= row.addr - 8
-      && candidate.addr < row.addr
-      && candidate.api_call.library === row.api_call.library
-      && candidate.api_call.function === row.api_call.function
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function rowApiCallIsNavigationTarget(rows, row, rowIndex) {
-  if (!row.api_call || row.api_call.note_kind === 3) {
-    return false;
-  }
-  if (row.api_call.note_kind === 1 && rowApiCallHasNearLvoReference(rows, row, rowIndex)) {
-    return false;
-  }
-  return true;
-}
-
-function rowHunkIndex(row) {
-  const context = row.source_context || row.sourceContext || {};
-  const value = context.hunk_index ?? context.hunkIndex ?? row.section_index ?? row.sectionIndex;
-  return Number.isInteger(value) ? value : null;
-}
-
-function summarizeNavigationRow(row, jumpClass) {
-  if (jumpClass === "api-calls" && row.api_call) {
-    if (row.api_call.note_kind === 1) {
-      return `${row.api_call.function} dispatch (${row.api_call.library})`;
-    }
-    return `${row.api_call.function} (${row.api_call.library})`;
-  }
-  if (jumpClass === "typed-data" && Array.isArray(row.typed_accesses) && row.typed_accesses.length) {
-    const access = row.typed_accesses[0];
-    const owner = access.owner_struct_name || access.ownerStructName || access.root_struct_name || access.rootStructName || "";
-    const field = access.field_expr || access.fieldExpr || access.field_name || access.fieldName || "";
-    return owner && field ? `${owner}.${field}` : (field || owner || renderListingCode(row).trim());
-  }
-  if (jumpClass === "typed-gaps" && rowHasUnresolvedTypedAccess(row)) {
-    return typedGapSummary(row.unresolved_typed_accesses[0]);
-  }
-  if (jumpClass === "typed-data" && (row.comment_text || row.data_class || row.structured_data)) {
-    const item = row.structured_data || {};
-    return row.comment_text || row.data_class || item.semantic_role || item.label || item.field_name || row.kind;
-  }
-  if (jumpClass === "labels") {
-    return renderListingCode(row).trim();
-  }
-  return renderListingCode(row).trim() || row.comment_text || row.kind;
-}
-
-function normalizedAppSlotRef(rawRef) {
-  if (!rawRef || typeof rawRef !== "object") {
-    return null;
-  }
-  const symbol = rawRef.symbol;
-  const displacement = Number(rawRef.displacement);
-  const baseRegister = rawRef.base_register ?? rawRef.baseRegister;
-  const operandIndex = Number(rawRef.operand_index ?? rawRef.operandIndex);
-  const access = rawRef.access;
-  if (
-    typeof symbol !== "string" ||
-    !Number.isFinite(displacement) ||
-    typeof baseRegister !== "string" ||
-    !Number.isInteger(operandIndex) ||
-    typeof access !== "string" ||
-    !APP_SLOT_ACCESS_ORDER.includes(access)
-  ) {
-    return null;
-  }
-  return {
-    symbol,
-    displacement,
-    base_register: baseRegister,
-    operand_index: operandIndex,
-    access,
-  };
-}
-
-function addAppSlotNavigationRef(appSlots, row, rowIndex, rawRef) {
-  const ref = normalizedAppSlotRef(rawRef);
-  if (!ref) {
-    return;
-  }
-  let slot = appSlots.get(ref.symbol);
-  if (!slot) {
-    slot = {
-      symbol: ref.symbol,
-      summary: ref.symbol,
-      match_text: ref.symbol,
-      displacement: ref.displacement,
-      ref_count: 0,
-      access_counts: {},
-      refs: [],
-    };
-    appSlots.set(ref.symbol, slot);
-  }
-  const hunkIndex = rowHunkIndex(row);
-  const matchText = renderListingCode(row);
-  slot.refs.push({
-    locator: listingRowLocator(row),
-    addr: row.addr,
-    rowIndex,
-    row_index: rowIndex,
-    hunkIndex,
-    hunk_index: hunkIndex,
-    summary: matchText.trim() || ref.symbol,
-    matchText,
-    match_text: matchText,
-    symbol: ref.symbol,
-    displacement: ref.displacement,
-    base_register: ref.base_register,
-    operand_index: ref.operand_index,
-    access: ref.access,
-  });
-  slot.ref_count += 1;
-  slot.access_counts[ref.access] = (slot.access_counts[ref.access] || 0) + 1;
-}
-
 function labelSymbolFromRow(row) {
-  if (row?.label) {
-    return normalizedLabelSymbol(row.label);
-  }
+  if (row?.label) return normalizedLabelSymbol(row.label);
   return labelNameFromText(renderListingCode(row));
 }
 
-function addLabelNavigationEntry(labels, row, rowIndex) {
-  const symbol = labelSymbolFromRow(row);
-  if (!symbol) {
-    return;
-  }
-  const hunkIndex = rowHunkIndex(row);
-  const matchText = renderListingCode(row);
-  labels.set(symbol, {
-    locator: listingRowLocator(row),
-    symbol,
-    summary: `${symbol}:`,
-    matchText,
-    match_text: matchText,
-    addr: row.addr,
-    rowIndex,
-    row_index: rowIndex,
-    hunkIndex,
-    hunk_index: hunkIndex,
-    ref_count: 1,
-    access_counts: {definition: 1},
-    refs: [{
-      locator: listingRowLocator(row),
-      symbol,
-      addr: row.addr,
-      rowIndex,
-      row_index: rowIndex,
-      hunkIndex,
-      hunk_index: hunkIndex,
-      summary: matchText.trim() || `${symbol}:`,
-      matchText,
-      match_text: matchText,
-      access: "definition",
-    }],
-  });
-}
-
-function addLabelNavigationRef(labels, row, rowIndex, symbol) {
-  const label = labels.get(symbol);
-  if (!label) {
-    return;
-  }
-  const hunkIndex = rowHunkIndex(row);
-  const matchText = renderListingCode(row);
-  label.refs.push({
-    locator: listingRowLocator(row),
-    symbol,
-    addr: row.addr,
-    rowIndex,
-    row_index: rowIndex,
-    hunkIndex,
-    hunk_index: hunkIndex,
-    summary: matchText.trim() || symbol,
-    matchText,
-    match_text: matchText,
-    access: "reference",
-  });
-  label.ref_count += 1;
-  label.access_counts.reference = (label.access_counts.reference || 0) + 1;
-}
-
-function addEquateNavigationEntry(equates, row, rowIndex) {
-  const equate = equateDefinitionFromRow(row);
-  if (!equate) {
-    return;
-  }
-  const hunkIndex = rowHunkIndex(row);
-  const matchText = renderListingCode(row);
-  equates.set(equate.symbol, {
-    locator: listingRowLocator(row),
-    symbol: equate.symbol,
-    operand: equate.operand,
-    summary: `${equate.symbol} EQU${equate.operand ? ` ${equate.operand}` : ""}`,
-    matchText,
-    match_text: matchText,
-    addr: row.addr ?? null,
-    rowIndex,
-    row_index: rowIndex,
-    hunkIndex,
-    hunk_index: hunkIndex,
-    ref_count: 1,
-    access_counts: {definition: 1},
-    refs: [{
-      locator: listingRowLocator(row),
-      symbol: equate.symbol,
-      addr: row.addr ?? null,
-      rowIndex,
-      row_index: rowIndex,
-      hunkIndex,
-      hunk_index: hunkIndex,
-      summary: matchText.trim() || equate.symbol,
-      matchText,
-      match_text: matchText,
-      access: "definition",
-    }],
-  });
-}
-
-function addEquateNavigationRef(equates, row, rowIndex, symbol) {
-  const equate = equates.get(symbol);
-  if (!equate) {
-    return;
-  }
-  const ownDefinition = equateDefinitionFromRow(row);
-  if (ownDefinition?.symbol === symbol) {
-    return;
-  }
-  const hunkIndex = rowHunkIndex(row);
-  const matchText = renderListingCode(row);
-  equate.refs.push({
-    locator: listingRowLocator(row),
-    symbol,
-    addr: row.addr ?? null,
-    rowIndex,
-    row_index: rowIndex,
-    hunkIndex,
-    hunk_index: hunkIndex,
-    summary: matchText.trim() || symbol,
-    matchText,
-    match_text: matchText,
-    access: "reference",
-  });
-  equate.ref_count += 1;
-  equate.access_counts.reference = (equate.access_counts.reference || 0) + 1;
-}
-
-function sortedAppSlotNavigationEntries(appSlots) {
-  return Array.from(appSlots.values())
-    .map((slot) => {
-      slot.refs.sort((left, right) => Number(left.row_index) - Number(right.row_index));
-      return slot;
-    })
-    .sort((left, right) => (left.displacement - right.displacement) || left.symbol.localeCompare(right.symbol));
-}
-
-function sortedLabelNavigationEntries(labels) {
-  return Array.from(labels.values()).map((label) => {
-    label.refs.sort((left, right) => Number(left.row_index) - Number(right.row_index));
-    return label;
-  }).sort((left, right) => Number(left.row_index) - Number(right.row_index) || left.symbol.localeCompare(right.symbol));
-}
-
-function sortedEquateNavigationEntries(equates) {
-  return Array.from(equates.values()).map((equate) => {
-    equate.refs.sort((left, right) => Number(left.row_index) - Number(right.row_index));
-    return equate;
-  }).sort((left, right) => Number(left.row_index) - Number(right.row_index) || left.symbol.localeCompare(right.symbol));
-}
-
-function buildNavigationEntries(rows) {
-  const groups = {
-    "repro-issues": [],
-    "typed-data": [],
-    "typed-gaps": [],
-    "relocations": [],
-    "api-calls": [],
-    "app-slots": [],
-    "app-slot-regions": [],
-    "app-slot-gaps": [],
-    "app-slot-field-gaps": [],
-    "app-slot-api-args": [],
-    "labels": [],
-    "equates": [],
-    "comments": [],
-    "review-notes": [],
-  };
-  const appSlots = new Map();
-  const labels = new Map();
-  const equates = new Map();
-  const typedDataSeen = new Set();
-  rows.forEach((row, rowIndex) => {
-    addEquateNavigationEntry(equates, row, rowIndex);
-    if (row.addr === null || row.addr === undefined) {
-      return;
-    }
-    if (isLabelRow(row)) {
-      addLabelNavigationEntry(labels, row, rowIndex);
-    }
-  });
-  rows.forEach((row, rowIndex) => {
-    rowOperandSymbolNames(row).forEach((symbol) => addEquateNavigationRef(equates, row, rowIndex, symbol));
-    if (row.addr === null || row.addr === undefined) {
-      return;
-    }
-    if (Array.isArray(row.repro_issues) && row.repro_issues.length) {
-      const issue = row.repro_issues[0];
-      groups["repro-issues"].push({
-        locator: listingRowLocator(row),
-        addr: row.addr,
-        issueIndex: issue.issue_index ?? issue.issueIndex ?? null,
-        issue_index: issue.issue_index ?? issue.issueIndex ?? null,
-        rowIndex,
-        row_index: issue.row_index ?? rowIndex,
-        section_index: issue.section_index ?? null,
-        hunk: issue.hunk ?? null,
-        summary: row.repro_issues[0].summary || row.repro_issues[0].message || "Repro issue",
-        matchText: renderListingCode(row),
-        match_text: issue.match_text || renderListingCode(row),
-      });
-    }
-    if (rowHasTypedData(row)) {
-      const summary = summarizeNavigationRow(row, "typed-data");
-      const hunkIndex = rowHunkIndex(row);
-      const key = `${hunkIndex ?? ""}:${row.addr}:${summary}`;
-      if (!typedDataSeen.has(key)) {
-        typedDataSeen.add(key);
-        groups["typed-data"].push({
-          locator: listingRowLocator(row),
-          addr: row.addr,
-          rowIndex,
-          row_index: rowIndex,
-          summary,
-          matchText: renderListingCode(row),
-          match_text: renderListingCode(row),
-        });
-      }
-    }
-    if (rowHasUnresolvedTypedAccess(row)) {
-      const hunkIndex = rowHunkIndex(row);
-      const matchText = renderListingCode(row);
-      row.unresolved_typed_accesses.forEach((access) => {
-        groups["typed-gaps"].push({
-          locator: listingRowLocator(row),
-          addr: row.addr,
-          rowIndex,
-          row_index: rowIndex,
-          hunkIndex,
-          hunk_index: hunkIndex,
-          summary: typedGapSummary(access),
-          matchText,
-          match_text: matchText,
-          root_struct_name: access.root_struct_name ?? access.rootStructName ?? null,
-          base_register: access.base_register ?? access.baseRegister ?? null,
-          operand_index: access.operand_index ?? access.operandIndex ?? null,
-          displacement: access.displacement,
-          struct_size: access.struct_size ?? access.structSize ?? null,
-          classification: access.classification ?? null,
-          container_candidate_count: access.container_candidate_count ?? access.containerCandidateCount ?? null,
-          container_struct_name: access.container_struct_name ?? access.containerStructName ?? null,
-          container_field_expr: access.container_field_expr ?? access.containerFieldExpr ?? null,
-          refinement_applied: access.refinement_applied ?? access.refinementApplied ?? false,
-          refined_struct_name: access.refined_struct_name ?? access.refinedStructName ?? null,
-          type_provenance_kind: access.type_provenance_kind ?? access.typeProvenanceKind ?? null,
-          type_provenance_section: access.type_provenance_section ?? access.typeProvenanceSection ?? null,
-          type_provenance_offset: access.type_provenance_offset ?? access.typeProvenanceOffset ?? null,
-        });
-      });
-    }
-    if (rowHasSegmentReference(row)) {
-      groups.relocations.push({
-        addr: row.addr,
-        rowIndex,
-        summary: summarizeNavigationRow(row, "relocations"),
-        matchText: renderListingCode(row),
-      });
-    }
-    if (row.kind === "instruction" && rowApiCallIsNavigationTarget(rows, row, rowIndex)) {
-      const hunkIndex = rowHunkIndex(row);
-      const matchText = renderListingCode(row);
-      groups["api-calls"].push({
-        locator: listingRowLocator(row),
-        addr: row.addr,
-        rowIndex,
-        row_index: rowIndex,
-        hunkIndex,
-        hunk_index: hunkIndex,
-        summary: summarizeNavigationRow(row, "api-calls"),
-        matchText,
-        match_text: matchText,
-      });
-    }
-    if (Array.isArray(row.app_slot_refs)) {
-      row.app_slot_refs.forEach((ref) => addAppSlotNavigationRef(appSlots, row, rowIndex, ref));
-    }
-    rowOperandSymbolNames(row).forEach((symbol) => addLabelNavigationRef(labels, row, rowIndex, symbol));
-    if (rowHasComment(row)) {
-      groups.comments.push({
-        addr: row.addr,
-        rowIndex,
-        summary: summarizeNavigationRow(row, "comments"),
-        matchText: renderListingCode(row),
-      });
-    }
-    if (Array.isArray(row.review_notes)) {
-      row.review_notes.forEach((note) => {
-        groups["review-notes"].push({
-          locator: listingRowLocator(row),
-          addr: note.addr ?? row.addr,
-          rowIndex: note.row_index ?? rowIndex,
-          row_index: note.row_index ?? rowIndex,
-          summary: reviewNoteLabel(note),
-          matchText: note.body || note.title || renderListingCode(row),
-          match_text: note.body || note.title || renderListingCode(row),
-          note_id: note.note_id,
-          tracking: note.tracking || "note_only",
-          status: "open",
-        });
-      });
-    }
-  });
-  groups["app-slots"] = sortedAppSlotNavigationEntries(appSlots);
-  groups.labels = sortedLabelNavigationEntries(labels);
-  groups.equates = sortedEquateNavigationEntries(equates);
-  return groups;
-}
-
 function currentNavigationEntries() {
-  const groups = state.navigation.entries || buildNavigationEntries(state.listingRows || []);
-  if (state.navigation.selectedClass === "app-slots" && state.navigation.appSlotSymbol) {
-    const slot = (groups["app-slots"] || []).find((entry) => entry.symbol === state.navigation.appSlotSymbol);
-    return slot?.refs || [];
+  if (currentAppSlotNavigationSymbol() || currentLabelNavigationSymbol() || currentEquateNavigationSymbol()) {
+    return state.navigation.referencePage?.items || [];
   }
-  if (state.navigation.selectedClass === "labels" && state.navigation.labelSymbol) {
-    const label = (groups.labels || []).find((entry) => entry.symbol === state.navigation.labelSymbol);
-    return label?.refs || [];
-  }
-  if (state.navigation.selectedClass === "equates" && state.navigation.equateSymbol) {
-    const equate = (groups.equates || []).find((entry) => entry.symbol === state.navigation.equateSymbol);
-    return equate?.refs || [];
-  }
-  return groups[state.navigation.selectedClass] || [];
+  return (state.navigation.entries || {})[state.navigation.selectedClass] || [];
+}
+
+async function loadNavigationReferences(projectId, symbol, cursor = null) {
+  const previous = state.navigation.referencePage;
+  const snapshot = cursor && previous ? previous : await restorationRequest(projectId, "state");
+  const page = await restorationRequest(projectId, "query", {
+    kind: "references", symbol, limit: 100, cursor, expected_revision: snapshot.revision,
+  });
+  page.items = (page.items || []).map((item) => ({...item,
+    summary: `${item.symbol || symbol} · ${item.kind || "reference"} · ${item.provenance || "unknown provenance"}`,
+  }));
+  state.navigation.referencePage = page;
+  return page.items;
 }
 
 async function loadNavigationEntries(projectId) {
@@ -7167,6 +6613,7 @@ function navigationEntryHasJumpTarget(entry) {
   if (!entry || entry.navigable === false) {
     return false;
   }
+  if (Number.isInteger(entry.section_index) && Number.isFinite(entry.source_offset)) return true;
   if (storedListingLocator(entry.locator, state.project)) {
     return true;
   }
@@ -7387,15 +6834,15 @@ function currentEquateNavigationSymbol() {
 function navigationSummaryText(entries) {
   const appSlotSymbol = currentAppSlotNavigationSymbol();
   if (appSlotSymbol) {
-    return `${appSlotSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
+    return `${appSlotSymbol}: ${entries.length} shown / ${state.navigation.referencePage?.total ?? "unknown"} references`;
   }
   const labelSymbol = currentLabelNavigationSymbol();
   if (labelSymbol) {
-    return `${labelSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
+    return `${labelSymbol}: ${entries.length} shown / ${state.navigation.referencePage?.total ?? "unknown"} references`;
   }
   const equateSymbol = currentEquateNavigationSymbol();
   if (equateSymbol) {
-    return `${equateSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
+    return `${equateSymbol}: ${entries.length} shown / ${state.navigation.referencePage?.total ?? "unknown"} references`;
   }
   if (state.navigation.selectedClass === "app-slots" && state.navigation.appSlotAnalysis) {
     const analysis = state.navigation.appSlotAnalysis;
@@ -7412,8 +6859,8 @@ function navigationSummaryText(entries) {
   return `${entries.length} entries`;
 }
 
-function navigationEntryHasRefs(entry) {
-  return Array.isArray(entry?.refs);
+function navigationEntryIsAppSlotGroup(entry) {
+  return Boolean(entry?.symbol && entry?.source_offset === undefined && entry?.displacement !== undefined);
 }
 
 function appSlotEntriesFromGroups(groups) {
@@ -7440,46 +6887,15 @@ function equateEntryIndex(entries, symbolName) {
   return entries.findIndex((entry) => entry.symbol === symbolName);
 }
 
-function appSlotRefEntryIndex(refs, rowIndex, operandIndex, access) {
-  const wantedRow = Number(rowIndex);
-  const wantedOperand = Number(operandIndex);
-  const wantedAccess = String(access || "");
-  if (Number.isFinite(wantedRow)) {
-    const exact = refs.findIndex((ref) => (
-      navigationEntryRowIndex(ref) === wantedRow
-      && (!Number.isFinite(wantedOperand) || Number(ref.operand_index ?? ref.operandIndex) === wantedOperand)
-      && (!wantedAccess || ref.access === wantedAccess)
-    ));
-    if (exact >= 0) {
-      return exact;
-    }
-    const sameRow = refs.findIndex((ref) => navigationEntryRowIndex(ref) === wantedRow);
-    if (sameRow >= 0) {
-      return sameRow;
-    }
-  }
-  return refs.length ? 0 : -1;
+function sourceReferenceEntryIndex(refs, rowIndex, operandIndex = null) {
+  const row = listingRowDataForIndex(Number(rowIndex));
+  const locator = row ? listingRowLocator(row) : null;
+  if (!locator) return refs.length ? 0 : -1;
+  const index = refs.findIndex(ref => ref.section_index === locator.section_index
+    && ref.source_offset === locator.start_offset
+    && (operandIndex === null || ref.operand_index === Number(operandIndex)));
+  return index >= 0 ? index : (refs.length ? 0 : -1);
 }
-
-function labelRefEntryIndex(refs, rowIndex, access) {
-  const wantedRow = Number(rowIndex);
-  const wantedAccess = String(access || "");
-  if (Number.isFinite(wantedRow)) {
-    const exact = refs.findIndex((ref) => (
-      navigationEntryRowIndex(ref) === wantedRow && (!wantedAccess || ref.access === wantedAccess)
-    ));
-    if (exact >= 0) {
-      return exact;
-    }
-    const sameRow = refs.findIndex((ref) => navigationEntryRowIndex(ref) === wantedRow);
-    if (sameRow >= 0) {
-      return sameRow;
-    }
-  }
-  return refs.length ? 0 : -1;
-}
-
-const equateRefEntryIndex = labelRefEntryIndex;
 
 function focusVisibleListingRowByIndex(rowIndex) {
   const viewport = document.getElementById("listing-viewport");
@@ -7506,8 +6922,8 @@ async function selectAppSlotNavigationRef(projectId, symbolName, rowIndex = null
   if (slotIndex < 0) {
     return;
   }
-  const refs = entries[slotIndex].refs || [];
-  const refIndex = appSlotRefEntryIndex(refs, rowIndex, operandIndex, access);
+  const refs = await loadNavigationReferences(projectId, symbol);
+  const refIndex = sourceReferenceEntryIndex(refs, rowIndex, operandIndex);
   if (!state.navigation.overlayOpen) {
     state.navigation.originEntry = captureViewportAnchor();
   }
@@ -7533,8 +6949,8 @@ async function selectLabelNavigationRef(projectId, symbolName, rowIndex = null, 
   if (labelIndex < 0) {
     return;
   }
-  const refs = entries[labelIndex].refs || [];
-  const refIndex = labelRefEntryIndex(refs, rowIndex, access);
+  const refs = await loadNavigationReferences(projectId, symbol);
+  const refIndex = sourceReferenceEntryIndex(refs, rowIndex);
   if (!state.navigation.overlayOpen) {
     state.navigation.originEntry = captureViewportAnchor();
   }
@@ -7560,8 +6976,8 @@ async function selectEquateNavigationRef(projectId, symbolName, rowIndex = null,
   if (equateIndex < 0) {
     return;
   }
-  const refs = entries[equateIndex].refs || [];
-  const refIndex = equateRefEntryIndex(refs, rowIndex, access);
+  const refs = await loadNavigationReferences(projectId, symbol);
+  const refIndex = sourceReferenceEntryIndex(refs, rowIndex);
   if (!state.navigation.overlayOpen) {
     state.navigation.originEntry = captureViewportAnchor();
   }
@@ -7709,7 +7125,9 @@ function renderNavigationOverlay() {
         <div class="navigation-summary-row">
           <div class="navigation-summary">${escapeHtml(navigationSummaryText(entries))}</div>
           ${renderNavigationBack()}
+          ${(currentAppSlotNavigationSymbol() || currentLabelNavigationSymbol() || currentEquateNavigationSymbol()) && state.navigation.referencePage?.next_cursor ? '<button type="button" data-navigation-next="1">Next references</button>' : ""}
         </div>
+        ${(currentAppSlotNavigationSymbol() || currentLabelNavigationSymbol() || currentEquateNavigationSymbol()) ? `<div class="navigation-summary">${escapeHtml((state.navigation.referencePage?.unknowns || []).join(" · "))}</div>` : ""}
         <div class="navigation-list" tabindex="0" data-navigation-list="1">
           ${entries.length
             ? entries.map((entry, index) => `
@@ -7753,7 +7171,7 @@ async function previewNavigationEntry(entry) {
   if (!entry || !state.project) {
     return;
   }
-  if (state.navigation.selectedClass === "app-slots" && navigationEntryHasRefs(entry)) {
+  if (state.navigation.selectedClass === "app-slots" && navigationEntryIsAppSlotGroup(entry)) {
     return;
   }
   if (state.navigation.selectedClass === "repro-issues") {
@@ -7771,8 +7189,9 @@ async function activateNavigationEntry(entry) {
   if (!entry) {
     return;
   }
-  if (state.navigation.selectedClass === "app-slots" && navigationEntryHasRefs(entry)) {
+  if (state.navigation.selectedClass === "app-slots" && navigationEntryIsAppSlotGroup(entry)) {
     state.navigation.appSlotSymbol = entry.symbol || null;
+    await loadNavigationReferences(state.project, entry.symbol);
     state.navigation.selectedIndex = 0;
     state.navigation.currentPreviewEntry = null;
     renderNavigationOverlay();
@@ -7884,6 +7303,14 @@ function bindNavigationOverlay() {
   if (!overlay) {
     return;
   }
+  overlay.querySelector("[data-navigation-next='1']")?.addEventListener("click", async () => {
+    try {
+      const symbol = currentAppSlotNavigationSymbol() || currentLabelNavigationSymbol() || currentEquateNavigationSymbol();
+      await loadNavigationReferences(state.project, symbol, state.navigation.referencePage.next_cursor);
+      state.navigation.selectedIndex = 0;
+      renderNavigationOverlay();
+    } catch (error) { setAnalysisStatus(String(error.message || error), "error", 5000); }
+  });
   overlay.querySelector("[data-navigation-address-form='1']")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const input = overlay.querySelector("[data-navigation-address-input='1']");
@@ -7900,7 +7327,7 @@ function bindNavigationOverlay() {
     void setNavigationClass(event.target.value);
   });
   overlay.querySelector("[data-navigation-app-slots-root='1']")?.addEventListener("click", () => {
-    const entries = appSlotEntriesFromGroups(state.navigation.entries || buildNavigationEntries(state.listingRows || []));
+    const entries = appSlotEntriesFromGroups(state.navigation.entries || {});
     const slotIndex = appSlotEntryIndex(entries, state.navigation.appSlotSymbol || "");
     state.navigation.appSlotSymbol = null;
     state.navigation.selectedIndex = slotIndex >= 0 ? slotIndex : 0;
@@ -7909,7 +7336,7 @@ function bindNavigationOverlay() {
     syncNavigationListFocus();
   });
   overlay.querySelector("[data-navigation-labels-root='1']")?.addEventListener("click", () => {
-    const entries = labelEntriesFromGroups(state.navigation.entries || buildNavigationEntries(state.listingRows || []));
+    const entries = labelEntriesFromGroups(state.navigation.entries || {});
     const labelIndex = labelEntryIndex(entries, state.navigation.labelSymbol || "");
     state.navigation.labelSymbol = null;
     state.navigation.selectedIndex = labelIndex >= 0 ? labelIndex : 0;
@@ -7918,7 +7345,7 @@ function bindNavigationOverlay() {
     syncNavigationListFocus();
   });
   overlay.querySelector("[data-navigation-equates-root='1']")?.addEventListener("click", () => {
-    const entries = equateEntriesFromGroups(state.navigation.entries || buildNavigationEntries(state.listingRows || []));
+    const entries = equateEntriesFromGroups(state.navigation.entries || {});
     const equateIndex = equateEntryIndex(entries, state.navigation.equateSymbol || "");
     state.navigation.equateSymbol = null;
     state.navigation.selectedIndex = equateIndex >= 0 ? equateIndex : 0;
@@ -8143,6 +7570,7 @@ function bindListingEditors(projectId, rows) {
       const noteId = button.dataset.reviewNoteId || "";
       if (event.ctrlKey || event.metaKey) {
         state.navigation.entries = null;
+  state.navigation.referencePage = null;
         void openNavigationOverlay("review-notes", noteId);
         return;
       }
@@ -10229,6 +9657,9 @@ async function jumpToNavigationEntry(projectId, entry) {
   if (!navigationEntryHasJumpTarget(entry)) {
     return false;
   }
+  if (Number.isInteger(entry.section_index) && Number.isFinite(entry.source_offset)) {
+    return jumpToListingSectionOffset(projectId, entry.section_index, entry.source_offset);
+  }
   const locator = storedListingLocator(entry.locator, projectId);
   if (locator) {
     return jumpToListingLocator(projectId, locator, entry.viewport_anchor || null);
@@ -10558,6 +9989,7 @@ async function renderProject(projectId) {
           <button id="navigation-back" type="button" title="Back">Back</button>
           <button id="navigation-forward" type="button" title="Forward">Forward</button>
           <button id="open-navigation" type="button" title="Navigate">Navigate</button>
+          <button id="open-restoration" type="button" title="Restoration evidence and iteration">Restore</button>
           <button id="open-review" type="button" title="Manual Review">Review</button>
           <button id="open-stats" type="button" title="Stats">Stats</button>
           <button id="open-repro" type="button" title="Repro">Repro</button>
@@ -10601,6 +10033,7 @@ async function renderProject(projectId) {
   }
   state.navigation.overlayOpen = false;
   state.navigation.entries = null;
+  state.navigation.referencePage = null;
   state.navigation.appSlotAnalysis = null;
   state.navigation.generation = null;
   state.navigation.appSlotSymbol = null;
@@ -11089,7 +10522,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
     const entry = currentNavigationEntries()[state.navigation.selectedIndex];
-    if (navigationEntryHasRefs(entry)) {
+    if (navigationEntryIsAppSlotGroup(entry)) {
       void activateNavigationEntry(entry);
       return;
     }
