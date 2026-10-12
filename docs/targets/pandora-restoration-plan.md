@@ -1,6 +1,8 @@
 # Pandora full source restoration
 
-Status: inventory and plan reviewed; startup batch in progress. Baseline: merged `22e55bb5`.
+Status: inventory and plan reviewed; startup, world-command, runtime initialization
+and selected world-tile resource slices reviewed. The full restoration and
+alternate-layout gates remain open. Initial baseline: merged `22e55bb5`.
 This is a work plan and derived evidence index, not another semantic fact store.
 Canonical native facts, Manual Action Log and Decision Journal remain authoritative.
 The full-game objective is not satisfied by this plan or a few runtime checkpoints.

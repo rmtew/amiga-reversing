@@ -265,3 +265,45 @@ review establishes ascending blits for recognized normal-entry static writer
 paths; unknown indirect/interior/external writers remain outside that contract.
 Classification of those selected intervals is the next separate canonical slice;
 the entire atlas envelope and its exclusive allocation are not thereby proven.
+
+## Reviewed selected world-tile pixels
+
+The 25 selected intervals now have canonical bitmap layouts and 128-byte array
+elements: 475 records, 60,800 bytes. Layout creation and element assignment used
+separate revision-bound batches, with fresh catalog identities for the second
+stage. Independent review approved all 50 actions. All 33 holes, including tile
+offset `0xF980`, remain unclaimed; the recognized ascending-blit entry paths do
+not prove unknown writer behavior or exclusive ownership of the atlas envelope.
+
+Both stages pass full C and vasm byte equality. Final receipt:
+`309d42105184a55ea20424df088cdf39dfedc8167c4e84b5219d1a498e137c04`,
+source subject `dbeff021c28c09f1b7488ed09dc881784f36c0b9c06c142d31f901b807b2591d`.
+The generated source gains logical tile-index names and symbolizes the proven
+builder base without changing original bytes. Journal acceptance is recorded
+through the shared service; the original history prefixes remain intact.
+
+A fresh native ownership snapshot at this source subject is recorded in
+[`pandora-coverage-current.tsv`](pandora-coverage-current.tsv): 328 disjoint
+intervals account for every payload byte. Native accepted code remains 24,394
+bytes; accepted noncode is now 82,817 bytes; 269,621 bytes remain unclaimed.
+Accepted ownership covers 107,211 bytes (28.45%), versus 38,013 bytes (10.09%)
+in the dated baseline. This is ownership coverage, not semantic completion or
+automatic acceptance of legacy annotations. The baseline snapshot is preserved.
+
+The next input question concerns keyboard polling's absent-PORTS branch: it
+skips loading CIAA into A0 but still performs two writes through A0+`0xE00`.
+The caller's A0 contract is not yet established. The bounded scenario
+`runtime/scenarios/pandora-keyboard-ack-a0.json` captures registers at the branch
+and first write using the verified rebuilt payload. No speculative branch fix
+or unconditional CIAA write interpretation is warranted.
+
+The title/no-input probe timed out after ten seconds without reaching keyboard
+polling; receipt `0a2c143401a2342f16935279635e08affda591ec4ebe34eb6dac062353c1e5dd`.
+After the established title/UI/gameplay input sequence, both source `0x860` and
+`0x886` hit with unique rebuilt-payload identity. At both points A0 was
+`0xDFF010` and D0 was `0xFFF50160`: PORTS bit 3 was clear, and the pending byte
+write address was therefore `0xDFFE10`. Receipt:
+`652451a8bc8e9a6900a02b5a19173022359fec5053c053fe3a456debd09f8f59`.
+This is one observed call after gameplay entry, not proof about every caller or
+the bus effect of the write. The original bytes remain unchanged. Both owned
+emulators exited; no instruction trace was collected.
