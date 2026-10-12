@@ -5046,7 +5046,12 @@ def run_listing_backed_label_rename_iteration(
         "POST",
         f"/api/projects/{target_id}/commands/execute",
         {},
-        {"command_id": command["command_id"], "context": command["context"], "parameters": command["parameters"]},
+        {
+            "expected_revision": selection["availability"].get("revision"),
+            "command_id": command["command_id"],
+            "context": command["context"],
+            "parameters": command["parameters"],
+        },
     )
     result = cast(dict[str, object], execution["data"])
     workflow_profile = result.get("workflow_profile") if isinstance(result.get("workflow_profile"), dict) else None
@@ -5195,6 +5200,7 @@ def run_listing_backed_comment_iteration(
         f"/api/projects/{target_id}/commands/execute",
         {},
         {
+            "expected_revision": selection["availability"].get("revision"),
             "command_id": command["command_id"],
             "context": command["context"],
             "parameters": command["parameters"],
@@ -5628,6 +5634,7 @@ def run_one_iteration(
         f"/api/projects/{target_id}/commands/execute",
         {},
         {
+            "expected_revision": availability.get("revision"),
             "command_id": command["command_id"],
             "context": command["context"],
             "parameters": command["parameters"],
@@ -11466,21 +11473,24 @@ def _verify_target_equate_rendered_definition(
             "expected_target_equate": expected,
         }
     try:
-        navigation = server.route_request("GET", f"/api/projects/{target_id}/listing/navigation", {}, {})
+        response = server.route_request(
+            "POST", f"/api/projects/{target_id}/restoration", {},
+            {"operation": "query", "kind": "symbols", "symbol": name, "limit": 100},
+        )
     except Exception as exc:
         return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
-    data = navigation.get("data")
-    groups = data.get("groups") if isinstance(data, dict) else None
-    equates = groups.get("equates") if isinstance(groups, dict) else None
+    data = response.get("data")
+    equates = data.get("items") if isinstance(data, dict) else None
     if not isinstance(equates, list):
-        return {"layer": "rendered_source", "status": "failed", "message": "equate navigation missing after reload"}
+        return {"layer": "rendered_source", "status": "failed", "message": "equate declarations missing after reload"}
+    # A typed render-plan declaration supplies definition evidence directly.
+    # No rendered-assembly scraping or navigation-wide references are needed.
     matches = [
-        equate
-        for equate in equates
+        equate for equate in equates
         if isinstance(equate, dict)
-        and equate.get("symbol") == name
-        and equate.get("operand") == expected_expr
-        and any(isinstance(ref, dict) and ref.get("access") == "definition" for ref in equate.get("refs", []))
+        and equate.get("name") == name
+        and equate.get("expression") == expected_expr
+        and equate.get("declaration_kind") == 2
     ]
     return {
         "layer": "rendered_source",

@@ -9,6 +9,7 @@ from amiga_reversing.disasm.decision_journal import DECISION_JOURNAL_FILE_NAME
 from amiga_reversing.disasm.manual_actions import MANUAL_ACTION_LOG_FILE_NAME
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_dir
 from amiga_reversing.disasm.target_local_state import (
+    GENERATED_COORDINATION_FILES,
     OBSOLETE_TARGET_UI_EDITS_FILE_NAME,
     SOURCE_IMPORT_FACT_FILES,
 )
@@ -247,6 +248,11 @@ def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
         )
     is_top_level = len(path.parts) == 1
     is_target_local = is_top_level or nested_target_parts is not None
+    if is_target_local and name in GENERATED_COORDINATION_FILES:
+        return TargetFileInventoryEntry(
+            rel_path, TargetFileClass.GENERATED_OUTPUT, TargetFileAction.PRESERVE,
+            "generated coordination inode must remain stable across processes",
+        )
     if (is_top_level and name in PROJECT_SOURCE_IMPORT_FACT_FILE_NAMES) or (
         is_target_local and name in SOURCE_IMPORT_FACT_FILES
     ):

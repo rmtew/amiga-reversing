@@ -31,6 +31,7 @@ from amiga_reversing.disasm.manual_actions import (
     ReviewItemState,
     ReviewState,
 )
+from amiga_reversing.disasm.project_paths import ProjectPaths
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 from tests.listing_row_fixtures import serialize_row
@@ -425,14 +426,14 @@ def _test_row_code(row: ListingRow) -> str:
     return row.text.strip()
 
 
-def _test_navigation_payload(
+def _test_navigation_and_references(
     project_name: str,
     rows: list[ListingRow],
     api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
     *,
     app_slot_analysis: dict[str, object] | None = None,
     type_flow_analysis: dict[str, object] | None = None,
-) -> dict[str, object]:
+) -> tuple[dict[str, object], list[dict[str, object]]]:
     groups: dict[str, list[dict[str, object]]] = {
         "repro-issues": [],
         "typed-data": [],
@@ -581,6 +582,20 @@ def _test_navigation_payload(
     groups["app-slots"] = list(app_slots.values())
     groups["labels"] = sorted(labels.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
     groups["equates"] = sorted(equates.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
+    references = []
+    for group_name in ("app-slots", "labels", "equates"):
+        for entry in groups[group_name]:
+            for ref in entry.pop("refs", []):
+                row = rows[ref["row_index"]]
+                access = ref["access"]
+                operand_index = next((slot.operand_index for slot in row.app_slot_refs
+                                      if slot.symbol == ref["symbol"]), None)
+                references.append({
+                    "section_index": row.section_index,
+                    "source_offset": row.start_offset,
+                    "symbol": ref["symbol"], "kind": access, "access": access,
+                    "operand_index": operand_index, "provenance": "fixture_native_fact",
+                })
     return {
         "analysis_generation": "full"
         if disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project_name) is not None
@@ -589,7 +604,7 @@ def _test_navigation_payload(
         "groups": groups,
         "app_slot_analysis": app_slot_analysis or {},
         "type_flow_analysis": type_flow_analysis or {},
-    }
+    }, references
 
 
 class _FakeCListingArtifact:
@@ -602,6 +617,9 @@ class _FakeCListingArtifact:
         app_slot_analysis: dict[str, object] | None = None,
         type_flow_analysis: dict[str, object] | None = None,
     ) -> None:
+        # Source coordinates are the navigation identity supplied by native facts.
+        rows[:] = [replace(row, section_index=0, start_offset=row.addr)
+                   if row.addr is not None and row.section_index is None else row for row in rows]
         self.rows = rows
         self.project_name = project_name
         self.api_calls_by_row_id = api_calls_by_row_id or {}
@@ -673,14 +691,25 @@ class _FakeCListingArtifact:
         payload["analysis_generation"] = "full"
         return payload, {}
 
+    def _navigation_and_references(self):
+        return _test_navigation_and_references(
+            self.project_name, self.rows, self.api_calls_by_row_id,
+            app_slot_analysis=self.app_slot_analysis, type_flow_analysis=self.type_flow_analysis,
+        )
+
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-        return _test_navigation_payload(
-            self.project_name,
-            self.rows,
-            self.api_calls_by_row_id,
-            app_slot_analysis=self.app_slot_analysis,
-            type_flow_analysis=self.type_flow_analysis,
-        ), {}
+        navigation, _ = self._navigation_and_references()
+        return navigation, {}
+
+    def query_payload(self, kind, *, symbol="", offset=0, limit=50, **filters):
+        assert kind == "references", "fake supplies typed reference facts only"
+        assert 1 <= limit <= 100
+        _, references = self._navigation_and_references()
+        selected = [ref for ref in references if not symbol or ref["symbol"] == symbol]
+        items = selected[offset:offset + limit]
+        return {"items": items, "total": len(selected), "offset": offset, "limit": limit,
+                "has_more": offset + len(items) < len(selected), "unknowns": [],
+                "scope": "fixture native references"}
 
 
 def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path) -> None:
@@ -867,8 +896,32 @@ class _QuietThreadingHTTPServer(ThreadingHTTPServer):
         super().handle_error(request, client_address)
 
 
+def _fixture_project_paths(name: str, directory: Path) -> ProjectPaths:
+    directory.mkdir(parents=True, exist_ok=True)
+    binary = directory / "binary.bin"
+    if not binary.exists():
+        binary.write_bytes(bytes(1024))
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY, path=binary, address_model=RawAddressModel.LOCAL_OFFSET,
+        load_address=0, entrypoint=0, code_start_offset=0, display_path=str(binary),
+        analysis_cache_path=directory / ".analysis.json",
+    )
+    return ProjectPaths(name=name, kind="binary", target_dir=directory, output_path=None, binary_source=source)
+
+
 @pytest.fixture(autouse=True)
-def _clear_disasm_server_listing_state(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def _clear_disasm_server_listing_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[None]:
+    original_paths = disasm_server.resolve_project_paths
+
+    def project_paths(name, project_root=PROJECT_ROOT):
+        try:
+            return original_paths(name, project_root=project_root)
+        except FileNotFoundError:
+            if not isinstance(disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(name), _FakeCListingArtifact):
+                raise
+            return _fixture_project_paths(name, tmp_path / "fixture-targets" / name)
+
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", project_paths)
     original_cache_key = disasm_server._project_listing_cache_key
 
     def project_listing_cache_key(project_name: str) -> str:
@@ -1577,17 +1630,20 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
     ]
     labels: list[dict[str, object]] = []
 
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, "payload": payload}
-        if kind == "create_manual_label":
-            label = cast(dict[str, object], payload["label"])
-            labels.append(label)
-            new_name = cast(str, label["name"])
-            rows[0] = replace(rows[0], text=f"{new_name}:\n", label=new_name)
-            artifact = disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project.id)
-            if artifact is not None:
-                cast(_FakeCListingArtifact, artifact).rows[0] = rows[0]
-        return action
+    def append_actions(target_dir: Path, *, actions, binary_source: object) -> list[dict[str, object]]:
+        appended = []
+        for kind, payload in actions:
+            action = {"kind": kind, "payload": payload}
+            if kind == "create_manual_label":
+                label = cast(dict[str, object], payload["label"])
+                labels.append(label)
+                new_name = cast(str, label["name"])
+                rows[0] = replace(rows[0], text=f"{new_name}:\n", label=new_name)
+                artifact = disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project.id)
+                if artifact is not None:
+                    cast(_FakeCListingArtifact, artifact).rows[0] = rows[0]
+            appended.append(action)
+        return appended
 
     _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
@@ -1602,13 +1658,10 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(
-            target_dir=tmp_path / project_name,
-            binary_source=SimpleNamespace(kind="raw", display_path="bin/demo"),
-        ),
+        lambda project_name, project_root=None: _fixture_project_paths(project_name, tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "append_manual_actions", append_actions)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -1617,6 +1670,8 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
         page.evaluate("document.querySelector('[data-row-index=\"0\"]').click()")
         page.press_key("p")
         page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("state.commandPalette.loading === false")
+        page.assert_no_errors()
         page.wait_for_expression("document.querySelector('#command-palette-overlay')?.textContent.includes('Rename label')")
         assert "Rename label" in page.text_content("#command-palette-overlay")
         assert page.evaluate(
@@ -1961,11 +2016,14 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
             },
         )
 
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, "payload": payload}
-        if kind == "create_manual_representation":
-            representations.append(cast(dict[str, object], payload["representation"]))
-        return action
+    def append_actions(target_dir: Path, *, actions, binary_source: object) -> list[dict[str, object]]:
+        appended = []
+        for kind, payload in actions:
+            action = {"kind": kind, "payload": payload}
+            if kind == "create_manual_representation":
+                representations.append(cast(dict[str, object], payload["representation"]))
+            appended.append(action)
+        return appended
 
     _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
@@ -1976,10 +2034,10 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_project_paths(project_name, tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "append_manual_actions", append_actions)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -2059,15 +2117,18 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
             },
         )
 
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, "payload": payload, "action_id": f"test-action-{len(labels) + len(comments) + len(representations) + 1}"}
-        if kind == "create_manual_label":
-            labels.append(cast(dict[str, object], payload["label"]))
-        if kind == "create_manual_comment":
-            comments.append(cast(dict[str, object], payload["comment"]))
-        if kind == "create_manual_representation":
-            representations.append(cast(dict[str, object], payload["representation"]))
-        return action
+    def append_actions(target_dir: Path, *, actions, binary_source: object) -> list[dict[str, object]]:
+        appended = []
+        for kind, payload in actions:
+            action = {"kind": kind, "payload": payload, "action_id": f"test-action-{len(labels) + len(comments) + len(representations) + 1}"}
+            if kind == "create_manual_label":
+                labels.append(cast(dict[str, object], payload["label"]))
+            if kind == "create_manual_comment":
+                comments.append(cast(dict[str, object], payload["comment"]))
+            if kind == "create_manual_representation":
+                representations.append(cast(dict[str, object], payload["representation"]))
+            appended.append(action)
+        return appended
 
     _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
@@ -2077,10 +2138,10 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_project_paths(project_name, tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "append_manual_actions", append_actions)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -2285,11 +2346,14 @@ def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
             manual_state={"review_notes": review_notes},
         )
 
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, "payload": payload}
-        if kind == "add_review_note":
-            review_notes.append(cast(dict[str, object], payload["note"]))
-        return action
+    def append_actions(target_dir: Path, *, actions, binary_source: object) -> list[dict[str, object]]:
+        appended = []
+        for kind, payload in actions:
+            action = {"kind": kind, "payload": payload}
+            if kind == "add_review_note":
+                review_notes.append(cast(dict[str, object], payload["note"]))
+            appended.append(action)
+        return appended
 
     _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
@@ -2304,10 +2368,10 @@ def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_project_paths(project_name, tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "append_manual_actions", append_actions)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -2383,21 +2447,17 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
         )
     ]
     comments: list[dict[str, object]] = []
-    real_append_manual_action = disasm_server.append_manual_action
+    real_append_manual_actions = disasm_server.append_manual_actions
 
     def project_record(project_name: str) -> ProjectRecord:
         return replace(project, manual_state={"comments": comments})
 
-    def append_action(target_dir: Path, *, kind: object, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = real_append_manual_action(
-            target_dir,
-            kind=kind,
-            payload=payload,
-            binary_source=cast(RawBinarySource, binary_source),
-        )
-        if getattr(kind, "value", kind) == "create_manual_comment":
-            comments.append(cast(dict[str, object], payload["comment"]))
-        return action
+    def append_actions(target_dir: Path, *, actions, binary_source: object) -> list[dict[str, object]]:
+        appended = real_append_manual_actions(target_dir, actions=actions, binary_source=binary_source)
+        for kind, payload in actions:
+            if getattr(kind, "value", kind) == "create_manual_comment":
+                comments.append(cast(dict[str, object], payload["comment"]))
+        return appended
 
     _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
@@ -2415,7 +2475,7 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
         lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir, binary_source=source),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: source)
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "append_manual_actions", append_actions)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -2459,6 +2519,7 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
                 method: "POST",
                 headers: {{"Content-Type": "application/json"}},
                 body: JSON.stringify({{
+                  expected_revision: catalogPayload.revision,
                   command_id: command.action_id,
                   context: command.target_context,
                   parameters: {{text: "LLM smoke comment"}},
@@ -2965,10 +3026,13 @@ def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypa
         artifact = AnalysisArtifact(rows, project_name=project_name)
         return len(rows), {}, artifact
 
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, **payload}
-        appended_actions.append(action)
-        return action
+    def append_actions(target_dir: Path, *, actions, binary_source: object) -> list[dict[str, object]]:
+        appended = []
+        for kind, payload in actions:
+            action = {"kind": kind, **payload}
+            appended_actions.append(action)
+            appended.append(action)
+        return appended
 
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
@@ -2979,10 +3043,10 @@ def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypa
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+        lambda project_name, project_root=None: _fixture_project_paths(project_name, tmp_path / project_name),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "append_manual_actions", append_actions)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -3389,14 +3453,14 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
               .click()
             """
         )
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 refs'")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 shown / 2 references'")
         assert page.evaluate(
             "Array.from(document.querySelectorAll('.navigation-access-badge')).map((badge) => badge.textContent).join('|')"
         ) == "W|A"
         page.evaluate(
             """
             Array.from(document.querySelectorAll('.navigation-item'))
-              .find((item) => item.textContent.includes('move.l d0,app_0234(a6)'))
+              .find((item) => item.textContent.includes('app_0234 · write'))
               .click()
             """
         )
@@ -3411,8 +3475,8 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
               .click()
             """
         )
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_DOSBase: 1 ref'")
-        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('move.l app_DOSBase(a6),d0')")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_DOSBase: 1 shown / 1 references'")
+        assert page.evaluate("state.navigation.referencePage.items[state.navigation.selectedIndex]?.source_offset === 0x20")
         page.evaluate(
             """
             Array.from(document.querySelectorAll('.listing-app-slot-reference'))
@@ -3420,13 +3484,13 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
               .click()
             """
         )
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 refs'")
-        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('lea.l app_0234(a6),a0')")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 shown / 2 references'")
+        assert page.evaluate("state.navigation.referencePage.items[state.navigation.selectedIndex]?.source_offset === 0x40")
         page.evaluate("loadListingWindow(state.project, null, 0, 20, {start: 0, count: 20})")
         page.wait_for_selector(".listing-app-slot-definition[data-app-slot-symbol='app_0234']")
         page.click(".listing-app-slot-definition[data-app-slot-symbol='app_0234']")
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 refs'")
-        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('move.l d0,app_0234(a6)')")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 shown / 2 references'")
+        page.wait_for_expression("state.navigation.referencePage.items[state.navigation.selectedIndex]?.source_offset === 0x30")
         page.click("[data-navigation-app-slots-root='1']")
         assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('app_0234')")
         page.assert_no_errors()
@@ -4428,10 +4492,10 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
             timeout=10.0,
         )
         page.click(".listing-symbol-definition[data-symbol-name='target']")
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 6 refs'")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 6 shown / 6 references'")
         assert page.evaluate("document.querySelector('[data-navigation-class=\"1\"]')?.value") == "labels"
         assert page.evaluate(
-            "document.querySelector('.navigation-item.active')?.textContent.includes('target:')"
+            "document.querySelector('.navigation-item.active')?.textContent.includes('target · definition')"
         )
         assert page.evaluate(
             "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
@@ -4455,9 +4519,9 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
               .dispatchEvent(new MouseEvent('click', {bubbles: true, ctrlKey: true}))
             """
         )
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 6 refs'")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 6 shown / 6 references'")
         assert page.evaluate(
-            "document.querySelector('.navigation-item.active')?.textContent.includes('jsr target.l')"
+            "state.navigation.referencePage.items[state.navigation.selectedIndex]?.source_offset === 2"
         )
         assert page.evaluate(
             "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
@@ -4523,7 +4587,7 @@ def test_brave_cdp_equate_navigation_lists_refs_and_source_links(
             }, true);
             """
         )
-        page.wait_for_selector(f".listing-equate-reference[data-equate-symbol='{symbol}']")
+        page.wait_for_selector(f".listing-symbol-reference[data-symbol-name='{symbol}']")
 
         page.click("#open-navigation")
         page.wait_for_selector("#navigation-overlay")
@@ -4535,7 +4599,7 @@ def test_brave_cdp_equate_navigation_lists_refs_and_source_links(
 
         page.click(f".listing-equate-definition[data-equate-symbol='{symbol}']")
         page.wait_for_expression(
-            f"document.querySelector('.navigation-summary')?.textContent === {json.dumps(symbol + ': 2 refs')}"
+            f"document.querySelector('.navigation-summary')?.textContent === {json.dumps(symbol + ': 2 shown / 2 references')}"
         )
         assert page.evaluate("document.querySelector('[data-navigation-class=\"1\"]')?.value") == "equates"
         assert page.evaluate(
@@ -4544,11 +4608,14 @@ def test_brave_cdp_equate_navigation_lists_refs_and_source_links(
         page.click("[data-navigation-equates-root='1']")
         assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('EQU $67D00')")
 
-        page.click(f".listing-equate-reference[data-equate-symbol='{symbol}']")
-        page.wait_for_expression(
-            f"document.querySelector('.navigation-summary')?.textContent === {json.dumps(symbol + ': 2 refs')}"
+        page.evaluate(
+            f"document.querySelector('.listing-symbol-reference[data-symbol-name=\"{symbol}\"], .listing-equate-reference[data-equate-symbol=\"{symbol}\"]')"
+            ".dispatchEvent(new MouseEvent('click', {bubbles: true, ctrlKey: true}))"
         )
-        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('lea.l')")
+        page.wait_for_expression(
+            f"document.querySelector('.navigation-summary')?.textContent === {json.dumps(symbol + ': 2 shown / 2 references')}"
+        )
+        assert page.evaluate("state.navigation.referencePage.items[state.navigation.selectedIndex]?.source_offset === 0x20")
         assert page.evaluate(
             "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
         ) == "R"
@@ -5250,3 +5317,41 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
         page.assert_no_errors()
 
 
+
+
+def test_brave_cdp_references_page_without_embedded_navigation_refs(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_paged_references")
+    rows = [
+        ListingRow(
+            row_id=f"ref-{index}", kind="instruction", text="move.l app_values(a6),d0\n",
+            stable_key=f"ref-{index}", addr=index * 2,
+            app_slot_refs=(AppSlotRef("app_values", 0x20, "A6", 0, "read"),),
+        )
+        for index in range(105)
+    ]
+    _cache_full_project_rows(project.id, rows)
+    artifact = disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project.id)
+    navigation, _ = artifact.navigation_payload()
+    assert all('refs' not in entry for entries in navigation['groups'].values() for entry in entries)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector(".listing-app-slot-reference")
+        page.click(".listing-app-slot-reference")
+        page.wait_for_expression(
+            "document.querySelector('.navigation-summary')?.textContent === 'app_values: 100 shown / 105 references'"
+        )
+        assert page.evaluate("document.querySelectorAll('.navigation-item').length") == 100
+        page.click("[data-navigation-next='1']")
+        page.wait_for_expression(
+            "document.querySelector('.navigation-summary')?.textContent === 'app_values: 5 shown / 105 references'"
+        )
+        assert page.evaluate("state.navigation.referencePage.items[0].source_offset") == 200
+        assert page.evaluate("document.querySelector('[data-navigation-next]') === null")
+        page.click(".navigation-item")
+        page.wait_for_expression("document.querySelector('.listing-row-focus')?.dataset.rowKey === 'ref-100'")
+        page.assert_no_errors()

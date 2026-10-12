@@ -1658,6 +1658,12 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_navigation_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_query_json_alloc.argtypes = [
+        c_void_p, c_char_p, c_char_p, c_int, c_uint32, c_int, c_uint32,
+        c_int, c_uint32, c_char_p, c_char_p, c_int, c_int, c_char_p,
+        c_uint32, c_uint32, POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_query_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_destroy.argtypes = [c_void_p]
     dll.platform_file_facts_v2_listing_artifact_destroy.restype = None
     dll.platform_file_facts_v2_listing_stream_path_create.argtypes = [
@@ -2069,6 +2075,44 @@ class CListingArtifact:
         summary = cast(dict[str, object], combined.get("summary", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return summary, profile
+
+    def query_payload(
+        self, kind: str, *, query: str = "", section_index: int | None = None,
+        source_offset: int | None = None, end_offset: int | None = None,
+        symbol: str = "", struct_name: str = "", field_offset: int | None = None,
+        direction: str = "both", offset: int = 0, limit: int = 50,
+    ) -> dict[str, object]:
+        """Page typed native facts without materializing listing/navigation JSON.
+
+        Coordinates select an exact offset, or a half-open range when end_offset
+        is provided. Reference direction applies the coordinates to source or
+        target; symbolic matching is exact. Ordering follows immutable native
+        record order, so pagination is deterministic within an artifact revision.
+        """
+        if kind not in {"symbols", "references", "fields", "instructions", "edges"}:
+            raise ValueError("Unknown native query kind")
+        if direction not in {"incoming", "outgoing", "both"}:
+            raise ValueError("direction must be incoming, outgoing, or both")
+        for name, value in (("section_index", section_index), ("source_offset", source_offset),
+                            ("end_offset", end_offset), ("offset", offset), ("limit", limit)):
+            if value is not None and (type(value) is not int or not 0 <= value <= 0xFFFFFFFF):
+                raise ValueError(f"{name} must be an unsigned 32-bit integer")
+        if not 1 <= limit <= 100:
+            raise ValueError("limit must be between 1 and 100")
+        if end_offset is not None and (source_offset is None or end_offset <= source_offset):
+            raise ValueError("end_offset requires a nonempty source range")
+        if field_offset is not None and (type(field_offset) is not int or not -(2**31) <= field_offset < 2**31):
+            raise ValueError("field_offset must be a signed 32-bit integer")
+        for value in (query, symbol, struct_name):
+            if not isinstance(value, str) or "\0" in value or len(value) > 256:
+                raise ValueError("query strings must contain at most 256 characters and no NUL")
+        return cast(dict[str, object], json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_query_json_alloc,
+            kind, query, int(section_index is not None), section_index or 0,
+            int(source_offset is not None), source_offset or 0,
+            int(end_offset is not None), end_offset or 0, symbol, struct_name,
+            int(field_offset is not None), field_offset or 0, direction, offset, limit,
+        )))
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(

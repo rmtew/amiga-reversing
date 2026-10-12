@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -19,6 +19,7 @@ from amiga_reversing.disasm.binary_source import (
     read_binary_source_bytes,
 )
 from amiga_reversing.disasm.source_numbers import parse_source_int
+from amiga_reversing.disasm.target_history import atomic_append_history, target_lock
 from amiga_reversing.disasm.target_metadata import (
     SuppressedSeededItemKind,
     TargetMetadata,
@@ -275,66 +276,103 @@ def append_manual_action(
     payload: dict[str, object],
     binary_source: BinarySource,
 ) -> dict[str, object]:
-    if not isinstance(kind, ManualActionKind):
-        raise TypeError("kind must be a ManualActionKind")
-    validate_manual_action_payload(payload)
-    if kind is ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT:
-        requested_layout = _object(payload.get("data_block_layout"), what="data_block_layout")
-        requested_range = tuple(requested_layout.get(key) for key in ("hunk", "source_start", "source_end"))
-        projection = load_manual_projection(target_dir, binary_source=binary_source)
-        if any(
-            tuple(layout.get(key) for key in ("hunk", "source_start", "source_end")) == requested_range
-            for layout in projection.data_block_layouts
-        ):
-            raise ValueError("an active data-block layout already covers this exact range")
-        if any(_data_block_layout_overlaps(requested_layout, layout) for layout in projection.data_block_layouts):
-            raise ValueError("an active data-block layout overlaps this source range")
-    path = manual_action_log_path(target_dir)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    records: list[dict[str, object]] = []
-    if path.exists():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                raw = json.loads(line)
-                records.append(_object(raw, what="manual action log record"))
-    else:
-        records.append(
-            {
-                "record": "manual_action_log_header",
-                "version": MANUAL_ACTION_LOG_VERSION,
-                "target_identity": build_target_identity(binary_source),
+    return append_manual_actions(target_dir, actions=[(kind, payload)], binary_source=binary_source)[0]
+
+
+def append_manual_actions(
+    target_dir: Path,
+    *,
+    actions: Sequence[tuple[ManualActionKind, dict[str, object]]],
+    binary_source: BinarySource,
+) -> list[dict[str, object]]:
+    """Validate a complete batch by semantic replay, then atomically append it."""
+    with target_lock(target_dir):
+        path = manual_action_log_path(target_dir)
+        identity = build_target_identity(binary_source)
+        records = []
+        if path.exists():
+            records = [_object(json.loads(line), what="manual action log record")
+                       for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            if not records or records[0].get("record") != "manual_action_log_header":
+                raise ValueError("first record must be manual_action_log_header")
+            if records[0].get("version") != MANUAL_ACTION_LOG_VERSION:
+                raise ValueError("unsupported Manual Action Log version")
+            if records[0].get("target_identity") != identity:
+                raise ValueError("Manual Action Log target identity does not match current target")
+        header = records[0] if records else {
+            "record": "manual_action_log_header", "version": MANUAL_ACTION_LOG_VERSION,
+            "target_identity": identity,
+        }
+        parsed = [_parse_action(record) for record in records[1:]]
+        if len({action.action_id for action in parsed}) != len(parsed):
+            raise ValueError("duplicate manual action id")
+
+        def replay():
+            return _project_actions(
+                path, pinned_target_identity=identity, current_target_identity=identity,
+                binary_source=binary_source, stronger_metadata=None, assembler_profile=VASM_PROFILE,
+                actions=parsed, review_items=[],
+            )
+
+        projection = replay()
+        additions = []
+        sequence = max((action.sequence for action in parsed), default=0)
+        for kind, payload in actions:
+            if not isinstance(kind, ManualActionKind):
+                raise TypeError("kind must be a ManualActionKind")
+            validate_manual_action_payload(payload)
+            if kind is ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT:
+                requested = _object(payload.get("data_block_layout"), what="data_block_layout")
+                requested_range = tuple(requested.get(key) for key in ("hunk", "source_start", "source_end"))
+                if any(tuple(layout.get(key) for key in ("hunk", "source_start", "source_end")) == requested_range
+                       for layout in projection.data_block_layouts):
+                    raise ValueError("an active data-block layout already covers this exact range")
+                if any(_data_block_layout_overlaps(requested, layout) for layout in projection.data_block_layouts):
+                    raise ValueError("an active data-block layout overlaps this source range")
+            sequence += 1
+            action = {
+                "record": "manual_action", "action_id": f"manual-{uuid.uuid4().hex}",
+                "sequence": sequence, "created_at": datetime.now(UTC).isoformat(), "kind": kind, **payload,
             }
-        )
-    if not records or records[0].get("record") != "manual_action_log_header":
-        raise ValueError("first record must be manual_action_log_header")
-    pinned_target_identity = _object(records[0].get("target_identity"), what="target_identity")
-    current_target_identity = build_target_identity(binary_source)
-    if pinned_target_identity != current_target_identity:
-        raise ValueError("Manual Action Log target identity does not match current target")
-    max_sequence = 0
-    for raw in records[1:]:
-        if raw.get("record") != "manual_action":
-            continue
-        sequence = raw.get("sequence")
-        if isinstance(sequence, int):
-            max_sequence = max(max_sequence, sequence)
-    action = {
-        "record": "manual_action",
-        "action_id": f"manual-{uuid.uuid4().hex}",
-        "sequence": max_sequence + 1,
-        "created_at": datetime.now(UTC).isoformat(),
-        "kind": kind,
-        **payload,
-    }
-    records.append(action)
-    path.write_text(
-        "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
-        encoding="utf-8",
-    )
-    return action
+            parsed.append(_parse_action(action))
+            projection = replay()
+            additions.append(action)
+        if additions:
+            suffix = additions if records else [header, *additions]
+            atomic_append_history(path, "".join(json.dumps(record, sort_keys=True) + "\n" for record in suffix).encode("utf-8"))
+        return additions
+
+
+def manual_action_interpretation(record: Mapping[str, object]) -> dict[str, object]:
+    """Read optional provenance without rewriting legacy annotations.
+
+    Status describes the claim at creation; journal decisions remain the
+    authority for acceptance/rejection and subsequent revisions.
+    """
+    value = record.get("interpretation")
+    if value is None:
+        return {"source_evidence_status": "legacy_unassessed"}
+    if not isinstance(value, Mapping):
+        raise ValueError("interpretation must be an object")
+    result = dict(value)
+    status = result.get("source_evidence_status")
+    if status not in {"hypothesis", "accepted", "deferred", "rejected", "analysis_proven",
+                      "path_specific", "manual_classified", "manual_override", "legacy_unassessed"}:
+        raise ValueError("interpretation requires a supported source_evidence_status")
+    for key in ("source_evidence_id", "source_family", "reason", "decision_id"):
+        if key in result and (not isinstance(result[key], str) or not result[key].strip()):
+            raise ValueError(f"interpretation {key} must be a non-empty string")
+    if "confidence" in result and result["confidence"] not in {"low", "medium", "high"}:
+        raise ValueError("interpretation confidence must be low, medium, or high")
+    for key in ("evidence_refs", "parent_evidence_ids"):
+        if key in result and (not isinstance(result[key], list) or
+                             any(not isinstance(ref, str) or not ref.strip() for ref in result[key])):
+            raise ValueError(f"interpretation {key} must be a list of non-empty strings")
+    return result
 
 
 def validate_manual_action_payload(payload: dict[str, object]) -> None:
+    manual_action_interpretation(payload)
     reserved_fields = sorted(RESERVED_MANUAL_ACTION_FIELDS.intersection(payload))
     if reserved_fields:
         joined = ", ".join(reserved_fields)

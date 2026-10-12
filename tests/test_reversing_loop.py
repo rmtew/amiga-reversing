@@ -6583,23 +6583,13 @@ def test_target_equate_representation_verifier_checks_rendered_definition(
             manual_state={"target_equates": [equate]},
         ),
     )
-    monkeypatch.setattr(
-        reversing_loop.server,
-        "route_request",
-        lambda method, path, query, body=None: {
-            "data": {
-                "groups": {
-                    "equates": [
-                        {
-                            "symbol": "PLAYER_START_LIVES",
-                            "operand": "40+2",
-                            "refs": [{"access": "definition"}],
-                        }
-                    ]
-                }
-            }
-        },
-    )
+    def route(method, path, query, body=None):
+        assert method == "POST"
+        assert path == "/api/projects/demo/restoration"
+        assert body == {"operation": "query", "kind": "symbols", "symbol": "PLAYER_START_LIVES", "limit": 100}
+        return {"data": {"items": [{"name": "PLAYER_START_LIVES", "expression": "40+2", "declaration_kind": 2}]}}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route)
 
     verification = reversing_loop._verify_target_equate_mutation(
         "demo",

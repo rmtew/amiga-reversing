@@ -6,6 +6,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import cast
 
+from amiga_reversing.disasm.target_history import atomic_append_history, target_lock
+
 DECISION_JOURNAL_FILE_NAME = "decision_journal.jsonl"
 DECISION_JOURNAL_SCHEMA = "evidence-decision/v1"
 DECISION_JOURNAL_ACTIONS = frozenset(
@@ -56,44 +58,52 @@ def read_decision_journal(target_dir: Path) -> dict[str, object]:
                     )
                     continue
                 records.append(dict(raw))
-    except OSError as exc:
+    except (OSError, UnicodeError) as exc:
         diagnostics.append({"field": "$", "message": str(exc)})
     return _journal_read_result(path, records, diagnostics)
 
 
 def append_decision_record(target_dir: Path, record: Mapping[str, object]) -> dict[str, object]:
-    path = decision_journal_path(target_dir)
-    current = read_decision_journal(target_dir)
-    if not current["valid"]:
+    result = append_decision_records(target_dir, [record])
+    result.pop("records", None)
+    return {**result, "record": dict(record)}
+
+
+def append_decision_records(
+    target_dir: Path, records: Sequence[Mapping[str, object]],
+) -> dict[str, object]:
+    """Validate the combined chain before atomically appending the entire batch.
+
+    Callers construct each prev hash, including links within the batch. A stale
+    head or invalid replacement rejects supersession and replacement together.
+    """
+    additions = [dict(record) for record in records]
+    if not additions:
+        raise ValueError("decision batch must contain at least one record")
+    with target_lock(target_dir):
+        path = decision_journal_path(target_dir)
+        current = read_decision_journal(target_dir)
+        if not current["valid"]:
+            return {
+                "status": "rejected", "path": str(path), "records": additions,
+                "validation": current["validation"], "diagnostics": current["diagnostics"],
+            }
+        existing = _record_sequence(current.get("records"))
+        next_records = [*existing, *additions]
+        validation = validate_decision_journal_records(next_records)
+        if not validation["valid"]:
+            return {
+                "status": "rejected", "path": str(path), "records": additions,
+                "validation": validation, "diagnostics": validation["diagnostics"],
+            }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        suffix = "".join(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n" for record in additions)
+        atomic_append_history(path, suffix.encode("utf-8"))
         return {
-            "status": "rejected",
-            "path": str(path),
-            "record": dict(record),
-            "validation": current["validation"],
-            "diagnostics": current["diagnostics"],
+            "status": "appended", "path": str(path), "records": additions,
+            "validation": validation, "head_hash": decision_record_hash(additions[-1]),
+            "record_count": len(next_records),
         }
-    records = [dict(existing) for existing in _record_sequence(current.get("records"))]
-    next_records = [*records, dict(record)]
-    validation = validate_decision_journal_records(next_records)
-    if not validation["valid"]:
-        return {
-            "status": "rejected",
-            "path": str(path),
-            "record": dict(record),
-            "validation": validation,
-            "diagnostics": validation["diagnostics"],
-        }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as handle:
-        handle.write(json.dumps(dict(record), sort_keys=True, separators=(",", ":")) + "\n")
-    return {
-        "status": "appended",
-        "path": str(path),
-        "record": dict(record),
-        "validation": validation,
-        "head_hash": decision_record_hash(record),
-        "record_count": len(next_records),
-    }
 
 
 def decision_journal_report(
@@ -500,6 +510,8 @@ def _selected_identity_key(value: object) -> str | None:
     if not isinstance(value, Mapping):
         return None
     target_id = _text(value.get("target_id"))
+    if value.get("subject_kind") is not None:
+        return json.dumps({key: value.get(key) for key in ("target_id", "subject_kind", "subject_id")}, sort_keys=True, separators=(",", ":"))
     selected_use_id = _text(value.get("selected_use_id"))
     if target_id is not None and selected_use_id is not None:
         return f"{target_id}:{selected_use_id}"
@@ -574,6 +586,13 @@ def _validate_actor(value: object, diagnostics: list[dict[str, object]]) -> None
 def _validate_selected_identity(value: object, diagnostics: list[dict[str, object]]) -> None:
     if not isinstance(value, Mapping):
         diagnostics.append(_diagnostic(None, "selected_identity", "selected_identity must be an object"))
+        return
+    if "subject_kind" in value:
+        if value.get("subject_kind") not in {"row", "function", "symbol", "field", "action"}:
+            diagnostics.append(_diagnostic(None, "selected_identity.subject_kind", "unsupported domain subject kind"))
+        for key in ("target_id", "subject_id"):
+            if _text(value.get(key)) is None:
+                diagnostics.append(_diagnostic(None, f"selected_identity.{key}", "domain subject field must be a non-empty string"))
         return
     for key in ("target_id", "segment_id", "hunk", "addr", "operand_index"):
         if key not in value:

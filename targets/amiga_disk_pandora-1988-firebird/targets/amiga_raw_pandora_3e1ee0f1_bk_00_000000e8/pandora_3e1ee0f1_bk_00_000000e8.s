@@ -2144,7 +2144,7 @@ abs_0_00012540:
 	move.l (a0)+,d0
 	beq.b abs_0_0001255C
 	movea.l d0,a5
-	move.b world_object_shared_prefix_world_object_flags(a5),d0
+	move.b $0048(a5),d0
 	andi.b #66,d0
 	bne.b abs_0_00012540
 	move.l a0,-(a7)
@@ -3136,8 +3136,7 @@ abs_0_00013442:
 abs_0_00013462:
 	dcb.b $60,$00
 abs_0_000134C2:
-	dc.l $00000000,$00000000,$00000000,$00000000	; lookup_table
-	dc.l $00000000,$00000000,$00000000,$00000000	; lookup_table
+	dcb.b $20,$00
 abs_0_000134E2:
 	dc.b $00,$00,$06,$66,$0A,$AA,$0E,$EE,$06,$00,$0A,$00,$0E,$00,$0F,$33
 	dc.b $00,$EE,$0F,$D0,$0E,$E0,$0E,$C0,$02,$F2,$00,$A2,$0E,$EE,$0E,$EE
@@ -4406,18 +4405,18 @@ abs_0_000165E0:
 	lea.l ui_overlay_descriptor_line_0_ptr(a5),a4
 	moveq.l #0,d7
 abs_0_000165F0:
-	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b $0000(a5),d0
 	move.b d7,d1
 	addq.b #1,d1
-	add.b ui_overlay_descriptor_y(a5),d1
+	add.b $0001(a5),d1
 	bsr.w abs_0_00016126
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
-	tst.l ui_overlay_descriptor_line_0_ptr-12(a4)
+	tst.l (a4)
 	beq.b abs_0_00016624
 	movea.l (a4)+,a3
-	btst.b d7,ui_overlay_descriptor_line_style_flags(a5)
+	btst.b d7,$0007(a5)
 	beq.b abs_0_00016620
 	bsr.w abs_0_00016146
 	bra.b abs_0_00016624
@@ -4445,7 +4444,7 @@ abs_0_00016632:
 	move.b #$8,app_020B(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
 	bra.w abs_0_00016146
-abs_0_00016668:
+clear_overlay_pointer_storage:
 	lea.l ui_overlay_update_queue(pc),a0
 	moveq.l #31,d7
 abs_0_0001666E:
@@ -6573,7 +6572,7 @@ abs_0_000180B8:
 	bset.b #0,item_receptacle_interaction_data_flags(a3)
 	bne.w abs_0_00017F02
 	clr.b app_02D8(a6)
-	tst.l item_receptacle_interaction_data_stored_attachment_state_ptr(a3)
+	tst.l (a3)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
 	beq.b deposit_item_in_receptacle
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b item_receptacle_interaction_data_required_item_definition_id(a3),d0
@@ -6585,15 +6584,15 @@ abs_0_000180B8:
 	movea.l (a7)+,a0
 	bra.w abs_0_00017F02
 complete_item_receptacle_interaction:
-	move.l item_receptacle_interaction_data_stored_attachment_state_ptr(a3),world_position_state_record_attachment_state_ptr(a2)
-	clr.l item_receptacle_interaction_data_stored_attachment_state_ptr(a3)
+	move.l (a3),world_position_state_record_attachment_state_ptr(a2)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
+	clr.l (a3)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
 	clr.b world_object_shared_prefix_selected_item_id(a4)
 	bra.w refresh_selected_item_name_display
 deposit_item_in_receptacle:
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$2,d0
 	bcc.w abs_0_00017F02
-	move.l world_position_state_record_attachment_state_ptr(a2),item_receptacle_interaction_data_stored_attachment_state_ptr(a3)
+	move.l world_position_state_record_attachment_state_ptr(a2),(a3)	; operand 2: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
 	clr.l world_position_state_record_attachment_state_ptr(a2)
 	move.b item_receptacle_interaction_data_required_item_definition_id(a3),world_object_shared_prefix_selected_item_id(a4)
 	bsr.w refresh_selected_item_name_display
@@ -7344,47 +7343,47 @@ abs_0_000189FA:
 abs_0_00018A16:
 	rts
 abs_0_00018A18:
-	dc.w $0014,$0008,$0000,$0000,$0002,$CEA8,$0002,$CF28	; lookup_table
-	dc.w $0002,$CFA8,$0002,$CFA8,$0002,$CFA8,$0002,$CFA8	; lookup_table
-	dc.w $0002,$CFA8,$0002,$CFA8,$0002,$CFA8,$0002,$CFA8	; lookup_table
-	dc.w $0002,$CFA8,$0002,$CFA8,$0002,$CFA8,$0002,$CFA8	; lookup_table
-	dc.w $0002,$CFA8,$0002,$CFA8,$0002,$D028,$0002,$D0A8	; lookup_table
-	dc.w $0002,$D128,$0002,$D1A8,$0002,$D228,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0002,$D2A8,$0002,$D328	; lookup_table
-	dc.w $0002,$D3A8,$0002,$D428,$0002,$D228,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0002,$D2A8,$0002,$D4A8	; lookup_table
-	dc.w $0002,$D528,$0002,$D5A8,$0002,$D228,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0002,$D2A8,$0002,$D628	; lookup_table
-	dc.w $0002,$D6A8,$0002,$D728,$0002,$D228,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0002,$D2A8,$0002,$D7A8	; lookup_table
-	dc.w $0002,$D828,$0002,$D8A8,$0002,$D228,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0002,$D2A8,$0002,$D928	; lookup_table
-	dc.w $0002,$D9A8,$0002,$D8A8,$0002,$D228,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0001,$F9A8,$0001,$F9A8	; lookup_table
-	dc.w $0001,$F9A8,$0001,$F9A8,$0002,$D2A8,$0002,$DA28	; lookup_table
-	dc.w $0002,$DAA8,$0002,$D8A8,$0002,$DB28,$0002,$DBA8	; lookup_table
-	dc.w $0002,$DBA8,$0002,$DBA8,$0002,$DBA8,$0002,$DBA8	; lookup_table
-	dc.w $0002,$DBA8,$0002,$DBA8,$0002,$DBA8,$0002,$DBA8	; lookup_table
-	dc.w $0002,$DBA8,$0002,$DBA8,$0002,$DBA8,$0002,$DBA8	; lookup_table
-	dc.w $0002,$DBA8,$0002,$DBA8,$0002,$DC28,$0002,$DBA8	; lookup_table
-	dc.w $0002,$DBA8,$0002,$DCA8	; lookup_table
+	dc.b $00,$14,$00,$08,$00,$00,$00,$00,$00,$02,$CE,$A8,$00,$02,$CF,$28
+	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8
+	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8
+	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8
+	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$D0,$28,$00,$02,$D0,$A8
+	dc.b $00,$02,$D1,$28,$00,$02,$D1,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D3,$28
+	dc.b $00,$02,$D3,$A8,$00,$02,$D4,$28,$00,$02,$D2,$28,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D4,$A8
+	dc.b $00,$02,$D5,$28,$00,$02,$D5,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D6,$28
+	dc.b $00,$02,$D6,$A8,$00,$02,$D7,$28,$00,$02,$D2,$28,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D7,$A8
+	dc.b $00,$02,$D8,$28,$00,$02,$D8,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D9,$28
+	dc.b $00,$02,$D9,$A8,$00,$02,$D8,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
+	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$DA,$28
+	dc.b $00,$02,$DA,$A8,$00,$02,$D8,$A8,$00,$02,$DB,$28,$00,$02,$DB,$A8
+	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8
+	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8
+	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8
+	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DC,$28,$00,$02,$DB,$A8
+	dc.b $00,$02,$DB,$A8,$00,$02,$DC,$A8
 terminal_proximity_object_ptrs:
 	dc.l $00018D54,$00018DA6,$00018DE0,$00018E2C	; terminal_proximity_object_pointer_table
 	dc.l $00018E7E,$00018EBC,$00018F0C,$00018F26	; terminal_proximity_object_pointer_table
@@ -8209,7 +8208,7 @@ abs_0_0001996A:
 	bra.w abs_0_00017D24
 abs_0_00019984:
 	lea.l player_position_state_state_node_ptr.l,a0
-	movea.l world_position_state_record_collision_bounds_ptr(a0),a0
+	movea.l (a0),a0	; operand 1: world_position_state_record_collision_bounds_ptr at (a0)
 	clr.w world_position_state_record_position_descriptor_ptr(a0)
 	bset.b #0,$000A(a0)
 	bclr.b #1,$000A(a0)
@@ -8659,7 +8658,7 @@ abs_0_00019FC4:
 	addi.w #50,d0
 	move.w d0,world_object_shared_prefix_world_y(a4)
 	move.w #$F1,world_object_shared_prefix_world_x(a4)
-	bsr.w abs_0_00016668
+	bsr.w clear_overlay_pointer_storage
 	lea.l abs_0_000134C2.l,a0
 	lea.l abs_0_000134E2.l,a1
 	lea.l abs_0_00013462.l,a2
@@ -8706,32 +8705,32 @@ abs_0_0001A0B8:
 	beq.b abs_0_0001A0D2
 	bsr.w restore_world_object_position_state
 abs_0_0001A0D2:
-	move.b d0,world_object_shared_prefix_world_object_flags(a5)
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
+	move.b d0,$0048(a5)
+	btst.b #1,$0048(a5)
 	beq.b abs_0_0001A0E2
 	bsr.w abs_0_000124E0
 abs_0_0001A0E2:
 	moveq.l #0,d0
-	move.b world_object_shared_prefix_item_definition_id(a5),d0
+	move.b $004A(a5),d0
 	bsr.w resolve_item_name
-	move.l d0,world_object_shared_prefix_item_name_ptr.w(a5)
-	movea.l world_object_shared_prefix_initial_inventory_slots_ptr(a5),a2
-	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a3
+	move.l d0,$0000(a5)
+	movea.l $001C(a5),a2
+	movea.l $0014(a5),a3
 	moveq.l #7,d7
 abs_0_0001A0FA:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A0FA
-	movea.l world_object_shared_prefix_initial_trade_offer_table_ptr(a5),a2
-	movea.l world_object_shared_prefix_trade_offer_table_ptr(a5),a3
+	movea.l $0020(a5),a2
+	movea.l $0018(a5),a3
 	moveq.l #7,d7
 abs_0_0001A10A:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A10A
-	move.b world_object_shared_prefix_initial_selected_item_id(a5),world_object_shared_prefix_selected_item_id(a5)
-	move.b world_object_shared_prefix_initial_item_state(a5),world_object_shared_prefix_item_state(a5)
-	move.w world_object_shared_prefix_initial_hit_points(a5),world_object_shared_prefix_hit_points(a5)
-	move.l world_object_shared_prefix_initial_behavior_script_ptr(a5),world_object_shared_prefix_behavior_script_ptr(a5)
-	clr.w world_object_shared_prefix_behavior_script_delay_ticks(a5)
+	move.b $0047(a5),$0046(a5)
+	move.b $004D(a5),$004C(a5)
+	move.w $003E(a5),$003C(a5)
+	move.l $0028(a5),$0024(a5)
+	clr.w $0044(a5)
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
 	move.l #player_position_state,player_position_descriptor.l
@@ -8740,7 +8739,7 @@ abs_0_0001A12E:
 	movea.l (a7)+,a5
 	rts
 abs_0_0001A146:
-	dc.w $0004,$0000,$0000,$0006,$0020,$0010	; lookup_table
+	dc.b $00,$04,$00,$00,$00,$00,$00,$06,$00,$20,$00,$10
 abs_0_0001A152:
 	move.w app_02CA(a6),d0
 	add.w d0,d0
@@ -28249,7 +28248,7 @@ abs_0_0005AF90:
 abs_0_0005AFFA:
 	lea.l player_position_state_interaction_data_ptr.l,a0
 	lea.l player_position_state_state_node_ptr.l,a4
-	move.l a0,world_position_state_record_collision_bounds_ptr(a4)
+	move.l a0,(a4)	; operand 2: world_position_state_record_collision_bounds_ptr at (a4)
 	lea.l abs_0_0005C96E.l,a0
 	move.w #$2710,d0
 	move.w d0,$0004(a0)
@@ -33022,7 +33021,7 @@ update_player_proximity_audio:
 	bpl.b abs_0_00065318
 	neg.w d0
 abs_0_00065318:
-	move.w world_object_shared_prefix_item_name_ptr(a0),d1
+	move.w (a0),d1	; operand 1: world_object_shared_prefix_item_name_ptr at (a0)
 	subi.w #168,d1
 	bpl.b abs_0_00065322
 	neg.w d1

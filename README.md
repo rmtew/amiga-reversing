@@ -26,15 +26,26 @@ resources/      External reference files (not tracked, see RESOURCES.md)
 
 ## Setup
 
-```
-py -m venv .venv
-.venv\Scripts\activate
-uv sync --dev
-ext\vasm\build.bat                       # build vasm (requires MSVC)
+```sh
+uv sync --extra mcp --no-dev
+make -j4
+uv run --no-dev --extra mcp python -m amiga_reversing.tools.disasm_server --host 127.0.0.1 --port 8123
 ```
 
-External resources (M68K PDF, NDK 3.1, Hardware Manual) must be obtained
-separately. See [RESOURCES.md](RESOURCES.md) for details.
+Use the **Restore** panel for revision-bound exploration, evidence-backed names
+and annotations, exact rebuild checks, bounded runtime observations and review.
+The CLI and stdio MCP adapter use the same server operations. See
+[Restoration interfaces](docs/restoration-interfaces.md) for the complete loop,
+[Linux baseline](docs/linux-baseline-2026-10.md) for toolchain details and
+[Copperline runtime](docs/copperline-runtime.md) for emulator setup.
+
+Windows builds can still use the existing MSVC scripts. The optional `oracle`
+extra installs public `machine68k`; the old missing local Windows wheel is no
+longer a dependency-resolution prerequisite. Version-specific oracle and Windows
+runtime equivalence have not been established by the Linux validation.
+
+External reference PDFs and legal ROM/media inputs must be obtained separately.
+See [RESOURCES.md](RESOURCES.md) for details.
 
 ## Example: disassembling GenAm
 

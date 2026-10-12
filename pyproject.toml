@@ -8,11 +8,17 @@ dependencies = [
     "pymupdf>=1.27.2",
 ]
 
+[project.optional-dependencies]
+mcp = ["mcp>=2.3,<3"]
+oracle = ["machine68k"]
+
 [build-system]
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
+amiga-restoration = "amiga_reversing.tools.restoration:main"
+amiga-restoration-mcp = "amiga_reversing.tools.restoration_mcp:main"
 amiga-analyze-disk = "amiga_reversing.tools.analyze_disk:main"
 amiga-benchmark-target = "amiga_reversing.tools.benchmark_target:main"
 amiga-check-mojibake = "amiga_reversing.tools.check_mojibake:main"
@@ -36,7 +42,6 @@ amiga-copperline-session = "amiga_reversing.tools.copperline_session:main"
 
 [dependency-groups]
 dev = [
-    "machine68k",
     "mypy>=1.18",
     "pytest>=8",
     "ruff>=0.11",
@@ -85,6 +90,3 @@ include = ["amiga_reversing*"]
 
 [tool.setuptools.package-data]
 "amiga_reversing.web" = ["*.html", "*.css", "*.js"]
-
-[tool.uv.sources]
-machine68k = { path = "resources/machine68k/dist/machine68k-0.4.2.dev0+g61600df53.d20260308-cp314-cp314-win_amd64.whl" }

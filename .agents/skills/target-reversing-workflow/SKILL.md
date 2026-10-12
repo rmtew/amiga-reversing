@@ -10,6 +10,16 @@ when code and data are accounted for by durable analysis facts, the rendered
 source is human-readable where evidence permits, and it reassembles to the
 original binary exactly. Relocatable or re-entrant output is a later pass.
 
+## Shared restoration interface
+
+Use `docs/restoration-interfaces.md` for the current UI/CLI/MCP operations.
+Prefer compact native symbol/function/reference/field queries over whole
+navigation payloads. Carry the inspected revision through mutation; a stale
+refusal requires reinspection, not automatic retry. Record interpretation
+evidence through catalog actions, then verify the generated source and review
+using the existing Decision Journal. Historical annotations remain preserved;
+legacy/unassessed is not a claim that they are wrong. Undo/redo appends history.
+
 ## Start and preserve state
 
 1. Read `AGENTS.md`, `docs/agents/reversing-loop.md`, and the relevant parts

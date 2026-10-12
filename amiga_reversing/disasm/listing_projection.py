@@ -84,6 +84,15 @@ class ListingProjectionService:
             "row_index_projects": sorted(self._row_indexes),
         }
 
+    def invalidate_all_lazy(self) -> None:
+        """Invalidate globally without closing artifacts leased by other targets.
+
+        Each target's next access closes/rebuilds under its normal target lease.
+        """
+        for project_id in self._cache_keys:
+            self._cache_keys[project_id] = "invalidated"
+        self._presentation_dirty.clear()
+
     def reset(self) -> None:
         for artifact in self._artifacts.values():
             _close_artifact(artifact)

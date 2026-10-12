@@ -149,3 +149,7 @@ continues on loopback port 8123; it is not publicly hosted or forwarded.
 Queue-processing reachability remains a separate investigation; no queue
 correction is included in the renderer fix. Original-loader comparison is outside
 the current scope. Windows execution of the replacement has not been tested here.
+
+The [shared restoration validation](validation/restoration-framework-2026-10-12.md)
+now also proves full-target C and vasm exactness after a real evidence-bearing
+Pandora source change, with rebuilt-file gameplay checkpoints and review receipts.

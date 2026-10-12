@@ -1,0 +1,380 @@
+"""Operation contracts with real action/decision histories and a bounded fact provider."""
+
+from __future__ import annotations
+
+import base64
+import json
+from types import SimpleNamespace
+
+import pytest
+
+from amiga_reversing.disasm import restoration
+from amiga_reversing.disasm.binary_source import resolve_target_binary_source
+from amiga_reversing.disasm.decision_journal import (
+    project_decision_journal,
+    read_decision_journal,
+)
+from amiga_reversing.disasm.manual_actions import (
+    ManualActionKind,
+    append_manual_action,
+    load_manual_projection,
+)
+
+
+@pytest.fixture
+def target(tmp_path, monkeypatch):
+    directory = tmp_path / "target"
+    directory.mkdir()
+    binary = directory / "binary.bin"
+    binary.write_bytes(bytes.fromhex("4e714e75"))
+    (directory / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": str(binary),
+                "load_address": 0,
+                "entrypoint": 0,
+                "code_start_offset": 0,
+            }
+        )
+    )
+    source = resolve_target_binary_source(directory, project_root=tmp_path)
+    paths = SimpleNamespace(target_dir=directory, binary_source=source)
+    calls = []
+
+    class Artifact:
+        def query_payload(self, **query):
+            calls.append(query)
+            values = [
+                {"name": name, "section_index": 0, "source_offset": i * 2}
+                for i, name in enumerate(("start", "return"))
+            ]
+            offset, limit = query["offset"], query["limit"]
+            return {
+                "items": values[offset : offset + limit],
+                "offset": offset,
+                "limit": limit,
+                "total": len(values),
+                "has_more": offset + limit < len(values),
+                "provenance": "native_test_facts",
+                "unknowns": [],
+            }
+
+        def row_for_source_offset(self, *, section_index, offset):
+            return (
+                {"stable_key": "s0:00000000:instruction"}
+                if (section_index, offset) == (0, 0)
+                else None
+            )
+
+    artifact = Artifact()
+    backend = SimpleNamespace(
+        PROJECT_ROOT=tmp_path,
+        resolve_project_paths=lambda *a, **k: paths,
+        _project_listing_cache_key=lambda _: "native-revision-1",
+        _LISTING_PROJECTION_SERVICE=SimpleNamespace(valid_artifact=lambda *a: artifact),
+        _clear_project_listing_cache=lambda *a, **k: None,
+    )
+    monkeypatch.setattr(restoration, "_server", lambda: backend)
+
+    def add(*, interpretation=False, name="start"):
+        payload = {
+            "label": {
+                "label_id": name,
+                "name": name,
+                "hunk": 0,
+                "addr": 0,
+                "scope": "global",
+            }
+        }
+        if interpretation:
+            payload["interpretation"] = {
+                "source_evidence_status": "hypothesis",
+                "reason": "Native entry fact",
+                "evidence_refs": ["s0:00000000:instruction"],
+            }
+        return append_manual_action(
+            directory,
+            kind=ManualActionKind.CREATE_MANUAL_LABEL,
+            payload=payload,
+            binary_source=source,
+        )
+
+    return SimpleNamespace(
+        directory=directory, source=source, backend=backend, add=add, calls=calls
+    )
+
+
+def invoke(operation, **body):
+    return restoration.execute("test", {"operation": operation, **body})
+
+
+def current():
+    return invoke("state")["revision"]
+
+
+def test_reads_preserve_legacy_annotations_and_unknown_fields(target):
+    target.add()
+    path = target.directory / "manual_actions.jsonl"
+    records = [json.loads(line) for line in path.read_text().splitlines()]
+    records[1]["future_annotation"] = {"user": "keep exactly"}
+    raw = ("\n".join(json.dumps(r, indent=None) for r in records) + "\n").encode()
+    path.write_bytes(raw)
+    state = invoke("state")
+    page = invoke("query", kind="symbols", expected_revision=state["revision"], limit=1)
+    history = invoke("history")
+    assert page["items"][0]["name"] == "start"
+    assert history["items"][0]["status"] == "unassessed"
+    assert path.read_bytes() == raw
+    assert state["history_summary"]["unassessed"] == 1
+
+
+def test_stale_revision_blocks_reads_and_writes_without_changes(target):
+    old = current()
+    target.add()
+    raw = (target.directory / "manual_actions.jsonl").read_bytes()
+    for operation in ("query", "interpret", "rollback", "review"):
+        with pytest.raises(ValueError, match="stale_revision"):
+            invoke(operation, expected_revision=old, kind="symbols")
+    assert (target.directory / "manual_actions.jsonl").read_bytes() == raw
+
+
+def test_cursor_pages_are_bound_to_filters_and_revision(target):
+    first = invoke("query", kind="symbols", limit=1)
+    second = invoke("query", kind="symbols", limit=1, cursor=first["next_cursor"])
+    assert second["items"][0]["name"] == "return"
+    assert second["next_cursor"] is None
+    with pytest.raises(ValueError, match="stale_cursor"):
+        invoke("query", kind="references", limit=1, cursor=first["next_cursor"])
+    target.add()
+    with pytest.raises(ValueError, match="stale_cursor"):
+        invoke("query", kind="symbols", limit=1, cursor=first["next_cursor"])
+    assert len(target.calls) == 2
+
+
+@pytest.mark.parametrize("limit", [0, -1, 101, True, "5", 1.5])
+def test_limits_reject_before_native_query(target, limit):
+    with pytest.raises(ValueError, match="limit"):
+        invoke("query", kind="symbols", limit=limit)
+    assert target.calls == []
+
+
+@pytest.mark.parametrize(
+    "cursor",
+    [
+        "!",
+        "not-base64",
+        base64.urlsafe_b64encode(b"[]").decode(),
+        base64.urlsafe_b64encode(b"null").decode(),
+        123,
+    ],
+)
+def test_malformed_cursor_is_a_domain_error(target, cursor):
+    with pytest.raises(ValueError, match="cursor"):
+        invoke("query", kind="symbols", cursor=cursor)
+    assert target.calls == []
+
+
+def test_review_requires_current_exact_verification_receipt(target, monkeypatch):
+    from amiga_reversing.disasm import restoration_verification
+
+    action = target.add(interpretation=True)
+    subject = invoke("state")["subject_revision"]
+    for receipt in (
+        {"kind": "verification", "subject_revision": "old", "exact": True},
+        {"kind": "verification", "subject_revision": subject, "exact": False},
+        {"kind": "probe", "subject_revision": subject, "exact": True},
+    ):
+        monkeypatch.setattr(
+            restoration_verification, "load_receipt", lambda *_, r=receipt: r
+        )
+        with pytest.raises(ValueError, match="verification|rebuild"):
+            invoke(
+                "review",
+                expected_revision=current(),
+                action_id=action["action_id"],
+                decision="accept",
+                reason="Encoding verified",
+                verification_id="receipt",
+            )
+    assert not (target.directory / "decision_journal.jsonl").exists()
+
+
+def test_review_supersession_and_undo_redo_preserve_canonical_history(
+    target, monkeypatch
+):
+    from amiga_reversing.disasm import restoration_verification
+
+    action = target.add(interpretation=True)
+    subject = invoke("state")["subject_revision"]
+    monkeypatch.setattr(
+        restoration_verification,
+        "load_receipt",
+        lambda *_: {"kind": "verification", "subject_revision": subject, "exact": True},
+    )
+    invoke(
+        "review",
+        expected_revision=current(),
+        action_id=action["action_id"],
+        decision="accept",
+        reason="Entry supported and exact",
+        verification_id="receipt",
+    )
+    assert invoke("history")["items"][0]["status"] == "accepted"
+    invoke(
+        "review",
+        expected_revision=current(),
+        action_id=action["action_id"],
+        decision="defer",
+        reason="More evidence needed",
+    )
+    assert invoke("history")["items"][0]["status"] == "deferred"
+    journal = read_decision_journal(target.directory)
+    canonical = project_decision_journal(journal["records"])
+    assert journal["valid"] is True
+    assert canonical["accepted_facts"] == []
+    assert len(canonical["deferred_facts"]) == 1
+    assert any(r["action"] == "supersede_decision" for r in journal["records"])
+
+    invoke("rollback", expected_revision=current(), action_id=action["action_id"])
+    assert (
+        load_manual_projection(target.directory, binary_source=target.source).labels
+        == ()
+    )
+    original = next(
+        i for i in invoke("history")["items"] if i["action_id"] == action["action_id"]
+    )
+    assert original["active"] is False
+    invoke(
+        "rollback",
+        expected_revision=current(),
+        action_id=action["action_id"],
+        redo=True,
+    )
+    assert (
+        load_manual_projection(target.directory, binary_source=target.source).labels[0][
+            "name"
+        ]
+        == "start"
+    )
+    original = next(
+        i for i in invoke("history")["items"] if i["action_id"] == action["action_id"]
+    )
+    assert original["active"] is True
+    assert original["status"] == "deferred"
+    assert original["verification_current"] is False
+
+
+def test_interpretation_uses_catalog_payload_and_retains_evidence(target):
+    from amiga_reversing.disasm.manual_action_catalog import (
+        listing_catalog_manual_payload,
+    )
+
+    def execute_command(_target, body):
+        # Exercise the real command-to-action conversion and durable action path;
+        # the test provider substitutes only HTTP/listing context resolution.
+        row = {
+            "kind": "label",
+            "row_index": 0,
+            "section_index": 0,
+            "start_offset": 0,
+            "end_offset": 0,
+            "addr": 0,
+            "label": "loc_0_00000000",
+            "stable_key": "s0:00000000:label",
+        }
+        kind, payload = listing_catalog_manual_payload(
+            row,
+            "label.rename",
+            element_context={
+                "kind": "element",
+                "element_kind": "label",
+                "symbol": "loc_0_00000000",
+            },
+            parameters=body["parameters"],
+        )
+        action = append_manual_action(
+            target.directory,
+            kind=ManualActionKind(kind),
+            payload={**payload, "interpretation": body["interpretation"]},
+            binary_source=target.source,
+        )
+        return {"action": action}
+
+    target.backend._execute_command_unchecked = execute_command
+    result = invoke(
+        "interpret",
+        expected_revision=current(),
+        command_id="label.rename",
+        parameters={"name": "entry"},
+        evidence={
+            "reason": "Section entry supported by native analysis",
+            "confidence": "high",
+            "evidence_refs": ["s0:00000000:instruction"],
+        },
+    )
+    assert result["action"]["label"]["name"] == "entry"
+    history = invoke("history")["items"][0]
+    assert history["status"] == "hypothesis"
+    assert history["interpretation"]["confidence"] == "high"
+    assert (
+        load_manual_projection(target.directory, binary_source=target.source).labels[0][
+            "name"
+        ]
+        == "entry"
+    )
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        {"reason": "Guess", "evidence_refs": []},
+        {"reason": "Guess", "evidence_refs": ["s0:00000004:instruction"]},
+        {"reason": "Guess", "evidence_refs": ["s0:00000000:label"]},
+    ],
+)
+def test_interpretation_rejects_missing_or_noncanonical_evidence(target, evidence):
+    with pytest.raises(ValueError, match="evidence"):
+        invoke("interpret", expected_revision=current(), evidence=evidence)
+    assert not (target.directory / "manual_actions.jsonl").exists()
+
+
+def test_single_oversized_history_record_has_explicit_bounded_preview(target):
+    target.add(interpretation=True)
+    path = target.directory / "manual_actions.jsonl"
+    records = [json.loads(line) for line in path.read_text().splitlines()]
+    records[1]["interpretation"]["future_evidence"] = {
+        f"key_{index}": "x" * 1024 for index in range(100)
+    }
+    raw = ("\n".join(json.dumps(record) for record in records) + "\n").encode()
+    path.write_bytes(raw)
+    result = invoke("history", limit=1)
+    assert len(json.dumps(result).encode()) <= result["response_byte_budget"]
+    assert result["items"][0]["preview_truncated"] is True
+    assert result["items"][0]["action_id"] == records[1]["action_id"]
+    assert result["truncated_fields"]
+    assert result["has_more"] is False
+    assert result["next_cursor"] is None
+    assert path.read_bytes() == raw
+
+
+def test_negative_structure_field_offset_reaches_native_query(target):
+    result = invoke("query", kind="fields", field_offset=-4, limit=1)
+    assert target.calls[-1]["field_offset"] == -4
+    assert result["items"]
+    with pytest.raises(ValueError, match="signed 32-bit"):
+        invoke("query", kind="fields", field_offset=-(2**31) - 1)
+
+
+def test_truncation_diagnostics_fit_page_budget():
+    value = {f"{index}" + "x" * 128: "v" * 2000 for index in range(32)}
+    for _ in range(6):
+        value = {"k" * 128: value}
+    result = restoration._envelope(
+        restoration._page([value] * 5, 0, 30),
+        {"revision": "r", "subject_revision": "s"},
+        {},
+    )
+    assert result["truncated_fields"]
+    assert len(json.dumps(result).encode()) <= result["response_byte_budget"]

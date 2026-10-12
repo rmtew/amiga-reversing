@@ -67,7 +67,9 @@ def main(argv: list[str] | None = None) -> int:
         parameters = _parse_params(args.param)
         if _context_requires_listing(args.context):
             _open_and_wait_for_listing(args.project, args.listing_timeout_seconds)
+        catalog = _catalog(args)
         body = {
+            "expected_revision": catalog["revision"],
             "command_id": args.action_id,
             "context": _context_body(args),
             "parameters": parameters,
@@ -84,11 +86,14 @@ def main(argv: list[str] | None = None) -> int:
         actions = _parse_batch_actions(args.action)
         results: list[object] = []
         for action in actions:
+            catalog = server.route_request(
+                "GET", f"/api/projects/{args.project}/commands", {"context": ["target"]},
+            )["data"]
             payload = server.route_request(
                 "POST",
                 f"/api/projects/{args.project}/commands/execute",
                 {},
-                {"command_id": action["command_id"], "context": {"kind": "target"}, "parameters": action["parameters"]},
+                {"expected_revision": catalog["revision"], "command_id": action["command_id"], "context": {"kind": "target"}, "parameters": action["parameters"]},
             )
             results.append(payload["data"])
         _print_json({"actions": results})

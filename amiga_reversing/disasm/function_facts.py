@@ -171,3 +171,116 @@ def canonical_function_facts(target_id: str, analysis: Mapping[str, object], run
             "evidence": {"entry": "manual_label", "ownership": "accepted_cfg_flow"},
         })
     return {"runtime_view": dict(runtime_view), "functions": facts}
+
+
+_ENTRY_REASONS = frozenset({
+    "section_entry", "policy_entry_offset", "policy_entry_point",
+    "runtime_view_entry", "linkage_api_entry", "platform_loadseg_entry",
+    "boundary_api_entry",
+})
+_EDGE_NAMES = {1: "fallthrough", 2: "branch", 3: "call", 4: "jump", 5: "return"}
+
+
+def analysis_function_facts(target_id: str, analysis: Mapping[str, object]) -> dict[str, object]:
+    """Project exploratory function candidates from native entry and CFG facts.
+
+    Names (including accepted manual names) come from native symbol origins;
+    names never establish entry points. Ranges are reachable accepted blocks,
+    not claimed exact function extents. This deliberately does not relax the
+    stricter runtime ownership contract of ``canonical_function_facts``.
+    """
+    facts: list[dict[str, object]] = []
+    limits = ["native_cfg_is_section_local", "indirect_targets_may_be_incomplete",
+              "candidate_ranges_are_not_proven_function_boundaries"]
+    for section in analysis.get("sections", []):
+        section_index = section["section_index"]
+        blocks = section.get("blocks", [])
+        edges = section.get("edges", [])
+        by_start = {block["start_offset"]: index for index, block in enumerate(blocks)}
+        if len(by_start) != len(blocks) or any(b["end_offset"] <= b["start_offset"] for b in blocks):
+            raise ValueError("Canonical CFG contains invalid or duplicate basic blocks.")
+        seeds: dict[int, list[dict[str, object]]] = defaultdict(list)
+        outgoing: dict[int, list[Mapping[str, object]]] = defaultdict(list)
+        calls_to: dict[int, list[Mapping[str, object]]] = defaultdict(list)
+        names: dict[int, list[dict[str, object]]] = defaultdict(list)
+        for origin in section.get("symbol_origins", []):
+            names[origin["offset"]].append(dict(origin))
+        for ref in section.get("code_start_refs", []):
+            if ref.get("reason_name") in _ENTRY_REASONS:
+                seeds[ref["offset"]].append(dict(ref))
+        for edge in edges:
+            outgoing[edge["source_block_index"]].append(edge)
+            target = edge.get("target_offset")
+            if edge.get("kind") == 3 and isinstance(target, int) and 0 <= target < 0xFFFFFFFF:
+                seeds[target].append({"reason_name": "native_call_target", "source_offset": edge["source_offset"]})
+                calls_to[target].append(edge)
+        ownership: dict[int, set[int]] = {}
+        for entry in sorted(seeds):
+            owned: set[int] = set()
+            pending = deque([by_start[entry]]) if entry in by_start else deque()
+            while pending:
+                index = pending.popleft()
+                if index in owned:
+                    continue
+                owned.add(index)
+                for edge in outgoing[index]:
+                    target = edge.get("target_block_index")
+                    if edge.get("kind") not in _FLOW_EDGE_KINDS or not isinstance(target, int) or not 0 <= target < len(blocks):
+                        continue
+                    target_start = blocks[target]["start_offset"]
+                    if target_start == entry or target_start not in seeds:
+                        pending.append(target)
+            ownership[entry] = owned
+        owners: dict[int, list[int]] = defaultdict(list)
+        for entry, owned in ownership.items():
+            for index in owned:
+                owners[index].append(entry)
+
+        def transfer(edge: Mapping[str, object], section_index: int = section_index,
+                     owners: Mapping[int, list[int]] = owners) -> dict[str, object]:
+            target = edge.get("target_offset")
+            resolved = isinstance(target, int) and 0 <= target < 0xFFFFFFFF
+            return {"section_index": section_index, "source_offset": edge["source_offset"],
+                    "target_section_index": section_index if resolved else None,
+                    "target_offset": target if resolved else None,
+                    "kind": _EDGE_NAMES.get(edge.get("kind"), "unknown"),
+                    "status": "resolved" if resolved else "dynamic_return" if edge.get("kind") == 5 else "unresolved",
+                    "source_entries": sorted(owners.get(edge["source_block_index"], [])),
+                    "provenance": "native_cfg"}
+
+        for entry, owned in ownership.items():
+            local_edges = [edge for index in sorted(owned) for edge in outgoing[index]]
+            unresolved = [transfer(e) for e in local_edges if e.get("kind") != 5 and
+                          (not isinstance(e.get("target_offset"), int) or not 0 <= e["target_offset"] < 0xFFFFFFFF)]
+            missing_blocks = any(
+                e.get("kind") in _FLOW_EDGE_KINDS and
+                (not isinstance(e.get("target_block_index"), int) or
+                 not 0 <= e["target_block_index"] < len(blocks))
+                for e in local_edges
+            )
+            shared = [index for index in sorted(owned) if len(owners[index]) > 1]
+            unknowns = list(limits)
+            if not owned:
+                unknowns.append("entry_not_accepted_block")
+            if shared:
+                unknowns.append("shared_cfg_blocks")
+            if unresolved:
+                unknowns.append("unresolved_control_transfers")
+            if missing_blocks:
+                unknowns.append("flow_target_not_accepted_block")
+            origin_names = names.get(entry, [])
+            aliases = sorted({str(n["symbol_name"]) for n in origin_names if n.get("symbol_name")})
+            facts.append({
+                "section_index": section_index, "source_offset": entry, "entry_offset": entry,
+                "name": aliases[0] if aliases else None, "names": aliases,
+                "name_evidence": origin_names, "entry_evidence": seeds[entry],
+                "status": "candidate", "ownership_status": "unavailable" if not owned else "ambiguous" if shared else "partial" if unresolved or missing_blocks else "cfg_supported",
+                "ranges": _ranges([blocks[i] for i in sorted(owned)]),
+                "owned_blocks": [{"start_offset": blocks[i]["start_offset"], "end_offset": blocks[i]["end_offset"],
+                                  "certainty": blocks[i].get("certainty")} for i in sorted(owned)],
+                "shared_block_starts": [blocks[i]["start_offset"] for i in shared],
+                "callers": [transfer(e) for e in calls_to[entry]],
+                "callees": [transfer(e) for e in local_edges if e.get("kind") == 3],
+                "unresolved_transfers": unresolved, "unknowns": unknowns, "provenance": "native_cfg_projection",
+            })
+    return {"target_id": target_id, "functions": sorted(facts, key=lambda f: (f["section_index"], f["entry_offset"])), "unknowns": limits}

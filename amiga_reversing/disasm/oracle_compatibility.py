@@ -70,7 +70,11 @@ def oracle_compatibility_reports_for_options(
     return reports
 
 
-def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
+def run_vasm_oracle(
+    target_name: str, *, project_root: Path = PROJECT_ROOT,
+    pre_rendered_source_text: str | None = None,
+    pre_rendered_source_profile: Mapping[str, object] | None = None,
+) -> dict[str, object]:
     capability, workflow_profile = _resolve_capability_with_workflow(
         target_name,
         "assemble_vasm_source",
@@ -115,12 +119,13 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
     try:
         source_path = temp_root / f"{target_name}.s"
         output_path = temp_root / Path(binary_source.display_path).name
-        rendered_source, source_profile_payload = _render_vasm_source(
-            target_name,
-            binary_source,
-            paths.target_dir,
-            project_root,
-        )
+        if pre_rendered_source_text is None:
+            rendered_source, source_profile_payload = _render_vasm_source(
+                target_name, binary_source, paths.target_dir, project_root,
+            )
+        else:
+            rendered_source = pre_rendered_source_text
+            source_profile_payload = dict(pre_rendered_source_profile or {})
         _write_source_text(source_path, rendered_source, "vasm")
         command = [
             vasm_path,

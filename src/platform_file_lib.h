@@ -170,6 +170,11 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_allo
     char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListingArtifact *artifact,
+    const char *kind, const char *query, int has_section, uint32_t section_index,
+    int has_start, uint32_t start, int has_end, uint32_t end, const char *symbol,
+    const char *struct_name, int has_field, int32_t field_offset, const char *direction,
+    uint32_t offset, uint32_t limit, char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
 PLATFORM_FILE_API PlatformCorpusProjectionReducer *platform_corpus_projection_reducer_create(void);
 PLATFORM_FILE_API void platform_corpus_projection_reducer_destroy(PlatformCorpusProjectionReducer *reducer);

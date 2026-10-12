@@ -517,7 +517,7 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         source_parse_errorf(diagnostics, "bad include path at line %u", (unsigned)line_number);
         return 0;
       }
-      snprintf(full_path, sizeof(full_path), "%s\\%s", source->include_dir,
+      snprintf(full_path, sizeof(full_path), "%s/%s", source->include_dir,
                include_path);
       if (!m68k_source_include_process_file(&include_context, &include_state, full_path, diagnostics)) {
         source_line_reader_close(reader);
