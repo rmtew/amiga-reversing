@@ -478,8 +478,8 @@ int m68k_assemble_platform_source_text_to_output_buffer_alloc(const char *backen
     output_path, 0, target_cpu, out_data, out_size, out_profile, diagnostics);
 }
 
-int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_name, const char *include_dir,
-    const char *source_text, const char *output_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+static int assemble_platform_source_to_raw_buffer_alloc_impl(const char *backend_name, const char *include_dir,
+    const char *input_path, const char *source_text, const char *output_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
     M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
   M68kPlatformAssembleProfile profile;
   M68kPlatformBackendKind platform_backend_kind;
@@ -489,14 +489,16 @@ int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_n
   clock_t phase_start;
   memset(&profile, 0, sizeof(profile));
   memset(&object, 0, sizeof(object));
-  if (out_data == NULL || out_size == NULL || source_text == NULL) {
+  if (out_data == NULL || out_size == NULL || (input_path == NULL && source_text == NULL)) {
     assembler_add_error(diagnostics, "bad arguments");
     return -1;
   }
   *out_data = NULL;
   *out_size = 0U;
   total_start = clock();
-  profile.source_bytes = strlen(source_text) > 0xFFFFFFFFUL ? 0xFFFFFFFFU : (uint32_t)strlen(source_text);
+  profile.source_bytes = source_text != NULL
+    ? (uint32_t)((strlen(source_text) > 0xFFFFFFFFUL) ? 0xFFFFFFFFUL : strlen(source_text))
+    : file_size_u32(input_path);
   platform_backend_kind = raw_platform_backend_kind_for_name(backend_name);
   if (platform_backend_kind == M68K_PLATFORM_BACKEND_UNKNOWN) {
     assembler_add_error(diagnostics, "raw backend unavailable");
@@ -506,8 +508,8 @@ int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_n
     }
     return -1;
   }
-  if (!assemble_platform_source_text_to_object(source_text, include_dir != NULL ? include_dir : "", target_cpu,
-      platform_backend_kind, &object, &profile, diagnostics)) {
+  if (!assemble_platform_source_to_object_common(input_path, source_text,
+      include_dir != NULL ? include_dir : "", target_cpu, platform_backend_kind, &object, &profile, diagnostics)) {
     if (out_profile != NULL) {
       profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
       *out_profile = profile;
@@ -572,6 +574,20 @@ int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_n
   profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
   if (out_profile != NULL) *out_profile = profile;
   return 0;
+}
+
+int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_name, const char *include_dir,
+    const char *source_text, const char *output_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
+  return assemble_platform_source_to_raw_buffer_alloc_impl(backend_name, include_dir, NULL, source_text,
+    output_path, target_cpu, out_data, out_size, out_profile, diagnostics);
+}
+
+int m68k_assemble_platform_source_path_to_raw_buffer_alloc(const char *backend_name, const char *include_dir,
+    const char *input_path, const char *output_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
+  return assemble_platform_source_to_raw_buffer_alloc_impl(backend_name, include_dir, input_path, NULL,
+    output_path, target_cpu, out_data, out_size, out_profile, diagnostics);
 }
 
 int m68k_render_source_file_to_stdout(const char *input_path, const char *include_dir, uint8_t target_cpu,

@@ -8,7 +8,7 @@ import time
 from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import (
@@ -27,6 +27,7 @@ from amiga_reversing.disasm.c_backend import (
 from amiga_reversing.disasm.cli import gen_disasm
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.source_package import materialize_source_package
 from amiga_reversing.disasm.source_rendering import (
     render_source_from_binary_source_or_raise,
 )
@@ -57,6 +58,7 @@ def oracle_compatibility_reports_for_options(
     options: Mapping[str, object],
     *,
     project_root: Path = PROJECT_ROOT,
+    source_package: dict[str, Any] | None = None,
 ) -> list[dict[str, object]]:
     oracle_modes = options.get("oracle_modes")
     if not isinstance(oracle_modes, list):
@@ -64,9 +66,21 @@ def oracle_compatibility_reports_for_options(
     reports: list[dict[str, object]] = []
     for mode in dict.fromkeys(item for item in oracle_modes if isinstance(item, str)):
         if mode == "vasm":
-            reports.append(run_vasm_oracle(target_name, project_root=project_root))
+            if source_package is None:
+                reports.append(run_vasm_oracle(target_name, project_root=project_root))
+            else:
+                reports.append(run_vasm_oracle(
+                    target_name, project_root=project_root, pre_rendered_source_package=source_package,
+                ))
         elif mode == "devpac":
-            reports.append(run_genam_oracle(target_name, project_root=project_root))
+            if source_package is not None:
+                reports.append(_base_report(
+                    oracle_id="genam-devpac", source_profile="devpac", tool_chain=["vamos", "genam"],
+                    availability=[], comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
+                    assembler_status="not_run", message="DevPac binary source packages are not supported",
+                ))
+            else:
+                reports.append(run_genam_oracle(target_name, project_root=project_root))
     return reports
 
 
@@ -74,6 +88,7 @@ def run_vasm_oracle(
     target_name: str, *, project_root: Path = PROJECT_ROOT,
     pre_rendered_source_text: str | None = None,
     pre_rendered_source_profile: Mapping[str, object] | None = None,
+    pre_rendered_source_package: dict[str, Any] | None = None,
 ) -> dict[str, object]:
     capability, workflow_profile = _resolve_capability_with_workflow(
         target_name,
@@ -118,15 +133,22 @@ def run_vasm_oracle(
     invocation_started_at = time.perf_counter()
     try:
         source_path = temp_root / f"{target_name}.s"
-        output_path = temp_root / Path(binary_source.display_path).name
-        if pre_rendered_source_text is None:
+        output_path = temp_root / "rebuilt.bin"
+        if pre_rendered_source_package is not None:
+            source_path = materialize_source_package(pre_rendered_source_package, temp_root / "package")
+            rendered_source = source_path.read_bytes().decode("utf-8")
+            if pre_rendered_source_text is not None and rendered_source != pre_rendered_source_text:
+                raise ValueError("Source text differs from source package entry point")
+            source_profile_payload = dict(pre_rendered_source_profile or {})
+        elif pre_rendered_source_text is None:
             rendered_source, source_profile_payload = _render_vasm_source(
                 target_name, binary_source, paths.target_dir, project_root,
             )
         else:
             rendered_source = pre_rendered_source_text
             source_profile_payload = dict(pre_rendered_source_profile or {})
-        _write_source_text(source_path, rendered_source, "vasm")
+        if pre_rendered_source_package is None:
+            _write_source_text(source_path, rendered_source, "vasm")
         command = [
             vasm_path,
             output_format,
@@ -134,12 +156,12 @@ def run_vasm_oracle(
             "-no-opt",
             "-quiet",
             "-nosym",
-            *_vasm_include_args(project_root),
+            *(_vasm_include_args(project_root) if pre_rendered_source_package is None else []),
             "-o",
             str(output_path),
             str(source_path),
         ]
-        completed = _run_command(command, cwd=project_root)
+        completed = _run_command(command, cwd=source_path.parent)
         report = _report_from_command(
             oracle_id="vasm",
             source_profile="vasm",
@@ -155,6 +177,8 @@ def run_vasm_oracle(
             project_root=project_root,
             target_dir=paths.target_dir,
         )
+        if pre_rendered_source_package is not None:
+            report["source_package_sha256"] = pre_rendered_source_package["sha256"]
     except Exception as exc:
         report = _tool_error_report("vasm", "vasm", tool_chain, availability, str(exc))
     finally:

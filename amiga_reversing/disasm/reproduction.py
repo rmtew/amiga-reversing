@@ -4,12 +4,13 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
@@ -21,6 +22,7 @@ from amiga_reversing.disasm.binary_source import (
 from amiga_reversing.disasm.c_backend import (
     FactsV2DirectRebuildRefused,
     FactsV2ProfiledOperationFailed,
+    assemble_platform_source_path_with_c_backend,
     assemble_platform_source_text_with_c_backend,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
     reproduction_compare_rebuilt_bytes_with_c_backend_profile,
@@ -55,6 +57,10 @@ from amiga_reversing.disasm.reproduction_report import (
 )
 from amiga_reversing.disasm.reproduction_report import (
     issue as make_issue,
+)
+from amiga_reversing.disasm.source_package import (
+    materialize_source_package,
+    validate_source_package,
 )
 from amiga_reversing.disasm.source_rendering import (
     render_source_from_binary_source_or_raise,
@@ -361,7 +367,20 @@ def run_source_assembly_phase(
     output_path: Path | None = None,
     target_cpu: str,
     project_root: Path,
+    source_package: dict[str, Any] | None = None,
 ) -> SourceAssemblyPhaseResult:
+    if source_package is not None:
+        files = validate_source_package(source_package)
+        if files[source_package["manifest"]["source"]] != source_text.encode("utf-8"):
+            raise ValueError("Source text differs from source package entry point")
+        with tempfile.TemporaryDirectory(prefix="reproduction_package_") as directory:
+            source_path = materialize_source_package(source_package, Path(directory))
+            rebuilt_bytes, assembler_profile = assemble_platform_source_path_with_c_backend(
+                backend, source_path,
+                include_dir=source_path.parent,
+                output_path=output_path, target_cpu=target_cpu, project_root=project_root,
+            )
+        return SourceAssemblyPhaseResult(rebuilt_bytes, assembler_profile)
     rebuilt_bytes, assembler_profile = assemble_platform_source_text_with_c_backend(
         backend,
         source_text,
@@ -384,6 +403,7 @@ class RoundTripVerificationWorkflow:
         profile: bool = False,
         pre_rendered_source_text: str | None = None,
         pre_rendered_source_profile: Mapping[str, object] | None = None,
+        pre_rendered_source_package: dict[str, Any] | None = None,
         row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
         source_assembly_debug: bool = False,
         persist_report: bool = True,
@@ -439,10 +459,19 @@ class RoundTripVerificationWorkflow:
             paths = resolve_project_paths(target_name, project_root=project_root)
             target_dir = paths.target_dir
             input_stamp = reproduction_input_stamp(target_name, project_root=project_root, assembler=assembler)
-            workflow_profile.input_stamp = dict(input_stamp)
             backend = cast(str, input_stamp["backend"])
             assembler = cast(str, input_stamp["assembler"])
             assembler_cpu = cast(str, input_stamp["assembler_cpu"])
+            if pre_rendered_source_package is not None:
+                package_files = validate_source_package(pre_rendered_source_package)
+                package_source = package_files[pre_rendered_source_package["manifest"]["source"]].decode("utf-8")
+                if source_text is not None and source_text != package_source:
+                    raise ValueError("Source text differs from source package entry point")
+                source_text = package_source
+                input_stamp["source_package_sha256"] = pre_rendered_source_package["sha256"]
+                package_directory = out_dir / "source-packages" / pre_rendered_source_package["sha256"]
+                source_path = _persist_source_package(pre_rendered_source_package, package_directory)
+            workflow_profile.input_stamp = dict(input_stamp)
             report_builder = RoundTripReportBuilder(
                 ReportContext(
                     target_name=target_name,
@@ -468,6 +497,7 @@ class RoundTripVerificationWorkflow:
                     report,
                     project_root=project_root,
                     persist_report=persist_report,
+                    source_package=pre_rendered_source_package,
                 )
             use_facts_v2_native_reproduction = source_text is None
             use_facts_v2_direct_rebuild = (
@@ -638,6 +668,7 @@ class RoundTripVerificationWorkflow:
                                 report,
                                 project_root=project_root,
                                 persist_report=persist_report,
+                                source_package=pre_rendered_source_package,
                             )
                     except FactsV2SourceRefused as exc:
                         message = str(exc)
@@ -664,6 +695,7 @@ class RoundTripVerificationWorkflow:
                             report,
                             project_root=project_root,
                             persist_report=persist_report,
+                            source_package=pre_rendered_source_package,
                         )
                     except FactsV2DirectRebuildRefused as exc:
                         listing_profile = exc.source_profile
@@ -700,6 +732,7 @@ class RoundTripVerificationWorkflow:
                                 report,
                                 project_root=project_root,
                                 persist_report=persist_report,
+                                source_package=pre_rendered_source_package,
                             )
                         report = report_builder.error(
                             status=ReproductionReportStatus.TOOL_ERROR,
@@ -715,6 +748,7 @@ class RoundTripVerificationWorkflow:
                             report,
                             project_root=project_root,
                             persist_report=persist_report,
+                            source_package=pre_rendered_source_package,
                         )
                     except FactsV2ProfiledOperationFailed as exc:
                         listing_profile = exc.source_profile
@@ -742,6 +776,7 @@ class RoundTripVerificationWorkflow:
                             report,
                             project_root=project_root,
                             persist_report=persist_report,
+                            source_package=pre_rendered_source_package,
                         )
             if use_listing_source_assembly and rebuilt_bytes is None:
                 phase = "render_source"
@@ -785,6 +820,7 @@ class RoundTripVerificationWorkflow:
                             report,
                             project_root=project_root,
                             persist_report=persist_report,
+                            source_package=pre_rendered_source_package,
                         )
                     _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
                     round_trip_profile["render_seconds"] = _profile_timing_total(listing_profile)
@@ -834,6 +870,7 @@ class RoundTripVerificationWorkflow:
                             report,
                             project_root=project_root,
                             persist_report=persist_report,
+                            source_package=pre_rendered_source_package,
                         )
                 _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
                 round_trip_profile["assemble_seconds"] = _flat_profile_total(assembler_profile)
@@ -883,6 +920,7 @@ class RoundTripVerificationWorkflow:
                         output_path=rebuilt_path,
                         target_cpu=assembler_cpu,
                         project_root=project_root,
+                        source_package=pre_rendered_source_package,
                     )
                     rebuilt_bytes = assembly.rebuilt_bytes
                     assembler_profile = assembly.assembler_profile
@@ -905,6 +943,7 @@ class RoundTripVerificationWorkflow:
                         report,
                         project_root=project_root,
                         persist_report=persist_report,
+                        source_package=pre_rendered_source_package,
                     )
                 _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
             diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr)
@@ -1123,6 +1162,7 @@ class RoundTripVerificationWorkflow:
                 report,
                 project_root=project_root,
                 persist_report=persist_report,
+                source_package=pre_rendered_source_package,
             )
         except Exception as exc:
             if target_dir is None:
@@ -1166,6 +1206,7 @@ class RoundTripVerificationWorkflow:
                 report,
                 project_root=project_root,
                 persist_report=persist_report,
+                source_package=pre_rendered_source_package,
             )
 
 
@@ -1178,6 +1219,7 @@ def run_reproduction(
     profile: bool = False,
     pre_rendered_source_text: str | None = None,
     pre_rendered_source_profile: Mapping[str, object] | None = None,
+    pre_rendered_source_package: dict[str, Any] | None = None,
     row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
     source_assembly_debug: bool = False,
     persist_report: bool = True,
@@ -1190,6 +1232,7 @@ def run_reproduction(
         profile=profile,
         pre_rendered_source_text=pre_rendered_source_text,
         pre_rendered_source_profile=pre_rendered_source_profile,
+        pre_rendered_source_package=pre_rendered_source_package,
         row_for_section_offset=row_for_section_offset,
         source_assembly_debug=source_assembly_debug,
         persist_report=persist_report,
@@ -2023,8 +2066,11 @@ def _complete_reproduction_report(
     *,
     project_root: Path = PROJECT_ROOT,
     persist_report: bool,
+    source_package: dict[str, Any] | None = None,
 ) -> dict[str, object]:
-    report = _report_with_oracle_compatibility(report, project_root=project_root)
+    report = _report_with_oracle_compatibility(report, project_root=project_root, source_package=source_package)
+    if source_package is not None:
+        report["source_package_sha256"] = source_package.get("sha256")
     if not persist_report:
         return report
     return write_report(reproduction_report_path(target_dir), report)
@@ -2034,6 +2080,7 @@ def _report_with_oracle_compatibility(
     report: dict[str, object],
     *,
     project_root: Path = PROJECT_ROOT,
+    source_package: dict[str, Any] | None = None,
 ) -> dict[str, object]:
     input_stamp = report.get("input_stamp")
     if not isinstance(input_stamp, dict):
@@ -2049,8 +2096,29 @@ def _report_with_oracle_compatibility(
         str(report.get("target") or ""),
         options,
         project_root=project_root,
+        **({"source_package": source_package} if source_package is not None else {}),
     )
     return payload
+
+
+def _persist_source_package(package: dict[str, Any], directory: Path) -> Path:
+    """Retain immutable package evidence without overwriting user-modified files."""
+    files = validate_source_package(package)
+    if directory.is_symlink() or directory.parent.is_symlink():
+        raise ValueError("Package evidence directory must not be a symlink")
+    if not directory.exists():
+        return materialize_source_package(package, directory)
+    entries = list(directory.rglob("*"))
+    if any(path.is_symlink() for path in entries):
+        raise ValueError("Package evidence contains a symlink")
+    actual = {path.relative_to(directory).as_posix() for path in entries if path.is_file()}
+    if actual != {*files, "manifest.json"}:
+        raise ValueError("Existing package evidence inventory differs; refusing to overwrite")
+    if any((directory / path).read_bytes() != data for path, data in files.items()):
+        raise ValueError("Existing package evidence differs; refusing to overwrite")
+    if json.loads((directory / "manifest.json").read_bytes()) != package["manifest"]:
+        raise ValueError("Existing package manifest differs; refusing to overwrite")
+    return directory / str(package["manifest"]["source"])
 
 
 def _write_text_if_changed(path: Path, text: str) -> tuple[int, bool]:

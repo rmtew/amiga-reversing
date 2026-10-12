@@ -1774,7 +1774,7 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     assert export_action["category"] == "target_tooling"
     assert export_action["appends_to_manual_action_log"] is False
     assert export_action["action"] == "export_source"
-    assert export_action["parameter_schema"]["properties"]["assembler_profile"]["enum"] == ["vasm", "devpac"]
+    assert export_action["parameter_schema"]["properties"]["assembler_profile"]["enum"] == ["vasm", "devpac", "vasm-package"]
     equate_action = next(action for action in actions if action["action_id"] == "target.equate.add")
     assert equate_action["category"] == "target_metadata"
     assert equate_action["appends_to_manual_action_log"] is True

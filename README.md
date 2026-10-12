@@ -141,3 +141,5 @@ that exists but cannot currently be assembled, such as Mac OS `asm.s`.
 
 See [docs/reproduction.md](docs/reproduction.md) for the web UI binary
 reproduction workflow and assembler customization policy.
+
+Binary asset source packages: [usage, safety and verification](docs/binary-source-packages.md).

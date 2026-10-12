@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import ctypes
 import json
 import os
 import tempfile
 import time
 import zipfile
-import ctypes
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from ctypes import (
@@ -513,6 +513,24 @@ def listing_artifact_source_text_with_c_backend_profile(
         )
     try:
         return artifact.source_text_with_profile()
+    finally:
+        artifact.close()
+
+
+def listing_artifact_source_package_with_c_backend(
+    binary_source: BinarySource, *, minimum_asset_size: int = 256,
+    metadata_path: Path | None = None, project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        artifact = CListingArtifact.create(
+            source_file, metadata_text=_metadata_path_text(metadata_path),
+            include_dir=str(_platform_include_dir_for_listing(source_file.platform_name, project_root)),
+            project_root=project_root,
+        )
+    try:
+        payload = artifact.source_package_payload(minimum_asset_size)
+        payload["canonical_source_text"] = artifact.source_text_with_profile()[0]
+        return payload
     finally:
         artifact.close()
 
@@ -1675,6 +1693,10 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc.argtypes = [
+        c_void_p, c_uint32, POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_text_profile_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -2091,6 +2113,18 @@ class CListingArtifact:
         analysis = cast(dict[str, object], combined.get("analysis", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return analysis, profile
+
+    def source_package_payload(self, minimum_asset_size: int = 256) -> dict[str, object]:
+        if type(minimum_asset_size) is not int or not 1 <= minimum_asset_size <= 0xFFFFFFFF:
+            raise ValueError("minimum_asset_size must be 1..4294967295")
+        # Keep the exact same refusal gate as the canonical source export.
+        _, profile = self.source_text_with_profile()
+        if facts_v2_source_refused(profile):
+            raise FactsV2SourceRefused(profile)
+        return cast(dict[str, object], json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc,
+            minimum_asset_size,
+        )))
 
     def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
         result = CProfiledOperation(self._dll).call_text_with_profile(

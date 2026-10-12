@@ -60,6 +60,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_fact_ir.c ^
     src\m68k_render_ir.c ^
     src\m68k_render_plan.c ^
+    src\m68k_source_package.c ^
     src\m68k_analysis_render_lookup.c ^
     src\m68k_analysis_facts_v2.c ^
     src\m68k_source_quality.c ^
@@ -78,6 +79,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\test_m68k_ir.c ^
     src\test_m68k_simulator.c ^
     src\test_m68k_render_plan.c ^
+    src\test_m68k_source_package.c ^
     src\test_m68k_diagnostics.c ^
     src\test_platform_decompression.c ^
     src\test_m68k_container_metadata.c ^
@@ -148,6 +150,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
     %OUTDIR%\m68k_render_plan.obj ^
+    %OUTDIR%\m68k_source_package.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_source_quality.obj ^
@@ -195,6 +198,7 @@ link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_m68k_ir.obj ^
     %OUTDIR%\test_m68k_simulator.obj ^
     %OUTDIR%\test_m68k_render_plan.obj ^
+    %OUTDIR%\test_m68k_source_package.obj ^
     %OUTDIR%\test_m68k_diagnostics.obj ^
     %OUTDIR%\test_platform_decompression.obj ^
     %OUTDIR%\test_m68k_container_metadata.obj ^
@@ -214,6 +218,7 @@ link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
     %OUTDIR%\m68k_render_plan.obj ^
+    %OUTDIR%\m68k_source_package.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_source_quality.obj ^
@@ -352,6 +357,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
     %OUTDIR%\m68k_render_plan.obj ^
+    %OUTDIR%\m68k_source_package.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_source_quality.obj ^
@@ -424,6 +430,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
     %OUTDIR%\m68k_render_plan.obj ^
+    %OUTDIR%\m68k_source_package.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_source_quality.obj ^
@@ -521,6 +528,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
     %OUTDIR%\m68k_render_plan.obj ^
+    %OUTDIR%\m68k_source_package.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_source_quality.obj ^
@@ -590,6 +598,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
     %OUTDIR%\m68k_render_plan.obj ^
+    %OUTDIR%\m68k_source_package.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_source_quality.obj ^

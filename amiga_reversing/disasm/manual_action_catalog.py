@@ -5558,7 +5558,7 @@ def _target_reproduction_profile_action() -> dict[str, object]:
 
 
 def _target_source_export_action() -> dict[str, object]:
-    profile_ids = ["vasm", "devpac"]
+    profile_ids = ["vasm", "devpac", "vasm-package"]
     action = _target_transient(
         "target.source_export",
         "Export Source",
@@ -5578,7 +5578,7 @@ def _target_source_export_action() -> dict[str, object]:
         "parameter": "assembler_profile",
         "default": "vasm",
         "options": [
-            {"value": profile_id, "label": profile_id, "preview": {"kind": "source_export", "text": "not verification"}}
+            {"value": profile_id, "label": "vasm + binary assets (ZIP)" if profile_id == "vasm-package" else profile_id, "preview": {"kind": "source_export", "text": "not verification"}}
             for profile_id in profile_ids
         ],
         "preview": {"kind": "source_export"},

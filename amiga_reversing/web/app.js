@@ -3043,8 +3043,9 @@ async function exportSource(assemblerProfile) {
   if (!state.project) {
     return;
   }
-  const profile = assemblerProfile || "vasm";
-  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}`);
+  const binaryAssets = assemblerProfile === "vasm-package";
+  const profile = binaryAssets ? "vasm" : (assemblerProfile || "vasm");
+  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}&binary_assets=${binaryAssets}`);
   if (payload.status === "refused") {
     showSourceQualityDiagnosticsOverlay(payload);
     setAnalysisStatus(`Source export refused: ${payload.message || "render failed"}`, "failed", 4000);
@@ -3052,8 +3053,10 @@ async function exportSource(assemblerProfile) {
   }
   closeSourceQualityDiagnosticsOverlay();
   const sourceText = String(payload.source_text || "");
-  const filename = String(payload.filename || `${state.project}-${profile}.s`);
-  const blob = new Blob([sourceText], {type: "text/plain;charset=utf-8"});
+  const filename = String(payload.archive_filename || payload.filename || `${state.project}-${profile}.s`);
+  const blob = payload.archive_base64
+    ? new Blob([Uint8Array.from(atob(payload.archive_base64), c => c.charCodeAt(0))], {type: "application/zip"})
+    : new Blob([sourceText], {type: "text/plain;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

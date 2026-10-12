@@ -167,6 +167,9 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_runtime_address_ro
     PlatformFileListingArtifact *artifact, uint32_t address, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_anchor_window_json_alloc(
     PlatformFileListingArtifact *artifact, const char *anchor_code, uint32_t count, char **out_text);
+/* Additive projection; never alters the canonical listing plan or analysis. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_package_json_alloc(
+  PlatformFileListingArtifact *artifact, uint32_t minimum_asset_size, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_text_profile_alloc(
     PlatformFileListingArtifact *artifact, char **out_text, char **out_profile_json);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_summary_json_alloc(PlatformFileListingArtifact *artifact,
