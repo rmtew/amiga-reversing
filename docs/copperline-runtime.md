@@ -134,18 +134,18 @@ test failures are in [the initial Linux assessment](linux-baseline-2026-10.md).
   Local URL: `http://127.0.0.1:8123/amiga_hunk_cloud-smoke-7`.
 - Pandora exact source roundtrip was attempted. The raw output path incorrectly
   passed HUNK-only `-kick1hunks`; that invocation is now scoped to HUNK output
-  and covered for both formats. Freshly rendered Pandora source now assembles,
-  but yields **376846 versus 376832 bytes**, first difference **0x497**. Renderer
-  and target sources/facts were not changed in this migration. This remaining
-  roundtrip mismatch blocks claiming Pandora reconstruction exactness; it does
-  not invalidate the byte-verified original-payload runtime observations.
+  and covered for both formats. At the migration baseline, freshly rendered Pandora source assembled,
+  but yielded **376846 versus 376832 bytes**, first difference **0x497**. Renderer
+  and target sources/facts were not changed in this migration. That historical mismatch was resolved by the
+  [zero-field renderer fix](validation/zero-field-renderer-fix-2026-10-12.md):
+  fresh source now reproduces all 376832 bytes exactly and the rebuilt payload
+  passes the gameplay scenario.
 
 Runtime result files are local `.runtime-state/copperline-*.json`; logs remain
 small and no instruction trace was retained. All owned emulator processes were
 closed after testing, including the initial assessment process. The web service
 continues on loopback port 8123; it is not publicly hosted or forwarded.
 
-Next work: inspect queue-processing reachability and frame/control conditions
-against the accepted source graph, isolate the Pandora roundtrip difference,
-then compare original-loader behavior when the exact original Pandora ADF is
-provided. Windows execution of the replacement has not been tested here.
+Queue-processing reachability remains a separate investigation; no queue
+correction is included in the renderer fix. Original-loader comparison is outside
+the current scope. Windows execution of the replacement has not been tested here.

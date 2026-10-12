@@ -380,6 +380,59 @@ static int test_render_reports_actual_operand_symbol_mask(void) {
   return 0;
 }
 
+static int test_source_has_annotated_instruction(const char *source, const char *instruction,
+    const char *comment) {
+  const char *line = source;
+  size_t length = strlen(instruction);
+  while ((line = strstr(line, instruction)) != NULL) {
+    const char *tail = line + length;
+    while (*tail == ' ' || *tail == '\t') ++tail;
+    if (tail[0] == ';' && tail[1] == ' ' && strncmp(tail + 2, comment, strlen(comment)) == 0 &&
+        tail[2 + strlen(comment)] == '\n') return 1;
+    ++line;
+  }
+  return 0;
+}
+
+static int test_render_named_indirect_preserves_encoded_addressing_mode(void) {
+  const struct {
+    uint8_t bytes[4];
+    size_t size;
+    size_t operand_index;
+    const char *expected;
+    uint8_t mask;
+  } cases[] = {
+    {{0x30U, 0x10U}, 2U, 0U, "move.w (a0),d0", 0U},
+    {{0x30U, 0x28U, 0x00U, 0x00U}, 4U, 0U, "move.w field.w(a0),d0", 1U},
+    {{0x30U, 0x80U}, 2U, 1U, "move.w d0,(a0)", 0U},
+    {{0x31U, 0x40U, 0x00U, 0x00U}, 4U, 1U, "move.w d0,field.w(a0)", 2U},
+  };
+  size_t index;
+  M68kRenderPolicy policy;
+  m68k_render_policy_init_default(&policy);
+  for (index = 0U; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+    M68kInstructionIR instruction = m68k_ir_decode_one(cases[index].bytes, cases[index].size,
+      M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+    M68kIrRenderResult rendered;
+    M68kIrEncodeResult encoded;
+    uint8_t encoded_bytes[8];
+    M68kOperandIR *operand = &instruction.operands[cases[index].operand_index];
+    M68K_C_ASSERT_U32((uint32_t)cases[index].size, instruction.byte_count);
+    operand->symbol_ref.has_name = 1U;
+    strcpy(operand->symbol_ref.name, "field");
+    rendered = m68k_ir_render_one_with_policy(&instruction, &policy, m68k_diag_sink(NULL));
+    M68K_C_ASSERT_STR(cases[index].expected, rendered.text);
+    M68K_C_ASSERT_U32(cases[index].mask, rendered.rendered_operand_symbol_mask);
+    /* Rendering is presentation only: the symbol identity and encoded mode survive. */
+    M68K_C_ASSERT_STR("field", operand->symbol_ref.name);
+    M68K_C_ASSERT_U32(1U, operand->symbol_ref.has_name);
+    encoded = m68k_ir_encode_one(&instruction, encoded_bytes, sizeof(encoded_bytes), m68k_diag_sink(NULL));
+    M68K_C_ASSERT_U32((uint32_t)cases[index].size, encoded.byte_count);
+    M68K_C_ASSERT(memcmp(cases[index].bytes, encoded_bytes, cases[index].size) == 0);
+  }
+  return 0;
+}
+
 static int assert_decode_render_parse_encode_68030(const uint8_t *bytes, size_t byte_count,
     const char *expected_text) {
   M68kRenderPolicy policy;
@@ -25666,7 +25719,8 @@ static int test_facts_v2_render_asm_source_propagates_api_output_type_through_le
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOCreateMsgPort(a6)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tlea.l LN_SUCC(a0),a1\n") != NULL);
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tlea.l (a0),a1",
+    "operand 1: LN_SUCC at (a0)"));
   M68K_C_ASSERT(strstr(source, "\ttst.b MP_SIGBIT(a1)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -27413,9 +27467,12 @@ static int test_facts_v2_render_asm_source_renders_zero_offset_custom_struct_fie
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w world_object_shared_prefix_root_word(a5),d0\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w d0,world_object_shared_prefix_root_word(a5)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\taddq.w #1,world_object_shared_prefix_root_word(a5)\n") != NULL);
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmove.w (a5),d0",
+    "operand 1: world_object_shared_prefix_root_word at (a5)"));
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmove.w d0,(a5)",
+    "operand 2: world_object_shared_prefix_root_word at (a5)"));
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\taddq.w #1,(a5)",
+    "operand 2: world_object_shared_prefix_root_word at (a5)"));
   M68K_C_ASSERT(strstr(source, "\tlea.l world_object_shared_prefix_root_word.w(a5),a0\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
@@ -27477,10 +27534,17 @@ static int test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_st
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w array_element_value+array_element_SIZEOF(a5),d0\n"
-    "\taddq.l #4,a5\n\tmove.w array_element_value(a5),d0\n"
-    "\tmovea.l a5,a4\n\tmove.w array_element_value(a4),d0\n"
-    "\tlea.l array_element_value(a4),a3\n\tmove.w array_element_value(a3),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w array_element_value+array_element_SIZEOF(a5),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\taddq.l #4,a5\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l a5,a4\n") != NULL);
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmove.w (a5),d0",
+    "operand 1: array_element_value at (a5)"));
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmove.w (a4),d0",
+    "operand 1: array_element_value at (a4)"));
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tlea.l (a4),a3",
+    "operand 1: array_element_value at (a4)"));
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmove.w (a3),d0",
+    "operand 1: array_element_value at (a3)"));
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -27830,8 +27894,8 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source,
-    "\tmove.l #chemist_interaction_text,world_object_shared_prefix_interaction_data_ptr(a5)\n") != NULL);
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmove.l #chemist_interaction_text,(a5)",
+    "operand 2: world_object_shared_prefix_interaction_data_ptr at (a5)"));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   store = &analysis.sections[0].pointer_stores[0];
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED, analysis.sections[0].address_values[0].resolution);
@@ -27863,8 +27927,8 @@ static int test_facts_v2_render_asm_source_resolves_generic_pointer_field_store(
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source,
-    "\tmove.l #abs_0_00000110,world_object_shared_prefix_interaction_data_ptr(a5)\n") != NULL);
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmove.l #abs_0_00000110,(a5)",
+    "operand 2: world_object_shared_prefix_interaction_data_ptr at (a5)"));
   M68K_C_ASSERT(strstr(source, "abs_0_00000110:\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -31672,7 +31736,7 @@ static int test_facts_v2_callback_input_escape_invalidates_derived_field_pointer
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "effect_container_child_ptr(a0)") != NULL);
+  M68K_C_ASSERT(strstr(source, "operand 1: effect_container_child_ptr at (a0)") != NULL);
   M68K_C_ASSERT(strstr(source, "derived_object_word_value(a1)") == NULL);
   M68K_C_ASSERT(strstr(source, "effect_container_container_word(a0)") != NULL);
   M68K_C_ASSERT(strstr(source, "effect_container_container_word(a3)") != NULL);
@@ -32153,7 +32217,8 @@ static int test_facts_v2_render_asm_source_propagates_zero_offset_field_pointer_
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOFindName(a6)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmovea.l LN_SUCC(a0),a1\n") != NULL);
+  M68K_C_ASSERT(test_source_has_annotated_instruction(source, "\tmovea.l (a0),a1",
+    "operand 1: LN_SUCC at (a0)"));
   M68K_C_ASSERT(strstr(source, "\ttst.b LN_TYPE(a1)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -38158,6 +38223,8 @@ int m68k_c_ir_tests(void) {
     {"facts_v2_boundary_relocation_api_call_restore_wrapper_promotes_code",
       test_facts_v2_boundary_relocation_api_call_restore_wrapper_promotes_code},
     {"source_parse_treats_cpu_policy_as_ceiling", test_source_parse_treats_cpu_policy_as_ceiling},
+    {"render_named_indirect_preserves_encoded_addressing_mode",
+      test_render_named_indirect_preserves_encoded_addressing_mode},
     {"source_rs_zero_offset_symbol_uses_address_indirect_encoding",
       test_source_rs_zero_offset_symbol_uses_address_indirect_encoding},
     {"source_symbolic_absolute_word_jmp_stays_absolute",
