@@ -91,7 +91,7 @@ No subsystem is declared fully restored by the inventory.
 | Title/starfield `0xBA8..0xF54` | Partial | Existing named star routines and dispatch facts; audit table bounds, continuations and state ownership. |
 | World command interpreter `0x13F4`, table `0x1432..0x14B6` | Handler identity and operand behavior reviewed | All 33 displaced labels corrected through real catalog/runtime identities; 34 comments describe handlers and dispatch. Delay/equality/flag predicates corrected. Script instances, pointer targets and callee effects remain to recover. |
 | World/object/map logic and records | Partial | Existing object structures and link tables; follow interpreter consumers, proximity and object lifetimes. |
-| Inventory `0x26EC..0x2B7E` | Partial | Names/fields exist; recover side effects and transitions after call identity reconciliation. |
+| Inventory `0x26EC..0x2B7E`, trading/reset consumers | Bounded records and selected paths reviewed; subsystem partial | Four-entry tables, panel swaps, name lookup and offer predicates are reviewed below. Arbitrary cursor/input safety, unmatched-search writes and complete lifecycle/caller coverage remain open. |
 | Text/overlay `0x6332..0x66A0` | Partial | Reconcile 128-byte clear versus 64-byte layout and indirect callback ownership. |
 | Tile/geometry `0x6728..0x7216` | Partial | Identify buffer ownership, geometry extents and blitter/DMA address constraints. |
 | Frame/gameplay `0x9C00` | Partial | Resolve absolute callees, frame wait/input helpers and front/back/display pointer lifetimes. |
@@ -712,3 +712,81 @@ This adds two physical bytes to the layout catalog and refines 108 existing byte
 it is not a new ownership percentage. Package, framework-test and gameplay
 results retain their earlier scope and were reused. The loopback service remains
 available; no broad analyzer repair, emulator change or new input was required.
+
+## Inventory, trading and panel selection
+
+A connected non-audio checkpoint adds 171 independently reviewed and
+journal-accepted facts through the existing catalog: two complete two-byte
+record types, 80 new eight-byte data layouts, 81 four-entry structure bindings,
+a typed panel-object pointer, a 15-byte pocket-restriction prefix and four
+precise consumer contracts. The existing 114-word native name-offset table
+retains its presentation and bounds. The
+layouts add 655 source bytes; including the existing empty table and name-offset
+layout, the connected source data totals 891 bytes. The four-byte application
+slot is abstract state, not additional bytes in the source image. These counts
+are not a refreshed native ownership percentage.
+
+`inventory_item_slot` distinguishes the item ID and trade-value bytes;
+`npc_trade_offer_entry` distinguishes the item ID and trade-threshold bytes.
+The current/initial tables are supported by four-entry stride-two scans and
+exact eight-byte reset copies. All 81 unique pointer identities (648 bytes)
+come from original big-endian object fields, the current existing native copied
+source view and fresh resident native row checks. Whole prefixes fit the source
+view with no competing admissible identity or accepted code overlap. Native row
+boundaries do not define record boundaries. The shared all-zero empty table uses
+the inventory record representation while retaining its dual inventory/trade
+use; all prior layout attributes, count/stride, name and representation are
+preserved. Four inter-table gaps totaling 64 bytes remain excluded. This is
+conditional source identity, not actual pointer execution, copy completion,
+immutability or lifetime proof.
+
+The matched-offer path requires its unsigned threshold to be below NPC item
+state; an earlier fallback path is excluded from that predicate. Counteroffer
+success chooses the smallest positive unsigned threshold-minus-value gap in
+1..127, skips item IDs below two and keeps the first slot on ties. Four-entry
+mutation searches can fall through after a failed match and write at table+8
+(and read +9 on the offer path). The eight-byte read/reset prefix therefore does
+not bound every mutation or make neighboring initial templates immutable.
+
+The panel stores a candidate world-object pointer at application+0x358 before
+collision/flag qualification. Nearby selection exchanges only an item-ID byte,
+retaining the corresponding value byte. For W=((y-139) mod 65536)>>2, its byte
+mask leaves D1.W=(W&FF00)|(W&6); only a zero high byte reduces this to offsets
+0/2/4/6. The normal four rows 139/147/155/163 yield those offsets. Invalid cursor
+states are not proven safe, and the nearby-panel exchange does not itself apply
+the matched-offer threshold predicate. Existing object and application fields
+and their attributes remain intact.
+
+The name resolver masks an ID to seven bits and uses signed ADDA.W, while panel
+refresh uses a word loaded into a pre-zeroed long register and unsigned ADD.L.
+The existing 114-word physical prefix contains positive offsets 1..1137 from
+the native `item_name_string_table` source anchor, so both agree for IDs 0..113.
+Resolver IDs 114..127 and unmasked refresh IDs 114..255 remain outside that prefix.
+Pocket restriction uses byte index ID>>3 and MSB-first bit (ID^7)&7; a set bit
+blocks this pocket-exchange path and permits the timed too-large message. Its
+15-byte physical prefix is conditional on the reviewed item-ID prefix; extra
+bits 114..119 receive no valid-domain claim, and arbitrary byte IDs are unbounded.
+
+The redundant generic HEX array annotation for the name-offset table was
+rejected and withdrawn through one normal undo action because it hid useful
+native string labels and symbolic offset expressions. Its bounds and consumer
+contract remain supported. The original action, rejection and undo are preserved;
+there are 173 appended action records and 171 active accepted facts. No renderer
+or analyzer repair was introduced. A second-stage request with 53 redundant
+evidence references was rejected before writing any action; an independently
+reviewed 29-reference subset completed that stage.
+
+Saved consumer packets match the original instruction bytes. Both dependent
+stages and the final withdrawal checkpoint reproduce all 376,832 original bytes
+with the C assembler and independent vasm, and the C outputs were independently
+compared byte-for-byte. Final receipt:
+`da68d63e91e30703b9e12343420df857b9670448adbff23c658985b471c01e87`;
+generated source SHA256:
+`747abefbb05bc1a77fdc4187d7bb3146442792d6b48957e07f7fb8fe6b0a3f9d`.
+Both historical prefixes, all prior types, unaffected layouts, runtime references,
+execution views, code-entry/register seeds and other semantic controls are
+preserved. Existing framework tests and gameplay evidence retain their earlier
+scope and were reused; no new runtime claim is made. No analyzer expansion,
+backend rebuild, service restart or new input was required. Copy-helper returns,
+temporal overwrites, late lineage, complete caller/state coverage and alternate
+execution remain unresolved.

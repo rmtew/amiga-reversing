@@ -184,7 +184,7 @@ app_world_interaction_flags RS.B 1
 app_world_interaction_audio_flags RS.B 1
     RS.B 23
 app_nearest_object_distance RS.W 1
-app_0358 RS.L 1
+app_inventory_panel_object_ptr RS.L 1
     RS.B 4
 app_copper_interrupt_callback RS.L 1
 app_vertical_blank_callback RS.L 1
@@ -429,6 +429,18 @@ ui_overlay_descriptor_line_5_ptr RS.L 1
 ui_overlay_descriptor_bitmap_ptr RS.L 1
 ui_overlay_descriptor_update_callback RS.L 1
 ui_overlay_descriptor_SIZEOF EQU __RS
+
+; STRUCT inventory_item_slot
+    RSRESET
+inventory_item_slot_item_id RS.B 1
+inventory_item_slot_trade_value RS.B 1
+inventory_item_slot_SIZEOF EQU __RS
+
+; STRUCT npc_trade_offer_entry
+    RSRESET
+npc_trade_offer_entry_item_id RS.B 1
+npc_trade_offer_entry_trade_threshold RS.B 1
+npc_trade_offer_entry_SIZEOF EQU __RS
 
 DMAF_CLRALL	EQU	$7FFF
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
@@ -2400,7 +2412,7 @@ toggle_inventory_panel:
 	tst.l app_nearest_object_ptr(a6)
 	beq.b abs_0_00012754
 	movea.l app_nearest_object_ptr(a6),a5
-	move.l a5,app_0358(a6)
+	move.l a5,app_inventory_panel_object_ptr(a6)
 	bsr.w is_player_within_world_object_collision_bounds
 	bcc.b abs_0_00012754
 	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
@@ -2640,7 +2652,7 @@ handle_inventory_panel_selection:
 	tst.b app_inventory_selection_latched(a6)
 	bne.w abs_0_00012AB6
 	bsr.w clear_inventory_item_selection_flags
-	movea.l app_0358(a6),a5
+	movea.l app_inventory_panel_object_ptr(a6),a5
 	lea.l player_world_object.l,a4
 	move.w app_inventory_cursor_y(a6),d0
 	subi.w #139,d0
@@ -2653,6 +2665,7 @@ handle_inventory_panel_selection:
 	cmp.w #$C0,d2
 	bne.b transfer_selected_item_to_carried_inventory
 	bset.b #4,app_02A6(a6)
+    ; With valid cursor rows and zero index high byte, nearby selection swaps only the record item ID, retaining value. ANDI.B masks low bits; invalid cursor states are not bounded here.
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
 	move.b $0(a0,d1.w),d2
 	move.b world_object_shared_prefix_selected_item_id(a4),$0(a0,d1.w)
@@ -2689,7 +2702,7 @@ handle_item_too_large_for_pockets:
 	movem.l d0/a0,-(a7)
 	moveq.l #0,d0
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	lea.l abs_0_0001A804.l,a0
+	lea.l item_pocket_restriction_bits_bytes.l,a0
 	bsr.w test_bitmap_pixel_bit
 	movem.l (a7)+,d0/a0
 	beq.b transfer_selected_item_to_pocket_inventory
@@ -2721,6 +2734,7 @@ transfer_selected_item_to_pocket_inventory:
 item_too_large_for_pockets_message:
 	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00
 	dc.b $00
+    ; Name resolver masks ID to 7 bits and adds a signed word offset. Refresh uses zero-extended offsets; reviewed 114 offsets are positive. IDs 114..127 lie outside this table prefix.
 resolve_item_name:
 	andi.w #127,d0
 	add.w d0,d0
@@ -3035,6 +3049,7 @@ abs_0_00012F56:
 	move.b world_object_shared_prefix_selected_item_id(a5),d5
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
 	moveq.l #3,d7
+    ; Mutation searches four 2B entries. If an item ID is unmatched, control falls through and writes at table+8; the four-entry read prefix does not bound all writes.
 abs_0_00012F6C:
 	cmp.b (a0),d5
 	beq.b abs_0_00012F76
@@ -6266,6 +6281,7 @@ abs_0_00017C2A:
 	addq.l #2,a2
 	dbf.w d7,abs_0_00017C2A
 	bra.b abs_0_00017C0A
+    ; Matched offer requires unsigned threshold < NPC state. Counteroffers skip IDs <2, choose the smallest threshold-minus-value gap 1..127, and keep the first slot on ties.
 abs_0_00017C36:
 	move.b $0001(a2),d0
 	cmp.b world_object_shared_prefix_item_state(a5),d0
@@ -9221,8 +9237,8 @@ abs_0_0001A7E2:
 abs_0_0001A7EA:
 	dc.b $00,$01,$B3,$A8,$00,$03,$E1,$FA,$67,$72,$61,$70,$68,$69,$63,$73
 	dc.b $2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
-abs_0_0001A804:
-	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80
+item_pocket_restriction_bits_bytes:
+	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80	; data
 abs_0_0001A813:
 	dc.b $00,$00,$01,$D8
 	dcb.b $9,$00
@@ -9402,52 +9418,739 @@ abs_0_0001B0A0:
 abs_0_0001B0C0:
 	dc.b $C3,$FC,$00,$00,$C3,$FC,$00,$00,$03,$FC,$00,$00,$03,$FC,$00,$00
 	dc.b $03,$FC,$00,$00,$03,$FC,$00,$00,$FF,$00,$00,$00,$FF,$00,$00,$00
-	dc.b $05,$00,$32,$00,$00,$00,$00,$00,$05,$00,$32,$00,$00,$00,$00,$00
-	dc.b $20,$00,$26,$00,$00,$00,$00,$00,$20,$00,$26,$00,$00,$00,$00,$00
-	dc.b $09,$00,$00,$00,$00,$00,$00,$00,$09,$00,$00,$00,$00,$00,$00,$00
-	dc.b $0A,$00,$00,$00,$00,$00,$00,$00,$0A
-	dcb.b $17,$00
-	dc.b $6B,$0A,$28,$1E,$00,$00,$00,$00,$6B,$0A,$28,$1E,$00,$00,$00,$00
-	dc.b $64,$03,$00,$00,$00,$00,$00,$00,$64,$03,$00,$00,$00,$00,$00,$00
-	dc.b $08,$00,$00,$00,$00,$00,$00,$00,$08,$00,$00,$00,$00,$00,$00,$00
-	dc.b $36,$00,$00,$00,$00,$00,$00,$00,$36,$00,$00,$00,$00,$00,$00,$00
-	dc.b $6D,$00,$35,$00,$00,$00,$00,$00,$6D,$00,$35,$00,$00,$00,$00,$00
-	dc.b $09,$00,$00,$00,$00,$00,$00,$00,$09,$00,$00,$00,$00,$00,$00,$00
-	dc.b $0A,$00,$00,$00,$00,$00,$00,$00,$0A,$00,$00,$00,$00,$00,$00,$00
-	dc.b $09,$00,$00,$00,$00,$00,$00,$00,$09,$00,$00,$00,$00,$00,$00,$00
-	dc.b $6E,$00,$33,$00,$00,$00,$00,$00,$6E,$00,$33,$00,$00,$00,$00,$00
-	dc.b $2F,$00,$0D,$00,$00,$00,$00,$00,$2F,$00,$0D,$00,$00,$00,$00,$00
-	dc.b $34,$00,$00,$00,$00,$00,$00,$00,$34,$00,$00,$00,$00,$00,$00,$00
-	dc.b $03,$0A,$29,$1E,$00,$00,$00,$00,$03,$0A,$29,$1E
-	dcb.b $14,$00
-	dc.b $0C,$00,$6A,$00,$6F,$00,$00,$00,$0C,$00,$6A,$00,$6F,$00,$00,$00
-	dc.b $67,$00,$2A,$00,$00,$00,$00,$00,$67,$00,$2A,$00,$00,$00,$00,$00
-	dc.b $27,$1E,$00,$00,$00,$00,$00,$00,$27,$1E,$00,$00,$00,$00,$00,$00
-	dc.b $06,$0A,$02,$14,$24,$1E,$0A,$64,$06,$0A,$02,$14,$24,$1E,$0A,$64
-	dc.b $09,$00,$00,$00,$00,$00,$00,$00,$09
-	dcb.b $17,$00
-	dc.b $37,$00,$00,$00,$00,$00,$00,$00,$37,$00,$00,$00,$00,$00,$00,$00
-	dc.b $6C,$00,$66,$00,$1E,$00,$00,$00,$6C,$00,$66,$00,$1E
-	dcb.b $13,$00
-	dc.b $07,$00,$2D,$00,$00,$00,$00,$00,$07,$00,$2D,$00,$00,$00,$00,$00
-	dc.b $2B,$00,$25,$00,$31,$00,$00,$00,$2B,$00,$25,$00,$31,$00,$00,$00
-	dc.b $30,$00,$22,$00,$21,$00,$23,$00,$30,$00,$22,$00,$21,$00,$23,$00
-	dc.b $19,$00,$1B,$00,$1C,$00,$00,$00,$19,$00,$1B,$00,$1C
-	dcb.b $13,$00
-	dc.b $63,$00,$71,$00,$00,$00,$00,$00,$63,$00,$71,$00,$00,$00,$00,$00
-	dc.b $70,$0A,$04,$1E,$00,$00,$00,$00,$70,$0A,$04,$1E,$00,$00,$00,$00
-	dc.b $65,$00,$09,$00,$00,$00,$00,$00,$65,$00,$09,$00,$00,$00,$00,$00
-	dc.b $69,$00,$0B,$00,$00,$00,$00,$00,$69,$00,$0B,$00,$00,$00,$00,$00
-	dc.b $29,$14,$00,$00,$00,$00,$00,$00,$29,$14,$00,$00,$00,$00,$00,$00
-	dc.b $66,$14,$1E,$28,$00,$00,$00,$00,$66,$14,$1E,$28,$00,$00,$00,$00
-	dc.b $2C,$14,$2B,$28,$00,$00,$00,$00,$2C,$14,$2B,$28,$00,$00,$00,$00
+engineer_inventory_slots:
+	dc.b $05	; item_id
+	dc.b $00	; trade_value
+	dc.b $32	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+engineer_initial_inventory_slots:
+	dc.b $05	; item_id
+	dc.b $00	; trade_value
+	dc.b $32	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+captain_inventory_slots:
+	dc.b $20	; item_id
+	dc.b $00	; trade_value
+	dc.b $26	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+captain_initial_inventory_slots:
+	dc.b $20	; item_id
+	dc.b $00	; trade_value
+	dc.b $26	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+pianist_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+pianist_initial_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+flight_controller_inventory_slots:
+	dc.b $0A	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+flight_controller_initial_inventory_slots:
+	dc.b $0A	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dcb.b $10,$00
+security_officer_inventory_slots:
+	dc.b $6B	; item_id
+	dc.b $0A	; trade_value
+	dc.b $28	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+security_officer_initial_inventory_slots:
+	dc.b $6B	; item_id
+	dc.b $0A	; trade_value
+	dc.b $28	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+diabetic_inventory_slots:
+	dc.b $64	; item_id
+	dc.b $03	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+diabetic_initial_inventory_slots:
+	dc.b $64	; item_id
+	dc.b $03	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+hooligan_inventory_slots:
+	dc.b $08	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+hooligan_initial_inventory_slots:
+	dc.b $08	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+entry_officer_inventory_slots:
+	dc.b $36	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+entry_officer_initial_inventory_slots:
+	dc.b $36	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+resource_officer_inventory_slots:
+	dc.b $6D	; item_id
+	dc.b $00	; trade_value
+	dc.b $35	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+resource_officer_initial_inventory_slots:
+	dc.b $6D	; item_id
+	dc.b $00	; trade_value
+	dc.b $35	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+defence_controller_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+defence_controller_initial_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+wackobrain_inventory_slots:
+	dc.b $0A	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+wackobrain_initial_inventory_slots:
+	dc.b $0A	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+glass_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+glass_initial_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+science_officer_inventory_slots:
+	dc.b $6E	; item_id
+	dc.b $00	; trade_value
+	dc.b $33	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+science_officer_initial_inventory_slots:
+	dc.b $6E	; item_id
+	dc.b $00	; trade_value
+	dc.b $33	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+doctor_inventory_slots:
+	dc.b $2F	; item_id
+	dc.b $00	; trade_value
+	dc.b $0D	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+doctor_initial_inventory_slots:
+	dc.b $2F	; item_id
+	dc.b $00	; trade_value
+	dc.b $0D	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+medic_inventory_slots:
+	dc.b $34	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+medic_initial_inventory_slots:
+	dc.b $34	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+chemist_inventory_slots:
+	dc.b $03	; item_id
+	dc.b $0A	; trade_value
+	dc.b $29	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+chemist_initial_inventory_slots:
+	dc.b $03	; item_id
+	dc.b $0A	; trade_value
+	dc.b $29	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+driffid_inventory_slots:
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+driffid_initial_inventory_slots:
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+death_fly_inventory_slots:
+	dc.b $0C	; item_id
+	dc.b $00	; trade_value
+	dc.b $6A	; item_id
+	dc.b $00	; trade_value
+	dc.b $6F	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+death_fly_initial_inventory_slots:
+	dc.b $0C	; item_id
+	dc.b $00	; trade_value
+	dc.b $6A	; item_id
+	dc.b $00	; trade_value
+	dc.b $6F	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+gardener_inventory_slots:
+	dc.b $67	; item_id
+	dc.b $00	; trade_value
+	dc.b $2A	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+gardener_initial_inventory_slots:
+	dc.b $67	; item_id
+	dc.b $00	; trade_value
+	dc.b $2A	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+technician_inventory_slots:
+	dc.b $27	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+technician_initial_inventory_slots:
+	dc.b $27	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+robomechanic_inventory_slots:
+	dc.b $06	; item_id
+	dc.b $0A	; trade_value
+	dc.b $02	; item_id
+	dc.b $14	; trade_value
+	dc.b $24	; item_id
+	dc.b $1E	; trade_value
+	dc.b $0A	; item_id
+	dc.b $64	; trade_value
+robomechanic_initial_inventory_slots:
+	dc.b $06	; item_id
+	dc.b $0A	; trade_value
+	dc.b $02	; item_id
+	dc.b $14	; trade_value
+	dc.b $24	; item_id
+	dc.b $1E	; trade_value
+	dc.b $0A	; item_id
+	dc.b $64	; trade_value
+kwik_kleen_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+kwik_kleen_initial_inventory_slots:
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dcb.b $10,$00
+awol_officer_inventory_slots:
+	dc.b $37	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+awol_officer_initial_inventory_slots:
+	dc.b $37	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+thief_inventory_slots:
+	dc.b $6C	; item_id
+	dc.b $00	; trade_value
+	dc.b $66	; item_id
+	dc.b $00	; trade_value
+	dc.b $1E	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+thief_initial_inventory_slots:
+	dc.b $6C	; item_id
+	dc.b $00	; trade_value
+	dc.b $66	; item_id
+	dc.b $00	; trade_value
+	dc.b $1E	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+bank_manager_inventory_slots:
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+bank_manager_initial_inventory_slots:
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+priest_inventory_slots:
+	dc.b $07	; item_id
+	dc.b $00	; trade_value
+	dc.b $2D	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+priest_initial_inventory_slots:
+	dc.b $07	; item_id
+	dc.b $00	; trade_value
+	dc.b $2D	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+lieutenant_commander_inventory_slots:
+	dc.b $2B	; item_id
+	dc.b $00	; trade_value
+	dc.b $25	; item_id
+	dc.b $00	; trade_value
+	dc.b $31	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+lieutenant_commander_initial_inventory_slots:
+	dc.b $2B	; item_id
+	dc.b $00	; trade_value
+	dc.b $25	; item_id
+	dc.b $00	; trade_value
+	dc.b $31	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+commander_inventory_slots:
+	dc.b $30	; item_id
+	dc.b $00	; trade_value
+	dc.b $22	; item_id
+	dc.b $00	; trade_value
+	dc.b $21	; item_id
+	dc.b $00	; trade_value
+	dc.b $23	; item_id
+	dc.b $00	; trade_value
+commander_initial_inventory_slots:
+	dc.b $30	; item_id
+	dc.b $00	; trade_value
+	dc.b $22	; item_id
+	dc.b $00	; trade_value
+	dc.b $21	; item_id
+	dc.b $00	; trade_value
+	dc.b $23	; item_id
+	dc.b $00	; trade_value
+kriptonite_inventory_slots:
+	dc.b $19	; item_id
+	dc.b $00	; trade_value
+	dc.b $1B	; item_id
+	dc.b $00	; trade_value
+	dc.b $1C	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+kriptonite_initial_inventory_slots:
+	dc.b $19	; item_id
+	dc.b $00	; trade_value
+	dc.b $1B	; item_id
+	dc.b $00	; trade_value
+	dc.b $1C	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+megabio_feed_inventory_slots:
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+megabio_feed_initial_inventory_slots:
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+musician_inventory_slots:
+	dc.b $63	; item_id
+	dc.b $00	; trade_value
+	dc.b $71	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+musician_initial_inventory_slots:
+	dc.b $63	; item_id
+	dc.b $00	; trade_value
+	dc.b $71	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+squash_player_inventory_slots:
+	dc.b $70	; item_id
+	dc.b $0A	; trade_value
+	dc.b $04	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+squash_player_initial_inventory_slots:
+	dc.b $70	; item_id
+	dc.b $0A	; trade_value
+	dc.b $04	; item_id
+	dc.b $1E	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+menial_droid_inventory_slots:
+	dc.b $65	; item_id
+	dc.b $00	; trade_value
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+menial_droid_initial_inventory_slots:
+	dc.b $65	; item_id
+	dc.b $00	; trade_value
+	dc.b $09	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+icelord_inventory_slots:
+	dc.b $69	; item_id
+	dc.b $00	; trade_value
+	dc.b $0B	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+icelord_initial_inventory_slots:
+	dc.b $69	; item_id
+	dc.b $00	; trade_value
+	dc.b $0B	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+diabetic_trade_offers:
+	dc.b $29	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+diabetic_initial_trade_offers:
+	dc.b $29	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+security_officer_trade_offers:
+	dc.b $66	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $1E	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+security_officer_initial_trade_offers:
+	dc.b $66	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $1E	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+chemist_trade_offers:
+	dc.b $2C	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $2B	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+chemist_initial_trade_offers:
+	dc.b $2C	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $2B	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
 	dc.b $2D,$14,$00,$00,$00,$00,$00,$00,$2D,$14,$00,$00,$00,$00,$00,$00
-	dc.b $2E,$28,$00,$00,$00,$00,$00,$00,$2E,$28,$00,$00,$00,$00,$00,$00
-	dc.b $05,$28,$04,$3C,$00,$00,$00,$00,$05,$28,$04,$3C,$00,$00,$00,$00
+technician_trade_offers:
+	dc.b $2E	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+technician_initial_trade_offers:
+	dc.b $2E	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+robomechanic_trade_offers:
+	dc.b $05	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $04	; item_id
+	dc.b $3C	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+robomechanic_initial_trade_offers:
+	dc.b $05	; item_id
+	dc.b $28	; trade_threshold
+	dc.b $04	; item_id
+	dc.b $3C	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
 	dc.b $27,$14,$00,$00,$00,$00,$00,$00,$27,$14,$00,$00,$00,$00,$00,$00
-	dc.b $6E,$14,$2F,$3C,$00,$00,$00,$00,$6E,$14,$2F,$3C,$00,$00,$00,$00
+squash_player_trade_offers:
+	dc.b $6E	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $2F	; item_id
+	dc.b $3C	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+squash_player_initial_trade_offers:
+	dc.b $6E	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $2F	; item_id
+	dc.b $3C	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
 default_empty_item_slots:
-	dc.w $0000,$0000,$0000,$0000	; item_slot_table
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
+	dc.b $00	; item_id
+	dc.b $00	; trade_value
 world_runtime_setup_records:
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
