@@ -170,7 +170,9 @@ it does not claim equivalence to that formerly patched oracle.
 
 Remaining work is semantic restoration, especially indirect dispatch and queue
 processing. Existing 20/60-second queue probes reach enqueue but do not observe
-processing. Original-loader comparison still needs the original Pandora ADF.
-Keep those as separate evidence questions; do not infer complete emulator parity
-from exact assembly or four gameplay checkpoints. No broad target naming pass,
+processing. Keep queue behavior as a separate evidence question; do not infer
+complete emulator parity from exact assembly or four gameplay checkpoints.
+Original disk-image and loader parity are explicitly out of scope at the user's
+request. The absent original Pandora ADF is neither a blocker nor a required
+next step for this task. No broad target naming pass,
 proprietary input download, public hosting or merge is part of this change.

@@ -1,3 +1,5 @@
+> Scope clarification: original disk-image and loader parity are explicitly excluded by the user. Historical input and migration observations below do not make the original Pandora ADF a blocker or a required next step for the current task.
+
 > Current setup and shared UI/CLI/MCP restoration validation: [2026-10-12 report](validation/restoration-framework-2026-10-12.md). The absent local wheel and full-target C include-path limitations below are now resolved.
 
 > Initial assessment at the pre-migration baseline. The authorized follow-up replaces the active runtime with Copperline; see [current runtime and validation](copperline-runtime.md). Kickstart and the decoded Pandora payload were subsequently found in the existing environment, so earlier missing-input claims below are superseded.

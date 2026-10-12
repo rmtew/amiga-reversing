@@ -58,8 +58,9 @@ facts or source files are edited by the session.
 
 The original Pandora ADF remains absent: `Pandora (1988)(Firebird).adf`, 901120
 bytes, SHA256 `7f225192a177d9c06c54a99210de801ab0c840d4773bd99031aed5c7741a1c95`.
-This does not block direct-payload scenarios. Original-loader parity needs that
-specific user-supplied image and a separate comparison.
+Original disk-image and loader parity are explicitly excluded by the user from
+this task. The absent image is historical input context, not a blocker or a
+required next step; direct-payload scenarios do not require it.
 
 ## Preserved contracts and deliberate changes
 
