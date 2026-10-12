@@ -236,3 +236,32 @@ BLTCON1; its stated geometry is not proof of the whole framebuffer allocation.
 A parallel read-only graphics audit has corroborated larger selector/definition
 table bounds; canonical corrections and raw tile-read ownership are the next
 resource slice, with descending-blit direction an explicit precondition.
+
+## Completed world-tile table bounds
+
+Two underbounded layouts and their arrays are corrected through six accepted
+canonical actions. The selector table is `[0x3502,0x3F16)`: 1,290 big-endian words
+(43 rows by 30 columns). The definition table is `[0x3F16,0x5FFE)`: 468 records
+of 18 bytes, each containing nine word offsets. The original array names, kinds,
+strides and hex representation are preserved. This adds 8,398 consumer-supported
+structured bytes beyond the formerly declared table ends. The definitions stop
+at the accepted code entry `test_bitmap_pixel_bit`; no code range was crossed.
+
+Both inspected stages pass complete C and vasm equality. Final receipt:
+`feadbea3a677f6481c0464c6e08416f7a88f1e0ec4e5b346588f161c8df8b866`.
+The six actions are independently reviewed and accepted; old action/journal
+prefixes and earlier receipts remain preserved.
+
+The initializer expands the selectors into a 90-by-129 longword pointer grid
+at runtime `[0x4000,0xF568)`. This is writable runtime workspace, not source-file
+asset storage. It is an additional placement constraint for alternate layouts.
+Tile offsets are multiples of 128 relative to runtime atlas base `0x1D0A8`
+(source `0xD0A8` under the native copied view). Those offsets remain relative
+values when an atlas base changes; they must not be blindly relocated as pointers.
+
+The initialized map selects 475 distinct 128-byte tiles: 60,800 bytes in 25
+intervals within `[0xD0A8,0x1CEA8)`. The 33 holes remain unclaimed. Independent
+review establishes ascending blits for recognized normal-entry static writer
+paths; unknown indirect/interior/external writers remain outside that contract.
+Classification of those selected intervals is the next separate canonical slice;
+the entire atlas envelope and its exclusive allocation are not thereby proven.
