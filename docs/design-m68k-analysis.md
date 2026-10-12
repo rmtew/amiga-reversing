@@ -1351,3 +1351,21 @@ need an explicit source/runtime mapping before the ranges are comparable.
 - Treat comment-only output as a side effect, not a real analysis gain.
 - Keep M68K instruction behavior in generated decode/effect data, not hand-coded
   renderer heuristics.
+
+### Unphased absolute control promotion
+
+A source entry point does not establish the runtime execution domain of that
+routine. When an executable policy range has a nonidentity source/runtime
+mapping, native discovery refuses absolute control promotion from source roots
+without established entry lineage. Inferred numeric runtime addresses on their
+fallthrough instructions do not establish that lineage. The normal initial
+entry and an unambiguous explicit runtime entry can establish it; copied-range
+hints cannot. Pointer-only policy observations do not enable this refusal.
+Source-relative flow, indexed source stubs, relocations and identity-domain
+behavior retain their existing contracts.
+
+This is a refusal rule, not a temporal memory model. Established paths retain
+existing coordinate resolution. Copy-helper returns, overwritten memory and a
+proven lineage arriving after a source instruction was already accepted remain
+limitations of the existing analyzer. A disputed target may remain unresolved;
+this rule does not reconcile or prune previously accepted code.

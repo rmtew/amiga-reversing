@@ -469,3 +469,21 @@ Package manifest fingerprint:
   --binary-assets --minimum-asset-size 128 --verify-package \
   --output .runtime-state/pandora-analysis/pandora-reviewed-scenes-and-audio.zip --json
 ```
+
+## Approved narrower native refusal
+
+The larger copied-code experiment was preserved and withdrawn from the active
+source. The accepted replacement prevents premature absolute-code promotion from
+unphased source roots; it adds 66 native lines and removes seven, without history,
+return, replay or pruning machinery. Focused preservation/refusal cases and all
+638 native IR tests pass. One independently checked frozen Pandora artifact
+rebuilds all 376,832 original bytes exactly with C and vasm. Source `0x3D310` is
+no longer accepted code; helper `0x4D310` remains unresolved and unaccepted. Neither
+disputed interval nor its overlapping banks was classified. The earlier coverage
+table and 76.42% value are pre-fix snapshots, not newly measured percentages.
+
+Copy-helper return/stale-code behavior, temporal overwrites and late-arriving
+execution lineage remain explicit limitations. Independent text/audio work may
+continue after this bounded gate. The loopback service was rebuilt/restarted once
+at `http://127.0.0.1:8123/` (PID 39298). See the
+[scope, exact proof, reproduction and preserved experiment](../validation/pandora-entry-lineage-refusal.md).
