@@ -833,11 +833,23 @@ def _source_export_payload(project_name: str, query: dict[str, list[str]]) -> di
     if not _is_listing_project(project) or not project.ready:
         raise ValueError(f"Project {project_name} is not ready for source export")
     assembler_profile = _first_query_value(query, "assembler_profile") or "vasm"
-    return source_export_payload(
-        project_name,
-        assembler_profile=assembler_profile,
-        project_root=PROJECT_ROOT,
+    binary_assets = _first_query_value(query, "binary_assets") or "false"
+    if binary_assets not in {"true", "false"}:
+        raise ValueError("binary_assets must be true or false")
+    options = {}
+    if binary_assets == "true":
+        options = {"binary_assets": True,
+                   "minimum_asset_size": int(_first_query_value(query, "minimum_asset_size") or "256")}
+    payload = source_export_payload(
+        project_name, assembler_profile=assembler_profile, project_root=PROJECT_ROOT, **options,
     )
+    if "package" in payload:
+        import base64
+
+        from amiga_reversing.disasm.source_package import source_package_zip
+        payload["archive_base64"] = base64.b64encode(source_package_zip(payload["package"])).decode("ascii")
+        payload["archive_filename"] = Path(str(payload["filename"])).with_suffix(".zip").name
+    return payload
 
 
 def _project_tool_capabilities_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:

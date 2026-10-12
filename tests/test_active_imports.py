@@ -101,6 +101,7 @@ def test_active_source_import_boundaries_are_current() -> None:
         "hashlib",
         "html",
         "http",
+        "io",  # deterministic in-memory source-package ZIP
         "json",
         "logging",
         "operator",

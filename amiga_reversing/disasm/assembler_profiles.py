@@ -14,6 +14,7 @@ _PROFILE_PATHS = {
 @dataclass(frozen=True, slots=True)
 class AssemblerDirectiveProfile:
     include: str
+    incbin: str
     section: str
     equ: str
     dc_b: str
@@ -113,6 +114,10 @@ def load_assembler_profile(profile_name: str) -> AssemblerProfile:
     line_ending = render_payload.get("line_ending")
     assert line_ending in ("lf", "crlf"), (
         f"Missing or invalid render_profile.line_ending in assembler KB: {profile_path}"
+    )
+    incbin_directive = directives_payload.get("incbin")
+    assert isinstance(incbin_directive, str) and incbin_directive, (
+        f"Missing render_profile.directives.incbin in assembler KB: {profile_path}"
     )
     include_directive = directives_payload.get("include")
     section_directive = directives_payload.get("section")
@@ -244,6 +249,7 @@ def load_assembler_profile(profile_name: str) -> AssemblerProfile:
             line_ending=line_ending,
             directives=AssemblerDirectiveProfile(
                 include=include_directive,
+                incbin=incbin_directive,
                 section=section_directive,
                 equ=equ_directive,
                 dc_b=dc_b_directive,

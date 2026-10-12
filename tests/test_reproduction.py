@@ -684,8 +684,9 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
     assert (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").read_text() == "dc.l $000003F3\n"
 
 
+@pytest.mark.parametrize("with_package", [False, True])
 def test_run_reproduction_preserves_pre_rendered_source_profile(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, with_package: bool
 ) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -718,19 +719,27 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
     }
 
     def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
+        if with_package:
+            source_path = cast(Path, args[1])
+            assert (source_path.parent / "assets/one.bin").read_bytes() == bytes.fromhex("123456")
         output_path = kwargs.get("output_path")
         if isinstance(output_path, Path):
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(original)
         return original, {"assemble_c_api": True, "total_seconds": 0.02}
 
-    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+    monkeypatch.setattr(
+        reproduction,
+        "assemble_platform_source_path_with_c_backend" if with_package else "assemble_platform_source_text_with_c_backend",
+        assemble_source,
+    )
     monkeypatch.setattr(
         reproduction,
         "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
         lambda _source, rebuilt_bytes, **_kwargs: _mock_c_compare_profile(original, rebuilt_bytes),
     )
 
+    package = _binary_source_package("dc.l $000003F3\n") if with_package else None
     report = run_reproduction(
         "demo",
         project_root=tmp_path,
@@ -738,6 +747,7 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
         source_assembly_debug=True,
         pre_rendered_source_text="dc.l $000003F3\n",
         pre_rendered_source_profile=source_profile,
+        pre_rendered_source_package=package,
     )
 
     assert report["status"] == "exact"
@@ -745,7 +755,13 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
     profile = cast(dict[str, object], report["profile"])
     assert profile["render_seconds"] == 0.125
     assert profile["reused_source_text"] == 1.0
-    assert (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
+    if package is not None:
+        assert report["source_package_sha256"] == package["sha256"]
+        assert report["input_stamp"]["source_package_sha256"] == package["sha256"]
+        assert Path(report["source_path"]).read_text() == "dc.l $000003F3\n"
+        assert (Path(report["source_path"]).parent / "assets/one.bin").exists()
+    else:
+        assert (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 
 
 def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
@@ -1890,3 +1906,74 @@ def test_effective_metadata_includes_disk_entry_source_context(tmp_path: Path) -
         "entry_path": "MD",
         "parent_disk_id": "demo-parent",
     }
+
+
+def _binary_source_package(source: str = '    INCBIN "assets/one.bin"\n') -> dict:
+    from amiga_reversing.disasm.source_package import build_source_package
+
+    return build_source_package(
+        {"filename": "demo.s", "source_text": source, "target": "demo", "assembler_profile": "vasm",
+         "metadata_hash": "metadata", "target_identity_sha256": "target"},
+        [{"path": "assets/one.bin", "data_hex": "123456", "size": 3},
+         {"path": "assets/nested/two.bin", "data_hex": "789a", "size": 2}],
+        1,
+    )
+
+
+def test_source_package_assembly_stages_assets_relative_to_source(monkeypatch, tmp_path: Path) -> None:
+    source = '    INCBIN "assets/one.bin"\ninterior:\n    INCBIN "assets/nested/two.bin"\n'
+    package = _binary_source_package(source)
+    staged_paths = []
+
+    def assemble(backend, source_path, **kwargs):
+        staged_paths.append(source_path)
+        assert backend == "amiga-raw"
+        assert source_path.read_text() == source
+        data = (source_path.parent / "assets/one.bin").read_bytes()
+        data += (source_path.parent / "assets/nested/two.bin").read_bytes()
+        return data, {"assemble_c_api": True}
+
+    monkeypatch.setattr(reproduction, "assemble_platform_source_path_with_c_backend", assemble)
+    result = reproduction.run_source_assembly_phase(
+        backend="amiga-raw", source_text=source, source_package=package,
+        include_dir=None, target_cpu="68000", project_root=tmp_path,
+    )
+    assert result.rebuilt_bytes == bytes.fromhex("123456789a")
+    assert not staged_paths[0].exists()
+
+
+@pytest.mark.parametrize("problem", ["source", "asset"])
+def test_source_package_assembly_rejects_identity_changes(monkeypatch, tmp_path: Path, problem: str) -> None:
+    package = _binary_source_package()
+    source = '    INCBIN "assets/one.bin"\n'
+    if problem == "source":
+        source += "rts\n"
+    else:
+        package["files"][0]["data_base64"] = "AAAA"
+    monkeypatch.setattr(
+        reproduction, "assemble_platform_source_path_with_c_backend",
+        lambda *args, **kwargs: pytest.fail("Invalid package must not reach assembler"),
+    )
+    with pytest.raises(ValueError, match="differs|integrity"):
+        reproduction.run_source_assembly_phase(
+            backend="amiga-raw", source_text=source, source_package=package,
+            include_dir=None, target_cpu="68000", project_root=tmp_path,
+        )
+
+
+@pytest.mark.parametrize("change", ["asset", "stale", "manifest"])
+def test_package_evidence_reuse_refuses_modified_existing_files(tmp_path: Path, change: str) -> None:
+    package = _binary_source_package()
+    directory = tmp_path / package["sha256"]
+    source = reproduction._persist_source_package(package, directory)
+    assert reproduction._persist_source_package(package, directory) == source
+    if change == "asset":
+        path = directory / "assets/one.bin"
+    elif change == "manifest":
+        path = directory / "manifest.json"
+    else:
+        path = directory / "old.bin"
+    path.write_bytes(b"{}")
+    with pytest.raises(ValueError, match="differs"):
+        reproduction._persist_source_package(package, directory)
+    assert path.read_bytes() == b"{}"

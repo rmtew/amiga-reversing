@@ -1717,6 +1717,48 @@ static int test_source_rs_zero_offset_symbol_uses_address_indirect_encoding(void
   return 0;
 }
 
+static int test_source_incbin_exact_bytes_and_relocation(void) {
+  AsmSourceFile source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  const uint8_t expected[] = {0U,255U,128U,39U,34U,13U,10U,127U,0U,0U,0U,5U,0U,5U,0xabU,0xcdU};
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_and_layout(&source,
+    "src/tests/fixtures/incbin/source.s", m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT(m68k_source_pipeline_emit_object(&source, &object, m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(sizeof(expected), object.sections[0].data_size);
+  M68K_C_ASSERT(memcmp(expected, object.sections[0].data, sizeof(expected)) == 0);
+  M68K_C_ASSERT_U32(1U, object.fixup_count);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&source);
+  return 0;
+}
+
+static int test_source_incbin_requires_safe_explicit_root(void) {
+  const char *invalid[] = {"../first.bin", "/first.bin", "C:/first.bin", "assets/../first.bin",
+    "assets//first.bin", "assets/./first.bin", "assets\\first.bin", "assets/missing.bin", "assets", "assets/first.bin\",1,2;\""};
+  size_t index;
+  for (index = 0U; index <= sizeof(invalid) / sizeof(invalid[0]); ++index) {
+    AsmSourceFile source;
+    M68kDiagList diagnostics;
+    char text[256];
+    M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
+    m68k_diag_list_reset(&diagnostics);
+    source.target_cpu = M68K_ASM_CPU_68000;
+    if (index < sizeof(invalid) / sizeof(invalid[0])) {
+      snprintf(source.asset_dir, sizeof(source.asset_dir), "src/tests/fixtures/incbin");
+      snprintf(text, sizeof(text), "SECTION assets,data\n INCBIN \"%s\"\n", invalid[index]);
+    } else snprintf(text, sizeof(text), "SECTION assets,data\n INCBIN \"assets/first.bin\"\n");
+    M68K_C_ASSERT(!m68k_source_pipeline_parse_text_and_layout(&source, text, m68k_diag_sink(&diagnostics)));
+    M68K_C_ASSERT(m68k_diag_has_errors(&diagnostics));
+    m68k_source_model_free(&source);
+  }
+  return 0;
+}
+
 static int test_source_symbolic_absolute_word_jmp_stays_absolute(void) {
   AsmSourceFile source;
   M68kObject object;
@@ -38227,6 +38269,8 @@ int m68k_c_ir_tests(void) {
       test_render_named_indirect_preserves_encoded_addressing_mode},
     {"source_rs_zero_offset_symbol_uses_address_indirect_encoding",
       test_source_rs_zero_offset_symbol_uses_address_indirect_encoding},
+    {"source_incbin_exact_bytes_and_relocation", test_source_incbin_exact_bytes_and_relocation},
+    {"source_incbin_requires_safe_explicit_root", test_source_incbin_requires_safe_explicit_root},
     {"source_symbolic_absolute_word_jmp_stays_absolute",
       test_source_symbolic_absolute_word_jmp_stays_absolute},
     {"source_absolute_word_high_bit_payload_reassembles",
