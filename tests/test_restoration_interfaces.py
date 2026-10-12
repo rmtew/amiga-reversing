@@ -105,6 +105,21 @@ def test_cli_http_equivalence_and_stale_refusal(operation_server):
     assert requests[-1]["expected_revision"] == "old"
 
 
+def test_cli_batch_forwards_one_revision_and_entries(operation_server):
+    url, requests = operation_server
+    parameters = {"expected_revision": "current", "entries": [{
+        "command_id": "comment.edit", "context": {"kind": "row"},
+        "parameters": {"text": "Supported caller evidence."},
+        "evidence": {"reason": "Native caller", "evidence_refs": ["s0:00000000:instruction"]},
+    }]}
+    result = subprocess.run([
+        sys.executable, "-m", "amiga_reversing.tools.restoration", "--server", url,
+        "--target", "demo", "interpret_batch", "--request", "-",
+    ], input=json.dumps(parameters), cwd=ROOT, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    assert requests[-1] == {"operation": "interpret_batch", **parameters}
+
+
 def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
     pytest.importorskip("mcp")
     from mcp import ClientSession
@@ -125,7 +140,7 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             initialized = await session.initialize()
             assert initialized.server_info.name == "Amiga source restoration"
             tools = (await session.list_tools()).tools
-            assert len(tools) == 9
+            assert len(tools) == 11
             by_name = {tool.name: tool for tool in tools}
             assert by_name["restoration_query"].annotations.read_only_hint
             assert not by_name["restoration_interpret"].annotations.read_only_hint
@@ -170,6 +185,14 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             assert not result.is_error
             assert requests[-1]["operation"] == "interpret"
             assert requests[-1]["evidence"]["source_evidence_status"] == "hypothesis"
+            entries = [{"command_id": "comment.edit", "context": {"kind": "row"},
+                        "parameters": {"text": "Caller evidence."},
+                        "evidence": {"reason": "Native caller", "evidence_refs": ["row-key"]}}]
+            batch = await session.call_tool("restoration_interpret_batch", {
+                "project": "demo", "expected_revision": "current", "entries": entries})
+            assert not batch.is_error
+            assert requests[-1] == {"operation": "interpret_batch", "expected_revision": "current", "entries": entries}
+            assert not by_name["restoration_interpret_batch"].annotations.read_only_hint
             rejected = await session.call_tool(
                 "restoration_verify", {"project": "demo", "expected_revision": "old"}
             )

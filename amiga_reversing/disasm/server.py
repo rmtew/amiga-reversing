@@ -2579,8 +2579,9 @@ def _execute_command(project_name: str, body: Mapping[str, object] | None) -> di
     return execute(project_name, {**dict(body or {}), "operation": "command"})
 
 
-def _execute_command_unchecked(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
-    workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
+def _prepare_catalog_command(
+    project_name: str, body: Mapping[str, object] | None, workflow_profile: WorkflowProfile,
+) -> dict[str, object]:
     payload_body = dict(body or {})
     command_id = payload_body.get("command_id")
     if not isinstance(command_id, str) or not command_id:
@@ -2601,26 +2602,38 @@ def _execute_command_unchecked(project_name: str, body: Mapping[str, object] | N
         raise _command_contract_error("invalid_command_context", f"Command is not available: {command_id}")
     if command.get("appends_to_manual_action_log") is not True:
         raise _command_contract_error("non_mutable_command", f"Command is not mutable: {command_id}")
-    result = _execute_manual_action_command(
-        project_name,
-        command_id,
-        command_context,
-        rows,
+    action_payloads = _prepare_manual_action_command(
+        project_name, command_id, command_context, rows,
         cast(dict[str, object] | None, parameters),
-        workflow_profile=workflow_profile,
         interpretation=payload_body.get("interpretation"),
     )
+    return {"command_id": command_id, "command": command,
+            "context": command_context, "action_payloads": action_payloads}
+
+
+def _execute_catalog_commands_unchecked(project_name: str, bodies: list[dict]) -> dict[str, object]:
+    """Prepare every catalog command before one atomic append and invalidation.
+
+    The caller holds the target lock and has checked its single expected revision.
+    No preparation invalidates the current native artifact.
+    """
+    workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
+    prepared = [_prepare_catalog_command(project_name, body, workflow_profile) for body in bodies]
+    result = _apply_manual_action_commands(project_name, prepared, workflow_profile=workflow_profile)
     response_started_at = time.perf_counter()
-    response = {
-        **result,
-        "web_state_contract": WEB_STATE_COMMAND_CONTRACT,
-        "command_id": command_id,
-        "effect": command["effect"],
-        "context": _public_command_context(command_context),
-    }
+    result["commands"] = [{"command_id": entry["command_id"],
+        "effect": entry["command"]["effect"],
+        "context": _public_command_context(entry["context"])} for entry in prepared]
+    result["web_state_contract"] = WEB_STATE_COMMAND_CONTRACT
     workflow_profile.add_span("response_build", time.perf_counter() - response_started_at, module="server")
-    response["workflow_profile"] = workflow_profile.to_payload()
-    return response
+    result["workflow_profile"] = workflow_profile.to_payload()
+    return result
+
+
+def _execute_command_unchecked(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
+    result = _execute_catalog_commands_unchecked(project_name, [dict(body or {})])
+    command = result.pop("commands")[0]
+    return {**result, **command}
 
 
 def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list[str]]:
@@ -2681,16 +2694,15 @@ def _parameters_with_source_evidence(
     return merged
 
 
-def _execute_manual_action_command(
+def _prepare_manual_action_command(
     project_name: str,
     action_id: str,
     context: Mapping[str, object],
     rows: list[dict[str, object]],
     parameters: dict[str, object] | None,
     *,
-    workflow_profile: WorkflowProfile | None = None,
     interpretation: object = None,
-) -> dict[str, object]:
+) -> list[tuple[str, dict[str, object]]]:
     project = get_project(project_name)
     context_kind = context.get("kind")
     if project.kind is not ProjectKind.BINARY or (context_kind != "target" and not project.ready):
@@ -2718,12 +2730,33 @@ def _execute_manual_action_command(
         action_payloads = listing_range_catalog_manual_payload(rows, action_id, parameters=parameters)
     else:
         raise _command_contract_error("invalid_command_context", f"Unsupported command context: {context_kind}")
+    if interpretation is not None:
+        action_payloads = [(kind, {**payload, "interpretation": interpretation}) for kind, payload in action_payloads]
+    return action_payloads
+
+
+def _execute_manual_action_command(
+    project_name: str, action_id: str, context: Mapping[str, object],
+    rows: list[dict[str, object]], parameters: dict[str, object] | None, *,
+    workflow_profile: WorkflowProfile | None = None, interpretation: object = None,
+) -> dict[str, object]:
+    action_payloads = _prepare_manual_action_command(
+        project_name, action_id, context, rows, parameters, interpretation=interpretation)
+    return _apply_manual_action_commands(project_name,
+        [{"context": context, "action_payloads": action_payloads}], workflow_profile=workflow_profile)
+
+
+def _apply_manual_action_commands(
+    project_name: str, prepared: list[dict[str, object]], *,
+    workflow_profile: WorkflowProfile | None = None,
+) -> dict[str, object]:
+    action_entries = [(kind, payload, entry["context"]) for entry in prepared
+                      for kind, payload in entry["action_payloads"]]
+    action_payloads = [(kind, payload) for kind, payload, _ in action_entries]
     paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
     binary_source = resolve_target_binary_source(paths.target_dir)
     if binary_source is None:
         raise ValueError(f"Project {project_name} has no source binary")
-    if interpretation is not None:
-        action_payloads = [(kind, {**payload, "interpretation": interpretation}) for kind, payload in action_payloads]
     append_started_at = time.perf_counter()
     appended_actions = append_manual_actions(
         paths.target_dir,
@@ -2733,7 +2766,7 @@ def _execute_manual_action_command(
     if workflow_profile is not None:
         workflow_profile.add_span("manual_action_append", time.perf_counter() - append_started_at, module="manual_action_log")
     application_parts: list[dict[str, object]] = []
-    for kind, action_payload in action_payloads:
+    for kind, action_payload, context in action_entries:
         application_started_at = time.perf_counter()
         try:
             application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
@@ -2764,7 +2797,8 @@ def _execute_manual_action_command(
                 detail={"mode": invalidation_mode},
             )
     mark_project_updated(paths.target_dir)
-    affected_locators = _affected_command_locators(context)
+    affected_locators = [locator for entry in prepared
+                         for locator in _affected_command_locators(entry["context"])]
     return {
         "action": appended_actions[0],
         "actions": appended_actions,
@@ -2773,7 +2807,7 @@ def _execute_manual_action_command(
             paths.target_dir,
             durable_action_id=str(appended_actions[-1].get("action_id") or ""),
             affected_locators=affected_locators,
-            projection_hash=_command_projection_hash(context),
+            projection_hash=_command_projection_hash(prepared[0]["context"]),
         ),
     }
 

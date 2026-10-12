@@ -76,6 +76,25 @@ The context above is schematic: copy the complete context and command from the
 actual `inspect.commands` catalog. Do not invent locators or arbitrary manual
 payload kinds. Supported evidence status is `hypothesis` or `analysis_proven`.
 
+Use `interpret_batch` for a connected set of 1..100 interpretations from the same
+inspected revision:
+
+```sh
+python -m amiga_reversing.tools.restoration --target TARGET interpret_batch --request batch.json
+```
+
+`batch.json` has one top-level `expected_revision` and an `entries` array. Each
+entry contains `command_id`, the actual catalog `context`, `parameters` and
+`evidence`, using the same shape as the singleton example above. Entries must
+omit `operation` and `expected_revision`. All evidence references and command
+contexts are checked against the same native artifact before any write. The
+Manual Action Log validates the complete batch and appends it atomically; an
+invalid final entry or stale revision leaves both histories unchanged. The
+service applies the actions and invalidates the projection once, then returns
+`actions`, per-entry `commands`, and the resulting revision. Inspect and verify
+that resulting revision before review. Batches do not observe earlier entries
+as fresh catalog state, so dependent commands require a new inspection.
+
 Run `interpret`, inspect its new revision, then `verify`. Verification returns a
 `receipt_id`; review acceptance requires that receipt for the current subject.
 A bounded `probe` associates its configured scenario with an explicit question
@@ -101,8 +120,8 @@ Launch the adapter through an MCP host's stdio configuration:
 ```
 
 The project server must already run. The adapter opens no listener and only
-connects to a local HTTP origin. Its nine domain tools mirror state, query,
-inspect, interpret, verify, probe, review, history and rollback. Read operations
+connects to a local HTTP origin. Its domain tools mirror state, export, query,
+inspect, interpret, interpret_batch, verify, probe, review, history and rollback. Read operations
 are annotated read-only; mutations require explicit revisions. HTTP domain
 refusals surface as MCP tool errors, without automatic retries.
 

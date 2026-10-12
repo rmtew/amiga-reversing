@@ -298,14 +298,13 @@ def _inspect(target_id, body, current):
             "unknowns": ["A source name is an interpretation, not evidence of runtime reachability."]}
 
 
-def _interpret(target_id, body, current):
+def _interpretation_body(target_id, body, current, artifact):
     evidence = body.get("evidence")
     if not isinstance(evidence, dict) or not str(evidence.get("reason", "")).strip():
         raise ValueError("interpretation needs a concrete reason and source evidence")
     refs = evidence.get("evidence_refs", evidence.get("source_evidence_refs"))
     if not isinstance(refs, list) or not 1 <= len(refs) <= 32:
         raise ValueError("supply 1..32 canonical source evidence references")
-    artifact = _artifact(target_id)
     for ref in refs:
         match = re.fullmatch(r"s(\d+):([0-9A-Fa-f]{8}):[a-z_]+", str(ref))
         if not match:
@@ -321,7 +320,24 @@ def _interpret(target_id, body, current):
         "command_id": body.get("command_id")}
     metadata.pop("source_evidence_refs", None)
     metadata.setdefault("source_evidence_status", "hypothesis")
-    return _server()._execute_command_unchecked(target_id, {**body, "interpretation": metadata})
+    return {**body, "interpretation": metadata}
+
+
+def _interpret(target_id, body, current):
+    prepared = _interpretation_body(target_id, body, current, _artifact(target_id))
+    return _server()._execute_command_unchecked(target_id, prepared)
+
+
+def _interpret_batch(target_id, body, current):
+    entries = body.get("entries")
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 100:
+        raise ValueError("interpret_batch requires 1..100 entries")
+    if any(not isinstance(entry, dict) or "expected_revision" in entry or "operation" in entry
+           for entry in entries):
+        raise ValueError("batch entries must be interpretation parameters without operation or expected_revision")
+    artifact = _artifact(target_id)
+    prepared = [_interpretation_body(target_id, entry, current, artifact) for entry in entries]
+    return _server()._execute_catalog_commands_unchecked(target_id, prepared)
 
 
 def _review(target_id, body, current):
@@ -380,7 +396,7 @@ def execute(target_id: str, body: dict) -> dict:
     directory = _paths(target_id).target_dir
     with target_lock(directory):
         current = revisions(target_id)
-        if operation in {"interpret", "command", "verify", "probe", "review", "rollback"}:
+        if operation in {"interpret", "interpret_batch", "command", "verify", "probe", "review", "rollback"}:
             current = require_revision(target_id, body.get("expected_revision"))
         elif body.get("expected_revision") is not None:
             current = require_revision(target_id, body["expected_revision"])
@@ -402,6 +418,8 @@ def execute(target_id: str, body: dict) -> dict:
             return _envelope(_page(list(reversed(_history(target_id))), offset, limit), current, filters)
         if operation == "interpret":
             result = _interpret(target_id, body, current)
+        elif operation == "interpret_batch":
+            result = _interpret_batch(target_id, body, current)
         elif operation == "command":
             result = _server()._execute_command_unchecked(target_id, body)
         elif operation in {"verify", "probe"}:

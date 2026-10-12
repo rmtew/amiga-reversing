@@ -25,6 +25,7 @@ def main(argv: list[str] | None = None) -> int:
             "query",
             "inspect",
             "interpret",
+            "interpret_batch",
             "verify",
             "probe",
             "review",
