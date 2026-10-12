@@ -307,3 +307,30 @@ write address was therefore `0xDFFE10`. Receipt:
 This is one observed call after gameplay entry, not proof about every caller or
 the bus effect of the write. The original bytes remain unchanged. Both owned
 emulators exited; no instruction trace was collected.
+
+## Completed input interpretation
+
+Seven canonical actions are independently reviewed and accepted: rename source
+`0x7F0` to `poll_joystick1_directions_and_fire`, add the scalar bytes
+`app_input_fire_pressed_ff` at app offset `0x22F` and
+`app_last_pressed_raw_key` at `0x222`, and add four semantic comments. The fire
+byte propagates to all eight native uses; the key slot is stored only on press
+on the inspected decoder path. The joystick mask uses up/down/left/right bits
+0/1/2/3; opposed inputs retain both mask bits while left/up overwrite signed
+steps. The routine returns that mask in D0, and its final Z flag ignores fire.
+
+The key decoder bounds its fixed runtime state table to 128 bytes at
+`[0x397C,0x39FC)`, storing FF for press and zero for release. This does not make
+the table source-image data or prove every indirect user. The absent-PORTS
+branch preserves the qualified A0-write observation above. Nineteen `MULU.W #1`
+operations preserve the low word and zero-extend the first result; no fixed
+elapsed-time claim is made. Review removed an unapplied destination-dependent
+timing claim: [MC68000UM §8.3](https://www.nxp.com/docs/en/reference-manual/MC68000UM.pdf)
+defines MULU's variable timing in terms of the source operand.
+
+All 69 inspected instruction encodings match the original. Current source again
+reproduces the entire original with C and vasm. Receipt:
+`c9157906795e9fa396f8eb50894a3c4ab0312b65d92dc4150e61516922ebc0f3`,
+source subject `23f77d51019537ca4063cd69bc6824c0050742ac144d6d0f615078333db0731f`.
+History prefixes are preserved and the timestamp-only project update is removed.
+This slice changes names and comments, not code bytes or original behavior.

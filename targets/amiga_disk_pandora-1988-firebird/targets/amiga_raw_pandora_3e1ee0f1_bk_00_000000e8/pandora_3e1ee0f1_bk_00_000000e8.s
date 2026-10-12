@@ -97,7 +97,7 @@ app_inventory_cursor_y RS.W 1
 app_0218 RS.W 1
 app_021A RS.W 1
     RS.B 6
-app_0222 RS.B 1
+app_last_pressed_raw_key RS.B 1
     RS.B 1
 app_scrolling_message_timer RS.W 1
 app_inventory_cursor_x_step RS.W 1
@@ -106,7 +106,7 @@ app_inventory_cursor_move_countdown RS.W 1
 app_inventory_selection_latched RS.B 1
 app_022D RS.B 1
 app_ui_flags RS.B 1
-app_022F RS.B 1
+app_input_fire_pressed_ff RS.B 1
 app_0230 RS.W 1
 app_scrolling_message_queue_head RS.L 1
     RS.B 60
@@ -664,7 +664,7 @@ wait_for_completed_frame:
 	jsr process_terminal_item_deposit.l
 	bsr.w abs_0_00012D2A
 	lea.l _custom.l,a5
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	jsr abs_0_00019A48.l
 	bsr.w abs_0_00017DA6
 	bsr.w abs_0_00012D5A
@@ -805,10 +805,11 @@ prime_blitter_completion_request:
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w #(1<<6)|1,bltsize(a5)	; blitter size 1 rows x 1 words (2 bytes/row)
 	rts
-abs_0_000107F0:
+    ; A6 is app base. D0 returns bits 0:up 1:down 2:left 3:right; clobbers D1/D2/A5. Return Z ignores fire; opposed steps prefer left/up.
+poll_joystick1_directions_and_fire:
 	lea.l _custom.l,a5
 	tst.b _ciaa+ciapra.l
-	spl.b app_022F(a6)
+	spl.b app_input_fire_pressed_ff(a6)
 	move.w joy1dat(a5),d1	; joystick/mouse port 1 data
 	not.w d1
 	moveq.l #0,d0
@@ -843,9 +844,11 @@ abs_0_0001084E:
 	move.w d2,app_input_y_step(a6)
 	move.w d0,app_input_direction_mask(a6)
 	rts
+    ; On PORTS, decode into the 128-byte key table at $397C: FF press, 00 release. Last-pressed raw key updates only on press.
 poll_keyboard_serial_input:
 	move.w $001E(a5),d0
 	btst #3,d0
+    ; Without PORTS, skip CIAA setup but still write caller A0+$E00. A gameplay probe observed target $DFFE10; write effect unknown.
 	beq.b abs_0_00010886
 	lea.l _ciaa.l,a0
 	moveq.l #0,d0
@@ -856,9 +859,10 @@ poll_keyboard_serial_input:
 	bclr #7,d0
 	seq.b $0(a1,d0.l)
 	bne.b abs_0_00010886
-	move.b d0,app_0222(a6)
+	move.b d0,app_last_pressed_raw_key(a6)
 abs_0_00010886:
 	move.b #CIACRAF_SPMODE,ciacra(a0)
+    ; 19 MULU.W #1 operations delay acknowledgement. Low word unchanged; first result zero-extended. No fixed elapsed time asserted.
 	mulu.w #$1,d0
 	mulu.w #$1,d0
 	mulu.w #$1,d0
@@ -1422,8 +1426,8 @@ abs_0_00011052:
 	moveq.l #31,d7
 	bsr.w add_rgb12_palette_components
 abs_0_00011070:
-	bsr.w abs_0_000107F0
-	tst.b app_022F(a6)
+	bsr.w poll_joystick1_directions_and_fire
+	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_00010FD2
 	bset.b #1,app_status_flags(a6)
 	jsr reset_audio_channels.l
@@ -2522,7 +2526,7 @@ handle_inventory_panel_input:
 	bne.b abs_0_00012918
 	tst.w app_inventory_cursor_move_countdown(a6)
 	bne.w advance_inventory_cursor_move
-	tst.b app_022F(a6)
+	tst.b app_input_fire_pressed_ff(a6)
 	beq.b start_inventory_cursor_move
 	bsr.w handle_inventory_panel_selection
 	bsr.b update_inventory_panel_player_palette
@@ -3024,7 +3028,7 @@ abs_0_00012F44:
 	bcs.b abs_0_00012F16
 	bra.w abs_0_00017792
 abs_0_00012F56:
-	tst.b app_022F(a6)
+	tst.b app_input_fire_pressed_ff(a6)
 	beq.b abs_0_00012F16
 	move.b player_world_object_selected_item_id.l,d6
 	move.b world_object_shared_prefix_selected_item_id(a5),d5
@@ -6035,7 +6039,7 @@ abs_0_000178F4:
 	move.b d0,world_object_shared_prefix_hit_points+1(a4)
 	bsr.w abs_0_00017A94
 abs_0_00017938:
-	tst.b app_022F(a6)
+	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_00017980
 	move.w app_02AE(a6),d0
 	cmp.b #$19,d0
@@ -7343,7 +7347,7 @@ begin_security_checkpoint_response:
 abs_0_00018982:
 	rts
 process_terminal_item_deposit:
-	tst.b app_022F(a6)
+	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_00018A16
 	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
@@ -7510,7 +7514,7 @@ update_terminal_mode:
 	move.l d0,app_display_bitplane_base(a6)
 	bsr.w redraw_terminal_selected_item
 abs_0_00019016:
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	bne.b abs_0_00019016
 abs_0_0001901E:
 	bclr.b #5,app_status_flags(a6)
@@ -7518,7 +7522,7 @@ abs_0_00019024:
 	btst.b #5,app_status_flags(a6)
 	beq.b abs_0_00019024
 	bsr.w abs_0_00012D2A
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
 	bsr.w abs_0_00019A48
@@ -7538,10 +7542,10 @@ abs_0_00019074:
 	bsr.w update_terminal_selected_item
 	btst.b #2,app_ui_flags(a6)
 	bne.b abs_0_0001901E
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	beq.b abs_0_0001901E
 abs_0_00019088:
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	bne.b abs_0_00019088
 	clr.w app_0296(a6)
 	clr.w app_0298(a6)
@@ -7701,7 +7705,7 @@ abs_0_0001926E:
 	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
 	bne.w abs_0_000193D8
-	tst.b app_022F(a6)
+	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_000193D4
 	tst.b app_031B(a6)
 	bne.w abs_0_000193D8
@@ -8413,7 +8417,7 @@ run_gameplay_update_loop:
 	bsr.w render_self_destruct_card_sequence
 	move.b #$80,app_031A(a6)
 abs_0_00019C2A:
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	bne.b abs_0_00019C2A
 abs_0_00019C32:
 	bclr.b #5,app_status_flags(a6)
@@ -8421,7 +8425,7 @@ abs_0_00019C38:
 	btst.b #5,app_status_flags(a6)
 	beq.b abs_0_00019C38
 	bsr.w abs_0_00012D2A
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
 	bsr.w abs_0_00019A48
@@ -8441,7 +8445,7 @@ abs_0_00019C88:
 	bsr.w process_self_destruct_card_input
 	btst.b #2,app_ui_flags(a6)
 	bne.b abs_0_00019C32
-	jsr abs_0_000107F0.l
+	jsr poll_joystick1_directions_and_fire.l
 	beq.b abs_0_00019C32
 	clr.w app_0296(a6)
 	clr.w app_0298(a6)
@@ -8453,7 +8457,7 @@ abs_0_00019C88:
 process_self_destruct_card_input:
 	btst.b #2,app_ui_flags(a6)
 	bne.w abs_0_00019DA8
-	tst.b app_022F(a6)
+	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_00019DA8
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b app_031A(a6),d0
