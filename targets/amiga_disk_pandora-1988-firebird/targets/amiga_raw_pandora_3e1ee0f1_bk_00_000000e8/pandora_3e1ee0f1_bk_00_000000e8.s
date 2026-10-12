@@ -1421,45 +1421,54 @@ string_0002109E:
 	dc.b "               TERRY GREER",$0D,$0D
 	dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00
 	dc.b $00
-abs_0_00011114:
+    ; Set object X/Y from words script+2/+4; advance A4 by 6.
+world_object_command_set_position:
 	move.w $0002(a4),world_object_shared_prefix_world_x(a5)
 	move.w $0004(a4),world_object_shared_prefix_world_y(a5)
 	addq.l #6,a4
 	rts
-abs_0_00011124:
+    ; Set object X from word script+2; advance A4 by 4.
+world_object_command_set_x:
 	move.w $0002(a4),world_object_shared_prefix_world_x(a5)
 	addq.l #4,a4
 	rts
-abs_0_0001112E:
+    ; Set object Y from word script+2; advance A4 by 4.
+world_object_command_set_y:
 	move.w $0002(a4),world_object_shared_prefix_world_y(a5)
 	addq.l #4,a4
 	rts
-abs_0_00011138:
+    ; Set object X from the word pointed to by long pointer script+2; advance A4 by 6.
+world_object_command_load_x:
 	movea.l $0002(a4),a0
 	move.w (a0),world_object_shared_prefix_world_x(a5)
 	addq.l #6,a4
 	rts
-abs_0_00011144:
+    ; Set object Y from the word pointed to by long pointer script+2; advance A4 by 6.
+world_object_command_load_y:
 	movea.l $0002(a4),a0
 	move.w (a0),world_object_shared_prefix_world_y(a5)
 	addq.l #6,a4
 	rts
-abs_0_00011150:
+    ; Add word script+2 to object X (16-bit wrap); advance A4 by 4.
+world_object_command_add_x:
 	move.w $0002(a4),d0
 	add.w d0,world_object_shared_prefix_world_x(a5)
 	addq.l #4,a4
 	rts
-abs_0_0001115C:
+    ; Add word script+2 to object Y (16-bit wrap); advance A4 by 4.
+world_object_command_add_y:
 	move.w $0002(a4),d0
 	add.w d0,world_object_shared_prefix_world_y(a5)
 	addq.l #4,a4
 	rts
-abs_0_00011168:
+    ; Add word script+2 to object Z (16-bit wrap); advance A4 by 4.
+world_object_command_add_z:
 	move.w $0002(a4),d0
 	add.w d0,world_object_shared_prefix_world_z(a5)
 	addq.l #4,a4
 	rts
-abs_0_00011174:
+    ; Add words script+2/+4/+6 to object X/Y/Z (16-bit wrap); advance A4 by 8.
+world_object_command_add_position:
 	move.w $0002(a4),d0
 	add.w d0,world_object_shared_prefix_world_x(a5)
 	move.w $0004(a4),d0
@@ -1468,23 +1477,27 @@ abs_0_00011174:
 	add.w d0,world_object_shared_prefix_world_z(a5)
 	addq.l #8,a4
 	rts
-abs_0_00011190:
+    ; Add words script+2/+4 to object X/Y (16-bit wrap); advance A4 by 6.
+world_object_command_add_xy:
 	move.w $0002(a4),d0
 	add.w d0,world_object_shared_prefix_world_x(a5)
 	move.w $0004(a4),d0
 	add.w d0,world_object_shared_prefix_world_y(a5)
 	addq.l #6,a4
 	rts
-abs_0_000111A4:
+    ; Set object delay word from script+2; advance A4 by 4. A nonzero delay stops this interpreter pass and is decremented on later calls.
+world_object_command_set_delay_ticks:
 	move.w $0002(a4),world_object_shared_prefix_behavior_script_delay_ticks(a5)
 	addq.l #4,a4
 	rts
-abs_0_000111AE:
+    ; Let d be signed word script+2. Copy word [A4+d+2] to [A4+d+4], then advance A4 by 4. This writes script-relative storage.
+world_object_command_copy_relative_word:
 	movea.w $0002(a4),a0
 	move.w $2(a4,a0.w),$4(a4,a0.w)
 	addq.l #4,a4
 	rts
-abs_0_000111BC:
+    ; If word script+4 is nonzero, decrement it and add signed word script+6 to A4. Otherwise reload script+4 from script+2 and advance A4 by 8.
+world_object_command_repeat_branch_or_reload:
 	tst.w $0004(a4)
 	beq.b abs_0_000111CC
 	subq.w #1,$0004(a4)
@@ -1494,14 +1507,16 @@ abs_0_000111CC:
 	move.w $0002(a4),$0004(a4)
 	addq.l #8,a4
 	rts
-abs_0_000111D6:
+    ; Call long pointer script+2 with A4-A5 saved/restored; advance A4 by 6. Other register and memory effects depend on the callee.
+world_object_command_call_absolute:
 	movem.l a4-a5,-(a7)
 	movea.l $0002(a4),a0
 	jsr (a0)
 	movem.l (a7)+,a4-a5
 	addq.l #6,a4
 	rts
-abs_0_000111E8:
+    ; Call old A4 plus signed word script+2 with A4-A5 saved/restored; advance A4 by 4. Other register and memory effects depend on the callee.
+world_object_command_call_relative:
 	movem.l a4-a5,-(a7)
 	movea.l a4,a0
 	adda.w $0002(a4),a0
@@ -1509,17 +1524,20 @@ abs_0_000111E8:
 	movem.l (a7)+,a4-a5
 	addq.l #4,a4
 	rts
-abs_0_000111FC:
+    ; Store byte script+3 in the object movement-direction flags; advance A4 by 4.
+world_object_command_set_movement_direction_flags:
 	move.b $0003(a4),world_object_shared_prefix_movement_direction_flags(a5)
 	addq.l #4,a4
 	rts
-abs_0_00011206:
+    ; Copy a word from the long pointer at script+2 to the long pointer at script+6; advance A4 by 10.
+world_object_command_copy_word:
 	movea.l $0002(a4),a0
 	movea.l $0006(a4),a1
 	move.w (a0),(a1)
 	lea.l $000A(a4),a4
 	rts
-abs_0_00011216:
+    ; Compare object X unsigned with the word pointed to by script+2. If X < word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
+world_object_command_branch_if_x_below:
 	movea.l $0002(a4),a0
 	move.w world_object_shared_prefix_world_x(a5),d0
 	cmp.w (a0),d0
@@ -1531,43 +1549,51 @@ abs_0_00011222:
 abs_0_0001122A:
 	addq.l #8,a4
 	rts
-abs_0_0001122E:
+    ; Compare object X unsigned with the word pointed to by script+2. If X > word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
+world_object_command_branch_if_x_above:
 	movea.l $0002(a4),a0
 	move.w world_object_shared_prefix_world_x(a5),d0
 	cmp.w (a0),d0
 	bls.b abs_0_0001122A
 	bra.b abs_0_00011222
-abs_0_0001123C:
+    ; Compare object Y unsigned with the word pointed to by script+2. If Y < word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
+world_object_command_branch_if_y_below:
 	movea.l $0002(a4),a0
 	move.w world_object_shared_prefix_world_y(a5),d0
 	cmp.w (a0),d0
 	bcc.b abs_0_0001122A
 	bra.b abs_0_00011222
-abs_0_0001124A:
+    ; Compare object Y unsigned with the word pointed to by script+2. If Y > word, add signed word script+6 plus 6 to A4; otherwise advance by 8.
+world_object_command_branch_if_y_above:
 	movea.l $0002(a4),a0
 	move.w world_object_shared_prefix_world_y(a5),d0
 	cmp.w (a0),d0
 	bls.b abs_0_0001122A
 	bra.b abs_0_00011222
-abs_0_00011258:
+    ; Compare object X with the word pointed to by script+2. On equality add signed word script+6 plus 6 to A4; otherwise advance by 8.
+world_object_command_branch_if_x_equal:
 	movea.l $0002(a4),a0
 	move.w world_object_shared_prefix_world_x(a5),d0
 	cmp.w (a0),d0
 	bne.b abs_0_0001122A
 	bra.b abs_0_00011222
-abs_0_00011266:
+    ; Compare object Y with the word pointed to by script+2. On equality add signed word script+6 plus 6 to A4; otherwise advance by 8.
+world_object_command_branch_if_y_equal:
 	movea.l $0002(a4),a0
 	move.w world_object_shared_prefix_world_y(a5),d0
 	cmp.w (a0),d0
 	bne.b abs_0_0001122A
 	bra.b abs_0_00011222
-abs_0_00011274:
+    ; Replace A4 with the long script pointer at script+2; no additional advance.
+world_object_command_jump_absolute:
 	movea.l $0002(a4),a4
 	rts
-abs_0_0001127A:
+    ; Add signed word script+2 to A4; no additional advance.
+world_object_command_jump_relative:
 	adda.w $0002(a4),a4
 	rts
-abs_0_00011280:
+    ; If current position-state bit 3 is clear, set its node from script+2; clear node sequence index and active bit 0. Advance A4 by 6.
+world_object_command_set_node_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 	btst.b #3,world_position_state_record_world_object_flags(a0)
@@ -1579,7 +1605,8 @@ abs_0_00011280:
 abs_0_000112A2:
 	addq.l #6,a4
 	rts
-abs_0_000112A6:
+    ; Follow attachment links to first position state with bit 3 set. Set node from script+2; clear node sequence index and active bit 0. Null link skips update; A4 += 6.
+world_object_command_set_node_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 abs_0_000112AE:
@@ -1597,7 +1624,8 @@ abs_0_000112C0:
 abs_0_000112D2:
 	addq.l #6,a4
 	rts
-abs_0_000112D6:
+    ; Follow attachment links to first position state with bit 3 clear. Set node from script+2; clear node sequence index and active bit 0. Null link skips update; A4 += 6.
+world_object_command_set_node_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 abs_0_000112DE:
@@ -1615,7 +1643,8 @@ abs_0_000112F0:
 abs_0_00011302:
 	addq.l #6,a4
 	rts
-abs_0_00011306:
+    ; If current position-state bit 3 is clear, set node from script+2; clear its sequence index/active bit 0 and set sequence pointer from script+6. Advance A4 by 10.
+world_object_command_set_node_sequence_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 	btst.b #3,world_position_state_record_world_object_flags(a0)
@@ -1628,7 +1657,8 @@ abs_0_00011306:
 abs_0_0001132E:
 	lea.l $000A(a4),a4
 	rts
-abs_0_00011334:
+    ; Seek first bit-3-set state via attachments; null skips update. Set node from script+2, clear index/active bit 0, set node sequence pointer from script+6. A4 += 10.
+world_object_command_set_node_sequence_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 abs_0_0001133C:
@@ -1647,7 +1677,8 @@ abs_0_0001134E:
 abs_0_00011366:
 	lea.l $000A(a4),a4
 	rts
-abs_0_0001136C:
+    ; Seek first bit-3-clear state via attachments; null skips update. Set node from script+2, clear index/active bit 0, set node sequence pointer from script+6. A4 += 10.
+world_object_command_set_node_sequence_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 abs_0_00011374:
@@ -1666,7 +1697,8 @@ abs_0_00011386:
 abs_0_0001139E:
 	lea.l $000A(a4),a4
 	rts
-abs_0_000113A4:
+    ; Follow attachments to first position state with bit 3 set, then toggle its node active bit 0. Null link skips update; advance A4 by 2.
+world_object_command_toggle_node_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 abs_0_000113AC:
@@ -1682,7 +1714,8 @@ abs_0_000113BE:
 abs_0_000113C8:
 	addq.l #2,a4
 	rts
-abs_0_000113CC:
+    ; Follow attachments to first position state with bit 3 clear, then toggle its node active bit 0. Null link skips update; advance A4 by 2.
+world_object_command_toggle_node_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 abs_0_000113D4:
@@ -1698,6 +1731,7 @@ abs_0_000113E6:
 abs_0_000113F0:
 	addq.l #2,a4
 	rts
+    ; A5 is the object; A4 is its script pointer. Start dispatch at zero delay with flag 1 clear. Save A4 after each opcode 0..32; loop while delay is zero. Later calls count down pending delay.
 run_world_object_behavior_script:
 	move.l world_object_shared_prefix_behavior_script_ptr(a5),d0
 	beq.b abs_0_00011408
@@ -1724,39 +1758,39 @@ abs_0_00011412:
 	beq.b abs_0_00011412
 	rts
 world_object_handler_ptrs:
-	dc.l abs_0_00011150	; pointer_table
-	dc.l abs_0_0001115C
-	dc.l abs_0_00011168
-	dc.l abs_0_00011174
-	dc.l abs_0_00011190
-	dc.l abs_0_000111A4
-	dc.l abs_0_000111BC
-	dc.l abs_0_000111D6
-	dc.l abs_0_000111FC
-	dc.l abs_0_00011206
-	dc.l abs_0_00011216
-	dc.l abs_0_0001122E
-	dc.l abs_0_0001123C
-	dc.l abs_0_0001124A
-	dc.l abs_0_00011258
-	dc.l abs_0_00011266
-	dc.l abs_0_00011124
-	dc.l abs_0_00011138
-	dc.l abs_0_0001112E
-	dc.l abs_0_00011144
-	dc.l abs_0_00011274
-	dc.l abs_0_000111AE
-	dc.l abs_0_000111E8
-	dc.l abs_0_00011114
-	dc.l abs_0_0001127A
-	dc.l abs_0_00011280
-	dc.l abs_0_000112A6
-	dc.l abs_0_000112D6
-	dc.l abs_0_00011306
-	dc.l abs_0_00011334
-	dc.l abs_0_0001136C
-	dc.l abs_0_000113A4
-	dc.l abs_0_000113CC
+	dc.l world_object_command_add_x	; pointer_table
+	dc.l world_object_command_add_y
+	dc.l world_object_command_add_z
+	dc.l world_object_command_add_position
+	dc.l world_object_command_add_xy
+	dc.l world_object_command_set_delay_ticks
+	dc.l world_object_command_repeat_branch_or_reload
+	dc.l world_object_command_call_absolute
+	dc.l world_object_command_set_movement_direction_flags
+	dc.l world_object_command_copy_word
+	dc.l world_object_command_branch_if_x_below
+	dc.l world_object_command_branch_if_x_above
+	dc.l world_object_command_branch_if_y_below
+	dc.l world_object_command_branch_if_y_above
+	dc.l world_object_command_branch_if_x_equal
+	dc.l world_object_command_branch_if_y_equal
+	dc.l world_object_command_set_x
+	dc.l world_object_command_load_x
+	dc.l world_object_command_set_y
+	dc.l world_object_command_load_y
+	dc.l world_object_command_jump_absolute
+	dc.l world_object_command_copy_relative_word
+	dc.l world_object_command_call_relative
+	dc.l world_object_command_set_position
+	dc.l world_object_command_jump_relative
+	dc.l world_object_command_set_node_if_flag3_clear
+	dc.l world_object_command_set_node_for_flag3_set
+	dc.l world_object_command_set_node_for_flag3_clear
+	dc.l world_object_command_set_node_sequence_if_flag3_clear
+	dc.l world_object_command_set_node_sequence_for_flag3_set
+	dc.l world_object_command_set_node_sequence_for_flag3_clear
+	dc.l world_object_command_toggle_node_for_flag3_set
+	dc.l world_object_command_toggle_node_for_flag3_clear
 abs_0_000114B6:
 	dc.b $4A,$FB
 abs_0_000114B8:
@@ -10747,97 +10781,54 @@ abs_0_000207F0:
 	dc.b $C1,$00,$43,$04,$9D,$FB,$A1,$00,$81,$00,$83,$04,$3D,$FB,$41,$00
 	dc.b $01,$00,$C3,$04,$1D,$FB,$21,$00,$01,$00,$23,$04,$CD,$FB,$D1,$00
 	dc.b $C1,$00,$13,$04,$E5,$FB,$E9,$00,$E1,$00,$F3,$04,$05,$FB,$09,$00
-	dc.b $01,$00,$03,$04,$05,$FB
-world_object_command_set_position:
-	dc.b $F9,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$05,$FF,$FB,$FF
-world_object_command_set_x:
-	dc.b $00,$00,$00,$00,$FF,$B0,$00,$5F,$00,$10
-world_object_command_set_y:
-	dc.b $FF,$90,$3F,$E0,$DF,$BF,$1F,$A0,$1F,$A0
-world_object_command_load_x:
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF
-world_object_command_load_y:
-	dc.b $10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20
-world_object_command_add_x:
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF
-world_object_command_add_y:
-	dc.b $10,$20,$10,$20,$30,$61,$DF,$BE,$10,$20,$10,$21
-world_object_command_add_z:
-	dc.b $30,$67,$DF,$B8,$10,$20,$10,$26,$30,$7E,$DF,$A1
-world_object_command_add_position:
-	dc.b $10,$21,$10,$39,$30,$78,$DF,$A7,$10,$27,$10,$37,$30,$78,$DF,$A7
-	dc.b $10,$27,$10,$37,$30,$7F,$DF,$A0,$10,$20,$10,$30
-world_object_command_add_xy:
-	dc.b $30,$7F,$DF,$A0,$10,$20,$10,$3F,$30,$60,$DF,$BF,$10,$20,$10,$20
-	dc.b $00,$20,$00,$5F
-world_object_command_set_repeat_count:
-	dc.b $00,$00,$FF,$80,$00,$00,$FF,$FF,$00,$00
-world_object_command_copy_relative_word:
-	dc.b $00,$00,$00,$18,$FF,$E7,$00,$00,$00,$18,$00,$7C,$FF,$83
-world_object_command_repeat_or_skip:
-	dc.b $00,$00,$00,$64,$01,$E6,$FE,$19,$00,$18,$01,$9A,$07,$83,$F8,$7C
-	dc.b $00,$7C,$06,$7D,$1E,$01,$E1,$FE,$01,$FE
-world_object_command_call_absolute:
-	dc.b $19,$FE,$78,$30,$87,$CF,$07,$CF,$67,$CF,$E0,$F8,$1F,$07,$1F,$07
-	dc.b $9F,$37
-world_object_command_call_relative:
-	dc.b $83,$FC,$7C,$03,$7C,$03,$7C,$FB,$0F,$FE,$F0,$01,$F0,$01,$F0,$01
-	dc.b $00,$00,$FF,$FF
-world_object_command_set_runtime_byte:
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-world_object_command_copy_word:
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-world_object_command_skip_if_x_less:
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$05,$FF,$FA,$00,$00,$00
-world_object_command_skip_if_x_greater:
-	dc.b $01,$FF,$03,$FC,$FD,$FB,$01,$F8,$01,$F8,$03,$04,$FD,$FB
-world_object_command_skip_if_y_less:
-	dc.b $01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04
-world_object_command_skip_if_y_greater:
-	dc.b $FD,$FB,$01,$00,$01,$00,$83,$04,$7D,$FB,$01,$00,$81,$00
-world_object_command_skip_if_x_not_equal:
-	dc.b $C3,$04,$3D,$FB,$01,$00,$41,$00,$63,$04,$9D,$FB,$81,$00
-world_object_command_skip_if_y_not_equal:
-	dc.b $A1,$00,$33,$04,$CD,$FB,$C1,$00,$D1,$00,$1B,$04,$E5,$FB
-world_object_command_load_script_pointer:
-	dc.b $E1,$00,$E9,$00,$0F,$04
-world_object_command_advance_script_pointer:
-	dc.b $F1,$FB,$F1,$00,$F5,$00
-world_object_command_attach_to_first_object:
-	dc.b $0F,$04,$F1,$FB,$F1,$00,$F5,$00,$FF,$04,$01,$FB,$01,$00,$05,$00
-	dc.b $FF,$04,$01,$FB,$01,$00,$FD,$00,$03,$04,$FD,$FB,$01,$00,$01,$00
-	dc.b $04,$00,$FA,$00,$00,$00
-world_object_command_attach_to_flagged_object:
-	dc.b $01,$FF,$FF,$B0,$00,$5F,$00,$10,$00,$10,$3F,$E0,$DF,$BF,$1F,$A0
-	dc.b $1F,$A0,$30,$60,$DF,$BF,$10,$20,$10,$20,$30,$61,$DF,$BF,$10,$21
-	dc.b $10,$21,$30,$63,$DF,$BE,$10,$22,$10,$22,$30,$67,$DF,$BC,$10,$24
-world_object_command_attach_to_unflagged_object:
-	dc.b $10,$24,$30,$67,$DF,$BF,$10,$27,$10,$27,$30,$60,$DF,$BF,$10,$20
-	dc.b $10,$20,$30,$61,$DF,$BF,$10,$21,$10,$21,$30,$63,$DF,$BE,$10,$22
-	dc.b $10,$22,$30,$66,$DF,$BD,$10,$25,$10,$25,$30,$6C,$DF,$BB,$10,$2B
-world_object_command_attach_first_with_data:
-	dc.b $10,$2B,$30,$6F,$DF,$B8,$10,$28,$10,$28,$30,$6F,$DF,$BF,$10,$2F
-	dc.b $10,$2F,$30,$60,$DF,$BF,$10,$20,$10,$20,$00,$20,$FF,$DF,$FF,$80
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$7F,$FF,$FF,$FF
-world_object_command_attach_flagged_with_data:
-	dc.b $7F,$FF,$7F,$FF,$FF,$FF,$80,$00,$80,$00,$80,$00,$80,$00,$7F,$FF
-	dc.b $7F,$FF,$7F,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$F1,$E3,$0E,$1C
-	dc.b $0E,$1C,$0E,$1C,$E3,$E3,$DD,$DD,$DD,$DD,$DD,$DD,$C6,$63,$BB,$DD
-	dc.b $BA,$5D,$BA,$5D,$8C,$63,$77,$DD
-world_object_command_attach_unflagged_with_data:
-	dc.b $74,$5D,$74,$5D,$18,$63,$EF,$DD,$E8,$5D,$E8,$5D,$30,$63,$DF,$DD
-	dc.b $D0,$5D,$D0,$5D,$60,$63,$BF,$DD,$A0,$5D,$A0,$5D,$C0,$7F,$7F,$C1
-	dc.b $40,$41,$40,$41,$80,$7F,$FF,$FF,$80,$7F,$80,$7F,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF
-world_object_command_toggle_first_attachment:
-	dc.b $00,$00,$00,$00,$05,$FF,$FA,$00,$00,$00,$00,$00,$FB,$FC,$FD,$FB
-	dc.b $F9,$F8,$F9,$F8,$FB,$04,$0D,$FB,$09,$00,$09,$00,$1B,$04,$ED,$FB
-	dc.b $E9,$00,$E9,$00,$1B,$04,$ED,$FB
-world_object_command_toggle_unflagged_attachment:
-	dc.b $E9,$00,$E9,$00,$FB,$04,$0D,$FB,$09,$00,$09,$00,$FB,$04,$FD,$FB
-	dc.b $F9,$00,$F9,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB
-	dc.b $01,$00,$01,$00,$03,$04,$FD,$FB
+	dc.b $01,$00,$03,$04,$05,$FB,$F9,$00,$01,$00,$03,$04,$FD,$FB,$01,$00
+	dc.b $01,$00,$05,$FF,$FB,$FF,$00,$00,$00,$00,$FF,$B0,$00,$5F,$00,$10
+	dc.b $FF,$90,$3F,$E0,$DF,$BF,$1F,$A0,$1F,$A0,$30,$60,$DF,$BF,$10,$20
+	dc.b $10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20
+	dc.b $10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20
+	dc.b $10,$20,$30,$61,$DF,$BE,$10,$20,$10,$21,$30,$67,$DF,$B8,$10,$20
+	dc.b $10,$26,$30,$7E,$DF,$A1,$10,$21,$10,$39,$30,$78,$DF,$A7,$10,$27
+	dc.b $10,$37,$30,$78,$DF,$A7,$10,$27,$10,$37,$30,$7F,$DF,$A0,$10,$20
+	dc.b $10,$30,$30,$7F,$DF,$A0,$10,$20,$10,$3F,$30,$60,$DF,$BF,$10,$20
+	dc.b $10,$20,$00,$20,$00,$5F,$00,$00,$FF,$80,$00,$00,$FF,$FF,$00,$00
+	dc.b $00,$00,$00,$18,$FF,$E7,$00,$00,$00,$18,$00,$7C,$FF,$83,$00,$00
+	dc.b $00,$64,$01,$E6,$FE,$19,$00,$18,$01,$9A,$07,$83,$F8,$7C,$00,$7C
+	dc.b $06,$7D,$1E,$01,$E1,$FE,$01,$FE,$19,$FE,$78,$30,$87,$CF,$07,$CF
+	dc.b $67,$CF,$E0,$F8,$1F,$07,$1F,$07,$9F,$37,$83,$FC,$7C,$03,$7C,$03
+	dc.b $7C,$FB,$0F,$FE,$F0,$01,$F0,$01,$F0,$01,$00,$00,$FF,$FF,$FF,$FF
+	dc.b $FF,$FF,$00,$00
+	dcb.b $8,$FF
+	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00
+	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$05,$FF
+	dc.b $FA,$00,$00,$00,$01,$FF,$03,$FC,$FD,$FB,$01,$F8,$01,$F8,$03,$04
+	dc.b $FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04
+	dc.b $FD,$FB,$01,$00,$01,$00,$83,$04,$7D,$FB,$01,$00,$81,$00,$C3,$04
+	dc.b $3D,$FB,$01,$00,$41,$00,$63,$04,$9D,$FB,$81,$00,$A1,$00,$33,$04
+	dc.b $CD,$FB,$C1,$00,$D1,$00,$1B,$04,$E5,$FB,$E1,$00,$E9,$00,$0F,$04
+	dc.b $F1,$FB,$F1,$00,$F5,$00,$0F,$04,$F1,$FB,$F1,$00,$F5,$00,$FF,$04
+	dc.b $01,$FB,$01,$00,$05,$00,$FF,$04,$01,$FB,$01,$00,$FD,$00,$03,$04
+	dc.b $FD,$FB,$01,$00,$01,$00,$04,$00,$FA,$00,$00,$00,$01,$FF,$FF,$B0
+	dc.b $00,$5F,$00,$10,$00,$10,$3F,$E0,$DF,$BF,$1F,$A0,$1F,$A0,$30,$60
+	dc.b $DF,$BF,$10,$20,$10,$20,$30,$61,$DF,$BF,$10,$21,$10,$21,$30,$63
+	dc.b $DF,$BE,$10,$22,$10,$22,$30,$67,$DF,$BC,$10,$24,$10,$24,$30,$67
+	dc.b $DF,$BF,$10,$27,$10,$27,$30,$60,$DF,$BF,$10,$20,$10,$20,$30,$61
+	dc.b $DF,$BF,$10,$21,$10,$21,$30,$63,$DF,$BE,$10,$22,$10,$22,$30,$66
+	dc.b $DF,$BD,$10,$25,$10,$25,$30,$6C,$DF,$BB,$10,$2B,$10,$2B,$30,$6F
+	dc.b $DF,$B8,$10,$28,$10,$28,$30,$6F,$DF,$BF,$10,$2F,$10,$2F,$30,$60
+	dc.b $DF,$BF,$10,$20,$10,$20,$00,$20,$FF,$DF,$FF,$80,$00,$00,$00,$00
+	dc.b $FF,$FF,$00,$00,$00,$00,$7F,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF
+	dc.b $80,$00,$80,$00,$80,$00,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$00,$00
+	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$F1,$E3,$0E,$1C,$0E,$1C,$0E,$1C,$E3,$E3
+	dc.b $DD,$DD,$DD,$DD,$DD,$DD,$C6,$63,$BB,$DD,$BA,$5D,$BA,$5D,$8C,$63
+	dc.b $77,$DD,$74,$5D,$74,$5D,$18,$63,$EF,$DD,$E8,$5D,$E8,$5D,$30,$63
+	dc.b $DF,$DD,$D0,$5D,$D0,$5D,$60,$63,$BF,$DD,$A0,$5D,$A0,$5D,$C0,$7F
+	dc.b $7F,$C1,$40,$41,$40,$41,$80,$7F,$FF,$FF,$80,$7F,$80,$7F,$00,$00
+	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$05,$FF
+	dc.b $FA,$00,$00,$00,$00,$00,$FB,$FC,$FD,$FB,$F9,$F8,$F9,$F8,$FB,$04
+	dc.b $0D,$FB,$09,$00,$09,$00,$1B,$04,$ED,$FB,$E9,$00,$E9,$00,$1B,$04
+	dc.b $ED,$FB,$E9,$00,$E9,$00,$FB,$04,$0D,$FB,$09,$00,$09,$00,$FB,$04
+	dc.b $FD,$FB,$F9,$00,$F9,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04
+	dc.b $FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB
 abs_0_000213F4:
 	dc.b $01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB
 	dc.b $01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB

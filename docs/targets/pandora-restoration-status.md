@@ -65,12 +65,13 @@ self-modification. Startup copying executable bytes is already established.
   resolver now consumes native runtime-reference identity, with conservative
   ambiguity handling. Synthetic runtime-base and Hunk tests pass; the current
   Pandora service confirms source `0x9C2A` calls source `0x7F0`. No fixed subtraction belongs in the framework.
-- **33 misplaced legacy labels:** opcode table `0x1432..0x14B6` contains runtime
+- **33 misplaced legacy labels, corrected in the handler batch:** opcode table `0x1432..0x14B6` contains runtime
   handler pointers, but their labels were recorded as source-domain addresses.
   Example: `world_object_command_set_position` was placed at source `0x11114`;
   the accepted handler at `0x1114` writes A4+2/A4+4 into the object's world_x/y,
   advances A4 by 6 and returns. Each handler needs semantic corroboration before
-  corrective actions; preserve the original history and append corrections.
+  corrective actions; the reviewed handler batch now preserves the old records
+  and appends 33 removals, 33 corrected labels and 34 comments.
 - **Overlay extent:** initialization clears 128 bytes, the accepted queue layout
   covers 64, and processing scans 16 pointers. Adjacent ownership must be resolved
   before expanding a structure or claiming scheduling behavior.
@@ -88,7 +89,7 @@ No subsystem is declared fully restored by the inventory.
 | Runtime initialization `0x46A..0x5D6` | Hypothesis / partial | Audit stack/application memory, interrupt installation, framebuffers and initial resource consumers. |
 | Interrupt hub `0x8E4`, frame service `0x94E` | Partial | INTREQR handling and callback slots exist; recover callback effects and inherited register context. |
 | Title/starfield `0xBA8..0xF54` | Partial | Existing named star routines and dispatch facts; audit table bounds, continuations and state ownership. |
-| World command interpreter `0x13F4`, table `0x1432..0x14B6` | Blocked by incorrect identities | Correct each of 33 handlers from dispatch and instruction evidence after CFG domain fix. |
+| World command interpreter `0x13F4`, table `0x1432..0x14B6` | Handler identity and operand behavior reviewed | All 33 displaced labels corrected through real catalog/runtime identities; 34 comments describe handlers and dispatch. Delay/equality/flag predicates corrected. Script instances, pointer targets and callee effects remain to recover. |
 | World/object/map logic and records | Partial | Existing object structures and link tables; follow interpreter consumers, proximity and object lifetimes. |
 | Inventory `0x26EC..0x2B7E` | Partial | Names/fields exist; recover side effects and transitions after call identity reconciliation. |
 | Text/overlay `0x6332..0x66A0` | Partial | Reconcile 128-byte clear versus 64-byte layout and indirect callback ownership. |
@@ -176,3 +177,33 @@ facts. Preserve the original names/history until the coordinated correction and
 contract batch passes review and exact reproduction. Repeated per-label full
 rebuilds would be wasteful; any batching improvement must keep shared catalog
 validation, fresh revision checks, atomic persistence and evidence identities.
+
+## Completed world-command batch
+
+All 100 canonical actions were independently reviewed and accepted in the
+Decision Journal: 33 removals of misplaced legacy labels, 33 replacements selected
+through real source-row catalogs, and 34 semantic comments. The catalog records
+replacement labels in the appropriate runtime domain, with canonical source row
+keys; no blanket address subtraction was introduced. All 33 table references and
+242 instruction byte strings were corroborated against native facts/original bytes.
+Previous action and journal prefixes and the startup verification receipt remain
+intact. Full C and vasm output is again exact at the original SHA-256, receipt
+`ecb03b7dea04ea9ccbeb5514f9e46a077d423d4b51c2480dc3c64c2e91aacf09`.
+
+This batch completes handler identity and instruction-level operand/advance
+behavior. It does not finish world scripting: actual script bounds/instances,
+indirect callee effects, record lifetimes and alternate-layout pointer treatment
+remain open. The byte-classification table above remains the dated baseline;
+semantic documentation alone does not establish new resource ownership.
+
+The shared restoration service now supports bounded `interpret_batch`: one
+inspected revision, all evidence/catalog validation before one atomic append and
+one invalidation. Request-local context reuse avoids repeated catalog resolution
+without retaining another fact store. Initial 102 focused tests passed; the reuse
+follow-up passed 55 focused tests, including independent parameters, invalid-final
+atomic refusal, request isolation and synthetic exact rebuilding.
+
+Next connected audit covers runtime initialization and frame service. 165 saved
+instructions establish the fixed workspace clear, supervisor entry, sampled IRQ
+priority and frame-completion latch. Cursor-buffer ownership, callback clobbers
+and complete buffer placement constraints remain questions for focused consumers.
