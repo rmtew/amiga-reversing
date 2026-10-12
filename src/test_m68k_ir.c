@@ -17663,6 +17663,161 @@ static int test_facts_v2_contained_runtime_range_does_not_emit_second_org(void) 
   return 0;
 }
 
+/* The CFG must consume canonical runtime-reference identities, including when
+ * an absolute address happens to be another valid source offset. These fixtures
+ * deliberately keep that misleading source location accepted as code. */
+static int check_cfg_runtime_control_target(const uint8_t *instruction_bytes, size_t instruction_size,
+    const M68kRuntimeAddressRefIR *refs, size_t ref_count, int clear_decode_operand,
+    uint32_t expected_target, uint8_t expected_kind, int view_mode) {
+  M68kObject object;
+  M68kSection section;
+  M68kDecodeIR decode;
+  M68kSectionAnalysisIR analysis;
+  Arena *scratch = arena_create(4096U);
+  uint8_t bytes[32];
+  uint8_t starts[32];
+  uint8_t accepted[32];
+  size_t index;
+  const M68kCfgEdgeIR *edge = NULL;
+  int target_block_found = 0;
+  M68K_C_ASSERT(scratch != NULL);
+  for (index = 0U; index < sizeof(bytes); index += 2U) {
+    bytes[index] = 0x4eU;
+    bytes[index + 1U] = 0x71U;
+  }
+  bytes[31] = 0x75U;
+  memcpy(bytes, instruction_bytes, instruction_size);
+  memset(starts, 0, sizeof(starts));
+  memset(accepted, 1, sizeof(accepted));
+  starts[0] = 1U;
+  for (index = instruction_size; index < sizeof(starts); index += 2U) starts[index] = 1U;
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_decode_ir_init(&decode);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL)));
+  if (clear_decode_operand) {
+    for (index = 0U; index < decode.sections[0].candidate_count; ++index) {
+      M68kDecodeCandidate *candidate = &decode.sections[0].candidates[index];
+      if (candidate->offset == 0U && candidate->target_count > 0U) candidate->targets[0].has_operand = 0U;
+    }
+  }
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&analysis, test_ir_result_arena()));
+  analysis.section_index = 0U;
+  analysis.section_size = sizeof(bytes);
+  if (view_mode != 0) {
+    M68kRuntimeViewIR view;
+    memset(&view, 0, sizeof(view));
+    view.kind = M68K_FACT_RUNTIME_RANGE_KIND_POLICY;
+    view.size = sizeof(bytes);
+    view.runtime_address = view_mode == 2 ? 0x100U : 0U;
+    M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_view(&analysis, &view));
+    if (view_mode == 3) {
+      view.runtime_view_id = 1U;
+      view.kind = M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY;
+      view.runtime_address = 0x100U;
+      M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_view(&analysis, &view));
+    }
+  }
+  for (index = 0U; index < ref_count; ++index)
+    M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_address_ref(&analysis, &refs[index]));
+  M68K_C_ASSERT_INT(0, m68k_analysis_render_lookup_append_cfg_for_section(NULL, &decode.sections[0],
+    starts, accepted, scratch, &analysis));
+  for (index = 0U; index < analysis.edge_count; ++index) {
+    if (analysis.edges[index].source_offset == 0U && analysis.edges[index].kind == expected_kind) {
+      edge = &analysis.edges[index];
+      break;
+    }
+  }
+  M68K_C_ASSERT(edge != NULL);
+  M68K_C_ASSERT_U32(expected_target, edge->target_offset);
+  if (expected_target == UINT32_MAX) {
+    M68K_C_ASSERT(edge->target_block_index == SIZE_MAX);
+  } else {
+    M68K_C_ASSERT(edge->target_block_index < analysis.block_count);
+    M68K_C_ASSERT_U32(expected_target, analysis.blocks[edge->target_block_index].start_offset);
+  }
+  for (index = 0U; index < analysis.block_count; ++index) {
+    if (analysis.blocks[index].start_offset == expected_target) target_block_found = 1;
+    if (expected_target != 20U) M68K_C_ASSERT(analysis.blocks[index].start_offset != 20U);
+  }
+  if (expected_target != UINT32_MAX) M68K_C_ASSERT(target_block_found);
+  m68k_ir_section_analysis_destroy(&analysis);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  arena_destroy(scratch);
+  return 0;
+}
+
+static int test_cfg_runtime_control_targets_use_source_identity(void) {
+  static const uint8_t call_alias[] = {0x4eU, 0xb9U, 0U, 0U, 0U, 20U};
+  static const uint8_t call_external[] = {0x4eU, 0xb9U, 0U, 1U, 0U, 10U};
+  static const uint8_t jump_external[] = {0x4eU, 0xf9U, 0U, 1U, 0U, 10U};
+  static const uint8_t relative_call[] = {0x61U, 0U, 0U, 8U};
+  static const uint8_t indirect_call[] = {0x4eU, 0x90U};
+  M68kRuntimeAddressRefIR refs[2];
+  memset(refs, 0, sizeof(refs));
+  refs[0].has_target = 1U;
+  refs[0].has_runtime_address = 1U;
+  refs[0].target_offset = 10U;
+  refs[0].runtime_address = 20U;
+  refs[0].confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 0,
+    10U, M68K_CFG_EDGE_CALL, 0));
+  refs[0].runtime_address = 0x1000aU;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_external, sizeof(call_external), refs, 1U, 0,
+    10U, M68K_CFG_EDGE_CALL, 0));
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(jump_external, sizeof(jump_external), refs, 1U, 0,
+    10U, M68K_CFG_EDGE_JUMP, 0));
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(relative_call, sizeof(relative_call), NULL, 0U, 0,
+    10U, M68K_CFG_EDGE_CALL, 0));
+  /* An indirect operand reference can identify a table rather than a callee. */
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(indirect_call, sizeof(indirect_call), refs, 1U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 0));
+  refs[0].runtime_address = 20U;
+  refs[1] = refs[0];
+  refs[1].has_sink_address = 1U;
+  refs[1].sink_address = 0x200U;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 2U, 0,
+    10U, M68K_CFG_EDGE_CALL, 0));
+  refs[0].target_offset = 0U;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 0,
+    0U, M68K_CFG_EDGE_CALL, 0));
+  refs[0].target_offset = 10U;
+  refs[1].target_offset = 12U;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 2U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 0));
+  refs[0].target_section_index = 1U;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 0));
+  refs[0].target_section_index = 0U;
+  refs[0].has_target = 0U;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 0));
+  refs[0].has_target = 1U;
+  refs[0].operand_index = UINT32_MAX;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 0));
+  refs[0].operand_index = 0U;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 1,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 0));
+  refs[0].operand_index = 1U;
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 0));
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), refs, 1U, 0,
+    20U, M68K_CFG_EDGE_CALL, 1));
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), NULL, 0U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 2));
+  M68K_C_ASSERT_INT(0, check_cfg_runtime_control_target(call_alias, sizeof(call_alias), NULL, 0U, 0,
+    UINT32_MAX, M68K_CFG_EDGE_CALL, 3));
+  return 0;
+}
+
 static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(void) {
   M68kObject object;
   M68kSection section;
@@ -38704,6 +38859,7 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage},
     {"facts_v2_contained_runtime_range_does_not_emit_second_org",
       test_facts_v2_contained_runtime_range_does_not_emit_second_org},
+    {"cfg_runtime_control_targets_use_source_identity", test_cfg_runtime_control_targets_use_source_identity},
     {"facts_v2_source_zero_runtime_copy_continues_without_storage_org",
       test_facts_v2_source_zero_runtime_copy_continues_without_storage_org},
     {"facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage",

@@ -25,6 +25,11 @@ typedef struct PlatformFileBufferResult {
 } PlatformFileBufferResult;
 
 typedef struct PlatformFileListingArtifact PlatformFileListingArtifact;
+/* Metadata comment limits and lossless parsing contract for durable writers. */
+PLATFORM_FILE_API size_t platform_file_entry_comment_text_capacity(void);
+PLATFORM_FILE_API size_t platform_file_entry_comment_count_capacity(void);
+/* 0: supported, 1: parsing/capacity failure, 2: lossy metadata string codec. */
+PLATFORM_FILE_API int platform_file_validate_entry_comment_text(const char *json_string, const char *text);
 typedef struct PlatformFileListingStream PlatformFileListingStream;
 /* R2 corpus reduction ABI.  Python supplies only normalized canonical-row
  * facts while C owns the cross-row location and direct-control state. */

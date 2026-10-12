@@ -2003,6 +2003,22 @@ static int json_string_value_local(const char *value, const char *end, char *out
   return 1;
 }
 
+size_t platform_file_entry_comment_text_capacity(void) {
+  return sizeof(((M68kAnalysisEntryComment *)0)->comment) - 1U;
+}
+
+size_t platform_file_entry_comment_count_capacity(void) {
+  return M68K_ANALYSIS_ENTRY_COMMENT_LIMIT;
+}
+
+int platform_file_validate_entry_comment_text(const char *json_string, const char *text) {
+  char parsed[sizeof(((M68kAnalysisEntryComment *)0)->comment)];
+  if (json_string == NULL || text == NULL ||
+      !json_string_value_local(json_string, json_string + strlen(json_string), parsed, sizeof(parsed)))
+    return 1;
+  return strcmp(parsed, text) == 0 ? 0 : 2;
+}
+
 static int json_optional_string_field_local(const char *object_start, const char *object_end, const char *key,
     char *out, size_t out_size) {
   const char *value = json_find_key_local(object_start, object_end, key);
@@ -2651,7 +2667,7 @@ static int append_metadata_entry_comment_local(const char *object_start, const c
   uint32_t hunk = 0U;
   int has_offset = 0;
   int has_hunk = 0;
-  char comment[192];
+  char comment[sizeof(((M68kAnalysisEntryComment *)0)->comment)];
   comment[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &offset, &has_offset) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||

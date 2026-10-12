@@ -684,7 +684,11 @@ static uint8_t format_runtime_operand_asm_label_with_generation(const M68kRender
   const char *policy_name;
   if (buf == NULL || buf_size == 0U) return 1U;
   policy_name = lookup_policy_label_name(lookup, section_index, source_offset, M68K_ANALYSIS_LABEL_DOMAIN_SOURCE);
-  if (policy_name != NULL && policy_name[0] != '\0') {
+  /* Materialized range starts have a separate source/storage label before
+   * ORG. Runtime operands must name the label on the runtime side. */
+  if (policy_name != NULL && policy_name[0] != '\0' &&
+      !(source_offset != runtime_address &&
+        lookup_source_offset_is_materialized_runtime_range_start(lookup, section_index, source_offset))) {
     snprintf(buf, buf_size, "%s", policy_name);
     return 0U;
   }

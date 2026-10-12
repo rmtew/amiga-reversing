@@ -782,6 +782,44 @@ def extract_macos_hfs_code_resource_bytes_with_c_backend(
     )
 
 
+def validate_entry_comments_with_c_backend(
+    texts: tuple[str, ...], *, active_count: int | None = None, project_root: Path = PROJECT_ROOT,
+) -> None:
+    """Check the actual native metadata codec and capacities before persistence.
+
+    active_count covers manual comments only; native policy construction may also
+    add seeded and generated comments, so this is not a full-policy preflight.
+    """
+    dll = _platform_file_dll(project_root)
+    text_capacity = dll.platform_file_entry_comment_text_capacity
+    text_capacity.argtypes = []
+    text_capacity.restype = c_size_t
+    count_capacity = dll.platform_file_entry_comment_count_capacity
+    count_capacity.argtypes = []
+    count_capacity.restype = c_size_t
+    validate = dll.platform_file_validate_entry_comment_text
+    validate.argtypes = [c_char_p, c_char_p]
+    validate.restype = c_int
+    if active_count is not None and active_count > count_capacity():
+        raise ValueError(f"native metadata supports at most {count_capacity()} active manual comments; "
+                         "seeded and generated comments share this capacity")
+    for text in texts:
+        if "\0" in text:
+            raise ValueError("native metadata comment codec cannot preserve NUL characters")
+        try:
+            encoded = text.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("native metadata comment codec requires valid Unicode text") from exc
+        # Match effective_metadata_text's serialization, including ensure_ascii.
+        result = validate(json.dumps(text).encode("utf-8"), encoded)
+        if result == 1:
+            raise ValueError(f"comment exceeds native metadata capacity ({text_capacity()} bytes) "
+                             "or uses unsupported metadata string encoding")
+        if result != 0:
+            raise ValueError("native metadata comment codec cannot preserve this text losslessly "
+                             "(including Unicode escapes and escaped control characters)")
+
+
 def effective_policy_project_source_with_c_backend(
     binary_source: BinarySource,
     *,

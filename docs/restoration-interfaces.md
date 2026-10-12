@@ -41,7 +41,10 @@ python -m amiga_reversing.tools.restoration --target TARGET query \
   --relation unresolved_transfers --expected-revision REVISION
 ```
 
-Poll `state` until `ready` before querying. Responses include `revision`,
+Poll `state` until `ready` before querying. Stop if its job reports `failed` and
+inspect the retained error: status reads do not retry a failed build for the
+same revision. A changed revision or an explicit listing-build request can
+start a new build. Responses include `revision`,
 `subject_revision`, explicit scope and unknowns. Pages contain `items`, `total`
 and `next_cursor`; send that cursor with the same query and revision to continue.
 The server rejects stale cursors rather than joining different snapshots.

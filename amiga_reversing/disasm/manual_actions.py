@@ -315,6 +315,7 @@ def append_manual_actions(
             )
 
         projection = replay()
+        initial_projection = projection
         additions = []
         sequence = max((action.sequence for action in parsed), default=0)
         for kind, payload in actions:
@@ -338,9 +339,32 @@ def append_manual_actions(
             projection = replay()
             additions.append(action)
         if additions:
+            _validate_changed_native_comments(initial_projection, projection)
             suffix = additions if records else [header, *additions]
             atomic_append_history(path, "".join(json.dumps(record, sort_keys=True) + "\n" for record in suffix).encode("utf-8"))
         return additions
+
+
+def _validate_changed_native_comments(
+    before: ManualActionLogProjection, after: ManualActionLogProjection,
+) -> None:
+    # Share the effective-metadata projection so row-only notes are not mistaken
+    # for native entry comments. Lazy imports avoid the projection import cycle.
+    from amiga_reversing.disasm.c_backend import validate_entry_comments_with_c_backend
+    from amiga_reversing.disasm.effective_metadata import _manual_comment_to_entry_comment
+
+    def entries(projection: ManualActionLogProjection) -> tuple[tuple[int | None, int, str], ...]:
+        return tuple((entry.hunk, entry.addr, entry.comment) for comment in projection.comments
+                     if (entry := _manual_comment_to_entry_comment(comment)) is not None)
+
+    previous, current = entries(before), entries(after)
+    previous_set = set(previous)
+    changed = tuple(text for hunk, addr, text in current if (hunk, addr, text) not in previous_set)
+    increased_count = len(current) > len(previous)
+    if changed or increased_count:
+        validate_entry_comments_with_c_backend(
+            changed, active_count=len(current) if increased_count else None,
+        )
 
 
 def manual_action_interpretation(record: Mapping[str, object]) -> dict[str, object]:

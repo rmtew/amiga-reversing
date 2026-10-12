@@ -263,6 +263,7 @@ class ListingProjectionService:
         prewarm: Callable[[], None],
         on_ready: Callable[[], None],
         start_worker: Callable[[str, str], None],
+        retry_failed: bool = True,
     ) -> dict[str, object]:
         if self.cache_satisfies_listing(project_id, cache_key):
             prewarm()
@@ -293,14 +294,19 @@ class ListingProjectionService:
             return payload
 
         with lock:
+            failed_job = None
             for job in jobs.values():
                 if (
                     job.get("job_kind") == job_kind
                     and job.get("project_id") == project_id
                     and job.get("cache_key") == cache_key
-                    and job.get("status") in {"queued", "building"}
                 ):
-                    return dict(job)
+                    if job.get("status") in {"queued", "building"}:
+                        return dict(job)
+                    if job.get("status") == "failed":
+                        failed_job = job
+            if failed_job is not None and not retry_failed:
+                return dict(failed_job)
             job_id = make_job_id()
             jobs[job_id] = {
                 "job_id": job_id,

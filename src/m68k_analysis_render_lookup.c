@@ -61,31 +61,101 @@ static const M68kSimFormMetadata *analysis_cfg_candidate_metadata(const M68kDeco
   return m68k_sim_metadata_for_instruction(instruction);
 }
 
-static int analysis_cfg_candidate_has_control_target(const M68kDecodeCandidate *candidate) {
-  size_t target_index;
-  if (candidate == NULL) return 0;
-  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-    const M68kDecodeTarget *target = &candidate->targets[target_index];
-    if (target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
-        target->kind == M68K_DECODE_TARGET_JUMP) {
-      return 1;
-    }
-  }
-  return 0;
-}
+/* CFG coordinates are source coordinates. Decode-only absolute targets are raw
+ * operand values until runtime-address facts or object relocations identify the
+ * source location. Resolve once for both block boundaries and emitted edges. */
+static const M68kFact *analysis_operand_relocation_ref(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, size_t operand_index);
 
-static uint8_t analysis_cfg_edge_kind_for_target(const M68kDecodeCandidate *candidate,
-    const M68kDecodeTarget *target) {
+static int analysis_cfg_control_target(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeCandidate *candidate, uint8_t *out_kind, uint32_t *out_offset) {
   M68kInstructionIR instruction;
-  const M68kSimFormMetadata *metadata;
-  if (target != NULL && target->kind == M68K_DECODE_TARGET_CALL) return M68K_CFG_EDGE_CALL;
-  if (target != NULL && target->kind == M68K_DECODE_TARGET_JUMP) return M68K_CFG_EDGE_JUMP;
-  metadata = analysis_cfg_candidate_metadata(candidate, &instruction);
-  if (metadata != NULL && (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
-      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && !metadata->flow_conditional))) {
-    return M68K_CFG_EDGE_JUMP;
+  const M68kSimFormMetadata *metadata = analysis_cfg_candidate_metadata(candidate, &instruction);
+  const M68kDecodeTarget *decoded_target = NULL;
+  const M68kFact *relocation;
+  uint32_t resolved_offset = UINT32_MAX;
+  size_t resolved_section = SIZE_MAX;
+  size_t index;
+  uint8_t operand_index;
+  int have_ref = 0;
+  int ambiguous = 0;
+  int absolute_operand;
+  *out_offset = UINT32_MAX;
+  if (metadata == NULL || (metadata->flow_kind != M68K_SIM_FLOW_CALL &&
+      metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_BRANCH)) return 0;
+  *out_kind = metadata->flow_kind == M68K_SIM_FLOW_CALL ? M68K_CFG_EDGE_CALL :
+    metadata->flow_kind == M68K_SIM_FLOW_JUMP || !metadata->flow_conditional ?
+      M68K_CFG_EDGE_JUMP : M68K_CFG_EDGE_BRANCH;
+  operand_index = metadata->target_operand_index;
+  if (operand_index >= candidate->operand_count || operand_index >= M68K_DECODE_IR_MAX_OPERANDS) return 1;
+  for (index = 0U; index < candidate->target_count; ++index) {
+    const M68kDecodeTarget *target = &candidate->targets[index];
+    if (target->kind != M68K_DECODE_TARGET_BRANCH && target->kind != M68K_DECODE_TARGET_CALL &&
+        target->kind != M68K_DECODE_TARGET_JUMP) continue;
+    if (!target->has_operand) return 1;
+    if (target->operand_index != operand_index) continue;
+    if (decoded_target != NULL && (decoded_target->has_section != target->has_section ||
+        decoded_target->section_index != target->section_index || decoded_target->offset != target->offset)) return 1;
+    decoded_target = target;
   }
-  return M68K_CFG_EDGE_BRANCH;
+  absolute_operand = candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_EA &&
+    candidate->operands[operand_index].ea_mode == 7U && candidate->operands[operand_index].ea_reg <= 1U;
+  /* An indirect operand's runtime reference can identify its table/base, not
+   * the eventual branch destination. Do not promote it into a direct edge. */
+  if (decoded_target == NULL && !absolute_operand) return 1;
+  for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
+    if (ref->offset != candidate->offset) continue;
+    if (ref->operand_index == UINT32_MAX) {
+      ambiguous = 1;
+      continue;
+    }
+    if (ref->operand_index != operand_index) continue;
+    if (!ref->has_target) {
+      ambiguous = 1;
+      continue;
+    }
+    if (have_ref && (resolved_section != ref->target_section_index || resolved_offset != ref->target_offset))
+      ambiguous = 1;
+    resolved_section = ref->target_section_index;
+    resolved_offset = ref->target_offset;
+    have_ref = 1;
+  }
+  if (ambiguous) return 1;
+  if (have_ref) {
+    /* Cross-section edges need an explicit section identity in the CFG schema;
+     * until then retain an unresolved transfer, never a same-offset alias. */
+    if (resolved_section == section->section_index && resolved_offset < render_section_extent(section))
+      *out_offset = resolved_offset;
+    return 1;
+  }
+  relocation = analysis_operand_relocation_ref(lookup, section->section_index, candidate, operand_index);
+  if (relocation != NULL) {
+    if (relocation->target_section_index == section->section_index &&
+        relocation->target_offset < render_section_extent(section)) *out_offset = relocation->target_offset;
+    return 1;
+  }
+  if (absolute_operand) {
+    int identity_view = 0;
+    /* Numeric in-bounds is not an address-domain proof. Only a policy view
+     * explicitly identifying these source coordinates with runtime addresses
+     * permits the legacy local-offset absolute form without a reference fact.
+     * Competing/copy views remain unresolved rather than guessing a phase. */
+    if (decoded_target == NULL) return 1;
+    for (index = 0U; index < section_analysis->runtime_view_count; ++index) {
+      const M68kRuntimeViewIR *view = &section_analysis->runtime_views[index];
+      if (view->kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY || view->runtime_address != view->storage_offset)
+        return 1;
+      if (candidate->offset >= view->storage_offset && candidate->offset - view->storage_offset < view->size &&
+          decoded_target->offset >= view->storage_offset && decoded_target->offset - view->storage_offset < view->size)
+        identity_view = 1;
+    }
+    if (!identity_view) return 1;
+  }
+  if (decoded_target != NULL && decoded_target->has_section &&
+      decoded_target->section_index == section->section_index) *out_offset = decoded_target->offset;
+  return 1;
 }
 
 static int analysis_cfg_append_edge(M68kSectionAnalysisIR *section_analysis, size_t source_block_index,
@@ -170,7 +240,9 @@ static int analysis_cfg_build_block_start_map(const M68kRenderLookup *lookup, co
   while (offset < render_extent) {
     const M68kDecodeCandidate *candidate;
     uint32_t next_offset;
-    size_t target_index;
+    uint32_t target_offset;
+    uint8_t edge_kind;
+    int has_control_target;
     if (!accepted_start_at(section, accepted_start, offset)) {
       ++offset;
       continue;
@@ -191,16 +263,11 @@ static int analysis_cfg_build_block_start_map(const M68kRenderLookup *lookup, co
       block_starts[offset] = 1U;
     }
     next_offset = offset + candidate->byte_count;
-    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-      const M68kDecodeTarget *target = &candidate->targets[target_index];
-      if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
-          target->kind == M68K_DECODE_TARGET_JUMP) && target->has_section &&
-          target->section_index == section->section_index && target->offset < render_extent &&
-          accepted_start_at(section, accepted_start, target->offset)) {
-        block_starts[target->offset] = 1U;
-      }
-    }
-    if (analysis_cfg_candidate_has_control_target(candidate) && render_cfg_candidate_has_fallthrough(candidate) &&
+    has_control_target = analysis_cfg_control_target(lookup, section, section_analysis, candidate,
+      &edge_kind, &target_offset);
+    if (has_control_target && target_offset < render_extent &&
+        accepted_start_at(section, accepted_start, target_offset)) block_starts[target_offset] = 1U;
+    if (has_control_target && render_cfg_candidate_has_fallthrough(candidate) &&
         next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset)) {
       block_starts[next_offset] = 1U;
     }
@@ -242,7 +309,8 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
     while (cursor < render_extent && accepted_start_at(section, accepted_start, cursor)) {
       const M68kDecodeCandidate *candidate = find_candidate_at_offset_local(section, cursor);
       uint32_t next_offset;
-      size_t target_index;
+      uint32_t target_offset;
+      uint8_t edge_kind;
       int has_control_target;
       int has_fallthrough;
       if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - cursor) {
@@ -252,32 +320,11 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
         continue;
       }
       next_offset = cursor + candidate->byte_count;
-      has_control_target = analysis_cfg_candidate_has_control_target(candidate);
+      has_control_target = analysis_cfg_control_target(lookup, section, section_analysis, candidate,
+        &edge_kind, &target_offset);
       has_fallthrough = render_cfg_candidate_has_fallthrough(candidate);
-      for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-        const M68kDecodeTarget *target = &candidate->targets[target_index];
-        if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
-            target->kind == M68K_DECODE_TARGET_JUMP) && target->has_section &&
-            target->section_index == section->section_index) {
-          if (analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, target->offset,
-              analysis_cfg_edge_kind_for_target(candidate, target)) != 0) {
-            goto cleanup;
-          }
-        }
-      }
-      /* A decoded indirect transfer has no concrete decode target. Preserve it
-       * as an unresolved CFG edge using the generated flow semantics. Otherwise
-       * an indirect call disappears and an indirect jump looks like a return. */
-      if (!has_control_target) {
-        M68kInstructionIR flow_instruction;
-        const M68kSimFormMetadata *flow = analysis_cfg_candidate_metadata(candidate, &flow_instruction);
-        if (flow != NULL && (flow->flow_kind == M68K_SIM_FLOW_CALL || flow->flow_kind == M68K_SIM_FLOW_JUMP)) {
-          if (analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, UINT32_MAX,
-              flow->flow_kind == M68K_SIM_FLOW_CALL ? M68K_CFG_EDGE_CALL : M68K_CFG_EDGE_JUMP) != 0)
-            goto cleanup;
-          has_control_target = 1;
-        }
-      }
+      if (has_control_target && analysis_cfg_append_edge(section_analysis, section_analysis->block_count,
+          cursor, target_offset, edge_kind) != 0) goto cleanup;
       if (has_control_target) {
         if (has_fallthrough && next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset) &&
             analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, next_offset,

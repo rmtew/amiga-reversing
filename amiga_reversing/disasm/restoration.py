@@ -185,6 +185,17 @@ def _envelope(page, current, filters):
     return {**page, **current, "next_cursor": cursor}
 
 
+def _source_identity(value):
+    """A source identity requires both concrete coordinates; zero is valid."""
+    if not isinstance(value, dict):
+        return None
+    section, offset = value.get("section_index"), value.get("source_offset")
+    if not all(type(coordinate) is int and 0 <= coordinate <= 0xFFFFFFFF
+               for coordinate in (section, offset)):
+        return None
+    return section, offset
+
+
 def _query(target_id, body, current):
     filters = {k: v for k, v in body.items() if k in _QUERY_KEYS}
     offset, limit = _pagination(body, current["revision"], filters)
@@ -238,9 +249,9 @@ def _query(target_id, body, current):
         if kind == "symbols":
             interpretations = _history(target_id)
             for item in page["items"]:
-                matching = [entry for entry in interpretations if entry["active"]
-                    and entry["interpretation"].get("subject", {}).get("section_index") == item.get("section_index")
-                    and entry["interpretation"].get("subject", {}).get("source_offset") == item.get("source_offset")]
+                identity = _source_identity(item)
+                matching = [entry for entry in interpretations if identity is not None and entry["active"]
+                    and _source_identity(entry["interpretation"].get("subject")) == identity]
                 item["interpretations"] = [{"action_id": entry["action_id"], "status": entry["status"],
                     "verification_current": entry["verification_current"], "evidence": entry["interpretation"]}
                     for entry in matching[-4:]]
@@ -376,7 +387,7 @@ def execute(target_id: str, body: dict) -> dict:
         if operation == "state":
             server = _server()
             artifact = server._LISTING_PROJECTION_SERVICE.valid_artifact(target_id, server._project_listing_cache_key(target_id))
-            job = None if artifact is not None else server._start_listing_job(target_id)
+            job = None if artifact is not None else server._start_listing_job(target_id, retry_failed=False)
             history = _history(target_id)
             return {**current, "ready": artifact is not None, "job": job,
                     "history_summary": {"actions": len(history), "unassessed": sum(i["status"] == "unassessed" for i in history)},

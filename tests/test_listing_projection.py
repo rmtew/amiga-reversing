@@ -380,3 +380,34 @@ def test_listing_projection_rejects_ambiguous_stale_locator() -> None:
         )
 
     assert exc.value.code == "ambiguous_locator"
+
+
+def test_failed_listing_poll_preserves_error_until_retry_or_revision_change() -> None:
+    service = ListingProjectionService()
+    jobs: dict[str, dict[str, object]] = {}
+    started: list[tuple[str, str]] = []
+    lock = threading.Lock()
+
+    def start(cache_key: str, *, retry_failed: bool = False) -> dict[str, object]:
+        return service.start_listing_job(
+            project_id="demo", cache_key=cache_key, jobs=jobs, lock=lock,
+            job_kind="listing_artifact", phase_count=2, now=lambda: 1.0,
+            make_job_id=lambda: f"job-{len(started)}", total_rows=lambda: None,
+            prewarm=lambda: None, on_ready=lambda: None,
+            start_worker=lambda job_id, project: started.append((job_id, project)),
+            retry_failed=retry_failed,
+        )
+
+    first = start("revision-a")
+    jobs[str(first["job_id"])].update(status="failed", error="native parser rejected input")
+    for _ in range(3):
+        polled = start("revision-a")
+        assert polled["status"] == "failed"
+        assert polled["error"] == "native parser rejected input"
+    assert len(started) == 1
+    assert start("revision-a", retry_failed=True)["status"] == "queued"
+    assert len(started) == 2
+    assert start("revision-a")["status"] == "queued"
+    assert len(started) == 2
+    assert start("revision-b")["status"] == "queued"
+    assert len(started) == 3

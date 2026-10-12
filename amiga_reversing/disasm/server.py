@@ -1439,7 +1439,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
         )
 
 
-def _start_listing_job(project_name: str) -> AsyncJobPayload:
+def _start_listing_job(project_name: str, *, retry_failed: bool = True) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
     return cast(
         AsyncJobPayload,
@@ -1456,6 +1456,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             prewarm=lambda: _prewarm_analysis_review_items(project_name),
             on_ready=lambda: None if _start_reproduction_job_if_needed(project_name) else None,
             start_worker=_start_listing_worker,
+            retry_failed=retry_failed,
         ),
     )
 
