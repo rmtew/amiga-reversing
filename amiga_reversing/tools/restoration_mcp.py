@@ -43,6 +43,15 @@ def create_server(client: RestorationClient):
         return call(project, "state")
 
     @server.tool(annotations=read, structured_output=True)
+    def restoration_export(
+        project: str, assembler_profile: Literal["vasm", "devpac"] = "vasm",
+        binary_assets: bool = False, minimum_asset_size: int = 256,
+    ) -> dict[str, object]:
+        """Export source or a vasm ZIP package through the shared source-export operation. Export is not verification."""
+        return call(project, "export", assembler_profile=assembler_profile,
+                    binary_assets=binary_assets, minimum_asset_size=minimum_asset_size)
+
+    @server.tool(annotations=read, structured_output=True)
     def restoration_query(
         project: str,
         kind: Literal[

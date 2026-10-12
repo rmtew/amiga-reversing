@@ -55,6 +55,7 @@
     },
     "directives": {
       "include": "INCLUDE",
+      "incbin": "INCBIN",
       "section": "section",
       "equ": "EQU",
       "dc_b": "dc.b",

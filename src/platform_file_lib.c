@@ -1,3 +1,4 @@
+#include "m68k_source_package.h"
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -11333,14 +11334,13 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
     return -1;
   }
   if (m68k_raw_backend_by_name(backend_name) != NULL) {
-    if (source_text == NULL) {
-      *out_error = m68k_platform_dup_string("raw output backend requires source text");
-      *out_profile_json = assembler_profile_json_alloc_local(&profile);
-      return -1;
-    }
-    result = m68k_assemble_platform_source_text_to_raw_buffer_alloc(backend_name,
-      include_dir != NULL ? include_dir : "", source_text, output_path != NULL ? output_path : "",
-      cpu_result.cpu, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
+    result = source_text != NULL
+      ? m68k_assemble_platform_source_text_to_raw_buffer_alloc(backend_name,
+          include_dir != NULL ? include_dir : "", source_text, output_path != NULL ? output_path : "",
+          cpu_result.cpu, out_data, out_size, &profile, m68k_diag_sink(&diagnostics))
+      : m68k_assemble_platform_source_path_to_raw_buffer_alloc(backend_name,
+          include_dir != NULL ? include_dir : "", path, output_path != NULL ? output_path : "",
+          cpu_result.cpu, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
     *out_profile_json = assembler_profile_json_alloc_local(&profile);
     if (*out_profile_json == NULL) {
       free(*out_data);
@@ -13266,6 +13266,15 @@ cleanup:
   json_builder_destroy(&builder);
   platform_file_free_text(json);
   return text_result_to_alloc(&result, out_text);
+}
+
+int platform_file_facts_v2_listing_artifact_source_package_json_alloc(PlatformFileListingArtifact *artifact,
+    uint32_t minimum_asset_size, char **out_text) {
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL) return -1;
+  return m68k_source_package_json_alloc(&artifact->object, &artifact->source_plan,
+    minimum_asset_size, out_text);
 }
 
 int platform_file_facts_v2_listing_artifact_source_text_profile_alloc(PlatformFileListingArtifact *artifact,

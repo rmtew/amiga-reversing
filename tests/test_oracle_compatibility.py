@@ -272,3 +272,64 @@ def test_genam_oracle_runs_selected_vamos_genam_chain(monkeypatch, tmp_path: Pat
     assert spans[1]["detail"]["oracle_id"] == "genam-devpac"
     assert spans[1]["detail"]["selected"]["runtime_tool_id"] == "vamos"
     assert spans[1]["detail"]["selected"]["functional_tool_id"] == "genam"
+
+
+def test_vasm_oracle_assembles_exact_package_from_package_directory(monkeypatch, tmp_path: Path) -> None:
+    from amiga_reversing.disasm.source_package import build_source_package
+
+    source = '    INCBIN "assets/one.bin"\ninterior:\n    INCBIN "assets/nested/two.bin"\n'
+    package = build_source_package(
+        {"filename": "demo.s", "source_text": source, "target": "demo", "assembler_profile": "vasm",
+         "metadata_hash": "metadata", "target_identity_sha256": "target"},
+        [{"path": "assets/one.bin", "data_hex": "123456", "size": 3},
+         {"path": "assets/nested/two.bin", "data_hex": "789a", "size": 2}], 1,
+    )
+    binary_source = SimpleNamespace(
+        kind=BinarySourceKind.RAW_BINARY, display_path="bin/Demo", read_bytes=lambda: bytes.fromhex("123456789a"),
+    )
+    monkeypatch.setattr(
+        oracle_compatibility, "resolve_capability",
+        lambda *args, **kwargs: _capability("assemble_vasm_source", "vasm", tmp_path / "vasm"),
+    )
+    monkeypatch.setattr(
+        oracle_compatibility, "resolve_project_paths",
+        lambda *args, **kwargs: SimpleNamespace(target_dir=tmp_path, binary_source=binary_source),
+    )
+    monkeypatch.setattr(
+        oracle_compatibility, "_render_vasm_source",
+        lambda *args: (_ for _ in ()).throw(AssertionError("Package source must be reused")),
+    )
+    staged = []
+
+    def run(command, *, cwd):
+        staged.append(cwd)
+        assert Path(command[-1]).parent == cwd
+        assert Path(command[-1]).read_text() == source
+        rebuilt = (cwd / "assets/one.bin").read_bytes() + (cwd / "assets/nested/two.bin").read_bytes()
+        Path(command[command.index("-o") + 1]).write_bytes(rebuilt)
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(oracle_compatibility, "_run_command", run)
+    report = oracle_compatibility.run_vasm_oracle(
+        "demo", project_root=tmp_path, pre_rendered_source_text=source, pre_rendered_source_package=package,
+    )
+    assert report["comparison_level"] == "oracle.full_file_match"
+    assert report["source_package_sha256"] == package["sha256"]
+    assert not staged[0].exists()
+    rejected = oracle_compatibility.run_vasm_oracle(
+        "demo", project_root=tmp_path, pre_rendered_source_text="different", pre_rendered_source_package=package,
+    )
+    assert rejected["assembler_status"] == "tool_error"
+    assert "differs" in rejected["message"]
+    assert len(staged) == 1
+
+
+def test_devpac_does_not_silently_verify_plain_source_for_a_package(monkeypatch) -> None:
+    monkeypatch.setattr(
+        oracle_compatibility, "run_genam_oracle",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Package must not be ignored")),
+    )
+    reports = oracle_compatibility.oracle_compatibility_reports_for_options(
+        "demo", {"oracle_modes": ["devpac"]}, source_package={},
+    )
+    assert reports[0]["comparison_level"] == "oracle.not_comparable"

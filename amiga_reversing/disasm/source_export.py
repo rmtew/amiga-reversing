@@ -4,11 +4,12 @@ import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.disasm.c_backend import (
+    listing_artifact_source_package_with_c_backend,
     source_quality_explain_project_source_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import (
@@ -52,12 +53,16 @@ def source_export_payload(
     *,
     assembler_profile: str = "vasm",
     project_root: Path = PROJECT_ROOT,
+    binary_assets: bool = False,
+    minimum_asset_size: int = 256,
 ) -> dict[str, object]:
     try:
         return render_source_export(
             target_name,
             assembler_profile=assembler_profile,
             project_root=project_root,
+            binary_assets=binary_assets,
+            minimum_asset_size=minimum_asset_size,
         )
     except SourceExportRefused as exc:
         return exc.payload
@@ -68,19 +73,34 @@ def render_source_export(
     *,
     assembler_profile: str = "vasm",
     project_root: Path = PROJECT_ROOT,
+    binary_assets: bool = False,
+    minimum_asset_size: int = 256,
 ) -> dict[str, object]:
+    if type(binary_assets) is not bool:
+        raise ValueError("binary_assets must be boolean")
+    if type(minimum_asset_size) is not int or not 1 <= minimum_asset_size <= 0xFFFFFFFF:
+        raise ValueError("minimum_asset_size must be 1..4294967295")
     profile = _require_source_export_profile(assembler_profile)
+    if binary_assets and profile != "vasm":
+        raise ValueError("Binary-asset packages currently require vasm; native Devpac INCBIN alignment is not verified")
     artifact_payload = _renderer_backed_source_export(
         target_name,
         assembler_profile=profile,
         project_root=project_root,
     )
     if artifact_payload is not None:
+        if binary_assets:
+            raise ValueError("Binary-asset packages require a native analysis render plan")
         return artifact_payload
     paths = resolve_project_paths(target_name, project_root=project_root)
     renderer = SOURCE_BINARY_RENDERERS.get(paths.binary_source.kind)
     if renderer is None:
         raise ValueError(f"source export does not support binary source kind: {paths.binary_source.kind}")
+    if binary_assets:
+        if renderer is not _c_backend_binary_source_export:
+            raise ValueError("Binary-asset packages require the native renderer")
+        return _c_backend_binary_source_export(target_name, paths, profile, project_root,
+            minimum_asset_size=minimum_asset_size)
     return renderer(target_name, paths, profile, project_root)
 
 
@@ -89,6 +109,7 @@ def _c_backend_binary_source_export(
     paths: ProjectPaths,
     assembler_profile: str,
     project_root: Path,
+    *, minimum_asset_size: int | None = None,
 ) -> dict[str, object]:
     binary_source = paths.binary_source
     with effective_metadata_file(paths.target_dir) as metadata_path:
@@ -100,7 +121,17 @@ def _c_backend_binary_source_export(
             project_root=project_root,
             workflow_id="source_export",
         )
+        native_package = None
+        if minimum_asset_size is not None and not rendering.refused:
+            native_package = listing_artifact_source_package_with_c_backend(
+                binary_source, minimum_asset_size=minimum_asset_size,
+                metadata_path=metadata_path, project_root=project_root,
+            )
+            if native_package.pop("canonical_source_text") != rendering.source_text:
+                raise ValueError("Source changed during package export; retry from current state")
     filename = f"{_safe_filename(target_name)}-{assembler_profile}.s"
+    if minimum_asset_size is not None:
+        filename = f"{_safe_filename(target_name.encode("ascii", "ignore").decode())}-{assembler_profile}.s"
     if rendering.refused:
         source_quality_explanation = source_quality_explain_project_source_with_c_backend(
             binary_source,
@@ -127,7 +158,7 @@ def _c_backend_binary_source_export(
         metadata_hash=rendering.metadata_hash,
         target_identity_sha256=rendering.target_identity_sha256,
     )
-    return {
+    payload: dict[str, object] = {
         "status": "ok",
         "target": target_name,
         "assembler_profile": assembler_profile,
@@ -140,6 +171,22 @@ def _c_backend_binary_source_export(
         "workflow_profile": rendering.workflow_profile,
         "non_verification": True,
     }
+
+    if native_package is not None:
+        assert minimum_asset_size is not None
+        from amiga_reversing.disasm.source_package import (
+            build_source_package,
+            collect_package_includes,
+        )
+        payload["source_text"] = _join_header_and_source(header, str(native_package["source_text"]),
+            assembler_profile=assembler_profile)
+        include_root = project_root / "ext" / "amiga_includes" / "ndk_2.0" / "include"
+        if rendering.listing_profile.get("backend") == "atari-st":
+            include_root = project_root / "ext" / "atarist_includes" / "devpac_3_10" / "include"
+        includes = collect_package_includes(str(payload["source_text"]), include_root)
+        payload["package"] = build_source_package(payload, native_package["assets"], minimum_asset_size,
+            includes=includes)
+    return payload
 
 
 def _renderer_backed_source_export(
@@ -309,3 +356,20 @@ def _join_header_and_source(header: str, source_text: str, *, assembler_profile:
 def _safe_filename(target_name: str) -> str:
     clean = "".join(char if char.isalnum() or char in {"-", "_"} else "-" for char in target_name)
     return clean.strip("-") or "source-export"
+
+
+def verify_source_export_package(target_name: str, payload: dict[str, Any], *, project_root: Path = PROJECT_ROOT) -> dict[str, Any]:
+    """Use the existing reproduction and oracle pipelines on the identical package."""
+    from amiga_reversing.disasm.oracle_compatibility import run_vasm_oracle
+    from amiga_reversing.disasm.reproduction import run_reproduction
+    package = payload["package"]
+    report = run_reproduction(target_name, assembler="our", persist_report=False,
+        project_root=project_root, pre_rendered_source_text=payload["source_text"],
+        pre_rendered_source_profile=payload["listing_profile"], pre_rendered_source_package=package)
+    oracle = run_vasm_oracle(target_name, project_root=project_root,
+        pre_rendered_source_text=payload["source_text"], pre_rendered_source_profile=payload["listing_profile"],
+        pre_rendered_source_package=package)
+    return {"package_sha256": package["sha256"],
+        "exact": (report.get("comparison") or {}).get("full_file_exact") is True
+            and oracle.get("comparison_level") == "oracle.full_file_match",
+        "framework": report, "oracle": oracle}

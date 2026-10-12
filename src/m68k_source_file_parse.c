@@ -11,6 +11,11 @@
 #include "util_arena.h"
 
 #include <stdarg.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -102,6 +107,95 @@ static int parse_include_quoted_path(const char *text, char *out_path,
   memcpy(out_path, text + 1, length);
   out_path[length] = '\0';
   return 1;
+}
+
+/* INCBIN deliberately accepts only portable package-relative paths. Reject
+   symlinks/reparse points in every asset component, as well as traversal. The
+   explicitly selected root is trusted; INCLUDE keeps its separate SDK root. */
+static int source_asset_path(const char *root, const char *relative, char *out, size_t capacity) {
+  size_t root_length, index, component_start;
+  if (root == NULL || root[0] == '\0' || relative == NULL || relative[0] == '\0') return 0;
+  root_length = strlen(root);
+  if (root_length + 1U + strlen(relative) + 1U > capacity) return 0;
+  memcpy(out, root, root_length);
+  out[root_length] = '/';
+  component_start = 0U;
+  for (index = 0U; ; ++index) {
+    unsigned char ch = (unsigned char)relative[index];
+    if (ch != '\0' && (ch < 32U || ch >= 127U || ch == '\\' || ch == ':' ||
+        ch == '\"' || ch == '\'' || ch == '*' || ch == '?' || ch == '<' || ch == '>' || ch == '|')) return 0;
+    if (ch == '/' || ch == '\0') {
+      size_t length = index - component_start;
+      /* Windows normalizes trailing dots/spaces, which could alias '..'. */
+      if (length == 0U || relative[index - 1U] == '.' || relative[index - 1U] == ' ') return 0;
+      out[root_length + 1U + index] = '\0';
+#ifdef _WIN32
+      {
+        DWORD attrs = GetFileAttributesA(out);
+        if (attrs == INVALID_FILE_ATTRIBUTES || (attrs & FILE_ATTRIBUTE_REPARSE_POINT) != 0U ||
+            ((attrs & FILE_ATTRIBUTE_DIRECTORY) != 0U) != (ch == '/')) return 0;
+      }
+#else
+      {
+        struct stat info;
+        if (lstat(out, &info) != 0 || S_ISLNK(info.st_mode) ||
+            (ch == '/' ? !S_ISDIR(info.st_mode) : !S_ISREG(info.st_mode))) return 0;
+      }
+#endif
+      if (ch == '\0') return 1;
+      component_start = index + 1U;
+    }
+    out[root_length + 1U + index] = (char)ch;
+  }
+}
+
+static int source_parse_incbin(AsmSourceFile *source, const char *operand,
+    size_t section_index, size_t line_number, M68kDiagSink diagnostics) {
+  char relative[1024], path[2048];
+  FILE *input = NULL;
+  long length;
+  uint8_t *bytes = NULL;
+  AsmDataItem item;
+  M68kSourceModelIndexResult added;
+  int ok = 0;
+  if (operand[0] == '\"' || operand[0] == '\'') {
+    const char *end_quote = strchr(operand + 1, operand[0]);
+    if (end_quote != NULL && end_quote[1] != '\0') {
+      source_parse_errorf(diagnostics,
+        "INCBIN offset/length operands are unsupported; use a whole-file package asset at line %u",
+        (unsigned)line_number);
+      return 0;
+    }
+  }
+  if (!parse_include_quoted_path(operand, relative, sizeof(relative)) ||
+      !source_asset_path(source->asset_dir, relative, path, sizeof(path))) {
+    source_parse_errorf(diagnostics, "unsafe or missing INCBIN asset/root at line %u", (unsigned)line_number);
+    return 0;
+  }
+  input = fopen(path, "rb");
+  if (input == NULL || fseek(input, 0L, SEEK_END) != 0 || (length = ftell(input)) < 0L ||
+      (uint64_t)length > UINT32_MAX || fseek(input, 0L, SEEK_SET) != 0) goto cleanup;
+  /* A byte string IR item avoids one expression/statement allocation per byte. */
+  bytes = (uint8_t *)malloc(length != 0L ? (size_t)length : 1U);
+  if (bytes == NULL || fread(bytes, 1U, (size_t)length, input) != (size_t)length ||
+      fgetc(input) != EOF || ferror(input)) goto cleanup;
+  added = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
+  if (!added.ok) goto cleanup;
+  source->statements[added.index].section_index = section_index;
+  source->statements[added.index].u.data.width_bytes = 1U;
+  memset(&item, 0, sizeof(item));
+  item.kind = ASM_DATA_ITEM_STRING;
+  item.bytes = bytes;
+  item.byte_count = (size_t)length;
+  item.repeat_count = 1U;
+  /* An empty asset emits no items (arena_memdup need not support zero bytes). */
+  ok = length == 0L || m68k_source_model_append_data_item(source,
+    &source->statements[added.index].u.data, &item);
+cleanup:
+  free(bytes);
+  if (input != NULL) fclose(input);
+  if (!ok) source_parse_errorf(diagnostics, "failed reading INCBIN asset at line %u", (unsigned)line_number);
+  return ok;
 }
 
 static M68kSourceLookupResult lookup_defined_symbol_value(const AsmSourceFile *source, const char *name,
@@ -509,6 +603,13 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
     token0 = m68k_next_token_in_place(&cursor);
     rest = m68k_trim_in_place(cursor);
     directive0 = m68k_parse_source_directive_token(token0);
+    if (directive0 == M68K_SOURCE_DIRECTIVE_INCBIN) {
+      if (!source_parse_incbin(source, rest, current_section_index, line_number, diagnostics)) {
+        source_line_reader_close(reader);
+        return 0;
+      }
+      continue;
+    }
     if (directive0 == M68K_SOURCE_DIRECTIVE_INCLUDE) {
       char include_path[512];
       char full_path[1024];
@@ -1008,6 +1109,24 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
   if (path == NULL) {
     source_parse_error(diagnostics, "failed opening source file");
     return 0;
+  }
+  if (source->asset_dir[0] == '\0') {
+    const char *slash = strrchr(path, '/');
+#ifdef _WIN32
+    const char *backslash = strrchr(path, '\\');
+    if (backslash != NULL && (slash == NULL || backslash > slash)) slash = backslash;
+#endif
+    size_t length = slash == NULL ? 0U : (size_t)(slash - path);
+    if (length >= sizeof(source->asset_dir)) {
+      source_parse_error(diagnostics, "source asset root is too long");
+      return 0;
+    }
+    if (slash == NULL) snprintf(source->asset_dir, sizeof(source->asset_dir), ".");
+    else if (length == 0U) snprintf(source->asset_dir, sizeof(source->asset_dir), "/");
+    else {
+      memcpy(source->asset_dir, path, length);
+      source->asset_dir[length] = '\0';
+    }
   }
   input = fopen(path, "r");
   if (input == NULL) {

@@ -21,6 +21,7 @@ def main(argv: list[str] | None = None) -> int:
         "operation",
         choices=(
             "state",
+            "export",
             "query",
             "inspect",
             "interpret",
@@ -34,6 +35,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--request", type=Path, help="JSON operation parameters (use - for stdin)"
     )
+    parser.add_argument("--assembler-profile", choices=("vasm", "devpac"))
+    parser.add_argument("--binary-assets", action="store_true", default=None)
+    parser.add_argument("--minimum-asset-size", type=int)
     parser.add_argument("--expected-revision")
     parser.add_argument(
         "--kind",
@@ -84,6 +88,9 @@ def main(argv: list[str] | None = None) -> int:
                     "Request must be an object of parameters without operation"
                 )
         for name in (
+            "assembler_profile",
+            "binary_assets",
+            "minimum_asset_size",
             "expected_revision",
             "kind",
             "relation",

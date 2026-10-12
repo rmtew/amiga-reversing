@@ -90,6 +90,9 @@ typedef struct AsmSourceFile {
     size_t statement_count;
     size_t statement_capacity;
     char include_dir[512];
+    /* Binary assets resolve independently of system INCLUDE search paths.
+       File parsing defaults this to the source file parent; text needs an explicit root. */
+    char asset_dir[1024];
     uint8_t target_cpu;
     M68kPlatformBackendKind platform_backend_kind;
     M68kPlatformFileKind file_kind;

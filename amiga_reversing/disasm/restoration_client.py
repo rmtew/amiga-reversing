@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 
@@ -88,10 +88,18 @@ class RestorationClient:
             if not isinstance(data, dict):
                 raise RestorationClientError({"error": "Invalid server contract"})
             self._contract = str(data["web_app_contract_version"])
-        response = self._request(
-            f"/api/projects/{quote(project, safe='')}/restoration",
-            {"operation": operation, **parameters},
-        )
+        if operation == "export":
+            allowed = {"assembler_profile", "binary_assets", "minimum_asset_size"}
+            if set(parameters) - allowed:
+                raise ValueError("Unsupported source export parameters")
+            query = urlencode({key: str(value).lower() if isinstance(value, bool) else value
+                               for key, value in parameters.items()})
+            response = self._request(f"/api/projects/{quote(project, safe='')}/source-export?{query}")
+        else:
+            response = self._request(
+                f"/api/projects/{quote(project, safe='')}/restoration",
+                {"operation": operation, **parameters},
+            )
         data = response.get("data")
         if not isinstance(data, dict):
             raise RestorationClientError({"error": "Invalid restoration response"})
