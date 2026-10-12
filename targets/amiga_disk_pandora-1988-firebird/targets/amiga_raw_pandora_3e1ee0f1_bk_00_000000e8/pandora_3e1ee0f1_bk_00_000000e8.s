@@ -513,12 +513,13 @@ sprite_0005D5DE_hi	EQU	sprite_0005D5DE/$10000
 sprite_0005D5DE_lo	EQU	sprite_0005D5DE-(sprite_0005D5DE_hi*$10000)
 
     SECTION code,code
-loc_0_00000000:
+    ; Copy the 42-byte helper at source $28 to low RAM $300 before moving the overlapping image. PC-relative LEAs recover the load base; custom interrupt and DMA enables are cleared.
+bootstrap_to_fixed_execution_base:
     ORG $10000
 abs_0_00010000:
 	move.w #INTF_CLRALL,_custom+intena.l
 	move.w #DMAF_CLRALL,_custom+dmacon.l
-	lea.l abs_0_00010028(pc),a0
+	lea.l fixed_base_image_copy_stub(pc),a0
 	lea.l abs_0_00010000(pc),a1
 	lea.l runtime_code_00000300.w,a2
 	moveq.l #41,d0
@@ -526,24 +527,25 @@ abs_0_0001001E:
 	move.b (a0)+,(a2)+
 	dbf.w d0,abs_0_0001001E
 	jmp runtime_code_00000300.w
-abs_0_00010028:
+    ; At $300, copy $55370 bytes from A1 to $10000, then jump to $1046A. Use forward copy for source >= destination, backward otherwise. The remaining file tail is not copied here.
+fixed_base_image_copy_stub:
 	lea.l abs_0_00010000.l,a2
 	lea.l abs_0_0001046A.l,a3
 	move.l #$55370,d0
 	cmpa.l a2,a1
 	bcs.b abs_0_00010046
-abs_0_0001003E:
+copy_image_forward_bytes:
 	move.b (a1)+,(a2)+
 	subq.l #1,d0
-	bne.b abs_0_0001003E
+	bne.b copy_image_forward_bytes
 	jmp (a3)
 abs_0_00010046:
 	adda.l d0,a1
 	adda.l d0,a2
-abs_0_0001004A:
+copy_image_backward_bytes:
 	move.b -(a1),-(a2)
 	subq.l #1,d0
-	bne.b abs_0_0001004A
+	bne.b copy_image_backward_bytes
 	jmp (a3)
 	dcb.b $400,$00
 abs_0_00010452:
