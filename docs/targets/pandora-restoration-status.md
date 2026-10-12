@@ -452,3 +452,20 @@ bytes, accepted noncode 263,587 bytes, unclaimed 88,851 bytes. Accepted ownershi
 is 287,981 bytes (76.42%), still distinct from semantic completion. Audio
 sequence formats, remaining raw regions and actual alternate execution remain
 open, as does the separate native discovery repair.
+
+The updated standalone package also passes complete C and vasm equality. It
+contains 70 conservative assets (175,072 bytes: 65 bitmap fragments and five
+sound-sample fragments), nine SDK includes and generated source. Every asset's
+bytes and SHA256 were checked against its original source interval, and every
+interval lies within reviewed bitmap or sample-payload ranges. Headers, small
+records and other material remain inline where extraction is not eligible.
+ZIP SHA256: `a5c06a380cd24449693628abf01d3b92ea7055675865fe0e0d42ba80fbca3cec`.
+Package manifest fingerprint:
+`298a0031a6695e648be622a083f2817885e72b608e8c3e3766e7edbb4b852edc`.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.source_export \
+  amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --binary-assets --minimum-asset-size 128 --verify-package \
+  --output .runtime-state/pandora-analysis/pandora-reviewed-scenes-and-audio.zip --json
+```
