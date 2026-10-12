@@ -334,3 +334,52 @@ reproduces the entire original with C and vasm. Receipt:
 source subject `23f77d51019537ca4063cd69bc6824c0050742ac144d6d0f615078333db0731f`.
 History prefixes are preserved and the timestamp-only project update is removed.
 This slice changes names and comments, not code bytes or original behavior.
+
+## Reviewed graphics banks and packaged source
+
+The next 62 canonical actions define 31 bitmap banks and their arrays, covering
+115,872 bytes. The CPU mask builder reads four plane words per 16-pixel cell and
+ORs them into one mask word. Three animation headers establish six-frame banks
+with 32×32, 16×32 and 32×32 geometry. Other banks retain flattened pixel cells;
+their individual image geometry is not established. The 1,392-byte gap at
+`[0x39DC8,0x3A338)` and first bank `[0x3A738,0x3D338)` remain excluded. The latter
+overlaps accepted code whose source/runtime discovery provenance needs review.
+No speculative code withdrawal or arbitrary address subtraction is applied.
+
+All 497 resource evidence instructions match original bytes. Full C and vasm
+reproduction passed, receipt
+`0ab558624a39b8ff3acc3e581a6f4d7075b1c4adb90745b76d7417e5673f9863`,
+source subject `0626bd88d57152fcaa367207f502942c8d597f48941a488404a9c5338ca9dac5`.
+All 62 actions were independently reviewed before acceptance; both durable
+histories preserve their prefixes.
+
+The 138 effective representation records exceeded the native fixed limit of
+128. Generic policy storage now uses four inline records and bounded heap growth
+to 4,096, with duplicate/conflict checks before capacity rejection, deep-copy
+ownership and allocation-failure preservation. The C policy ABI changed; all
+native aliases were rebuilt together before restarting the service. Validation:
+31 focused Python tests, 638 native IR tests and three lifecycle tests passed.
+
+The current ownership snapshot has 332 disjoint intervals: accepted code 24,394
+bytes, accepted noncode 198,689 bytes and unclaimed 153,749 bytes. Accepted
+ownership is 223,083 bytes (59.20%). These counts include existing accepted code
+under provenance review; they do not measure semantic completion. The dated
+baseline remains unchanged.
+
+The real binary-asset package passes full C and vasm reproduction of all 376,832
+original bytes. Its 48 assets contain 132,896 bytes, checked against the union of
+reviewed bitmap intervals. Conservative packaging leaves other bytes inline.
+Nine SDK includes are bundled. The include collector now handles balanced single
+quotes used by the SDK while retaining containment and malformed-operand checks;
+all 31 source-package tests pass. ZIP SHA256:
+`91f31b4b75fe088d82542f48538dd9871cfd88dd30bb796cfee0a505f9253e11`.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.source_export \
+  amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --binary-assets --minimum-asset-size 128 --verify-package \
+  --output .runtime-state/pandora-analysis/pandora-reviewed-graphics.zip --json
+```
+
+Full readable restoration and actual alternate-layout execution remain open.
+Original disk/loader parity is outside this restoration's scope.

@@ -169,7 +169,11 @@ section_index	start_offset	end_offset	size	classification	ownership_overlap
 0	116264	117288	1024	accepted_noncode	False
 0	117288	117416	128	unclaimed	False
 0	117416	118440	1024	accepted_noncode	False
-0	118440	250640	132200	unclaimed	False
+0	118440	122152	3712	unclaimed	False
+0	122152	237000	114848	accepted_noncode	False
+0	237000	238392	1392	unclaimed	False
+0	238392	239416	1024	accepted_noncode	False
+0	239416	250640	11224	unclaimed	False
 0	250640	250786	146	code	False
 0	250786	251870	1084	unclaimed	False
 0	251870	251876	6	code	False

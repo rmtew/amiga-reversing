@@ -3397,7 +3397,7 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   uint16_t symbol_id = 0U;
   uint16_t target_equate_index = 0U;
   if (policy == NULL || size == 0U || style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
-      policy->manual_representation_count >= M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT) {
+      !m68k_analysis_policy_manual_representations_valid(policy)) {
     return 0;
   }
   if (symbol_name != NULL && symbol_name[0] != '\0') {
@@ -3417,6 +3417,8 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
         existing->target_equate_index == target_equate_index;
     }
   }
+  if (m68k_analysis_policy_reserve_manual_representations(policy,
+      (uint16_t)(policy->manual_representation_count + 1U)) != 0) return 0;
   slot = &policy->manual_representations[policy->manual_representation_count++];
   memset(slot, 0, sizeof(*slot));
   slot->has_section_index = 1U;
@@ -9180,8 +9182,8 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
           "target metadata runtime entrypoint is out of range for source file"))
       return 0;
   }
-  for (index = 0U; index < policy->manual_representation_count &&
-       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+  if (!m68k_analysis_policy_manual_representations_valid(policy)) return 0;
+  for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     if (!validate_policy_section_index_local(diagnostics, object, representation->has_section_index,
         representation->section_index))
@@ -9787,7 +9789,7 @@ static int enrich_policy_from_object_target_info_local(M68kAnalysisPolicy *polic
 
 static int append_effective_analysis_policy_json_local(JsonBuilder *builder, const M68kAnalysisPolicy *policy) {
   uint16_t index;
-  if (builder == NULL || policy == NULL) return -1;
+  if (builder == NULL || !m68k_analysis_policy_manual_representations_valid(policy)) return -1;
   if (json_builder_appendf(builder,
         "\"analysis_policy\":{\"max_cpu\":%u,\"implicit_entry_points\":%s,"
         "\"entry_point_count\":%u,\"register_seed_count\":%u,"

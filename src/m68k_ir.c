@@ -1540,6 +1540,8 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
   policy->structured_data_item_capacity = 4U;
   policy->named_labels = policy->named_labels_inline;
   policy->named_label_capacity = 4U;
+  policy->manual_representations = policy->manual_representations_inline;
+  policy->manual_representation_capacity = 4U;
 }
 
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
@@ -1548,6 +1550,8 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   if (policy->structured_data_items_owner != 0U && policy->structured_data_items != NULL)
     free(policy->structured_data_items);
   if (policy->named_labels_owner != 0U && policy->named_labels != NULL) free(policy->named_labels);
+  if (policy->manual_representations_owner != 0U && policy->manual_representations != NULL)
+    free(policy->manual_representations);
   policy->custom_structs = NULL;
   policy->custom_struct_count = 0U;
   policy->custom_struct_capacity = 0U;
@@ -1560,6 +1564,10 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   policy->named_labels = policy->named_labels_inline;
   policy->named_label_capacity = 4U;
   policy->named_labels_owner = 0U;
+  policy->manual_representation_count = 0U;
+  policy->manual_representations = policy->manual_representations_inline;
+  policy->manual_representation_capacity = 4U;
+  policy->manual_representations_owner = 0U;
 }
 
 int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count) {
@@ -1605,14 +1613,54 @@ int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16
   return 0;
 }
 
+int m68k_analysis_policy_manual_representations_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->manual_representation_count > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ||
+      policy->manual_representation_capacity > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ||
+      policy->manual_representation_count > policy->manual_representation_capacity) return 0;
+  if (policy->manual_representations == NULL)
+    return policy->manual_representation_capacity == 0U && policy->manual_representations_owner == 0U;
+  if (policy->manual_representations == policy->manual_representations_inline)
+    return policy->manual_representation_capacity <= 4U && policy->manual_representations_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_reserve_manual_representations(M68kAnalysisPolicy *policy, uint16_t required_count) {
+  M68kAnalysisManualRepresentation *grown;
+  uint16_t capacity;
+  if (!m68k_analysis_policy_manual_representations_valid(policy) ||
+      required_count > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT) return -1;
+  if (policy->manual_representations == NULL && required_count <= 4U) {
+    policy->manual_representations = policy->manual_representations_inline;
+    policy->manual_representation_capacity = 4U;
+  }
+  if (required_count <= policy->manual_representation_capacity) return 0;
+  capacity = policy->manual_representation_capacity < 4U ? 4U : policy->manual_representation_capacity;
+  while (capacity < required_count) {
+    uint16_t next = (uint16_t)(capacity * 2U);
+    capacity = next > capacity && next <= M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ? next :
+      M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT;
+  }
+  grown = (M68kAnalysisManualRepresentation *)calloc(capacity, sizeof(*grown));
+  if (grown == NULL) return -1;
+  if (policy->manual_representation_count != 0U)
+    memcpy(grown, policy->manual_representations, (size_t)policy->manual_representation_count * sizeof(*grown));
+  if (policy->manual_representations_owner != 0U) free(policy->manual_representations);
+  policy->manual_representations = grown;
+  policy->manual_representation_capacity = capacity;
+  policy->manual_representations_owner = 1U;
+  return 0;
+}
+
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src) {
   uint16_t custom_struct_count;
   uint16_t structured_data_item_count;
   uint16_t named_label_count;
+  uint16_t manual_representation_count;
   uint16_t index;
   M68kAnalysisCustomStruct *custom_structs = NULL;
   M68kAnalysisStructuredDataItem *structured_data_items = NULL;
   M68kAnalysisNamedLabel *named_labels = NULL;
+  M68kAnalysisManualRepresentation *manual_representations = NULL;
   if (dest == NULL || src == NULL) return -1;
   if (dest == src) return 0;
   custom_struct_count = src->custom_struct_count;
@@ -1640,6 +1688,15 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     if (named_labels == NULL) goto oom;
     memcpy(named_labels, src->named_labels, (size_t)named_label_count * sizeof(*named_labels));
   }
+  manual_representation_count = src->manual_representation_count;
+  if (!m68k_analysis_policy_manual_representations_valid(src)) goto oom;
+  if (manual_representation_count > 4U) {
+    manual_representations = (M68kAnalysisManualRepresentation *)calloc(manual_representation_count,
+      sizeof(*manual_representations));
+    if (manual_representations == NULL) goto oom;
+    memcpy(manual_representations, src->manual_representations,
+      (size_t)manual_representation_count * sizeof(*manual_representations));
+  }
   *dest = *src;
   dest->custom_structs = custom_structs;
   dest->custom_struct_capacity = custom_struct_count;
@@ -1666,6 +1723,17 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     memcpy(dest->named_labels_inline, src->named_labels,
       (size_t)named_label_count * sizeof(dest->named_labels_inline[0]));
   }
+  dest->manual_representations = dest->manual_representations_inline;
+  dest->manual_representation_capacity = 4U;
+  dest->manual_representations_owner = 0U;
+  if (manual_representation_count > 4U) {
+    dest->manual_representations = manual_representations;
+    dest->manual_representation_capacity = manual_representation_count;
+    dest->manual_representations_owner = 1U;
+  } else if (manual_representation_count != 0U) {
+    memcpy(dest->manual_representations_inline, src->manual_representations,
+      (size_t)manual_representation_count * sizeof(dest->manual_representations_inline[0]));
+  }
   for (index = 0U; index < dest->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     m68k_analysis_structured_data_item_refresh_text_lengths(&dest->structured_data_items[index]);
@@ -1675,6 +1743,7 @@ oom:
   free(custom_structs);
   free(structured_data_items);
   free(named_labels);
+  free(manual_representations);
   return -1;
 }
 

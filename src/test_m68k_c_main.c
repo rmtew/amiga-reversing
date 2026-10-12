@@ -7,6 +7,7 @@ int main(void) {
   failures += m68k_c_parse_util_tests();
   failures += m68k_c_instruction_spec_tests();
   failures += m68k_c_ir_tests();
+  failures += m68k_c_policy_storage_tests();
   failures += m68k_c_simulator_tests();
   failures += m68k_c_render_plan_tests();
   failures += m68k_c_source_package_tests();

@@ -10919,8 +10919,8 @@ static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *s
   uint16_t index;
   if (source_analysis == NULL) return -1;
   policy = &source_analysis->policy;
-  for (index = 0U; index < policy->manual_representation_count &&
-       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+  if (!m68k_analysis_policy_manual_representations_valid(policy)) return -1;
+  for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     const M68kAnalysisTargetEquate *equate;
     M68kSectionAnalysisIR *section_analysis;

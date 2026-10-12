@@ -2430,9 +2430,8 @@ static const M68kAnalysisManualRepresentation *lookup_manual_representation_at(
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  if (policy == NULL) return NULL;
-  for (index = 0U; index < policy->manual_representation_count &&
-       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+  if (!m68k_analysis_policy_manual_representations_valid(policy)) return NULL;
+  for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     if (representation->has_section_index && representation->section_index == section_index &&
         !representation->has_operand_index && representation->offset == offset && representation->size != 0U) {
@@ -2446,9 +2445,8 @@ static const M68kAnalysisManualRepresentation *lookup_manual_operand_representat
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, size_t operand_index) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  if (policy == NULL || operand_index > 3U) return NULL;
-  for (index = 0U; index < policy->manual_representation_count &&
-       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+  if (!m68k_analysis_policy_manual_representations_valid(policy) || operand_index > 3U) return NULL;
+  for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     if (representation->has_section_index && representation->section_index == section_index &&
         representation->has_operand_index && representation->operand_index == operand_index &&
@@ -2464,9 +2462,8 @@ static uint32_t next_manual_representation_offset(const M68kRenderLookup *lookup
   uint16_t index;
   uint32_t next = limit;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  if (policy == NULL) return limit;
-  for (index = 0U; index < policy->manual_representation_count &&
-       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+  if (!m68k_analysis_policy_manual_representations_valid(policy)) return limit;
+  for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     if (representation->has_section_index && representation->section_index == section_index &&
         !representation->has_operand_index && representation->offset > offset && representation->offset < next) {

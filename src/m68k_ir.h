@@ -52,7 +52,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
-#define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
+#define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
 #define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
@@ -725,10 +725,11 @@ typedef struct M68kAnalysisPolicy {
   uint16_t custom_struct_capacity;
   uint16_t structured_data_item_capacity;
   uint16_t named_label_capacity;
+  uint16_t manual_representation_capacity;
   uint8_t custom_struct_owner;
   uint8_t structured_data_items_owner;
   uint8_t named_labels_owner;
-  uint8_t reserved1[1];
+  uint8_t manual_representations_owner;
   uint32_t entry_offset;
   char source_context_kind[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
@@ -750,7 +751,8 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
   M68kAnalysisAbsoluteStorageSlot absolute_storage_slots[M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT];
   M68kAnalysisRssetUseSiteBinding rsset_use_site_bindings[M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT];
-  M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
+  M68kAnalysisManualRepresentation manual_representations_inline[4];
+  M68kAnalysisManualRepresentation *manual_representations;
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
   M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];
   M68kAnalysisAbstractRegion abstract_regions[M68K_ANALYSIS_ABSTRACT_REGION_LIMIT];
@@ -2739,6 +2741,11 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
 int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count);
 int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16_t required_count);
+/* Initialize before indexed writes; reserve before exceeding the inline capacity.
+   Zero-initialized policies support reserve/copy/destroy. Copy destinations must
+   be fresh or destroyed, as for the other owned policy collections. */
+int m68k_analysis_policy_reserve_manual_representations(M68kAnalysisPolicy *policy, uint16_t required_count);
+int m68k_analysis_policy_manual_representations_valid(const M68kAnalysisPolicy *policy);
 int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy);
 int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *source_analysis,
   const M68kAnalysisStructuredDataItem *item);
