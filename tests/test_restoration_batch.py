@@ -194,3 +194,62 @@ def test_batch_shape_refused_without_history(batch_target, entries):
     ):
         invoke(batch_target, entries=entries)
     assert not (batch_target.directory / "manual_actions.jsonl").exists()
+
+
+@pytest.mark.parametrize("invalid_last", [None, "parameters", "codec"])
+def test_repeated_context_resolves_once_but_validates_each_parameters(
+    batch_target, monkeypatch, invalid_last
+):
+    entries = [deepcopy(batch_target.entries[1]) for _ in range(3)]
+    for index, entry in enumerate(entries):
+        entry["parameters"]["text"] = f"Caller evidence interpretation {index}."
+    if invalid_last:
+        entries[-1]["parameters"]["text"] = (
+            None if invalid_last == "parameters" else "line\nnext"
+        )
+    calls = {"context": 0, "catalog": 0, "append": 0}
+    for label, name in (
+        ("context", "_command_context_from_body"),
+        ("catalog", "_command_catalog_payload"),
+        ("append", "append_manual_actions"),
+    ):
+        original = getattr(server, name)
+
+        def counted(*args, _original=original, _label=label, **kwargs):
+            calls[_label] += 1
+            return _original(*args, **kwargs)
+
+        monkeypatch.setattr(server, name, counted)
+    if invalid_last:
+        journal = batch_target.directory / "decision_journal.jsonl"
+        journal.write_bytes(b"preserve journal bytes\n")
+        with pytest.raises(ValueError, match="text|codec|losslessly|capacity"):
+            invoke(batch_target, entries=entries)
+        assert not (batch_target.directory / "manual_actions.jsonl").exists()
+        assert journal.read_bytes() == b"preserve journal bytes\n"
+    else:
+        result = invoke(batch_target, entries=entries)
+        assert [action["comment"]["text"] for action in result["actions"]] == [
+            entry["parameters"]["text"] for entry in entries
+        ]
+    assert calls == {
+        "context": 1,
+        "catalog": 1,
+        "append": 0 if invalid_last == "parameters" else 1,
+    }
+
+
+def test_preparation_context_memo_is_not_reused_between_requests(
+    batch_target, monkeypatch
+):
+    calls = []
+    original = server._command_catalog_payload
+
+    def counted(*args, **kwargs):
+        calls.append(args)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(server, "_command_catalog_payload", counted)
+    invoke(batch_target, entries=[batch_target.entries[1]])
+    invoke(batch_target, entries=[batch_target.entries[1]])
+    assert len(calls) == 2

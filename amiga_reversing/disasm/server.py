@@ -11,6 +11,7 @@ import threading
 import time
 import uuid
 from collections.abc import Callable, Mapping, Sequence
+from copy import deepcopy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
@@ -2581,6 +2582,7 @@ def _execute_command(project_name: str, body: Mapping[str, object] | None) -> di
 
 def _prepare_catalog_command(
     project_name: str, body: Mapping[str, object] | None, workflow_profile: WorkflowProfile,
+    context_cache: dict[str, tuple[dict[str, object], list[dict[str, object]], dict[str, object]]],
 ) -> dict[str, object]:
     payload_body = dict(body or {})
     command_id = payload_body.get("command_id")
@@ -2592,10 +2594,19 @@ def _prepare_catalog_command(
     parameters = payload_body.get("parameters")
     if parameters is not None and not isinstance(parameters, dict):
         raise _command_contract_error("invalid_command_context", "parameters must be an object")
-    with workflow_profile.span("command_context", module="server"):
-        command_context, rows = _command_context_from_body(project_name, context, workflow_profile=workflow_profile)
-    with workflow_profile.span("command_catalog", module="server"):
-        catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
+    context_key = json.dumps(context, sort_keys=True, separators=(",", ":"))
+    cached = context_cache.get(context_key)
+    if cached is None:
+        with workflow_profile.span("command_context", module="server"):
+            command_context, rows = _command_context_from_body(project_name, context, workflow_profile=workflow_profile)
+        with workflow_profile.span("command_catalog", module="server"):
+            catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
+        context_cache[context_key] = (command_context, rows, catalog)
+    else:
+        command_context, rows, catalog = cached
+    # Payload construction stays per entry; copies protect the inspected snapshot
+    # from any command-specific normalization in a payload factory.
+    command_context, rows = deepcopy((command_context, rows))
     commands = cast(list[dict[str, object]], catalog["commands"])
     command = next((candidate for candidate in commands if candidate.get("command_id") == command_id), None)
     if command is None:
@@ -2618,7 +2629,9 @@ def _execute_catalog_commands_unchecked(project_name: str, bodies: list[dict]) -
     No preparation invalidates the current native artifact.
     """
     workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
-    prepared = [_prepare_catalog_command(project_name, body, workflow_profile) for body in bodies]
+    # This memo belongs only to this locked preparation stage, before any append.
+    context_cache = {}
+    prepared = [_prepare_catalog_command(project_name, body, workflow_profile, context_cache) for body in bodies]
     result = _apply_manual_action_commands(project_name, prepared, workflow_profile=workflow_profile)
     response_started_at = time.perf_counter()
     result["commands"] = [{"command_id": entry["command_id"],
