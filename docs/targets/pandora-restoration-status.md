@@ -383,3 +383,38 @@ all 31 source-package tests pass. ZIP SHA256:
 
 Full readable restoration and actual alternate-layout execution remain open.
 Original disk/loader parity is outside this restoration's scope.
+
+## Remaining mask banks and selected title records
+
+Another 64 independently reviewed catalog actions define 26 remaining scene
+mask-input banks and six selected title records, each with a bounded array.
+The scene initializer at source `0x74FC..0x7712` supplies constant input/output
+pointers and loop bounds to the same reviewed CPU mask builder. Native typed
+references establish source coordinates directly. All 131 initializer encodings
+match original bytes; the 26 source banks cover 38,224 bytes in
+`[0x3EFA8,0x484F8)`. Their array stride is eight bytes per four-word cell.
+Individual frame shapes and exclusive ownership remain unproven.
+
+The direct title caller at source `0x1002` passes `PANDORA\0` from `0xA7D0` to
+the large-character renderer. This proves only A,D,N,O,P,R: six 128-byte records
+selected from base `0xC3A8` with `128*(character-'A')`. The copier transfers 32
+rows of four bytes, starting at cursor+120 and stepping 160 output bytes per
+row. All 47 inspected encodings match original bytes. These records use the
+conservative `data` role; no complete alphabet or planar image format is claimed.
+
+The final generated source again passes full C and independent vasm equality,
+receipt `1ff4512783ca2aa510c6a82707176ccf22f76c5565c321a3bd3d2794d7860664`,
+source subject `3b3a971b97506695e32e92c1f927a33d3590759dfc75d6a4bdd1760384703ce0`.
+Both histories retain their prefixes. The current native partition has 342
+disjoint intervals, accepted code 24,394 bytes, accepted noncode 237,681 bytes
+and unclaimed 114,757 bytes. Ownership is 262,075 bytes (69.55%); semantic
+completion and actual alternate-layout execution remain open.
+
+A bounded native append diagnostic now establishes the questioned code's
+discovery history: source caller `0x896C` first seeds/accepts `0x3D310` while only
+the initial load view exists; the copied view appears later, and the final
+native reference resolves the call to `0x4D310`. The inferred caller runtime
+`0x2896C` does not prove actual loader-phase execution. The diagnostic retained
+265 scoped events with no drops and left backend, metadata and histories
+unchanged. A reviewed generic context/provenance repair is in progress; neither
+the questioned code nor its overlapping resources has been reclassified here.

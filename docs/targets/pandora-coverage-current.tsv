@@ -119,7 +119,15 @@ section_index	start_offset	end_offset	size	classification	ownership_overlap
 0	43706	43765	59	accepted_noncode	False
 0	43765	45984	2219	unclaimed	False
 0	45984	46248	264	accepted_noncode	False
-0	46248	53416	7168	unclaimed	False
+0	46248	50088	3840	unclaimed	False
+0	50088	50216	128	accepted_noncode	False
+0	50216	50472	256	unclaimed	False
+0	50472	50600	128	accepted_noncode	False
+0	50600	51752	1152	unclaimed	False
+0	51752	52136	384	accepted_noncode	False
+0	52136	52264	128	unclaimed	False
+0	52264	52392	128	accepted_noncode	False
+0	52392	53416	1024	unclaimed	False
 0	53416	54952	1536	accepted_noncode	False
 0	54952	55080	128	unclaimed	False
 0	55080	58536	3456	accepted_noncode	False
@@ -179,7 +187,9 @@ section_index	start_offset	end_offset	size	classification	ownership_overlap
 0	251870	251876	6	code	False
 0	251876	254956	3080	unclaimed	False
 0	254956	254970	14	code	False
-0	254970	296634	41664	unclaimed	False
+0	254970	257960	2990	unclaimed	False
+0	257960	296184	38224	accepted_noncode	False
+0	296184	296634	450	unclaimed	False
 0	296634	296718	84	accepted_noncode	False
 0	296718	297580	862	unclaimed	False
 0	297580	297984	404	accepted_noncode	False
