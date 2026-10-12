@@ -487,3 +487,48 @@ execution lineage remain explicit limitations. Independent text/audio work may
 continue after this bounded gate. The loopback service was rebuilt/restarted once
 at `http://127.0.0.1:8123/` (PID 39298). See the
 [scope, exact proof, reproduction and preserved experiment](../validation/pandora-entry-lineage-refusal.md).
+
+## Conditional font records and text-plane contracts
+
+Forty-nine independently reviewed actions are now accepted in the existing
+Decision Journal: 21 data layouts, 21 arrays, a byte RSSET slot, three renderer
+names and three qualified comments. Twenty additional large-selector records
+contribute 2,560 bytes, each 32 rows of four bytes. Together with the previously
+reviewed six title records, these cover the conditional zero-extended A..Z
+selectors at `0xC3A8..0xD0A8`; only the original `PANDORA` uses were directly
+corroborated at the title caller. Nonstandard W artwork is preserved. No full
+table-end, arbitrary-input, exclusive-allocation or image-format claim is made.
+
+The compact prefix contains 59 eight-byte records selected by ASCII 32..90 at
+`0xA8E2..0xAABA` (472 bytes). Original bit matrices corroborate letters/digits
+and blank/placeholder punctuation. Source `0x9FE0` stores immediate runtime
+`0x1A7E2` in the font-pointer slot; its native operand reference provides the
+canonical biased source anchor `0xA7E2`. It is not a PC-relative initializer.
+The inspected string path zero-extends input and maps lowercase a..z to A..Z;
+other control/high-byte bounds remain unresolved. All new font records retain
+the conservative `data` role.
+
+`app_text_plane_mask` at app byte `0x22D` is corroborated by 21 saved instruction
+uses. The CPU glyph loop loads it once, consumes four successive low bits,
+copies eight rows for selected planes and clears the other planes (row stride
+160, plane stride 40). The blitter consumer also selects four planes but skips
+unselected planes. Writers include descriptor byte 5, immediates and a frame
+counter byte; no global upper-bit or colour/palette invariant is asserted.
+
+The three named entries describe compact-string rendering, masked glyph copying
+and incrementing the stored text origin. NUL stores the final A1 cursor. CR
+advances the saved line origin by 1,280 bytes. Byte 1 increments the stored origin
+by one byte and reloads A1 without consuming an operand; it leaves the separate
+saved line origin unchanged. This distinction matters after prior glyphs have
+advanced A1. A1..A3 are preserved by the glyph helper; D0..D2 are clobbered.
+These are inspected contracts, not complete function-boundary/all-caller proofs.
+
+Both stages pass full C and independent vasm equality. Final receipt:
+`e4f55132e95d0e9a7ac7eb61e44556eea5eb64a601e46c677831259c9649d435`;
+generated source SHA256:
+`e2433a58cd3cd968538866a8727d1aedc6c3fcea9e5ee402cf000d8bb3e87326`.
+Both histories preserve their earlier prefixes. The new conditional records add
+3,032 bytes of reviewed data boundaries; this is not a recomputed native ownership
+percentage. The pre-refusal coverage snapshot remains dated. No disputed
+copied-code body, overlapping bank, audio stream grammar or alternate layout was
+accepted as part of this slice.

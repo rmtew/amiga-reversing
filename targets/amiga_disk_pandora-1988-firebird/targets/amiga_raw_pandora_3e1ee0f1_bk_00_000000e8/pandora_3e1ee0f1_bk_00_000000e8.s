@@ -104,7 +104,7 @@ app_inventory_cursor_x_step RS.W 1
 app_inventory_cursor_y_step RS.W 1
 app_inventory_cursor_move_countdown RS.W 1
 app_inventory_selection_latched RS.B 1
-app_022D RS.B 1
+app_text_plane_mask RS.B 1
 app_ui_flags RS.B 1
 app_input_fire_pressed_ff RS.B 1
 app_0230 RS.W 1
@@ -1395,12 +1395,12 @@ abs_0_00010FEC:
 	bsr.w abs_0_00016108
 	lea.l abs_0_0001A7D0.l,a3
 	bsr.w abs_0_00017748
-	move.b #$8,app_022D(a6)
+	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #20,d1
 	bsr.w abs_0_00016108
 	lea.l string_0002109E(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	move.b #$20,app_palette_effect_countdown(a6)
 	lea.l abs_0_00010B28(pc),a0
 	move.l a0,app_0280(a6)
@@ -2914,10 +2914,10 @@ abs_0_00012D5A:
 	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_00012DF8
 	lea.l abs_0_0001332E(pc),a0
-	move.b $0005(a0),app_022D(a6)
+	move.b $0005(a0),app_text_plane_mask(a6)
 	tst.b app_0287(a6)
 	bne.b abs_0_00012DAE
-	move.b app_frame_counter+3(a6),app_022D(a6)
+	move.b app_frame_counter+3(a6),app_text_plane_mask(a6)
 abs_0_00012DAE:
 	move.b $0000(a0),d0
 	move.b $0001(a0),d1
@@ -2987,7 +2987,7 @@ abs_0_00012ECE:
 	move.b d2,(a1)+
 	move.w d1,d0
 	dbf.w d7,abs_0_00012EA0
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	movem.l (a7)+,d0-d2/d7/a0-a1
 	rts
 abs_0_00012EE0:
@@ -3919,7 +3919,8 @@ set_bitmap_pixel_bit:
 	bset.b d0,$0(a0,d1.w)
 	movem.l (a7)+,d0-d1
 	rts
-abs_0_00016056:
+    ; NUL stores A1; CR advances saved line origin by 1280. Byte 1 advances stored origin one byte; consumes no operand.
+draw_compact_text_string:
 	move.l app_text_cursor_ptr(a6),-(a7)
 abs_0_0001605A:
 	movea.l app_text_cursor_ptr(a6),a1
@@ -3929,7 +3930,7 @@ abs_0_0001605E:
 	beq.b abs_0_0001609A
 	cmp.b #$1,d0
 	bne.b abs_0_00016070
-	bsr.w abs_0_0001629C
+	bsr.w advance_stored_text_origin_byte
 	bra.b abs_0_0001605A
 abs_0_00016070:
 	cmp.b #$D,d0
@@ -3937,7 +3938,7 @@ abs_0_00016070:
 	movea.l (a7)+,a1
 	lea.l $0500(a1),a1
 	move.l a1,app_text_cursor_ptr(a6)
-	bra.b abs_0_00016056
+	bra.b draw_compact_text_string
 abs_0_00016082:
 	cmp.b #$61,d0
 	bcs.b abs_0_0001608C
@@ -3946,20 +3947,21 @@ abs_0_0001608C:
 	lsl.w #3,d0
 	add.l app_font_glyph_bitmap_table_ptr(a6),d0
 	movea.l d0,a0
-	bsr.b abs_0_000160A2
+	bsr.b draw_compact_glyph_with_plane_mask
 	addq.l #1,a1
 	bra.b abs_0_0001605E
 abs_0_0001609A:
 	move.l a1,app_text_cursor_ptr(a6)
 	addq.l #4,a7
 	rts
-abs_0_000160A2:
+draw_compact_glyph_with_plane_mask:
 	movem.l a1-a3,-(a7)
 	movea.l a1,a2
 	moveq.l #0,d1
 	move.b #$A0,d1
 	moveq.l #3,d2
-	move.b app_022D(a6),d0
+    ; Load mask once: 4 low bits select 8-row copies; other planes cleared. Row stride 160, plane stride 40.
+	move.b app_text_plane_mask(a6),d0
 abs_0_000160B4:
 	lsr.w #1,d0
 	bcc.b abs_0_000160DA
@@ -4063,7 +4065,7 @@ abs_0_000161A2:
 abs_0_000161A4:
 	andi.b #15,d7
 	move.b d7,app_020B(a6)
-	move.b app_022D(a6),d1
+	move.b app_text_plane_mask(a6),d1
 	moveq.l #3,d7
 	move.l a0,-(a7)
 abs_0_000161B4:
@@ -4165,7 +4167,8 @@ abs_0_0001620E:
 	move.b (a0)+,(a1)
 	movem.l (a7)+,d0/a0-a1
 	rts
-abs_0_0001629C:
+    ; Advance stored origin, not A1 or saved line origin. Byte-1 control reloads A1 after prior glyph advances.
+advance_stored_text_origin_byte:
 	move.l app_text_cursor_ptr(a6),d0
 	addq.l #1,d0
 	move.l d0,app_text_cursor_ptr(a6)
@@ -4312,14 +4315,14 @@ abs_0_0001640E:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	addq.b #1,d0
 	bsr.w abs_0_00016126
-	clr.b app_022D(a6)
+	clr.b app_text_plane_mask(a6)
 	movea.l a0,a2
 	clr.w d7
 	move.b ui_overlay_descriptor_width(a5),d7
 	subq.b #3,d7
 abs_0_00016432:
 	movea.l a2,a1
-	bsr.w abs_0_000160A2
+	bsr.w draw_compact_glyph_with_plane_mask
 	addq.l #1,a2
 	dbf.w d7,abs_0_00016432
 	movem.l (a7)+,d0/d7/a0-a2
@@ -4398,7 +4401,7 @@ abs_0_000164AE:
 	subq.b #3,d7
 abs_0_00016532:
 	bsr.w abs_0_0001620E
-	bsr.w abs_0_0001629C
+	bsr.w advance_stored_text_origin_byte
 	dbf.w d7,abs_0_00016532
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	addq.b #1,d0
@@ -4412,7 +4415,7 @@ abs_0_00016532:
 	subq.b #3,d7
 abs_0_0001655E:
 	bsr.w abs_0_0001620E
-	bsr.w abs_0_0001629C
+	bsr.w advance_stored_text_origin_byte
 	dbf.w d7,abs_0_0001655E
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
@@ -4450,7 +4453,7 @@ abs_0_000165B4:
 	rts
 abs_0_000165E0:
 	movem.l d7/a4,-(a7)
-	move.b ui_overlay_descriptor_text_color(a5),app_022D(a6)
+	move.b ui_overlay_descriptor_text_color(a5),app_text_plane_mask(a6)
 	lea.l ui_overlay_descriptor_line_0_ptr(a5),a4
 	moveq.l #0,d7
 abs_0_000165F0:
@@ -4470,7 +4473,7 @@ abs_0_000165F0:
 	bsr.w abs_0_00016146
 	bra.b abs_0_00016624
 abs_0_00016620:
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 abs_0_00016624:
 	addq.b #1,d7
 	cmp.b #$6,d7
@@ -4479,7 +4482,7 @@ abs_0_00016624:
 	rts
 abs_0_00016632:
 	bsr.w abs_0_0001640E
-	move.b $0005(a5),app_022D(a6)
+	move.b $0005(a5),app_text_plane_mask(a6)
 	add.w d0,d0
 	add.w d0,d0
 	movea.l $C(a5,d0.w),a3
@@ -6725,7 +6728,7 @@ abs_0_000181CA:
 abs_0_0001820A:
 	move.l (a0)+,d1
 	bsr.b abs_0_0001823A
-	bsr.w abs_0_0001629C
+	bsr.w advance_stored_text_origin_byte
 	dbf.w d7,abs_0_0001820A
 abs_0_00018216:
 	lea.l abs_0_000182E8(pc),a3
@@ -7045,7 +7048,7 @@ abs_0_00018544:
 	moveq.l #0,d0
 	moveq.l #0,d5
 	move.b $0005(a4),d0
-	move.b d0,app_022D(a6)
+	move.b d0,app_text_plane_mask(a6)
 	move.w d0,d6
 	add.w d6,d6
 	move.w $003C(a5),d0
@@ -7065,7 +7068,7 @@ abs_0_00018572:
 	add.w d5,d3
 	lea.l abs_0_00018632(pc),a3
 	adda.w d3,a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	rts
 abs_0_0001859A:
 	moveq.l #96,d0
@@ -7587,22 +7590,22 @@ abs_0_000190D6:
 	cmp.b #$8,d0
 	bcc.w abs_0_000191EC
 	move.w d0,-(a7)
-	move.b #$E,app_022D(a6)
+	move.b #$E,app_text_plane_mask(a6)
 	moveq.l #3,d0
 	move.w d0,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00018CCC(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #5,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00018CD7(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #7,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00018CE2(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	lea.l terminal_proximity_object_ptrs(pc),a0
 	lea.l player_world_object.l,a4
 	move.w world_object_shared_prefix_world_x(a4),d0
@@ -7635,24 +7638,24 @@ abs_0_0001917A:
 	moveq.l #3,d0
 	moveq.l #9,d1
 	bsr.w abs_0_00016108
-	move.b #$A,app_022D(a6)
+	move.b #$A,app_text_plane_mask(a6)
 	movea.l a2,a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	move.w (a7)+,d0
 	lsl.w #2,d0
 	movea.l abs_0_000191CC(pc,d0.w),a3
 	moveq.l #14,d0
 	moveq.l #3,d1
 	bsr.w abs_0_00016108
-	move.b #$7,app_022D(a6)
-	bsr.w abs_0_00016056
+	move.b #$7,app_text_plane_mask(a6)
+	bsr.w draw_compact_text_string
 	moveq.l #14,d0
 	moveq.l #5,d1
 	bsr.w abs_0_00016108
 	move.b player_world_object_selected_item_id.l,d0
 	bsr.w resolve_item_name
 	movea.l a0,a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
 	rts
@@ -7663,13 +7666,13 @@ abs_0_000191EC:
 	moveq.l #10,d0
 	moveq.l #5,d1
 	bsr.w abs_0_00016108
-	move.b #$5,app_022D(a6)
+	move.b #$5,app_text_plane_mask(a6)
 	lea.l abs_0_00018D36(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	moveq.l #10,d0
 	moveq.l #7,d1
 	bsr.w abs_0_00016108
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	move.w #$216,d0
 	jsr start_feedback_audio_sequence.l
 	rts
@@ -8365,7 +8368,7 @@ abs_0_00019A90:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
 abs_0_00019A96:
-	move.b #$8,app_022D(a6)
+	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #0,d0
 	moveq.l #24,d1
 	bsr.w abs_0_00016126
@@ -8553,27 +8556,27 @@ abs_0_00019DD0:
 	move.b d0,app_031A(a6)
 	move.b app_032B(a6),d1
 	bne.b abs_0_00019E12
-	move.b #$F,app_022D(a6)
+	move.b #$F,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00019ACE(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	rts
 abs_0_00019E12:
 	cmp.b #$1,d1
 	bne.b abs_0_00019E84
 abs_0_00019E18:
-	move.b #$E,app_022D(a6)
+	move.b #$E,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #3,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00019B18(pc),a3
-	bsr.w abs_0_00016056
-	move.b #$D,app_022D(a6)
+	bsr.w draw_compact_text_string
+	move.b #$D,app_text_plane_mask(a6)
 	lea.l abs_0_00019B59(pc),a3
-	bsr.w abs_0_00016056
-	move.b #$9,app_022D(a6)
+	bsr.w draw_compact_text_string
+	move.b #$9,app_text_plane_mask(a6)
 	lea.l app_032C(a6),a4
 	clr.w d7
 	move.b app_032A(a6),d7
@@ -8585,36 +8588,36 @@ abs_0_00019E52:
 	moveq.l #5,d0
 	bsr.w abs_0_00016108
 	movea.l (a4)+,a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	addq.w #1,d6
 	dbf.w d7,abs_0_00019E52
 	tst.b app_032B(a6)
 	bpl.b abs_0_00019E82
-	move.b #$A,app_022D(a6)
+	move.b #$A,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #10,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00019BB8(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 abs_0_00019E82:
 	rts
 abs_0_00019E84:
 	cmp.b #$2,d1
 	bne.b abs_0_00019EA2
-	move.b #$5,app_022D(a6)
+	move.b #$5,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #6,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00019B62(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 	rts
 abs_0_00019EA2:
-	move.b #$A,app_022D(a6)
+	move.b #$A,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
 	bsr.w abs_0_00016108
 	lea.l abs_0_00019BB8(pc),a3
-	bsr.w abs_0_00016056
+	bsr.w draw_compact_text_string
 abs_0_00019EB8:
 	rts
 initialize_world_tilemap_state:
@@ -9245,31 +9248,41 @@ ui_overlay_update_queue:
 	dc.l $00000000
 	dc.l $00000000
 	dc.l $00000000
-	dcb.b $50,$00
+	dcb.b $40,$00
+eight_row_glyph_records:
+	dcb.b $10,$00	; data
 	dc.b $0C,$0C,$18
-	dcb.b $62,$00
-	dc.b $18,$18
-	dcb.b $A,$00
-	dc.b $7E,$66,$66,$6E,$6E,$7E,$00,$00,$38,$38,$3C,$3C,$3C,$3C,$00,$00
-	dc.b $7E,$06,$7E,$60,$60,$7E,$00,$00,$7C,$0C,$3E,$0E,$0E,$7E,$00,$00
-	dc.b $2C,$6C,$6E,$7E,$0E,$0E,$00,$00,$7E,$60,$7E,$06,$06,$7E,$00,$00
-	dc.b $3E,$30,$7E,$76,$76,$7E,$00,$00,$7E,$0E,$0E,$1C,$1C,$1C,$00,$00
-	dc.b $3E,$66,$7E,$66,$66,$7E,$00,$00,$7E,$66,$7E,$0E,$0E,$7E,$00,$00
-	dc.b $18,$18,$00,$00,$18,$18,$00,$00,$00,$00,$00,$00,$18,$18,$30
-	dcb.b $29,$00
-	dc.b $7E,$66,$66,$7E,$6E,$6E,$00,$00,$7C,$64,$7E,$66,$66,$7E,$00,$00
-	dc.b $3E,$32,$70,$70,$72,$7E,$00,$00,$7C,$66,$76,$76,$76,$7E,$00,$00
-	dc.b $3E,$30,$7C,$70,$70,$7E,$00,$00,$3E,$30,$7C,$70,$70,$70,$00,$00
-	dc.b $3E,$30,$70,$76,$76,$7E,$00,$00,$36,$36,$7E,$76,$76,$76,$00,$00
-	dc.b $1C,$1C,$3C,$3C,$3C,$3C,$00,$00,$0E,$06,$06,$66,$66,$7E,$00,$00
-	dc.b $32,$36,$7C,$78,$7C,$76,$00,$00,$30,$30,$70,$70,$72,$7E,$00,$00
-	dc.b $77,$7F,$7F,$6B,$63,$63,$00,$00,$76,$7E,$7E,$7E,$6E,$66,$00,$00
-	dc.b $7E,$66,$66,$6E,$6E,$7E,$00,$00,$3E,$36,$7E,$70,$70,$70,$00,$00
-	dc.b $7C,$6C,$6C,$6C,$7C,$76,$04,$00,$7E,$72,$7E,$7C,$6E,$66,$00,$00
-	dc.b $7E,$60,$7E,$06,$06,$7E,$00,$00,$7E,$18,$18,$38,$38,$38,$00,$00
-	dc.b $66,$66,$6E,$6E,$6E,$7E,$00,$00,$66,$66,$66,$3C,$3C,$18,$00,$00
-	dc.b $63,$63,$6B,$6B,$7F,$6B,$00,$00,$66,$66,$3C,$3C,$66,$66,$00,$00
-	dc.b $66,$66,$7E,$06,$06,$7E,$00,$00,$7E,$0E,$1C,$38,$7E,$7E,$00
+	dcb.b $D,$00
+	dcb.b $10,$00
+	dcb.b $10,$00
+	dcb.b $10,$00
+	dcb.b $10,$00
+	dcb.b $10,$00
+	dc.b $00,$00,$00,$00,$00,$18,$18
+	dcb.b $9,$00
+	dc.b $00,$7E,$66,$66,$6E,$6E,$7E,$00,$00,$38,$38,$3C,$3C,$3C,$3C,$00
+	dc.b $00,$7E,$06,$7E,$60,$60,$7E,$00,$00,$7C,$0C,$3E,$0E,$0E,$7E,$00
+	dc.b $00,$2C,$6C,$6E,$7E,$0E,$0E,$00,$00,$7E,$60,$7E,$06,$06,$7E,$00
+	dc.b $00,$3E,$30,$7E,$76,$76,$7E,$00,$00,$7E,$0E,$0E,$1C,$1C,$1C,$00
+	dc.b $00,$3E,$66,$7E,$66,$66,$7E,$00,$00,$7E,$66,$7E,$0E,$0E,$7E,$00
+	dc.b $00,$18,$18,$00,$00,$18,$18,$00,$00,$00,$00,$00,$00,$18,$18,$30
+	dcb.b $10,$00
+	dcb.b $10,$00
+	dcb.b $9,$00
+	dc.b $7E,$66,$66,$7E,$6E,$6E,$00
+	dc.b $00,$7C,$64,$7E,$66,$66,$7E,$00,$00,$3E,$32,$70,$70,$72,$7E,$00
+	dc.b $00,$7C,$66,$76,$76,$76,$7E,$00,$00,$3E,$30,$7C,$70,$70,$7E,$00
+	dc.b $00,$3E,$30,$7C,$70,$70,$70,$00,$00,$3E,$30,$70,$76,$76,$7E,$00
+	dc.b $00,$36,$36,$7E,$76,$76,$76,$00,$00,$1C,$1C,$3C,$3C,$3C,$3C,$00
+	dc.b $00,$0E,$06,$06,$66,$66,$7E,$00,$00,$32,$36,$7C,$78,$7C,$76,$00
+	dc.b $00,$30,$30,$70,$70,$72,$7E,$00,$00,$77,$7F,$7F,$6B,$63,$63,$00
+	dc.b $00,$76,$7E,$7E,$7E,$6E,$66,$00,$00,$7E,$66,$66,$6E,$6E,$7E,$00
+	dc.b $00,$3E,$36,$7E,$70,$70,$70,$00,$00,$7C,$6C,$6C,$6C,$7C,$76,$04
+	dc.b $00,$7E,$72,$7E,$7C,$6E,$66,$00,$00,$7E,$60,$7E,$06,$06,$7E,$00
+	dc.b $00,$7E,$18,$18,$38,$38,$38,$00,$00,$66,$66,$6E,$6E,$6E,$7E,$00
+	dc.b $00,$66,$66,$66,$3C,$3C,$18,$00,$00,$63,$63,$6B,$6B,$7F,$6B,$00
+	dc.b $00,$66,$66,$3C,$3C,$66,$66,$00,$00,$66,$66,$7E,$06,$06,$7E,$00
+	dc.b $00,$7E,$0E,$1C,$38,$7E,$7E,$00
 	dc.b "LIFE",$00
 	dc.b "DIST",$00
 	dc.b "CHAR",$00
@@ -9520,23 +9533,24 @@ title_glyph_A:
 	dc.l $0FFFEFF0,$0FFFEFF0,$1FFFE7F8,$1FFFE7F8	; data
 	dc.l $3FE003FC,$3FC003FC,$7FC003FE,$7F8001FE	; data
 	dc.l $7F8001FE,$7F0000FE,$00000000,$00000000	; data
-	dcb.b $8,$00
-	dc.b $0F,$FF,$F8,$00,$0F,$FF,$FE,$00,$0F,$FF,$FF,$00,$0F,$FF,$FF,$00
-	dc.b $0F,$C0,$FF,$80,$0F,$C0,$7F,$80,$0F,$C0,$3F,$80,$0F,$C0,$1F,$80
-	dc.b $0F,$C0,$3F,$80,$0F,$C0,$7F,$80,$0F,$C0,$FF,$80,$0F,$C3,$FF,$00
-	dc.b $0F,$CF,$FF,$00,$0F,$CF,$FC,$00,$0F,$CF,$FC,$00,$0F,$CF,$FE,$00
-	dc.b $0F,$CF,$FF,$80,$0F,$C3,$FF,$80,$0F,$C0,$FF,$C0,$0F,$C0,$3F,$C0
-	dc.b $0F,$C0,$1F,$C0,$0F,$C0,$1F,$C0,$0F,$C0,$3F,$C0,$0F,$C0,$7F,$C0
-	dc.b $0F,$DF,$FF,$80,$0F,$DF,$FF,$80,$0F,$DF,$FF,$00,$0F,$DF,$F8
-	dcb.b $E,$00
-	dc.b $0F,$FC,$00,$00,$7F,$FF,$80,$01,$FF,$FF,$C0,$03,$FF,$FF,$E0,$07
-	dc.b $FF,$FF,$F0,$07,$FF,$FF,$F0,$0F,$FF,$FF,$F0,$1F,$FE,$1F,$F0,$1F
-	dc.b $F8,$07,$E0,$1F,$F0,$00,$00,$3F,$E0,$00,$00,$3F,$C0,$00,$00,$3F
-	dc.b $C0,$00,$00,$3F,$80,$00,$00,$3F,$80,$00,$00,$3F,$80,$00,$00,$3F
-	dc.b $80,$00,$00,$3F,$C0,$00,$00,$3F,$C0,$00,$00,$3F,$E0,$00,$00,$1F
-	dc.b $F0,$00,$00,$1F,$F8,$07,$C0,$1F,$FE,$1F,$E0,$0F,$FF,$FF,$E0,$07
-	dc.b $FF,$FF,$E0,$07,$FF,$FF,$E0,$03,$FF,$FF,$E0,$01,$FF,$FF,$C0,$00
-	dc.b $7F,$FF,$80,$00,$0F,$FC,$00,$00,$00,$00,$00
+four_byte_rows:
+	dc.l $00000000,$00000000,$0FFFF800,$0FFFFE00	; data
+	dc.l $0FFFFF00,$0FFFFF00,$0FC0FF80,$0FC07F80	; data
+	dc.l $0FC03F80,$0FC01F80,$0FC03F80,$0FC07F80	; data
+	dc.l $0FC0FF80,$0FC3FF00,$0FCFFF00,$0FCFFC00	; data
+	dc.l $0FCFFC00,$0FCFFE00,$0FCFFF80,$0FC3FF80	; data
+	dc.l $0FC0FFC0,$0FC03FC0,$0FC01FC0,$0FC01FC0	; data
+	dc.l $0FC03FC0,$0FC07FC0,$0FDFFF80,$0FDFFF80	; data
+	dc.l $0FDFFF00,$0FDFF800,$00000000,$00000000	; data
+four_byte_rows_2:
+	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
+	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
+	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
+	dc.l $3FC00000,$3FC00000,$3F800000,$3F800000	; data
+	dc.l $3F800000,$3F800000,$3FC00000,$3FC00000	; data
+	dc.l $3FE00000,$1FF00000,$1FF807C0,$1FFE1FE0	; data
+	dc.l $0FFFFFE0,$07FFFFE0,$07FFFFE0,$03FFFFE0	; data
+	dc.l $01FFFFC0,$007FFF80,$000FFC00,$00000000	; data
 title_glyph_D:
 	dc.l $00000000,$0FFFF000,$0FFFFE00,$0FFFFF80	; data
 	dc.l $0FFFFFC0,$0FFFFFE0,$0FFFFFE0,$0FFFFFF0	; data
@@ -9546,86 +9560,87 @@ title_glyph_D:
 	dc.l $0FE007FC,$0FE00FF8,$0FE01FF8,$0FE07FF8	; data
 	dc.l $0FE7FFF0,$0FEFFFE0,$0FFFFFE0,$0FFFFFC0	; data
 	dc.l $0FFFFF80,$0FEFFE00,$0FE7F000,$00000000	; data
-	dc.b $00,$00,$00,$00,$0F,$FF,$FF,$80,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0
-	dc.b $1F,$FF,$FF,$C0,$1F,$FF,$FF,$80,$1F,$E0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$E0,$00,$00,$1F,$FF,$FF,$80,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0
-	dc.b $1F,$FF,$FF,$C0,$1F,$FF,$FF,$80,$1F,$E0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$E0,$00,$00,$1F,$FF,$FF,$80,$1F,$FF,$FF,$C0
-	dc.b $1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0,$0F,$FF,$FF,$80
-	dcb.b $8,$00
-	dc.b $0F,$FF,$FF,$80,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0
-	dc.b $1F,$FF,$FF,$80,$1F,$E0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$E0,$00,$00
-	dc.b $1F,$FF,$FF,$80,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0
-	dc.b $1F,$FF,$FF,$80,$1F,$E0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$0F,$80
-	dcb.b $B,$00
-	dc.b $0F,$FC,$00,$00,$7F,$FF,$80,$01,$FF,$FF,$C0,$03,$FF,$FF,$E0,$07
-	dc.b $FF,$FF,$F0,$07,$FF,$FF,$F0,$0F,$FF,$FF,$F0,$1F,$FE,$1F,$F0,$1F
-	dc.b $F8,$07,$E0,$1F,$F0,$00,$00,$3F,$E0,$00,$00,$3F,$C0,$00,$00,$3F
-	dc.b $C0,$00,$00,$3F,$80,$00,$00,$3F,$81,$FF,$F8,$3F,$83,$FF,$FC,$3F
-	dc.b $83,$FF,$FC,$3F,$C3,$FF,$FC,$3F,$C1,$FF,$FC,$3F,$E0,$03,$FC,$1F
-	dc.b $F0,$01,$FC,$1F,$F8,$01,$FC,$1F,$FE,$03,$FC,$0F,$FF,$8F,$FC,$07
-	dc.b $FF,$FF,$FC,$07,$FF,$FF,$FC,$03,$FF,$FF,$FC,$01,$FF,$FF,$FC,$00
-	dc.b $7F,$FF,$F8,$00,$0F,$FF,$E0
-	dcb.b $C,$00
-	dc.b $0F,$80,$01,$F0,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$E0,$07,$F8,$1F,$FF,$FF,$F8
-	dc.b $1F,$FF,$FF,$F8,$1F,$FF,$FF,$F8,$1F,$FF,$FF,$F8,$1F,$FF,$FF,$F8
-	dc.b $1F,$E0,$07,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $0F,$80,$01,$F0
-	dcb.b $D,$00
-	dc.b $7F,$FE,$00,$00,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$FF,$FF,$00,$00
-	dc.b $7F,$FE,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00
-	dc.b $0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00
-	dc.b $0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00
-	dc.b $0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00
-	dc.b $0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00,$0F,$F0,$00,$00
-	dc.b $7F,$FE,$00,$00,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$FF,$FF,$00,$00
-	dc.b $7F,$FE
-	dcb.b $F,$00
-	dc.b $07,$C0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00
-	dc.b $0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00
-	dc.b $0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00
-	dc.b $0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00
-	dc.b $0F,$E0,$00,$00,$0F,$E0,$00,$00,$0F,$E0,$00,$00,$1F,$E0,$07,$E0
-	dc.b $3F,$E0,$0F,$F8,$7F,$E0,$0F,$FF,$FF,$E0,$0F,$FF,$FF,$E0,$0F,$FF
-	dc.b $FF,$C0,$07,$FF,$FF,$C0,$03,$FF,$FF,$80,$01,$FF,$FE,$00,$00,$3F
-	dc.b $F0
-	dcb.b $D,$00
-	dc.b $0F,$80,$0F,$80,$1F,$C0,$1F,$C0,$1F,$C0,$3F,$C0,$1F,$C0,$7F,$C0
-	dc.b $1F,$C0,$FF,$80,$1F,$C1,$FF,$00,$1F,$C3,$FE,$00,$1F,$C7,$FC,$00
-	dc.b $1F,$CF,$F8,$00,$1F,$DF,$F0,$00,$1F,$FF,$E0,$00,$1F,$FF,$C0,$00
-	dc.b $1F,$FF,$80,$00,$1F,$FF,$00,$00,$1F,$FE,$00,$00,$1F,$FE,$00,$00
-	dc.b $1F,$FF,$00,$00,$1F,$FF,$80,$00,$1F,$FF,$C0,$00,$1F,$FF,$E0,$00
-	dc.b $1F,$DF,$F0,$00,$1F,$CF,$F8,$00,$1F,$C7,$FC,$00,$1F,$C3,$FE,$00
-	dc.b $1F,$C1,$FF,$00,$1F,$C0,$FF,$80,$1F,$C0,$7F,$80,$1F,$C0,$3F,$80
-	dc.b $0F,$80,$1F
-	dcb.b $D,$00
-	dc.b $0F,$80,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$C0,$00,$00
-	dc.b $1F,$C0,$00,$00,$1F,$C0,$00,$00,$1F,$E0,$00,$00,$1F,$FF,$FF,$80
-	dc.b $1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0,$1F,$FF,$FF,$C0
-	dc.b $0F,$FF,$FF,$80
-	dcb.b $C,$00
-	dc.b $7C,$00,$00,$7C,$FE,$00,$00,$FE,$FF,$00,$01,$FE,$FF,$80,$03,$FE
-	dc.b $FF,$C0,$07,$FE,$FF,$E0,$0F,$FE,$FF,$F0,$1F,$FE,$FF,$F8,$3F,$FE
-	dc.b $FF,$FC,$7F,$FE,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FE
-	dc.b $FE,$FF,$FE,$FE,$FE,$7F,$FC,$FE,$FE,$3F,$F8,$FE,$FE,$1F,$F0,$FE
-	dc.b $FE,$0F,$E0,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE
-	dc.b $FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE
-	dc.b $FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE
-	dc.b $7C,$00,$00,$7C,$00,$00,$00,$00
+four_byte_rows_3:
+	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FC00000,$1FE00000,$1FFFFF80,$1FFFFFC0	; data
+	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
+four_byte_rows_4:
+	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
+four_byte_rows_5:
+	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
+	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
+	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
+	dc.l $3FC00000,$3FC00000,$3F800000,$3F81FFF8	; data
+	dc.l $3F83FFFC,$3F83FFFC,$3FC3FFFC,$3FC1FFFC	; data
+	dc.l $3FE003FC,$1FF001FC,$1FF801FC,$1FFE03FC	; data
+	dc.l $0FFF8FFC,$07FFFFFC,$07FFFFFC,$03FFFFFC	; data
+	dc.l $01FFFFFC,$007FFFF8,$000FFFE0,$00000000	; data
+four_byte_rows_6:
+	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FE007F8,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8	; data
+	dc.l $1FFFFFF8,$1FFFFFF8,$1FE007F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$0F8001F0,$00000000	; data
+four_byte_rows_7:
+	dc.l $00000000,$00000000,$007FFE00,$00FFFF00	; data
+	dc.l $00FFFF00,$00FFFF00,$007FFE00,$000FF000	; data
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
+	dc.l $000FF000,$000FF000,$007FFE00,$00FFFF00	; data
+	dc.l $00FFFF00,$00FFFF00,$007FFE00,$00000000	; data
+four_byte_rows_8:
+	dc.l $00000000,$00000000,$000007C0,$00000FE0	; data
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
+	dc.l $00000FE0,$00001FE0,$07E03FE0,$0FF87FE0	; data
+	dc.l $0FFFFFE0,$0FFFFFE0,$0FFFFFC0,$07FFFFC0	; data
+	dc.l $03FFFF80,$01FFFE00,$003FF000,$00000000	; data
+four_byte_rows_9:
+	dc.l $00000000,$00000000,$0F800F80,$1FC01FC0	; data
+	dc.l $1FC03FC0,$1FC07FC0,$1FC0FF80,$1FC1FF00	; data
+	dc.l $1FC3FE00,$1FC7FC00,$1FCFF800,$1FDFF000	; data
+	dc.l $1FFFE000,$1FFFC000,$1FFF8000,$1FFF0000	; data
+	dc.l $1FFE0000,$1FFE0000,$1FFF0000,$1FFF8000	; data
+	dc.l $1FFFC000,$1FFFE000,$1FDFF000,$1FCFF800	; data
+	dc.l $1FC7FC00,$1FC3FE00,$1FC1FF00,$1FC0FF80	; data
+	dc.l $1FC07F80,$1FC03F80,$0F801F00,$00000000	; data
+four_byte_rows_10:
+	dc.l $00000000,$00000000,$0F800000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
+	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
+	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
+four_byte_rows_11:
+	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
+	dc.l $FF0001FE,$FF8003FE,$FFC007FE,$FFE00FFE	; data
+	dc.l $FFF01FFE,$FFF83FFE,$FFFC7FFE,$FFFFFFFE	; data
+	dc.l $FFFFFFFE,$FFFFFFFE,$FEFFFEFE,$FE7FFCFE	; data
+	dc.l $FE3FF8FE,$FE1FF0FE,$FE0FE0FE,$FE0000FE	; data
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
+	dc.l $FE0000FE,$FE0000FE,$7C00007C,$00000000	; data
 title_glyph_N:
 	dc.l $00000000,$00000000,$0FF001F0,$1FF803F8	; data
 	dc.l $1FFC03F8,$1FFC03F8,$1FFE03F8,$1FFF03F8	; data
@@ -9653,14 +9668,15 @@ title_glyph_P:
 	dc.l $1FFFF800,$1FDFE000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
-	dc.b $00,$00,$00,$00,$00,$1F,$F8,$00,$00,$FF,$FF,$00,$01,$FF,$FF,$80
-	dc.b $07,$FF,$FF,$E0,$0F,$FF,$FF,$F0,$0F,$FF,$FF,$F0,$1F,$FF,$FF,$F8
-	dc.b $3F,$FC,$3F,$FC,$3F,$F0,$0F,$FC,$3F,$E0,$07,$FC,$7F,$C0,$03,$FE
-	dc.b $7F,$80,$01,$FE,$7F,$80,$01,$FE,$7F,$00,$00,$FE,$7F,$00,$00,$FE
-	dc.b $7F,$00,$00,$FE,$7F,$00,$00,$FE,$7F,$80,$39,$FE,$7F,$80,$7D,$FE
-	dc.b $7F,$C0,$FF,$FE,$3F,$E0,$FF,$FC,$3F,$F0,$7F,$FC,$3F,$FC,$3F,$FC
-	dc.b $1F,$FF,$FF,$F8,$0F,$FF,$FF,$FC,$0F,$FF,$FF,$FE,$07,$FF,$FF,$FE
-	dc.b $01,$FF,$FF,$FE,$00,$FF,$FE,$FC,$00,$1F,$F8,$78,$00,$00,$00,$00
+four_byte_rows_12:
+	dc.l $00000000,$001FF800,$00FFFF00,$01FFFF80	; data
+	dc.l $07FFFFE0,$0FFFFFF0,$0FFFFFF0,$1FFFFFF8	; data
+	dc.l $3FFC3FFC,$3FF00FFC,$3FE007FC,$7FC003FE	; data
+	dc.l $7F8001FE,$7F8001FE,$7F0000FE,$7F0000FE	; data
+	dc.l $7F0000FE,$7F0000FE,$7F8039FE,$7F807DFE	; data
+	dc.l $7FC0FFFE,$3FE0FFFC,$3FF07FFC,$3FFC3FFC	; data
+	dc.l $1FFFFFF8,$0FFFFFFC,$0FFFFFFE,$07FFFFFE	; data
+	dc.l $01FFFFFE,$00FFFEFC,$001FF878,$00000000	; data
 title_glyph_R:
 	dc.l $00000000,$0FFFFC00,$1FFFFF00,$1FFFFF80	; data
 	dc.l $1FFFFFC0,$1FFFFFC0,$1FE1FFE0,$1FC07FE0	; data
@@ -9670,75 +9686,78 @@ title_glyph_R:
 	dc.l $1FDFF800,$1FDFE000,$1FDFC000,$1FCFE000	; data
 	dc.l $1FC7F000,$1FC3F800,$1FC1FC00,$1FC0FE00	; data
 	dc.l $1FC07F00,$1FC03F80,$0F801F00,$00000000	; data
-	dc.b $00,$00,$00,$00,$00,$0F,$FC,$00,$00,$FF,$FF,$80,$03,$FF,$FF,$E0
-	dc.b $07,$FF,$FF,$F0,$0F,$FF,$FF,$F8,$1F,$FE,$3F,$F8,$1F,$F8,$0F,$F8
-	dc.b $1F,$F0,$07,$F8,$1F,$E0,$01,$F0,$1F,$F0,$00,$00,$1F,$F8,$00,$00
-	dc.b $1F,$FF,$80,$00,$0F,$FF,$FC,$00,$0F,$FF,$FF,$80,$07,$FF,$FF,$E0
-	dc.b $01,$FF,$FF,$F0,$00,$1F,$FF,$F8,$00,$00,$7F,$F8,$00,$00,$1F,$FC
-	dc.b $00,$00,$0F,$FC,$00,$00,$07,$FC,$0F,$80,$03,$FC,$1F,$E0,$07,$FC
-	dc.b $3F,$F0,$0F,$FC,$3F,$FE,$3F,$F8,$3F,$FF,$FF,$F8,$1F,$FF,$FF,$F0
-	dc.b $0F,$FF,$FF,$E0,$03,$FF,$FF,$80,$00,$3F,$F8
-	dcb.b $D,$00
-	dc.b $0F,$FF,$FF,$F8,$1F,$FF,$FF,$FC,$1F,$FF,$FF,$FC,$1F,$FF,$FF,$FC
-	dc.b $1F,$FF,$FF,$FC,$0F,$FF,$FF,$F8,$00,$0F,$F8,$00,$00,$07,$F0,$00
-	dc.b $00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00
-	dc.b $00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00
-	dc.b $00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00
-	dc.b $00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00
-	dc.b $00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00,$00,$07,$F0,$00
-	dc.b $00,$03,$E0
-	dcb.b $D,$00
-	dc.b $0F,$80,$01,$F0,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8
-	dc.b $1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$C0,$03,$F8,$1F,$E0,$07,$F8
-	dc.b $1F,$E0,$07,$F8,$0F,$F0,$0F,$F0,$0F,$FC,$3F,$F0,$0F,$FF,$FF,$F0
-	dc.b $07,$FF,$FF,$E0,$07,$FF,$FF,$E0,$03,$FF,$FF,$C0,$00,$FF,$FF,$00
-	dc.b $00,$3F,$FC
-	dcb.b $D,$00
-	dc.b $3E,$00,$00,$7C,$7F,$00,$00,$FE,$7F,$80,$01,$FE,$7F,$80,$01,$FE
-	dc.b $3F,$C0,$03,$FC,$3F,$C0,$03,$FC,$1F,$E0,$07,$F8,$1F,$E0,$07,$F8
-	dc.b $0F,$F0,$0F,$F0,$0F,$F0,$0F,$F0,$07,$F8,$1F,$E0,$07,$F8,$1F,$E0
-	dc.b $03,$FC,$3F,$C0,$03,$FC,$3F,$C0,$01,$FE,$7F,$80,$01,$FE,$7F,$80
-	dc.b $00,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$7F,$FE,$00,$00,$7F,$FE,$00
-	dc.b $00,$3F,$FC,$00,$00,$3F,$FC,$00,$00,$1F,$F8,$00,$00,$1F,$F8,$00
-	dc.b $00,$0F,$F0,$00,$00,$0F,$F0,$00,$00,$07,$E0,$00,$00,$03,$C0
-	dcb.b $11,$00
-	dc.b $7C,$00,$00,$7C,$FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE
-	dc.b $FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE
-	dc.b $FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE,$FE,$00,$00,$FE
-	dc.b $FE,$07,$C0,$FE,$FE,$1F,$F0,$FE,$FE,$3F,$F8,$FE,$FE,$7F,$FC,$FE
-	dc.b $FE,$FF,$FE,$FE,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FE
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$7F,$FE,$FF,$FC,$3F,$FE,$FF,$F8,$1F,$FE
-	dc.b $FF,$F0,$0F,$FE,$FF,$E0,$07,$FE,$FF,$C0,$03,$FE,$FF,$80,$01,$FE
-	dc.b $7E,$00,$00,$7C
-	dcb.b $C,$00
-	dc.b $3E,$00,$00,$7C,$7F,$00,$00,$FE,$7F,$80,$01,$FE,$7F,$C0,$03,$FE
-	dc.b $7F,$E0,$07,$FE,$3F,$F0,$0F,$FC,$1F,$F8,$1F,$F8,$0F,$FC,$3F,$F0
-	dc.b $07,$FE,$7F,$E0,$03,$FF,$FF,$C0,$01,$FF,$FF,$80,$00,$FF,$FF,$00
-	dc.b $00,$7F,$FE,$00,$00,$3F,$FC,$00,$00,$1F,$F8,$00,$00,$3F,$FC,$00
-	dc.b $00,$7F,$FE,$00,$00,$FF,$FF,$00,$01,$FF,$FF,$80,$03,$FF,$FF,$C0
-	dc.b $07,$FE,$7F,$E0,$0F,$FC,$3F,$F0,$1F,$F8,$1F,$F8,$3F,$F0,$0F,$FC
-	dc.b $3F,$E0,$07,$FC,$3F,$C0,$03,$FC,$3F,$80,$01,$FC,$1F,$00,$00,$F8
-	dcb.b $10,$00
-	dc.b $3E,$00,$00,$7C,$7F,$00,$00,$FE,$7F,$80,$01,$FE,$7F,$C0,$03,$FE
-	dc.b $7F,$E0,$07,$FE,$3F,$F0,$0F,$FC,$1F,$F8,$1F,$F8,$0F,$FC,$3F,$F0
-	dc.b $07,$FE,$7F,$E0,$03,$FF,$FF,$C0,$01,$FF,$FF,$80,$00,$FF,$FF,$00
-	dc.b $00,$7F,$FE,$00,$00,$3F,$FC,$00,$00,$1F,$F8,$00,$00,$0F,$F0,$00
-	dc.b $00,$07,$E0,$00,$00,$07,$E0,$00,$00,$07,$E0,$00,$00,$07,$E0,$00
-	dc.b $00,$07,$E0,$00,$00,$07,$E0,$00,$00,$07,$E0,$00,$00,$07,$E0,$00
-	dc.b $00,$07,$E0,$00,$00,$07,$E0,$00,$00,$07,$E0,$00,$00,$07,$E0,$00
-	dc.b $00,$03,$C0
-	dcb.b $D,$00
-	dc.b $0F,$FF,$FF,$F8,$1F,$FF,$FF,$FC,$1F,$FF,$FF,$FC,$1F,$FF,$FF,$FC
-	dc.b $1F,$FF,$FF,$FC,$0F,$FF,$FF,$FC,$00,$00,$1F,$F8,$00,$00,$3F,$F0
-	dc.b $00,$00,$7F,$E0,$00,$00,$FF,$C0,$00,$01,$FF,$80,$00,$03,$FF,$00
-	dc.b $00,$07,$FE,$00,$00,$0F,$FC,$00,$00,$1F,$F8,$00,$00,$3F,$F0,$00
-	dc.b $00,$7F,$E0,$00,$00,$FF,$C0,$00,$01,$FF,$80,$00,$03,$FF,$00,$00
-	dc.b $07,$FE,$00,$00,$0F,$FC,$00,$00,$1F,$FF,$FF,$F0,$1F,$FF,$FF,$F8
-	dc.b $1F,$FF,$FF,$F8,$1F,$FF,$FF,$F8,$1F,$FF,$FF,$F8,$0F,$FF,$FF,$F0
-	dcb.b $8,$00
+four_byte_rows_13:
+	dc.l $00000000,$000FFC00,$00FFFF80,$03FFFFE0	; data
+	dc.l $07FFFFF0,$0FFFFFF8,$1FFE3FF8,$1FF80FF8	; data
+	dc.l $1FF007F8,$1FE001F0,$1FF00000,$1FF80000	; data
+	dc.l $1FFF8000,$0FFFFC00,$0FFFFF80,$07FFFFE0	; data
+	dc.l $01FFFFF0,$001FFFF8,$00007FF8,$00001FFC	; data
+	dc.l $00000FFC,$000007FC,$0F8003FC,$1FE007FC	; data
+	dc.l $3FF00FFC,$3FFE3FF8,$3FFFFFF8,$1FFFFFF0	; data
+	dc.l $0FFFFFE0,$03FFFF80,$003FF800,$00000000	; data
+four_byte_rows_14:
+	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
+	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFF8	; data
+	dc.l $000FF800,$0007F000,$0007F000,$0007F000	; data
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
+	dc.l $0007F000,$0007F000,$0003E000,$00000000	; data
+four_byte_rows_15:
+	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
+	dc.l $1FC003F8,$1FE007F8,$1FE007F8,$0FF00FF0	; data
+	dc.l $0FFC3FF0,$0FFFFFF0,$07FFFFE0,$07FFFFE0	; data
+	dc.l $03FFFFC0,$00FFFF00,$003FFC00,$00000000	; data
+four_byte_rows_16:
+	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
+	dc.l $7F8001FE,$7F8001FE,$3FC003FC,$3FC003FC	; data
+	dc.l $1FE007F8,$1FE007F8,$0FF00FF0,$0FF00FF0	; data
+	dc.l $07F81FE0,$07F81FE0,$03FC3FC0,$03FC3FC0	; data
+	dc.l $01FE7F80,$01FE7F80,$00FFFF00,$00FFFF00	; data
+	dc.l $007FFE00,$007FFE00,$003FFC00,$003FFC00	; data
+	dc.l $001FF800,$001FF800,$000FF000,$000FF000	; data
+	dc.l $0007E000,$0003C000,$00000000,$00000000	; data
+four_byte_rows_17:
+	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
+	dc.l $FE0000FE,$FE0000FE,$FE07C0FE,$FE1FF0FE	; data
+	dc.l $FE3FF8FE,$FE7FFCFE,$FEFFFEFE,$FFFFFFFE	; data
+	dc.l $FFFFFFFE,$FFFFFFFE,$FFFFFFFE,$FFFE7FFE	; data
+	dc.l $FFFC3FFE,$FFF81FFE,$FFF00FFE,$FFE007FE	; data
+	dc.l $FFC003FE,$FF8001FE,$7E00007C,$00000000	; data
+four_byte_rows_18:
+	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
+	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
+	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
+	dc.l $01FFFF80,$00FFFF00,$007FFE00,$003FFC00	; data
+	dc.l $001FF800,$003FFC00,$007FFE00,$00FFFF00	; data
+	dc.l $01FFFF80,$03FFFFC0,$07FE7FE0,$0FFC3FF0	; data
+	dc.l $1FF81FF8,$3FF00FFC,$3FE007FC,$3FC003FC	; data
+	dc.l $3F8001FC,$1F0000F8,$00000000,$00000000	; data
+four_byte_rows_19:
+	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
+	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
+	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
+	dc.l $01FFFF80,$00FFFF00,$007FFE00,$003FFC00	; data
+	dc.l $001FF800,$000FF000,$0007E000,$0007E000	; data
+	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
+	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
+	dc.l $0007E000,$0007E000,$0003C000,$00000000	; data
+four_byte_rows_20:
+	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
+	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFFC	; data
+	dc.l $00001FF8,$00003FF0,$00007FE0,$0000FFC0	; data
+	dc.l $0001FF80,$0003FF00,$0007FE00,$000FFC00	; data
+	dc.l $001FF800,$003FF000,$007FE000,$00FFC000	; data
+	dc.l $01FF8000,$03FF0000,$07FE0000,$0FFC0000	; data
+	dc.l $1FFFFFF0,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8	; data
+	dc.l $1FFFFFF8,$0FFFFFF0,$00000000,$00000000	; data
 world_tile_pixels_000_through_011:
 	dcb.b $A,$FF	; bitmap
 	dc.b $00,$00,$00,$00,$00,$00	; bitmap
@@ -22178,99 +22197,55 @@ abs_0_0004A738:
 	dc.b $3F,$00,$00,$00,$00,$00,$00,$70
 	dcb.b $16,$00
 	dc.b $1F,$00,$00,$00,$00,$00,$00,$38
-	dcb.b $C7,$00
-abs_0_0004D310:
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-abs_0_0004D330:
-	ori.b #0,d0
-	ori.b #0,d0
+	dcb.b $EF,$00
 abs_0_0004D338:
-	ori.b #0,d0
-	ori.b #0,d0
-	or.b d0,d0
-	or.b d0,d0
-	or.b d0,d0
-	ori.b #1,d0
-	ori.b #1,d1
-	dc.w $0000,$C000	; non-canonical byte-immediate encoding
-	and.b d0,d0
-	and.b d0,d0
-	or.b d0,d0
-	ori.b #1,d1
-	ori.b #0,d1
-	and.b d0,d0
-	and.b d0,d0
-	and.b d0,d0
-	or.b d0,d0
-abs_0_0004D368:
-	ori.b #3,d3
-	ori.b #1,d3
-	move.l d0,d0
-	asr.b #8,d0
-	asr.b #8,d0
-	negx.b d0
-	ori.b #3,d3
-	ori.b #1,d3
-	move.l d0,d0
-	asr.b #8,d0
-	asr.b #8,d0
-	negx.b d0
-	ori.b #3,d3
-	ori.b #1,d3
-	move.l d0,d0
-	asr.b #8,d0
-	asr.b #8,d0
-	negx.b d0
-	ori.b #7,d6
-	ori.b #2,d7
-	move.b d0,d0
-	dc.b $F0,$00,$F0,$00,$40,$00,$00,$06,$00,$05,$00,$07,$00,$00,$30,$00
-	dc.b $D0,$00,$F0,$00,$40,$00,$00,$07,$00,$04,$00,$07,$00,$00,$70,$00
-	dc.b $90,$00,$F0,$00,$00,$00,$00,$3F,$00,$3F,$00,$3F,$00,$02,$1E,$00
-	dc.b $FE,$00,$FE,$00,$20,$00,$00,$7F,$00,$7F,$00,$7F,$00,$3A,$29,$00
-	dc.b $FF,$00,$FF,$00,$10,$00,$00,$C5,$00,$FF,$00,$FF,$00,$40,$28,$80
-	dc.b $FF,$80,$FF,$80,$10,$00,$00,$C5,$00,$FF,$00,$FF,$00,$40,$20,$80
-	dc.b $FF,$80,$FF,$80,$10,$00,$00,$C2,$00,$FF,$00,$FF,$00,$40,$25,$80
-	dc.b $FF,$80,$FF,$80,$10,$00,$01,$B1,$01,$FF,$01,$FF,$00,$90,$C6,$C0
-	dc.b $FF,$C0,$FF,$C0,$20,$80,$03,$0A,$03,$FF,$03,$FF,$01,$2A,$8A,$60
-	dc.b $FF,$E0,$FF,$E0,$84,$40,$06,$A4,$07,$FF,$07,$FF,$02,$44,$4D,$B0
-	dc.b $FF,$F0,$FF,$F0,$42,$20,$07,$54,$07,$FF,$07,$FF,$02,$34,$05,$70
-	dc.b $FF,$F0,$FF,$F0,$0A,$20,$0D,$55,$0F,$FF,$0F,$FF,$05,$34,$04,$58
-	dc.b $FF,$F8,$FF,$F8,$0B,$50,$0D,$55,$0F,$FF,$0F,$FF,$05,$34,$04,$58
-	dc.b $FF,$F8,$FF,$F8,$0B,$50,$0E,$BC,$0F,$BF,$0F,$BF,$05,$14,$80,$B8
-	dc.b $FF,$F8,$FF,$F8,$0B,$50,$18,$BC,$1F,$BF,$1F,$BF,$08,$14,$40,$8C
-	dc.b $FE,$FC,$FE,$FC,$0A,$08,$19,$36,$1F,$3F,$1F,$3F,$08,$16,$20,$4C
-	dc.b $FE,$7C,$FE,$7C,$0A,$08,$1B,$35,$1F,$3F,$1F,$3F,$08,$15,$00,$6C
-	dc.b $FE,$7C,$FE,$7C,$0E,$08,$1A,$20,$1E,$3F,$1E,$3F,$0C,$04,$88,$2C
-	dc.b $FE,$3C,$FE,$3C,$96,$18,$19,$64,$1F,$7F,$1F,$7F,$08,$23,$12,$4C
-	dc.b $FF,$7C,$FF,$7C,$E9,$08,$1F,$67,$1F,$7F,$1F,$7F,$08,$20,$EA,$7C
-	dc.b $FF,$7C,$FF,$7C,$11,$08,$1C,$62,$1C,$7F,$1C,$7F,$08,$20,$F6,$1C
-	dc.b $FF,$1C,$FF,$1C,$01,$08,$1E,$69,$1E,$7F,$1E,$7F,$0C,$28,$52,$3C
-	dc.b $FF,$3C,$FF,$3C,$81,$18,$0C,$70,$0C,$7F,$0C,$7F,$00,$31,$2A,$18
-	dc.b $3F,$18,$3F,$18,$01,$00,$00,$64,$00,$7F,$00,$7F,$00,$25,$22,$00
-	dc.b $3F,$00,$3F,$00,$01,$00,$00,$68,$00,$7F,$00,$7F,$00,$29,$26,$00
-	dc.b $3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$2A,$22,$00
-	dc.b $3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$0A,$36,$00
-	dc.b $3F,$00,$3F,$00,$15,$00,$00,$6E,$00,$7E,$00,$7E,$00,$20,$33,$00
-	dc.b $3F,$00,$3F,$00,$10,$00,$00,$62,$00,$7E,$00,$7E,$00,$20,$1D,$00
-	dc.b $1F,$00,$1F,$00,$00,$00,$00,$64,$00,$7C,$00,$7C,$00,$20,$18,$00
-	dc.b $1F,$00,$1F,$00,$09,$00,$00,$40,$00,$7C,$00,$7C,$00,$04,$18,$00
-	dc.b $1F,$00,$1F,$00,$09,$00,$00,$C0,$00,$F8,$00,$F8,$00,$48,$18,$00
-	dc.b $1F,$00,$1F,$00,$09,$00,$00,$D0,$00,$F8,$00,$F8,$00,$48,$14,$00
-	dc.b $1F,$00,$1F,$00,$05,$00,$00,$80,$00,$F0,$00,$F0,$00,$10,$15,$00
-	dc.b $1F,$80,$1F,$80,$05,$80,$01,$D0,$01,$F0,$01,$F0,$00,$80,$0E,$80
-	dc.b $0F,$C0,$0F,$C0,$04,$C0,$03,$D8,$03,$F8,$03,$F8,$01,$50,$13,$40
-	dc.b $1F,$E0,$1F,$E0,$02,$60,$01,$88,$01,$F8,$01,$F8,$00,$80,$13,$C0
-	dc.b $1F,$C0,$1F,$C0,$05,$00,$03,$D4,$03,$FC,$03,$FC,$01,$20,$2B,$40
-	dc.b $3F,$E0,$3F,$E0,$15,$80,$04,$04,$07,$8C,$07,$8C,$01,$88,$00,$80
-	dc.b $03,$80,$03,$80,$03,$80
+	dcb.b $8,$00
+	dc.b $80,$00,$80,$00,$80,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$00
+	dc.b $C0,$00,$C0,$00,$C0,$00,$80,$00,$00,$01,$00,$01,$00,$01,$00,$00
+	dc.b $C0,$00,$C0,$00,$C0,$00,$80,$00,$00,$03,$00,$03,$00,$03,$00,$01
+	dc.b $20,$00,$E0,$00,$E0,$00,$40,$00,$00,$03,$00,$03,$00,$03,$00,$01
+	dc.b $20,$00,$E0,$00,$E0,$00,$40,$00,$00,$03,$00,$03,$00,$03,$00,$01
+	dc.b $20,$00,$E0,$00,$E0,$00,$40,$00,$00,$06,$00,$07,$00,$07,$00,$02
+	dc.b $10,$00,$F0,$00,$F0,$00,$40,$00,$00,$06,$00,$05,$00,$07,$00,$00
+	dc.b $30,$00,$D0,$00,$F0,$00,$40,$00,$00,$07,$00,$04,$00,$07,$00,$00
+	dc.b $70,$00,$90,$00,$F0,$00,$00,$00,$00,$3F,$00,$3F,$00,$3F,$00,$02
+	dc.b $1E,$00,$FE,$00,$FE,$00,$20,$00,$00,$7F,$00,$7F,$00,$7F,$00,$3A
+	dc.b $29,$00,$FF,$00,$FF,$00,$10,$00,$00,$C5,$00,$FF,$00,$FF,$00,$40
+	dc.b $28,$80,$FF,$80,$FF,$80,$10,$00,$00,$C5,$00,$FF,$00,$FF,$00,$40
+	dc.b $20,$80,$FF,$80,$FF,$80,$10,$00,$00,$C2,$00,$FF,$00,$FF,$00,$40
+	dc.b $25,$80,$FF,$80,$FF,$80,$10,$00,$01,$B1,$01,$FF,$01,$FF,$00,$90
+	dc.b $C6,$C0,$FF,$C0,$FF,$C0,$20,$80,$03,$0A,$03,$FF,$03,$FF,$01,$2A
+	dc.b $8A,$60,$FF,$E0,$FF,$E0,$84,$40,$06,$A4,$07,$FF,$07,$FF,$02,$44
+	dc.b $4D,$B0,$FF,$F0,$FF,$F0,$42,$20,$07,$54,$07,$FF,$07,$FF,$02,$34
+	dc.b $05,$70,$FF,$F0,$FF,$F0,$0A,$20,$0D,$55,$0F,$FF,$0F,$FF,$05,$34
+	dc.b $04,$58,$FF,$F8,$FF,$F8,$0B,$50,$0D,$55,$0F,$FF,$0F,$FF,$05,$34
+	dc.b $04,$58,$FF,$F8,$FF,$F8,$0B,$50,$0E,$BC,$0F,$BF,$0F,$BF,$05,$14
+	dc.b $80,$B8,$FF,$F8,$FF,$F8,$0B,$50,$18,$BC,$1F,$BF,$1F,$BF,$08,$14
+	dc.b $40,$8C,$FE,$FC,$FE,$FC,$0A,$08,$19,$36,$1F,$3F,$1F,$3F,$08,$16
+	dc.b $20,$4C,$FE,$7C,$FE,$7C,$0A,$08,$1B,$35,$1F,$3F,$1F,$3F,$08,$15
+	dc.b $00,$6C,$FE,$7C,$FE,$7C,$0E,$08,$1A,$20,$1E,$3F,$1E,$3F,$0C,$04
+	dc.b $88,$2C,$FE,$3C,$FE,$3C,$96,$18,$19,$64,$1F,$7F,$1F,$7F,$08,$23
+	dc.b $12,$4C,$FF,$7C,$FF,$7C,$E9,$08,$1F,$67,$1F,$7F,$1F,$7F,$08,$20
+	dc.b $EA,$7C,$FF,$7C,$FF,$7C,$11,$08,$1C,$62,$1C,$7F,$1C,$7F,$08,$20
+	dc.b $F6,$1C,$FF,$1C,$FF,$1C,$01,$08,$1E,$69,$1E,$7F,$1E,$7F,$0C,$28
+	dc.b $52,$3C,$FF,$3C,$FF,$3C,$81,$18,$0C,$70,$0C,$7F,$0C,$7F,$00,$31
+	dc.b $2A,$18,$3F,$18,$3F,$18,$01,$00,$00,$64,$00,$7F,$00,$7F,$00,$25
+	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$68,$00,$7F,$00,$7F,$00,$29
+	dc.b $26,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$2A
+	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$0A
+	dc.b $36,$00,$3F,$00,$3F,$00,$15,$00,$00,$6E,$00,$7E,$00,$7E,$00,$20
+	dc.b $33,$00,$3F,$00,$3F,$00,$10,$00,$00,$62,$00,$7E,$00,$7E,$00,$20
+	dc.b $1D,$00,$1F,$00,$1F,$00,$00,$00,$00,$64,$00,$7C,$00,$7C,$00,$20
+	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$40,$00,$7C,$00,$7C,$00,$04
+	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$C0,$00,$F8,$00,$F8,$00,$48
+	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$D0,$00,$F8,$00,$F8,$00,$48
+	dc.b $14,$00,$1F,$00,$1F,$00,$05,$00,$00,$80,$00,$F0,$00,$F0,$00,$10
+	dc.b $15,$00,$1F,$80,$1F,$80,$05,$80,$01,$D0,$01,$F0,$01,$F0,$00,$80
+	dc.b $0E,$80,$0F,$C0,$0F,$C0,$04,$C0,$03,$D8,$03,$F8,$03,$F8,$01,$50
+	dc.b $13,$40,$1F,$E0,$1F,$E0,$02,$60,$01,$88,$01,$F8,$01,$F8,$00,$80
+	dc.b $13,$C0,$1F,$C0,$1F,$C0,$05,$00,$03,$D4,$03,$FC,$03,$FC,$01,$20
+	dc.b $2B,$40,$3F,$E0,$3F,$E0,$15,$80,$04,$04,$07,$8C,$07,$8C,$01,$88
+	dc.b $00,$80,$03,$80,$03,$80,$03,$80
 	dcb.b $8,$00
 	dc.b $80,$00,$80,$00,$80,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$00
 	dc.b $E0,$00,$E0,$00,$E0,$00,$40,$00,$00,$01,$00,$01,$00,$01,$00,$00
@@ -22299,27 +22274,25 @@ abs_0_0004D368:
 	dc.b $88,$2C,$FE,$3C,$FE,$3C,$96,$18,$19,$64,$1F,$7F,$1F,$7F,$08,$23
 	dc.b $12,$4C,$FF,$7C,$FF,$7C,$E9,$08,$1F,$67,$1F,$7F,$1F,$7F,$08,$20
 	dc.b $EA,$7C,$FF,$7C,$FF,$7C,$11,$08,$1C,$62,$1C,$7F,$1C,$7F,$08,$20
-	dc.b $F6,$1C,$FF,$1C,$FF,$1C,$01,$08,$1E,$69,$1E,$7F,$1E,$7F
-abs_0_0004D7DE:
-	dc.w $0C28,$523C,$FF3C	; non-canonical byte-immediate encoding
-	dc.b $FF,$3C,$81,$18,$0C,$70,$0C,$7F,$0C,$7F,$00,$31,$2A,$18,$3F,$18
-	dc.b $3F,$18,$01,$00,$00,$64,$00,$7F,$00,$7F,$00,$25,$22,$00,$3F,$00
-	dc.b $3F,$00,$01,$00,$00,$68,$00,$7F,$00,$7F,$00,$29,$26,$00,$3F,$00
-	dc.b $3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$2A,$22,$00,$3F,$00
-	dc.b $3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$0A,$36,$00,$3F,$00
-	dc.b $3F,$00,$15,$00,$00,$6E,$00,$7E,$00,$7E,$00,$20,$33,$00,$3F,$00
-	dc.b $3F,$00,$10,$00,$00,$62,$00,$7E,$00,$7E,$00,$20,$1D,$00,$1F,$00
-	dc.b $1F,$00,$00,$00,$00,$64,$00,$7C,$00,$7C,$00,$20,$18,$00,$1F,$00
-	dc.b $1F,$00,$09,$00,$00,$40,$00,$7C,$00,$7C,$00,$04,$18,$00,$1F,$00
-	dc.b $1F,$00,$09,$00,$00,$C0,$00,$F8,$00,$F8,$00,$48,$18,$00,$1F,$00
-	dc.b $1F,$00,$09,$00,$00,$D0,$00,$F8,$00,$F8,$00,$48,$14,$00,$1F,$00
-	dc.b $1F,$00,$05,$00,$00,$80,$00,$F0,$00,$F0,$00,$10,$15,$00,$1F,$80
-	dc.b $1F,$80,$05,$80,$01,$D0,$01,$F0,$01,$F0,$00,$80,$0E,$80,$0F,$C0
-	dc.b $0F,$C0,$04,$C0,$03,$D8,$03,$F8,$03,$F8,$01,$50,$13,$40,$1F,$E0
-	dc.b $1F,$E0,$02,$60,$01,$88,$01,$F8,$01,$F8,$00,$80,$13,$C0,$1F,$C0
-	dc.b $1F,$C0,$05,$00,$03,$D4,$03,$FC,$03,$FC,$01,$20,$2B,$40,$3F,$E0
-	dc.b $3F,$E0,$15,$80,$04,$04,$07,$8C,$07,$8C,$01,$88,$00,$80,$03,$80
-	dc.b $03,$80,$03,$80
+	dc.b $F6,$1C,$FF,$1C,$FF,$1C,$01,$08,$1E,$69,$1E,$7F,$1E,$7F,$0C,$28
+	dc.b $52,$3C,$FF,$3C,$FF,$3C,$81,$18,$0C,$70,$0C,$7F,$0C,$7F,$00,$31
+	dc.b $2A,$18,$3F,$18,$3F,$18,$01,$00,$00,$64,$00,$7F,$00,$7F,$00,$25
+	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$68,$00,$7F,$00,$7F,$00,$29
+	dc.b $26,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$2A
+	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$0A
+	dc.b $36,$00,$3F,$00,$3F,$00,$15,$00,$00,$6E,$00,$7E,$00,$7E,$00,$20
+	dc.b $33,$00,$3F,$00,$3F,$00,$10,$00,$00,$62,$00,$7E,$00,$7E,$00,$20
+	dc.b $1D,$00,$1F,$00,$1F,$00,$00,$00,$00,$64,$00,$7C,$00,$7C,$00,$20
+	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$40,$00,$7C,$00,$7C,$00,$04
+	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$C0,$00,$F8,$00,$F8,$00,$48
+	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$D0,$00,$F8,$00,$F8,$00,$48
+	dc.b $14,$00,$1F,$00,$1F,$00,$05,$00,$00,$80,$00,$F0,$00,$F0,$00,$10
+	dc.b $15,$00,$1F,$80,$1F,$80,$05,$80,$01,$D0,$01,$F0,$01,$F0,$00,$80
+	dc.b $0E,$80,$0F,$C0,$0F,$C0,$04,$C0,$03,$D8,$03,$F8,$03,$F8,$01,$50
+	dc.b $13,$40,$1F,$E0,$1F,$E0,$02,$60,$01,$88,$01,$F8,$01,$F8,$00,$80
+	dc.b $13,$C0,$1F,$C0,$1F,$C0,$05,$00,$03,$D4,$03,$FC,$03,$FC,$01,$20
+	dc.b $2B,$40,$3F,$E0,$3F,$E0,$15,$80,$04,$04,$07,$8C,$07,$8C,$01,$88
+	dc.b $00,$80,$03,$80,$03,$80,$03,$80
 	dcb.b $8,$00
 	dc.b $80,$00,$80,$00,$80,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$00
 	dc.b $80,$00,$C0,$00,$C0,$00,$C0,$00,$00,$01,$00,$01,$00,$01,$00,$00
@@ -22513,13 +22486,9 @@ abs_0_0004D7DE:
 	dcb.b $3B,$00
 	dc.b $40,$00,$40
 	dcb.b $C,$00
-	dc.b $40,$40,$40
-abs_0_0004E3EC:
-	negx.w d0
-	ori.w #0,d0
-	ori.b #0,d0
-	ori.b #128,d0
-	dc.b $00,$C0,$00,$C0,$00,$C0
+	dc.b $40,$40,$40,$40,$40,$00,$40
+	dcb.b $9,$00
+	dc.b $80,$00,$C0,$00,$C0,$00,$C0
 	dcb.b $B,$00
 	dc.b $60,$00,$60,$00,$20
 	dcb.b $8,$00
@@ -28341,13 +28310,8 @@ abs_0_0005C97A:
 	dcb.b $C,$00
 	dc.b $FF,$F0,$FF,$FC,$00,$05,$C9,$6E,$00,$00,$00,$00,$00,$00
 abs_0_0005C994:
-	bsr.w abs_0_0005C9AE
-	st.b app_02D8(a6)
-	bset.b #3,app_033C(a6)
-	bne.b abs_0_0005C9AA
-	move.b #$46,app_02CC(a6)
-abs_0_0005C9AA:
-	rts
+	dc.b $61,$00,$00,$18,$50,$EE,$02,$D8,$08,$EE,$00,$03,$03,$3C,$66,$06
+	dc.b $1D,$7C,$00,$46,$02,$CC,$4E,$75
 abs_0_0005C9AC:
 	rts
 abs_0_0005C9AE:
