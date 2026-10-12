@@ -147,3 +147,32 @@ Next substantive batch: corroborate and correct the 33 displaced world-command
 handler identities, then recover their operand/effect contracts and startup
 state dependencies. The full restoration and alternate-layout milestones remain
 open; original disk/loader parity is outside scope.
+
+## Next batch audit: world-command semantics (not yet accepted)
+
+A bounded native query retrieved all 242 accepted instructions in
+`0x1114..0x1432`, covering the 33 handlers and interpreter. This exposes semantic
+errors as well as the displaced legacy coordinates:
+
+- Opcode 5 / source `0x11A4` writes the word at script+2 to object+`0x44`, then
+  advances the script by four bytes. The interpreter at `0x13FC..0x1406`
+  decrements this field before resuming commands, so the old “repeat count” name
+  should become a delay-setting interpretation.
+- Opcodes 14/15 / `0x1258`, `0x1266` compare object X/Y against a pointed-to word.
+  Inequality takes the normal eight-byte advance; equality takes the shared
+  relative branch at `0x1222`. The old “skip if not equal” labels are misleading.
+- Opcodes 10–13 use unsigned comparisons, with the same branch target formula:
+  old script pointer + signed word at script+6 + 6. Normal advance is eight bytes.
+- Opcode 6 / `0x11BC` decrements the mutable word at script+4 and branches by the
+  signed word at script+6 while nonzero; at zero it reloads script+4 from script+2
+  and advances eight bytes. Opcode 21 / `0x11AE` also writes within script-relative
+  storage. These establish mutable script data, not modification of instructions.
+- Opcodes 31/32 traverse attachment records seeking bit-3 set/clear respectively,
+  then toggle bit 0 in the selected state node. The old opcode-31 “first
+  attachment” name omits the predicate.
+
+These are review candidates derived from native instructions, not accepted new
+facts. Preserve the original names/history until the coordinated correction and
+contract batch passes review and exact reproduction. Repeated per-label full
+rebuilds would be wasteful; any batching improvement must keep shared catalog
+validation, fresh revision checks, atomic persistence and evidence identities.
