@@ -581,6 +581,8 @@ int m68k_sim_memory_state_join(M68kSimMemoryState *dst, const M68kSimMemoryState
 int m68k_sim_memory_state_seed_same_section_fixups(const M68kObject *object, size_t section_index,
   const M68kSection *section, M68kSimMemoryState *state);
 const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction);
+/* Resolve the existing form's operand width; unknown form/operand returns zero. */
+uint8_t m68k_sim_operand_width_bytes(const M68kInstructionIR *instruction, uint8_t operand_index);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);
 int m68k_simulate_step(const M68kObject *object, size_t section_index, const M68kSection *section, uint32_t offset,

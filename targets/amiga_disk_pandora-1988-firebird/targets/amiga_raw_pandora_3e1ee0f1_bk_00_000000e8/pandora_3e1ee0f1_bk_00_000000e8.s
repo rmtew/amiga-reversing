@@ -8969,9 +8969,9 @@ configure_camera_scroll_triggers:
 	add.w d0,d0
 	add.w d1,d0
 	lea.l camera_scroll_profiles(pc,d0.w),a0
-	move.w (a0)+,app_camera_scroll_countdown_reload_word(a6)
-	move.w (a0)+,d2
-	move.w (a0)+,d3
+	move.w (a0)+,app_camera_scroll_countdown_reload_word(a6)	; operand 1: camera_scroll_profile_scroll_countdown_reload_word at (a0)+
+	move.w (a0)+,d2	; operand 1: camera_scroll_profile_horizontal_trigger_margin at (a0)+
+	move.w (a0)+,d3	; operand 1: camera_scroll_profile_vertical_trigger_margin at (a0)+
 	move.w app_tilemap_scroll_x(a6),d0
 	add.w d2,d0
 	add.w d2,d2
@@ -21740,12 +21740,12 @@ update_player_proximity_audio:
 	btst.b #1,world_object_megabio_feed_world_object_flags.l
 	bne.b abs_0_000652DE
 	lea.l player_world_object_world_x.l,a0
-	move.w (a0)+,d0
+	move.w (a0)+,d0	; operand 1: world_object_shared_prefix_world_x at (a0)+
 	subi.w #840,d0
 	bpl.b abs_0_00065318
 	neg.w d0
 abs_0_00065318:
-	move.w (a0),d1
+	move.w (a0),d1	; operand 1: world_object_shared_prefix_world_y at (a0)
 	subi.w #168,d1
 	bpl.b abs_0_00065322
 	neg.w d1

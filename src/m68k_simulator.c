@@ -589,6 +589,14 @@ static uint8_t sim_effective_operand_width(const M68kInstructionIR *instruction,
   return width;
 }
 
+uint8_t m68k_sim_operand_width_bytes(const M68kInstructionIR *instruction, uint8_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  if (instruction == NULL || operand_index >= instruction->operand_count || operand_index >= 4U) return 0U;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0U;
+  return sim_effective_operand_width(instruction, metadata, operand_index);
+}
+
 static uint32_t sim_sign_extend_value(uint32_t value, uint8_t src_bits) {
   uint32_t mask;
   uint32_t sign_bit;

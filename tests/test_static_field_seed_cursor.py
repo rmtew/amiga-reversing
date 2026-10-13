@@ -119,7 +119,7 @@ def test_invalid_or_conflicting_static_field_seed_is_not_a_trusted_root(tmp_path
     assert all(field["field_offset"] is None for field in fields)
 
 
-def test_static_field_seed_postincrement_does_not_reuse_previous_field_cursor(tmp_path):
+def test_static_field_seed_postincrement_advances_to_next_field_cursor(tmp_path):
     fields = _fields(
         tmp_path, [_seed(end=42, field_name="world_x", unit="word")],
         instruction_tail="301832104e75",  # MOVE.W (A0)+,D0; MOVE.W (A0),D1; RTS.
@@ -129,5 +129,63 @@ def test_static_field_seed_postincrement_does_not_reuse_previous_field_cursor(tm
         ],
     )
     assert [(field["source_offset"], field.get("status"), field["field_offset"]) for field in fields] == [
-        (4, "unresolved", None),
+        (4, None, 8),
+        (6, None, 10),
     ]
+    assert [field["field_name"] for field in fields] == ["world_x", "world_y"]
+
+
+@pytest.mark.parametrize("instruction_tail", [
+    "302032104e75",  # Predecrement source remains unsupported.
+    "205832104e75",  # MOVEA.L (A0)+,A0 also writes the updated base.
+    "b15832104e75",  # CMPM.W (A0)+,(A0)+ has ambiguous same-base phases.
+    "309832104e75",  # MOVE.W (A0)+,(A0) also uses the updated base.
+    "32d832104e75",  # MOVE.W (A0)+,(A1)+ has multiple EA updates.
+])
+def test_static_field_seed_unmodelled_update_cannot_resolve_or_reuse_cursor(tmp_path, instruction_tail):
+    fields = _fields(
+        tmp_path, [_seed(end=42, field_name="world_x", unit="word")],
+        instruction_tail=instruction_tail,
+        root_fields=[
+            {"name": "world_x", "type": "word", "offset": 8, "size": 2},
+            {"name": "world_y", "type": "word", "offset": 10, "size": 2},
+        ],
+    )
+    assert fields
+    assert all(field.get("status") == "unresolved" for field in fields)
+    assert all(field["field_offset"] is None for field in fields)
+
+
+def test_static_field_seed_postincrement_invalidates_one_past_root(tmp_path):
+    fields = _fields(
+        tmp_path, [_seed(end=42, field_name="last", unit="word")],
+        instruction_tail="301832104e75",
+        root_fields=[{"name": "last", "type": "word", "offset": 14, "size": 2}],
+    )
+    assert [(field["source_offset"], field["field_offset"]) for field in fields] == [(4, 14)]
+
+
+def test_static_root_array_postincrement_advances_into_declared_next_element(tmp_path):
+    fields = _fields(
+        tmp_path, [_seed(addr=32, end=64, field_name="", unit="byte")], target=46,
+        instruction_tail="301832104e75",
+        root_fields=[
+            {"name": "first", "type": "word", "offset": 0, "size": 2},
+            {"name": "last", "type": "word", "offset": 14, "size": 2},
+        ],
+    )
+    assert [(field["source_offset"], field["field_offset"], field["field_name"]) for field in fields] == [
+        (4, 14, "last"), (6, 0, "first"),
+    ]
+
+
+def test_static_root_array_postincrement_invalidates_after_declared_final_element(tmp_path):
+    fields = _fields(
+        tmp_path, [_seed(addr=32, end=64, field_name="", unit="byte")], target=62,
+        instruction_tail="301832104e75",
+        root_fields=[
+            {"name": "first", "type": "word", "offset": 0, "size": 2},
+            {"name": "last", "type": "word", "offset": 14, "size": 2},
+        ],
+    )
+    assert [(field["source_offset"], field["field_offset"]) for field in fields] == [(4, 14)]

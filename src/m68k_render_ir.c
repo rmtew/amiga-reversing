@@ -10693,12 +10693,14 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
     access.operand_index = (uint32_t)operand_index;
     access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
     if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
-        operand->value.ea_mode == 2U) {
+        (operand->value.ea_mode == 2U ||
+         m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT)) {
       access.comment_only = 1U;
       if (out_planned_instruction != NULL) {
         char field_comment[512];
-        snprintf(field_comment, sizeof(field_comment), "operand %u: %s at (a%u)",
-          (unsigned)operand_index + 1U, operand->symbol_ref.name, (unsigned)operand->value.ea_reg);
+        snprintf(field_comment, sizeof(field_comment), "operand %u: %s at (a%u)%s",
+          (unsigned)operand_index + 1U, operand->symbol_ref.name, (unsigned)operand->value.ea_reg,
+          m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT ? "+" : "");
         if (append_comment_part_local(out_planned_instruction->comment,
             sizeof(out_planned_instruction->comment), field_comment) == 0) return -1;
       }
