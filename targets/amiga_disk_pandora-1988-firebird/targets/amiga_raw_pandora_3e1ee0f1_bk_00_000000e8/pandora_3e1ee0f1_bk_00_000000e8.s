@@ -87,13 +87,13 @@ app_display_bitplane_base RS.L 1
     RS.B 4
 app_text_cursor_ptr RS.L 1
 app_font_glyph_bitmap_table_ptr RS.L 1
-app_01EC RS.L 1
+app_proportional_text_word_cursor_ptr RS.L 1
 app_font_glyph_layout_table_ptr RS.L 1
 app_01F4 RS.W 1
 app_01F6 RS.W 1
     RS.B 18
 app_020A RS.B 1
-app_020B RS.B 1
+app_proportional_text_pixel_shift RS.B 1
 app_cursor_sprite0_dma_ptr RS.L 1
 app_cursor_sprite1_dma_ptr RS.L 1
 app_inventory_cursor_x RS.W 1
@@ -554,6 +554,18 @@ world_position_render_state_prefix_attachment_state_ptr RS.L 1
 world_position_render_state_prefix_interaction_flags RS.B 1
 world_position_render_state_prefix_world_object_flags RS.B 1
 world_position_render_state_prefix_SIZEOF EQU __RS
+
+; STRUCT proportional_ui_glyph_record
+    RSRESET
+proportional_ui_glyph_record_advance_width_word RS.W 1
+proportional_ui_glyph_record_bitmap_row_0 RS.W 1
+proportional_ui_glyph_record_bitmap_row_1 RS.W 1
+proportional_ui_glyph_record_bitmap_row_2 RS.W 1
+proportional_ui_glyph_record_bitmap_row_3 RS.W 1
+proportional_ui_glyph_record_bitmap_row_4 RS.W 1
+proportional_ui_glyph_record_bitmap_row_5 RS.W 1
+proportional_ui_glyph_record_bitmap_row_6 RS.W 1
+proportional_ui_glyph_record_SIZEOF EQU __RS
 
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
@@ -5936,12 +5948,12 @@ world_object_sort_source_ptrs:
 	dc.l world_position_descriptors_position_state_ptr_10	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_13
 	dc.l abs_0_0005A2BC
-	dc.l abs_0_0005BE7A
-	dc.l abs_0_0005BEBA
-	dc.l abs_0_0005BEFA
-	dc.l abs_0_0005BF3A
-	dc.l abs_0_0005BF7A
-	dc.l abs_0_0005BFBA
+	dc.l fixed_npc_position_states
+	dc.l defence_controller_position_descriptor
+	dc.l wackobrain_position_descriptor
+	dc.l glass_position_descriptor
+	dc.l kwik_kleen_position_descriptor
+	dc.l flight_controller_position_descriptor
 	dc.l abs_0_0005C2BE
 	dc.l abs_0_000593B4
 	dc.l abs_0_000597B2
@@ -6884,11 +6896,12 @@ set_text_cursor_in_overlay_plane:
 	move.l d0,app_text_cursor_ptr(a6)
 	movea.l d0,a0
 	rts
-abs_0_00016146:
+    ; Advance uses its low byte; seven-row glyphs blit into selected planes. Straddles read a neighboring WORD; character and destination bounds are unchecked.
+draw_proportional_ui_text_string:
 	movem.l d3-d7/a4-a5,-(a7)
-	lea.l abs_0_0001AF3E(pc),a4
+	lea.l ascii_32_through_127_glyph_indices(pc),a4
 	lea.l _custom.l,a5
-	movea.l app_01EC(a6),a0
+	movea.l app_proportional_text_word_cursor_ptr(a6),a0
 abs_0_00016158:
 	moveq.l #0,d0
 	move.b (a3)+,d0
@@ -6900,7 +6913,7 @@ abs_0_00016158:
 	movea.l d0,a1
 	move.w (a1)+,d1
 	moveq.l #0,d2
-	move.b app_020B(a6),d2
+	move.b app_proportional_text_pixel_shift(a6),d2
 	move.b d2,d7
 	swap.w d2
 	lsr.l #4,d2
@@ -6922,7 +6935,7 @@ abs_0_000161A2:
 	moveq.l #2,d4
 abs_0_000161A4:
 	andi.b #15,d7
-	move.b d7,app_020B(a6)
+	move.b d7,app_proportional_text_pixel_shift(a6)
 	move.b app_text_plane_mask(a6),d1
 	moveq.l #3,d7
 	move.l a0,-(a7)
@@ -6953,7 +6966,7 @@ abs_0_000161F4:
 	adda.l d4,a0
 	bra.w abs_0_00016158
 abs_0_00016204:
-	move.l a0,app_01EC(a6)
+	move.l a0,app_proportional_text_word_cursor_ptr(a6)
 	movem.l (a7)+,d3-d7/a4-a5
 	rts
     ; Copy 32 source bytes at cursor+40*i (i=0..31); restore D0/A0/A1. No cursor advance or destination bounds check.
@@ -7322,15 +7335,15 @@ abs_0_000165F0:
 	addq.b #1,d1
 	add.b $0001(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
-	move.l a0,app_01EC(a6)
-	move.b #$8,app_020B(a6)
+	move.l a0,app_proportional_text_word_cursor_ptr(a6)
+	move.b #$8,app_proportional_text_pixel_shift(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
 	tst.l (a4)
 	beq.b abs_0_00016624
 	movea.l (a4)+,a3
 	btst.b d7,$0007(a5)
 	beq.b abs_0_00016620
-	bsr.w abs_0_00016146
+	bsr.w draw_proportional_ui_text_string
 	bra.b abs_0_00016624
 abs_0_00016620:
 	bsr.w draw_compact_text_string
@@ -7352,10 +7365,10 @@ abs_0_00016632:
 	move.b d0,d1
 	move.b $0000(a5),d0
 	bsr.w set_text_cursor_in_overlay_plane
-	move.l a0,app_01EC(a6)
-	move.b #$8,app_020B(a6)
+	move.l a0,app_proportional_text_word_cursor_ptr(a6)
+	move.b #$8,app_proportional_text_pixel_shift(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
-	bra.w abs_0_00016146
+	bra.w draw_proportional_ui_text_string
 clear_overlay_pointer_storage:
 	lea.l ui_overlay_update_queue(pc),a0
 	moveq.l #31,d7
@@ -11267,9 +11280,9 @@ abs_0_00019A96:
 	moveq.l #0,d0
 	moveq.l #24,d1
 	bsr.w set_text_cursor_in_overlay_plane
-	move.l a0,app_01EC(a6)
-	clr.b app_020B(a6)
-	bsr.w abs_0_00016146
+	move.l a0,app_proportional_text_word_cursor_ptr(a6)
+	clr.b app_proportional_text_pixel_shift(a6)
+	bsr.w draw_proportional_ui_text_string
 	rts
 abs_0_00019AB2:
 	movea.l #$77800,a2
@@ -11561,16 +11574,18 @@ initialize_world_state:
 abs_0_00019F60:
 	clr.l (a0)+
 	dbf.w d7,abs_0_00019F60
-	lea.l abs_0_000588AA.l,a0
+    ; For these six receptacles, clear flags byte 5, including proximity bit 0. Restore a nonzero saved attachment and clear its saved pointer; otherwise keep the current attachment.
+	lea.l scene_restart_receptacle_state_ptrs.l,a0
 	moveq.l #5,d7
 abs_0_00019F6E:
 	movea.l (a0)+,a1
-	movea.l $001A(a1),a2
-	clr.b $0005(a2)
-	tst.l (a2)
+    ; KNOWN: type A1=Target code-entry register seed:world_position_state_record
+	movea.l world_position_state_record_interaction_data_ptr(a1),a2
+	clr.b item_receptacle_interaction_data_flags(a2)
+	tst.l (a2)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a2)
 	beq.b abs_0_00019F82
-	move.l (a2),$0014(a1)
-	clr.l (a2)
+	move.l (a2),world_position_state_record_attachment_state_ptr(a1)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a2)
+	clr.l (a2)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a2)
 abs_0_00019F82:
 	dbf.w d7,abs_0_00019F6E
 	clr.w app_camera_scroll_delta_x(a6)
@@ -11598,8 +11613,8 @@ abs_0_00019FC4:
 	move.w #$32,app_02D0(a6)
 	clr.b app_020A(a6)
 	move.l #abs_0_0001A7E2,app_font_glyph_bitmap_table_ptr(a6)
-	move.l #abs_0_0001AAFE,app_font_glyph_layout_table_ptr(a6)
-	clr.b app_020B(a6)
+	move.l #proportional_ui_font_glyphs,app_font_glyph_layout_table_ptr(a6)
+	clr.b app_proportional_text_pixel_shift(a6)
 	moveq.l #51,d0
 	move.w d0,app_tile_row(a6)
 	lsl.w #4,d0
@@ -12199,86 +12214,558 @@ abs_0_0001AABA:
 	dc.b $48,$49,$54,$00
 abs_0_0001AAF9:
 	dc.b $45,$4E,$4D,$59,$00
-abs_0_0001AAFE:
-	dc.b $00,$06,$38,$00,$44,$00,$44,$00,$44,$00,$44,$00,$38,$00,$00,$00
-	dc.b $00,$04,$20,$00,$60,$00,$20,$00,$20,$00,$20,$00,$70,$00,$00,$00
-	dc.b $00,$06,$38,$00,$44,$00,$08,$00,$10,$00,$20,$00,$7C,$00,$00,$00
-	dc.b $00,$07,$3C,$00,$42,$00,$0C,$00,$02,$00,$42,$00,$3C,$00,$00,$00
-	dc.b $00,$06,$18,$00,$28,$00,$48,$00,$7C,$00,$08,$00,$1C,$00,$00,$00
-	dc.b $00,$06,$7C,$00,$40,$00,$78,$00,$04,$00,$04,$00,$78,$00,$00,$00
-	dc.b $00,$06,$38,$00,$40,$00,$78,$00,$44,$00,$44,$00,$38,$00,$00,$00
-	dc.b $00,$05,$78,$00,$08,$00,$10,$00,$10,$00,$20,$00,$20,$00,$00,$00
-	dc.b $00,$06,$38,$00,$44,$00,$38,$00,$44,$00,$44,$00,$38,$00,$00,$00
-	dc.b $00,$06,$38,$00,$44,$00,$44,$00,$3C,$00,$04,$00,$38,$00,$00,$00
-	dc.b $00,$05,$30,$00,$48,$00,$48,$00,$78,$00,$48,$00,$48,$00,$00,$00
-	dc.b $00,$05,$70,$00,$48,$00,$70,$00,$48,$00,$48,$00,$70,$00,$00,$00
-	dc.b $00,$05,$30,$00,$48,$00,$40,$00,$40,$00,$48,$00,$30,$00,$00,$00
-	dc.b $00,$05,$70,$00,$48,$00,$48,$00,$48,$00,$48,$00,$70,$00,$00,$00
-	dc.b $00,$05,$78,$00,$40,$00,$70,$00,$40,$00,$40,$00,$78,$00,$00,$00
-	dc.b $00,$05,$78,$00,$40,$00,$70,$00,$40,$00,$40,$00,$40,$00,$00,$00
-	dc.b $00,$05,$38,$00,$40,$00,$40,$00,$58,$00,$48,$00,$38,$00,$00,$00
-	dc.b $00,$05,$48,$00,$48,$00,$48,$00,$78,$00,$48,$00,$48,$00,$00,$00
-	dc.b $00,$04,$70,$00,$20,$00,$20,$00,$20,$00,$20,$00,$70,$00,$00,$00
-	dc.b $00,$06,$3C,$00,$08,$00,$08,$00,$08,$00,$48,$00,$30,$00,$00,$00
-	dc.b $00,$05,$48,$00,$50,$00,$60,$00,$50,$00,$48,$00,$48,$00,$00,$00
-	dc.b $00,$05,$40,$00,$40,$00,$40,$00,$40,$00,$40,$00,$78,$00,$00,$00
-	dc.b $00,$08,$63,$00,$77,$00,$5D,$00,$49,$00,$41,$00,$41,$00,$00,$00
-	dc.b $00,$06,$44,$00,$64,$00,$74,$00,$5C,$00,$4C,$00,$44,$00,$00,$00
-	dc.b $00,$05,$30,$00,$48,$00,$48,$00,$48,$00,$48,$00,$30,$00,$00,$00
-	dc.b $00,$05,$70,$00,$48,$00,$48,$00,$70,$00,$40,$00,$40,$00,$00,$00
-	dc.b $00,$05,$30,$00,$48,$00,$48,$00,$48,$00,$50,$00,$28,$00,$00,$00
-	dc.b $00,$06,$78,$00,$44,$00,$44,$00,$78,$00,$48,$00,$44,$00,$00,$00
-	dc.b $00,$06,$3C,$00,$40,$00,$38,$00,$04,$00,$04,$00,$78,$00,$00,$00
-	dc.b $00,$06,$7C,$00,$10,$00,$10,$00,$10,$00,$10,$00,$10,$00,$00,$00
-	dc.b $00,$05,$48,$00,$48,$00,$48,$00,$48,$00,$48,$00,$30,$00,$00,$00
-	dc.b $00,$06,$44,$00,$44,$00,$44,$00,$28,$00,$28,$00,$10,$00,$00,$00
-	dc.b $00,$08,$41,$00,$41,$00,$49,$00,$49,$00,$55,$00,$22,$00,$00,$00
-	dc.b $00,$06,$44,$00,$28,$00,$10,$00,$10,$00,$28,$00,$44,$00,$00,$00
-	dc.b $00,$06,$44,$00,$28,$00,$10,$00,$10,$00,$10,$00,$10,$00,$00,$00
-	dc.b $00,$06,$7C,$00,$0C,$00,$18,$00,$30,$00,$60,$00,$7C,$00,$00,$00
-	dc.b $00,$06,$00,$00,$38,$00,$04,$00,$3C,$00,$44,$00,$3C,$00,$00,$00
-	dc.b $00,$05,$40,$00,$40,$00,$70,$00,$48,$00,$48,$00,$70,$00,$00,$00
-	dc.b $00,$05,$00,$00,$38,$00,$40,$00,$40,$00,$40,$00,$38,$00,$00,$00
-	dc.b $00,$05,$08,$00,$38,$00,$48,$00,$48,$00,$48,$00,$38,$00,$00,$00
-	dc.b $00,$06,$00,$00,$38,$00,$44,$00,$78,$00,$40,$00,$38,$00,$00,$00
-	dc.b $00,$06,$1C,$00,$20,$00,$78,$00,$20,$00,$20,$00,$20,$00,$00,$00
-	dc.b $00,$06,$00,$00,$38,$00,$44,$00,$44,$00,$3C,$00,$04,$00,$78,$00
-	dc.b $00,$05,$40,$00,$58,$00,$68,$00,$48,$00,$48,$00,$48,$00,$00,$00
-	dc.b $00,$03,$00,$00,$40,$00,$00,$00,$40,$00,$40,$00,$40,$00,$00,$00
-	dc.b $00,$05,$00,$00,$08,$00,$00,$00,$18,$00,$08,$00,$08,$00,$70,$00
-	dc.b $00,$04,$40,$00,$40,$00,$50,$00,$60,$00,$60,$00,$50,$00,$00,$00
-	dc.b $00,$03,$40,$00,$40,$00,$40,$00,$40,$00,$40,$00,$20,$00,$00,$00
-	dc.b $00,$06,$00,$00,$28,$00,$54,$00,$54,$00,$54,$00,$44,$00,$00,$00
-	dc.b $00,$05,$00,$00,$70,$00,$48,$00,$48,$00,$48,$00,$48,$00,$00,$00
-	dc.b $00,$05,$00,$00,$30,$00,$48,$00,$48,$00,$48,$00,$30,$00,$00,$00
-	dc.b $00,$05,$00,$00,$70,$00,$48,$00,$48,$00,$70,$00,$40,$00,$40,$00
-	dc.b $00,$06,$00,$00,$30,$00,$48,$00,$48,$00,$38,$00,$0C,$00,$08,$00
-	dc.b $00,$05,$00,$00,$30,$00,$48,$00,$40,$00,$40,$00,$40,$00,$00,$00
-	dc.b $00,$05,$00,$00,$38,$00,$40,$00,$30,$00,$08,$00,$70,$00,$00,$00
-	dc.b $00,$05,$20,$00,$78,$00,$20,$00,$20,$00,$20,$00,$18,$00,$00,$00
-	dc.b $00,$05,$00,$00,$48,$00,$48,$00,$48,$00,$48,$00,$30,$00,$00,$00
-	dc.b $00,$06,$00,$00,$44,$00,$44,$00,$44,$00,$28,$00,$10,$00,$00,$00
-	dc.b $00,$08,$00,$00,$41,$00,$41,$00,$49,$00,$49,$00,$36,$00,$00,$00
-	dc.b $00,$06,$00,$00,$44,$00,$28,$00,$10,$00,$28,$00,$44,$00,$00,$00
-	dc.b $00,$06,$00,$00,$44,$00,$44,$00,$3C,$00,$04,$00,$08,$00,$70,$00
-	dc.b $00,$06,$00,$00,$7C,$00,$08,$00,$10,$00,$20,$00,$7C,$00,$00,$00
-	dc.b $00,$03
-	dcb.b $F,$00
-	dc.b $03
-	dcb.b $A,$00
-	dc.b $40,$00,$00,$00,$00,$04
-	dcb.b $A,$00
-	dc.b $20,$00,$40,$00,$00,$03,$00,$00,$40,$00,$00,$00,$00,$00,$00,$00
-	dc.b $40,$00,$00,$00,$00,$04,$00,$00,$20,$00,$00,$00,$00,$00,$00,$00
-	dc.b $20,$00,$40,$00,$00,$03,$40,$00,$40
-	dcb.b $B,$00
-abs_0_0001AF3E:
-	dc.b $3E,$00,$43,$00,$00,$00,$00,$3F,$00,$00,$00,$00,$40,$00,$3F,$00
-	dc.b $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$41,$42,$00,$00,$00,$00
-	dc.b $00,$0A,$0B,$0C,$0D,$0E,$0F,$10,$11,$12,$13,$14,$15,$16,$17,$18
-	dc.b $19,$1A,$1B,$1C,$1D,$1E,$1F,$20,$21,$22,$23,$00,$00,$00,$00,$00
-	dc.b $00,$24,$25,$26,$27,$28,$29,$2A,$2B,$2C,$2D,$2E,$2F,$30,$31,$32
-	dc.b $33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$3D,$00,$00,$00,$00,$00
+proportional_ui_font_glyphs:
+	dc.w $0006	; advance_width_word
+	dc.w $3800	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $4400	; bitmap_row_3
+	dc.w $4400	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0004	; advance_width_word
+	dc.w $2000	; bitmap_row_0
+	dc.w $6000	; bitmap_row_1
+	dc.w $2000	; bitmap_row_2
+	dc.w $2000	; bitmap_row_3
+	dc.w $2000	; bitmap_row_4
+	dc.w $7000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $3800	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $0800	; bitmap_row_2
+	dc.w $1000	; bitmap_row_3
+	dc.w $2000	; bitmap_row_4
+	dc.w $7C00	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0007	; advance_width_word
+	dc.w $3C00	; bitmap_row_0
+	dc.w $4200	; bitmap_row_1
+	dc.w $0C00	; bitmap_row_2
+	dc.w $0200	; bitmap_row_3
+	dc.w $4200	; bitmap_row_4
+	dc.w $3C00	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $1800	; bitmap_row_0
+	dc.w $2800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $7C00	; bitmap_row_3
+	dc.w $0800	; bitmap_row_4
+	dc.w $1C00	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $7C00	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $7800	; bitmap_row_2
+	dc.w $0400	; bitmap_row_3
+	dc.w $0400	; bitmap_row_4
+	dc.w $7800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $3800	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $7800	; bitmap_row_2
+	dc.w $4400	; bitmap_row_3
+	dc.w $4400	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $7800	; bitmap_row_0
+	dc.w $0800	; bitmap_row_1
+	dc.w $1000	; bitmap_row_2
+	dc.w $1000	; bitmap_row_3
+	dc.w $2000	; bitmap_row_4
+	dc.w $2000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $3800	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $3800	; bitmap_row_2
+	dc.w $4400	; bitmap_row_3
+	dc.w $4400	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $3800	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $3C00	; bitmap_row_3
+	dc.w $0400	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $3000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $7800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $4800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $7000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $7000	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $7000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $3000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4000	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $7000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $7000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $7800	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $7000	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $7800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $7800	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $7000	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $4000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $3800	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $4000	; bitmap_row_2
+	dc.w $5800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $4800	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $7800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $4800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0004	; advance_width_word
+	dc.w $7000	; bitmap_row_0
+	dc.w $2000	; bitmap_row_1
+	dc.w $2000	; bitmap_row_2
+	dc.w $2000	; bitmap_row_3
+	dc.w $2000	; bitmap_row_4
+	dc.w $7000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $3C00	; bitmap_row_0
+	dc.w $0800	; bitmap_row_1
+	dc.w $0800	; bitmap_row_2
+	dc.w $0800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $4800	; bitmap_row_0
+	dc.w $5000	; bitmap_row_1
+	dc.w $6000	; bitmap_row_2
+	dc.w $5000	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $4800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $4000	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $4000	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $7800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0008	; advance_width_word
+	dc.w $6300	; bitmap_row_0
+	dc.w $7700	; bitmap_row_1
+	dc.w $5D00	; bitmap_row_2
+	dc.w $4900	; bitmap_row_3
+	dc.w $4100	; bitmap_row_4
+	dc.w $4100	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $4400	; bitmap_row_0
+	dc.w $6400	; bitmap_row_1
+	dc.w $7400	; bitmap_row_2
+	dc.w $5C00	; bitmap_row_3
+	dc.w $4C00	; bitmap_row_4
+	dc.w $4400	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $3000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $7000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $7000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $4000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $3000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $5000	; bitmap_row_4
+	dc.w $2800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $7800	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $7800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $4400	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $3C00	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $3800	; bitmap_row_2
+	dc.w $0400	; bitmap_row_3
+	dc.w $0400	; bitmap_row_4
+	dc.w $7800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $7C00	; bitmap_row_0
+	dc.w $1000	; bitmap_row_1
+	dc.w $1000	; bitmap_row_2
+	dc.w $1000	; bitmap_row_3
+	dc.w $1000	; bitmap_row_4
+	dc.w $1000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $4800	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $4400	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $2800	; bitmap_row_3
+	dc.w $2800	; bitmap_row_4
+	dc.w $1000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0008	; advance_width_word
+	dc.w $4100	; bitmap_row_0
+	dc.w $4100	; bitmap_row_1
+	dc.w $4900	; bitmap_row_2
+	dc.w $4900	; bitmap_row_3
+	dc.w $5500	; bitmap_row_4
+	dc.w $2200	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $4400	; bitmap_row_0
+	dc.w $2800	; bitmap_row_1
+	dc.w $1000	; bitmap_row_2
+	dc.w $1000	; bitmap_row_3
+	dc.w $2800	; bitmap_row_4
+	dc.w $4400	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $4400	; bitmap_row_0
+	dc.w $2800	; bitmap_row_1
+	dc.w $1000	; bitmap_row_2
+	dc.w $1000	; bitmap_row_3
+	dc.w $1000	; bitmap_row_4
+	dc.w $1000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $7C00	; bitmap_row_0
+	dc.w $0C00	; bitmap_row_1
+	dc.w $1800	; bitmap_row_2
+	dc.w $3000	; bitmap_row_3
+	dc.w $6000	; bitmap_row_4
+	dc.w $7C00	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3800	; bitmap_row_1
+	dc.w $0400	; bitmap_row_2
+	dc.w $3C00	; bitmap_row_3
+	dc.w $4400	; bitmap_row_4
+	dc.w $3C00	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $4000	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $7000	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $7000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3800	; bitmap_row_1
+	dc.w $4000	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0800	; bitmap_row_0
+	dc.w $3800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3800	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $7800	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $3800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $1C00	; bitmap_row_0
+	dc.w $2000	; bitmap_row_1
+	dc.w $7800	; bitmap_row_2
+	dc.w $2000	; bitmap_row_3
+	dc.w $2000	; bitmap_row_4
+	dc.w $2000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3800	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $4400	; bitmap_row_3
+	dc.w $3C00	; bitmap_row_4
+	dc.w $0400	; bitmap_row_5
+	dc.w $7800	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $4000	; bitmap_row_0
+	dc.w $5800	; bitmap_row_1
+	dc.w $6800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $4800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0003	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $4000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $0800	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $1800	; bitmap_row_3
+	dc.w $0800	; bitmap_row_4
+	dc.w $0800	; bitmap_row_5
+	dc.w $7000	; bitmap_row_6
+	dc.w $0004	; advance_width_word
+	dc.w $4000	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $5000	; bitmap_row_2
+	dc.w $6000	; bitmap_row_3
+	dc.w $6000	; bitmap_row_4
+	dc.w $5000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0003	; advance_width_word
+	dc.w $4000	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $4000	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $2000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $2800	; bitmap_row_1
+	dc.w $5400	; bitmap_row_2
+	dc.w $5400	; bitmap_row_3
+	dc.w $5400	; bitmap_row_4
+	dc.w $4400	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $7000	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $4800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3000	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $7000	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $7000	; bitmap_row_4
+	dc.w $4000	; bitmap_row_5
+	dc.w $4000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3000	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $3800	; bitmap_row_4
+	dc.w $0C00	; bitmap_row_5
+	dc.w $0800	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3000	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4000	; bitmap_row_3
+	dc.w $4000	; bitmap_row_4
+	dc.w $4000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $3800	; bitmap_row_1
+	dc.w $4000	; bitmap_row_2
+	dc.w $3000	; bitmap_row_3
+	dc.w $0800	; bitmap_row_4
+	dc.w $7000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $2000	; bitmap_row_0
+	dc.w $7800	; bitmap_row_1
+	dc.w $2000	; bitmap_row_2
+	dc.w $2000	; bitmap_row_3
+	dc.w $2000	; bitmap_row_4
+	dc.w $1800	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0005	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $4800	; bitmap_row_1
+	dc.w $4800	; bitmap_row_2
+	dc.w $4800	; bitmap_row_3
+	dc.w $4800	; bitmap_row_4
+	dc.w $3000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $4400	; bitmap_row_3
+	dc.w $2800	; bitmap_row_4
+	dc.w $1000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0008	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $4100	; bitmap_row_1
+	dc.w $4100	; bitmap_row_2
+	dc.w $4900	; bitmap_row_3
+	dc.w $4900	; bitmap_row_4
+	dc.w $3600	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $2800	; bitmap_row_2
+	dc.w $1000	; bitmap_row_3
+	dc.w $2800	; bitmap_row_4
+	dc.w $4400	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $4400	; bitmap_row_1
+	dc.w $4400	; bitmap_row_2
+	dc.w $3C00	; bitmap_row_3
+	dc.w $0400	; bitmap_row_4
+	dc.w $0800	; bitmap_row_5
+	dc.w $7000	; bitmap_row_6
+	dc.w $0006	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $7C00	; bitmap_row_1
+	dc.w $0800	; bitmap_row_2
+	dc.w $1000	; bitmap_row_3
+	dc.w $2000	; bitmap_row_4
+	dc.w $7C00	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0003	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $0000	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $0000	; bitmap_row_3
+	dc.w $0000	; bitmap_row_4
+	dc.w $0000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0003	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $0000	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $0000	; bitmap_row_3
+	dc.w $0000	; bitmap_row_4
+	dc.w $4000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0004	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $0000	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $0000	; bitmap_row_3
+	dc.w $0000	; bitmap_row_4
+	dc.w $2000	; bitmap_row_5
+	dc.w $4000	; bitmap_row_6
+	dc.w $0003	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $0000	; bitmap_row_3
+	dc.w $0000	; bitmap_row_4
+	dc.w $4000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+	dc.w $0004	; advance_width_word
+	dc.w $0000	; bitmap_row_0
+	dc.w $2000	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $0000	; bitmap_row_3
+	dc.w $0000	; bitmap_row_4
+	dc.w $2000	; bitmap_row_5
+	dc.w $4000	; bitmap_row_6
+	dc.w $0003	; advance_width_word
+	dc.w $4000	; bitmap_row_0
+	dc.w $4000	; bitmap_row_1
+	dc.w $0000	; bitmap_row_2
+	dc.w $0000	; bitmap_row_3
+	dc.w $0000	; bitmap_row_4
+	dc.w $0000	; bitmap_row_5
+	dc.w $0000	; bitmap_row_6
+ascii_32_through_127_glyph_indices:
+	dc.b $3E,$00,$43,$00,$00,$00,$00,$3F,$00,$00,$00,$00,$40,$00,$3F,$00	; proportional_ui_character_map
+	dc.b $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$41,$42,$00,$00,$00,$00	; proportional_ui_character_map
+	dc.b $00,$0A,$0B,$0C,$0D,$0E,$0F,$10,$11,$12,$13,$14,$15,$16,$17,$18	; proportional_ui_character_map
+	dc.b $19,$1A,$1B,$1C,$1D,$1E,$1F,$20,$21,$22,$23,$00,$00,$00,$00,$00	; proportional_ui_character_map
+	dc.b $00,$24,$25,$26,$27,$28,$29,$2A,$2B,$2C,$2D,$2E,$2F,$30,$31,$32	; proportional_ui_character_map
+	dc.b $33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$3D,$00,$00,$00,$00,$00	; proportional_ui_character_map
 abs_0_0001AF9E:
 	dc.b $C7,$93,$39,$01,$39,$03,$39,$03,$39,$03,$81,$1F,$3F,$1F,$81,$03
 	dc.b $31,$39,$31,$03,$01,$3F,$07,$3F,$01,$01,$3F,$07,$3F,$3F,$81,$1F
@@ -18136,61 +18623,281 @@ abs_0_00058794:
 	dc.b $05,$87,$CC
 	dcb.b $9,$00
 	dc.b $05,$87,$28,$00,$05,$87,$28,$00,$05,$87,$3A,$00,$05,$87,$4C,$00
-	dc.b $05,$87,$5E,$00,$05,$87,$70,$00,$05,$0C,$18,$00,$06,$85,$80,$00
-	dc.b $02,$00,$1F,$00,$18,$00,$00,$00,$00,$00,$05,$06,$18,$00,$06,$98
-	dc.b $46,$00,$01,$00,$11,$00,$10,$00,$00,$00,$00,$00,$05,$07,$18,$00
-	dc.b $06,$98,$86,$00,$01,$00,$1E,$00,$10,$00,$00,$00,$00,$00,$05,$08
-	dc.b $18,$00,$06,$98,$C6,$00,$01,$00,$10,$00,$10,$00,$00,$00,$00,$00
-	dc.b $05,$09,$18,$00,$06,$99,$06,$00,$01,$00,$0B,$00,$10,$00,$00,$00
-	dc.b $00,$00,$05,$0A,$18,$00,$06,$99,$46,$00,$01,$00,$0B,$00,$10,$00
-	dc.b $00,$00,$00,$00,$05,$0B,$18,$00,$06,$99,$86,$00,$01,$00,$0C,$00
-	dc.b $10,$00,$00,$00,$00,$00,$05,$88,$C2,$00,$BA,$01,$64,$00,$BA,$01
-	dc.b $64,$00,$05,$89,$04,$02,$CD,$02,$F2,$02,$CD,$02,$F2,$00,$05,$89
-	dc.b $46,$05,$19,$02,$04,$05,$19,$02,$04,$00,$05,$89,$88,$04,$49,$01
-	dc.b $D2,$04,$49,$01,$D2,$00,$05,$89,$CA,$02,$E9,$03,$F0,$02,$E9,$03
-	dc.b $F0,$00,$05,$8A,$2A,$04,$DC,$03,$63,$04,$DC,$03,$63
-abs_0_000588AA:
-	dc.b $00,$05,$88,$C2,$00,$05,$89,$04,$00,$05,$89,$46,$00,$05,$89,$88
-	dc.b $00,$05,$89,$CA,$00,$05,$8A,$2A,$00,$05,$87,$E4,$00,$05,$87,$E4
-	dcb.b $9,$00
-	dc.b $05,$88,$62,$00,$05,$88,$E0,$00,$04,$00,$05,$88,$FE,$00,$05,$87
-	dc.b $F6,$00,$05,$87,$F6,$00,$00,$00,$00,$00,$04,$00,$03,$00,$05,$88
-	dc.b $62,$00,$00,$00,$00,$00,$04
-	dcb.b $8,$00
-	dc.b $2C,$00,$00,$05,$87,$E4,$00,$05,$87,$E4
-	dcb.b $9,$00
-	dc.b $05,$88,$6E,$00,$05,$89,$22,$00,$04,$00,$05,$89,$40,$00,$05,$88
-	dc.b $08,$00,$05,$88,$08,$00,$00,$00,$00,$00,$07,$FF,$FE,$00,$05,$88
-	dc.b $6E,$00,$00,$00,$00,$00,$04
-	dcb.b $8,$00
-	dc.b $18,$00,$00,$05,$87,$E4,$00,$05,$87,$E4
-	dcb.b $9,$00
-	dc.b $05,$88,$7A,$00,$05,$89,$64,$00,$04,$00,$05,$89,$82,$00,$05,$88
-	dc.b $1A,$00,$05,$88,$1A
-	dcb.b $9,$00
-	dc.b $05,$88,$7A,$00,$00,$00,$00,$00,$04
-	dcb.b $8,$00
-	dc.b $2E,$00,$00,$05,$87,$E4,$00,$05,$87,$E4
-	dcb.b $9,$00
-	dc.b $05,$88,$86,$00,$05,$89,$A6,$00,$04,$00,$05,$89,$C4,$00,$05,$88
-	dc.b $50,$00,$05,$88,$50,$00,$00,$00,$00,$00,$04,$00,$04,$00,$05,$88
-	dc.b $86,$00,$00,$00,$00,$00,$04,$00,$00,$00,$00
-	dc.b $00,$00,$00,$00,$17,$00,$00,$05,$87,$E4,$00,$05,$87,$E4
-	dcb.b $9,$00
-	dc.b $05,$88,$92,$00,$05,$89,$E8,$00,$04,$00,$05,$8A,$06,$00,$05,$88
-	dc.b $2C,$00,$05,$88,$2C,$00,$05,$8A,$0C,$00,$06,$00,$06,$00,$05,$88
-	dc.b $92,$00,$00,$00,$00,$00,$04
-	dcb.b $8,$00
-	dc.b $68,$00,$00,$05,$88,$92,$02,$28,$00,$05,$8A,$1E
-	dcb.b $9,$00
-	dc.b $05,$88,$2C,$00,$05,$88,$2C,$00,$05,$88,$3E,$00,$05,$87,$E4,$00
-	dc.b $05,$87,$E4
-	dcb.b $9,$00
-	dc.b $05,$88,$9E,$00,$05,$8A,$48,$00,$04,$00,$05,$8A,$66,$00,$05,$C8
-	dc.b $04,$00,$05,$C8,$04,$00,$00,$00,$00,$00,$04,$00,$04,$00,$05,$88
-	dc.b $9E,$00,$00,$00,$00,$00,$04
-	dcb.b $8,$00
-	dc.b $12,$00
+	dc.b $05,$87,$5E,$00,$05,$87,$70
+item_receptacle_geometry_headers:
+	dc.l $00050C18	; bitplane_data_ptr
+	dc.l $00068580	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001F	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+item_receptacle_geometry_headers_bitplane_data_ptr_1:
+	dc.b $00,$05,$06,$18	; bitplane_data_ptr
+	dc.b $00,$06,$98,$46	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0011	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+item_receptacle_geometry_headers_bitplane_data_ptr_2:
+	dc.l $00050718	; bitplane_data_ptr
+	dc.l $00069886	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+item_receptacle_geometry_headers_bitplane_data_ptr_3:
+	dc.b $00,$05,$08,$18	; bitplane_data_ptr
+	dc.b $00,$06,$98,$C6	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+item_receptacle_geometry_headers_bitplane_data_ptr_4:
+	dc.l $00050918	; bitplane_data_ptr
+	dc.l $00069906	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000B	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$05,$0A,$18	; bitplane_data_ptr
+	dc.b $00,$06,$99,$46	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000B	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+item_receptacle_geometry_headers_bitplane_data_ptr_6:
+	dc.l $00050B18	; bitplane_data_ptr
+	dc.l $00069986	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000C	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+item_receptacle_position_descriptors:
+	dc.l item_receptacle_lifecycle_records	; position_state_ptr
+	dc.w $00BA	; world_x
+	dc.w $0164	; world_y
+	dc.w $00BA	; previous_world_x
+	dc.w $0164	; previous_world_y
+item_receptacle_position_descriptors_position_state_ptr_1:
+	dc.l item_receptacle_1_primary_state	; position_state_ptr
+	dc.w $02CD	; world_x
+	dc.w $02F2	; world_y
+	dc.w $02CD	; previous_world_x
+	dc.w $02F2	; previous_world_y
+item_receptacle_position_descriptors_position_state_ptr_2:
+	dc.l item_receptacle_2_primary_state	; position_state_ptr
+	dc.w $0519	; world_x
+	dc.w $0204	; world_y
+	dc.w $0519	; previous_world_x
+	dc.w $0204	; previous_world_y
+item_receptacle_position_descriptors_position_state_ptr_3:
+	dc.l item_receptacle_3_primary_state	; position_state_ptr
+	dc.w $0449	; world_x
+	dc.w $01D2	; world_y
+	dc.w $0449	; previous_world_x
+	dc.w $01D2	; previous_world_y
+item_receptacle_position_descriptors_position_state_ptr_4:
+	dc.l item_receptacle_4_primary_state	; position_state_ptr
+	dc.w $02E9	; world_x
+	dc.w $03F0	; world_y
+	dc.w $02E9	; previous_world_x
+	dc.w $03F0	; previous_world_y
+item_receptacle_position_descriptors_position_state_ptr_5:
+	dc.l item_receptacle_5_primary_state	; position_state_ptr
+	dc.w $04DC	; world_x
+	dc.w $0363	; world_y
+	dc.w $04DC	; previous_world_x
+	dc.w $0363	; previous_world_y
+scene_restart_receptacle_state_ptrs:
+	dc.l $000588C2,$00058904,$00058946,$00058988	; scene_restart_receptacle_state_ptrs
+	dc.l $000589CA,$00058A2A	; scene_restart_receptacle_state_ptrs
+item_receptacle_lifecycle_records:
+	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l item_receptacle_position_descriptors	; position_descriptor_ptr
+	dc.b $00,$05,$88,$E0	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_0_primary_interaction_data_ptr:
+	dc.l $000588FE	; item_receptacle_state_attachment_interaction_records
+item_receptacle_0_attachment_state:
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_1	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_1	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0003	; world_y_offset
+	dc.l item_receptacle_position_descriptors	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_0_attachment_interaction_data_ptr:
+	dc.l $00000000	; item_receptacle_state_attachment_interaction_records
+item_receptacle_0_interaction_data:
+	dc.l $00000000	; stored_attachment_state_ptr
+	dc.b $2C	; required_item_definition_id
+	dc.b $00	; flags
+item_receptacle_1_primary_state:
+	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
+	dc.l $00058922	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_1_primary_interaction_data_ptr:
+	dc.l $00058940	; item_receptacle_state_attachment_interaction_records
+item_receptacle_1_attachment_state:
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_2	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_2	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0007	; world_x_offset
+	dc.w $FFFE	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_1_attachment_interaction_data_ptr:
+	dc.l $00000000	; item_receptacle_state_attachment_interaction_records
+item_receptacle_1_interaction_data:
+	dc.l $00000000	; stored_attachment_state_ptr
+	dc.b $18	; required_item_definition_id
+	dc.b $00	; flags
+item_receptacle_2_primary_state:
+	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
+	dc.b $00,$05,$89,$64	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_2_primary_interaction_data_ptr:
+	dc.l $00058982	; item_receptacle_state_attachment_interaction_records
+item_receptacle_2_attachment_state:
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_3	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_3	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_2_attachment_interaction_data_ptr:
+	dc.l $00000000	; item_receptacle_state_attachment_interaction_records
+item_receptacle_2_interaction_data:
+	dc.l $00000000	; stored_attachment_state_ptr
+	dc.b $2E	; required_item_definition_id
+	dc.b $00	; flags
+item_receptacle_3_primary_state:
+	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
+	dc.l $000589A6	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_3_primary_interaction_data_ptr:
+	dc.l $000589C4	; item_receptacle_state_attachment_interaction_records
+item_receptacle_3_attachment_state:
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_6	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_6	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0004	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_3_attachment_interaction_data_ptr:
+	dc.l $00000000	; item_receptacle_state_attachment_interaction_records
+item_receptacle_3_interaction_data:
+	dc.l $00000000	; stored_attachment_state_ptr
+	dc.b $17	; required_item_definition_id
+	dc.b $00	; flags
+item_receptacle_4_primary_state:
+	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
+	dc.b $00,$05,$89,$E8	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_4_primary_interaction_data_ptr:
+	dc.l $00058A06	; item_receptacle_state_attachment_interaction_records
+item_receptacle_4_attachment_state:
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; previous_geometry_ptr
+	dc.l item_receptacle_4_attachment_animation_node	; state_node_ptr
+	dc.w $0006	; world_x_offset
+	dc.w $0006	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_4_attachment_interaction_data_ptr:
+	dc.l $00000000	; item_receptacle_state_attachment_interaction_records
+item_receptacle_4_interaction_data:
+	dc.l $00000000	; stored_attachment_state_ptr
+	dc.b $68	; required_item_definition_id
+	dc.b $00	; flags
+item_receptacle_4_attachment_animation_node:
+	dc.l item_receptacle_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
+	dc.b $02	; frame_count
+	dc.b $28	; phase_step
+	dc.b $00,$05,$8A,$1E	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+item_receptacle_4_attachment_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+item_receptacle_4_attachment_frame_sequence:
+	dc.l $0005882C,$0005882C,$0005883E	; item_receptacle_state_attachment_interaction_records
+item_receptacle_5_primary_state:
+	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
+	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
+	dc.b $00,$05,$8A,$48	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_5_primary_interaction_data_ptr:
+	dc.l $00058A66	; item_receptacle_state_attachment_interaction_records
+item_receptacle_5_attachment_state:
+	dc.l abs_0_0005C804	; current_geometry_ptr
+	dc.l abs_0_0005C804	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0004	; world_y_offset
+	dc.l item_receptacle_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $04	; world_object_flags
+item_receptacle_5_attachment_interaction_data_ptr:
+	dc.l $00000000	; item_receptacle_state_attachment_interaction_records
+item_receptacle_5_interaction_data:
+	dc.l $00000000	; stored_attachment_state_ptr
+	dc.b $12	; required_item_definition_id
+	dc.b $00	; flags
 world_position_animation_frames:
 	dc.l $00033278	; bitplane_data_ptr
 	dc.l $0007E254	; mask_data_ptr
@@ -18374,219 +19081,351 @@ world_position_descriptors:
 	dc.w $0180	; previous_world_x
 	dc.w $0090	; previous_world_y
 world_position_descriptors_position_state_ptr_1:
-	dc.l abs_0_00058D1A	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_1	; position_state_ptr
 	dc.w $00D0	; world_x
 	dc.w $01C0	; world_y
 	dc.w $00D0	; previous_world_x
 	dc.w $01C0	; previous_world_y
 world_position_descriptors_position_state_ptr_2:
-	dc.l abs_0_00058D34	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_2	; position_state_ptr
 	dc.w $01D0	; world_x
 	dc.w $0170	; world_y
 	dc.w $01D0	; previous_world_x
 	dc.w $0170	; previous_world_y
 world_position_descriptors_position_state_ptr_3:
-	dc.l abs_0_00058D4E	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_3	; position_state_ptr
 	dc.w $02A0	; world_x
 	dc.w $01F0	; world_y
 	dc.w $02A0	; previous_world_x
 	dc.w $01F0	; previous_world_y
 world_position_descriptors_position_state_ptr_4:
-	dc.l abs_0_00058D68	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_4	; position_state_ptr
 	dc.w $03B0	; world_x
 	dc.w $01D0	; world_y
 	dc.w $03B0	; previous_world_x
 	dc.w $01D0	; previous_world_y
 world_position_descriptors_position_state_ptr_5:
-	dc.l abs_0_00058D82	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_5	; position_state_ptr
 	dc.w $0420	; world_x
 	dc.w $01F0	; world_y
 	dc.w $0420	; previous_world_x
 	dc.w $01F0	; previous_world_y
 world_position_descriptors_position_state_ptr_6:
-	dc.l abs_0_00058D9C	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_6	; position_state_ptr
 	dc.w $04F0	; world_x
 	dc.w $01B0	; world_y
 	dc.w $04F0	; previous_world_x
 	dc.w $01B0	; previous_world_y
 world_position_descriptors_position_state_ptr_7:
-	dc.l abs_0_00058DB6	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_7	; position_state_ptr
 	dc.w $0240	; world_x
 	dc.w $02C0	; world_y
 	dc.w $0240	; previous_world_x
 	dc.w $02C0	; previous_world_y
 world_position_descriptors_position_state_ptr_8:
-	dc.l abs_0_00058DD0	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_8	; position_state_ptr
 	dc.w $03A0	; world_x
 	dc.w $0300	; world_y
 	dc.w $03A0	; previous_world_x
 	dc.w $0300	; previous_world_y
 world_position_descriptors_position_state_ptr_9:
-	dc.l abs_0_00058DEA	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_9	; position_state_ptr
 	dc.w $0200	; world_x
 	dc.w $0500	; world_y
 	dc.w $0200	; previous_world_x
 	dc.w $0500	; previous_world_y
 world_position_descriptors_position_state_ptr_10:
-	dc.l abs_0_00058E04	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_10	; position_state_ptr
 	dc.w $01B0	; world_x
 	dc.w $05B0	; world_y
 	dc.w $01B0	; previous_world_x
 	dc.w $05B0	; previous_world_y
 world_position_descriptors_position_state_ptr_11:
-	dc.l abs_0_00058E1E	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_11	; position_state_ptr
 	dc.w $02B0	; world_x
 	dc.w $05D0	; world_y
 	dc.w $02B0	; previous_world_x
 	dc.w $05D0	; previous_world_y
 world_position_descriptors_position_state_ptr_12:
-	dc.l abs_0_00058E38	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_12	; position_state_ptr
 	dc.w $0390	; world_x
 	dc.w $06F0	; world_y
 	dc.w $0390	; previous_world_x
 	dc.w $06F0	; previous_world_y
 world_position_descriptors_position_state_ptr_13:
-	dc.l abs_0_00058E52	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_13	; position_state_ptr
 	dc.w $0390	; world_x
 	dc.w $0580	; world_y
 	dc.w $0390	; previous_world_x
 	dc.w $0580	; previous_world_y
 world_position_descriptors_position_state_ptr_14:
-	dc.l abs_0_00058E6C	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_14	; position_state_ptr
 	dc.w $0420	; world_x
 	dc.w $0080	; world_y
 	dc.w $0420	; previous_world_x
 	dc.w $0080	; previous_world_y
 world_position_descriptors_position_state_ptr_15:
-	dc.l abs_0_00058E86	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_15	; position_state_ptr
 	dc.w $01C0	; world_x
 	dc.w $06F0	; world_y
 	dc.w $01C0	; previous_world_x
 	dc.w $06F0	; previous_world_y
 world_position_descriptors_position_state_ptr_16:
-	dc.l abs_0_00058EA0	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_16	; position_state_ptr
 	dc.w $0490	; world_x
 	dc.w $0330	; world_y
 	dc.w $0490	; previous_world_x
 	dc.w $0330	; previous_world_y
 world_position_descriptors_position_state_ptr_17:
-	dc.l abs_0_00058EBA	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_17	; position_state_ptr
 	dc.w $0490	; world_x
 	dc.w $0370	; world_y
 	dc.w $0490	; previous_world_x
 	dc.w $0370	; previous_world_y
 world_position_descriptors_position_state_ptr_18:
-	dc.l abs_0_00058ED4	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_18	; position_state_ptr
 	dc.w $0234	; world_x
 	dc.w $03C0	; world_y
 	dc.w $0234	; previous_world_x
 	dc.w $03C0	; previous_world_y
 world_position_descriptors_position_state_ptr_19:
-	dc.l abs_0_00058EEE	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_19	; position_state_ptr
 	dc.w $0084	; world_x
 	dc.w $00D0	; world_y
 	dc.w $0084	; previous_world_x
 	dc.w $00D0	; previous_world_y
 world_position_descriptors_position_state_ptr_20:
-	dc.l abs_0_00058F08	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_20	; position_state_ptr
 	dc.w $04F4	; world_x
 	dc.w $06E0	; world_y
 	dc.w $04F4	; previous_world_x
 	dc.w $06E0	; previous_world_y
 world_position_descriptors_position_state_ptr_21:
-	dc.l abs_0_00058F22	; position_state_ptr
+	dc.l world_position_state_records_current_geometry_ptr_21	; position_state_ptr
 	dc.w $00A0	; world_x
 	dc.w $0320	; world_y
 	dc.w $00A0	; previous_world_x
 	dc.w $0320	; previous_world_y
 world_position_state_records:
-	dcb.b $9,$00
-	dc.b $05,$8F,$DC,$00,$00,$00,$00,$00,$05,$8B,$F8,$00,$00,$00,$00,$00
-	dc.b $01
-abs_0_00058D1A:
-	dcb.b $9,$00
-	dc.b $05,$8F,$EE,$00,$00,$00,$00,$00,$05,$8C,$04,$00,$00,$00,$00,$00
-	dc.b $01
-abs_0_00058D34:
-	dcb.b $9,$00
-	dc.b $05,$90,$00,$00,$00,$00,$00,$00,$05,$8C,$10,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058D4E:
-	dcb.b $9,$00
-	dc.b $05,$90,$12,$00,$00,$00,$00,$00,$05,$8C,$1C,$00,$00,$00,$00,$00
-	dc.b $01
-abs_0_00058D68:
-	dcb.b $9,$00
-	dc.b $05,$90,$24,$00,$00,$00,$00,$00,$05,$8C,$28,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058D82:
-	dcb.b $9,$00
-	dc.b $05,$90,$36,$00,$00,$00,$00,$00,$05,$8C,$34,$00,$00,$00,$00,$00
-	dc.b $01
-abs_0_00058D9C:
-	dcb.b $9,$00
-	dc.b $05,$90,$48,$00,$00,$00,$00,$00,$05,$8C,$40,$00,$00,$00,$00,$00
-	dc.b $01
-abs_0_00058DB6:
-	dcb.b $9,$00
-	dc.b $05,$90,$5A,$00,$00,$00,$00,$00,$05,$8C,$4C,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058DD0:
-	dcb.b $9,$00
-	dc.b $05,$90,$6C,$00,$00,$00,$00,$00,$05,$8C,$58,$00,$00,$00,$00,$00
-	dc.b $01
-abs_0_00058DEA:
-	dcb.b $9,$00
-	dc.b $05,$90,$7E,$00,$00,$00,$00,$00,$05,$8C,$64,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058E04:
-	dcb.b $8,$00
-	dc.b $00,$05,$90,$90,$00,$00,$00,$00,$00,$05,$8C,$70,$00,$00,$00,$00
-	dc.b $00,$01
-abs_0_00058E1E:
-	dcb.b $9,$00
-	dc.b $05,$90,$A2,$00,$00,$00,$00,$00,$05,$8C,$7C,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058E38:
-	dcb.b $9,$00
-	dc.b $05,$90,$B4,$00,$00,$00,$00,$00,$05,$8C,$88,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058E52:
-	dcb.b $9,$00
-	dc.b $05,$90,$C6,$00,$00,$00,$00,$00,$05,$8C,$94,$00,$00,$00,$00,$00
-	dc.b $01
-abs_0_00058E6C:
-	dcb.b $9,$00
-	dc.b $05,$90,$D8,$00,$00,$00,$00,$00,$05,$8C,$A0,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058E86:
-	dcb.b $9,$00
-	dc.b $05,$90,$EA,$00,$00,$00,$00,$00,$05,$8C,$AC,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058EA0:
-	dcb.b $9,$00
-	dc.b $05,$90,$FC,$00,$00,$00,$00,$00,$05,$8C,$B8,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058EBA:
-	dcb.b $9,$00
-	dc.b $05,$91,$0E,$00,$00,$00,$00,$00,$05,$8C,$C4,$00,$00,$00,$00,$00
-	dc.b $21
-abs_0_00058ED4:
-	dcb.b $9,$00
-	dc.b $05,$8F,$70,$00,$00,$00,$00,$00,$05,$8C,$D0,$00,$00,$00,$00,$00
-	dc.b $10
-abs_0_00058EEE:
-	dcb.b $9,$00
-	dc.b $05,$8F,$82,$00,$00,$00,$00,$00,$05,$8C,$DC,$00,$00,$00,$00,$00
-	dc.b $10
-abs_0_00058F08:
-	dcb.b $9,$00
-	dc.b $05,$8F,$94,$00,$00
-	dc.b $00,$00,$00,$05,$8C,$E8,$00,$05,$8F,$3C,$00,$10
-abs_0_00058F22:
-	dcb.b $9,$00
-	dc.b $05,$8F,$A6,$00,$00,$00,$00,$00,$05,$8C,$F4,$00,$05,$8F,$56,$00
-	dc.b $10
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_6	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_1:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_7	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_2:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_8	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_3:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_9	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_4:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_10	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_5:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_11	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_6:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_12	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_6	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_7:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_13	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_7	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_8:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_14	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_8	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_9:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_15	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_9	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_10:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_16	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_10	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_11:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_17	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_11	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_12:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_18	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_12	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_13:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_19	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_13	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $01	; world_object_flags
+world_position_state_records_current_geometry_ptr_14:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_20	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_14	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_15:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_21	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_15	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_16:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_22	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_16	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_17:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_23	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_17	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $21	; world_object_flags
+world_position_state_records_current_geometry_ptr_18:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_18	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $10	; world_object_flags
+world_position_state_records_current_geometry_ptr_19:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_1	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_19	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $10	; world_object_flags
+world_position_state_records_current_geometry_ptr_20:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_2	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
+	dc.l $00058F3C	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $10	; world_object_flags
+world_position_state_records_current_geometry_ptr_21:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_3	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
+	dc.b $00,$05,$8F,$56	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $10	; world_object_flags
 	dcb.b $9,$00
 	dc.b $05,$8F,$B8,$00,$00,$00,$20,$00,$05,$8C,$E8,$00,$00,$00,$00,$00
 	dc.b $10
@@ -18603,6 +19442,7 @@ world_position_state_nodes_gap_B_0:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_1:
 	dc.l world_position_descriptors_position_state_ptr_19	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
@@ -18612,6 +19452,7 @@ world_position_state_nodes_gap_1D_1:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_2:
 	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
@@ -18621,6 +19462,7 @@ world_position_state_nodes_gap_2F_2:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_3:
 	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
@@ -18648,6 +19490,7 @@ world_position_state_nodes_gap_65_5:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_6:
 	dc.l world_position_descriptors	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18657,6 +19500,7 @@ world_position_state_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_7:
 	dc.l world_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18666,6 +19510,7 @@ world_position_state_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_8:
 	dc.l world_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18675,6 +19520,7 @@ world_position_state_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_9:
 	dc.l world_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18684,6 +19530,7 @@ world_position_state_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_10:
 	dc.l world_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18694,6 +19541,7 @@ world_position_state_nodes_gap_BF_10:
 	dc.w $0000
 	dc.w $0000
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_11:
 	dc.l world_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18703,6 +19551,7 @@ world_position_state_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_12:
 	dc.l world_position_descriptors_position_state_ptr_6	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18712,6 +19561,7 @@ world_position_state_nodes_gap_E3_12:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_13:
 	dc.l world_position_descriptors_position_state_ptr_7	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18721,6 +19571,7 @@ world_position_state_nodes_gap_F5_13:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_14:
 	dc.l world_position_descriptors_position_state_ptr_8	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18730,6 +19581,7 @@ world_position_state_nodes_gap_107_14:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_15:
 	dc.l world_position_descriptors_position_state_ptr_9	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18739,6 +19591,7 @@ world_position_state_nodes_gap_119_15:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_16:
 	dc.l world_position_descriptors_position_state_ptr_10	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18748,6 +19601,7 @@ world_position_state_nodes_gap_12B_16:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_17:
 	dc.l world_position_descriptors_position_state_ptr_11	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18757,6 +19611,7 @@ world_position_state_nodes_gap_13D_17:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_18:
 	dc.l world_position_descriptors_position_state_ptr_12	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18766,6 +19621,7 @@ world_position_state_nodes_gap_14F_18:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_19:
 	dc.l world_position_descriptors_position_state_ptr_13	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18775,6 +19631,7 @@ world_position_state_nodes_gap_161_19:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_20:
 	dc.l world_position_descriptors_position_state_ptr_14	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18784,6 +19641,7 @@ world_position_state_nodes_gap_173_20:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_21:
 	dc.l world_position_descriptors_position_state_ptr_15	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18793,6 +19651,7 @@ world_position_state_nodes_gap_185_21:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_22:
 	dc.l world_position_descriptors_position_state_ptr_16	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -18802,6 +19661,7 @@ world_position_state_nodes_gap_197_22:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_23:
 	dc.l world_position_descriptors_position_state_ptr_17	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
@@ -20024,42 +20884,42 @@ initialize_player_and_fixed_animation_nodes:
 	lea.l abs_0_00059B86.l,a0
 	lea.l abs_0_00059CDE.l,a4
 	move.l a0,(a4)
-	lea.l abs_0_0005BC5E(pc),a0
-	lea.l abs_0_0005BEA0(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCEE(pc),a0
-	lea.l abs_0_0005BE86(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BC5E(pc),a0
-	lea.l abs_0_0005BEE0(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCEE(pc),a0
-	lea.l abs_0_0005BEC6(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCA6(pc),a0
-	lea.l abs_0_0005BF20(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCEE(pc),a0
-	lea.l abs_0_0005BF06(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCA6(pc),a0
-	lea.l abs_0_0005BF60(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCEE(pc),a0
-	lea.l abs_0_0005BF46(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCA6(pc),a0
-	lea.l abs_0_0005BFA0(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCEE(pc),a0
-	lea.l abs_0_0005BF86(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCA6(pc),a0
-	lea.l abs_0_0005BFE0(pc),a4
-	move.l a0,$0000(a4)
-	lea.l abs_0_0005BCEE(pc),a0
-	lea.l abs_0_0005BFC6(pc),a4
-	move.l a0,$0000(a4)
+	lea.l fixed_npc_geometry_headers(pc),a0
+	lea.l pianist_attachment_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
+	lea.l pianist_primary_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers(pc),a0
+	lea.l defence_controller_attachment_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
+	lea.l defence_controller_primary_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
+	lea.l wackobrain_attachment_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
+	lea.l wackobrain_primary_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
+	lea.l glass_attachment_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
+	lea.l glass_primary_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
+	lea.l kwik_kleen_attachment_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
+	lea.l kwik_kleen_primary_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
+	lea.l flight_controller_attachment_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
+	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
+	lea.l flight_controller_primary_position_state(pc),a4
+	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	rts
 complete_priest_interaction:
 	move.l #$1E928,$64C0.w
@@ -20515,7 +21375,7 @@ world_object_pianist:
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
 	dc.l world_object_pianist_behavior_script	; behavior_script_ptr
 	dc.l world_object_pianist_behavior_script	; initial_behavior_script_ptr
-	dc.l abs_0_0005BE7A	; position_descriptor_ptr
+	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
@@ -20535,7 +21395,7 @@ world_object_pianist_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l abs_0_0005BD84	; saved_position_state_ptr
+	dc.l pianist_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 world_object_defence_controller:
 	dc.b $00,$00,$00,$00	; item_name_ptr
@@ -20549,7 +21409,7 @@ world_object_defence_controller:
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
 	dc.l world_object_defence_controller_behavior_script	; behavior_script_ptr
 	dc.l world_object_defence_controller_behavior_script	; initial_behavior_script_ptr
-	dc.l abs_0_0005BEBA	; position_descriptor_ptr
+	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
@@ -20569,7 +21429,7 @@ world_object_defence_controller_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l abs_0_0005BDB0	; saved_position_state_ptr
+	dc.l defence_controller_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 world_object_wackobrain:
 	dc.b $00,$00,$00,$00	; item_name_ptr
@@ -20583,7 +21443,7 @@ world_object_wackobrain:
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
 	dc.l world_object_wackobrain_behavior_script	; behavior_script_ptr
 	dc.l world_object_wackobrain_behavior_script	; initial_behavior_script_ptr
-	dc.l abs_0_0005BEFA	; position_descriptor_ptr
+	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
@@ -20603,7 +21463,7 @@ world_object_wackobrain_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l abs_0_0005BDDC	; saved_position_state_ptr
+	dc.l wackobrain_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 world_object_glass:
 	dc.b $00,$00,$00,$00	; item_name_ptr
@@ -20617,7 +21477,7 @@ world_object_glass:
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
 	dc.l world_object_glass_behavior_script	; behavior_script_ptr
 	dc.l world_object_glass_behavior_script	; initial_behavior_script_ptr
-	dc.l abs_0_0005BF3A	; position_descriptor_ptr
+	dc.l glass_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
@@ -20637,7 +21497,7 @@ world_object_glass_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l abs_0_0005BE08	; saved_position_state_ptr
+	dc.l glass_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 world_object_kwik_kleen:
 	dc.b $00,$00,$00,$00	; item_name_ptr
@@ -20651,7 +21511,7 @@ world_object_kwik_kleen:
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
 	dc.l world_object_kwik_kleen_behavior_script	; behavior_script_ptr
 	dc.l world_object_kwik_kleen_behavior_script	; initial_behavior_script_ptr
-	dc.l abs_0_0005BF7A	; position_descriptor_ptr
+	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
@@ -20671,7 +21531,7 @@ world_object_kwik_kleen_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l abs_0_0005BE34	; saved_position_state_ptr
+	dc.l kwik_kleen_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 world_object_flight_controller:
 	dc.b $00,$00,$00,$00	; item_name_ptr
@@ -20685,7 +21545,7 @@ world_object_flight_controller:
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
 	dc.l world_object_flight_controller_behavior_script	; behavior_script_ptr
 	dc.l world_object_flight_controller_behavior_script	; initial_behavior_script_ptr
-	dc.l abs_0_0005BFBA	; position_descriptor_ptr
+	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
@@ -20705,148 +21565,517 @@ world_object_flight_controller_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l abs_0_0005BE60	; saved_position_state_ptr
+	dc.l flight_controller_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-abs_0_0005BC5E:
-	dc.b $00,$03,$19,$28,$00,$07,$DC,$00,$00,$02,$00,$1B,$00,$1F,$00,$00
-	dc.b $00,$00,$00,$03,$1A,$D8,$00,$07,$DC,$6C,$00,$02,$00,$1B,$00,$1F
-	dc.b $00,$00,$00,$00,$00,$03,$1C,$88,$00,$07,$DC,$D8,$00,$02,$00,$1B
-	dc.b $00,$1F,$00,$00,$00,$00,$00,$03,$1E,$38,$00,$07,$DD,$44,$00,$02
-	dc.b $00,$1B,$00,$1F,$00,$00,$00,$00
-abs_0_0005BCA6:
-	dc.b $00,$03,$1F,$E8,$00,$07,$DD,$B0,$00,$02,$00,$1B,$00,$1F,$00,$00
-	dc.b $00,$00,$00,$03,$21,$98,$00,$07,$DE,$1C,$00,$02,$00,$1B,$00,$1F
-	dc.b $00,$00,$00,$00,$00,$03,$23,$48,$00,$07,$DE,$88,$00,$02,$00,$1B
-	dc.b $00,$1F,$00,$00,$00,$00,$00,$03,$24,$F8,$00,$07,$DE,$F4,$00,$02
-	dc.b $00,$1B,$00,$1F,$00,$00,$00,$00
-abs_0_0005BCEE:
-	dc.b $00,$03,$26,$A8,$00,$07,$DF,$60,$00,$02,$00,$1B,$00,$1F,$00,$00
-	dc.b $00,$00,$00,$04,$68,$38,$00,$06,$5F,$98,$00,$02,$00,$20,$00,$20
-	dc.b $00,$00,$00,$00,$00,$04,$6A,$38,$00,$06,$60,$18,$00,$02,$00,$20
-	dc.b $00,$20,$00,$00,$00,$00,$00,$04,$6C,$38,$00,$06,$60,$98,$00,$02
-	dc.b $00,$20,$00,$20,$00,$00,$00,$00,$00,$04,$6E,$38,$00,$06,$61,$18
-	dc.b $00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$04,$70,$38,$00,$06
-	dc.b $61,$98,$00,$02,$00,$20,$00,$20,$00,$00,$00,$00,$00,$05,$BD,$48
-	dc.b $00,$05,$BD,$00,$00,$05,$BD,$12,$00,$05,$BD,$24,$00,$05,$BD,$36
-	dc.b $00,$05,$BD,$48,$00,$05,$BE,$7A,$05,$40,$00,$05,$BD,$5A,$04,$00
-	dc.b $00,$00,$00,$00,$00,$00
-abs_0_0005BD84:
-	dc.b $00,$05,$BD,$48,$00,$05,$BD,$48,$00,$05,$BD,$72,$00,$04,$00,$00
-	dc.b $00,$05,$BE,$7A,$00,$00,$00,$00,$00,$42,$00,$05,$BE,$BA,$05,$40
-	dc.b $00,$05,$BD,$5A,$04,$00,$00,$00,$00,$00,$00,$00
-abs_0_0005BDB0:
-	dc.b $00,$05,$BD,$48,$00,$05,$BD,$48,$00,$05,$BD,$9E,$00,$04,$00,$00
-	dc.b $00,$05,$BE,$BA,$00,$00,$00,$00,$00,$42,$00,$05,$BE,$FA,$05,$40
-	dc.b $00,$05,$BD,$5A,$04,$00,$00,$00,$00,$00,$00,$00
-abs_0_0005BDDC:
-	dc.b $00,$05,$BD,$48,$00,$05,$BD,$48,$00,$05,$BD,$CA,$00,$04,$00,$00
-	dc.b $00,$05,$BE,$FA,$00,$00,$00,$00,$00,$42,$00,$05,$BF,$3A,$05,$40
-	dc.b $00,$05,$BD,$5A,$04,$00,$00,$00,$00,$00,$00,$00
-abs_0_0005BE08:
-	dc.b $00,$05,$BD,$48,$00,$05,$BD,$48,$00,$05,$BD,$F6,$00,$04,$00,$00
-	dc.b $00,$05,$BF,$3A,$00,$00,$00,$00,$00,$42,$00,$05,$BF,$7A,$05,$40
-	dc.b $00,$05,$BD,$5A,$04,$00,$00,$00,$00,$00,$00,$00
-abs_0_0005BE34:
-	dc.b $00,$05,$BD,$48,$00,$05,$BD,$48,$00,$05,$BE,$22,$00,$04,$00,$00
-	dc.b $00,$05,$BF,$7A,$00,$00,$00,$00,$00,$42,$00,$05,$BF,$BA,$05,$40
-	dc.b $00,$05,$BD,$5A,$04,$00,$00,$00,$00,$00,$00,$00
-abs_0_0005BE60:
-	dc.b $00,$05,$BD,$48,$00,$05,$BD,$48,$00,$05,$BE,$4E,$00,$04,$00,$00
-	dc.b $00,$05,$BF,$BA,$00,$00,$00,$00,$00,$42
-abs_0_0005BE7A:
-	dc.b $00,$05,$BE,$86
-	dcb.b $8,$00
-abs_0_0005BE86:
-	dcb.b $D,$00
-	dc.b $0C,$00,$10,$00,$05,$BE,$7A,$00,$05,$BE,$A0,$00,$88
-abs_0_0005BEA0:
-	dcb.b $11,$00
-	dc.b $05,$BE,$7A,$00,$00,$00,$00,$00,$00
-abs_0_0005BEBA:
-	dc.b $00,$05,$BE,$C6
-	dcb.b $8,$00
-abs_0_0005BEC6:
-	dcb.b $D,$00
-	dc.b $0C,$00,$10,$00,$05,$BE,$BA,$00,$05,$BE,$E0,$00,$88
-abs_0_0005BEE0:
-	dcb.b $11,$00
-	dc.b $05,$BE,$BA,$00,$00,$00,$00,$00,$00
-abs_0_0005BEFA:
-	dc.b $00,$05,$BF,$06
-	dcb.b $8,$00
-abs_0_0005BF06:
-	dcb.b $D,$00
-	dc.b $08,$00,$10,$00,$05,$BE,$FA,$00,$05,$BF,$20,$00,$88
-abs_0_0005BF20:
-	dcb.b $11,$00
-	dc.b $05,$BE,$FA,$00,$00,$00,$00,$00,$00
-abs_0_0005BF3A:
-	dc.b $00,$05,$BF,$46
-	dcb.b $8,$00
-abs_0_0005BF46:
-	dcb.b $D,$00
-	dc.b $08,$00,$10,$00,$05,$BF,$3A,$00,$05,$BF,$60,$00,$88
-abs_0_0005BF60:
-	dcb.b $11,$00
-	dc.b $05,$BF,$3A,$00,$00,$00,$00,$00,$00
-abs_0_0005BF7A:
-	dc.b $00,$05,$BF,$86
-	dcb.b $8,$00
-abs_0_0005BF86:
-	dcb.b $D,$00
-	dc.b $08,$00,$10,$00,$05,$BF,$7A,$00,$05,$BF,$A0,$00,$88
-abs_0_0005BFA0:
-	dcb.b $11,$00
-	dc.b $05,$BF,$7A,$00,$00,$00,$00,$00,$00
-abs_0_0005BFBA:
-	dc.b $00,$05,$BF,$C6
-	dcb.b $8,$00
-abs_0_0005BFC6:
-	dcb.b $D,$00
-	dc.b $08,$00,$10,$00,$05,$BF,$BA,$00,$05,$BF,$E0,$00,$88
-abs_0_0005BFE0:
-	dcb.b $11,$00
-	dc.b $05,$BF,$BA,$00,$00,$00,$00,$00,$00,$00,$05,$BC,$5E,$00,$05,$BC
-	dc.b $A6,$00,$05,$BC,$B8,$00,$05,$BC,$CA,$00,$05,$BC,$DC,$00,$05,$BC
-	dc.b $5E,$00,$05,$BC,$A6,$00,$05,$BC,$94,$00,$05,$BC,$82,$00,$05,$BC
-	dc.b $70,$00,$05,$BC,$A6,$00,$05,$BC,$5E,$00,$05,$BC,$DC,$00,$05,$BC
-	dc.b $CA,$00,$05,$BC,$B8,$00,$05,$BC,$A6,$00,$05,$BC,$5E,$00,$05,$BC
-	dc.b $70,$00,$05,$BC,$82,$00,$05,$BC,$94,$00,$05,$BC,$82,$00,$05,$BC
-	dc.b $CA,$00,$05,$BC,$B8,$00,$05,$BC,$A6,$00,$05,$BC,$94,$00,$05,$BC
-	dc.b $82,$00,$05,$BC,$CA,$00,$05,$BC,$DC,$00,$05,$BC,$5E,$00,$05,$BC
-	dc.b $70,$00,$05,$BC,$CA,$00,$05,$BC,$82,$00,$05,$BC,$94,$00,$05,$BC
-	dc.b $A6,$00,$05,$BC,$B8,$00,$05,$BC,$CA,$00,$05,$BC,$82,$00,$05,$BC
-	dc.b $70,$00,$05,$BC,$5E,$00,$05,$BC,$DC,$00,$05,$BC,$CA,$00,$05,$BC
-	dc.b $A6,$00,$05,$BC,$B8,$00,$05,$BC,$82,$00,$05,$BC,$A6,$00,$05,$BC
-	dc.b $94,$00,$05,$BC,$CA,$00,$05,$BC,$5E,$00,$05,$BC,$DC,$00,$05,$BC
-	dc.b $82,$00,$05,$BC,$5E,$00,$05,$BC,$70,$00,$05,$BC,$A6,$00,$05,$BC
-	dc.b $CA,$00,$05,$BC,$B8,$00,$05,$BC,$5E,$00,$05,$BC,$CA,$00,$05,$BC
-	dc.b $DC,$00,$05,$BC,$A6,$00,$05,$BC,$82,$00,$05,$BC,$94,$00,$05,$BC
-	dc.b $5E,$00,$05,$BC,$82,$00,$05,$BC,$70,$00,$05,$BE,$7A,$02,$40,$00
-	dc.b $05,$C0,$EE,$04
-	dcb.b $8,$00
-	dc.b $05,$BE,$7A,$04,$40,$00,$05,$C0,$86,$04
-	dcb.b $8,$00
-	dc.b $05,$BE,$BA,$02,$40,$00,$05,$C0,$EE,$04
-	dcb.b $8,$00
-	dc.b $05,$BE,$BA,$04,$40,$00,$05,$C0,$86,$04
-	dcb.b $8,$00
-	dc.b $05,$BE,$FA,$02,$40,$00,$05,$C0,$EE,$04
-	dcb.b $8,$00
-	dc.b $05,$BE,$FA,$04,$40,$00,$05,$C0,$86,$04
-	dcb.b $8,$00
-	dc.b $05,$BF,$3A,$02,$40,$00,$05,$C0,$EE,$04
-	dcb.b $8,$00
-	dc.b $05,$BF,$3A,$04,$40,$00,$05,$C0,$86,$04
-	dcb.b $8,$00
-	dc.b $05,$BF,$7A,$02,$40,$00,$05,$C0,$EE,$04
-	dcb.b $8,$00
-	dc.b $05,$BF,$7A,$04,$40,$00,$05,$C0,$86,$04
-	dcb.b $8,$00
-	dc.b $05,$BF,$BA,$02,$40,$00,$05,$C0,$EE,$04
-	dcb.b $8,$00
-	dc.b $05,$BF,$BA,$04,$40,$00,$05,$C0,$86,$04,$00,$00,$00,$00,$00,$00
-	dc.b $00
+fixed_npc_geometry_headers:
+	dc.b $00,$03,$19,$28	; bitplane_data_ptr
+	dc.b $00,$07,$DC,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $00031AD8	; bitplane_data_ptr
+	dc.l $0007DC6C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$03,$1C,$88	; bitplane_data_ptr
+	dc.b $00,$07,$DC,$D8	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $00031E38	; bitplane_data_ptr
+	dc.l $0007DD44	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_4:
+	dc.b $00,$03,$1F,$E8	; bitplane_data_ptr
+	dc.b $00,$07,$DD,$B0	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $00032198	; bitplane_data_ptr
+	dc.l $0007DE1C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$03,$23,$48	; bitplane_data_ptr
+	dc.b $00,$07,$DE,$88	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $000324F8	; bitplane_data_ptr
+	dc.l $0007DEF4	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_8:
+	dc.b $00,$03,$26,$A8	; bitplane_data_ptr
+	dc.b $00,$07,$DF,$60	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $001F	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $00046838	; bitplane_data_ptr
+	dc.l $00065F98	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$04,$6A,$38	; bitplane_data_ptr
+	dc.b $00,$06,$60,$18	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $00046C38	; bitplane_data_ptr
+	dc.l $00066098	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$04,$6E,$38	; bitplane_data_ptr
+	dc.b $00,$06,$61,$18	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_13:
+	dc.l $00047038	; bitplane_data_ptr
+	dc.l $00066198	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+fixed_npc_saved_frame_sequence:
+	dc.l $0005BD48,$0005BD00,$0005BD12,$0005BD24	; animation_frame_sequence
+	dc.l $0005BD36,$0005BD48	; animation_frame_sequence
+fixed_npc_saved_animation_states:
+	dc.l fixed_npc_position_states	; position_descriptor_ptr
+	dc.b $05	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_saved_animation_states_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+pianist_saved_position_state:
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
+	dc.l fixed_npc_saved_animation_states	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l fixed_npc_position_states	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
+defence_controller_saved_animation_node:
+	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $05	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+defence_controller_saved_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+defence_controller_saved_position_state:
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
+	dc.l defence_controller_saved_animation_node	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
+wackobrain_saved_animation_node:
+	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.b $05	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+wackobrain_saved_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+wackobrain_saved_position_state:
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
+	dc.l wackobrain_saved_animation_node	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
+glass_saved_animation_node:
+	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.b $05	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+glass_saved_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+glass_saved_position_state:
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
+	dc.l glass_saved_animation_node	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
+kwik_kleen_saved_animation_node:
+	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.b $05	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+kwik_kleen_saved_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+kwik_kleen_saved_position_state:
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
+	dc.l kwik_kleen_saved_animation_node	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
+flight_controller_saved_animation_node:
+	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $05	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+flight_controller_saved_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+flight_controller_saved_position_state:
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
+	dc.l flight_controller_saved_animation_node	; state_node_ptr
+	dc.w $0004	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
+fixed_npc_position_states:
+	dc.l pianist_primary_position_state	; position_state_ptr
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
+pianist_primary_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $000C	; world_x_offset
+	dc.w $0010	; world_y_offset
+	dc.l fixed_npc_position_states	; position_descriptor_ptr
+	dc.b $00,$05,$BE,$A0	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $88	; world_object_flags
+pianist_attachment_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l fixed_npc_position_states	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+defence_controller_position_descriptor:
+	dc.l defence_controller_primary_position_state	; position_state_ptr
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
+defence_controller_primary_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $000C	; world_x_offset
+	dc.w $0010	; world_y_offset
+	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $00,$05,$BE,$E0	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $88	; world_object_flags
+defence_controller_attachment_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+wackobrain_position_descriptor:
+	dc.l wackobrain_primary_position_state	; position_state_ptr
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
+wackobrain_primary_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0008	; world_x_offset
+	dc.w $0010	; world_y_offset
+	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.b $00,$05,$BF,$20	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $88	; world_object_flags
+wackobrain_attachment_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+glass_position_descriptor:
+	dc.l glass_primary_position_state	; position_state_ptr
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
+glass_primary_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0008	; world_x_offset
+	dc.w $0010	; world_y_offset
+	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.b $00,$05,$BF,$60	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $88	; world_object_flags
+glass_attachment_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+kwik_kleen_position_descriptor:
+	dc.l kwik_kleen_primary_position_state	; position_state_ptr
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
+kwik_kleen_primary_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0008	; world_x_offset
+	dc.w $0010	; world_y_offset
+	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.b $00,$05,$BF,$A0	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $88	; world_object_flags
+kwik_kleen_attachment_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+flight_controller_position_descriptor:
+	dc.l flight_controller_primary_position_state	; position_state_ptr
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
+flight_controller_primary_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0008	; world_x_offset
+	dc.w $0010	; world_y_offset
+	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $00,$05,$BF,$E0	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $88	; world_object_flags
+flight_controller_attachment_position_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+fixed_npc_frame_sequences_early:
+	dc.l $0005BC5E,$0005BCA6,$0005BCB8,$0005BCCA	; animation_frame_sequence
+	dc.l $0005BCDC,$0005BC5E,$0005BCA6,$0005BC94	; animation_frame_sequence
+	dc.l $0005BC82,$0005BC70,$0005BCA6,$0005BC5E	; animation_frame_sequence
+	dc.l $0005BCDC,$0005BCCA,$0005BCB8,$0005BCA6	; animation_frame_sequence
+	dc.l $0005BC5E,$0005BC70,$0005BC82,$0005BC94	; animation_frame_sequence
+	dc.b $00,$05,$BC,$82,$00,$05,$BC,$CA,$00,$05,$BC,$B8,$00,$05,$BC,$A6
+	dc.b $00,$05,$BC,$94,$00,$05,$BC,$82,$00,$05,$BC,$CA,$00,$05,$BC,$DC
+	dc.b $00,$05,$BC,$5E,$00,$05,$BC,$70,$00,$05,$BC,$CA,$00,$05,$BC,$82
+	dc.b $00,$05,$BC,$94,$00,$05,$BC,$A6,$00,$05,$BC,$B8
+fixed_npc_frame_sequences_late:
+	dc.l $0005BCCA,$0005BC82,$0005BC70,$0005BC5E	; animation_frame_sequence
+	dc.l $0005BCDC,$0005BCCA,$0005BCA6,$0005BCB8	; animation_frame_sequence
+	dc.l $0005BC82,$0005BCA6,$0005BC94,$0005BCCA	; animation_frame_sequence
+	dc.l $0005BC5E,$0005BCDC,$0005BC82,$0005BC5E	; animation_frame_sequence
+	dc.l $0005BC70,$0005BCA6,$0005BCCA,$0005BCB8	; animation_frame_sequence
+	dc.l $0005BC5E,$0005BCCA,$0005BCDC,$0005BCA6	; animation_frame_sequence
+	dc.l $0005BC82,$0005BC94,$0005BC5E,$0005BC82	; animation_frame_sequence
+	dc.l $0005BC70	; animation_frame_sequence
+fixed_npc_script_animation_nodes:
+	dc.l fixed_npc_position_states	; position_descriptor_ptr
+	dc.b $02	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_B_0:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l fixed_npc_position_states	; position_descriptor_ptr
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$C0,$86	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_1D_1:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $02	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_2F_2:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$C0,$86	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_41_3:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.b $02	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_53_4:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$C0,$86	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_65_5:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.b $02	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_77_6:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$C0,$86	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_89_7:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.b $02	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_9B_8:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$C0,$86	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_AD_9:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $02	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_BF_10:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.b $04	; frame_count
+	dc.b $40	; phase_step
+	dc.b $00,$05,$C0,$86	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+fixed_npc_script_animation_nodes_gap_D1_11:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 world_object_megabio_feed:
 	dc.b $00,$00,$00,$00	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -21319,6 +22548,7 @@ player_move_negative_y_frames:
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_4	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_5	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_6	; frame_ptr
+abs_0_0005C804:
 	dc.b $00,$05,$5C,$60,$00,$06,$9B,$12,$00,$01,$00,$18,$00,$10,$00,$00
 	dc.b $00,$00,$00,$05,$5D,$20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10
 	dc.b $00,$00,$00,$00,$00,$05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04

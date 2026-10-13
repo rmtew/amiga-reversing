@@ -1982,6 +1982,34 @@ def test_target_rsset_layout_region_edit_and_rename_command_payloads() -> None:
         }
 
 
+@pytest.mark.parametrize("size", [None, ""])
+def test_target_rsset_rename_rejects_unsized_region(size) -> None:
+    with pytest.raises(ValueError, match="existing region size"):
+        target_catalog_manual_payload("target.rsset_region.rename", {
+            "offset": 0x201, "symbol": "text_shift", "size": size,
+        })
+
+
+def test_target_rsset_rename_preserves_explicit_byte_extent_and_pointer_metadata() -> None:
+    _, payload = target_catalog_manual_payload("target.rsset_region.rename", {
+        "offset": 0x201, "symbol": "text_shift", "size": 1,
+    })
+    assert payload["rsset_layout_region"]["size"] == 1
+    _, payload = target_catalog_manual_payload("target.rsset_region.rename", {
+        "offset": 0x202, "symbol": "sprite_ptr", "size": 4,
+        "storage_kind": "struct_pointer", "pointer_struct": "Sprite",
+    })
+    assert payload["rsset_layout_region"]["pointer_struct"] == "Sprite"
+    assert payload["rsset_layout_region"]["storage_kind"] == "struct_pointer"
+    assert payload["rsset_layout_region"]["size"] == 4
+
+
+@pytest.mark.parametrize("command", ["target.rsset_region.add", "target.rsset_region.edit"])
+def test_target_rsset_add_edit_keep_unsized_payload_compatibility(command) -> None:
+    _, payload = target_catalog_manual_payload(command, {"offset": 0x201, "symbol": "region"})
+    assert "size" not in payload["rsset_layout_region"]
+
+
 def test_target_rsset_layout_region_remove_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.rsset_region.remove",

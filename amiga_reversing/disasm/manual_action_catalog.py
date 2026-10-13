@@ -241,6 +241,8 @@ def target_catalog_manual_payload(
             "custom_struct_field": _custom_struct_field_identity_payload(params)
         }
     if action.get("action") == "create_manual_rsset_layout_region":
+        if action_id == "target.rsset_region.rename" and _optional_int(params.get("size")) is None:
+            raise ValueError("RSSET rename requires the existing region size; an omitted size can hide neighboring fields")
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
     if action.get("action") == "remove_manual_rsset_layout_region":
         return "remove_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_identity_payload(params)}
@@ -6138,11 +6140,13 @@ def _target_rsset_layout_region_edit_action() -> dict[str, object]:
 
 
 def _target_rsset_layout_region_rename_action() -> dict[str, object]:
+    schema = _rsset_layout_region_parameter_schema()
+    schema["required"] = ["offset", "symbol", "size"]
     return _target_log_action(
         "target.rsset_region.rename",
         "Rename RSSET region",
         "create_manual_rsset_layout_region",
-        _rsset_layout_region_parameter_schema(),
+        schema,
     )
 
 

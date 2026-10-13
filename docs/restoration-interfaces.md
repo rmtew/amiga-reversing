@@ -61,6 +61,9 @@ relations include `callers`, `callees`, `ranges`, `owned_blocks`,
 conservative candidate, not proof of a complete function boundary.
 
 For mutation parameters use `--request request.json` (or `--request -` for stdin).
+RSSET region renaming requires an explicit `size` from the current declaration.
+An omitted extent can otherwise become four bytes and cover neighboring fields.
+Existing add/edit defaults and historical records remain supported.
 The file is an object of operation parameters, without `operation`. For example:
 
 ```json
