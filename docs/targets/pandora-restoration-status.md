@@ -6,6 +6,51 @@ All offsets here are section 0 source offsets, with exclusive range ends, unless
 explicitly called runtime addresses. This report indexes native facts and
 canonical history; it does not replace them. See the [full plan](pandora-restoration-plan.md).
 
+## Callback register and carry contracts
+
+All thirteen distinct initialized interaction targets and four completion targets
+preserve A5 on normal returns. Seventeen direct callable summaries record the
+complete sixteen-register partition; memory and escape effects remain unknown.
+The proof follows the original instructions and transitive helpers, including
+the audio and font MOVEM saves and the item-adjustment object's saved A5.
+Completion at source `0x93F4` has no caller save, unlike `0x7A00`; the known
+callee contracts explain that bounded preservation requirement.
+
+Interaction carry set requests the nonzero object message at `+$10`; clear
+skips that dispatcher enqueue. It is not a general success result. The common
+tail sets the WORD cooldown to 250. The musician can set carry without that
+cooldown, while audio callbacks and the diabetic treatment path can change
+state or enqueue messages and return carry clear. Sixteen source comments make
+the individual conditions and caller behavior visible.
+
+The original 35 objects' current and initial script pointers agree. All 783
+original commands were checked; the 130 relative writes target repeat counters
+and do not overlap callback slots. This snapshot does not close transitive
+alias writes, arbitrary returned script pointers, future replacement, or the
+callback target set for every gameplay phase. No unconditional type seed was
+added after the indirect interaction call.
+
+The normal summary command now preserves validated optional effects, results
+and notes. Native reading of those four arrays accepts ordinary JSON indentation;
+the existing schema and C ABI are unchanged. The framework/runtime checks pass
+119 focused tests, including five JSON formats and final nonobject rejection.
+
+A bounded Copperline run of the original payload reached title `0x0BA8` and UI
+initialization `0x079E`. Interaction call `0x83FE` timed out after thirty seconds
+at source `0x6F6E`, so neither its A5 preservation nor carry was dynamically
+observed. Read-only scenario capture now accepts SR for a later reachable probe.
+Alternate-layout execution remains unvalidated.
+
+Whole-image C and independent vasm verification matches all 376,832 original
+bytes, receipt
+`0ae4dda5723549d0622415b96214d0700fbcb1b9113196f022c8c8cb3353626d`;
+source SHA256
+`30a68b6aae2fb74bf649b9bec2b9e2467a60041aa91af4af5d3cfc29b56d0d53`.
+Independent source review confirms exactly sixteen comment additions with no
+instruction or data changes. All 439 layouts, 33 types, 43 old summaries,
+20 entry seeds, 98 old comments, 68 assets, nine SDK includes and both history
+prefixes are preserved. The canonical Decision Journal accepts all 33 new facts.
+
 ## Rooted NPC animation families
 
 The reviewed family describes 7,742 original bytes in 33 named ranges:

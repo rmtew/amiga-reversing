@@ -2565,6 +2565,7 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
     const char *cursor = json_array_field_local(registers, registers_end, "locations", &locations_end);
     uint8_t seen_data = 0U, seen_address = 0U;
     if (cursor == NULL) return 0;
+    cursor = json_skip_ws_local(cursor, locations_end);
     while (cursor < locations_end) {
       const char *item_end;
       const char *item = json_next_object_local(cursor, locations_end, &item_end);
@@ -2602,7 +2603,7 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
         *seen |= bit;
       }
       summary->location_effect_count += 1U;
-      cursor = item_end;
+      cursor = json_skip_ws_local(item_end, locations_end);
     }
     if (seen_data != 0xffU || seen_address != 0xffU) return 0;
   }
@@ -2610,6 +2611,7 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
     const char *memory_items_end;
     const char *cursor = json_array_field_local(memory, memory_end, "effects", &memory_items_end);
     if (cursor == NULL) return 0;
+    cursor = json_skip_ws_local(cursor, memory_items_end);
     while (cursor < memory_items_end) {
       const char *item_end;
       const char *item = json_next_object_local(cursor, memory_items_end, &item_end);
@@ -2636,13 +2638,14 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
             m68k_function_summary_effect_subject_equal(&summary->memory_effects[prior].subject, &effect->subject)) return 0;
       }
       summary->memory_effect_count += 1U;
-      cursor = item_end;
+      cursor = json_skip_ws_local(item_end, memory_items_end);
     }
   }
   if (strcmp(escape_state, "explicit") == 0) {
     const char *escapes_items_end;
     const char *cursor = json_array_field_local(escapes, escapes_end, "escapes", &escapes_items_end);
     if (cursor == NULL) return 0;
+    cursor = json_skip_ws_local(cursor, escapes_items_end);
     while (cursor < escapes_items_end) {
       const char *item_end;
       const char *item = json_next_object_local(cursor, escapes_items_end, &item_end);
@@ -2682,7 +2685,7 @@ static int append_metadata_function_summary_effects_local(const char *object_sta
                 &summary->escapes[prior].sink_subject, &escape->sink_subject)) return 0;
       }
       summary->escape_count += 1U;
-      cursor = item_end;
+      cursor = json_skip_ws_local(item_end, escapes_items_end);
     }
   }
   return 1;
@@ -3116,11 +3119,12 @@ static int append_metadata_function_summary_local(const char *object_start, cons
   if (summary->input_count == 0U) return 0;
   cursor = json_array_field_local(object_start, object_end, "results", &results_end);
   if (cursor == NULL) return 0;
+  cursor = json_skip_ws_local(cursor, results_end);
   while (cursor < results_end) {
     const char *result_end;
     const char *result_start = json_next_object_local(cursor, results_end, &result_end);
     if (result_start == NULL || !append_metadata_function_summary_result_local(result_start, result_end, summary)) return 0;
-    cursor = result_end;
+    cursor = json_skip_ws_local(result_end, results_end);
   }
   if (!append_metadata_function_summary_effects_local(object_start, object_end, summary)) return 0;
   policy->function_summary_count += 1U;

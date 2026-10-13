@@ -122,6 +122,17 @@ def test_capture_register_relative_and_bounds():
             runtime.capture_scenario_state(c, {"memory_reads": [read]})
 
 
+def test_capture_status_register_observes_carry_without_accepting_other_controls():
+    c = Client()
+    c.regs["sr"] = 0x2001
+    assert runtime.capture_scenario_state(c, {"registers": ["a5", "sr"]})["registers"] == {
+        "a5": "0x00002000", "sr": "0x00002001",
+    }
+    for name in ("pc", "ccr", "control"):
+        with pytest.raises(ValueError, match="Capture"):
+            runtime.capture_scenario_state(c, {"registers": [name]})
+
+
 def scenario():
     return {
         "identifier": "test",

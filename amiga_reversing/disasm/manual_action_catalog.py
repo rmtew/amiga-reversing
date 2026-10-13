@@ -15,6 +15,7 @@ from amiga_reversing.disasm.listing_context import (
 )
 from amiga_reversing.disasm.reproduction import builtin_reproduction_profiles
 from amiga_reversing.disasm.target_metadata import (
+    FunctionSummaryMetadata,
     SourceOutputPolicyMetadata,
     validate_base_displacement_owner,
     validate_base_displacement_reference,
@@ -5864,6 +5865,9 @@ def _target_function_summary_action() -> dict[str, object]:
                 "entry_count": {"type": "integer", "minimum": 1},
                 "inputs": {"type": "array", "minItems": 1},
                 "context_name": {"type": "string"},
+                "results": {"type": "array", "description": "Validated callable results; only identity_input is supported."},
+                "effects": {"type": "object", "description": "Validated register, memory and escape partitions. Explicit registers require all 16 general registers."},
+                "note": {"type": "string"},
             },
             "required": ["hunk", "callable_kind", "inputs"],
         },
@@ -6016,6 +6020,13 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
     context_name = params.get("context_name")
     if isinstance(context_name, str) and context_name.strip():
         summary["context_name"] = context_name.strip()
+    for name in ("results", "effects", "note"):
+        if name in params:
+            summary[name] = json.loads(json.dumps(params[name]))
+    try:
+        FunctionSummaryMetadata.from_dict(summary)
+    except (AssertionError, KeyError, TypeError, ValueError) as error:
+        raise ValueError("Invalid function summary results or effect partition") from error
     return summary
 
 

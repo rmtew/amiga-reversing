@@ -463,13 +463,13 @@ def validate_capture(capture: object) -> None:
     if not isinstance(capture, dict) or set(capture) - {"registers", "memory_reads"}:
         raise ValueError("Scenario capture supports only registers and memory_reads.")
     registers, reads = capture.get("registers", []), capture.get("memory_reads", [])
-    allowed = {f"{kind}{i}" for kind in ("a", "d") for i in range(8)}
+    allowed = {f"{kind}{i}" for kind in ("a", "d") for i in range(8)} | {"sr"}
     if (
         not isinstance(registers, list)
-        or len(registers) > 16
-        or any(r not in allowed for r in registers)
+        or len(registers) > 17
+        or any(not isinstance(r, str) or r not in allowed for r in registers)
     ):
-        raise ValueError("Capture registers must be d0..d7 or a0..a7 (maximum 16).")
+        raise ValueError("Capture registers must be d0..d7, a0..a7 or sr (maximum 17).")
     if not isinstance(reads, list) or len(reads) > 16:
         raise ValueError("Capture supports at most 16 memory reads.")
     for read in reads:

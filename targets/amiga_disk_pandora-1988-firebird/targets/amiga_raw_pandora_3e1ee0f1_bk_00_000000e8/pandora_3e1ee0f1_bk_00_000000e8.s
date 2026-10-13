@@ -8977,6 +8977,7 @@ finish_combat_encounter:
 	move.l #$24C28,$64C0.w
 	movea.l d0,a0
 	movem.l a4-a5,-(a7)
+    ; A4/A5 are saved around this call. Completion precedes state restore and setting flag bit 1; callback carry is not used. Register preservation does not imply pointer immutability.
 	jsr (a0)
 	movem.l (a7)+,a4-a5
 abs_0_00017A06:
@@ -9793,6 +9794,7 @@ invoke_nearby_object_interaction:
 	move.l world_object_shared_prefix_interaction_callback(a5),d0
 	beq.b abs_0_0001840E
 	movea.l d0,a0
+    ; Carry set requests the nonzero +$10 message; clear skips it. The 13 known initial targets preserve A5. Audio and diabetic handlers may act or queue messages while returning carry clear.
 	jsr (a0)
 	bcc.b abs_0_0001840E
 	move.l $0010(a5),d0
@@ -10736,6 +10738,7 @@ abs_0_000193EC:
 	move.l $0008(a5),d0
 	beq.b abs_0_000193F6
 	movea.l d0,a0
+    ; This path does not save A5 around the call. The four known initial targets preserve A5 on normal returns. Memory/escape effects and later target mutation remain unknown.
 	jsr (a0)
 abs_0_000193F6:
 	bsr.w restore_world_object_position_state
@@ -25248,6 +25251,7 @@ clear_security_checkpoint_audio_state:
 	jsr reset_audio_channels.l
 	movem.l (a7)+,d1-d7/a1-a6
 	rts
+    ; Wrapped WORD deltas must be below 16 for Y and 24 for X. Gin and a newly set musician latch return carry set; other paths clear carry. This path does not set the shared cooldown.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_musician:
 	jsr is_player_within_world_object_interaction_range.l
@@ -25262,11 +25266,13 @@ interact_with_musician:
 abs_0_0005D39E:
 	move.w d0,d0
 	rts
+    ; Set the WORD cooldown to 250 and return carry set. This requests the +$10 message when nonzero; it does not report queue acceptance.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_hooligan_or_robomechanic:
 	move.w #$FA,world_object_shared_prefix_context_prompt_cooldown(a5)
 	move #$1,ccr
 	rts
+    ; A laser rifle in the player selected-item byte takes the shared cooldown and carry-set path. Other values return carry clear.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_sec_officer:
 	move.b player_world_object_selected_item_id.l,d0
@@ -25274,6 +25280,7 @@ interact_with_sec_officer:
 	beq.b interact_with_hooligan_or_robomechanic
 	move.w d0,d0
 	rts
+    ; Bible can set the one-time latch; Shakespeare on this object selects a PRNG response. Rewrite +$10 and use the cooldown/carry-set path; other paths clear carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_chemist:
 	move.b player_world_object_selected_item_id.l,d0
@@ -25294,6 +25301,7 @@ abs_0_0005D3DC:
 abs_0_0005D3F8:
 	move.w d0,d0
 	rts
+    ; Choose a response using the player bent-coin check, store it at +$10, then use the shared cooldown/carry-set path. The dispatcher attempts message enqueue.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_bank_manager:
 	lea.l bank_manager_bent_coin_response(pc),a0
@@ -25309,12 +25317,14 @@ abs_0_0005D416:
 	dc.l abs_0_0005CEDC
 	dc.l abs_0_0005CEFC
 	dc.l abs_0_0005CF27
+    ; Nonzero defeated-object count takes the shared cooldown/carry-set path. Zero returns carry clear. Carry does not express general interaction success.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_priest:
 	tst.b app_defeated_object_count(a6)
 	bne.w interact_with_hooligan_or_robomechanic
 	move.w d0,d0
 	rts
+    ; This object must hold the globe and the technician latch must be clear. Set the latch and use the shared cooldown/carry-set path; otherwise clear carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_technician:
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
@@ -25325,6 +25335,7 @@ interact_with_technician:
 abs_0_0005D446:
 	move.w d0,d0
 	rts
+    ; Poll the listed animation targets and maintain feedback pending state. Audio may start, but every normal return clears carry; the dispatcher skips the +$10 message.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_wackobrain:
 	btst.b #1,app_ui_flags(a6)
@@ -25350,6 +25361,7 @@ abs_0_0005D464:
 abs_0_0005D48E:
 	bclr.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
 	bra.b interact_with_wackobrain
+    ; UI flag bit 1 inhibits starting feedback. Pending feedback polls channel-2 ticks. Audio or pending state can change, but every normal return clears carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_menial_droid:
 	btst.b #1,app_ui_flags(a6)
@@ -25366,6 +25378,7 @@ abs_0_0005D4B4:
 	bne.b abs_0_0005D4B0
 	bclr.b #INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_menial_droid
+    ; UI flag bit 1 inhibits starting feedback. Pending feedback polls channel-2 ticks. Audio or pending state can change, but every normal return clears carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_gardener:
 	btst.b #1,app_ui_flags(a6)
@@ -25397,6 +25410,7 @@ abs_0_0005D510:
 	bne.b abs_0_0005D50C
 	bclr.b #3,app_world_interaction_audio_flags(a6)
 	bra.b update_interaction_audio_sequence_214
+    ; This object must hold the squash ball and its latch must be clear. The shared tail writes cooldown 250 and sets carry; other paths clear carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_squash_player:
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
@@ -25407,6 +25421,7 @@ interact_with_squash_player:
 abs_0_0005D534:
 	move.w d0,d0
 	rts
+    ; Player insecticide, light box or megabio feed selects a +$10 response and the cooldown/carry-set path. Other selected-item values return carry clear.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_driffid:
 	move.b player_world_object_selected_item_id.l,d0
@@ -25424,6 +25439,7 @@ interact_with_driffid:
 abs_0_0005D560:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
 	bra.w interact_with_hooligan_or_robomechanic
+    ; Response branches rewrite +$10 and set carry. Treatment checks range, sets the latch and attempts two queue calls, then clears carry; queue acceptance is ignored.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_diabetic:
 	btst.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)

@@ -105,6 +105,12 @@ service applies the actions and invalidates the projection once, then returns
 that resulting revision before review. Batches do not observe earlier entries
 as fresh catalog state, so dependent commands require a new inspection.
 
+`target.function_summary.add` also accepts the canonical optional `results`,
+`effects` and `note` fields. Explicit register effects must partition all sixteen
+general registers; omitted effects remain unknown. The command validates the
+complete summary before appending it. Native metadata reading accepts compact
+and indented JSON for these arrays without changing the contract or ABI.
+
 Native policy storage accepts up to 16,384 structured data items and 16,384 named
 labels after array fields expand. The merged pending interpretation is checked
 against the actual binary before any Manual Action Log append; overflow refuses

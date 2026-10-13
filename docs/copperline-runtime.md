@@ -78,6 +78,9 @@ required next step; direct-payload scenarios do not require it.
 - Register and bounded absolute/register-relative memory capture, stack return
   address, NDK Exec/task/process inspection and optional DOS LoadSeg observation
   remain host-side reads. Invalid OS structures are reported as unavailable.
+  Scenario register capture accepts D0-D7, A0-A7 and SR (at most seventeen names).
+  SR exposes the observed carry bit; register-relative memory still requires an
+  address register. This adds no debugger write or execution-control capability.
 - Injected handoff writes create a new reverse-history anchor. Snapshot/reverse
   controls are internally available; host filesystem effects are not rolled back.
 - Timeout handling pauses and drains the same control stream. Unexpected stops

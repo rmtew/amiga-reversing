@@ -59,12 +59,12 @@ def capture_scenario_state(client, capture):
     names, reads = capture.get("registers", []), capture.get("memory_reads", [])
     if (
         not isinstance(names, list)
-        or len(names) > 16
+        or len(names) > 17
         or any(
-            not isinstance(n, str) or not re.fullmatch("[ad][0-7]", n) for n in names
+            not isinstance(n, str) or not re.fullmatch("(?:[ad][0-7]|sr)", n) for n in names
         )
     ):
-        raise ValueError("Capture requires at most 16 valid 68000 registers")
+        raise ValueError("Capture requires at most 17 valid 68000 registers, including sr")
     if not isinstance(reads, list) or len(reads) > 64:
         raise ValueError("Capture requires at most 64 memory reads")
     regs = client.registers()

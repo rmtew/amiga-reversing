@@ -288,6 +288,15 @@ def test_capture_validation_rejects_unbounded_or_conflicting_reads():
             copperline_session.validate_capture(capture)
 
 
+def test_capture_validation_accepts_status_register_with_bounded_general_registers():
+    import pytest
+
+    registers = [f"{kind}{index}" for kind in ("d", "a") for index in range(8)] + ["sr"]
+    copperline_session.validate_capture({"registers": registers})
+    with pytest.raises(ValueError, match="Capture registers"):
+        copperline_session.validate_capture({"registers": registers + ["sr"]})
+
+
 def test_stable_key_rejects_ambiguous_runtime_views():
     import pytest
 
