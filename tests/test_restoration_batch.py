@@ -253,3 +253,91 @@ def test_preparation_context_memo_is_not_reused_between_requests(
     invoke(batch_target, entries=[batch_target.entries[1]])
     invoke(batch_target, entries=[batch_target.entries[1]])
     assert len(calls) == 2
+
+
+def test_distinct_contexts_share_navigation_only_during_preparation(
+    batch_target, monkeypatch
+):
+    calls = []
+    original_navigation = _RowsCListingArtifact.navigation_payload
+
+    def navigation(artifact):
+        calls.append(artifact)
+        return original_navigation(artifact)
+
+    monkeypatch.setattr(_RowsCListingArtifact, "navigation_payload", navigation)
+    original_apply = server._apply_manual_action_commands
+
+    def apply(*args, **kwargs):
+        assert len(calls) == 1
+        assert server._COMMAND_NAVIGATION_SNAPSHOTS.get() is None
+        return original_apply(*args, **kwargs)
+
+    monkeypatch.setattr(server, "_apply_manual_action_commands", apply)
+    invoke(batch_target)
+    # Application invalidated the listing; inspection gets a fresh snapshot.
+    artifact = calls[0]
+    artifact.app_slot_analysis = {"new_snapshot": True}
+    row, _ = server._resolve_command_locator(
+        "bloodwych", batch_target.entries[1]["context"]["locator"]
+    )
+    assert row["app_slot_analysis"] == {"new_snapshot": True}
+    assert len(calls) == 2
+    monkeypatch.setattr(server, "_apply_manual_action_commands", original_apply)
+    invoke(batch_target, entries=[batch_target.entries[1]])
+    assert len(calls) == 3
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [("row_key", "s0:00000002:instruction"),
+     ("projection_hash", "obsolete-projection"), ("target_id", "other-target")],
+)
+def test_invalid_distinct_locator_does_not_bypass_validation_or_leak_snapshot(
+    batch_target, monkeypatch, key, value
+):
+    calls = []
+    original_navigation = _RowsCListingArtifact.navigation_payload
+
+    def navigation(artifact):
+        calls.append(artifact)
+        return original_navigation(artifact)
+
+    monkeypatch.setattr(_RowsCListingArtifact, "navigation_payload", navigation)
+    entries = deepcopy(batch_target.entries)
+    entries[-1]["context"]["locator"][key] = value
+    if key == "projection_hash":
+        # Existing stale-locator recovery accepts an unchanged source identity.
+        # This stale identity has no match in the current projection.
+        entries[-1]["context"]["locator"]["end_offset"] = 999
+    journal = batch_target.directory / "decision_journal.jsonl"
+    journal.write_bytes(b"preserve journal bytes\n")
+    with pytest.raises(ValueError, match="locator"):
+        invoke(batch_target, entries=entries)
+    assert len(calls) == 1
+    assert server._COMMAND_NAVIGATION_SNAPSHOTS.get() is None
+    assert not (batch_target.directory / "manual_actions.jsonl").exists()
+    assert journal.read_bytes() == b"preserve journal bytes\n"
+    server._resolve_command_locator(
+        "bloodwych", batch_target.entries[1]["context"]["locator"]
+    )
+    assert len(calls) == 2
+
+
+def test_navigation_exception_restores_request_scope(batch_target, monkeypatch):
+    calls = []
+    original_navigation = _RowsCListingArtifact.navigation_payload
+
+    def navigation(artifact):
+        calls.append(artifact)
+        if len(calls) == 1:
+            raise RuntimeError("synthetic navigation failure")
+        return original_navigation(artifact)
+
+    monkeypatch.setattr(_RowsCListingArtifact, "navigation_payload", navigation)
+    with pytest.raises(RuntimeError, match="navigation failure"):
+        invoke(batch_target)
+    assert server._COMMAND_NAVIGATION_SNAPSHOTS.get() is None
+    assert not (batch_target.directory / "manual_actions.jsonl").exists()
+    invoke(batch_target)
+    assert len(calls) == 2

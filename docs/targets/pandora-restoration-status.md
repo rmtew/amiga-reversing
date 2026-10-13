@@ -96,7 +96,7 @@ than a new coverage metric. No row claims complete subsystem recovery.
 | World commands / objects | All 33 handler identities and operand contracts; selected object prefixes | Proximity, links and command callee effects | Script instances, arbitrary pointer targets and object lifetime |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks | Geometry consumers and allocation/chain limits | Disputed banks, complete write ownership and DMA constraints |
 | Entity animation / updates | Byte phase/count/mode fields, packed clock, saved XY/geometry, rectangle union and current drawing | Eligibility, variant geometry and complete caller/lifetime coverage | Conditional extended nodes, sequence bounds and attachment cycles |
-| Inventory / trading / NPC | Four-entry records, 81 table identities, selected offer/reset/panel/name/pocket paths | Cursor domains, unmatched-search writes and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
+| Inventory / trading / NPC | Four-entry records, 81 table identities, selected offer/reset/panel/name/pocket paths and proven item/name constants | Cursor domains, unmatched-search writes, duplicated display identities and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
 | Text / fonts / overlays | Reviewed compact and large fonts, masks and rendering contracts | Overlay callback ownership and 128-byte clear versus 64-byte layout | Queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume, secondary streams; eleven sample extents and mutable writers | Phase, arbitrary selector and storage lifetime limits | Remaining caller/state combinations and write ownership |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly | Known consumers establish only selected physical prefixes | Purpose and boundaries of remaining spans; no opaque-export safety claim |
@@ -876,4 +876,92 @@ execution views and history prefixes are preserved. No analyzer/renderer
 expansion, new input, native rebuild or runtime execution claim was needed.
 Copied-code return lineage, temporal/late lineage, arbitrary pointer/chain
 safety, complete sequence bounds and alternate placement remain unresolved.
-The remaining script-handler presentation is the next coherent quality pass.
+The remaining script-handler presentation is a coherent quality pass; semantic
+item IDs and then established constant domains take priority under the user's
+expanded source-quality criterion.
+
+## Semantic item IDs and source constants
+
+Continuation checkpoint: 2026-10-13.
+
+The original 114-word name prefix provides the item/name ID mapping. In
+`death_fly_initial_inventory_slots`, the item bytes now name `ITEM_ID_DEATHSTING`,
+`ITEM_ID_SUGAR_CUBE`, `ITEM_ID_ARAKNOID_EYE` and `ITEM_ID_EMPTY`. Each interleaved
+`trade_value` remains numeric. ID zero points to an empty string and clears
+slots/selections; ID one points to the padded `NOTHING` display name and is a
+panel fallback for IDs below two. They are separate constants and meanings.
+
+The scoped symbol path preserves the existing inventory/trade record types and
+four-entry arrays. World-object selection and initial-selection bytes use the
+same constants; the definition byte is a name-table selector and can name an
+NPC rather than an inventory object. Existing role labels are preserved when
+they differ from display names. Duplicate display identities 87, 91 and 93
+remain numeric in those definition fields, with their ambiguity retained in
+the evidence. The pointer-to-object table contains pointers rather than inline
+fields and receives no such substitutions. IDs beyond the physical name prefix
+remain unresolved.
+
+Four additional proven code operands name Kriptonite, Bent coin, the NOTHING
+display fallback and the Laser rifle range base. The latter still tests two
+IDs, Laser rifle and Pulse cannon. In this batch, low-ID cutoffs, two-ID widths,
+selection latches, register zero-extension, thresholds and unrelated equal
+numerals stay numeric instead of receiving item-name symbols. Other established
+domains can receive their own meaningful constants in later reviews. New source
+names retain the original strings' spelling. Existing
+item constants, name-offset expressions, type attributes, scalar overlays,
+runtime identities, unknowns and historical action bytes remain intact.
+
+This criterion applies to all established domains as each subsystem is reviewed:
+IDs, opcodes, states, flags, masks and meaningful sizes. Bit indices used by
+BTST/BSET/BCLR/BCHG must differ from masks used by AND/OR and stored flags.
+Combination expressions must retain unknown residual bits and respect operand
+width. Current native constant expressions support arithmetic, parentheses,
+left shifts and OR (`|`); prior full-source C/vasm gates exercise emitted OR and
+shift expressions. Native `&`, complement `~`, XOR and right shift are currently
+unsupported. No Devpac compatibility is asserted. Width-bound clear masks can
+use explicit supported subtraction such as `$FF-(MASK_A|MASK_B)` only with
+bounded masks and exact independent proof.
+
+A focused synthetic fixture now verifies that syntax with both assemblers:
+ORI.B combines masks 1 and 8; ANDI.B uses the byte-clear value `$F6`; word/long
+expressions preserve high literal bits and a byte expression retains unknown
+bit `$40`. The framework and vasm match the full 56-byte HUNK, including the
+independently checked 20-byte payload. SHA256:
+`ac8abcd9000d956fef5aeda12b702653c879ee4cb61de8a83fda70c30997e760`.
+Separate fixtures confirm native refusal of `MASK_A&MASK_B` and `~MASK_A`.
+This is expression compatibility evidence, not a claim that target fields
+automatically acquire such a domain or that all operand forms are covered.
+
+Existing KB domains provide enums and OR flags; unknown residual bits cause
+numeric fallback. Custom fields lack a domain property, target-local domains
+are absent, and scoped `representation.symbol` accepts a named constant rather
+than an arbitrary expression. These gaps do not block this item batch, which
+uses the existing generic scoped path. A reusable field-domain path and validated
+scoped expressions are candidates when the next subsystem needs them; none
+should infer a domain merely from numerical equality. The native 128-equate
+capacity will also need generic owned growth before extensive new domains.
+Proven record-size advances such as LEA's displacement need an appropriate
+scoped displacement representation too; inventing an out-of-range struct field
+solely to print a size name would encode the wrong fact.
+
+Larger literal batches exposed repeated native navigation reads during command
+validation. The small request-local reuse fix shares one snapshot only during
+locked preparation, checks both projection and artifact identity, and clears
+the snapshot before append/invalidation, including exception paths. Every
+locator and selected element is still independently validated. The focused
+batch/operation/projection gate passes 85 tests; the broader server gate passes
+192 tests and retains the documented installed-inventory failure caused by the
+missing Search for King manifest. No analyzer/renderer or native backend change
+is involved.
+
+All 81 inventory/trade bindings and the supported selection/name bytes in 35
+inline object records are checked against the original binary. Every dependent
+checkpoint passes full C and independent vasm reassembly; the final source
+reproduces all 376,832 original bytes. Receipt:
+`372a7d5736f59efa268303b0c5dd48deefa1e7b9e119f50c570ed4175730a725`;
+source SHA256: `2367cb0c321e5a7cbf32e7adee80dbf6721efbdf0ade28ea051922688ad85436`.
+The complete prior equate and representation entries are preserved, as are
+unrelated metadata, record/layout attributes and history prefixes. Runtime
+execution is not newly claimed by this static naming pass. The broader
+opcode/state/flag/mask/size criterion is adopted, but its systematic application
+and the reusable gaps above remain ongoing work rather than completed recovery.

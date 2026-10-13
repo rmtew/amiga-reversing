@@ -479,18 +479,94 @@ INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED	EQU	3
 INTERACTION_FLAG_TECHNICIAN_COMPLETED	EQU	2
 INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING	EQU	5
 INTF_CLRALL	EQU	$7FFF
+ITEM_ID_ACID	EQU	$3
+ITEM_ID_ALIEN_EGG	EQU	$6B
+ITEM_ID_AMIGA_COMPUTING	EQU	$71
+ITEM_ID_ARAKNOID_EYE	EQU	$6F
+ITEM_ID_AWOL_OFFICER	EQU	$3E
+ITEM_ID_BANK_MANAGER	EQU	$4F
 ITEM_ID_BENT_COIN	EQU	$64
 ITEM_ID_BIBLE	EQU	$2C
 ITEM_ID_BOTTLE_OF_GIN	EQU	$27
+ITEM_ID_BROKEN_ORAK	EQU	$19
+ITEM_ID_CAPTAIN	EQU	$38
+ITEM_ID_CHEMIST	EQU	$45
+ITEM_ID_CODE_BLACK	EQU	$25
+ITEM_ID_CODE_BLUE	EQU	$21
+ITEM_ID_CODE_GREY	EQU	$22
+ITEM_ID_CODE_OCHRE	EQU	$24
+ITEM_ID_CODE_SCARLET	EQU	$23
+ITEM_ID_CODE_WHITE	EQU	$20
+ITEM_ID_COMMANDER	EQU	$39
+ITEM_ID_DEATHSTING	EQU	$C
+ITEM_ID_DEATH_FLY	EQU	$48
+ITEM_ID_DELTAN_ICON	EQU	$6D
+ITEM_ID_DIABETIC	EQU	$46
+ITEM_ID_DOCTOR	EQU	$4D
+ITEM_ID_DRIFFID	EQU	$4A
+ITEM_ID_ELECTROBOOST	EQU	$4
+ITEM_ID_ELECTRUNCHON	EQU	$9
+ITEM_ID_EMPTY	EQU	$0
+ITEM_ID_ENGINEER	EQU	$3B
+ITEM_ID_ENTRY_OFFICER	EQU	$52
+ITEM_ID_GARDENER	EQU	$47
+ITEM_ID_GLASS	EQU	$63
 ITEM_ID_GLOBE	EQU	$2E
+ITEM_ID_GOLD_KEY	EQU	$66
+ITEM_ID_HOOLIGAN	EQU	$4E
 ITEM_ID_HYPODERMIC	EQU	$29
+ITEM_ID_ICELORD	EQU	$42
+ITEM_ID_ICE_PENDANT	EQU	$69
+ITEM_ID_ID_AMY	EQU	$36
+ITEM_ID_ID_AWOL_OFCR	EQU	$37
+ITEM_ID_ID_COMMANDER	EQU	$30
+ITEM_ID_ID_ENGINEER	EQU	$32
+ITEM_ID_ID_LT_COMMANDER	EQU	$31
+ITEM_ID_ID_MEDIC	EQU	$34
+ITEM_ID_ID_RESOURCE_OFCR	EQU	$35
+ITEM_ID_ID_SCIENTIST	EQU	$33
 ITEM_ID_INSECTICIDE	EQU	$2A
 ITEM_ID_INSULIN	EQU	$28
+ITEM_ID_IRIDIUM_MACE	EQU	$8
+ITEM_ID_KNUCKLEDUSTER	EQU	$D
+ITEM_ID_KRIPTONITE	EQU	$6C
+ITEM_ID_KWIK_KLEEN	EQU	$65
+ITEM_ID_KZIN_97_BALL	EQU	$70
 ITEM_ID_LASER_RIFLE	EQU	$12
 ITEM_ID_LIGHT_BOX	EQU	$2D
+ITEM_ID_LT_COMMANDER	EQU	$3A
+ITEM_ID_MEDIC	EQU	$3D
 ITEM_ID_MEGABIO_FEED	EQU	$67
+ITEM_ID_MENIAL_DROID	EQU	$51
+ITEM_ID_MUSICIAN	EQU	$40
+ITEM_ID_NOTHING	EQU	$1
+ITEM_ID_PHOTOSABRE	EQU	$7
+ITEM_ID_POOL_8_BALL	EQU	$6E
+ITEM_ID_PRIEST	EQU	$49
+ITEM_ID_ROBOMECHANIC	EQU	$41
+ITEM_ID_RSRC_OFFICER	EQU	$3F
+ITEM_ID_SANDWORM_SHELL	EQU	$1B
+ITEM_ID_SCIENCE_OFCR	EQU	$3C
+ITEM_ID_SDI_DISK	EQU	$26
+ITEM_ID_SECDROID_ALPHA_1	EQU	$53
+ITEM_ID_SECDROID_ALPHA_2	EQU	$54
+ITEM_ID_SECDROID_DELTA_2	EQU	$58
+ITEM_ID_SECDROID_PI	EQU	$59
+ITEM_ID_SEC_OFFICER	EQU	$43
 ITEM_ID_SHAKESPEARE	EQU	$2B
+ITEM_ID_SHOCKWHIP	EQU	$A
+ITEM_ID_SONICBLASTER	EQU	$1E
+ITEM_ID_SONICDRIVER	EQU	$5
+ITEM_ID_SPANNER	EQU	$6
 ITEM_ID_SQUASH_BALL	EQU	$2F
+ITEM_ID_SQUASH_PLAYER	EQU	$4C
+ITEM_ID_SUGAR_CUBE	EQU	$6A
+ITEM_ID_TECHNICIAN	EQU	$4B
+ITEM_ID_THERMOLANCE	EQU	$B
+ITEM_ID_THIEF	EQU	$44
+ITEM_ID_WACKOBRAIN	EQU	$62
+ITEM_ID_WOOKEY_WIG	EQU	$1C
+ITEM_ID_WRENCH	EQU	$2
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 _ciaa	EQU	$BFE001
@@ -2446,7 +2522,7 @@ close_inventory_panel:
 	bsr.w reset_inventory_panel_state
 	bsr.w hide_cursor_sprite_pointers
 	bclr.b #1,app_033C(a6)
-	move.b #$6C,d0
+	move.b #ITEM_ID_KRIPTONITE,d0
 	lea.l app_carried_item_ids(a6),a0
 	lea.l app_pocket_item_ids(a6),a1
 	moveq.l #3,d7
@@ -2472,7 +2548,7 @@ abs_0_000127C4:
 	lea.l abs_0_000133B2(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	bsr.w finalize_inventory_selection
-	cmp.b #$64,d0
+	cmp.b #ITEM_ID_BENT_COIN,d0
 	bne.w abs_0_00012712
 	lea.l announce_item_trade(pc),a0
 	bsr.w abs_0_00017CFE
@@ -2561,7 +2637,7 @@ handle_inventory_panel_input:
 	st.b app_inventory_selection_latched(a6)
 	bclr.b #7,app_02A6(a6)
 	move.b $0046(a4),d0
-	subi.b #18,d0
+	subi.b #ITEM_ID_LASER_RIFLE,d0
 	cmp.b #$2,d0
 	bcc.b abs_0_00012918
 	bset.b #7,app_02A6(a6)
@@ -2629,7 +2705,7 @@ refresh_selected_item_name_display:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$2,d0
 	bcc.b abs_0_000129D6
-	moveq.l #1,d0
+	moveq.l #ITEM_ID_NOTHING,d0
 abs_0_000129D6:
 	bsr.w resolve_item_name
 	lea.l abs_0_000132AA(pc),a5
@@ -9439,737 +9515,737 @@ abs_0_0001B0C0:
 	dc.b $C3,$FC,$00,$00,$C3,$FC,$00,$00,$03,$FC,$00,$00,$03,$FC,$00,$00
 	dc.b $03,$FC,$00,$00,$03,$FC,$00,$00,$FF,$00,$00,$00,$FF,$00,$00,$00
 engineer_inventory_slots:
-	dc.b $05	; item_id
+	dc.b ITEM_ID_SONICDRIVER	; item_id
 	dc.b $00	; trade_value
-	dc.b $32	; item_id
+	dc.b ITEM_ID_ID_ENGINEER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 engineer_initial_inventory_slots:
-	dc.b $05	; item_id
+	dc.b ITEM_ID_SONICDRIVER	; item_id
 	dc.b $00	; trade_value
-	dc.b $32	; item_id
+	dc.b ITEM_ID_ID_ENGINEER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 captain_inventory_slots:
-	dc.b $20	; item_id
+	dc.b ITEM_ID_CODE_WHITE	; item_id
 	dc.b $00	; trade_value
-	dc.b $26	; item_id
+	dc.b ITEM_ID_SDI_DISK	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 captain_initial_inventory_slots:
-	dc.b $20	; item_id
+	dc.b ITEM_ID_CODE_WHITE	; item_id
 	dc.b $00	; trade_value
-	dc.b $26	; item_id
+	dc.b ITEM_ID_SDI_DISK	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 pianist_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 pianist_initial_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 flight_controller_inventory_slots:
-	dc.b $0A	; item_id
+	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 flight_controller_initial_inventory_slots:
-	dc.b $0A	; item_id
+	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 	dcb.b $10,$00
 security_officer_inventory_slots:
-	dc.b $6B	; item_id
+	dc.b ITEM_ID_ALIEN_EGG	; item_id
 	dc.b $0A	; trade_value
-	dc.b $28	; item_id
+	dc.b ITEM_ID_INSULIN	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 security_officer_initial_inventory_slots:
-	dc.b $6B	; item_id
+	dc.b ITEM_ID_ALIEN_EGG	; item_id
 	dc.b $0A	; trade_value
-	dc.b $28	; item_id
+	dc.b ITEM_ID_INSULIN	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 diabetic_inventory_slots:
-	dc.b $64	; item_id
+	dc.b ITEM_ID_BENT_COIN	; item_id
 	dc.b $03	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 diabetic_initial_inventory_slots:
-	dc.b $64	; item_id
+	dc.b ITEM_ID_BENT_COIN	; item_id
 	dc.b $03	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 hooligan_inventory_slots:
-	dc.b $08	; item_id
+	dc.b ITEM_ID_IRIDIUM_MACE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 hooligan_initial_inventory_slots:
-	dc.b $08	; item_id
+	dc.b ITEM_ID_IRIDIUM_MACE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 entry_officer_inventory_slots:
-	dc.b $36	; item_id
+	dc.b ITEM_ID_ID_AMY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 entry_officer_initial_inventory_slots:
-	dc.b $36	; item_id
+	dc.b ITEM_ID_ID_AMY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 resource_officer_inventory_slots:
-	dc.b $6D	; item_id
+	dc.b ITEM_ID_DELTAN_ICON	; item_id
 	dc.b $00	; trade_value
-	dc.b $35	; item_id
+	dc.b ITEM_ID_ID_RESOURCE_OFCR	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 resource_officer_initial_inventory_slots:
-	dc.b $6D	; item_id
+	dc.b ITEM_ID_DELTAN_ICON	; item_id
 	dc.b $00	; trade_value
-	dc.b $35	; item_id
+	dc.b ITEM_ID_ID_RESOURCE_OFCR	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 defence_controller_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 defence_controller_initial_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 wackobrain_inventory_slots:
-	dc.b $0A	; item_id
+	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 wackobrain_initial_inventory_slots:
-	dc.b $0A	; item_id
+	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 glass_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 glass_initial_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 science_officer_inventory_slots:
-	dc.b $6E	; item_id
+	dc.b ITEM_ID_POOL_8_BALL	; item_id
 	dc.b $00	; trade_value
-	dc.b $33	; item_id
+	dc.b ITEM_ID_ID_SCIENTIST	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 science_officer_initial_inventory_slots:
-	dc.b $6E	; item_id
+	dc.b ITEM_ID_POOL_8_BALL	; item_id
 	dc.b $00	; trade_value
-	dc.b $33	; item_id
+	dc.b ITEM_ID_ID_SCIENTIST	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 doctor_inventory_slots:
-	dc.b $2F	; item_id
+	dc.b ITEM_ID_SQUASH_BALL	; item_id
 	dc.b $00	; trade_value
-	dc.b $0D	; item_id
+	dc.b ITEM_ID_KNUCKLEDUSTER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 doctor_initial_inventory_slots:
-	dc.b $2F	; item_id
+	dc.b ITEM_ID_SQUASH_BALL	; item_id
 	dc.b $00	; trade_value
-	dc.b $0D	; item_id
+	dc.b ITEM_ID_KNUCKLEDUSTER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 medic_inventory_slots:
-	dc.b $34	; item_id
+	dc.b ITEM_ID_ID_MEDIC	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 medic_initial_inventory_slots:
-	dc.b $34	; item_id
+	dc.b ITEM_ID_ID_MEDIC	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 chemist_inventory_slots:
-	dc.b $03	; item_id
+	dc.b ITEM_ID_ACID	; item_id
 	dc.b $0A	; trade_value
-	dc.b $29	; item_id
+	dc.b ITEM_ID_HYPODERMIC	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 chemist_initial_inventory_slots:
-	dc.b $03	; item_id
+	dc.b ITEM_ID_ACID	; item_id
 	dc.b $0A	; trade_value
-	dc.b $29	; item_id
+	dc.b ITEM_ID_HYPODERMIC	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 driffid_inventory_slots:
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 driffid_initial_inventory_slots:
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 death_fly_inventory_slots:
-	dc.b $0C	; item_id
+	dc.b ITEM_ID_DEATHSTING	; item_id
 	dc.b $00	; trade_value
-	dc.b $6A	; item_id
+	dc.b ITEM_ID_SUGAR_CUBE	; item_id
 	dc.b $00	; trade_value
-	dc.b $6F	; item_id
+	dc.b ITEM_ID_ARAKNOID_EYE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 death_fly_initial_inventory_slots:
-	dc.b $0C	; item_id
+	dc.b ITEM_ID_DEATHSTING	; item_id
 	dc.b $00	; trade_value
-	dc.b $6A	; item_id
+	dc.b ITEM_ID_SUGAR_CUBE	; item_id
 	dc.b $00	; trade_value
-	dc.b $6F	; item_id
+	dc.b ITEM_ID_ARAKNOID_EYE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 gardener_inventory_slots:
-	dc.b $67	; item_id
+	dc.b ITEM_ID_MEGABIO_FEED	; item_id
 	dc.b $00	; trade_value
-	dc.b $2A	; item_id
+	dc.b ITEM_ID_INSECTICIDE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 gardener_initial_inventory_slots:
-	dc.b $67	; item_id
+	dc.b ITEM_ID_MEGABIO_FEED	; item_id
 	dc.b $00	; trade_value
-	dc.b $2A	; item_id
+	dc.b ITEM_ID_INSECTICIDE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 technician_inventory_slots:
-	dc.b $27	; item_id
+	dc.b ITEM_ID_BOTTLE_OF_GIN	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 technician_initial_inventory_slots:
-	dc.b $27	; item_id
+	dc.b ITEM_ID_BOTTLE_OF_GIN	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 robomechanic_inventory_slots:
-	dc.b $06	; item_id
+	dc.b ITEM_ID_SPANNER	; item_id
 	dc.b $0A	; trade_value
-	dc.b $02	; item_id
+	dc.b ITEM_ID_WRENCH	; item_id
 	dc.b $14	; trade_value
-	dc.b $24	; item_id
+	dc.b ITEM_ID_CODE_OCHRE	; item_id
 	dc.b $1E	; trade_value
-	dc.b $0A	; item_id
+	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $64	; trade_value
 robomechanic_initial_inventory_slots:
-	dc.b $06	; item_id
+	dc.b ITEM_ID_SPANNER	; item_id
 	dc.b $0A	; trade_value
-	dc.b $02	; item_id
+	dc.b ITEM_ID_WRENCH	; item_id
 	dc.b $14	; trade_value
-	dc.b $24	; item_id
+	dc.b ITEM_ID_CODE_OCHRE	; item_id
 	dc.b $1E	; trade_value
-	dc.b $0A	; item_id
+	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $64	; trade_value
 kwik_kleen_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 kwik_kleen_initial_inventory_slots:
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 	dcb.b $10,$00
 awol_officer_inventory_slots:
-	dc.b $37	; item_id
+	dc.b ITEM_ID_ID_AWOL_OFCR	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 awol_officer_initial_inventory_slots:
-	dc.b $37	; item_id
+	dc.b ITEM_ID_ID_AWOL_OFCR	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 thief_inventory_slots:
-	dc.b $6C	; item_id
+	dc.b ITEM_ID_KRIPTONITE	; item_id
 	dc.b $00	; trade_value
-	dc.b $66	; item_id
+	dc.b ITEM_ID_GOLD_KEY	; item_id
 	dc.b $00	; trade_value
-	dc.b $1E	; item_id
+	dc.b ITEM_ID_SONICBLASTER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 thief_initial_inventory_slots:
-	dc.b $6C	; item_id
+	dc.b ITEM_ID_KRIPTONITE	; item_id
 	dc.b $00	; trade_value
-	dc.b $66	; item_id
+	dc.b ITEM_ID_GOLD_KEY	; item_id
 	dc.b $00	; trade_value
-	dc.b $1E	; item_id
+	dc.b ITEM_ID_SONICBLASTER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 bank_manager_inventory_slots:
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 bank_manager_initial_inventory_slots:
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 priest_inventory_slots:
-	dc.b $07	; item_id
+	dc.b ITEM_ID_PHOTOSABRE	; item_id
 	dc.b $00	; trade_value
-	dc.b $2D	; item_id
+	dc.b ITEM_ID_LIGHT_BOX	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 priest_initial_inventory_slots:
-	dc.b $07	; item_id
+	dc.b ITEM_ID_PHOTOSABRE	; item_id
 	dc.b $00	; trade_value
-	dc.b $2D	; item_id
+	dc.b ITEM_ID_LIGHT_BOX	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 lieutenant_commander_inventory_slots:
-	dc.b $2B	; item_id
+	dc.b ITEM_ID_SHAKESPEARE	; item_id
 	dc.b $00	; trade_value
-	dc.b $25	; item_id
+	dc.b ITEM_ID_CODE_BLACK	; item_id
 	dc.b $00	; trade_value
-	dc.b $31	; item_id
+	dc.b ITEM_ID_ID_LT_COMMANDER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 lieutenant_commander_initial_inventory_slots:
-	dc.b $2B	; item_id
+	dc.b ITEM_ID_SHAKESPEARE	; item_id
 	dc.b $00	; trade_value
-	dc.b $25	; item_id
+	dc.b ITEM_ID_CODE_BLACK	; item_id
 	dc.b $00	; trade_value
-	dc.b $31	; item_id
+	dc.b ITEM_ID_ID_LT_COMMANDER	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 commander_inventory_slots:
-	dc.b $30	; item_id
+	dc.b ITEM_ID_ID_COMMANDER	; item_id
 	dc.b $00	; trade_value
-	dc.b $22	; item_id
+	dc.b ITEM_ID_CODE_GREY	; item_id
 	dc.b $00	; trade_value
-	dc.b $21	; item_id
+	dc.b ITEM_ID_CODE_BLUE	; item_id
 	dc.b $00	; trade_value
-	dc.b $23	; item_id
+	dc.b ITEM_ID_CODE_SCARLET	; item_id
 	dc.b $00	; trade_value
 commander_initial_inventory_slots:
-	dc.b $30	; item_id
+	dc.b ITEM_ID_ID_COMMANDER	; item_id
 	dc.b $00	; trade_value
-	dc.b $22	; item_id
+	dc.b ITEM_ID_CODE_GREY	; item_id
 	dc.b $00	; trade_value
-	dc.b $21	; item_id
+	dc.b ITEM_ID_CODE_BLUE	; item_id
 	dc.b $00	; trade_value
-	dc.b $23	; item_id
+	dc.b ITEM_ID_CODE_SCARLET	; item_id
 	dc.b $00	; trade_value
 kriptonite_inventory_slots:
-	dc.b $19	; item_id
+	dc.b ITEM_ID_BROKEN_ORAK	; item_id
 	dc.b $00	; trade_value
-	dc.b $1B	; item_id
+	dc.b ITEM_ID_SANDWORM_SHELL	; item_id
 	dc.b $00	; trade_value
-	dc.b $1C	; item_id
+	dc.b ITEM_ID_WOOKEY_WIG	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 kriptonite_initial_inventory_slots:
-	dc.b $19	; item_id
+	dc.b ITEM_ID_BROKEN_ORAK	; item_id
 	dc.b $00	; trade_value
-	dc.b $1B	; item_id
+	dc.b ITEM_ID_SANDWORM_SHELL	; item_id
 	dc.b $00	; trade_value
-	dc.b $1C	; item_id
+	dc.b ITEM_ID_WOOKEY_WIG	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 megabio_feed_inventory_slots:
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 megabio_feed_initial_inventory_slots:
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 musician_inventory_slots:
-	dc.b $63	; item_id
+	dc.b ITEM_ID_GLASS	; item_id
 	dc.b $00	; trade_value
-	dc.b $71	; item_id
+	dc.b ITEM_ID_AMIGA_COMPUTING	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 musician_initial_inventory_slots:
-	dc.b $63	; item_id
+	dc.b ITEM_ID_GLASS	; item_id
 	dc.b $00	; trade_value
-	dc.b $71	; item_id
+	dc.b ITEM_ID_AMIGA_COMPUTING	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 squash_player_inventory_slots:
-	dc.b $70	; item_id
+	dc.b ITEM_ID_KZIN_97_BALL	; item_id
 	dc.b $0A	; trade_value
-	dc.b $04	; item_id
+	dc.b ITEM_ID_ELECTROBOOST	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 squash_player_initial_inventory_slots:
-	dc.b $70	; item_id
+	dc.b ITEM_ID_KZIN_97_BALL	; item_id
 	dc.b $0A	; trade_value
-	dc.b $04	; item_id
+	dc.b ITEM_ID_ELECTROBOOST	; item_id
 	dc.b $1E	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 menial_droid_inventory_slots:
-	dc.b $65	; item_id
+	dc.b ITEM_ID_KWIK_KLEEN	; item_id
 	dc.b $00	; trade_value
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 menial_droid_initial_inventory_slots:
-	dc.b $65	; item_id
+	dc.b ITEM_ID_KWIK_KLEEN	; item_id
 	dc.b $00	; trade_value
-	dc.b $09	; item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 icelord_inventory_slots:
-	dc.b $69	; item_id
+	dc.b ITEM_ID_ICE_PENDANT	; item_id
 	dc.b $00	; trade_value
-	dc.b $0B	; item_id
+	dc.b ITEM_ID_THERMOLANCE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 icelord_initial_inventory_slots:
-	dc.b $69	; item_id
+	dc.b ITEM_ID_ICE_PENDANT	; item_id
 	dc.b $00	; trade_value
-	dc.b $0B	; item_id
+	dc.b ITEM_ID_THERMOLANCE	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 diabetic_trade_offers:
-	dc.b $29	; item_id
+	dc.b ITEM_ID_HYPODERMIC	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 diabetic_initial_trade_offers:
-	dc.b $29	; item_id
+	dc.b ITEM_ID_HYPODERMIC	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 security_officer_trade_offers:
-	dc.b $66	; item_id
+	dc.b ITEM_ID_GOLD_KEY	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $1E	; item_id
+	dc.b ITEM_ID_SONICBLASTER	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 security_officer_initial_trade_offers:
-	dc.b $66	; item_id
+	dc.b ITEM_ID_GOLD_KEY	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $1E	; item_id
+	dc.b ITEM_ID_SONICBLASTER	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 chemist_trade_offers:
-	dc.b $2C	; item_id
+	dc.b ITEM_ID_BIBLE	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $2B	; item_id
+	dc.b ITEM_ID_SHAKESPEARE	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 chemist_initial_trade_offers:
-	dc.b $2C	; item_id
+	dc.b ITEM_ID_BIBLE	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $2B	; item_id
+	dc.b ITEM_ID_SHAKESPEARE	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 	dc.b $2D,$14,$00,$00,$00,$00,$00,$00,$2D,$14,$00,$00,$00,$00,$00,$00
 technician_trade_offers:
-	dc.b $2E	; item_id
+	dc.b ITEM_ID_GLOBE	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 technician_initial_trade_offers:
-	dc.b $2E	; item_id
+	dc.b ITEM_ID_GLOBE	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 robomechanic_trade_offers:
-	dc.b $05	; item_id
+	dc.b ITEM_ID_SONICDRIVER	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $04	; item_id
+	dc.b ITEM_ID_ELECTROBOOST	; item_id
 	dc.b $3C	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 robomechanic_initial_trade_offers:
-	dc.b $05	; item_id
+	dc.b ITEM_ID_SONICDRIVER	; item_id
 	dc.b $28	; trade_threshold
-	dc.b $04	; item_id
+	dc.b ITEM_ID_ELECTROBOOST	; item_id
 	dc.b $3C	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 	dc.b $27,$14,$00,$00,$00,$00,$00,$00,$27,$14,$00,$00,$00,$00,$00,$00
 squash_player_trade_offers:
-	dc.b $6E	; item_id
+	dc.b ITEM_ID_POOL_8_BALL	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $2F	; item_id
+	dc.b ITEM_ID_SQUASH_BALL	; item_id
 	dc.b $3C	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 squash_player_initial_trade_offers:
-	dc.b $6E	; item_id
+	dc.b ITEM_ID_POOL_8_BALL	; item_id
 	dc.b $14	; trade_threshold
-	dc.b $2F	; item_id
+	dc.b ITEM_ID_SQUASH_BALL	; item_id
 	dc.b $3C	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
 default_empty_item_slots:
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-	dc.b $00	; item_id
+	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 world_runtime_setup_records:
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
@@ -26105,11 +26181,11 @@ world_object_musician_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $40	; item_definition_id
+	dc.b ITEM_ID_MUSICIAN	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $1E	; item_state
 	dc.b $1E	; initial_item_state
@@ -26892,11 +26968,11 @@ world_object_squash_player_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $4C	; item_definition_id
+	dc.b ITEM_ID_SQUASH_PLAYER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $32	; item_state
 	dc.b $32	; initial_item_state
@@ -26962,11 +27038,11 @@ world_object_kriptonite_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $62	; item_definition_id
+	dc.b ITEM_ID_WACKOBRAIN	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -27077,11 +27153,11 @@ world_object_thief_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $66	; selected_item_id
-	dc.b $66	; initial_selected_item_id
+	dc.b ITEM_ID_GOLD_KEY	; selected_item_id
+	dc.b ITEM_ID_GOLD_KEY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $44	; item_definition_id
+	dc.b ITEM_ID_THIEF	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -27148,11 +27224,11 @@ world_object_priest_gap_40:
 	dc.w $00C8	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $49	; item_definition_id
+	dc.b ITEM_ID_PRIEST	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -27221,11 +27297,11 @@ world_object_icelord_gap_40:
 	dc.w $00D2	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $0B	; selected_item_id
-	dc.b $0B	; initial_selected_item_id
+	dc.b ITEM_ID_THERMOLANCE	; selected_item_id
+	dc.b ITEM_ID_THERMOLANCE	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $42	; item_definition_id
+	dc.b ITEM_ID_ICELORD	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -27299,11 +27375,11 @@ world_object_hooligan_gap_40:
 	dc.w $0073	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $08	; selected_item_id
-	dc.b $08	; initial_selected_item_id
+	dc.b ITEM_ID_IRIDIUM_MACE	; selected_item_id
+	dc.b ITEM_ID_IRIDIUM_MACE	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $4E	; item_definition_id
+	dc.b ITEM_ID_HOOLIGAN	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $0A	; item_state
 	dc.b $0A	; initial_item_state
@@ -27400,11 +27476,11 @@ world_object_entry_officer_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $36	; selected_item_id
-	dc.b $36	; initial_selected_item_id
+	dc.b ITEM_ID_ID_AMY	; selected_item_id
+	dc.b ITEM_ID_ID_AMY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $52	; item_definition_id
+	dc.b ITEM_ID_ENTRY_OFFICER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $64	; item_state
 	dc.b $64	; initial_item_state
@@ -27462,11 +27538,11 @@ world_object_death_fly_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $0C	; selected_item_id
-	dc.b $0C	; initial_selected_item_id
+	dc.b ITEM_ID_DEATHSTING	; selected_item_id
+	dc.b ITEM_ID_DEATHSTING	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $48	; item_definition_id
+	dc.b ITEM_ID_DEATH_FLY	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $14	; item_state
 	dc.b $14	; initial_item_state
@@ -27511,11 +27587,11 @@ world_object_driffid_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $4A	; item_definition_id
+	dc.b ITEM_ID_DRIFFID	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $28	; item_state
 	dc.b $28	; initial_item_state
@@ -27566,11 +27642,11 @@ world_object_captain_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $38	; item_definition_id
+	dc.b ITEM_ID_CAPTAIN	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27607,11 +27683,11 @@ world_object_resource_officer_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $3F	; item_definition_id
+	dc.b ITEM_ID_RSRC_OFFICER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27648,11 +27724,11 @@ world_object_engineer_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $3B	; item_definition_id
+	dc.b ITEM_ID_ENGINEER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27689,11 +27765,11 @@ world_object_science_officer_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $3C	; item_definition_id
+	dc.b ITEM_ID_SCIENCE_OFCR	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27730,11 +27806,11 @@ world_object_medic_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $3D	; item_definition_id
+	dc.b ITEM_ID_MEDIC	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27770,11 +27846,11 @@ world_object_awol_officer_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $3E	; item_definition_id
+	dc.b ITEM_ID_AWOL_OFFICER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27811,11 +27887,11 @@ world_object_lieutenant_commander_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $3A	; item_definition_id
+	dc.b ITEM_ID_LT_COMMANDER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27857,11 +27933,11 @@ world_object_commander_gap_40:
 	dc.w $0000	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $02	; world_object_flags
 	dc.b $02	; initial_world_object_flags
-	dc.b $39	; item_definition_id
+	dc.b ITEM_ID_COMMANDER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state
@@ -27899,11 +27975,11 @@ world_object_menial_droid_gap_40:
 	dc.w $0041	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $09	; selected_item_id
-	dc.b $09	; initial_selected_item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; selected_item_id
+	dc.b ITEM_ID_ELECTRUNCHON	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $51	; item_definition_id
+	dc.b ITEM_ID_MENIAL_DROID	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -27970,11 +28046,11 @@ world_object_gardener_gap_40:
 	dc.w $0023	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $47	; item_definition_id
+	dc.b ITEM_ID_GARDENER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -28131,11 +28207,11 @@ world_object_technician_gap_40:
 	dc.w $0073	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $4B	; item_definition_id
+	dc.b ITEM_ID_TECHNICIAN	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $32	; item_state
 	dc.b $32	; initial_item_state
@@ -28200,11 +28276,11 @@ world_object_robomechanic_gap_40:
 	dc.w $00DC	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $41	; item_definition_id
+	dc.b ITEM_ID_ROBOMECHANIC	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $32	; item_state
 	dc.b $32	; initial_item_state
@@ -28257,11 +28333,11 @@ world_object_doctor_gap_40:
 	dc.w $0055	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $0D	; selected_item_id
-	dc.b $0D	; initial_selected_item_id
+	dc.b ITEM_ID_KNUCKLEDUSTER	; selected_item_id
+	dc.b ITEM_ID_KNUCKLEDUSTER	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $4D	; item_definition_id
+	dc.b ITEM_ID_DOCTOR	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $0A	; item_state
 	dc.b $0A	; initial_item_state
@@ -28326,11 +28402,11 @@ world_object_diabetic_gap_40:
 	dc.w $0019	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $46	; item_definition_id
+	dc.b ITEM_ID_DIABETIC	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $32	; item_state
 	dc.b $32	; initial_item_state
@@ -28384,11 +28460,11 @@ world_object_security_officer_gap_40:
 	dc.w $00AA	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $43	; item_definition_id
+	dc.b ITEM_ID_SEC_OFFICER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $32	; item_state
 	dc.b $32	; initial_item_state
@@ -28432,11 +28508,11 @@ world_object_bank_manager_gap_40:
 	dc.w $004B	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $4F	; item_definition_id
+	dc.b ITEM_ID_BANK_MANAGER	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $0A	; item_state
 	dc.b $0A	; initial_item_state
@@ -28478,11 +28554,11 @@ world_object_chemist_gap_40:
 	dc.w $0019	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $45	; item_definition_id
+	dc.b ITEM_ID_CHEMIST	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $32	; item_state
 	dc.b $32	; initial_item_state
@@ -28523,11 +28599,11 @@ world_object_pianist_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $53	; item_definition_id
+	dc.b ITEM_ID_SECDROID_ALPHA_1	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -28557,8 +28633,8 @@ world_object_defence_controller_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
 	dc.b $57	; item_definition_id
@@ -28591,11 +28667,11 @@ world_object_wackobrain_gap_40:
 	dc.w $00BE	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $58	; item_definition_id
+	dc.b ITEM_ID_SECDROID_DELTA_2	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -28625,11 +28701,11 @@ world_object_glass_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $59	; item_definition_id
+	dc.b ITEM_ID_SECDROID_PI	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -28659,8 +28735,8 @@ world_object_kwik_kleen_gap_40:
 	dc.w $00BE	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
 	dc.b $5B	; item_definition_id
@@ -28693,11 +28769,11 @@ world_object_flight_controller_gap_40:
 	dc.w $005A	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $54	; item_definition_id
+	dc.b ITEM_ID_SECDROID_ALPHA_2	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
@@ -28867,8 +28943,8 @@ world_object_megabio_feed_gap_40:
 	dc.w $006E	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 world_object_megabio_feed_world_object_flags:
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
@@ -28930,12 +29006,12 @@ player_world_object_gap_40:
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 player_world_object_selected_item_id:
-	dc.b $00	; selected_item_id
-	dc.b $00	; initial_selected_item_id
+	dc.b ITEM_ID_EMPTY	; selected_item_id
+	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
 player_world_object_world_object_flags:
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
-	dc.b $00	; item_definition_id
+	dc.b ITEM_ID_EMPTY	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $00	; item_state
 	dc.b $00	; initial_item_state

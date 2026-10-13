@@ -11,6 +11,7 @@ import threading
 import time
 import uuid
 from collections.abc import Callable, Mapping, Sequence
+from contextvars import ContextVar
 from copy import deepcopy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -191,6 +192,9 @@ class StaticResponse(TypedDict):
 
 _MISSING = object()
 _LISTING_PROJECTION_SERVICE = ListingProjectionService()
+_COMMAND_NAVIGATION_SNAPSHOTS: ContextVar[dict[tuple[str, str], tuple[object, object]] | None] = ContextVar(
+    "command_navigation_snapshots", default=None
+)
 WEB_STATE_COMMAND_CONTRACT = "locator-command-v1"
 _SOURCE_EVIDENCE_CONTEXT_KEYS = (
     "source_evidence_id",
@@ -2386,7 +2390,15 @@ def _resolve_command_locator(
             )
             navigation_payload = getattr(artifact, "navigation_payload", None)
             if callable(navigation_payload):
-                navigation, _navigation_profile = navigation_payload()
+                snapshots = _COMMAND_NAVIGATION_SNAPSHOTS.get()
+                snapshot_key = (project_name, projection_hash)
+                cached = snapshots.get(snapshot_key) if snapshots is not None else None
+                if cached is not None and cached[0] is artifact:
+                    navigation = cached[1]
+                else:
+                    navigation, _navigation_profile = navigation_payload()
+                    if snapshots is not None:
+                        snapshots[snapshot_key] = (artifact, navigation)
         finally:
             if workflow_profile is not None:
                 workflow_profile.add_span(
@@ -2631,7 +2643,11 @@ def _execute_catalog_commands_unchecked(project_name: str, bodies: list[dict]) -
     workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
     # This memo belongs only to this locked preparation stage, before any append.
     context_cache = {}
-    prepared = [_prepare_catalog_command(project_name, body, workflow_profile, context_cache) for body in bodies]
+    navigation_token = _COMMAND_NAVIGATION_SNAPSHOTS.set({})
+    try:
+        prepared = [_prepare_catalog_command(project_name, body, workflow_profile, context_cache) for body in bodies]
+    finally:
+        _COMMAND_NAVIGATION_SNAPSHOTS.reset(navigation_token)
     result = _apply_manual_action_commands(project_name, prepared, workflow_profile=workflow_profile)
     response_started_at = time.perf_counter()
     result["commands"] = [{"command_id": entry["command_id"],
