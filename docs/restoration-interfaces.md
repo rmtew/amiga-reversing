@@ -105,6 +105,17 @@ service applies the actions and invalidates the projection once, then returns
 that resulting revision before review. Batches do not observe earlier entries
 as fresh catalog state, so dependent commands require a new inspection.
 
+Native policy storage accepts up to 16,384 structured data items and 16,384 named
+labels after array fields expand. The merged pending interpretation is checked
+against the actual binary before any Manual Action Log append; overflow refuses
+the whole batch. These checked policy collections use owned heap storage and
+retain their `uint16_t` count guards. The authoritative source-analysis arena
+remains unbounded; exceeding its optional policy mirror does not discard facts.
+When an interior boundary splits a valid typed field into raw rows, the first
+fragment retains its field name and states how many of the field's bytes it
+contains. Labels, relocation boundaries and bytes remain intact. Conflicted,
+out-of-bounds or code-overlapping fields do not receive this fragment annotation.
+
 Run `interpret`, inspect its new revision, then `verify`. Verification returns a
 `receipt_id`; review acceptance requires that receipt for the current subject.
 `review_batch` reviews 1–100 unique `action_ids` with one decision, reason and

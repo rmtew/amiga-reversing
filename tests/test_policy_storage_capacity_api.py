@@ -155,9 +155,9 @@ def test_restoration_capacity_rejection_preserves_manual_and_decision_histories(
     journal.write_bytes(b"preserve unrelated journal bytes\n")
     before = snapshot(batch_target.directory)
     def native_policy(*args, **kwargs):
-        raise RuntimeError("C backend DLL failed: named label capacity exceeded (8192)")
+        raise RuntimeError("C backend DLL failed: named label capacity exceeded (16384)")
     monkeypatch.setattr(c_backend, "effective_policy_project_source_with_c_backend", native_policy)
-    with pytest.raises(ValueError, match=r"named label capacity exceeded \(8192\)"):
+    with pytest.raises(ValueError, match=r"named label capacity exceeded \(16384\)"):
         invoke(batch_target)
     assert snapshot(batch_target.directory) == before
 

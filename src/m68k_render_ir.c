@@ -4453,6 +4453,31 @@ static int structured_data_item_is_render_candidate(const M68kRenderLookup *look
   return 1;
 }
 
+/* A required interior boundary may split a valid typed field into raw rows.
+ * Preserve its identity on the first fragment without bypassing that boundary
+ * or claiming that the fragment is the complete field. */
+static const char *structured_data_fragment_comment(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_bytes, uint32_t render_extent,
+    const M68kAnalysisStructuredDataItem *item, uint32_t start, uint32_t size,
+    char *comment, size_t comment_size) {
+  uint32_t probe;
+  M68kRenderRangeOwnershipView ownership;
+  if (lookup == NULL || section == NULL || item == NULL || comment == NULL || comment_size == 0U ||
+      size == 0U || item->offset != start || item->size <= size || item->table_conflicted ||
+      item->struct_name[0] == '\0' || item->field_name[0] == '\0' ||
+      start >= render_extent || item->size > render_extent - start ||
+      start >= section->size || item->size > section->size - start ||
+      !lookup_range_ownership_at_offset(lookup, section->section_index, start, &ownership) ||
+      ownership.structured_item != item) return NULL;
+  for (probe = start; probe < start + item->size; ++probe) {
+    if (accepted_byte_at(section, accepted_bytes, probe)) return NULL;
+  }
+  snprintf(comment, comment_size, "%s (first %u of %u bytes)", item->field_name,
+    (unsigned)size, (unsigned)item->size);
+  return comment;
+}
+
 static int append_planned_source_label_declaration(const M68kRenderLookup *lookup, M68kRenderPlan *plan,
     uint32_t section_index, uint32_t offset, const char *name) {
   M68kRenderPlannedDeclaration declaration;
@@ -11133,8 +11158,11 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
                   section->section_index, start);
                 finish_asm_source_plan_row(out_preview, section->section_index, start, 0U, 1);
                 if (initialized_span) {
+                  char fragment_comment[128];
                   render_asm_data_dc_b_plan_rows(out_preview, lookup, section_index, section, start, offset - start,
-                    NULL, &asm_logical_pc);
+                    structured_data_fragment_comment(lookup, section, accepted_bytes[section_index], render_extent,
+                      structured_item, start, offset - start, fragment_comment, sizeof(fragment_comment)),
+                    &asm_logical_pc);
                 } else {
                   begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RESERVE, (uint32_t)section_index);
                   render_asm_ds_best_fit(out_preview, start, offset - start);

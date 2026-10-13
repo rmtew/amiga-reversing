@@ -16,6 +16,7 @@
 #include "m68k_source_pipeline.h"
 #include "platform_common.h"
 #include "platform_file_internal.h"
+#include "platform_file_lib.h"
 #include "platform_atari_st.h"
 #include "platform_macos_resource.h"
 #include "util_arena.h"
@@ -34059,6 +34060,103 @@ static int test_facts_v2_render_asm_source_renders_structured_data_comment(void)
   return 0;
 }
 
+/* An explicit interior data-item boundary is required even without an emitted
+ * label. Keep the owning typed LONG's identity on only its first raw fragment. */
+static int test_render_ir_structured_field_fragment_case(int typed, int conflicted) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kAnalysisPolicy policy;
+  M68kRenderIRPreview preview;
+  uint8_t bytes[6] = {0xAAU, 0xBBU, 0x00U, 0x05U, 0x9FU, 0x76U};
+  uint8_t accepted_start_0[6] = {0};
+  uint8_t accepted_bytes_0[6] = {0};
+  uint8_t *accepted_start[1] = {accepted_start_0};
+  uint8_t *accepted_bytes[1] = {accepted_bytes_0};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  m68k_analysis_policy_init_default(&policy);
+  m68k_render_ir_preview_init(&preview);
+  policy.structured_data_item_count = 2U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 2U;
+  policy.structured_data_items[0].size = 4U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  policy.structured_data_items[0].table_conflicted = (uint8_t)conflicted;
+  if (typed) {
+    snprintf(policy.structured_data_items[0].struct_name,
+      sizeof(policy.structured_data_items[0].struct_name), "Node");
+    snprintf(policy.structured_data_items[0].field_name,
+      sizeof(policy.structured_data_items[0].field_name), "frame_sequence_ptr");
+    snprintf(policy.structured_data_items[0].field_type,
+      sizeof(policy.structured_data_items[0].field_type), "LONG");
+  }
+  policy.structured_data_items[1].has_section_index = 1U;
+  policy.structured_data_items[1].section_index = 0U;
+  policy.structured_data_items[1].offset = 4U;
+  policy.structured_data_items[1].size = 2U;
+  policy.structured_data_items[1].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, NULL, 0U, 0, 1, 1, 1, &preview));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.b $9F,$76\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.l $00059F76") == NULL);
+  if (typed && !conflicted) {
+    const char *field = strstr(preview.asm_source_text,
+      "\tdc.b $00,$05\t; frame_sequence_ptr (first 2 of 4 bytes)\n");
+    M68K_C_ASSERT(field != NULL);
+    M68K_C_ASSERT(strstr(strstr(field, "frame_sequence_ptr") + strlen("frame_sequence_ptr"),
+      "frame_sequence_ptr") == NULL);
+  } else {
+    M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.b $00,$05\n") != NULL);
+    M68K_C_ASSERT(strstr(preview.asm_source_text, "(first ") == NULL);
+  }
+  {
+    unsigned char *rebuilt = NULL;
+    size_t rebuilt_size = 0U;
+    char *assembly_profile = NULL;
+    char *assembly_error = NULL;
+    M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "",
+      preview.asm_source_text, "68000", &rebuilt, &rebuilt_size, &assembly_profile, &assembly_error));
+    M68K_C_ASSERT(rebuilt_size == sizeof(bytes));
+    M68K_C_ASSERT(memcmp(rebuilt, bytes, sizeof(bytes)) == 0);
+    platform_file_free_bytes(rebuilt);
+    platform_file_free_text(assembly_profile);
+    platform_file_free_text(assembly_error);
+  }
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_analysis_policy_destroy(&policy);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_render_ir_typed_field_preserves_required_fragment_boundary(void) {
+  return test_render_ir_structured_field_fragment_case(1, 0);
+}
+
+static int test_render_ir_untyped_fragment_has_no_field_identity(void) {
+  return test_render_ir_structured_field_fragment_case(0, 0);
+}
+
+static int test_render_ir_conflicted_fragment_has_no_field_identity(void) {
+  return test_render_ir_structured_field_fragment_case(1, 1);
+}
+
 static int test_render_ir_suppresses_orphan_structured_field_label(void) {
   M68kObject object;
   M68kSection section;
@@ -39915,6 +40013,12 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_adjacent_direct_stub_requires_sibling_target_code_proof},
     {"facts_v2_render_asm_source_renders_structured_data_comment",
       test_facts_v2_render_asm_source_renders_structured_data_comment},
+    {"render_ir_typed_field_preserves_required_fragment_boundary",
+      test_render_ir_typed_field_preserves_required_fragment_boundary},
+    {"render_ir_untyped_fragment_has_no_field_identity",
+      test_render_ir_untyped_fragment_has_no_field_identity},
+    {"render_ir_conflicted_fragment_has_no_field_identity",
+      test_render_ir_conflicted_fragment_has_no_field_identity},
     {"render_ir_suppresses_orphan_structured_field_label",
       test_render_ir_suppresses_orphan_structured_field_label},
     {"facts_v2_render_asm_source_resident_sizeof_defines_app_sizeof_without_slots",

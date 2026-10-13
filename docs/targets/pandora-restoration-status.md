@@ -6,6 +6,53 @@ All offsets here are section 0 source offsets, with exclusive range ends, unless
 explicitly called runtime addresses. This report indexes native facts and
 canonical history; it does not replace them. See the [full plan](pandora-restoration-plan.md).
 
+## Rooted NPC animation families
+
+The reviewed family describes 7,742 original bytes in 33 named ranges:
+235 geometry headers, 57 render-state prefixes, 37 animation nodes, 34 frame
+sequences and 28 position descriptors. Existing initialized object pointers and
+typed behavior commands root these records. The 166 element groups reuse the
+existing shared types; all 406 older layouts and 33 types are preserved.
+Initial node modes are zero or four, and the new state prefixes have their
+conditional-tail bit clear. These initial contents do not establish arbitrary
+mutation, sequence replacement or lifetime behavior. The unproved 18-byte gap
+at `0x49B86..0x49B98`, numeric generated-mask RAM addresses and NULLs remain explicit.
+
+The complete candidate exceeded the old 8,192-label policy limit before any
+target append. Checked owned policy storage now accepts 16,384 labels and data
+items; the actual pending native projection uses 9,686 labels and 9,495 data
+items. The authoritative analysis arena remains unbounded. Nineteen focused
+Python/API tests and eight native storage tests pass, including deep cloning,
+overflow refusal, duplicate handling and atomic history preservation. Rebuilding
+the backend leaves the preceding target source unchanged and exactly reproduces
+all 376,832 bytes through C and vasm.
+
+Independent review reconstructs every new range's bytes and checks its expanded
+typed fields, original pointer graph, exact history prefixes and unchanged 68
+assets plus nine SDK files. The canonical Decision Journal accepts all 199 new
+facts. Final C and vasm receipt:
+`4563fbeb6523814d0354466493b7361535293de22765f32e064c3e413d778cbf`;
+source SHA256:
+`2a526875c7ebce6304747eabdd434cd473d1d7508e001eb4da934fe76d0ec578`.
+
+Source review caught one new pointer field losing its annotation when an
+interior render boundary split it into two raw rows. The native fallback now
+retains the field name on its first fragment with an explicit partial width,
+preserving every boundary and byte. The actual source gains exactly four such
+annotations, including three existing fields; no symbols or declarations change
+in this renderer correction. Three deterministic native boundary regressions
+pass with exact six-byte reassembly, including conservative untyped/conflicted
+cases. All 78 source-package/publication/field-encoding tests pass. The broader
+native IR suite has 642 passing tests and the same previously documented
+pointer-table-pointee propagation failure; no new failure was observed.
+
+The retained BK stream's header, producer bounds and checksum establish that the
+uncopied tail belongs to the historical decoded payload. Its initial-content
+consumer and purpose remain unproved; the repeated pattern is not classified
+as padding, unused storage or a resource. Callback A5 preservation and callback
+slot writer coverage also remain separate open questions. No runtime or
+alternate-layout execution claim follows from this static data-family work.
+
 ## Complete byte accounting, incomplete semantic recovery
 
 The [coverage map](pandora-coverage-baseline.tsv) contains 281 disjoint intervals
