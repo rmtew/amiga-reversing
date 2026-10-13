@@ -5345,7 +5345,7 @@ abs_0_000127C4:
 open_nearby_object_inventory_panel:
 	bset.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
-	move.b (a0),app_inventory_display_item_ids(a6)
+	move.b (a0),app_inventory_display_item_ids(a6)	; operand 1: inventory_item_slot_item_id at (a0)
 	move.b $0002(a0),app_02BB(a6)
 	move.b $0004(a0),app_02BC(a6)
 	move.b $0006(a0),app_02BD(a6)
@@ -5931,23 +5931,23 @@ abs_0_00012F56:
 	moveq.l #3,d7
     ; Mutation searches four 2B entries. If an item ID is unmatched, control falls through and writes at table+8; the four-entry read prefix does not bound all writes.
 abs_0_00012F6C:
-	cmp.b (a0),d5
+	cmp.b (a0),d5	; operand 1: inventory_item_slot_item_id at (a0)
 	beq.b abs_0_00012F76
 	addq.l #2,a0
 	dbf.w d7,abs_0_00012F6C
 abs_0_00012F76:
 	move.b d5,player_world_object_selected_item_id.l
-	move.b d6,(a0)
+	move.b d6,(a0)	; operand 2: inventory_item_slot_item_id at (a0)
 	movea.l world_object_shared_prefix_trade_offer_table_ptr(a5),a1
 	moveq.l #3,d7
 abs_0_00012F84:
-	cmp.b (a1),d6
+	cmp.b (a1),d6	; operand 1: npc_trade_offer_entry_item_id at (a1)
 	beq.b abs_0_00012F8E
 	addq.l #2,a1
 	dbf.w d7,abs_0_00012F84
 abs_0_00012F8E:
-	clr.b (a1)
-	move.b $0001(a1),$0001(a0)
+	clr.b (a1)	; operand 1: npc_trade_offer_entry_item_id at (a1)
+	move.b npc_trade_offer_entry_trade_threshold(a1),inventory_item_slot_trade_value(a0)
 	bclr.b #3,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w announce_item_trade
 	move.b d6,$0046(a5)
@@ -9199,14 +9199,14 @@ evaluate_npc_trade_offer:
 	cmp.b #$2,d0
 	bcs.b abs_0_00017C0A
 abs_0_00017C2A:
-	cmp.b (a2),d0
+	cmp.b (a2),d0	; operand 1: npc_trade_offer_entry_item_id at (a2)
 	beq.b abs_0_00017C36
 	addq.l #2,a2
 	dbf.w d7,abs_0_00017C2A
 	bra.b abs_0_00017C0A
     ; Matched offer requires unsigned threshold < NPC state. Counteroffers skip IDs <2, choose the smallest threshold-minus-value gap 1..127, and keep the first slot on ties.
 abs_0_00017C36:
-	move.b $0001(a2),d0
+	move.b npc_trade_offer_entry_trade_threshold(a2),d0
 	cmp.b world_object_shared_prefix_item_state(a5),d0
 	bcc.b abs_0_00017C46
 	bsr.b select_nearest_trade_offer
@@ -13580,7 +13580,8 @@ squash_player_initial_trade_offers:
 	dc.b $00	; trade_threshold
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-default_empty_item_slots:
+    ; Shared by inventory and offer pointers. Reset copies can alias this bank; unmatched searches reach +8/+9 beyond the eight-byte prefix. Initial zero contents do not prove immutability.
+shared_empty_inventory_trade_slots:
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -18639,10 +18640,10 @@ world_object_musician:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CD69	; context_message_ptr
 	dc.l abs_0_0005CD94	; interaction_message_ptr
-	dc.l $0001B2E0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B2E8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l musician_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l musician_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_musician_behavior_script	; behavior_script_ptr
 	dc.l world_object_musician_behavior_script	; initial_behavior_script_ptr
 	dc.l musician_positions_4870E_2	; position_descriptor_ptr
@@ -19874,10 +19875,10 @@ world_object_squash_player:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D178	; context_message_ptr
 	dc.l abs_0_0005D1A5	; interaction_message_ptr
-	dc.l $0001B2F0	; inventory_slots_ptr
-	dc.l $0001B390	; trade_offer_table_ptr
-	dc.l $0001B2F8	; initial_inventory_slots_ptr
-	dc.l $0001B398	; initial_trade_offer_table_ptr
+	dc.l squash_player_inventory_slots	; inventory_slots_ptr
+	dc.l squash_player_trade_offers	; trade_offer_table_ptr
+	dc.l squash_player_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l squash_player_initial_trade_offers	; initial_trade_offer_table_ptr
 	dc.l world_object_squash_player_behavior_script	; behavior_script_ptr
 	dc.l world_object_squash_player_behavior_script	; initial_behavior_script_ptr
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
@@ -20108,10 +20109,10 @@ world_object_kriptonite:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B2C0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B2C8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l kriptonite_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l kriptonite_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_kriptonite_behavior_script	; behavior_script_ptr
 	dc.l world_object_kriptonite_behavior_script	; initial_behavior_script_ptr
 	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
@@ -20627,10 +20628,10 @@ world_object_thief:
 	dc.l complete_thief_interaction	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l abs_0_0005CE38	; interaction_message_ptr
-	dc.l $0001B270	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B278	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l thief_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l thief_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_thief_behavior_script	; behavior_script_ptr
 	dc.l world_object_thief_behavior_script	; initial_behavior_script_ptr
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
@@ -20861,10 +20862,10 @@ world_object_priest:
 	dc.l complete_priest_interaction	; interaction_completion_callback
 	dc.l abs_0_0005D063	; context_message_ptr
 	dc.l abs_0_0005D07F	; interaction_message_ptr
-	dc.l $0001B290	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B298	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l priest_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l priest_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_priest_behavior_script	; behavior_script_ptr
 	dc.l world_object_priest_behavior_script	; initial_behavior_script_ptr
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
@@ -21102,10 +21103,10 @@ world_object_icelord:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B310	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B318	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l icelord_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l icelord_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_icelord_behavior_script	; behavior_script_ptr
 	dc.l world_object_icelord_behavior_script	; initial_behavior_script_ptr
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
@@ -21377,10 +21378,10 @@ world_object_hooligan:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D1F9	; context_message_ptr
 	dc.l abs_0_0005D220	; interaction_message_ptr
-	dc.l $0001B150	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B158	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l hooligan_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l hooligan_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_hooligan_behavior_script	; behavior_script_ptr
 	dc.l world_object_hooligan_behavior_script	; initial_behavior_script_ptr
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
@@ -21803,10 +21804,10 @@ world_object_entry_officer:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B160	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B168	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l entry_officer_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l entry_officer_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_entry_officer_behavior_script	; behavior_script_ptr
 	dc.l world_object_entry_officer_behavior_script	; initial_behavior_script_ptr
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
@@ -21975,10 +21976,10 @@ world_object_death_fly:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D040	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B200	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B208	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l death_fly_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l death_fly_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_death_fly_behavior_script	; behavior_script_ptr
 	dc.l world_object_death_fly_behavior_script	; initial_behavior_script_ptr
 	dc.l death_fly_positions_4A600_1	; position_descriptor_ptr
@@ -22073,10 +22074,10 @@ world_object_driffid:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D0CA	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B1F0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B1F8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l driffid_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l driffid_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_driffid_behavior_script	; behavior_script_ptr
 	dc.l world_object_driffid_behavior_script	; initial_behavior_script_ptr
 	dc.l driffid_positions_4A6E8_1	; position_descriptor_ptr
@@ -22207,10 +22208,10 @@ world_object_captain:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B0F0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B0F8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l captain_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l captain_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l captain_animation_bank	; position_descriptor_ptr
@@ -22265,10 +22266,10 @@ world_object_resource_officer:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B170	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B178	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l resource_officer_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l resource_officer_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l resource_officer_animation_bank	; position_descriptor_ptr
@@ -22323,10 +22324,10 @@ world_object_engineer:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B0E0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B0E8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l engineer_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l engineer_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l engineer_animation_bank	; position_descriptor_ptr
@@ -22381,10 +22382,10 @@ world_object_science_officer:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B1B0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B1B8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l science_officer_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l science_officer_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l science_officer_animation_bank	; position_descriptor_ptr
@@ -22439,10 +22440,10 @@ world_object_medic:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B1D0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B1D8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l medic_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l medic_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l medic_animation_bank	; position_descriptor_ptr
@@ -22489,10 +22490,10 @@ world_object_awol_officer:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B260	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B268	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l awol_officer_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l awol_officer_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l awol_officer_animation_bank	; position_descriptor_ptr
@@ -22547,10 +22548,10 @@ world_object_lieutenant_commander:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B2A0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B2A8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l lieutenant_commander_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l lieutenant_commander_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l lieutenant_commander_animation_bank	; position_descriptor_ptr
@@ -22632,10 +22633,10 @@ world_object_commander:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B2B0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B2B8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l commander_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l commander_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l $00000000	; behavior_script_ptr
 	dc.l $00000000	; initial_behavior_script_ptr
 	dc.l commander_animation_bank	; position_descriptor_ptr
@@ -22691,10 +22692,10 @@ world_object_menial_droid:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B300	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B308	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l menial_droid_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l menial_droid_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_menial_droid_behavior_script	; behavior_script_ptr
 	dc.l world_object_menial_droid_behavior_script	; initial_behavior_script_ptr
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
@@ -22850,10 +22851,10 @@ world_object_gardener:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CE5B	; context_message_ptr
 	dc.l abs_0_0005CE5B	; interaction_message_ptr
-	dc.l $0001B210	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B218	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l gardener_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l gardener_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_gardener_behavior_script	; behavior_script_ptr
 	dc.l world_object_gardener_behavior_script	; initial_behavior_script_ptr
 	dc.l gardener_positions_4AF7E_1	; position_descriptor_ptr
@@ -23044,10 +23045,10 @@ world_object_technician:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D138	; context_message_ptr
 	dc.l abs_0_0005D166	; interaction_message_ptr
-	dc.l $0001B220	; inventory_slots_ptr
-	dc.l $0001B360	; trade_offer_table_ptr
-	dc.l $0001B228	; initial_inventory_slots_ptr
-	dc.l $0001B368	; initial_trade_offer_table_ptr
+	dc.l technician_inventory_slots	; inventory_slots_ptr
+	dc.l technician_trade_offers	; trade_offer_table_ptr
+	dc.l technician_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l technician_initial_trade_offers	; initial_trade_offer_table_ptr
 	dc.l world_object_technician_behavior_script	; behavior_script_ptr
 	dc.l world_object_technician_behavior_script	; initial_behavior_script_ptr
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
@@ -23270,10 +23271,10 @@ world_object_robomechanic:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CDC4	; context_message_ptr
 	dc.l abs_0_0005CDEA	; interaction_message_ptr
-	dc.l $0001B230	; inventory_slots_ptr
-	dc.l $0001B370	; trade_offer_table_ptr
-	dc.l $0001B238	; initial_inventory_slots_ptr
-	dc.l $0001B378	; initial_trade_offer_table_ptr
+	dc.l robomechanic_inventory_slots	; inventory_slots_ptr
+	dc.l robomechanic_trade_offers	; trade_offer_table_ptr
+	dc.l robomechanic_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l robomechanic_initial_trade_offers	; initial_trade_offer_table_ptr
 	dc.l world_object_robomechanic_behavior_script	; behavior_script_ptr
 	dc.l world_object_robomechanic_behavior_script	; initial_behavior_script_ptr
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
@@ -23400,10 +23401,10 @@ world_object_doctor:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D1D6	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B1C0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B1C8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l doctor_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l doctor_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_doctor_behavior_script	; behavior_script_ptr
 	dc.l world_object_doctor_behavior_script	; initial_behavior_script_ptr
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
@@ -23633,10 +23634,10 @@ world_object_diabetic:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CF72	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B140	; inventory_slots_ptr
-	dc.l $0001B320	; trade_offer_table_ptr
-	dc.l $0001B148	; initial_inventory_slots_ptr
-	dc.l $0001B328	; initial_trade_offer_table_ptr
+	dc.l diabetic_inventory_slots	; inventory_slots_ptr
+	dc.l diabetic_trade_offers	; trade_offer_table_ptr
+	dc.l diabetic_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l diabetic_initial_trade_offers	; initial_trade_offer_table_ptr
 	dc.l world_object_diabetic_behavior_script	; behavior_script_ptr
 	dc.l world_object_diabetic_behavior_script	; initial_behavior_script_ptr
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
@@ -23720,10 +23721,10 @@ world_object_security_officer:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CE00	; context_message_ptr
 	dc.l abs_0_0005CE20	; interaction_message_ptr
-	dc.l $0001B130	; inventory_slots_ptr
-	dc.l $0001B330	; trade_offer_table_ptr
-	dc.l $0001B138	; initial_inventory_slots_ptr
-	dc.l $0001B338	; initial_trade_offer_table_ptr
+	dc.l security_officer_inventory_slots	; inventory_slots_ptr
+	dc.l security_officer_trade_offers	; trade_offer_table_ptr
+	dc.l security_officer_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l security_officer_initial_trade_offers	; initial_trade_offer_table_ptr
 	dc.l world_object_security_officer_behavior_script	; behavior_script_ptr
 	dc.l world_object_security_officer_behavior_script	; initial_behavior_script_ptr
 	dc.l security_officer_positions_4B882_2	; position_descriptor_ptr
@@ -23809,10 +23810,10 @@ world_object_bank_manager:
 	dc.l complete_bank_manager_interaction	; interaction_completion_callback
 	dc.l abs_0_0005D234	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B280	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B288	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l bank_manager_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l bank_manager_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_bank_manager_behavior_script	; behavior_script_ptr
 	dc.l world_object_bank_manager_behavior_script	; initial_behavior_script_ptr
 	dc.l bank_manager_positions_4B954_2	; position_descriptor_ptr
@@ -23885,10 +23886,10 @@ world_object_chemist:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CE84	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B1E0	; inventory_slots_ptr
-	dc.l $0001B340	; trade_offer_table_ptr
-	dc.l $0001B1E8	; initial_inventory_slots_ptr
-	dc.l $0001B348	; initial_trade_offer_table_ptr
+	dc.l chemist_inventory_slots	; inventory_slots_ptr
+	dc.l chemist_trade_offers	; trade_offer_table_ptr
+	dc.l chemist_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l chemist_initial_trade_offers	; initial_trade_offer_table_ptr
 	dc.l world_object_chemist_behavior_script	; behavior_script_ptr
 	dc.l world_object_chemist_behavior_script	; initial_behavior_script_ptr
 	dc.l chemist_animation_bank	; position_descriptor_ptr
@@ -23958,10 +23959,10 @@ world_object_pianist:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B100	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B108	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l pianist_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l pianist_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_pianist_behavior_script	; behavior_script_ptr
 	dc.l world_object_pianist_behavior_script	; initial_behavior_script_ptr
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
@@ -23992,10 +23993,10 @@ world_object_defence_controller:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B180	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B188	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l defence_controller_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l defence_controller_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_defence_controller_behavior_script	; behavior_script_ptr
 	dc.l world_object_defence_controller_behavior_script	; initial_behavior_script_ptr
 	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
@@ -24026,10 +24027,10 @@ world_object_wackobrain:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B190	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B198	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l wackobrain_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l wackobrain_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_wackobrain_behavior_script	; behavior_script_ptr
 	dc.l world_object_wackobrain_behavior_script	; initial_behavior_script_ptr
 	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
@@ -24060,10 +24061,10 @@ world_object_glass:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B1A0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B1A8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l glass_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l glass_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_glass_behavior_script	; behavior_script_ptr
 	dc.l world_object_glass_behavior_script	; initial_behavior_script_ptr
 	dc.l glass_position_descriptor	; position_descriptor_ptr
@@ -24094,10 +24095,10 @@ world_object_kwik_kleen:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B240	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B248	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l kwik_kleen_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l kwik_kleen_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_kwik_kleen_behavior_script	; behavior_script_ptr
 	dc.l world_object_kwik_kleen_behavior_script	; initial_behavior_script_ptr
 	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
@@ -24128,10 +24129,10 @@ world_object_flight_controller:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B110	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B118	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l flight_controller_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l flight_controller_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_flight_controller_behavior_script	; behavior_script_ptr
 	dc.l world_object_flight_controller_behavior_script	; initial_behavior_script_ptr
 	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
@@ -24721,10 +24722,10 @@ world_object_megabio_feed:
 	dc.l clear_security_checkpoint_audio_state	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B2D0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B2D8	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l megabio_feed_inventory_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l megabio_feed_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l world_object_megabio_feed_behavior_script	; behavior_script_ptr
 	dc.l world_object_megabio_feed_behavior_script	; initial_behavior_script_ptr
 	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
@@ -24869,10 +24870,10 @@ player_world_object:
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l $0001B3A0	; inventory_slots_ptr
-	dc.l $0001B3A0	; trade_offer_table_ptr
-	dc.l $0001B3A0	; initial_inventory_slots_ptr
-	dc.l $0001B3A0	; initial_trade_offer_table_ptr
+	dc.l shared_empty_inventory_trade_slots	; inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_inventory_slots_ptr
+	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
 	dc.l player_movement_script_loop	; behavior_script_ptr
 	dc.l player_movement_script_loop	; initial_behavior_script_ptr
 	dc.l player_position_descriptor	; position_descriptor_ptr
