@@ -2894,9 +2894,14 @@ static uint8_t resolve_runtime_only_pointer_expression(const M68kRenderLookup *l
 }
 
 static uint8_t resolve_mapped_source_pointer_expression(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start,
     uint32_t value, M68kRenderPlannedExpression *expression) {
   uint32_t section = 0U, offset = 0U, logical = 0U;
+  const M68kDecodeSectionIR *target_section = NULL;
+  const uint8_t *target_accepted_start = NULL;
   const M68kAnalysisStructuredDataItem *owner = NULL;
+  uint32_t owner_start = 0U, owner_size = 0U;
+  size_t decode_index;
   uint16_t index;
   int resolution = m68k_analysis_policy_resolve_pointer_address(lookup->policy, value, &section, &offset);
   expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_NUMERIC;
@@ -2908,28 +2913,52 @@ static uint8_t resolve_mapped_source_pointer_expression(const M68kRenderLookup *
     snprintf(expression->reason, sizeof(expression->reason), "unmapped_source");
     return expression->outcome;
   }
+  for (decode_index = 0U; decode != NULL && accepted_start != NULL && decode_index < decode->section_count; ++decode_index) {
+    if (decode->sections[decode_index].section_index == section) {
+      target_section = &decode->sections[decode_index];
+      target_accepted_start = accepted_start[decode_index];
+      break;
+    }
+  }
   for (index = 0U; lookup->policy != NULL && index < lookup->policy->structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *candidate = &lookup->policy->structured_data_items[index];
+    uint32_t candidate_start = candidate->has_source_owner_span ? candidate->source_owner_start : candidate->offset;
+    uint32_t candidate_size = candidate->has_source_owner_span ? candidate->source_owner_size : candidate->size;
     if ((candidate->has_section_index && candidate->section_index != section) || candidate->label[0] == '\0' ||
-        candidate->table_conflicted || candidate->size == 0U || offset < candidate->offset ||
-        offset - candidate->offset >= candidate->size) continue;
-    if (owner == NULL || candidate->size < owner->size) owner = candidate;
+        candidate->table_conflicted || candidate->size == 0U || candidate_size < candidate->size ||
+        candidate_start != candidate->offset || offset < candidate_start ||
+        offset - candidate_start >= candidate_size || target_section == NULL ||
+        candidate_start > target_section->size || candidate_size > target_section->size - candidate_start ||
+        !render_asm_should_emit_label_statement(NULL, lookup, target_section, target_accepted_start,
+          section, candidate->offset)) continue;
+    if (owner == NULL || candidate_size < owner_size) {
+      owner = candidate;
+      owner_start = candidate_start;
+      owner_size = candidate_size;
+    }
   }
   expression->target_section_index = section;
   expression->target_offset = offset;
-  if (owner != NULL) {
-    uint32_t delta = offset - owner->offset;
-    if (delta > INT32_MAX || !lookup_source_logical_address(lookup, section, owner->offset, &logical) ||
+  if (target_section != NULL && lookup_label_has_explicit_name(lookup, section, offset) &&
+      render_asm_should_emit_label_statement(NULL, lookup, target_section, target_accepted_start, section, offset) &&
+      lookup_source_logical_address(lookup, section, offset, &logical) && logical == value) {
+    (void)format_rendered_asm_label_with_generation(lookup, expression->target_symbol,
+      sizeof(expression->target_symbol), section, offset);
+    snprintf(expression->expression, sizeof(expression->expression), "%s", expression->target_symbol);
+  } else if (owner != NULL) {
+    uint32_t delta = offset - owner_start;
+    if (delta > INT32_MAX || !lookup_source_logical_address(lookup, section, owner_start, &logical) ||
         (uint64_t)logical + delta != value) {
       snprintf(expression->reason, sizeof(expression->reason), "encoded_value_mismatch");
       return expression->outcome;
     }
     (void)format_rendered_asm_label_with_generation(lookup, expression->target_symbol,
-      sizeof(expression->target_symbol), section, owner->offset);
+      sizeof(expression->target_symbol), section, owner_start);
     expression->addend = (int32_t)delta;
     if (delta == 0U) snprintf(expression->expression, sizeof(expression->expression), "%s", expression->target_symbol);
     else snprintf(expression->expression, sizeof(expression->expression), "%s+$%X", expression->target_symbol, (unsigned)delta);
-  } else if (lookup_has_renderable_label(lookup, section, offset) &&
+  } else if (target_section != NULL &&
+      render_asm_should_emit_label_statement(NULL, lookup, target_section, target_accepted_start, section, offset) &&
       lookup_source_logical_address(lookup, section, offset, &logical) && logical == value) {
     (void)format_rendered_asm_label_with_generation(lookup, expression->target_symbol,
       sizeof(expression->target_symbol), section, offset);
@@ -2951,7 +2980,8 @@ static uint8_t resolve_mapped_source_pointer_expression(const M68kRenderLookup *
 
 static uint8_t resolve_rendered_data_pointer_expression(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const M68kAnalysisStructuredDataItem *item, uint32_t offset,
-    uint8_t allow_in_section_source_offset, M68kRenderPlannedExpression *out_expression) {
+    uint8_t allow_in_section_source_offset, const M68kDecodeIR *decode, uint8_t *const *accepted_start,
+    M68kRenderPlannedExpression *out_expression) {
   uint32_t value;
   uint32_t target_section_index = 0U;
   uint32_t target_offset = 0U;
@@ -2980,7 +3010,7 @@ static uint8_t resolve_rendered_data_pointer_expression(const M68kRenderLookup *
   if (item != NULL && item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY)
     return resolve_runtime_only_pointer_expression(lookup, item, value, out_expression);
   if (item != NULL && item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE)
-    return resolve_mapped_source_pointer_expression(lookup, value, out_expression);
+    return resolve_mapped_source_pointer_expression(lookup, decode, accepted_start, value, out_expression);
   if (item != NULL && item->is_pointer != 0U && item->size == 4U && item->has_target != 0U &&
       item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
     target_section_index = item->target_section;
@@ -4916,14 +4946,16 @@ static int plan_rendered_structured_pointer_expressions(M68kRenderLookup *lookup
           for (cursor = 0U; cursor + 4U <= item->size; cursor += 4U) {
             M68kRenderPlannedExpression expression;
             if (lookup_relocation_at(lookup, section->section_index, offset + cursor) != NULL) continue;
-            if (resolve_rendered_data_pointer_expression(lookup, section, item, offset + cursor, 0U, &expression) ==
+            if (resolve_rendered_data_pointer_expression(lookup, section, item, offset + cursor, 0U,
+                decode, accepted_start, &expression) ==
                 M68K_RENDER_PLANNED_EXPRESSION_INVALID) return -1;
             if (m68k_render_plan_append_expression(plan, &expression) != 0) return -1;
           }
         } else if (structured_data_item_is_absolute_long_lookup_table(item)) {
           for (cursor = 0U; cursor + 4U <= item->size; cursor += 4U) {
             M68kRenderPlannedExpression expression;
-            if (resolve_rendered_data_pointer_expression(lookup, section, item, offset + cursor, 1U, &expression) ==
+            if (resolve_rendered_data_pointer_expression(lookup, section, item, offset + cursor, 1U,
+                decode, accepted_start, &expression) ==
                 M68K_RENDER_PLANNED_EXPRESSION_INVALID) return -1;
             if (m68k_render_plan_append_expression(plan, &expression) != 0) return -1;
           }

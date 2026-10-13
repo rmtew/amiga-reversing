@@ -14,7 +14,7 @@
         "size": 5102,
         "source_offset": 322270,
         "source_row_count": 319,
-        "source_row_id": 37535,
+        "source_row_id": 37986,
         "source_section_index": 0
       },
       {
@@ -29,7 +29,7 @@
         "size": 4634,
         "source_offset": 330532,
         "source_row_count": 290,
-        "source_row_id": 38061,
+        "source_row_id": 38512,
         "source_section_index": 0
       },
       {
@@ -44,7 +44,7 @@
         "size": 5500,
         "source_offset": 335172,
         "source_row_count": 347,
-        "source_row_id": 38356,
+        "source_row_id": 38807,
         "source_section_index": 0
       },
       {
@@ -59,7 +59,7 @@
         "size": 5300,
         "source_offset": 340678,
         "source_row_count": 332,
-        "source_row_id": 38708,
+        "source_row_id": 39159,
         "source_section_index": 0
       },
       {
@@ -74,7 +74,7 @@
         "size": 2000,
         "source_offset": 345984,
         "source_row_count": 125,
-        "source_row_id": 39045,
+        "source_row_id": 39496,
         "source_section_index": 0
       },
       {
@@ -1088,11 +1088,11 @@
       {
         "kind": "source",
         "path": "pandora_3e1ee0f1_bk_00_000000e8.s",
-        "sha256": "00fa1b127c413024e2a953f8bb4b0624a1baa18a048bb02672be726a502781b4",
-        "size": 1246942
+        "sha256": "555b2d5b3929aa902f9717389ccc066cc910fb4a474af01d364459ce74dd550b",
+        "size": 1275512
       }
     ],
-    "metadata_hash": "5499018afd644af4d5b28fdb829d0f917058f9fcd1b7b6351c95a407fe0996fe",
+    "metadata_hash": "114f41e7f592d97f8bcc354c914564c45cf447383bdfd7012329162f82a944d7",
     "policy": {
       "id": "native-evidenced-opaque-v1",
       "minimum_asset_size": 256
@@ -1102,5 +1102,5 @@
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "ecf9a3fa608669714b8b751a2d7be36588eeb1e5503c36046e5971efa0a6cfb4"
+  "sha256": "6b2fe14ec9ad13bc476071ca37148cfd0b35c5bcc36c103e392edf8c9be89fa4"
 }

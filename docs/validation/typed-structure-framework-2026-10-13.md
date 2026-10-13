@@ -1,5 +1,8 @@
 # Typed structures, pointer domains, and optional source macros
 
+The subsequent use of this framework for 548 animation fields is documented in
+[the animation sequence restoration](animation-frame-sequences-2026-10-13.md).
+
 ## Baseline and problem
 
 The Pandora audit at `5845c83b` inspected 439 bound layouts and 33 custom

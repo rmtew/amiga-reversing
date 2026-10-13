@@ -7663,6 +7663,8 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   uint32_t addr = 0U;
   uint32_t end = 0U;
   uint32_t hunk = 0U;
+  uint32_t source_owner_start = 0U, source_owner_size = 0U;
+  int has_source_owner_start = 0, has_source_owner_size = 0;
   uint16_t item_index;
   int has_addr = 0;
   int has_end = 0;
@@ -7701,6 +7703,8 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
       !json_number_field_local(object_start, object_end, "end", &end, &has_end) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_number_field_local(object_start, object_end, "source_owner_start", &source_owner_start, &has_source_owner_start) ||
+      !json_number_field_local(object_start, object_end, "source_owner_size", &source_owner_size, &has_source_owner_size) ||
       !json_optional_string_field_local(object_start, object_end, "type", entity_type, sizeof(entity_type)) ||
       !json_optional_string_field_local(object_start, object_end, "subtype", subtype, sizeof(subtype)) ||
       !json_optional_string_field_local(object_start, object_end, "unit", unit, sizeof(unit)) ||
@@ -7720,7 +7724,12 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
         sizeof(value_domain))) {
     return 0;
   }
-  if (!has_addr || !has_end || end <= addr) return 1;
+  if (!has_addr || !has_end || end <= addr) return (has_source_owner_start || has_source_owner_size) ? 0 : 1;
+  if (has_source_owner_start || has_source_owner_size) {
+    if (!has_source_owner_start || !has_source_owner_size || name[0] == '\0' || source_owner_start != addr ||
+        source_owner_size == 0U || source_owner_size < end - addr ||
+        (uint64_t)addr + source_owner_size > UINT32_MAX) return 0;
+  }
   classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit, pointer_struct, value_kind);
   if (classification.type_id != METADATA_SEEDED_ENTITY_TYPE_DATA) return 1;
   snprintf(policy_comment, sizeof(policy_comment), "%s", comment);
@@ -7737,6 +7746,11 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
       &policy->structured_data_items[item_index].pointer_address_domain) ||
       !copy_policy_text(policy->structured_data_items[item_index].pointer_symbol_group,
         sizeof(policy->structured_data_items[item_index].pointer_symbol_group), pointer_group)) return 0;
+  if (has_source_owner_start) {
+    policy->structured_data_items[item_index].has_source_owner_span = 1U;
+    policy->structured_data_items[item_index].source_owner_start = source_owner_start;
+    policy->structured_data_items[item_index].source_owner_size = source_owner_size;
+  }
   if (name[0] != '\0' && !policy_add_named_label_local(policy, has_hunk ? hunk : 0U, addr, name)) return 0;
   return policy_set_structured_data_item_kb_metadata_local(policy, item_index, field_type[0] != '\0' ? field_type : unit,
     c_type, pointer_struct, value_domain[0] != '\0' ? value_domain : encoding, NULL, 0U, 0);
@@ -10078,6 +10092,9 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
           (unsigned)item->size) != 0)
       return -1;
     if (json_builder_append_json_string(builder, structured_data_kind_name_local(item->kind)) != 0) return -1;
+    if (item->has_source_owner_span && json_builder_appendf(builder,
+        ",\"source_owner_start\":%u,\"source_owner_size\":%u",
+        (unsigned)item->source_owner_start, (unsigned)item->source_owner_size) != 0) return -1;
     if (json_builder_append(builder, ",\"comment\":") != 0) return -1;
     if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_COMMENT) != 0)
       return -1;

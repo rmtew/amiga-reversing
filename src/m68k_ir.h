@@ -497,6 +497,10 @@ typedef struct M68kAnalysisStructuredDataItem {
   char comment[97];
   uint8_t pointer_address_domain;
   char pointer_symbol_group[64];
+  /* Exact declared label-owner extent; does not widen this leaf's data range. */
+  uint8_t has_source_owner_span;
+  uint32_t source_owner_start;
+  uint32_t source_owner_size;
 } M68kAnalysisStructuredDataItem;
 
 typedef enum M68kAnalysisStructuredDataPlatformKind {

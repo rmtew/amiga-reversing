@@ -1356,6 +1356,14 @@ def _data_block_bound_struct_entities(
         if gap is None:
             return ()
         entities.append(gap)
+    # Retain the canonical bound element's public label extent on its first
+    # leaf.  Its render width remains the leaf width: no overlapping data item
+    # is introduced and no containing owner is inferred from label spelling.
+    owner_start, owner_end = _data_block_element_span(layout, element)
+    if (entities and base_label and entities[0].name == base_label
+            and entities[0].addr == owner_start and owner_end <= layout.source_end):
+        entities[0] = replace(entities[0], source_owner_start=owner_start,
+                              source_owner_size=owner_end - owner_start)
     return tuple(entities)
 
 

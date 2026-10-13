@@ -2135,7 +2135,7 @@ world_object_thief_behavior_script:
 	dc.w $0214	; world_y
 thief_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059B00	; state_node_ptr
+	dc.l thief_nodes_4995C_6	; state_node_ptr
 thief_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -2194,7 +2194,7 @@ thief_script_command_004E:
 	dc.w $000A	; operand_word
 thief_script_command_0052:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059ACE	; state_node_ptr
+	dc.l thief_nodes_4995C_4	; state_node_ptr
 thief_script_command_0058:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 thief_script_command_005A:
@@ -2202,7 +2202,7 @@ thief_script_command_005A:
 	dc.w $0032	; operand_word
 thief_script_command_005E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059ACE	; state_node_ptr
+	dc.l thief_nodes_4995C_4	; state_node_ptr
 thief_script_command_0064:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 thief_script_command_0064_operand_word:
@@ -2401,7 +2401,7 @@ world_object_squash_player_behavior_script:
 	dc.w $0084	; world_y
 squash_player_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005940C	; state_node_ptr
+	dc.l squash_player_nodes_49268_7	; state_node_ptr
 squash_player_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -2430,7 +2430,7 @@ squash_player_script_command_0024_reload_count:
 	dc.w squash_player_script_command_001C-squash_player_script_command_0024	; branch_displacement
 squash_player_script_command_002C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000593DA	; state_node_ptr
+	dc.l squash_player_nodes_49268_5	; state_node_ptr
 squash_player_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 squash_player_script_command_0032_operand_word:
@@ -2449,7 +2449,7 @@ squash_player_script_command_003E_reload_count:
 	dc.w squash_player_script_command_0036-squash_player_script_command_003E	; branch_displacement
 squash_player_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005940C	; state_node_ptr
+	dc.l squash_player_nodes_49268_7	; state_node_ptr
 squash_player_script_command_004C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 squash_player_script_command_004C_operand_word:
@@ -2468,7 +2468,7 @@ squash_player_script_command_0058_reload_count:
 	dc.w squash_player_script_command_0050-squash_player_script_command_0058	; branch_displacement
 squash_player_script_command_0060:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000593DA	; state_node_ptr
+	dc.l squash_player_nodes_49268_5	; state_node_ptr
 squash_player_script_command_0066:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 squash_player_script_command_0066_operand_word:
@@ -2487,7 +2487,7 @@ squash_player_script_command_0072_reload_count:
 	dc.w squash_player_script_command_006A-squash_player_script_command_0072	; branch_displacement
 squash_player_script_command_007A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005940C	; state_node_ptr
+	dc.l squash_player_nodes_49268_7	; state_node_ptr
 squash_player_script_command_0080:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 squash_player_script_command_0080_operand_word:
@@ -2506,7 +2506,7 @@ squash_player_script_command_008C_reload_count:
 	dc.w squash_player_script_command_0084-squash_player_script_command_008C	; branch_displacement
 squash_player_script_command_0094:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000593DA	; state_node_ptr
+	dc.l squash_player_nodes_49268_5	; state_node_ptr
 squash_player_script_command_009A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 squash_player_script_command_009A_operand_word:
@@ -2532,7 +2532,7 @@ world_object_kriptonite_behavior_script:
 	dc.w $00F4	; world_y
 kriptonite_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -2554,13 +2554,13 @@ kriptonite_script_command_001C_reload_count:
 	dc.w kriptonite_script_command_0014-kriptonite_script_command_001C	; branch_displacement
 kriptonite_script_command_0024:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005980A	; state_node_ptr
+	dc.l kriptonite_nodes_49492_6	; state_node_ptr
 kriptonite_script_command_002A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 kriptonite_script_command_002E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000597D8	; state_node_ptr
+	dc.l kriptonite_nodes_49492_4	; state_node_ptr
 kriptonite_script_command_0034:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0034_operand_word:
@@ -2579,7 +2579,7 @@ kriptonite_script_command_0040_reload_count:
 	dc.w kriptonite_script_command_0038-kriptonite_script_command_0040	; branch_displacement
 kriptonite_script_command_0048:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_004E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_004E_operand_word:
@@ -2598,13 +2598,13 @@ kriptonite_script_command_005A_reload_count:
 	dc.w kriptonite_script_command_0052-kriptonite_script_command_005A	; branch_displacement
 kriptonite_script_command_0062:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005980A	; state_node_ptr
+	dc.l kriptonite_nodes_49492_6	; state_node_ptr
 kriptonite_script_command_0068:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 kriptonite_script_command_006C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000597D8	; state_node_ptr
+	dc.l kriptonite_nodes_49492_4	; state_node_ptr
 kriptonite_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0072_operand_word:
@@ -2623,7 +2623,7 @@ kriptonite_script_command_007E_reload_count:
 	dc.w kriptonite_script_command_0076-kriptonite_script_command_007E	; branch_displacement
 kriptonite_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_008C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_008C_operand_word:
@@ -2642,7 +2642,7 @@ kriptonite_script_command_0098_reload_count:
 	dc.w kriptonite_script_command_0090-kriptonite_script_command_0098	; branch_displacement
 kriptonite_script_command_00A0:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005982C	; state_node_ptr
+	dc.l kriptonite_nodes_49492_8	; state_node_ptr
 kriptonite_script_command_00A6:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_00A6_operand_word:
@@ -2661,7 +2661,7 @@ kriptonite_script_command_00B2_reload_count:
 	dc.w kriptonite_script_command_00AA-kriptonite_script_command_00B2	; branch_displacement
 kriptonite_script_command_00BA:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_00C0:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_00C0_operand_word:
@@ -2680,13 +2680,13 @@ kriptonite_script_command_00CC_reload_count:
 	dc.w kriptonite_script_command_00C4-kriptonite_script_command_00CC	; branch_displacement
 kriptonite_script_command_00D4:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005980A	; state_node_ptr
+	dc.l kriptonite_nodes_49492_6	; state_node_ptr
 kriptonite_script_command_00DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
 kriptonite_script_command_00DE:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005982C	; state_node_ptr
+	dc.l kriptonite_nodes_49492_8	; state_node_ptr
 kriptonite_script_command_00E4:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_00E4_operand_word:
@@ -2705,7 +2705,7 @@ kriptonite_script_command_00F0_reload_count:
 	dc.w kriptonite_script_command_00E8-kriptonite_script_command_00F0	; branch_displacement
 kriptonite_script_command_00F8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_00FE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_00FE_operand_word:
@@ -2724,13 +2724,13 @@ kriptonite_script_command_010A_reload_count:
 	dc.w kriptonite_script_command_0102-kriptonite_script_command_010A	; branch_displacement
 kriptonite_script_command_0112:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005980A	; state_node_ptr
+	dc.l kriptonite_nodes_49492_6	; state_node_ptr
 kriptonite_script_command_0118:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 kriptonite_script_command_011C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059890	; state_node_ptr
+	dc.l kriptonite_nodes_49492_12	; state_node_ptr
 kriptonite_script_command_0122:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0122_operand_word:
@@ -2749,7 +2749,7 @@ kriptonite_script_command_012E_reload_count:
 	dc.w kriptonite_script_command_0126-kriptonite_script_command_012E	; branch_displacement
 kriptonite_script_command_0136:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000597D8	; state_node_ptr
+	dc.l kriptonite_nodes_49492_4	; state_node_ptr
 kriptonite_script_command_013C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_013C_operand_word:
@@ -2768,7 +2768,7 @@ kriptonite_script_command_0148_reload_count:
 	dc.w kriptonite_script_command_0140-kriptonite_script_command_0148	; branch_displacement
 kriptonite_script_command_0150:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059890	; state_node_ptr
+	dc.l kriptonite_nodes_49492_12	; state_node_ptr
 kriptonite_script_command_0156:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0156_operand_word:
@@ -2787,7 +2787,7 @@ kriptonite_script_command_0162_reload_count:
 	dc.w kriptonite_script_command_015A-kriptonite_script_command_0162	; branch_displacement
 kriptonite_script_command_016A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005982C	; state_node_ptr
+	dc.l kriptonite_nodes_49492_8	; state_node_ptr
 kriptonite_script_command_0170:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0170_operand_word:
@@ -2806,13 +2806,13 @@ kriptonite_script_command_017C_reload_count:
 	dc.w kriptonite_script_command_0174-kriptonite_script_command_017C	; branch_displacement
 kriptonite_script_command_0184:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005980A	; state_node_ptr
+	dc.l kriptonite_nodes_49492_6	; state_node_ptr
 kriptonite_script_command_018A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 kriptonite_script_command_018E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_0194:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0194_operand_word:
@@ -2831,13 +2831,13 @@ kriptonite_script_command_01A0_reload_count:
 	dc.w kriptonite_script_command_0198-kriptonite_script_command_01A0	; branch_displacement
 kriptonite_script_command_01A8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005980A	; state_node_ptr
+	dc.l kriptonite_nodes_49492_6	; state_node_ptr
 kriptonite_script_command_01AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 kriptonite_script_command_01B2:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_01B8:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_01B8_operand_word:
@@ -2856,7 +2856,7 @@ kriptonite_script_command_01C4_reload_count:
 	dc.w kriptonite_script_command_01BC-kriptonite_script_command_01C4	; branch_displacement
 kriptonite_script_command_01CC:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000597D8	; state_node_ptr
+	dc.l kriptonite_nodes_49492_4	; state_node_ptr
 kriptonite_script_command_01D2:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_01D2_operand_word:
@@ -2875,7 +2875,7 @@ kriptonite_script_command_01DE_reload_count:
 	dc.w kriptonite_script_command_01D6-kriptonite_script_command_01DE	; branch_displacement
 kriptonite_script_command_01E6:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059890	; state_node_ptr
+	dc.l kriptonite_nodes_49492_12	; state_node_ptr
 kriptonite_script_command_01EC:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_01EC_operand_word:
@@ -2894,7 +2894,7 @@ kriptonite_script_command_01F8_reload_count:
 	dc.w kriptonite_script_command_01F0-kriptonite_script_command_01F8	; branch_displacement
 kriptonite_script_command_0200:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005982C	; state_node_ptr
+	dc.l kriptonite_nodes_49492_8	; state_node_ptr
 kriptonite_script_command_0206:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0206_operand_word:
@@ -2913,7 +2913,7 @@ kriptonite_script_command_0212_reload_count:
 	dc.w kriptonite_script_command_020A-kriptonite_script_command_0212	; branch_displacement
 kriptonite_script_command_021A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005985E	; state_node_ptr
+	dc.l kriptonite_nodes_49492_10	; state_node_ptr
 kriptonite_script_command_0220:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0220_operand_word:
@@ -2932,13 +2932,13 @@ kriptonite_script_command_022C_reload_count:
 	dc.w kriptonite_script_command_0224-kriptonite_script_command_022C	; branch_displacement
 kriptonite_script_command_0234:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005980A	; state_node_ptr
+	dc.l kriptonite_nodes_49492_6	; state_node_ptr
 kriptonite_script_command_023A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 kriptonite_script_command_023E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005982C	; state_node_ptr
+	dc.l kriptonite_nodes_49492_8	; state_node_ptr
 kriptonite_script_command_0244:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0244_operand_word:
@@ -2957,7 +2957,7 @@ kriptonite_script_command_0250_reload_count:
 	dc.w kriptonite_script_command_0248-kriptonite_script_command_0250	; branch_displacement
 kriptonite_script_command_0258:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059890	; state_node_ptr
+	dc.l kriptonite_nodes_49492_12	; state_node_ptr
 kriptonite_script_command_025E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_025E_operand_word:
@@ -2976,7 +2976,7 @@ kriptonite_script_command_026A_reload_count:
 	dc.w kriptonite_script_command_0262-kriptonite_script_command_026A	; branch_displacement
 kriptonite_script_command_0272:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000597D8	; state_node_ptr
+	dc.l kriptonite_nodes_49492_4	; state_node_ptr
 kriptonite_script_command_0278:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0278_operand_word:
@@ -2995,7 +2995,7 @@ kriptonite_script_command_0284_reload_count:
 	dc.w kriptonite_script_command_027C-kriptonite_script_command_0284	; branch_displacement
 kriptonite_script_command_028C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059890	; state_node_ptr
+	dc.l kriptonite_nodes_49492_12	; state_node_ptr
 kriptonite_script_command_0292:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kriptonite_script_command_0292_operand_word:
@@ -3021,8 +3021,8 @@ world_object_glass_behavior_script:
 	dc.w $05D4	; world_y
 glass_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C166	; state_node_ptr
-	dc.l $0005C0CA	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
 glass_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -3044,8 +3044,8 @@ glass_script_command_0020_reload_count:
 	dc.w glass_script_command_0018-glass_script_command_0020	; branch_displacement
 glass_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C166	; state_node_ptr
-	dc.l $0005C0A6	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
 glass_script_command_0032:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
@@ -3102,15 +3102,15 @@ glass_script_command_0072:
 	dc.w $0032	; operand_word
 glass_script_command_0076:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C166	; state_node_ptr
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 glass_script_command_0080:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 glass_script_command_0084:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C166	; state_node_ptr
-	dc.l $0005C0B2	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
 glass_script_command_008E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 glass_script_command_008E_operand_word:
@@ -3161,8 +3161,8 @@ glass_script_command_00C2_reload_count:
 	dc.w glass_script_command_00BA-glass_script_command_00C2	; branch_displacement
 glass_script_command_00CA:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C166	; state_node_ptr
-	dc.l $0005C0D6	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
 glass_script_command_00D4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
@@ -3184,8 +3184,8 @@ glass_script_command_00E4_reload_count:
 	dc.w glass_script_command_00DC-glass_script_command_00E4	; branch_displacement
 glass_script_command_00EC:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C166	; state_node_ptr
-	dc.l $0005C0B2	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
 glass_script_command_00F6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
@@ -3198,8 +3198,8 @@ world_object_kwik_kleen_behavior_script:
 	dc.w $0694	; world_y
 kwik_kleen_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C18A	; state_node_ptr
-	dc.l $0005C0A6	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
 kwik_kleen_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -3221,8 +3221,8 @@ kwik_kleen_script_command_0020_reload_count:
 	dc.w kwik_kleen_script_command_0018-kwik_kleen_script_command_0020	; branch_displacement
 kwik_kleen_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C18A	; state_node_ptr
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 kwik_kleen_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kwik_kleen_script_command_0032_operand_word:
@@ -3241,8 +3241,8 @@ kwik_kleen_script_command_003E_reload_count:
 	dc.w kwik_kleen_script_command_0036-kwik_kleen_script_command_003E	; branch_displacement
 kwik_kleen_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C18A	; state_node_ptr
-	dc.l $0005C0B2	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
 kwik_kleen_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kwik_kleen_script_command_0050_operand_word:
@@ -3261,8 +3261,8 @@ kwik_kleen_script_command_005C_reload_count:
 	dc.w kwik_kleen_script_command_0054-kwik_kleen_script_command_005C	; branch_displacement
 kwik_kleen_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C18A	; state_node_ptr
-	dc.l $0005C0CA	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
 kwik_kleen_script_command_006E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 kwik_kleen_script_command_006E_operand_word:
@@ -3288,7 +3288,7 @@ world_object_technician_behavior_script:
 	dc.w $0764	; world_y
 technician_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005B36C	; state_node_ptr
+	dc.l technician_nodes_4B1DA_6	; state_node_ptr
 technician_script_command_000C:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 technician_script_command_000E:
@@ -3312,7 +3312,7 @@ technician_script_command_0020:
 	dc.w $FFF8	; branch_displacement
 technician_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005B33A	; state_node_ptr
+	dc.l technician_nodes_4B1DA_4	; state_node_ptr
 technician_script_command_002E:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 technician_script_command_0030:
@@ -3510,7 +3510,7 @@ world_object_hooligan_behavior_script:
 	dc.w $02A4	; world_y
 hooligan_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A30E	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_4	; state_node_ptr
 hooligan_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -3532,7 +3532,7 @@ hooligan_script_command_001C_reload_count:
 	dc.w hooligan_script_command_0014-hooligan_script_command_001C	; branch_displacement
 hooligan_script_command_0024:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A36A	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_8	; state_node_ptr
 hooligan_script_command_002A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_002A_operand_word:
@@ -3551,7 +3551,7 @@ hooligan_script_command_0036_reload_count:
 	dc.w hooligan_script_command_002E-hooligan_script_command_0036	; branch_displacement
 hooligan_script_command_003E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A33C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_6	; state_node_ptr
 hooligan_script_command_0044:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0044_operand_word:
@@ -3570,7 +3570,7 @@ hooligan_script_command_0050_reload_count:
 	dc.w hooligan_script_command_0048-hooligan_script_command_0050	; branch_displacement
 hooligan_script_command_0058:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A36A	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_8	; state_node_ptr
 hooligan_script_command_005E:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_0060:
@@ -3580,7 +3580,7 @@ hooligan_script_command_0064:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_0066:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A33C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_6	; state_node_ptr
 hooligan_script_command_006C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_006C_operand_word:
@@ -3599,7 +3599,7 @@ hooligan_script_command_0078_reload_count:
 	dc.w hooligan_script_command_0070-hooligan_script_command_0078	; branch_displacement
 hooligan_script_command_0080:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A39C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
 hooligan_script_command_0086:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0086_operand_word:
@@ -3618,7 +3618,7 @@ hooligan_script_command_0092_reload_count:
 	dc.w hooligan_script_command_008A-hooligan_script_command_0092	; branch_displacement
 hooligan_script_command_009A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A33C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_6	; state_node_ptr
 hooligan_script_command_00A0:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_00A0_operand_word:
@@ -3644,7 +3644,7 @@ hooligan_script_command_00BA:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_00BC:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A39C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
 hooligan_script_command_00C2:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_00C2_operand_word:
@@ -3686,13 +3686,13 @@ hooligan_script_command_00F0:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_00F2:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A3CE	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_00F8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0014	; operand_word
 hooligan_script_command_00FC:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A36A	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_8	; state_node_ptr
 hooligan_script_command_0102:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0102_operand_word:
@@ -3711,7 +3711,7 @@ hooligan_script_command_010E_reload_count:
 	dc.w hooligan_script_command_0106-hooligan_script_command_010E	; branch_displacement
 hooligan_script_command_0116:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A30E	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_4	; state_node_ptr
 hooligan_script_command_011C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_011C_operand_word:
@@ -3730,7 +3730,7 @@ hooligan_script_command_0128_reload_count:
 	dc.w hooligan_script_command_0120-hooligan_script_command_0128	; branch_displacement
 hooligan_script_command_0130:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A39C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
 hooligan_script_command_0136:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0136_operand_word:
@@ -3749,7 +3749,7 @@ hooligan_script_command_0142_reload_count:
 	dc.w hooligan_script_command_013A-hooligan_script_command_0142	; branch_displacement
 hooligan_script_command_014A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A30E	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_4	; state_node_ptr
 hooligan_script_command_0150:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0150_operand_word:
@@ -3768,7 +3768,7 @@ hooligan_script_command_015C_reload_count:
 	dc.w hooligan_script_command_0154-hooligan_script_command_015C	; branch_displacement
 hooligan_script_command_0164:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A36A	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_8	; state_node_ptr
 hooligan_script_command_016A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_016A_operand_word:
@@ -3787,7 +3787,7 @@ hooligan_script_command_0176_reload_count:
 	dc.w hooligan_script_command_016E-hooligan_script_command_0176	; branch_displacement
 hooligan_script_command_017E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A30E	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_4	; state_node_ptr
 hooligan_script_command_0184:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0184_operand_word:
@@ -3806,7 +3806,7 @@ hooligan_script_command_0190_reload_count:
 	dc.w hooligan_script_command_0188-hooligan_script_command_0190	; branch_displacement
 hooligan_script_command_0198:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A39C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
 hooligan_script_command_019E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_019E_operand_word:
@@ -3825,7 +3825,7 @@ hooligan_script_command_01AA_reload_count:
 	dc.w hooligan_script_command_01A2-hooligan_script_command_01AA	; branch_displacement
 hooligan_script_command_01B2:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A33C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_6	; state_node_ptr
 hooligan_script_command_01B8:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_01B8_operand_word:
@@ -3844,7 +3844,7 @@ hooligan_script_command_01C4_reload_count:
 	dc.w hooligan_script_command_01BC-hooligan_script_command_01C4	; branch_displacement
 hooligan_script_command_01CC:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A39C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
 hooligan_script_command_01D2:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_01D2_operand_word:
@@ -3870,25 +3870,25 @@ hooligan_script_command_01EC:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_01EE:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A3CE	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_01F4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $000F	; operand_word
 hooligan_script_command_01F8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A3CE	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_01FE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $000A	; operand_word
 hooligan_script_command_0202:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A3CE	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_0208:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $000A	; operand_word
 hooligan_script_command_020C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A39C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
 hooligan_script_command_0212:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_0214:
@@ -3911,25 +3911,25 @@ hooligan_script_command_0228:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_022A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A3EC	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_14	; state_node_ptr
 hooligan_script_command_0230:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $000A	; operand_word
 hooligan_script_command_0234:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A3EC	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_14	; state_node_ptr
 hooligan_script_command_023A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0014	; operand_word
 hooligan_script_command_023E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A3EC	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_14	; state_node_ptr
 hooligan_script_command_0244:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0014	; operand_word
 hooligan_script_command_0248:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A36A	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_8	; state_node_ptr
 hooligan_script_command_024E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_024E_operand_word:
@@ -3948,7 +3948,7 @@ hooligan_script_command_025A_reload_count:
 	dc.w hooligan_script_command_0252-hooligan_script_command_025A	; branch_displacement
 hooligan_script_command_0262:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A33C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_6	; state_node_ptr
 hooligan_script_command_0268:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0268_operand_word:
@@ -3967,7 +3967,7 @@ hooligan_script_command_0274_reload_count:
 	dc.w hooligan_script_command_026C-hooligan_script_command_0274	; branch_displacement
 hooligan_script_command_027C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A39C	; state_node_ptr
+	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
 hooligan_script_command_0282:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0282_operand_word:
@@ -3996,8 +3996,8 @@ pianist_script_command_0006:
 	dc.w $0001	; operand_word
 pianist_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C10C	; state_node_ptr
-	dc.l $0005C00E	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
 pianist_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 pianist_script_command_0014_operand_word:
@@ -4016,8 +4016,8 @@ pianist_script_command_0020_reload_count:
 	dc.w pianist_script_command_0018-pianist_script_command_0020	; branch_displacement
 pianist_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C0FA	; state_node_ptr
-	dc.l $0005C0B2	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
 pianist_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 pianist_script_command_0032_operand_word:
@@ -4036,8 +4036,8 @@ pianist_script_command_003E_reload_count:
 	dc.w pianist_script_command_0036-pianist_script_command_003E	; branch_displacement
 pianist_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C0FA	; state_node_ptr
-	dc.l $0005C0D6	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
 pianist_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 pianist_script_command_0050_operand_word:
@@ -4056,8 +4056,8 @@ pianist_script_command_005C_reload_count:
 	dc.w pianist_script_command_0054-pianist_script_command_005C	; branch_displacement
 pianist_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C10C	; state_node_ptr
-	dc.l $0005C036	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
 pianist_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $001E	; operand_word
@@ -4079,8 +4079,8 @@ pianist_script_command_007E_reload_count:
 	dc.w pianist_script_command_0076-pianist_script_command_007E	; branch_displacement
 pianist_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C0FA	; state_node_ptr
-	dc.l $0005C09A	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$14	; frame_sequence_ptr
 pianist_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 pianist_script_command_0090_operand_word:
@@ -4099,8 +4099,8 @@ pianist_script_command_009C_reload_count:
 	dc.w pianist_script_command_0094-pianist_script_command_009C	; branch_displacement
 pianist_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C0FA	; state_node_ptr
-	dc.l $0005C0CA	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
 pianist_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 pianist_script_command_00AE_operand_word:
@@ -4129,8 +4129,8 @@ flight_controller_script_command_0006:
 	dc.w $0001	; operand_word
 flight_controller_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C1C0	; state_node_ptr
-	dc.l $0005C022	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early+$28	; frame_sequence_ptr
 flight_controller_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 flight_controller_script_command_0014_operand_word:
@@ -4149,8 +4149,8 @@ flight_controller_script_command_0020_reload_count:
 	dc.w flight_controller_script_command_0018-flight_controller_script_command_0020	; branch_displacement
 flight_controller_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C1AE	; state_node_ptr
-	dc.l $0005C0A6	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
 flight_controller_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 flight_controller_script_command_0032_operand_word:
@@ -4169,8 +4169,8 @@ flight_controller_script_command_003E_reload_count:
 	dc.w flight_controller_script_command_0036-flight_controller_script_command_003E	; branch_displacement
 flight_controller_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C1AE	; state_node_ptr
-	dc.l $0005C0E2	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$5C	; frame_sequence_ptr
 flight_controller_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 flight_controller_script_command_0050_operand_word:
@@ -4189,8 +4189,8 @@ flight_controller_script_command_005C_reload_count:
 	dc.w flight_controller_script_command_0054-flight_controller_script_command_005C	; branch_displacement
 flight_controller_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C1C0	; state_node_ptr
-	dc.l $0005BFFA	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early	; frame_sequence_ptr
 flight_controller_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $001E	; operand_word
@@ -4212,8 +4212,8 @@ flight_controller_script_command_007E_reload_count:
 	dc.w flight_controller_script_command_0076-flight_controller_script_command_007E	; branch_displacement
 flight_controller_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C1AE	; state_node_ptr
-	dc.l $0005C0BE	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$38	; frame_sequence_ptr
 flight_controller_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 flight_controller_script_command_0090_operand_word:
@@ -4232,8 +4232,8 @@ flight_controller_script_command_009C_reload_count:
 	dc.w flight_controller_script_command_0094-flight_controller_script_command_009C	; branch_displacement
 flight_controller_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C1AE	; state_node_ptr
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 flight_controller_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 flight_controller_script_command_00AE_operand_word:
@@ -4262,8 +4262,8 @@ wackobrain_script_command_0006:
 	dc.w $0001	; operand_word
 wackobrain_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C154	; state_node_ptr
-	dc.l $0005C036	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
 wackobrain_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 wackobrain_script_command_0014_operand_word:
@@ -4317,8 +4317,8 @@ wackobrain_script_command_0050:
 	dc.w $0032	; operand_word
 wackobrain_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C154	; state_node_ptr
-	dc.l $0005C00E	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
 wackobrain_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 wackobrain_script_command_005E_operand_word:
@@ -4379,8 +4379,8 @@ defence_controller_script_command_0006:
 	dc.w $0001	; operand_word
 defence_controller_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C130	; state_node_ptr
-	dc.l $0005C00E	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
 defence_controller_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 defence_controller_script_command_0014_operand_word:
@@ -4434,8 +4434,8 @@ defence_controller_script_command_0050:
 	dc.w $0032	; operand_word
 defence_controller_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C130	; state_node_ptr
-	dc.l $0005C036	; frame_sequence_ptr
+	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
+	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
 defence_controller_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 defence_controller_script_command_005E_operand_word:
@@ -4493,7 +4493,7 @@ world_object_megabio_feed_behavior_script:
 	dc.w $00A8	; world_y
 megabio_feed_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005C2E4	; state_node_ptr
+	dc.l megabio_feed_nodes_4C226_4	; state_node_ptr
 megabio_feed_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $2710	; operand_word
@@ -4506,7 +4506,7 @@ world_object_musician_behavior_script:
 	dc.w $00E2	; world_y
 musician_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $000587BA	; state_node_ptr
+	dc.l musician_nodes_4870E_4	; state_node_ptr
 musician_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $2710	; operand_word
@@ -4519,7 +4519,7 @@ world_object_icelord_behavior_script:
 	dc.w $00C0	; world_y
 icelord_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $00059FC6	; state_node_ptr
+	dc.l icelord_nodes_49DCE_5	; state_node_ptr
 icelord_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $2710	; operand_word
@@ -4554,7 +4554,7 @@ world_object_security_officer_behavior_script:
 	dc.w $0348	; world_y
 security_officer_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005B8E6	; state_node_ptr
+	dc.l security_officer_nodes_4B882_4	; state_node_ptr
 security_officer_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
@@ -4574,7 +4574,7 @@ world_object_chemist_behavior_script:
 	dc.w $04CC	; world_y
 chemist_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005BA4C	; state_node_ptr
+	dc.l chemist_nodes_4BA0C_2	; state_node_ptr
 chemist_script_command_000C:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 chemist_script_command_000E:
@@ -4622,7 +4622,7 @@ world_object_doctor_behavior_script:
 	dc.w $05AC	; world_y
 doctor_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005B6FA	; state_node_ptr
+	dc.l doctor_nodes_4B552_5	; state_node_ptr
 doctor_script_command_000C:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 doctor_script_command_000E:
@@ -4632,7 +4632,7 @@ doctor_script_command_0012:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 doctor_script_command_0014:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005B6CC	; state_node_ptr
+	dc.l doctor_nodes_4B552_3	; state_node_ptr
 doctor_script_command_001A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 	dc.w $000C	; operand_word
@@ -4656,7 +4656,7 @@ doctor_script_command_0034:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 doctor_script_command_0036:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005B6FA	; state_node_ptr
+	dc.l doctor_nodes_4B552_5	; state_node_ptr
 doctor_script_command_003C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 	dc.w $000C	; operand_word
@@ -4680,7 +4680,7 @@ world_object_death_fly_behavior_script:
 	dc.w $04D4	; world_y
 death_fly_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A676	; state_node_ptr
+	dc.l death_fly_nodes_4A600_3	; state_node_ptr
 death_fly_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -4837,7 +4837,7 @@ world_object_priest_behavior_script:
 	dc.w $018A	; world_y
 priest_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	; opcode
-	dc.l $00059D48	; state_node_ptr
+	dc.l priest_nodes_49B98_5	; state_node_ptr
 priest_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $2710	; operand_word
@@ -4860,7 +4860,7 @@ world_object_entry_officer_behavior_script:
 	dc.w $0362	; world_y
 entry_officer_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A540	; state_node_ptr
+	dc.l entry_officer_nodes_4A45E_3	; state_node_ptr
 entry_officer_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0014	; operand_word
@@ -4898,7 +4898,7 @@ world_object_driffid_behavior_script:
 	dc.w $0470	; world_y
 driffid_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A7A6	; state_node_ptr
+	dc.l driffid_nodes_4A6E8_4	; state_node_ptr
 driffid_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -4911,7 +4911,7 @@ driffid_script_command_0016:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 driffid_script_command_0018:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l $0005A7A6	; state_node_ptr
+	dc.l driffid_nodes_4A6E8_4	; state_node_ptr
 driffid_script_command_001E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 	dc.w $000C	; operand_word
@@ -10884,7 +10884,7 @@ advance_entity_animation:
 	bne.w abs_0_000195E0
 	btst.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_00019556
-	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)
+	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)	; operand 1: WorldPositionDescriptorPointer_frame_ptr at (a1)
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d0
 	beq.w abs_0_000195E0
 	movea.l d0,a1
@@ -10916,7 +10916,7 @@ abs_0_00019596:
 	btst.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_000195AA
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
-	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)
+	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)	; operand 1: WorldPositionDescriptorPointer_frame_ptr at (a1)
 	bra.b abs_0_000195E0
 abs_0_000195AA:
 	tst.l WorldPositionStateNode_xy_sequence_ptr(a0)
@@ -18685,6 +18685,7 @@ musician_frames_4870E_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+musician_frames_4870E_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_42+$1F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_42+$7C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -18692,6 +18693,7 @@ musician_frames_4870E_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+musician_frames_4870E_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_42+$3E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_42+$F8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -18699,6 +18701,7 @@ musician_frames_4870E_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+musician_frames_4870E_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_42+$5D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_42+$174	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -18706,6 +18709,7 @@ musician_frames_4870E_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+musician_frames_4870E_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_42+$7C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_42+$1F0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -18741,15 +18745,19 @@ musician_nodes_4870E_4:
 	dc.l musician_positions_4870E_2	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $1E	; phase_step
-	dc.l $000587CC	; frame_sequence_ptr
+	dc.l musician_sequence_4870E_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 musician_nodes_4870E_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 musician_sequence_4870E_5:
-	dc.l $00058728,$00058728,$0005873A,$0005874C	; rooted_npc_animation_records
-	dc.l $0005875E,$00058770	; rooted_npc_animation_records
+	dc.l musician_frames_4870E_1	; frame_ptr
+	dc.l musician_frames_4870E_1	; frame_ptr
+	dc.l musician_frames_4870E_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l musician_frames_4870E_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l musician_frames_4870E_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l musician_frames_4870E_1_bitplane_data_ptr_4	; frame_ptr
 item_receptacle_geometry_headers:
 	dc.l scene_pixel_cells_for_mask_bank_38	; bitplane_data_ptr
 	dc.l scene_mask_bank_38	; mask_data_ptr
@@ -18790,6 +18798,7 @@ item_receptacle_geometry_headers_bitplane_data_ptr_4:
 	dc.w $0010	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+item_receptacle_geometry_headers_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_37+$400	; bitplane_data_ptr
 	dc.l scene_mask_bank_37+$100	; mask_data_ptr
 	dc.w $0001	; row_stride_words
@@ -18988,14 +18997,16 @@ item_receptacle_4_attachment_animation_node:
 	dc.l item_receptacle_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $28	; phase_step
-	dc.l $00058A1E	; frame_sequence_ptr
+	dc.l item_receptacle_4_attachment_frame_sequence	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 item_receptacle_4_attachment_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 item_receptacle_4_attachment_frame_sequence:
-	dc.l $0005882C,$0005882C,$0005883E	; item_receptacle_state_attachment_interaction_records
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_5	; frame_ptr
 item_receptacle_5_primary_state:
 	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
@@ -19562,7 +19573,7 @@ world_position_state_nodes:
 	dc.l world_position_descriptors_position_state_ptr_18	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059120	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 world_position_state_nodes_gap_B_0:
 	dc.b $00	; typed data block gap
@@ -19572,7 +19583,7 @@ world_position_state_nodes_position_descriptor_ptr_1:
 	dc.l world_position_descriptors_position_state_ptr_19	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059120	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 world_position_state_nodes_gap_1D_1:
 	dc.b $00	; typed data block gap
@@ -19582,7 +19593,7 @@ world_position_state_nodes_position_descriptor_ptr_2:
 	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059120	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 world_position_state_nodes_gap_2F_2:
 	dc.b $00	; typed data block gap
@@ -19592,7 +19603,7 @@ world_position_state_nodes_position_descriptor_ptr_3:
 	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059120	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 world_position_state_nodes_gap_41_3:
 	dc.b $00	; typed data block gap
@@ -19601,7 +19612,7 @@ world_position_state_nodes_gap_41_3:
 	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059120	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 world_position_state_nodes_gap_53_4:
 	dc.b $00	; typed data block gap
@@ -19610,7 +19621,7 @@ world_position_state_nodes_gap_53_4:
 	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059120	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 world_position_state_nodes_gap_65_5:
 	dc.b $00	; typed data block gap
@@ -19620,7 +19631,7 @@ world_position_state_nodes_position_descriptor_ptr_6:
 	dc.l world_position_descriptors	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
@@ -19630,7 +19641,7 @@ world_position_state_nodes_position_descriptor_ptr_7:
 	dc.l world_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059150	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
@@ -19640,7 +19651,7 @@ world_position_state_nodes_position_descriptor_ptr_8:
 	dc.l world_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
@@ -19650,7 +19661,7 @@ world_position_state_nodes_position_descriptor_ptr_9:
 	dc.l world_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059150	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
@@ -19660,7 +19671,7 @@ world_position_state_nodes_position_descriptor_ptr_10:
 	dc.l world_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
@@ -19671,7 +19682,7 @@ world_position_state_nodes_position_descriptor_ptr_11:
 	dc.l world_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059150	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
@@ -19681,7 +19692,7 @@ world_position_state_nodes_position_descriptor_ptr_12:
 	dc.l world_position_descriptors_position_state_ptr_6	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_E3_12:
 	dc.b $00	; typed data block gap
@@ -19691,7 +19702,7 @@ world_position_state_nodes_position_descriptor_ptr_13:
 	dc.l world_position_descriptors_position_state_ptr_7	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_F5_13:
 	dc.b $00	; typed data block gap
@@ -19701,7 +19712,7 @@ world_position_state_nodes_position_descriptor_ptr_14:
 	dc.l world_position_descriptors_position_state_ptr_8	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059150	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_107_14:
 	dc.b $00	; typed data block gap
@@ -19711,7 +19722,7 @@ world_position_state_nodes_position_descriptor_ptr_15:
 	dc.l world_position_descriptors_position_state_ptr_9	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_119_15:
 	dc.b $00	; typed data block gap
@@ -19721,7 +19732,7 @@ world_position_state_nodes_position_descriptor_ptr_16:
 	dc.l world_position_descriptors_position_state_ptr_10	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059150	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_12B_16:
 	dc.b $00	; typed data block gap
@@ -19731,7 +19742,7 @@ world_position_state_nodes_position_descriptor_ptr_17:
 	dc.l world_position_descriptors_position_state_ptr_11	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_13D_17:
 	dc.b $00	; typed data block gap
@@ -19741,7 +19752,7 @@ world_position_state_nodes_position_descriptor_ptr_18:
 	dc.l world_position_descriptors_position_state_ptr_12	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_14F_18:
 	dc.b $00	; typed data block gap
@@ -19751,7 +19762,7 @@ world_position_state_nodes_position_descriptor_ptr_19:
 	dc.l world_position_descriptors_position_state_ptr_13	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059150	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_161_19:
 	dc.b $00	; typed data block gap
@@ -19761,7 +19772,7 @@ world_position_state_nodes_position_descriptor_ptr_20:
 	dc.l world_position_descriptors_position_state_ptr_14	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_173_20:
 	dc.b $00	; typed data block gap
@@ -19771,7 +19782,7 @@ world_position_state_nodes_position_descriptor_ptr_21:
 	dc.l world_position_descriptors_position_state_ptr_15	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_185_21:
 	dc.b $00	; typed data block gap
@@ -19781,7 +19792,7 @@ world_position_state_nodes_position_descriptor_ptr_22:
 	dc.l world_position_descriptors_position_state_ptr_16	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_197_22:
 	dc.b $00	; typed data block gap
@@ -19791,7 +19802,7 @@ world_position_state_nodes_position_descriptor_ptr_23:
 	dc.l world_position_descriptors_position_state_ptr_17	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059188	; frame_sequence_ptr
+	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_1A9_23:
 	dc.b $00	; typed data block gap
@@ -19917,6 +19928,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_17+$1E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$78	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19924,6 +19936,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_17+$3B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$EC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19931,6 +19944,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_17+$580	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$160	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19938,6 +19952,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_17+$760	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$1D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19945,6 +19960,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_17+$930	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$24C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19952,6 +19968,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_17+$B10	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$2C4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19959,6 +19976,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_17+$CF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$33C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19966,6 +19984,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_17+$ED0	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$3B4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19973,6 +19992,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_17+$10B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$42C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19980,6 +20000,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_17+$1280	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$4A0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19987,6 +20008,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_17+$1450	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$514	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -19994,6 +20016,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_17+$1630	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$58C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20001,6 +20024,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_17+$1800	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$600	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20008,6 +20032,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_17+$19E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$678	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20015,6 +20040,7 @@ squash_player_frames_49268_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+squash_player_frames_49268_2_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_mask_bank_17+$1BC0	; bitplane_data_ptr
 	dc.l scene_mask_bank_17+$6F0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20042,28 +20068,40 @@ squash_player_nodes_49268_5:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $000593EC	; frame_sequence_ptr
+	dc.l squash_player_sequence_49268_6	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 squash_player_nodes_49268_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 squash_player_sequence_49268_6:
-	dc.l $00059312,$00059294,$000592A6,$000592B8	; rooted_npc_animation_records
-	dc.l $000592CA,$000592DC,$000592EE,$00059300	; rooted_npc_animation_records
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_7	; frame_ptr
+	dc.l squash_player_frames_49268_2	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_1	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_2	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_3	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_4	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_5	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_6	; frame_ptr
 squash_player_nodes_49268_7:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005941E	; frame_sequence_ptr
+	dc.l squash_player_sequence_49268_8	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 squash_player_nodes_49268_7_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 squash_player_sequence_49268_8:
-	dc.l $000593A2,$00059324,$00059336,$00059348	; rooted_npc_animation_records
-	dc.l $0005935A,$0005936C,$0005937E,$00059390	; rooted_npc_animation_records
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_15	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_8	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_9	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_10	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_11	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_12	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_13	; frame_ptr
+	dc.l squash_player_frames_49268_2_bitplane_data_ptr_14	; frame_ptr
 world_object_kriptonite:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_wackobrain	; interaction_callback
@@ -20116,6 +20154,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_18+$170	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$5C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20123,6 +20162,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0005	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_18+$300	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$C0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20130,6 +20170,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$134	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20137,6 +20178,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_18+$6D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$1B4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20144,6 +20186,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_18+$8D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$234	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20151,6 +20194,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_18+$AA0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$2A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20158,6 +20202,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_18+$C40	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$310	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20165,6 +20210,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_18+$DB0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$36C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20172,6 +20218,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_18+$F20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$3C8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20187,6 +20234,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0005	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1220	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$488	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20194,6 +20242,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_18+$13F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$4FC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20201,6 +20250,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_18+$15F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$57C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20208,6 +20258,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_18+$17F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$5FC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20215,6 +20266,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_mask_bank_18+$19C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$670	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20222,6 +20274,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_16:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1B60	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$6D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20237,6 +20290,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_18:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1E50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$794	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20244,6 +20298,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_19:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2020	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$808	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20251,6 +20306,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_20:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2210	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$884	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20258,6 +20314,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_21:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2410	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$904	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20265,6 +20322,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_22:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2610	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$984	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20272,6 +20330,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_23:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2800	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$A00	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20287,6 +20346,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_25:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2B40	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$AD0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20294,6 +20354,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_26:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2D00	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$B40	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20301,6 +20362,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_27:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2EF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$BBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20308,6 +20370,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_28:
 	dc.l scene_pixel_cells_for_mask_bank_18+$30F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$C3C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20315,6 +20378,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_29:
 	dc.l scene_pixel_cells_for_mask_bank_18+$32F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$CBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20322,6 +20386,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_30:
 	dc.l scene_pixel_cells_for_mask_bank_18+$34E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$D38	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20329,6 +20394,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_31:
 	dc.l scene_pixel_cells_for_mask_bank_18+$36A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$DA8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20336,6 +20402,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_32:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3870	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$E1C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20343,6 +20410,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_33:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3A50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$E94	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20350,6 +20418,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_34:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3C50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F14	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20357,6 +20426,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_35:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3D20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F48	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20364,6 +20434,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_36:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3E20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F88	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20371,6 +20442,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_37:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3EF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$FBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20378,6 +20450,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_38:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3F60	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$FD8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20385,6 +20458,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_39:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4030	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$100C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20392,6 +20466,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_40:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4130	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$104C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20399,6 +20474,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0006	; y_offset
+kriptonite_frames_49492_1_bitplane_data_ptr_41:
 	dc.l scene_pixel_cells_for_mask_bank_18+$42B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$10AC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20434,82 +20510,117 @@ kriptonite_nodes_49492_4:
 	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $000597EA	; frame_sequence_ptr
+	dc.l kriptonite_sequence_49492_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 kriptonite_nodes_49492_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 kriptonite_sequence_49492_5:
-	dc.l $000594AC,$000594AC,$000594BE,$000594D0	; rooted_npc_animation_records
-	dc.l $000594E2,$000594F4,$00059506,$00059518	; rooted_npc_animation_records
+	dc.l kriptonite_frames_49492_1	; frame_ptr
+	dc.l kriptonite_frames_49492_1	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_6	; frame_ptr
 kriptonite_nodes_49492_6:
 	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005981C	; frame_sequence_ptr
+	dc.l kriptonite_sequence_49492_7	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 kriptonite_nodes_49492_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 kriptonite_sequence_49492_7:
-	dc.l $0005952A,$0005952A,$0005953C,$0005954E	; rooted_npc_animation_records
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_8	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_9	; frame_ptr
 kriptonite_nodes_49492_8:
 	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005983E	; frame_sequence_ptr
+	dc.l kriptonite_sequence_49492_9	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 kriptonite_nodes_49492_8_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 kriptonite_sequence_49492_9:
-	dc.b $00,$05,$95,$60,$00,$05,$95,$60
-	dc.b $00,$05,$95,$72,$00,$05,$95,$84,$00,$05,$95,$96,$00,$05,$95,$A8
-	dc.b $00,$05,$95,$BA,$00,$05,$95,$CC
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_11	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_12	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_13	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_14	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_15	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_16	; frame_ptr
 kriptonite_nodes_49492_10:
 	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059870	; frame_sequence_ptr
+	dc.l kriptonite_sequence_49492_11	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 kriptonite_nodes_49492_10_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 kriptonite_sequence_49492_11:
-	dc.l $000595DE,$000595DE,$000595F0,$00059602	; rooted_npc_animation_records
-	dc.l $00059614,$00059626,$00059638,$0005964A	; rooted_npc_animation_records
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_18	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_19	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_20	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_21	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_22	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_23	; frame_ptr
 kriptonite_nodes_49492_12:
 	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $000598A2	; frame_sequence_ptr
+	dc.l kriptonite_sequence_49492_13	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 kriptonite_nodes_49492_12_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 kriptonite_sequence_49492_13:
-	dc.l $0005965C,$0005965C,$0005966E,$00059680	; rooted_npc_animation_records
-	dc.l $00059692,$000596A4,$000596B6,$000596C8	; rooted_npc_animation_records
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_25	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_26	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_27	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_28	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_29	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_30	; frame_ptr
 kriptonite_nodes_49492_14:
 	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
 	dc.b $0C	; frame_count
 	dc.b $2D	; phase_step
-	dc.l $000598D4	; frame_sequence_ptr
+	dc.l kriptonite_sequence_49492_15	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 kriptonite_nodes_49492_14_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 kriptonite_sequence_49492_15:
-	dc.l $000597A0,$000596DA,$000596EC,$000596FE	; rooted_npc_animation_records
-	dc.l $00059710,$00059722,$00059734,$00059746	; rooted_npc_animation_records
-	dc.l $00059758,$0005976A,$0005977C,$0005978E	; rooted_npc_animation_records
-	dc.l $000597A0	; rooted_npc_animation_records
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_31	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_32	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_33	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_34	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_35	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_36	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_37	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_38	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_39	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_40	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_41	; frame_ptr
+	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
 world_object_thief:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -20562,6 +20673,7 @@ thief_frames_4995C_1:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_19	; bitplane_data_ptr
 	dc.l scene_mask_bank_19	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20569,6 +20681,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_19+$1E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$78	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20576,6 +20689,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_19+$3C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$F0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20583,6 +20697,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_19+$5A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$168	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20590,6 +20705,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_19+$780	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$1E0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20597,6 +20713,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_19+$960	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$258	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20604,6 +20721,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_19+$B40	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$2D0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20611,6 +20729,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_19+$D20	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$348	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20618,6 +20737,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_19+$F00	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$3C0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20625,6 +20745,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_19+$10E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$438	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20632,6 +20753,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_19+$12C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$4B0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20639,6 +20761,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_19+$14A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$528	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20646,6 +20769,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_19+$1680	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$5A0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20653,6 +20777,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_19+$1860	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$618	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20660,6 +20785,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_mask_bank_19+$1A40	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$690	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20667,6 +20793,7 @@ thief_frames_4995C_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+thief_frames_4995C_1_bitplane_data_ptr_16:
 	dc.l scene_pixel_cells_for_mask_bank_19+$1C20	; bitplane_data_ptr
 	dc.l scene_mask_bank_19+$708	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20694,28 +20821,40 @@ thief_nodes_4995C_4:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059AE0	; frame_sequence_ptr
+	dc.l thief_sequence_4995C_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 thief_nodes_4995C_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 thief_sequence_4995C_5:
-	dc.l $00059A06,$00059988,$0005999A,$000599AC	; rooted_npc_animation_records
-	dc.l $000599BE,$000599D0,$000599E2,$000599F4	; rooted_npc_animation_records
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_8	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_6	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_7	; frame_ptr
 thief_nodes_4995C_6:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $00059B12	; frame_sequence_ptr
+	dc.l thief_sequence_4995C_7	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 thief_nodes_4995C_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 thief_sequence_4995C_7:
-	dc.l $00059A96,$00059A18,$00059A2A,$00059A3C	; rooted_npc_animation_records
-	dc.l $00059A4E,$00059A60,$00059A72,$00059A84	; rooted_npc_animation_records
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_16	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_9	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_10	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_11	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_12	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_13	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_14	; frame_ptr
+	dc.l thief_frames_4995C_1_bitplane_data_ptr_15	; frame_ptr
 world_object_priest:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_priest	; interaction_callback
@@ -20762,6 +20901,7 @@ priest_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0005	; y_offset
+priest_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_20+$510	; bitplane_data_ptr
 	dc.l scene_mask_bank_20+$144	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20769,6 +20909,7 @@ priest_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+priest_animation_bank_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_20+$7D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_20+$1F4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20776,6 +20917,7 @@ priest_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+priest_animation_bank_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_20+$AA0	; bitplane_data_ptr
 	dc.l scene_mask_bank_20+$2A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20783,6 +20925,7 @@ priest_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0006	; y_offset
+priest_animation_bank_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_20+$D10	; bitplane_data_ptr
 	dc.l scene_mask_bank_20+$344	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20790,6 +20933,7 @@ priest_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0008	; y_offset
+priest_animation_bank_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_20+$F60	; bitplane_data_ptr
 	dc.l scene_mask_bank_20+$3D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20797,6 +20941,7 @@ priest_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0009	; y_offset
+priest_animation_bank_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_20+$11A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_20+$468	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20804,6 +20949,7 @@ priest_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000A	; y_offset
+priest_animation_bank_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_26	; bitplane_data_ptr
 	dc.l scene_mask_bank_26	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20811,6 +20957,7 @@ priest_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+priest_animation_bank_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_26+$520	; bitplane_data_ptr
 	dc.l scene_mask_bank_26+$148	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20818,6 +20965,7 @@ priest_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+priest_animation_bank_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_26+$A20	; bitplane_data_ptr
 	dc.l scene_mask_bank_26+$288	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20825,6 +20973,7 @@ priest_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
+priest_animation_bank_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_26+$E40	; bitplane_data_ptr
 	dc.l scene_mask_bank_26+$390	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20832,6 +20981,7 @@ priest_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000C	; y_offset
+priest_animation_bank_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_26+$11C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_26+$470	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20839,6 +20989,7 @@ priest_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000D	; y_offset
+priest_animation_bank_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_26+$1520	; bitplane_data_ptr
 	dc.l scene_mask_bank_26+$548	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20846,6 +20997,7 @@ priest_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0014	; y_offset
+priest_animation_bank_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_26+$17A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_26+$5E8	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20853,6 +21005,7 @@ priest_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $001A	; y_offset
+priest_animation_bank_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_26+$1960	; bitplane_data_ptr
 	dc.l scene_mask_bank_26+$658	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -20908,29 +21061,41 @@ priest_nodes_49B98_3:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.b $08	; frame_count
 	dc.b $28	; phase_step
-	dc.l $00059D24	; frame_sequence_ptr
+	dc.l priest_sequence_49B98_4	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 priest_nodes_49B98_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 priest_sequence_49B98_4:
-	dc.l $00059CA6,$00059C16,$00059C28,$00059C3A	; rooted_npc_animation_records
-	dc.l $00059C4C,$00059C5E,$00059C70,$00059C82	; rooted_npc_animation_records
-	dc.l $00059C94	; rooted_npc_animation_records
+	dc.l priest_animation_bank_bitplane_data_ptr_15	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_7	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_8	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_9	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_10	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_11	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_12	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_13	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_14	; frame_ptr
 priest_nodes_49B98_5:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $2B	; phase_step
-	dc.l $00059D5A	; frame_sequence_ptr
+	dc.l priest_sequence_49B98_6	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 priest_nodes_49B98_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 priest_sequence_49B98_6:
-	dc.l $00059B98,$00059B98,$00059BAA,$00059BBC	; rooted_npc_animation_records
-	dc.l $00059BCE,$00059BE0,$00059BF2,$00059C04	; rooted_npc_animation_records
+	dc.l priest_animation_bank	; frame_ptr
+	dc.l priest_animation_bank	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_2	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_3	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_4	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_5	; frame_ptr
+	dc.l priest_animation_bank_bitplane_data_ptr_6	; frame_ptr
 world_object_icelord:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -20973,6 +21138,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+icelord_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$2E0	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$B8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20980,6 +21146,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+icelord_animation_bank_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$5C0	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$170	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20987,6 +21154,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+icelord_animation_bank_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$8A0	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$228	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20994,6 +21162,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+icelord_animation_bank_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$B60	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$2D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21001,6 +21170,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
+icelord_animation_bank_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$E00	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$380	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21008,6 +21178,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0008	; y_offset
+icelord_animation_bank_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1060	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$418	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21015,6 +21186,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0011	; y_offset
+icelord_animation_bank_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1230	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$48C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21022,6 +21194,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $001B	; y_offset
+icelord_animation_bank_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1360	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$4D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21029,6 +21202,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $001F	; y_offset
+icelord_animation_bank_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1450	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$514	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21036,6 +21210,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $001F	; y_offset
+icelord_animation_bank_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1540	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$550	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21043,6 +21218,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0022	; y_offset
+icelord_animation_bank_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1600	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$580	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21050,6 +21226,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0022	; y_offset
+icelord_animation_bank_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$16C0	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$5B0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21057,6 +21234,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0023	; y_offset
+icelord_animation_bank_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1780	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$5E0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21064,6 +21242,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0024	; y_offset
+icelord_animation_bank_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1850	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$614	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21071,6 +21250,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0025	; y_offset
+icelord_animation_bank_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1920	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$648	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21078,6 +21258,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0027	; y_offset
+icelord_animation_bank_bitplane_data_ptr_16:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$19F0	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$67C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21085,6 +21266,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $002A	; y_offset
+icelord_animation_bank_bitplane_data_ptr_17:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1AC0	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$6B0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21092,6 +21274,7 @@ icelord_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $002B	; y_offset
+icelord_animation_bank_bitplane_data_ptr_18:
 	dc.l scene_pixel_cells_for_910_cell_mask_bank+$1B80	; bitplane_data_ptr
 	dc.l scene_910_cell_mask_bank+$6E0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21137,27 +21320,57 @@ icelord_nodes_49DCE_3_gap_B:
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 icelord_sequence_49DCE_4:
-	dc.l $00059F12,$00059DCE,$00059DE0,$00059DF2	; rooted_npc_animation_records
-	dc.l $00059E04,$00059E16,$00059E28,$00059E3A	; rooted_npc_animation_records
-	dc.l $00059E4C,$00059E5E,$00059E70,$00059E82	; rooted_npc_animation_records
-	dc.l $00059E94,$00059EA6,$00059EB8,$00059ECA	; rooted_npc_animation_records
-	dc.l $00059EDC,$00059EEE,$00059F00,$00059F12	; rooted_npc_animation_records
+	dc.l icelord_animation_bank_bitplane_data_ptr_18	; frame_ptr
+	dc.l icelord_animation_bank	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_2	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_3	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_4	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_5	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_6	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_7	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_8	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_9	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_10	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_11	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_12	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_13	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_14	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_15	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_16	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_17	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_18	; frame_ptr
 icelord_nodes_49DCE_5:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.b $13	; frame_count
 	dc.b $2A	; phase_step
-	dc.l $00059FD8	; frame_sequence_ptr
+	dc.l icelord_sequence_49DCE_6	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 icelord_nodes_49DCE_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 icelord_sequence_49DCE_6:
-	dc.l $00059DCE,$00059F12,$00059F00,$00059EEE	; rooted_npc_animation_records
-	dc.l $00059EDC,$00059ECA,$00059EB8,$00059EA6	; rooted_npc_animation_records
-	dc.l $00059E94,$00059E82,$00059E70,$00059E5E	; rooted_npc_animation_records
-	dc.l $00059E4C,$00059E3A,$00059E28,$00059E16	; rooted_npc_animation_records
-	dc.l $00059E04,$00059DF2,$00059DE0,$00059DCE	; rooted_npc_animation_records
+	dc.l icelord_animation_bank	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_18	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_17	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_16	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_15	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_14	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_13	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_12	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_11	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_10	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_9	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_8	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_7	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_6	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_5	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_4	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_3	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_2	; frame_ptr
+	dc.l icelord_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l icelord_animation_bank	; frame_ptr
 world_object_hooligan:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_hooligan_or_robomechanic	; interaction_callback
@@ -21200,6 +21413,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_21+$230	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$8C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21207,6 +21421,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_21+$480	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$120	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21214,6 +21429,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_21+$6A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$1A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21221,6 +21437,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_21+$8D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$234	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21228,6 +21445,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_21+$B20	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$2C8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21235,6 +21453,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_21+$D40	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$350	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21242,6 +21461,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_21+$F70	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$3DC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21249,6 +21469,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_21+$1180	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$460	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21256,6 +21477,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_21+$13D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$4F4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21263,6 +21485,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_21+$1620	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$588	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21270,6 +21493,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_21+$1850	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$614	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21277,6 +21501,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_21+$1AA0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$6A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21284,6 +21509,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_21+$1CF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$73C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21291,6 +21517,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_21+$1F20	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$7C8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21298,6 +21525,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2130	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$84C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21305,6 +21533,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_16:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2330	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$8CC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21312,6 +21541,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_17:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2530	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$94C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21319,6 +21549,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_18:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2740	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$9D0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21326,6 +21557,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_19:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2940	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$A50	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21333,6 +21565,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_20:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2B50	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$AD4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21340,6 +21573,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_21:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2D60	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$B58	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21347,6 +21581,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_22:
 	dc.l scene_pixel_cells_for_mask_bank_21+$2F70	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$BDC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21354,6 +21589,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_23:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3180	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$C60	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21361,6 +21597,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_24:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3380	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$CE0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21368,6 +21605,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_25:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3580	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$D60	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21375,6 +21613,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_26:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3790	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$DE4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21382,6 +21621,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_27:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3990	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$E64	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21389,6 +21629,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_28:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3BA0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$EE8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21396,6 +21637,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_29:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3DB0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$F6C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21403,6 +21645,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_30:
 	dc.l scene_pixel_cells_for_mask_bank_21+$3FC0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$FF0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21410,6 +21653,7 @@ hooligan_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+hooligan_animation_bank_bitplane_data_ptr_31:
 	dc.l scene_pixel_cells_for_mask_bank_21+$41D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_21+$1074	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21455,78 +21699,104 @@ hooligan_nodes_4A07C_4:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005A320	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 hooligan_sequence_4A07C_5:
-	dc.l $0005A07C,$0005A08E,$0005A0A0,$0005A0B2	; rooted_npc_animation_records
-	dc.l $0005A0C4,$0005A0D6,$0005A0E8	; rooted_npc_animation_records
+	dc.l hooligan_animation_bank	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_2	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_3	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_4	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_5	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_6	; frame_ptr
 hooligan_nodes_4A07C_6:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005A34E	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_7	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 hooligan_sequence_4A07C_7:
-	dc.l $0005A0FA,$0005A10C,$0005A11E,$0005A130	; rooted_npc_animation_records
-	dc.l $0005A142,$0005A154,$0005A166	; rooted_npc_animation_records
+	dc.l hooligan_animation_bank_bitplane_data_ptr_7	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_8	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_9	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_10	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_11	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_12	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_13	; frame_ptr
 hooligan_nodes_4A07C_8:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005A37C	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_9	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_8_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 hooligan_sequence_4A07C_9:
-	dc.l $0005A1F6,$0005A178,$0005A18A,$0005A19C	; rooted_npc_animation_records
-	dc.l $0005A1AE,$0005A1C0,$0005A1D2,$0005A1E4	; rooted_npc_animation_records
+	dc.l hooligan_animation_bank_bitplane_data_ptr_21	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_14	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_15	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_16	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_17	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_18	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_19	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_20	; frame_ptr
 hooligan_nodes_4A07C_10:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005A3AE	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_11	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_10_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 hooligan_sequence_4A07C_11:
-	dc.l $0005A286,$0005A208,$0005A21A,$0005A22C	; rooted_npc_animation_records
-	dc.l $0005A23E,$0005A250,$0005A262,$0005A274	; rooted_npc_animation_records
+	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_22	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_23	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_24	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_25	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_26	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_27	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_28	; frame_ptr
 hooligan_nodes_4A07C_12:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $20	; phase_step
-	dc.l $0005A3E0	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_13	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 hooligan_nodes_4A07C_12_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 hooligan_sequence_4A07C_13:
-	dc.l $0005A286,$0005A286,$0005A298	; rooted_npc_animation_records
+	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_30	; frame_ptr
 hooligan_nodes_4A07C_14:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $20	; phase_step
-	dc.l $0005A3FE	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_15	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 hooligan_nodes_4A07C_14_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 hooligan_sequence_4A07C_15:
-	dc.l $0005A286,$0005A286,$0005A2AA	; rooted_npc_animation_records
+	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+	dc.l hooligan_animation_bank_bitplane_data_ptr_31	; frame_ptr
 world_object_entry_officer:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -21569,6 +21839,7 @@ entry_officer_animation_bank_1:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_29	; bitplane_data_ptr
 	dc.l scene_mask_bank_29	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21576,6 +21847,7 @@ entry_officer_animation_bank_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_29+$1E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_29+$78	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21583,6 +21855,7 @@ entry_officer_animation_bank_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_29+$3C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_29+$F0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21590,6 +21863,7 @@ entry_officer_animation_bank_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_29+$5A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_29+$168	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21597,6 +21871,7 @@ entry_officer_animation_bank_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_29+$780	; bitplane_data_ptr
 	dc.l scene_mask_bank_29+$1E0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21604,6 +21879,7 @@ entry_officer_animation_bank_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_29+$960	; bitplane_data_ptr
 	dc.l scene_mask_bank_29+$258	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21611,6 +21887,7 @@ entry_officer_animation_bank_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_29+$B40	; bitplane_data_ptr
 	dc.l scene_mask_bank_29+$2D0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21618,6 +21895,7 @@ entry_officer_animation_bank_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_1_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_29+$D20	; bitplane_data_ptr
 	dc.l scene_mask_bank_29+$348	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21655,29 +21933,42 @@ entry_officer_nodes_4A45E_3:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005A552	; frame_sequence_ptr
+	dc.l entry_officer_sequence_4A45E_4	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 entry_officer_nodes_4A45E_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 entry_officer_sequence_4A45E_4:
-	dc.l $0005A4EE,$0005A470,$0005A482,$0005A494	; rooted_npc_animation_records
-	dc.l $0005A4A6,$0005A4B8,$0005A4CA,$0005A4DC	; rooted_npc_animation_records
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_8	; frame_ptr
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_6	; frame_ptr
+	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_7	; frame_ptr
 entry_officer_nodes_4A45E_5:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.b $09	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005A584	; frame_sequence_ptr
+	dc.l entry_officer_sequence_4A45E_6	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 entry_officer_nodes_4A45E_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 entry_officer_sequence_4A45E_6:
-	dc.l $0005A45E,$0005C5D0,$0005C5E2,$0005C5F4	; rooted_npc_animation_records
-	dc.l $0005C606,$0005C5D0,$0005C5E2,$0005C5F4	; rooted_npc_animation_records
-	dc.l $0005C606,$0005A45E	; rooted_npc_animation_records
+	dc.l entry_officer_animation_bank_1	; frame_ptr
+	dc.l entry_officer_animation_bank_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_3	; frame_ptr
+	dc.l entry_officer_animation_bank_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_3	; frame_ptr
+	dc.l entry_officer_animation_bank_1	; frame_ptr
 world_object_death_fly:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -21720,6 +22011,7 @@ death_fly_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000C	; y_offset
+death_fly_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_33	; bitplane_data_ptr
 	dc.l scene_mask_bank_33	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21727,6 +22019,7 @@ death_fly_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+death_fly_animation_bank_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_33+$300	; bitplane_data_ptr
 	dc.l scene_mask_bank_33+$C0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21764,14 +22057,16 @@ death_fly_nodes_4A600_3:
 	dc.l death_fly_positions_4A600_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $80	; phase_step
-	dc.l $0005A688	; frame_sequence_ptr
+	dc.l death_fly_sequence_4A600_4	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 death_fly_nodes_4A600_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 death_fly_sequence_4A600_4:
-	dc.l $0005A612,$0005A612,$0005A624	; rooted_npc_animation_records
+	dc.l death_fly_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l death_fly_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l death_fly_animation_bank_bitplane_data_ptr_2	; frame_ptr
 world_object_driffid:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_driffid	; interaction_callback
@@ -21814,6 +22109,7 @@ driffid_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+driffid_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_40+$230	; bitplane_data_ptr
 	dc.l scene_mask_bank_40+$8C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21821,6 +22117,7 @@ driffid_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+driffid_animation_bank_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_40+$460	; bitplane_data_ptr
 	dc.l scene_mask_bank_40+$118	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21828,6 +22125,7 @@ driffid_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+driffid_animation_bank_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_40+$690	; bitplane_data_ptr
 	dc.l scene_mask_bank_40+$1A4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21835,6 +22133,7 @@ driffid_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+driffid_animation_bank_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_40+$8C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_40+$230	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21842,6 +22141,7 @@ driffid_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+driffid_animation_bank_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_40+$AF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_40+$2BC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21887,15 +22187,20 @@ driffid_nodes_4A6E8_4:
 	dc.l driffid_positions_4A6E8_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005A7B8	; frame_sequence_ptr
+	dc.l driffid_sequence_4A6E8_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 driffid_nodes_4A6E8_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 driffid_sequence_4A6E8_5:
-	dc.l $0005A6E8,$0005A6E8,$0005A6FA,$0005A70C	; rooted_npc_animation_records
-	dc.l $0005A71E,$0005A730,$0005A742	; rooted_npc_animation_records
+	dc.l driffid_animation_bank	; frame_ptr
+	dc.l driffid_animation_bank	; frame_ptr
+	dc.l driffid_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l driffid_animation_bank_bitplane_data_ptr_2	; frame_ptr
+	dc.l driffid_animation_bank_bitplane_data_ptr_3	; frame_ptr
+	dc.l driffid_animation_bank_bitplane_data_ptr_4	; frame_ptr
+	dc.l driffid_animation_bank_bitplane_data_ptr_5	; frame_ptr
 world_object_captain:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -22418,7 +22723,7 @@ menial_droid_animation_bank_1:
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 menial_droid_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
@@ -22449,6 +22754,7 @@ menial_droid_animation_bank_2:
 	dc.w $0010	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+menial_droid_animation_bank_2_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_44+$270	; bitplane_data_ptr
 	dc.l scene_mask_bank_44+$9C	; mask_data_ptr
 	dc.w $0001	; row_stride_words
@@ -22456,6 +22762,7 @@ menial_droid_animation_bank_2:
 	dc.w $0010	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
+menial_droid_animation_bank_2_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_44+$340	; bitplane_data_ptr
 	dc.l scene_mask_bank_44+$D0	; mask_data_ptr
 	dc.w $0001	; row_stride_words
@@ -22522,14 +22829,17 @@ menial_droid_animation_bank_3:
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $80	; phase_step
-	dc.l $0005AE62	; frame_sequence_ptr
+	dc.l menial_droid_sequence_4AE50_1	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 menial_droid_animation_bank_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 menial_droid_sequence_4AE50_1:
-	dc.l $0005AD66,$0005AD66,$0005AD78,$0005AD8A	; rooted_npc_animation_records
+	dc.l menial_droid_animation_bank_2	; frame_ptr
+	dc.l menial_droid_animation_bank_2	; frame_ptr
+	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
+	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
 	dc.b $00,$05,$AD,$C0,$07,$40,$00,$05,$AE,$84,$04
 	dcb.b $8,$00
 	dc.b $05,$AC,$FA,$00,$05,$AD,$66,$00,$05,$AD,$54,$00,$05,$AD,$42,$00
@@ -22572,7 +22882,7 @@ gardener_animation_bank_1:
 	dc.l gardener_positions_4AF7E_1	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 gardener_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
@@ -22770,6 +23080,7 @@ technician_animation_bank:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_57	; bitplane_data_ptr
 	dc.l scene_mask_bank_57	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22777,6 +23088,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_57+$200	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$80	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22784,6 +23096,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_57+$3E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$F8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22791,6 +23104,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_57+$5B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$16C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22798,6 +23112,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_57+$780	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$1E0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22805,6 +23120,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_57+$960	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$258	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22812,6 +23128,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_57+$B30	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$2CC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22819,6 +23136,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_57+$D10	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$344	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22826,6 +23144,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_57+$EF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$3BC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22833,6 +23152,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_57+$10D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$434	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22840,6 +23160,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_57+$12A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$4A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22847,6 +23168,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_57+$1470	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$51C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22854,6 +23176,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_57+$1650	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$594	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22861,6 +23184,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_57+$1820	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$608	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22868,6 +23192,7 @@ technician_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+technician_animation_bank_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_mask_bank_57+$1A00	; bitplane_data_ptr
 	dc.l scene_mask_bank_57+$680	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -22905,28 +23230,40 @@ technician_nodes_4B1DA_4:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005B34C	; frame_sequence_ptr
+	dc.l technician_sequence_4B1DA_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 technician_nodes_4B1DA_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 technician_sequence_4B1DA_5:
-	dc.l $0005B1EC,$0005B1FE,$0005B210,$0005B222	; rooted_npc_animation_records
-	dc.l $0005B234,$0005B246,$0005B258,$0005B26A	; rooted_npc_animation_records
+	dc.l technician_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_2	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_3	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_4	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_5	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_6	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_7	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_8	; frame_ptr
 technician_nodes_4B1DA_6:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005B37E	; frame_sequence_ptr
+	dc.l technician_sequence_4B1DA_7	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 technician_nodes_4B1DA_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 technician_sequence_4B1DA_7:
-	dc.l $0005B1EC,$0005B27C,$0005B28E,$0005B2A0	; rooted_npc_animation_records
-	dc.l $0005B2B2,$0005B2C4,$0005B2D6,$0005B2E8	; rooted_npc_animation_records
+	dc.l technician_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_9	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_10	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_11	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_12	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_13	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_14	; frame_ptr
+	dc.l technician_animation_bank_bitplane_data_ptr_15	; frame_ptr
 world_object_robomechanic:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_hooligan_or_robomechanic	; interaction_callback
@@ -22965,7 +23302,7 @@ robomechanic_animation_bank_1:
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 robomechanic_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
@@ -22993,6 +23330,7 @@ robomechanic_animation_bank_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+robomechanic_animation_bank_2_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_46+$1D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_46+$74	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23000,6 +23338,7 @@ robomechanic_animation_bank_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
+robomechanic_animation_bank_2_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_46+$290	; bitplane_data_ptr
 	dc.l scene_mask_bank_46+$A4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23044,14 +23383,17 @@ robomechanic_nodes_4B454_3:
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $28	; phase_step
-	dc.l $0005B4EE	; frame_sequence_ptr
+	dc.l robomechanic_sequence_4B454_4	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 robomechanic_nodes_4B454_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 robomechanic_sequence_4B454_4:
-	dc.l $0005B454,$0005B454,$0005B466,$0005B478	; rooted_npc_animation_records
+	dc.l robomechanic_animation_bank_2	; frame_ptr
+	dc.l robomechanic_animation_bank_2	; frame_ptr
+	dc.l robomechanic_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
+	dc.l robomechanic_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
 world_object_doctor:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -23094,6 +23436,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_47+$220	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$88	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23101,6 +23444,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_47+$410	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$104	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23108,6 +23452,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_47+$610	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$184	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23115,6 +23460,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_47+$830	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$20C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23122,6 +23468,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_47+$A20	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$288	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23129,6 +23476,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_47+$C20	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$308	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23136,6 +23484,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_47+$E40	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$390	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23143,6 +23492,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_47+$1060	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$418	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23150,6 +23500,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_47+$1260	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$498	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23157,6 +23508,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_47+$1480	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$520	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23164,6 +23516,7 @@ doctor_animation_bank:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_47+$16A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$5A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23179,6 +23532,7 @@ doctor_animation_bank_bitplane_data_ptr_12:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+doctor_animation_bank_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_47+$1A80	; bitplane_data_ptr
 	dc.l scene_mask_bank_47+$6A0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23241,28 +23595,38 @@ doctor_nodes_4B552_3:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005B6DE	; frame_sequence_ptr
+	dc.l doctor_sequence_4B552_4	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 doctor_nodes_4B552_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 doctor_sequence_4B552_4:
-	dc.l $0005B62A,$0005B552,$0005B564,$0005B576	; rooted_npc_animation_records
-	dc.l $0005B588,$0005B59A,$0005B5AC	; rooted_npc_animation_records
+	dc.l doctor_animation_bank_bitplane_data_ptr_12	; frame_ptr
+	dc.l doctor_animation_bank	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_2	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_3	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_4	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_5	; frame_ptr
 doctor_nodes_4B552_5:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005B70C	; frame_sequence_ptr
+	dc.l doctor_sequence_4B552_6	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 doctor_nodes_4B552_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 doctor_sequence_4B552_6:
-	dc.l $0005B63C,$0005B5BE,$0005B5D0,$0005B5E2	; rooted_npc_animation_records
-	dc.l $0005B5F4,$0005B606,$0005B618	; rooted_npc_animation_records
+	dc.l doctor_animation_bank_bitplane_data_ptr_13	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_6	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_7	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_8	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_9	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_10	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_11	; frame_ptr
 world_object_diabetic:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_diabetic	; interaction_callback
@@ -23392,6 +23756,7 @@ security_officer_animation_bank:
 	dc.w $0010	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+security_officer_animation_bank_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_53+$F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_53+$3C	; mask_data_ptr
 	dc.w $0001	; row_stride_words
@@ -23429,14 +23794,15 @@ security_officer_nodes_4B882_4:
 	dc.l security_officer_positions_4B882_2	; position_descriptor_ptr
 	dc.b $01	; frame_count
 	dc.b $80	; phase_step
-	dc.l $0005B8F8	; frame_sequence_ptr
+	dc.l security_officer_sequence_4B882_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 security_officer_nodes_4B882_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 security_officer_sequence_4B882_5:
-	dc.l $0005B894,$0005B882	; rooted_npc_animation_records
+	dc.l security_officer_animation_bank_bitplane_data_ptr_1	; frame_ptr
+	dc.l security_officer_animation_bank	; frame_ptr
 world_object_bank_manager:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_bank_manager	; interaction_callback
@@ -23577,14 +23943,15 @@ chemist_nodes_4BA0C_2:
 	dc.l chemist_animation_bank	; position_descriptor_ptr
 	dc.b $01	; frame_count
 	dc.b $80	; phase_step
-	dc.l $0005BA5E	; frame_sequence_ptr
+	dc.l chemist_sequence_4BA0C_3	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 chemist_nodes_4BA0C_2_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 chemist_sequence_4BA0C_3:
-	dc.l $0005B63C,$0005B62A	; rooted_npc_animation_records
+	dc.l doctor_animation_bank_bitplane_data_ptr_13	; frame_ptr
+	dc.l doctor_animation_bank_bitplane_data_ptr_12	; frame_ptr
 world_object_pianist:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -23797,6 +24164,7 @@ fixed_npc_geometry_headers:
 	dc.w $001F	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_06+$1B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_06+$6C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23804,6 +24172,7 @@ fixed_npc_geometry_headers:
 	dc.w $001F	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_06+$360	; bitplane_data_ptr
 	dc.l scene_mask_bank_06+$D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23811,6 +24180,7 @@ fixed_npc_geometry_headers:
 	dc.w $001F	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_06+$510	; bitplane_data_ptr
 	dc.l scene_mask_bank_06+$144	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23826,6 +24196,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_4:
 	dc.w $001F	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_06+$870	; bitplane_data_ptr
 	dc.l scene_mask_bank_06+$21C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23833,6 +24204,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_4:
 	dc.w $001F	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_06+$A20	; bitplane_data_ptr
 	dc.l scene_mask_bank_06+$288	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23840,6 +24212,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_4:
 	dc.w $001F	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_06+$BD0	; bitplane_data_ptr
 	dc.l scene_mask_bank_06+$2F4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23855,6 +24228,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_8:
 	dc.w $001F	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_25	; bitplane_data_ptr
 	dc.l scene_mask_bank_25	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23862,6 +24236,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_8:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_25+$200	; bitplane_data_ptr
 	dc.l scene_mask_bank_25+$80	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23869,6 +24244,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_8:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_25+$400	; bitplane_data_ptr
 	dc.l scene_mask_bank_25+$100	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23876,6 +24252,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_8:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+fixed_npc_geometry_headers_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_25+$600	; bitplane_data_ptr
 	dc.l scene_mask_bank_25+$180	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -23892,13 +24269,17 @@ fixed_npc_geometry_headers_bitplane_data_ptr_13:
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
 fixed_npc_saved_frame_sequence:
-	dc.l $0005BD48,$0005BD00,$0005BD12,$0005BD24	; animation_frame_sequence
-	dc.l $0005BD36,$0005BD48	; animation_frame_sequence
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_9	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_10	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_11	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_12	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; frame_ptr
 fixed_npc_saved_animation_states:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_saved_animation_states_gap_B:
 	dc.b $00	; typed data block gap
@@ -23918,7 +24299,7 @@ defence_controller_saved_animation_node:
 	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 defence_controller_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
@@ -23938,7 +24319,7 @@ wackobrain_saved_animation_node:
 	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 wackobrain_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
@@ -23958,7 +24339,7 @@ glass_saved_animation_node:
 	dc.l glass_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 glass_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
@@ -23978,7 +24359,7 @@ kwik_kleen_saved_animation_node:
 	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 kwik_kleen_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
@@ -23998,7 +24379,7 @@ flight_controller_saved_animation_node:
 	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005BD5A	; frame_sequence_ptr
+	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 flight_controller_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
@@ -24171,29 +24552,65 @@ flight_controller_attachment_position_state:
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
 fixed_npc_frame_sequences_early:
-	dc.l $0005BC5E,$0005BCA6,$0005BCB8,$0005BCCA	; animation_frame_sequence
-	dc.l $0005BCDC,$0005BC5E,$0005BCA6,$0005BC94	; animation_frame_sequence
-	dc.l $0005BC82,$0005BC70,$0005BCA6,$0005BC5E	; animation_frame_sequence
-	dc.l $0005BCDC,$0005BCCA,$0005BCB8,$0005BCA6	; animation_frame_sequence
-	dc.l $0005BC5E,$0005BC70,$0005BC82,$0005BC94	; animation_frame_sequence
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
 	dc.b $00,$05,$BC,$82,$00,$05,$BC,$CA,$00,$05,$BC,$B8,$00,$05,$BC,$A6
 	dc.b $00,$05,$BC,$94,$00,$05,$BC,$82,$00,$05,$BC,$CA,$00,$05,$BC,$DC
 	dc.b $00,$05,$BC,$5E,$00,$05,$BC,$70,$00,$05,$BC,$CA,$00,$05,$BC,$82
 	dc.b $00,$05,$BC,$94,$00,$05,$BC,$A6,$00,$05,$BC,$B8
 fixed_npc_frame_sequences_late:
-	dc.l $0005BCCA,$0005BC82,$0005BC70,$0005BC5E	; animation_frame_sequence
-	dc.l $0005BCDC,$0005BCCA,$0005BCA6,$0005BCB8	; animation_frame_sequence
-	dc.l $0005BC82,$0005BCA6,$0005BC94,$0005BCCA	; animation_frame_sequence
-	dc.l $0005BC5E,$0005BCDC,$0005BC82,$0005BC5E	; animation_frame_sequence
-	dc.l $0005BC70,$0005BCA6,$0005BCCA,$0005BCB8	; animation_frame_sequence
-	dc.l $0005BC5E,$0005BCCA,$0005BCDC,$0005BCA6	; animation_frame_sequence
-	dc.l $0005BC82,$0005BC94,$0005BC5E,$0005BC82	; animation_frame_sequence
-	dc.l $0005BC70	; animation_frame_sequence
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 fixed_npc_script_animation_nodes:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_B_0:
 	dc.b $00	; typed data block gap
@@ -24202,7 +24619,7 @@ fixed_npc_script_animation_nodes_gap_B_0:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C086	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_1D_1:
 	dc.b $00	; typed data block gap
@@ -24211,7 +24628,7 @@ fixed_npc_script_animation_nodes_gap_1D_1:
 	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_2F_2:
 	dc.b $00	; typed data block gap
@@ -24220,7 +24637,7 @@ fixed_npc_script_animation_nodes_gap_2F_2:
 	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C086	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_41_3:
 	dc.b $00	; typed data block gap
@@ -24229,7 +24646,7 @@ fixed_npc_script_animation_nodes_gap_41_3:
 	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_53_4:
 	dc.b $00	; typed data block gap
@@ -24238,7 +24655,7 @@ fixed_npc_script_animation_nodes_gap_53_4:
 	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C086	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_65_5:
 	dc.b $00	; typed data block gap
@@ -24247,7 +24664,7 @@ fixed_npc_script_animation_nodes_gap_65_5:
 	dc.l glass_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
@@ -24256,7 +24673,7 @@ fixed_npc_script_animation_nodes_gap_77_6:
 	dc.l glass_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C086	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
@@ -24265,7 +24682,7 @@ fixed_npc_script_animation_nodes_gap_89_7:
 	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
@@ -24274,7 +24691,7 @@ fixed_npc_script_animation_nodes_gap_9B_8:
 	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C086	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
@@ -24283,7 +24700,7 @@ fixed_npc_script_animation_nodes_gap_AD_9:
 	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C0EE	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
@@ -24292,7 +24709,7 @@ fixed_npc_script_animation_nodes_gap_BF_10:
 	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C086	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 fixed_npc_script_animation_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
@@ -24351,6 +24768,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+megabio_feed_frames_4C226_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_13	; bitplane_data_ptr
 	dc.l scene_mask_bank_13	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24358,6 +24776,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
+megabio_feed_frames_4C226_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_13+$1B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$6C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24365,6 +24784,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
+megabio_feed_frames_4C226_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_13+$360	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24372,6 +24792,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
+megabio_feed_frames_4C226_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_13+$510	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$144	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24379,6 +24800,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
+megabio_feed_frames_4C226_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_13+$6C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$1B0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24386,6 +24808,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
+megabio_feed_frames_4C226_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_13+$870	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$21C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24413,15 +24836,20 @@ megabio_feed_nodes_4C226_4:
 	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $19	; phase_step
-	dc.l $0005C2F6	; frame_sequence_ptr
+	dc.l megabio_feed_sequence_4C226_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 megabio_feed_nodes_4C226_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 megabio_feed_sequence_4C226_5:
-	dc.l $0005C252,$0005C252,$0005C264,$0005C276	; rooted_npc_animation_records
-	dc.l $0005C288,$0005C29A,$0005C2AC	; rooted_npc_animation_records
+	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_6	; frame_ptr
     ; Repeat player movement through an absolute call, mutable delay word and self jump. Delay loads the object interpreter countdown before the next loop pass.
 player_movement_script_loop:
 	dc.w WORLD_CMD_CALL_FUNCTION	; Player movement call-delay-jump loop; mutable delay operand
@@ -24725,6 +25153,7 @@ entry_officer_animation_bank_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_2_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_30+$200	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$80	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24732,6 +25161,7 @@ entry_officer_animation_bank_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_2_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_30+$400	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$100	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24739,6 +25169,7 @@ entry_officer_animation_bank_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+entry_officer_animation_bank_2_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_30+$600	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$180	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -24812,7 +25243,7 @@ player_move_negative_x_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C788	; frame_sequence_ptr
+	dc.l player_move_negative_x_frames	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 player_move_negative_x_animation_gap_B:
 	dc.b $00	; typed data block gap
@@ -24831,7 +25262,7 @@ player_move_positive_y_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $80	; phase_step
-	dc.l $0005C7BA	; frame_sequence_ptr
+	dc.l player_move_positive_y_frames	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 player_move_positive_y_animation_gap_B:
 	dc.b $00	; typed data block gap
@@ -24849,7 +25280,7 @@ player_move_negative_y_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $80	; phase_step
-	dc.l $0005C7E8	; frame_sequence_ptr
+	dc.l player_move_negative_y_frames	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 player_move_negative_y_animation_gap_B:
 	dc.b $00	; typed data block gap
@@ -24877,6 +25308,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_00+$400	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$100	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24884,6 +25316,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_00+$800	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$200	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24891,6 +25324,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_00+$C00	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$300	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24898,6 +25332,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_00+$1000	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$400	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24905,6 +25340,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_00+$1400	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$500	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24912,6 +25348,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_00+$1800	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$600	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24919,6 +25356,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_00+$1C00	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$700	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24926,6 +25364,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_00+$2000	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$800	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24933,6 +25372,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_00+$2400	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$900	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24940,6 +25380,7 @@ combat_encounter_geometry_headers:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
+combat_encounter_geometry_headers_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_00+$2800	; bitplane_data_ptr
 	dc.l scene_mask_bank_00+$A00	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -24951,28 +25392,38 @@ combat_active_animation_node:
 	dc.l combat_visual_position_descriptor	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l $0005C924	; frame_sequence_ptr
+	dc.l combat_active_frame_sequence	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 combat_active_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 combat_active_frame_sequence:
-	dc.l $0005C84C,$0005C84C,$0005C85E,$0005C870	; animation_frame_sequence
-	dc.l $0005C882,$0005C894,$0005C8A6	; animation_frame_sequence
+	dc.l combat_encounter_geometry_headers	; frame_ptr
+	dc.l combat_encounter_geometry_headers	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_5	; frame_ptr
 combat_exit_animation_node:
 	dc.l combat_visual_position_descriptor	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $2B	; phase_step
-	dc.l $0005C952	; frame_sequence_ptr
+	dc.l combat_exit_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
 combat_exit_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 combat_exit_frame_sequence:
-	dc.l $00000000,$0005C8B8,$0005C8CA,$0005C8DC	; animation_frame_sequence
-	dc.l $0005C8EE,$0005C900,$00000000	; animation_frame_sequence
+	dc.l $00000000	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_8	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_9	; frame_ptr
+	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_10	; frame_ptr
+	dc.l $00000000	; frame_ptr
 combat_visual_position_descriptor:
 	dc.l combat_visual_render_state	; position_state_ptr
 	dc.w $2710	; world_x

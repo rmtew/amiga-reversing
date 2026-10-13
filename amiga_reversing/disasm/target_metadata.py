@@ -1048,6 +1048,8 @@ class SeededEntityMetadata:
     value_domain: str | None = None
     pointer_address_domain: str | None = None
     pointer_symbol_group: str | None = None
+    source_owner_start: int | None = None
+    source_owner_size: int | None = None
     owner_action_id: str | None = None
     source_evidence_id: str | None = None
     parent_evidence_ids: tuple[str, ...] = ()
@@ -1056,6 +1058,14 @@ class SeededEntityMetadata:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
         validate_pointer_domain(value_kind=self.value_kind, size=(self.end or self.addr) - self.addr,
             address_domain=self.pointer_address_domain, symbol_group=self.pointer_symbol_group)
+
+        if ((self.source_owner_start is not None or self.source_owner_size is not None)
+                and (type(self.source_owner_start) is not int or type(self.source_owner_size) is not int
+                     or self.source_owner_start != self.addr or self.end is None or self.end <= self.addr
+                     or not self.name or self.source_owner_size < self.end - self.addr
+                     or self.source_owner_size <= 0 or self.addr < 0
+                     or self.addr + self.source_owner_size > 0xFFFFFFFF)):
+            raise ValueError("source owner span requires a named first leaf and valid enclosing source extent")
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SeededEntityMetadata:
@@ -1135,6 +1145,8 @@ class SeededEntityMetadata:
             value_domain=value_domain,
             pointer_address_domain=cast(str | None, payload.get("pointer_address_domain")),
             pointer_symbol_group=cast(str | None, payload.get("pointer_symbol_group")),
+            source_owner_start=cast(int | None, payload.get("source_owner_start")),
+            source_owner_size=cast(int | None, payload.get("source_owner_size")),
             owner_action_id=owner_action_id,
             source_evidence_id=source_evidence_id,
             parent_evidence_ids=tuple(parent_evidence_ids),
@@ -2118,7 +2130,7 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
     # Optional address-domain declarations do not change the legacy wire shape.
     for entity in payload.get("seeded_entities", ()):
-        for key in ("pointer_address_domain", "pointer_symbol_group"):
+        for key in ("pointer_address_domain", "pointer_symbol_group", "source_owner_start", "source_owner_size"):
             if entity.get(key) is None:
                 entity.pop(key, None)
     for struct in payload.get("custom_structs", ()):
