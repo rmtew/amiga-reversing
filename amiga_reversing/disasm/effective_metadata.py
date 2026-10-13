@@ -1416,7 +1416,10 @@ def _data_block_interpreted_ref_symbol(ref: Mapping[str, object]) -> str | None:
         return None
     if target_offset is None or target_offset < 0 or source_value is None or source_value < 0:
         return None
-    if source_value != target_offset or source_value >= (1 << (width * 8)):
+    runtime_address = _manual_seed_int(ref, "runtime_address")
+    if runtime_address is not None and runtime_address != source_value:
+        return None
+    if (source_value != target_offset and runtime_address is None) or source_value >= (1 << (width * 8)):
         return None
     if not isinstance(target_locator, Mapping):
         return None
@@ -1424,17 +1427,18 @@ def _data_block_interpreted_ref_symbol(ref: Mapping[str, object]) -> str | None:
         return None
     if _manual_seed_int(target_locator, "offset") != target_offset:
         return None
-    return f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    symbol = f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    return symbol if source_value == target_offset else f"{symbol}_runtime_{source_value:08X}"
 
 
 def _data_block_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquateMetadata | None:
     symbol = _data_block_interpreted_ref_symbol(ref)
-    target_offset = _manual_seed_int(ref, "target_offset")
-    if symbol is None or target_offset is None:
+    source_value = _manual_seed_int(ref, "source_value")
+    if symbol is None or source_value is None:
         return None
     return TargetEquateMetadata(
         name=symbol,
-        value=target_offset,
+        value=source_value,
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(ref, "data_block_ref_id"),
@@ -1505,7 +1509,7 @@ def _data_block_element_interpreted_ref_runtime_address_ref(
         size=width,
         target_hunk=target_hunk,
         target_offset=target_offset,
-        runtime_address=target_offset,
+        runtime_address=cast(int, _manual_seed_int(ref, "source_value")),
         confidence=confidence_id,
         owner_kind="data_block_interpreted_ref",
         owner_id=ref_id,

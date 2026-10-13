@@ -25,8 +25,10 @@
 ;     absolute[$00010D14-$00010D18] refs=1 access=a
 ;     absolute[$00010ED8] refs=1 access=a
 ;     absolute[$0001309A-$0001309E] refs=1 access=a
+;     absolute[$000195E2-$000195E6] refs=1 access=a
 ;     absolute[$0001A862] refs=2 access=a
 ;     absolute[$000585A6-$000585AA] refs=1 access=a
+;     absolute[$0005C312-$0005C316] refs=1 access=a
 ;     absolute[$0007D000] refs=1 access=a
 ;     absolute[$0007D380] refs=1 access=a
 ;     absolute[$0007D680] refs=1 access=a
@@ -629,6 +631,22 @@ bitmap_00075050_lo	EQU	bitmap_00075050-(bitmap_00075050_hi*$10000)
 bitmap_00075078	EQU	$75078
 bitmap_00075078_hi	EQU	bitmap_00075078/$10000
 bitmap_00075078_lo	EQU	bitmap_00075078-(bitmap_00075078_hi*$10000)
+dblk_ref_h0_000095E2_runtime_000195E2	EQU	$195E2
+dblk_ref_h0_00010CC0	EQU	$10CC0
+dblk_ref_h0_00010CCC	EQU	$10CCC
+dblk_ref_h0_00010CD8	EQU	$10CD8
+dblk_ref_h0_00010CE4	EQU	$10CE4
+dblk_ref_h0_00010CF0	EQU	$10CF0
+dblk_ref_h0_00010CFC	EQU	$10CFC
+dblk_ref_h0_00010D08	EQU	$10D08
+dblk_ref_h0_00010D14	EQU	$10D14
+dblk_ref_h0_0004C312_runtime_0005C312	EQU	$5C312
+dblk_ref_h0_0005859A	EQU	$5859A
+dblk_ref_h0_000585A6	EQU	$585A6
+dblk_ref_h0_00058CD0	EQU	$58CD0
+dblk_ref_h0_00058CDC	EQU	$58CDC
+dblk_ref_h0_00058CE8	EQU	$58CE8
+dblk_ref_h0_00058CF4	EQU	$58CF4
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_trap_0_instruction_vector	EQU	$80
@@ -2315,7 +2333,7 @@ abs_0_00012540:
 	move.l (a0)+,d0
 	beq.b abs_0_0001255C
 	movea.l d0,a5
-	move.b $0048(a5),d0
+	move.b world_object_shared_prefix_world_object_flags(a5),d0
 	andi.b #66,d0
 	bne.b abs_0_00012540
 	move.l a0,-(a7)
@@ -8399,7 +8417,7 @@ abs_0_0001996A:
     ; Hold the current animation header after idle or blocked movement: reset index/phase, set held-header mode and clear skip-update. This node dereference has no local null guard.
 hold_player_movement_animation:
 	lea.l player_position_state_state_node_ptr.l,a0
-	movea.l (a0),a0	; operand 1: world_position_state_record_current_geometry_ptr at (a0)
+	movea.l (a0),a0	; operand 1: world_position_state_record_state_node_ptr at (a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
@@ -8906,22 +8924,22 @@ abs_0_0001A0E2:
 	bsr.w resolve_item_name
 	move.l d0,$0000(a5)
 	movea.l $001C(a5),a2
-	movea.l $0014(a5),a3
+	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a3
 	moveq.l #7,d7
 abs_0_0001A0FA:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A0FA
-	movea.l $0020(a5),a2
-	movea.l $0018(a5),a3
+	movea.l world_object_shared_prefix_initial_trade_offer_table_ptr(a5),a2
+	movea.l world_object_shared_prefix_trade_offer_table_ptr(a5),a3
 	moveq.l #7,d7
 abs_0_0001A10A:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A10A
-	move.b $0047(a5),$0046(a5)
-	move.b $004D(a5),$004C(a5)
-	move.w $003E(a5),$003C(a5)
-	move.l $0028(a5),$0024(a5)
-	clr.w $0044(a5)
+	move.b world_object_shared_prefix_initial_selected_item_id(a5),world_object_shared_prefix_selected_item_id(a5)
+	move.b world_object_shared_prefix_initial_item_state(a5),world_object_shared_prefix_item_state(a5)
+	move.w world_object_shared_prefix_initial_hit_points(a5),world_object_shared_prefix_hit_points(a5)
+	move.l world_object_shared_prefix_initial_behavior_script_ptr(a5),world_object_shared_prefix_behavior_script_ptr(a5)
+	clr.w world_object_shared_prefix_behavior_script_delay_ticks(a5)
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
 	move.l #player_position_state,player_position_descriptor.l
@@ -28100,7 +28118,7 @@ abs_0_0005AF90:
 abs_0_0005AFFA:
 	lea.l player_position_state_interaction_data_ptr.l,a0
 	lea.l player_position_state_state_node_ptr.l,a4
-	move.l a0,(a4)	; operand 2: world_position_state_record_current_geometry_ptr at (a4)
+	move.l a0,(a4)	; operand 2: world_position_state_record_state_node_ptr at (a4)
 	lea.l abs_0_0005C96E.l,a0
 	move.w #$2710,d0
 	move.w d0,$0004(a0)
@@ -28995,7 +29013,7 @@ abs_0_0005C2BE:
 player_movement_script_loop:
 	dc.w WORLD_CMD_CALL_FUNCTION	; Player movement call-delay-jump loop; mutable delay operand
 movement_callback_ptr:
-	dc.l $000195E2	; Player movement call-delay-jump loop; mutable delay operand
+	dc.l dblk_ref_h0_000095E2_runtime_000195E2	; Player movement call-delay-jump loop; mutable delay operand
 delay_opcode:
 	dc.w WORLD_CMD_SET_DELAY	; Player movement call-delay-jump loop; mutable delay operand
 player_movement_script_delay_ticks:
@@ -29003,7 +29021,7 @@ player_movement_script_delay_ticks:
 jump_opcode:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; Player movement call-delay-jump loop; mutable delay operand
 loop_script_ptr:
-	dc.l $0005C312	; Player movement call-delay-jump loop; mutable delay operand
+	dc.l dblk_ref_h0_0004C312_runtime_0005C312	; Player movement call-delay-jump loop; mutable delay operand
 player_world_object:
 	dc.b $00,$00,$00,$00	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -33191,7 +33209,7 @@ update_player_proximity_audio:
 	bpl.b abs_0_00065318
 	neg.w d0
 abs_0_00065318:
-	move.w (a0),d1	; operand 1: world_object_shared_prefix_item_name_ptr at (a0)
+	move.w (a0),d1
 	subi.w #168,d1
 	bpl.b abs_0_00065322
 	neg.w d1

@@ -2133,6 +2133,48 @@ static const char *lookup_policy_struct_name_by_id(const M68kAnalysisPolicy *pol
   return custom_struct != NULL && custom_struct->name[0] != '\0' ? custom_struct->name : NULL;
 }
 
+/* Field seeds describe a cell in a root object, not an object starting at the
+   cell's address. Require one declared field with the seed's complete width. */
+static int lookup_policy_static_data_field_offset(const M68kAnalysisPolicy *policy, uint16_t struct_id,
+    const M68kAnalysisStructuredDataItem *item, uint16_t struct_size, uint32_t *out_offset) {
+  const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
+  uint32_t matched_offset = 0U, matched_size = 0U;
+  unsigned matches = 0U;
+  if (custom_struct != NULL) {
+    uint16_t index;
+    for (index = 0U; index < custom_struct->field_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[index];
+      if (strcmp(field->name, item->field_name) != 0) continue;
+      if (item->field_type[0] != '\0' && strcmp(item->field_type, field->type_name) != 0) return 0;
+      matched_offset = field->offset;
+      matched_size = field->size;
+      ++matches;
+    }
+  } else {
+    uint32_t offset;
+    for (offset = 0U; offset < struct_size && offset <= INT16_MAX; ++offset) {
+      AmigaOsResolvedStructFieldInfo field;
+      const char *name;
+      const AmigaOsStructFieldInfo *declared;
+      const char *type_name;
+      if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, (int16_t)offset, 0, &field) ||
+          field.offset != (int16_t)offset) continue;
+      name = amiga_os_name(M68K_PLATFORM_NAME_FIELD, field.field_id);
+      if (name == NULL || strcmp(name, item->field_name) != 0) continue;
+      declared = amiga_os_find_struct_field_by_field_id(field.field_id);
+      type_name = declared != NULL ? amiga_os_name(M68K_PLATFORM_NAME_TYPE, declared->field_type_id) : NULL;
+      if (item->field_type[0] != '\0' && (type_name == NULL || strcmp(item->field_type, type_name) != 0)) return 0;
+      matched_offset = offset;
+      matched_size = field.size;
+      ++matches;
+    }
+  }
+  if (matches != 1U || matched_size == 0U || item->size != matched_size ||
+      matched_offset > INT32_MAX || (uint64_t)matched_offset + matched_size > struct_size) return 0;
+  *out_offset = matched_offset;
+  return 1;
+}
+
 /* A structured-data item can describe an object whose address is materialised
    at either its start or a proven interior byte.  The cursor records that
    interior position relative to the root object for later field resolution. */
@@ -2162,7 +2204,16 @@ static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysi
     if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
     struct_size = lookup_policy_struct_size_by_id(policy, struct_id);
     byte_cursor = (int32_t)(offset - item->offset);
-    if (struct_size != 0U && item->size >= struct_size && item->size % struct_size == 0U &&
+    if (item->field_name[0] != '\0') {
+      uint32_t field_offset;
+      if (!lookup_policy_static_data_field_offset(policy, struct_id, item, struct_size, &field_offset)) {
+        /* An invalid field declaration must not fall back to a root at zero,
+           including when another overlapping seed supplies a trusted type. */
+        if (out_conflict_struct_id != NULL) *out_conflict_struct_id = struct_id;
+        return resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE ? resolved_struct_id : struct_id;
+      }
+      byte_cursor += (int32_t)field_offset;
+    } else if (struct_size != 0U && item->size >= struct_size && item->size % struct_size == 0U &&
         item->size / struct_size <= UINT16_MAX) {
       array_element_count = (uint16_t)(item->size / struct_size);
       array_element_index = (uint16_t)((uint32_t)byte_cursor / struct_size);
@@ -3601,6 +3652,7 @@ static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderLookup *l
     const M68kRenderTypedState *state, const M68kOperandIR *operand) {
   uint8_t base_reg = 0U;
   int16_t displacement = 0;
+  int64_t effective_displacement;
   uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
   if (lookup == NULL || state == NULL || operand == NULL ||
       !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
@@ -3609,7 +3661,10 @@ static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderLookup *l
   }
   struct_id = state->addr_regs[base_reg].struct_id;
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return AMIGA_OS_STRUCT_ID_NONE;
-  return lookup_policy_pointer_struct_id_for_field(lookup->policy, struct_id, displacement);
+  effective_displacement = (int64_t)state->addr_regs[base_reg].byte_cursor + displacement;
+  if (effective_displacement < INT16_MIN || effective_displacement > INT16_MAX)
+    return AMIGA_OS_STRUCT_ID_NONE;
+  return lookup_policy_pointer_struct_id_for_field(lookup->policy, struct_id, (int16_t)effective_displacement);
 }
 
 static int typed_stored_value_from_field_pointer_read(M68kRenderTypedStoredValue *value,
@@ -7329,8 +7384,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   if (metadata != NULL) {
     for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
       const M68kOperandIR *operand = &instruction->operands[operand_index];
-      if (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_NONE ||
-          operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U) {
+      uint8_t ea_shape = m68k_instruction_operand_decoded_ea_shape(operand);
+      /* Generic memory forms leave the update to the decoded EA shape, as
+         the simulator does. They must invalidate the old typed cursor too. */
+      if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U ||
+          (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_NONE &&
+           !((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
+              metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+             (ea_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || ea_shape == M68K_SIM_EA_SHAPE_PREDECREMENT)))) {
         continue;
       }
       {

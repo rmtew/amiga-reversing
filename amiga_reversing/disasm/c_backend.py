@@ -1686,6 +1686,10 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_runtime_source_json_alloc.argtypes = [
+        c_void_p, c_uint32, POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_runtime_source_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.argtypes = [
         c_void_p,
         c_char_p,
@@ -2250,6 +2254,14 @@ class CListingArtifact:
         if isinstance(row_index, int):
             row["row_index"] = row_index
         return row
+
+    def source_for_runtime_address(self, *, address: int) -> dict[str, object]:
+        """Resolve canonical source identity through current materialized native views."""
+        if type(address) is not int or not 0 <= address <= 0xFFFFFFFF:
+            raise ValueError("address must be an unsigned 32-bit integer")
+        return cast(dict[str, object], json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_runtime_source_json_alloc, address,
+        )))
 
     def row_for_runtime_address(self, *, address: int) -> dict[str, object] | None:
         # A typed runtime allocation describes the current RAM contents and

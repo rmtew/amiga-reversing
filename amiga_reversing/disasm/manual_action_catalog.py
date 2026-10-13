@@ -1394,6 +1394,7 @@ def _data_block_element_ref_parameter_schema(defaults: Mapping[str, object] | No
                 "target_hunk": {"type": "integer", "minimum": 0},
                 "target_offset": {"type": "integer", "minimum": 0},
                 "source_value": {"type": "integer", "minimum": 0},
+                "runtime_address": {"type": "integer", "minimum": 0, "maximum": 4294967295},
                 "signed": {"type": "boolean"},
                 "scale": {"type": "integer", "minimum": 1},
                 "base_evidence_id": {"type": "string"},
@@ -1582,6 +1583,7 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
                     "target_offset",
                     "target_locator",
                     "source_value",
+                    "runtime_address",
                     "confidence",
                     "xref_generation_mode",
                     "signed",
@@ -4270,6 +4272,7 @@ def _data_block_element_ref_context(row: Mapping[str, object]) -> dict[str, obje
         "target_offset",
         "target_locator",
         "source_value",
+        "runtime_address",
         "confidence",
         "xref_generation_mode",
         "signed",
@@ -4506,7 +4509,10 @@ def _data_block_element_ref_payload(
         source_value = _optional_int(params.get("source_value"))
         if source_value is None or source_value < 0:
             raise ValueError("interpret_manual_data_block_element_ref requires source_value without selected source bytes")
-    if source_value != target_offset:
+    runtime_address = _optional_int(params.get("runtime_address"))
+    if runtime_address is not None and runtime_address != source_value:
+        raise ValueError("interpret_manual_data_block_element_ref runtime_address must match selected source bytes")
+    if source_value != target_offset and runtime_address is None:
         raise ValueError("interpret_manual_data_block_element_ref target_offset must match selected source bytes")
     ref_id = str(params.get("data_block_ref_id") or "").strip()
     if not ref_id:
@@ -4530,6 +4536,8 @@ def _data_block_element_ref_payload(
         "confidence": confidence,
         "xref_generation_mode": xref_generation_mode,
     }
+    if runtime_address is not None:
+        ref["runtime_address"] = runtime_address
     signed = params.get("signed")
     if isinstance(signed, bool):
         ref["signed"] = signed
@@ -4839,6 +4847,7 @@ def _data_block_element_ref_remove_payload(
         "target_offset",
         "target_locator",
         "source_value",
+        "runtime_address",
         "confidence",
         "xref_generation_mode",
         "signed",

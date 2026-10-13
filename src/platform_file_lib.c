@@ -13148,6 +13148,52 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
+int platform_file_facts_v2_listing_artifact_runtime_source_json_alloc(PlatformFileListingArtifact *artifact,
+    uint32_t address, char **out_text) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  size_t si, vi, target_section = 0U;
+  uint32_t target_offset = 0U;
+  int found = 0, ambiguous = 0;
+  memset(&result, 0, sizeof(result));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL) return -1;
+  /* Reuse native materialization decisions, including suppressed loader and
+   * conflicting-copy views. Never select by view width or insertion order. */
+  for (si = 0U; si < artifact->source_analysis.section_count; ++si) {
+    const M68kSectionAnalysisIR *section = &artifact->source_analysis.sections[si];
+    for (vi = 0U; vi < section->runtime_view_count; ++vi) {
+      const M68kRuntimeViewIR *view = &section->runtime_views[vi];
+      uint32_t delta, source_offset;
+      if (!view->materialized || address < view->runtime_address) continue;
+      delta = address - view->runtime_address;
+      if (delta >= view->size || view->storage_offset > UINT32_MAX - delta) continue;
+      source_offset = view->storage_offset + delta;
+      if (section->section_index >= artifact->object.section_count ||
+          source_offset >= artifact->object.sections[section->section_index].size) continue;
+      if (found && (target_section != section->section_index || target_offset != source_offset)) ambiguous = 1;
+      target_section = section->section_index;
+      target_offset = source_offset;
+      found = 1;
+    }
+  }
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_appendf(&builder, "{\"status\":\"%s\",\"runtime_address\":%u",
+        ambiguous ? "ambiguous" : found ? "resolved" : "unmapped", (unsigned)address) != 0) goto oom;
+  if (found && !ambiguous && json_builder_appendf(&builder,
+      ",\"section_index\":%u,\"source_offset\":%u", (unsigned)target_section, (unsigned)target_offset) != 0) goto oom;
+  if (json_builder_append(&builder, "}") != 0) goto oom;
+  result.text = json_builder_build(&builder);
+  if (result.text == NULL) goto oom;
+  goto cleanup;
+oom:
+  platform_file_add_error(&result.diagnostics, "out of memory");
+cleanup:
+  json_builder_destroy(&builder);
+  return text_result_to_alloc(&result, out_text);
+}
+
 int platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc(PlatformFileListingArtifact *artifact,
     uint32_t address, char **out_text) {
   PlatformFileTextResult result;
@@ -13644,6 +13690,20 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
           (unsigned)a->type_provenance_kind, (unsigned)a->type_provenance_section_index, (unsigned)a->type_provenance_offset));
       }
     } else if (!strcmp(kind, "references")) {
+      /* Data-element interpretations own canonical source xrefs even when
+       * their symbolic EQU encodes a different runtime address. */
+      for (j = 0; j < sec->runtime_address_ref_count; ++j) {
+        const M68kRuntimeAddressRefIR *r = &sec->runtime_address_refs[j];
+        if (!r->owner_kind || strcmp(r->owner_kind, "data_block_interpreted_ref") || *symbol ||
+            !(!(has_section || has_start) || (outgoing && COORD(sec->section_index, r->offset)) ||
+              (incoming && r->has_target && (!r->xref_generation_mode ||
+                strcmp(r->xref_generation_mode, "source_only")) &&
+                COORD(r->target_section_index, r->target_offset)))) continue;
+        PAGE(); ID(sec->section_index, r->offset); TARGET(r->has_target, r->target_section_index, r->target_offset);
+        STR("owner_kind", r->owner_kind); STR("owner_id", r->owner_id);
+        Q(json_builder_appendf(&b, ",\"runtime_address\":%u,\"kind\":\"data_reference\","
+          "\"provenance\":\"native_runtime_address_ref\"}", (unsigned)r->runtime_address));
+      }
       for (j = 0; j < sec->data_reference_count; ++j) {
         const M68kDataReferenceIR *r = &sec->data_references[j];
         int resolved = r->target_status == M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;

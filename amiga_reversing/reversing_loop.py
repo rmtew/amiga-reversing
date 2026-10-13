@@ -12701,6 +12701,7 @@ def _verify_projected_data_block_interpreted_ref_xrefs(
         and ref.get("owner_element_offset") == element_offset
         and ref.get("target_section_index") == target_hunk
         and ref.get("target_offset") == target_offset
+        and ref.get("runtime_address") == render_expected.get("source_value")
     ]
     removed = command_id.endswith(".clear_ref")
     return {
@@ -13495,13 +13496,18 @@ def _data_block_interpreted_ref_symbol(expected: dict[str, object]) -> str | Non
         return None
     if not isinstance(target_offset, int) or target_offset < 0:
         return None
-    if not isinstance(source_value, int) or source_value != target_offset or source_value >= (1 << (width * 8)):
+    runtime_address = expected.get("runtime_address")
+    if runtime_address is not None and runtime_address != source_value:
+        return None
+    if (not isinstance(source_value, int) or source_value < 0 or
+        (source_value != target_offset and runtime_address is None) or source_value >= (1 << (width * 8))):
         return None
     if not isinstance(target_locator, dict):
         return None
     if target_locator.get("hunk") != target_hunk or target_locator.get("offset") != target_offset:
         return None
-    return f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    symbol = f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    return symbol if source_value == target_offset else f"{symbol}_runtime_{source_value:08X}"
 
 
 def _verify_projected_data_block_rendered_source(

@@ -1419,7 +1419,10 @@ def _validated_data_block_interpreted_ref(
         raise ValueError("data_block_interpreted_ref requires non-negative source_value")
     if width > 4 or source_value >= (1 << (width * 8)):
         raise ValueError("data_block_interpreted_ref source_value does not fit width")
-    if source_value != target_offset:
+    runtime_address = _manual_seed_int(ref, "runtime_address")
+    if runtime_address is not None and runtime_address != source_value:
+        raise ValueError("data_block_interpreted_ref runtime_address must match source_value")
+    if source_value != target_offset and runtime_address is None:
         raise ValueError("data_block_interpreted_ref source_value must match target_offset")
     return dict(ref)
 

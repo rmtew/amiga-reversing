@@ -40,7 +40,10 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
     validate_api_input_struct_with_c_backend,
 )
-from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
+from amiga_reversing.disasm.effective_metadata import (
+    effective_metadata_hash,
+    effective_metadata_text,
+)
 from amiga_reversing.disasm.listing_context import (
     listing_element_contexts,
     selected_listing_element_context,
@@ -2759,9 +2762,59 @@ def _prepare_manual_action_command(
         action_payloads = listing_range_catalog_manual_payload(rows, action_id, parameters=parameters)
     else:
         raise _command_contract_error("invalid_command_context", f"Unsupported command context: {context_kind}")
+    for kind, payload in action_payloads:
+        if kind != "interpret_manual_data_block_element_ref":
+            continue
+        ref = cast(dict[str, object], payload["data_block_interpreted_ref"])
+        runtime_address = ref.get("runtime_address")
+        if runtime_address is None:
+            continue
+        artifact = _valid_c_listing_artifact(project_name)
+        resolver = getattr(artifact, "source_for_runtime_address", None)
+        if not callable(resolver):
+            raise ValueError("data-block runtime reference requires current native view resolution")
+        _validate_data_block_runtime_ref_source_bytes(project, artifact, ref)
+        resolved = resolver(address=runtime_address)
+        if (resolved.get("status") != "resolved" or
+            resolved.get("section_index") != ref.get("target_hunk") or
+            resolved.get("source_offset") != ref.get("target_offset")):
+            raise ValueError("data-block runtime reference requires a unique matching active native source mapping")
     if interpretation is not None:
         action_payloads = [(kind, {**payload, "interpretation": interpretation}) for kind, payload in action_payloads]
     return action_payloads
+
+
+def _validate_data_block_runtime_ref_source_bytes(
+    project: ProjectRecord, artifact: object, ref: Mapping[str, object],
+) -> None:
+    """Validate the owner through the existing effective metadata projection."""
+    metadata = json.loads(effective_metadata_text(Path(project.target_dir)))
+    layouts = [layout for layout in metadata.get("data_block_layouts", [])
+               if layout.get("layout_id") == ref.get("layout_id")]
+    width, offset = ref.get("width"), ref.get("offset")
+    if len(layouts) != 1 or type(width) is not int or type(offset) is not int:
+        raise ValueError("data-block runtime reference requires a current owning layout and element")
+    layout = layouts[0]
+    owners = [element for element in layout.get("elements", [])
+              if element["offset"] <= offset and offset + width <= element["offset"] + element["width"]]
+    source_offset = layout["source_start"] + offset
+    if len(owners) != 1 or source_offset < layout["source_start"] or source_offset + width > layout["source_end"]:
+        raise ValueError("data-block runtime reference must fit its current owning element")
+    row_lookup = getattr(artifact, "row_for_source_offset", None)
+    row = row_lookup(section_index=layout["hunk"], offset=source_offset) if callable(row_lookup) else None
+    if not isinstance(row, Mapping) or type(row.get("start_offset")) is not int:
+        raise ValueError("data-block runtime reference requires current owning source bytes")
+    try:
+        data = bytes.fromhex(str(row.get("bytes") or ""))
+    except ValueError as exc:
+        raise ValueError("data-block runtime reference requires valid owning source bytes") from exc
+    row_start = cast(int, row["start_offset"])
+    relative_offset = source_offset - row_start
+    if relative_offset < 0 or relative_offset + width > len(data):
+        raise ValueError("data-block runtime reference requires complete owning source bytes")
+    source_value = int.from_bytes(data[relative_offset:relative_offset + width], "big")
+    if source_value != ref.get("source_value"):
+        raise ValueError("data-block runtime reference source_value must match current owning source bytes")
 
 
 def _execute_manual_action_command(

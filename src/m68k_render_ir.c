@@ -877,14 +877,15 @@ static int render_asm_define_m68k_vector_symbol_once(M68kRenderIRPreview *previe
   return render_asm_declare_symbol_hex_once(preview, symbol_name, vector->address);
 }
 
-static int render_plan_has_source_label_for_logical_address(const M68kRenderPlan *plan,
-    uint32_t logical_address) {
+static int render_plan_has_source_label_definition(const M68kRenderPlan *plan,
+    const char *symbol_name, uint32_t logical_address) {
   size_t declaration_index;
   if (plan == NULL) return 0;
   for (declaration_index = 0U; declaration_index < plan->declaration_count; ++declaration_index) {
     const M68kRenderPlannedDeclaration *declaration = &plan->declarations[declaration_index];
     if (declaration->kind == M68K_RENDER_PLANNED_DECLARATION_LABEL &&
-        declaration->has_source_target != 0U && declaration->logical_address == logical_address) return 1;
+        declaration->has_source_target != 0U && declaration->logical_address == logical_address &&
+        strcmp(declaration->name, symbol_name) == 0) return 1;
   }
   return 0;
 }
@@ -896,7 +897,10 @@ static int render_asm_declare_target_equates(M68kRenderIRPreview *preview, const
   for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
     const M68kAnalysisTargetEquate *equate = &policy->target_equates[index];
     if (equate->name[0] == '\0') continue;
-    if (equate->value >= 0 && render_plan_has_source_label_for_logical_address(plan, (uint32_t)equate->value)) {
+    /* A different label at the same address does not define this EQU's name.
+     * Manual symbol representations can still refer to that exact name. */
+    if (equate->value >= 0 && render_plan_has_source_label_definition(plan, equate->name,
+        (uint32_t)equate->value)) {
       continue;
     }
     if (equate->value_style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) {
