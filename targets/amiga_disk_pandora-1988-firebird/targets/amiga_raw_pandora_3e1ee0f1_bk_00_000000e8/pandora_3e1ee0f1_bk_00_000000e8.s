@@ -126,10 +126,10 @@ app_0286 RS.W 1
 app_0288 RS.B 1
 app_camera_scroll_ticks_remaining RS.B 1
     RS.B 4
-app_028E RS.W 1
-app_0290 RS.W 1
-app_0292 RS.W 1
-app_0294 RS.W 1
+app_camera_scroll_left_trigger RS.W 1
+app_camera_scroll_right_trigger RS.W 1
+app_camera_scroll_top_trigger RS.W 1
+app_camera_scroll_bottom_trigger RS.W 1
 app_camera_scroll_delta_x RS.W 1
 app_camera_scroll_delta_y RS.W 1
 app_029A RS.L 1
@@ -153,8 +153,8 @@ app_inventory_display_item_ids RS.B 4
     RS.B 4
 app_02C2 RS.B 1
     RS.B 5
-app_02C8 RS.W 1
-app_02CA RS.W 1
+app_camera_scroll_countdown_reload_word RS.W 1
+app_camera_scroll_profile_index RS.W 1
 app_02CC RS.B 1
 app_02CD RS.B 1
 app_02CE RS.B 1
@@ -204,7 +204,7 @@ app_02BC RS.B 1
     RSSET $02BD
 app_02BD RS.B 1
     RSSET $02C9
-app_02C9 RS.B 1
+app_configured_camera_scroll_ticks RS.B 1
     RSSET $07EF
 app_07EF RS.B 1
     RSSET $07F0
@@ -470,6 +470,13 @@ cmd_xy_opcode RS.W 1
 cmd_xy_limit RS.L 1
 cmd_xy_disp RS.W 1
 cmd_xy_SIZEOF EQU __RS
+
+; STRUCT camera_scroll_profile
+    RSRESET
+camera_scroll_profile_scroll_countdown_reload_word RS.W 1
+camera_scroll_profile_horizontal_trigger_margin RS.W 1
+camera_scroll_profile_vertical_trigger_margin RS.W 1
+camera_scroll_profile_SIZEOF EQU __RS
 
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
@@ -849,18 +856,18 @@ abs_0_00010688:
 abs_0_000106A2:
 	tst.b $000B(a0)
 	beq.b abs_0_000106BA
-	tst.w app_02CA(a6)
+	tst.w app_camera_scroll_profile_index(a6)
 	beq.b abs_0_000106D2
-	clr.w app_02CA(a6)
-	jsr abs_0_0001A152.l
+	clr.w app_camera_scroll_profile_index(a6)
+	jsr configure_camera_scroll_triggers.l
 	bra.b abs_0_000106D2
 abs_0_000106BA:
 	tst.b $000C(a0)
 	beq.b abs_0_000106D2
-	tst.w app_02CA(a6)
+	tst.w app_camera_scroll_profile_index(a6)
 	bne.b abs_0_000106D2
-	move.w #$1,app_02CA(a6)
-	jsr abs_0_0001A152.l
+	move.w #$1,app_camera_scroll_profile_index(a6)
+	jsr configure_camera_scroll_triggers.l
 abs_0_000106D2:
 	bra.w swap_front_back_display_buffers
 return_immediately:
@@ -6475,10 +6482,10 @@ objects_traded_message:
 	dc.b "..... YOU HAVE TRADED OBJECTS ...."
 start_trade_result_countdown:
 	move.l d0,d7
-    ; Start timed camera scrolling with the existing XY deltas and the byte countdown from app_02C9.
+    ; Load the configured profile countdown low byte and start camera scrolling with existing XY deltas. Service decrements before moving; the expiry visit clears deltas and redraws.
 begin_camera_scroll:
 	bset.b #4,app_status_flags(a6)
-	move.b app_02C9(a6),app_camera_scroll_ticks_remaining(a6)
+	move.b app_configured_camera_scroll_ticks(a6),app_camera_scroll_ticks_remaining(a6)
 	rts
     ; Request a two-tick camera refresh with zero XY scroll deltas.
 request_camera_refresh:
@@ -6519,7 +6526,7 @@ abs_0_00017D80:
 	move.w d0,app_tile_column(a6)
 abs_0_00017D9C:
 	bsr.w render_tilemap_view_to_back_buffer
-	bsr.w abs_0_0001A152
+	bsr.w configure_camera_scroll_triggers
 	rts
 abs_0_00017DA6:
 	move.b app_0284(a6),d0
@@ -8350,7 +8357,7 @@ abs_0_000198A2:
 	tst.w d0
 	beq.b abs_0_0001990A
 	bpl.b abs_0_000198D8
-	move.w app_028E(a6),d2
+	move.w app_camera_scroll_left_trigger(a6),d2
 	move.w world_object_shared_prefix_world_x(a4),d0
 	cmp.w d2,d0
 	bcc.b abs_0_0001990A
@@ -8363,7 +8370,7 @@ abs_0_000198A2:
 abs_0_000198D8:
 	move.w world_object_shared_prefix_world_x(a4),d0
 	addi.w #24,d0
-	move.w app_0290(a6),d2
+	move.w app_camera_scroll_right_trigger(a6),d2
 	cmp.w d2,d0
 	bcs.b abs_0_0001990A
 	move.w app_tilemap_scroll_x(a6),d0
@@ -8390,7 +8397,7 @@ abs_0_0001990A:
 	move.w d0,world_object_shared_prefix_world_y(a4)
 	bra.w request_camera_refresh
 abs_0_00019934:
-	move.w app_0292(a6),d2
+	move.w app_camera_scroll_top_trigger(a6),d2
 	cmp.w d2,d0
 	bcc.w abs_0_000199AA
 	clr.w app_camera_scroll_delta_x(a6)
@@ -8407,7 +8414,7 @@ abs_0_0001994C:
 	move.w #$10,world_object_shared_prefix_world_y(a4)
 	bra.w request_camera_refresh
 abs_0_0001996A:
-	move.w app_0294(a6),d2
+	move.w app_camera_scroll_bottom_trigger(a6),d2
 	addi.w #32,d0
 	cmp.w d2,d0
 	bcs.b abs_0_000199AA
@@ -8788,7 +8795,7 @@ abs_0_00019EC6:
 	move.w #$81,app_tilemap_height(a6)
 	move.l #$4000,app_tilemap_base(a6)
 	bsr.w build_world_tilemap_pointer_grid
-	move.w #$1,app_02CA(a6)
+	move.w #$1,app_camera_scroll_profile_index(a6)
 	moveq.l #15,d7
 	lea.l world_runtime_setup_records.l,a0
 	lea.l $00065374.l,a1
@@ -8899,7 +8906,7 @@ abs_0_0001A056:
 	clr.b app_0284(a6)
 	move.w #$9999,app_0286(a6)
 	move.b #$1,app_0288(a6)
-	bsr.w abs_0_0001A152
+	bsr.w configure_camera_scroll_triggers
 	move.l #active_world_object_ptr_table,app_active_world_object_ptr_table(a6)
 	move.w #$43,active_world_object_count(a6)
 	lea.l world_object_ptr_table.l,a1
@@ -8947,32 +8954,38 @@ abs_0_0001A12E:
 	bset.b #4,app_02A6(a6)
 	movea.l (a7)+,a5
 	rts
-abs_0_0001A146:
-	dc.b $00,$04,$00,$00,$00,$00,$00,$06,$00,$20,$00,$10
-abs_0_0001A152:
-	move.w app_02CA(a6),d0
+camera_scroll_profiles:
+	dc.w $0004	; scroll_countdown_reload_word
+	dc.w $0000	; horizontal_trigger_margin
+	dc.w $0000	; vertical_trigger_margin
+	dc.w $0006	; scroll_countdown_reload_word
+	dc.w $0020	; horizontal_trigger_margin
+	dc.w $0010	; vertical_trigger_margin
+    ; Unchecked index selects reload word and XY margins. Only the reload low byte feeds countdown; triggers use scroll+margin and scroll+viewport-margin (320x128). Known writers select 0/1.
+configure_camera_scroll_triggers:
+	move.w app_camera_scroll_profile_index(a6),d0
 	add.w d0,d0
 	move.w d0,d1
 	add.w d0,d0
 	add.w d1,d0
-	lea.l abs_0_0001A146(pc,d0.w),a0
-	move.w (a0)+,app_02C8(a6)
+	lea.l camera_scroll_profiles(pc,d0.w),a0
+	move.w (a0)+,app_camera_scroll_countdown_reload_word(a6)
 	move.w (a0)+,d2
 	move.w (a0)+,d3
 	move.w app_tilemap_scroll_x(a6),d0
 	add.w d2,d0
 	add.w d2,d2
-	move.w d0,app_028E(a6)
+	move.w d0,app_camera_scroll_left_trigger(a6)
 	addi.w #320,d0
 	sub.w d2,d0
-	move.w d0,app_0290(a6)
+	move.w d0,app_camera_scroll_right_trigger(a6)
 	move.w app_tilemap_scroll_y(a6),d0
 	add.w d3,d0
 	add.w d3,d3
-	move.w d0,app_0292(a6)
+	move.w d0,app_camera_scroll_top_trigger(a6)
 	addi.w #128,d0
 	sub.w d3,d0
-	move.w d0,app_0294(a6)
+	move.w d0,app_camera_scroll_bottom_trigger(a6)
 	rts
 build_world_tilemap_pointer_grid:
 	move.l a5,-(a7)
