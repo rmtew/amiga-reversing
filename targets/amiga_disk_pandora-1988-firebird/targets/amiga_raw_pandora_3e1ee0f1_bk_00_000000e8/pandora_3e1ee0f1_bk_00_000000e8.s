@@ -120,10 +120,10 @@ app_message_palette_flash_countdown RS.B 1
 app_status_flags RS.B 1
 app_current_palette RS.L 1
 app_0280 RS.L 1
-app_0284 RS.B 1
+app_palette_transition_steps_remaining RS.B 1
 app_0285 RS.B 1
-app_0286 RS.W 1
-app_0288 RS.B 1
+app_earth_orbit_countdown_bcd RS.W 1
+app_earth_orbit_countdown_divider RS.B 1
 app_camera_scroll_ticks_remaining RS.B 1
     RS.B 4
 app_camera_scroll_left_trigger RS.W 1
@@ -155,35 +155,34 @@ app_02C2 RS.B 1
     RS.B 5
 app_camera_scroll_countdown_reload_word RS.W 1
 app_camera_scroll_profile_index RS.W 1
-app_02CC RS.B 1
+app_game_exit_service_ticks_remaining RS.B 1
 app_02CD RS.B 1
 app_02CE RS.B 1
 app_02CF RS.B 1
 app_02D0 RS.W 1
 app_02D2 RS.W 1
 app_02D4 RS.L 1
-app_02D8 RS.B 1
-app_02D9 RS.B 1
+app_player_movement_commit_inhibited RS.B 1
+app_salvage_item_count RS.B 1
 app_02DA RS.L 1
     RS.B 60
-app_031A RS.B 1
+app_modal_last_selected_item_id RS.B 1
 app_031B RS.B 1
 app_last_accepted_move_request_x_step RS.W 1
 app_last_accepted_move_request_y_step RS.W 1
 app_0320 RS.W 1
 app_0322 RS.W 1
 app_0324 RS.W 1
-app_0326 RS.B 1
-app_0327 RS.B 1
-app_0328 RS.W 1
-app_032A RS.B 1
-app_032B RS.B 1
-app_032C RS.L 1
-    RS.B 8
-app_0338 RS.B 1
-app_0339 RS.B 1
+app_self_destruct_qualifying_card_count RS.B 1
+app_defeated_object_count RS.B 1
+app_self_destruct_service_ticks_remaining RS.W 1
+app_self_destruct_submitted_card_count RS.B 1
+app_self_destruct_state RS.B 1
+app_self_destruct_submitted_name_ptrs RS.B 12
+app_authorized_checkpoint_count RS.B 1
+app_authorized_checkpoint_seen_bits RS.B 1
 app_player_lateral_drift RS.W 1
-app_033C RS.B 1
+app_game_event_flags RS.B 1
 app_world_interaction_flags RS.B 1
 app_world_interaction_audio_flags RS.B 1
     RS.B 23
@@ -196,7 +195,7 @@ app_blitter_interrupt_callback RS.L 1
     RS.B 1154
 app_07EE RS.W 1
     RSSET $0287
-app_0287 RS.B 1
+app_earth_orbit_countdown_bcd_low_byte RS.B 1
     RSSET $02BB
 app_02BB RS.B 1
     RSSET $02BC
@@ -395,7 +394,9 @@ WorldPositionAnimationFrame_SIZEOF EQU __RS
 
 ; STRUCT world_position_collision_bounds
     RSRESET
-    RS.B 10
+world_position_collision_bounds_bitplane_data_ptr RS.L 1
+world_position_collision_bounds_mask_data_ptr RS.L 1
+world_position_collision_bounds_row_stride_words RS.W 1
 world_position_collision_bounds_world_y_extent RS.W 1
 world_position_collision_bounds_world_x_extent RS.W 1
 world_position_collision_bounds_world_x_origin_offset RS.W 1
@@ -477,6 +478,14 @@ camera_scroll_profile_scroll_countdown_reload_word RS.W 1
 camera_scroll_profile_horizontal_trigger_margin RS.W 1
 camera_scroll_profile_vertical_trigger_margin RS.W 1
 camera_scroll_profile_SIZEOF EQU __RS
+
+; STRUCT saved_tilemap_context_header
+    RSRESET
+saved_tilemap_context_header_width RS.W 1
+saved_tilemap_context_header_height RS.W 1
+saved_tilemap_context_header_tile_column RS.W 1
+saved_tilemap_context_header_tile_row RS.W 1
+saved_tilemap_context_header_SIZEOF EQU __RS
 
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
@@ -786,7 +795,7 @@ abs_0_00010498:
 	bsr.w wait_for_next_frame_counter
 	lea.l _custom.l,a5
 	move.w #DMAF_SETCLR|DMAF_RASTER|DMAF_SPRITE,dmacon(a5)
-	move.b #$19,app_0284(a6)
+	move.b #$19,app_palette_transition_steps_remaining(a6)
 	bra.b wait_for_completed_frame
     ; Exchange front/back pointers, select the new front for display, then clear completion bit 5 before waiting for the next completed frame callback.
 swap_front_back_display_buffers:
@@ -812,27 +821,27 @@ wait_for_completed_frame:
 	jsr update_active_world_object_positions.l
 	bsr.w update_world_object_interactions
 	jsr process_terminal_item_deposit.l
-	bsr.w abs_0_00012D2A
+	bsr.w service_keyboard_pause_gate
 	lea.l _custom.l,a5
 	jsr poll_joystick1_directions_and_fire.l
 	jsr abs_0_00019A48.l
-	bsr.w abs_0_00017DA6
-	bsr.w abs_0_00012D5A
+	bsr.w service_gameplay_palette_transition
+	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	jsr update_player_proximity_audio.l
-	btst.b #5,app_033C(a6)
+	btst.b #5,app_game_event_flags(a6)
 	bne.b abs_0_00010676
-	btst.b #3,app_033C(a6)
+	btst.b #3,app_game_event_flags(a6)
 	bne.b abs_0_00010676
-	tst.b app_032B(a6)
+	tst.b app_self_destruct_state(a6)
 	bpl.b abs_0_0001066C
-	move.w app_0328(a6),d0
+	move.w app_self_destruct_service_ticks_remaining(a6),d0
 	subq.w #1,d0
-	bmi.w abs_0_000106D8
-	move.w d0,app_0328(a6)
+	bmi.w handle_self_destruct_countdown_expiry
+	move.w d0,app_self_destruct_service_ticks_remaining(a6)
 	andi.b #127,d0
 	bne.b abs_0_0001066C
-	lea.l abs_0_0005CABC.l,a0
+	lea.l self_destruct_evacuation_warning.l,a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	move.w #$310,d0
@@ -843,7 +852,7 @@ abs_0_0001066C:
 abs_0_00010676:
 	btst.b #5,app_02A6(a6)
 	bne.b abs_0_00010688
-	subq.b #1,app_02CC(a6)
+	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b abs_0_00010688
 	bra.w abs_0_00010456
 abs_0_00010688:
@@ -872,8 +881,9 @@ abs_0_000106D2:
 	bra.w swap_front_back_display_buffers
 return_immediately:
 	rts
-abs_0_000106D8:
-	bset.b #5,app_033C(a6)
+    ; Self-destruct expiry inhibits player movement and starts outcome/exit handling. Main and modal services share the exit countdown; main waits for the scrolling-message latch to clear.
+handle_self_destruct_countdown_expiry:
+	bset.b #5,app_game_event_flags(a6)
 	bne.b abs_0_0001074C
 	bsr.w abs_0_00017B6E
 	bclr.b #1,app_ui_flags(a6)
@@ -890,13 +900,13 @@ abs_0_000106D8:
 	lea.l abs_0_0001335A.l,a5
 	bsr.w abs_0_0001639A
 abs_0_00010724:
-	move.w #$1,app_0286(a6)
+	move.w #$1,app_earth_orbit_countdown_bcd(a6)
 	lea.l blank_sprite_data.l,a0
 	move.l a0,app_current_palette(a6)
-	st.b app_02D8(a6)
+	st.b app_player_movement_commit_inhibited(a6)
 	bset.b #1,player_world_object_world_object_flags.l
-	move.b #$46,app_02CC(a6)
-	jsr abs_0_0005C9AE.l
+	move.b #$46,app_game_exit_service_ticks_remaining(a6)
+	jsr enqueue_game_outcome_and_rank_messages.l
 abs_0_0001074C:
 	bra.w swap_front_back_display_buffers
     ; No-op callback used as the initial vertical-blank target until setup installs the full frame callback.
@@ -1564,12 +1574,12 @@ abs_0_00010FEC:
 abs_0_00011044:
 	clr.l (a0)+
 	dbf.w d7,abs_0_00011044
-	move.b #$10,app_0284(a6)
+	move.b #$10,app_palette_transition_steps_remaining(a6)
 	move.l (a7)+,d5
 abs_0_00011052:
-	tst.b app_0284(a6)
+	tst.b app_palette_transition_steps_remaining(a6)
 	beq.b abs_0_00011070
-	subq.b #1,app_0284(a6)
+	subq.b #1,app_palette_transition_steps_remaining(a6)
 	lea.l abs_0_00010B28(pc),a0
 	lea.l abs_0_00010B68(pc),a1
 	movea.l #world_runtime_setup_records,a2
@@ -2557,7 +2567,7 @@ abs_0_00012754:
 close_inventory_panel:
 	bsr.w reset_inventory_panel_state
 	bsr.w hide_cursor_sprite_pointers
-	bclr.b #1,app_033C(a6)
+	bclr.b #1,app_game_event_flags(a6)
 	move.b #ITEM_ID_KRIPTONITE,d0
 	lea.l app_carried_item_ids(a6),a0
 	lea.l app_pocket_item_ids(a6),a1
@@ -2571,7 +2581,7 @@ abs_0_00012794:
 	cmp.b player_world_object_selected_item_id.l,d0
 	bne.b abs_0_000127AE
 abs_0_000127A8:
-	bset.b #1,app_033C(a6)
+	bset.b #1,app_game_event_flags(a6)
 abs_0_000127AE:
 	bclr.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
@@ -3016,7 +3026,7 @@ abs_0_00012CC6:
 	lea.l $00A0(a1),a1
 	dbf.w d1,abs_0_00012CC6
 	rts
-abs_0_00012D2A:
+service_keyboard_pause_gate:
 	lea.l absolute_slot_000039CC.l,a0
 	btst.b #0,app_ui_flags(a6)
 	bne.b abs_0_00012D58
@@ -3037,27 +3047,27 @@ abs_0_00012D4E:
 	bclr.b #7,app_ui_flags(a6)
 abs_0_00012D58:
 	rts
-abs_0_00012D5A:
-	subq.b #1,app_0288(a6)
+update_earth_orbit_countdown_display:
+	subq.b #1,app_earth_orbit_countdown_divider(a6)
 	bne.w abs_0_00012DF8
-	tst.w app_0286(a6)
+	tst.w app_earth_orbit_countdown_bcd(a6)
 	beq.w abs_0_00012E0E
 	move #$0,ccr
-	move.b #$4,app_0288(a6)
+	move.b #$4,app_earth_orbit_countdown_divider(a6)
 	moveq.l #1,d1
-	move.b app_0287(a6),d0
+	move.b app_earth_orbit_countdown_bcd_low_byte(a6),d0
 	sbcd d1,d0
-	move.b d0,app_0287(a6)
+	move.b d0,app_earth_orbit_countdown_bcd_low_byte(a6)
 	swap.w d1
-	move.b app_0286(a6),d0
+	move.b app_earth_orbit_countdown_bcd(a6),d0
 	sbcd d1,d0
 	bcs.w abs_0_00012E10
-	move.b d0,app_0286(a6)
+	move.b d0,app_earth_orbit_countdown_bcd(a6)
 	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_00012DF8
 	lea.l abs_0_0001332E(pc),a0
 	move.b $0005(a0),app_text_plane_mask(a6)
-	tst.b app_0287(a6)
+	tst.b app_earth_orbit_countdown_bcd_low_byte(a6)
 	bne.b abs_0_00012DAE
 	move.b app_frame_counter+3(a6),app_text_plane_mask(a6)
 abs_0_00012DAE:
@@ -3066,7 +3076,7 @@ abs_0_00012DAE:
 	addq.b #1,d0
 	addq.b #1,d1
 	bsr.w abs_0_00016126
-	move.w app_0286(a6),d0
+	move.w app_earth_orbit_countdown_bcd(a6),d0
 	clr.b app_02C2(a6)
 	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	beq.b abs_0_00012DDC
@@ -3074,34 +3084,34 @@ abs_0_00012DAE:
 	beq.b abs_0_00012DDC
 	bset.b #3,app_02C2(a6)
 abs_0_00012DDC:
-	bsr.w abs_0_00012E8A
-	btst.b #5,app_033C(a6)
+	bsr.w draw_four_digit_value_with_blank_mask
+	btst.b #5,app_game_event_flags(a6)
 	bne.b abs_0_00012DF8
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_00012DF8
-	tst.w app_0286(a6)
+	tst.w app_earth_orbit_countdown_bcd(a6)
 	beq.b abs_0_00012E10
 abs_0_00012DF8:
-	tst.w app_0286(a6)
+	tst.w app_earth_orbit_countdown_bcd(a6)
 	beq.b abs_0_00012E0E
-	tst.b app_0287(a6)
+	tst.b app_earth_orbit_countdown_bcd_low_byte(a6)
 	bne.b abs_0_00012E0E
 	move.w #$306,d0
 	jsr start_feedback_audio_sequence.l
 abs_0_00012E0E:
 	rts
 abs_0_00012E10:
-	lea.l abs_0_00012E20(pc),a0
+	lea.l earth_orbit_spore_release_message(pc),a0
 	bsr.w enqueue_status_message
-	lea.l abs_0_00012E51(pc),a0
+	lea.l humanity_destruction_warning_message(pc),a0
 	bra.w enqueue_status_message
-abs_0_00012E20:
+earth_orbit_spore_release_message:
 	dc.b "EARTH ORBIT ESTABLISHED, MUTANT SPORES RELEASED.",$00
-abs_0_00012E51:
+humanity_destruction_warning_message:
 	dc.b "TOTAL DESTRUCTION OF HUMANITY IMMINENT.",$00
 abs_0_00012E79:
 	dc.b "0123456789ABCDEF",$00
-abs_0_00012E8A:
+draw_four_digit_value_with_blank_mask:
 	movem.l d0-d2/d7/a0-a1,-(a7)
 	moveq.l #3,d7
 	bclr.b #3,app_status_flags(a6)
@@ -5334,7 +5344,7 @@ get_previous_rect_start:
 	move.w world_position_state_record_world_y_offset(a4),d5
 	add.w d0,d4
 	add.w d1,d5
-	add.w $0010(a3),d5
+	add.w world_position_collision_bounds_world_y_origin_offset(a3),d5
 	rts
     ; D4/D5 return packed end:start coordinate pairs for the rectangle union.
 get_previous_rect_end:
@@ -5345,10 +5355,10 @@ get_previous_rect_end:
 	move.w world_position_state_record_world_y_offset(a4),d5
 	add.w d0,d4
 	add.w d1,d5
-	add.w $000E(a3),d4
-	add.w $0010(a3),d5
-	add.w $000C(a3),d4
-	add.w $000A(a3),d5
+	add.w world_position_collision_bounds_world_x_origin_offset(a3),d4
+	add.w world_position_collision_bounds_world_y_origin_offset(a3),d5
+	add.w world_position_collision_bounds_world_x_extent(a3),d4
+	add.w world_position_collision_bounds_world_y_extent(a3),d5
 	swap.w d4
 	swap.w d5
 	rts
@@ -5462,8 +5472,8 @@ draw_entity_geometry:
 	add.w world_position_descriptor_prefix_world_y(a1),d1
 	movea.l world_position_state_record_current_geometry_ptr.w(a0),a2
 	add.w world_position_collision_bounds_world_y_origin_offset(a2),d1
-	movea.l $0000(a2),a3
-	movea.l $0004(a2),a4
+	movea.l world_position_collision_bounds_bitplane_data_ptr.w(a2),a3
+	movea.l world_position_collision_bounds_mask_data_ptr(a2),a4
 	move.w d0,d2
 	add.w world_position_collision_bounds_world_x_origin_offset(a2),d2
 	add.w world_position_collision_bounds_world_x_extent(a2),d2
@@ -6092,7 +6102,7 @@ abs_0_0001779E:
 	bsr.w abs_0_0001864C
 	move.b d0,app_02B4(a6)
 	move.b d0,app_02B5(a6)
-	btst.b #1,app_033C(a6)
+	btst.b #1,app_game_event_flags(a6)
 	beq.b abs_0_000177EC
 	lsr.b #1,d1
 abs_0_000177EC:
@@ -6228,7 +6238,7 @@ abs_0_00017980:
 abs_0_000179A8:
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
-	move.b #$46,app_02CC(a6)
+	move.b #$46,app_game_exit_service_ticks_remaining(a6)
 	lea.l abs_0_0005C5B6.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a4)
 	lea.l abs_0_0005C592.l,a1
@@ -6237,10 +6247,10 @@ abs_0_000179A8:
 	movea.l a4,a5
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
-	jsr abs_0_0005C9AE.l
+	jsr enqueue_game_outcome_and_rank_messages.l
 	bra.b abs_0_000179EC
 abs_0_000179E4:
-	addq.b #1,app_0327(a6)
+	addq.b #1,app_defeated_object_count(a6)
 	movea.l app_interaction_object_ptr(a6),a5
 abs_0_000179EC:
 	move.l $0008(a5),d0
@@ -6528,16 +6538,16 @@ abs_0_00017D9C:
 	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w configure_camera_scroll_triggers
 	rts
-abs_0_00017DA6:
-	move.b app_0284(a6),d0
+service_gameplay_palette_transition:
+	move.b app_palette_transition_steps_remaining(a6),d0
 	beq.b abs_0_00017DEE
 	subq.b #1,d0
-	move.b d0,app_0284(a6)
+	move.b d0,app_palette_transition_steps_remaining(a6)
 	cmp.b #$11,d0
 	bcc.b abs_0_00017DEE
 	cmp.b #$1,d0
 	bne.b abs_0_00017DD6
-	bset.b #2,app_033C(a6)
+	bset.b #2,app_game_event_flags(a6)
 	bne.b abs_0_00017DD6
 	lea.l abs_0_000132D6.l,a4
 	lea.l player_world_object.l,a5
@@ -6639,7 +6649,7 @@ abs_0_00017F06:
 abs_0_00017F08:
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.b abs_0_00017F02
-	btst.b #3,app_033C(a6)
+	btst.b #3,app_game_event_flags(a6)
 	bne.b abs_0_00017F02
 	move.w world_position_descriptor_prefix_world_x(a1),d0
 	move.w world_position_descriptor_prefix_world_y(a1),d1
@@ -6672,7 +6682,7 @@ abs_0_00017F5C:
 	bcc.w abs_0_00017FF4
 	cmp.w #$12,d0
 	bcc.w abs_0_00017FF4
-	clr.b app_02D8(a6)
+	clr.b app_player_movement_commit_inhibited(a6)
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	moveq.l #0,d1
 	cmpa.l #world_position_descriptors_position_state_ptr_18,a1
@@ -6694,19 +6704,19 @@ abs_0_00017F96:
 abs_0_00017FA6:
 	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
 	bne.b abs_0_00017FC2
-	bclr.b #4,app_033C(a6)
+	bclr.b #4,app_game_event_flags(a6)
 	moveq.l #3,d1
 	cmp.b #$37,d0
 	bne.b abs_0_0001800A
-	bset.b #4,app_033C(a6)
+	bset.b #4,app_game_event_flags(a6)
 abs_0_00017FC2:
-	bset.b d1,app_0339(a6)
+	bset.b d1,app_authorized_checkpoint_seen_bits(a6)
 	bne.b abs_0_00017FDE
 	movem.l a0-a3,-(a7)
 	move.w #$118,d0
 	jsr start_feedback_audio_sequence.l
 	movem.l (a7)+,a0-a3
-	addq.b #1,app_0338(a6)
+	addq.b #1,app_authorized_checkpoint_count(a6)
 abs_0_00017FDE:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a3)
@@ -6722,7 +6732,7 @@ abs_0_00017FF4:
 	movea.l d0,a2
 	bra.b abs_0_00017FF4
 abs_0_0001800A:
-	st.b app_02D8(a6)
+	st.b app_player_movement_commit_inhibited(a6)
 	move.b world_object_shared_prefix_hit_points+1(a4),d0
 	subi.b #10,d0
 	beq.b abs_0_00018032
@@ -6744,11 +6754,11 @@ abs_0_00018032:
 	bclr.b #0,$000A(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w restore_world_object_position_state
-	move.b #$46,app_02CC(a6)
+	move.b #$46,app_game_exit_service_ticks_remaining(a6)
 	clr.w world_object_shared_prefix_hit_points(a5)
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
-	jsr abs_0_0005C9AE.l
+	jsr enqueue_game_outcome_and_rank_messages.l
 	rts
 handle_item_receptacle_interaction:
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
@@ -6778,7 +6788,7 @@ abs_0_000180B8:
 	movea.l world_position_state_record_interaction_data_ptr(a2),a3
 	bset.b #0,item_receptacle_interaction_data_flags(a3)
 	bne.w abs_0_00017F02
-	clr.b app_02D8(a6)
+	clr.b app_player_movement_commit_inhibited(a6)
 	tst.l (a3)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
 	beq.b deposit_item_in_receptacle
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
@@ -6806,7 +6816,7 @@ deposit_item_in_receptacle:
 	move.b $0046(a4),d0
 	cmp.b #$68,d0
 	bne.b abs_0_0001814C
-	bset.b #0,app_033C(a6)
+	bset.b #0,app_game_event_flags(a6)
 	bne.b abs_0_0001814C
 	move.w #$5F,$003C(a4)
 	movea.l a4,a5
@@ -7325,11 +7335,11 @@ abs_0_000186F4:
 	bclr.b #0,$000A(a0)
 	bset.b #1,$0048(a5)
 	bsr.w restore_world_object_position_state
-	move.b #$46,app_02CC(a6)
+	move.b #$46,app_game_exit_service_ticks_remaining(a6)
 	clr.w $003C(a5)
 	lea.l abs_0_000132D6.l,a4
 	bsr.w abs_0_00018544
-	jsr abs_0_0005C9AE.l
+	jsr enqueue_game_outcome_and_rank_messages.l
 	jsr abs_0_0005D31A.l
 abs_0_0001874E:
 	bclr.b #4,app_02A6(a6)
@@ -7466,8 +7476,8 @@ abs_0_000188BC:
 	lea.l player_world_object.l,a4
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
-	move.b #$46,app_02CC(a6)
-	jsr abs_0_0005C9AE.l
+	move.b #$46,app_game_exit_service_ticks_remaining(a6)
+	jsr enqueue_game_outcome_and_rank_messages.l
 	lea.l abs_0_0005C5B6.l,a0
 	move.l a0,$004E(a4)
 	lea.l abs_0_0005C592.l,a1
@@ -7539,7 +7549,7 @@ abs_0_000189DA:
 	lea.l abs_0_0001A813.l,a0
 	bsr.w test_msb_first_bitset_bit
 	beq.b abs_0_000189FA
-	addq.b #1,app_02D9(a6)
+	addq.b #1,app_salvage_item_count(a6)
 abs_0_000189FA:
 	lea.l terminal_item_deposited_message.l,a0
 	bsr.w enqueue_scrolling_message
@@ -7549,48 +7559,52 @@ abs_0_000189FA:
 	jsr start_feedback_audio_sequence.l
 abs_0_00018A16:
 	rts
-abs_0_00018A18:
-	dc.b $00,$14,$00,$08,$00,$00,$00,$00,$00,$02,$CE,$A8,$00,$02,$CF,$28
-	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8
-	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8
-	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$CF,$A8
-	dc.b $00,$02,$CF,$A8,$00,$02,$CF,$A8,$00,$02,$D0,$28,$00,$02,$D0,$A8
-	dc.b $00,$02,$D1,$28,$00,$02,$D1,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D3,$28
-	dc.b $00,$02,$D3,$A8,$00,$02,$D4,$28,$00,$02,$D2,$28,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D4,$A8
-	dc.b $00,$02,$D5,$28,$00,$02,$D5,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D6,$28
-	dc.b $00,$02,$D6,$A8,$00,$02,$D7,$28,$00,$02,$D2,$28,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D7,$A8
-	dc.b $00,$02,$D8,$28,$00,$02,$D8,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$D9,$28
-	dc.b $00,$02,$D9,$A8,$00,$02,$D8,$A8,$00,$02,$D2,$28,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$01,$F9,$A8
-	dc.b $00,$01,$F9,$A8,$00,$01,$F9,$A8,$00,$02,$D2,$A8,$00,$02,$DA,$28
-	dc.b $00,$02,$DA,$A8,$00,$02,$D8,$A8,$00,$02,$DB,$28,$00,$02,$DB,$A8
-	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8
-	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8
-	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DB,$A8
-	dc.b $00,$02,$DB,$A8,$00,$02,$DB,$A8,$00,$02,$DC,$28,$00,$02,$DB,$A8
-	dc.b $00,$02,$DB,$A8,$00,$02,$DC,$A8
+modal_tilemap_context:
+	dc.w $0014	; width
+	dc.w $0008	; height
+	dc.w $0000	; tile_column
+	dc.w $0000	; tile_row
+tile_pointers:
+	dc.l $0002CEA8,$0002CF28,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002CFA8,$0002CFA8,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002CFA8,$0002CFA8,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002CFA8,$0002CFA8,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D028,$0002D0A8,$0002D128,$0002D1A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D2A8,$0002D328,$0002D3A8,$0002D428	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D2A8,$0002D4A8,$0002D528,$0002D5A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D2A8,$0002D628,$0002D6A8,$0002D728	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D2A8,$0002D7A8,$0002D828,$0002D8A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D2A8,$0002D928,$0002D9A8,$0002D8A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002D2A8,$0002DA28,$0002DAA8,$0002D8A8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002DB28,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
+	dc.l $0002DC28,$0002DBA8,$0002DBA8,$0002DCA8	; Modal 20 by 8 tile pointer grid
 terminal_proximity_object_ptrs:
 	dc.l $00018D54,$00018DA6,$00018DE0,$00018E2C	; terminal_proximity_object_pointer_table
 	dc.l $00018E7E,$00018EBC,$00018F0C,$00018F26	; terminal_proximity_object_pointer_table
@@ -7660,7 +7674,8 @@ abs_0_00018D36:
 	dc.b $73,$0D
 	dc.b "to escape from Pandora",$00
 	dc.b $00
-update_terminal_mode:
+    ; Swap to the terminal backdrop and service inventory, messages and the Earth deadline. Main world-update and self-destruct countdown services are omitted; exit requests a camera redraw.
+run_terminal_modal_loop:
 	bsr.w swap_tilemap_context
 	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w snapshot_entity_draw_state
@@ -7678,16 +7693,16 @@ abs_0_0001901E:
 abs_0_00019024:
 	btst.b #5,app_status_flags(a6)
 	beq.b abs_0_00019024
-	bsr.w abs_0_00012D2A
+	bsr.w service_keyboard_pause_gate
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
 	bsr.w abs_0_00019A48
-	bsr.w abs_0_00012D5A
+	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
 	beq.b abs_0_00019062
-	subq.b #1,app_02CC(a6)
+	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b abs_0_00019062
 	jmp abs_0_00010456.l
 abs_0_00019062:
@@ -7713,9 +7728,9 @@ abs_0_00019088:
 	rts
 update_terminal_selected_item:
 	move.b player_world_object_selected_item_id.l,d0
-	cmp.b app_031A(a6),d0
+	cmp.b app_modal_last_selected_item_id(a6),d0
 	beq.b abs_0_000190C6
-	move.b d0,app_031A(a6)
+	move.b d0,app_modal_last_selected_item_id(a6)
 	bsr.w redraw_terminal_selected_item
 abs_0_000190C6:
 	rts
@@ -7739,7 +7754,7 @@ abs_0_000190D6:
 	dbf.w d7,abs_0_000190D6
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
-	move.b d0,app_031A(a6)
+	move.b d0,app_modal_last_selected_item_id(a6)
 	subi.b #48,d0
 	cmp.b #$8,d0
 	bcc.w abs_0_000191EC
@@ -7831,15 +7846,15 @@ abs_0_000191EC:
 	jsr start_feedback_audio_sequence.l
 	rts
 swap_tilemap_context:
-	lea.l abs_0_00018A18(pc),a0
+	lea.l modal_tilemap_context(pc),a0
 	move.w app_tilemap_width(a6),d0
 	move.w app_tilemap_height(a6),d1
 	move.w app_tile_column(a6),d2
 	move.w app_tile_row(a6),d3
-	move.w (a0)+,app_tilemap_width(a6)
-	move.w (a0)+,app_tilemap_height(a6)
-	move.w (a0)+,app_tile_column(a6)
-	move.w (a0)+,app_tile_row(a6)
+	move.w (a0)+,app_tilemap_width(a6)	; operand 1: saved_tilemap_context_header_width at (a0)+
+	move.w (a0)+,app_tilemap_height(a6)	; operand 1: saved_tilemap_context_header_height at (a0)+
+	move.w (a0)+,app_tile_column(a6)	; operand 1: saved_tilemap_context_header_tile_column at (a0)+
+	move.w (a0)+,app_tile_row(a6)	; operand 1: saved_tilemap_context_header_tile_row at (a0)+
 	move.l a0,app_tilemap_base(a6)
 	move.w d3,-(a0)
 	move.w d2,-(a0)
@@ -7993,7 +8008,7 @@ abs_0_000193EC:
 abs_0_000193F6:
 	bsr.w restore_world_object_position_state
 	bset.b #1,$0048(a5)
-	addq.b #1,app_0327(a6)
+	addq.b #1,app_defeated_object_count(a6)
 	move.w #$11B,d0
 	jsr start_feedback_audio_sequence.l
 	rts
@@ -8249,13 +8264,13 @@ abs_0_000196EA:
 	sub.l d6,d0
 	lsr.l #7,d0
 	cmp.w #$9F,d0
-	beq.w update_terminal_mode
+	beq.w run_terminal_modal_loop
 	cmp.w #$9C,d0
-	beq.w update_terminal_mode
+	beq.w run_terminal_modal_loop
 	cmp.w #$18E,d0
-	beq.w run_gameplay_update_loop
+	beq.w run_self_destruct_modal_loop
 	cmp.w #$190,d0
-	beq.w run_gameplay_update_loop
+	beq.w run_self_destruct_modal_loop
 	bsr.w test_msb_first_bitset_bit
 	bne.w hold_player_movement_animation
 	bra.w commit_player_move_request
@@ -8264,11 +8279,11 @@ abs_0_00019770:
 	move.l (a0),d0
 	subi.l #118952,d0
 	lsr.l #7,d0
-	btst.b #4,app_033C(a6)
+	btst.b #4,app_game_event_flags(a6)
 	beq.b abs_0_000197D0
 	cmp.w #$EC,d0
 	bne.b abs_0_000197D0
-	bset.b #3,app_033C(a6)
+	bset.b #3,app_game_event_flags(a6)
 	move.l #$5C5A4,player_position_state.l
 	clr.l player_position_state_state_node_ptr.l
 	lea.l initialize_audio_player.l,a0
@@ -8276,7 +8291,7 @@ abs_0_00019770:
 	clr.b $0EC9(a0)
 	clr.b $0ED5(a0)
 	clr.b $0EE1(a0)
-	bclr.b #7,app_033C(a6)
+	bclr.b #7,app_game_event_flags(a6)
 	move.l a6,-(a7)
 	moveq.l #1,d0
 	jsr initialize_audio_player.l
@@ -8284,19 +8299,19 @@ abs_0_00019770:
 	jmp abs_0_0005C994.l
 abs_0_000197D0:
 	cmp.w #$9F,d0
-	beq.w update_terminal_mode
+	beq.w run_terminal_modal_loop
 	cmp.w #$9C,d0
-	beq.w update_terminal_mode
+	beq.w run_terminal_modal_loop
 	cmp.w #$18E,d0
-	beq.w run_gameplay_update_loop
+	beq.w run_self_destruct_modal_loop
 	cmp.w #$190,d0
-	beq.w run_gameplay_update_loop
+	beq.w run_self_destruct_modal_loop
 	lea.l tile_movement_block_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
 	bne.w hold_player_movement_animation
     ; Save the accepted request before lateral drift. Drift changes X and suppresses Y commit; otherwise Y wraps by map_height*16 with one correction.
 commit_player_move_request:
-	tst.b app_02D8(a6)
+	tst.b app_player_movement_commit_inhibited(a6)
 	bne.w hold_player_movement_animation
 	move.w app_player_move_request_x_step(a6),d0
 	move.w app_player_move_request_y_step(a6),d1
@@ -8549,27 +8564,28 @@ abs_0_00019ABE:
 	move.l d0,(a2)+
 	dbf.w d7,abs_0_00019ABE
 	rts
-abs_0_00019ACE:
+self_destruct_insert_disk_text:
 	dc.b "PLEASE INSERT S.D.I. DISK",$0D
 	dc.b "TO INITIATE THE PANDORA",$0D
 	dc.b "SELF DESTRUCT SEQUENCE.",$00
-abs_0_00019B18:
+self_destruct_insert_cards_text:
 	dc.b "PANDORA SELF DESTRUCT PROGRAM."
 	dc.b $0D,$0D,$49,$4E,$53,$45,$52,$54,$20,$54,$48,$45,$20,$54,$48,$52
 	dc.b $45,$45,$20,$43,$4F,$44,$45,$20,$43,$41,$52,$44,$53,$2E,$2E,$2E
 	dc.b $0D,$0D,$00
 abs_0_00019B59:
 	dc.b $31,$3A,$0D,$32,$3A,$0D,$33,$3A,$00
-abs_0_00019B62:
+self_destruct_rejected_cards_text:
 	dc.b "INVALID SEQUENCE: CARDS TAKEN",$0D
 	dc.b "PLEASE CONTACT YOUR BRANCH",$0D
 	dc.b "MANAGER FOR FURTHER DETAILS.",$00
-abs_0_00019BB8:
+self_destruct_accepted_cards_text:
 	dc.b "CORRECT SEQUENCE..."
 	dc.b $0D,$53,$45,$4C,$46,$20,$44,$45,$53,$54,$52,$55,$43,$54,$20,$49
 	dc.b $4E,$49,$54,$49,$41,$54,$45,$44,$2E,$0D,$0D
 	dc.b "HAVE A NICE DAY, CAPTAIN.",$00
-run_gameplay_update_loop:
+    ; Collect the SDI disk and three code cards in the shared backdrop. Inventory, messages and Earth deadline remain serviced here; armed self-destruct countdown advances in the main loop.
+run_self_destruct_modal_loop:
 	bsr.w swap_tilemap_context
 	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w snapshot_entity_draw_state
@@ -8579,7 +8595,7 @@ run_gameplay_update_loop:
 	move.l d1,app_back_bitplane_base(a6)
 	move.l d0,app_display_bitplane_base(a6)
 	bsr.w render_self_destruct_card_sequence
-	move.b #$80,app_031A(a6)
+	move.b #$80,app_modal_last_selected_item_id(a6)
 abs_0_00019C2A:
 	jsr poll_joystick1_directions_and_fire.l
 	bne.b abs_0_00019C2A
@@ -8588,16 +8604,16 @@ abs_0_00019C32:
 abs_0_00019C38:
 	btst.b #5,app_status_flags(a6)
 	beq.b abs_0_00019C38
-	bsr.w abs_0_00012D2A
+	bsr.w service_keyboard_pause_gate
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
 	bsr.w abs_0_00019A48
-	bsr.w abs_0_00012D5A
+	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
 	beq.b abs_0_00019C76
-	subq.b #1,app_02CC(a6)
+	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b abs_0_00019C76
 	jmp abs_0_00010456.l
 abs_0_00019C76:
@@ -8624,10 +8640,10 @@ process_self_destruct_card_input:
 	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_00019DA8
 	move.b player_world_object_selected_item_id.l,d0
-	cmp.b app_031A(a6),d0
+	cmp.b app_modal_last_selected_item_id(a6),d0
 	beq.w abs_0_00019DA8
-	move.b d0,app_031A(a6)
-	move.b app_032B(a6),d1
+	move.b d0,app_modal_last_selected_item_id(a6)
+	move.b app_self_destruct_state(a6),d1
 	beq.w abs_0_00019D76
 	bmi.w abs_0_00019DA8
 	cmp.b #$2,d1
@@ -8635,49 +8651,49 @@ process_self_destruct_card_input:
 	cmp.b #$1,d1
 	bne.w abs_0_00019DA8
 	move.b d0,d1
-	subi.b #32,d1
+	subi.b #ITEM_ID_CODE_WHITE,d1
 	cmp.b #$6,d1
 	bcc.w abs_0_00019DA8
-	cmp.b #$20,d0
+	cmp.b #ITEM_ID_CODE_WHITE,d0
 	beq.b abs_0_00019D30
-	cmp.b #$22,d0
+	cmp.b #ITEM_ID_CODE_GREY,d0
 	beq.b abs_0_00019D30
-	cmp.b #$25,d0
+	cmp.b #ITEM_ID_CODE_BLACK,d0
 	beq.b abs_0_00019D30
-	addq.b #1,app_0326(a6)
+	addq.b #1,app_self_destruct_qualifying_card_count(a6)
 	move.l d0,-(a7)
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
 	move.l (a7)+,d0
 abs_0_00019D30:
 	clr.w d2
-	move.b app_032A(a6),d2
+	move.b app_self_destruct_submitted_card_count(a6),d2
 	add.w d2,d2
 	add.w d2,d2
 	bsr.w resolve_item_name
-	lea.l app_032C(a6),a1
+	lea.l app_self_destruct_submitted_name_ptrs(a6),a1
 	move.l a0,$0(a1,d2.w)
 	lsr.w #2,d2
 	addq.w #1,d2
 	cmp.b #$3,d2
 	beq.b abs_0_00019D60
-	move.b d2,app_032A(a6)
+	move.b d2,app_self_destruct_submitted_card_count(a6)
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
 	bra.b abs_0_00019DA4
 abs_0_00019D60:
-	move.b d2,app_032A(a6)
+	move.b d2,app_self_destruct_submitted_card_count(a6)
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
-	st.b app_032B(a6)
+	st.b app_self_destruct_state(a6)
 	bra.w abs_0_00019DAA
 abs_0_00019D76:
-	cmp.b #$26,d0
+	cmp.b #ITEM_ID_SDI_DISK,d0
 	bne.b abs_0_00019DA8
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
 	bset.b #6,app_02A6(a6)
-	addq.b #1,app_032B(a6)
+	addq.b #1,app_self_destruct_state(a6)
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
 	move.w #$211,d0
@@ -8686,14 +8702,15 @@ abs_0_00019DA4:
 	bsr.w render_self_destruct_card_sequence
 abs_0_00019DA8:
 	rts
+    ; Validate three submissions by qualifying count==3 (blue/scarlet/ochre), without order or duplicate checks. Provisional FF becomes rejected (2) on failure.
 abs_0_00019DAA:
-	move.b app_0326(a6),d0
+	move.b app_self_destruct_qualifying_card_count(a6),d0
 	cmp.b #$3,d0
 	bne.b abs_0_00019DBA
-	st.b app_032B(a6)
+	st.b app_self_destruct_state(a6)
 	bra.b abs_0_00019E18
 abs_0_00019DBA:
-	move.b #$2,app_032B(a6)
+	move.b #$2,app_self_destruct_state(a6)
 	bra.b abs_0_00019DA4
 render_self_destruct_card_sequence:
 	moveq.l #2,d0
@@ -8714,14 +8731,14 @@ abs_0_00019DD0:
 	lea.l $0028(a0),a0
 	dbf.w d7,abs_0_00019DD0
 	move.b player_world_object_selected_item_id.l,d0
-	move.b d0,app_031A(a6)
-	move.b app_032B(a6),d1
+	move.b d0,app_modal_last_selected_item_id(a6)
+	move.b app_self_destruct_state(a6),d1
 	bne.b abs_0_00019E12
 	move.b #$F,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
 	bsr.w abs_0_00016108
-	lea.l abs_0_00019ACE(pc),a3
+	lea.l self_destruct_insert_disk_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
 abs_0_00019E12:
@@ -8732,15 +8749,15 @@ abs_0_00019E18:
 	moveq.l #2,d0
 	moveq.l #3,d1
 	bsr.w abs_0_00016108
-	lea.l abs_0_00019B18(pc),a3
+	lea.l self_destruct_insert_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 	move.b #$D,app_text_plane_mask(a6)
 	lea.l abs_0_00019B59(pc),a3
 	bsr.w draw_compact_text_string
 	move.b #$9,app_text_plane_mask(a6)
-	lea.l app_032C(a6),a4
+	lea.l app_self_destruct_submitted_name_ptrs(a6),a4
 	clr.w d7
-	move.b app_032A(a6),d7
+	move.b app_self_destruct_submitted_card_count(a6),d7
 	subq.w #1,d7
 	bmi.b abs_0_00019EB8
 	moveq.l #7,d6
@@ -8752,13 +8769,13 @@ abs_0_00019E52:
 	bsr.w draw_compact_text_string
 	addq.w #1,d6
 	dbf.w d7,abs_0_00019E52
-	tst.b app_032B(a6)
+	tst.b app_self_destruct_state(a6)
 	bpl.b abs_0_00019E82
 	move.b #$A,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #10,d1
 	bsr.w abs_0_00016108
-	lea.l abs_0_00019BB8(pc),a3
+	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 abs_0_00019E82:
 	rts
@@ -8769,7 +8786,7 @@ abs_0_00019E84:
 	moveq.l #2,d0
 	moveq.l #6,d1
 	bsr.w abs_0_00016108
-	lea.l abs_0_00019B62(pc),a3
+	lea.l self_destruct_rejected_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
 abs_0_00019EA2:
@@ -8777,7 +8794,7 @@ abs_0_00019EA2:
 	moveq.l #4,d0
 	moveq.l #3,d1
 	bsr.w abs_0_00016108
-	lea.l abs_0_00019BB8(pc),a3
+	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 abs_0_00019EB8:
 	rts
@@ -8814,7 +8831,7 @@ abs_0_00019F06:
 initialize_world_state:
 	move.l a5,-(a7)
 	move.w initial_cooldown_ticks.l,cooldown_ticks.l
-	move.w #$BB8,app_0328(a6)
+	move.w #$BB8,app_self_destruct_service_ticks_remaining(a6)
 	move.l #$24C28,$64C0.w
 	move.w #$2710,d0
 	move.w d0,abs_0_0005859E.l
@@ -8839,13 +8856,13 @@ abs_0_00019F82:
 	dbf.w d7,abs_0_00019F6E
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
-	clr.b app_0338(a6)
-	clr.b app_0339(a6)
-	clr.b app_0326(a6)
-	clr.b app_032A(a6)
-	clr.b app_032B(a6)
-	clr.b app_0327(a6)
-	clr.b app_02D9(a6)
+	clr.b app_authorized_checkpoint_count(a6)
+	clr.b app_authorized_checkpoint_seen_bits(a6)
+	clr.b app_self_destruct_qualifying_card_count(a6)
+	clr.b app_self_destruct_submitted_card_count(a6)
+	clr.b app_self_destruct_state(a6)
+	clr.b app_defeated_object_count(a6)
+	clr.b app_salvage_item_count(a6)
 	clr.b app_031B(a6)
 	clr.l app_nearest_object_ptr(a6)
 	clr.l app_02D4(a6)
@@ -8856,7 +8873,7 @@ abs_0_00019F82:
 abs_0_00019FC4:
 	clr.l (a0)+
 	dbf.w d7,abs_0_00019FC4
-	clr.b app_02D8(a6)
+	clr.b app_player_movement_commit_inhibited(a6)
 	clr.b app_02CE(a6)
 	clr.b app_02CF(a6)
 	move.w #$32,app_02D0(a6)
@@ -8897,15 +8914,15 @@ abs_0_0001A056:
 	clr.b app_ui_flags(a6)
 	clr.b app_status_flags(a6)
 	clr.b app_02A6(a6)
-	clr.b app_033C(a6)
+	clr.b app_game_event_flags(a6)
 	clr.b app_world_interaction_flags(a6)
 	clr.b app_world_interaction_audio_flags(a6)
 	lea.l app_scrolling_message_queue_head(a6),a0
 	move.l a0,app_scrolling_message_queue_tail(a6)
 	clr.l app_scrolling_message_queue_head(a6)
-	clr.b app_0284(a6)
-	move.w #$9999,app_0286(a6)
-	move.b #$1,app_0288(a6)
+	clr.b app_palette_transition_steps_remaining(a6)
+	move.w #$9999,app_earth_orbit_countdown_bcd(a6)
+	move.b #$1,app_earth_orbit_countdown_divider(a6)
 	bsr.w configure_camera_scroll_triggers
 	move.l #active_world_object_ptr_table,app_active_world_object_ptr_table(a6)
 	move.w #$43,active_world_object_count(a6)
@@ -19209,21 +19226,22 @@ abs_0_0005C994:
 	dc.b $1D,$7C,$00,$46,$02,$CC,$4E,$75
 abs_0_0005C9AC:
 	rts
-abs_0_0005C9AE:
-	bset.b #6,app_033C(a6)
+    ; Announce once. Self-destruct state and the Earth deadline select the outcome; escape plus deposited/carried salvage chooses salvage or defeat rank. Counting is cumulative and byte-sized.
+enqueue_game_outcome_and_rank_messages:
+	bset.b #6,app_game_event_flags(a6)
 	bne.b abs_0_0005C9AC
-	tst.b app_032B(a6)
+	tst.b app_self_destruct_state(a6)
 	bpl.b abs_0_0005C9CC
-	lea.l abs_0_0005CAE5(pc),a0
-	tst.w app_0286(a6)
+	lea.l pandora_destroyed_earth_saved_message(pc),a0
+	tst.w app_earth_orbit_countdown_bcd(a6)
 	bne.b abs_0_0005C9DC
-	lea.l abs_0_0005CB22(pc),a0
+	lea.l pandora_destroyed_earth_uncertain_message(pc),a0
 	bra.b abs_0_0005C9DC
 abs_0_0005C9CC:
-	lea.l abs_0_0005CB5D(pc),a0
-	btst.b #3,app_033C(a6)
+	lea.l escape_without_destroying_pandora_message(pc),a0
+	btst.b #3,app_game_event_flags(a6)
 	bne.b abs_0_0005C9DC
-	lea.l abs_0_0005CB92(pc),a0
+	lea.l pandora_mystery_unsolved_message(pc),a0
 abs_0_0005C9DC:
 	jsr enqueue_status_message.l
 	lea.l app_carried_item_ids(a6),a1
@@ -19234,35 +19252,35 @@ abs_0_0005C9F0:
 	move.b (a1)+,d0
 	jsr test_msb_first_bitset_bit.l
 	beq.b abs_0_0005C9FE
-	addq.b #1,app_02D9(a6)
+	addq.b #1,app_salvage_item_count(a6)
 abs_0_0005C9FE:
 	dbf.w d7,abs_0_0005C9F0
-	btst.b #3,app_033C(a6)
+	btst.b #3,app_game_event_flags(a6)
 	bne.b abs_0_0005CA18
 	bset.b #1,player_world_object_selected_item_id.l
-	lea.l abs_0_0005CBCB(pc),a0
+	lea.l posthumous_mercenary_rank_prefix(pc),a0
 	bra.b abs_0_0005CA2A
 abs_0_0005CA18:
-	move.b app_02D9(a6),d0
-	lea.l abs_0_0005CC48(pc),a0
+	move.b app_salvage_item_count(a6),d0
+	lea.l mercenary_guild_rank_prefix(pc),a0
 	cmp.b #$6,d0
 	bcs.b abs_0_0005CA2A
-	lea.l abs_0_0005CC05(pc),a0
+	lea.l science_and_salvage_rank_prefix(pc),a0
 abs_0_0005CA2A:
 	jsr enqueue_status_message.l
-	btst.b #3,app_033C(a6)
+	btst.b #3,app_game_event_flags(a6)
 	bne.b abs_0_0005CA3C
-	bsr.b abs_0_0005CA80
+	bsr.b select_defeat_rank_message
 	bra.b abs_0_0005CA64
 abs_0_0005CA3C:
-	move.b app_02D9(a6),d0
+	move.b app_salvage_item_count(a6),d0
 	cmp.b #$6,d0
 	bcc.b abs_0_0005CA4A
-	bsr.b abs_0_0005CA80
+	bsr.b select_defeat_rank_message
 	bra.b abs_0_0005CA64
 abs_0_0005CA4A:
 	clr.w d0
-	move.b app_02D9(a6),d0
+	move.b app_salvage_item_count(a6),d0
 	subi.b #6,d0
 	cmp.w #$5,d0
 	bcs.b abs_0_0005CA5C
@@ -19270,15 +19288,15 @@ abs_0_0005CA4A:
 abs_0_0005CA5C:
 	add.w d0,d0
 	add.w d0,d0
-	movea.l abs_0_0005CA6C(pc,d0.w),a0
+	movea.l salvage_rank_message_ptrs(pc,d0.w),a0
 abs_0_0005CA64:
 	jsr enqueue_status_message.l
 	rts
-abs_0_0005CA6C:
+salvage_rank_message_ptrs:
 	dc.l $0005CCF5,$0005CD0B,$0005CD25,$0005CD3E	; lookup_table
 	dc.l $0005CD57	; lookup_table
-abs_0_0005CA80:
-	move.b app_0327(a6),d0
+select_defeat_rank_message:
+	move.b app_defeated_object_count(a6),d0
 	lea.l abs_0_0005CC87(pc),a0
 	cmp.b #$5,d0
 	bcs.b abs_0_0005CABA
@@ -19297,25 +19315,25 @@ abs_0_0005CA80:
 	lea.l abs_0_0005CCDE(pc),a0
 abs_0_0005CABA:
 	rts
-abs_0_0005CABC:
+self_destruct_evacuation_warning:
 	dc.b "WARNING, PLEASE  DISEMBARK  IMMEDIATELY.",$00
-abs_0_0005CAE5:
+pandora_destroyed_earth_saved_message:
 	dc.b "CONGRATULATIONS:  PANDORA  IS  DESTROYED,  EARTH  IS  SAVED.",$00
-abs_0_0005CB22:
+pandora_destroyed_earth_uncertain_message:
 	dc.b "PANDORA  IS  DESTROYED, BUT  EARTH"
 	dc.b $22
 	dc.b "S  FATE  IS  UNCERTAIN.",$00
-abs_0_0005CB5D:
+escape_without_destroying_pandora_message:
 	dc.b "YOU  HAVE  ESCAPED, BUT  EARTH"
 	dc.b $22
 	dc.b "S  FUTURE  IS  BLEAK.",$00
-abs_0_0005CB92:
+pandora_mystery_unsolved_message:
 	dc.b "YOU  HAVE  FAILED  TO  SOLVE  THE  MYSTERY  OF  PANDORA.",$00
-abs_0_0005CBCB:
+posthumous_mercenary_rank_prefix:
 	dc.b "YOUR  POSTHUMOUS  RANK  AS  MERCENARY  SHOCK  TROOPER  IS",$00
-abs_0_0005CC05:
+science_and_salvage_rank_prefix:
 	dc.b "THE  GALACTIC  SCIENCE  AND  SALVAGE  ARCANA  RATE  YOUR  FIND  AS",$00
-abs_0_0005CC48:
+mercenary_guild_rank_prefix:
 	dc.b "THE  MERCENARY  SHOCK  TROOPERS  GUILD  HAVE  CLASSED  YOU  AS",$00
 abs_0_0005CC87:
 	dc.b ". . DOG  MEAT . .",$00
@@ -19499,7 +19517,7 @@ start_feedback_audio_sequence:
 	movem.l d1-d7/a1-a6,-(a7)
 	jsr start_audio_sequence.l
 	movem.l (a7)+,d1-d7/a1-a6
-	bset.b #7,app_033C(a6)
+	bset.b #7,app_game_event_flags(a6)
 	rts
 abs_0_0005D34C:
 	bset.b #0,app_world_interaction_flags(a6)
@@ -19513,7 +19531,7 @@ abs_0_0005D364:
 	rts
     ; Reset keeps ticks and NPC pending bits. An already-pending handler waits on nonzero channel-2 ticks; inactive dispatch cannot drain them. Another writer or reactivation is needed.
 clear_security_checkpoint_audio_state:
-	bclr.b #7,app_033C(a6)
+	bclr.b #7,app_game_event_flags(a6)
 	movem.l d1-d7/a1-a6,-(a7)
 	jsr reset_audio_channels.l
 	movem.l (a7)+,d1-d7/a1-a6
@@ -19581,7 +19599,7 @@ abs_0_0005D416:
 	dc.l abs_0_0005CF27
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_priest:
-	tst.b app_0327(a6)
+	tst.b app_defeated_object_count(a6)
 	bne.w interact_with_hooligan_or_robomechanic
 	move.w d0,d0
 	rts
