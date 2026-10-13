@@ -139,16 +139,16 @@ app_02A6 RS.B 1
 app_nearby_object_prompt_countdown RS.B 1
 app_active_world_object_ptr_table RS.L 1
 active_world_object_count RS.W 1
-app_02AE RS.W 1
-app_02B0 RS.W 1
-app_02B2 RS.B 1
-app_02B3 RS.B 1
-app_02B4 RS.B 1
-app_02B5 RS.B 1
-app_02B6 RS.B 1
-app_02B7 RS.B 1
-app_02B8 RS.B 1
-app_02B9 RS.B 1
+app_player_attack_charge RS.W 1
+app_opponent_attack_charge RS.W 1
+app_player_attack_charge_countdown RS.B 1
+app_player_attack_charge_reload RS.B 1
+app_opponent_attack_charge_countdown RS.B 1
+app_opponent_attack_charge_reload RS.B 1
+app_opponent_attack_damage RS.B 1
+app_player_attack_damage RS.B 1
+app_player_hit_feedback_ticks_remaining RS.B 1
+app_opponent_hit_feedback_ticks_remaining RS.B 1
 app_inventory_display_item_ids RS.B 4
     RS.B 4
 app_02C2 RS.B 1
@@ -891,7 +891,7 @@ swap_front_back_display_buffers:
 wait_for_completed_frame:
 	btst.b #5,app_status_flags(a6)
 	beq.b wait_for_completed_frame
-	bsr.w abs_0_00012EE6
+	bsr.w service_nearby_trade_or_combat
 	bsr.w update_inventory_panel_availability
 	bsr.w update_camera_scroll
 	bsr.w handle_inventory_panel_input
@@ -967,7 +967,7 @@ return_immediately:
 handle_self_destruct_countdown_expiry:
 	bset.b #GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0001074C
-	bsr.w abs_0_00017B6E
+	bsr.w clear_combat_hit_feedback
 	bclr.b #1,app_ui_flags(a6)
 	beq.b abs_0_00010724
 	lea.l abs_0_0005C940.l,a0
@@ -5801,11 +5801,11 @@ abs_0_00012ECE:
 	rts
 abs_0_00012EE0:
 	dc.b $39,$39,$39,$39,$00,$00
-abs_0_00012EE6:
+service_nearby_trade_or_combat:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_00012F16
 	btst.b #1,app_ui_flags(a6)
-	bne.w abs_0_000178CC
+	bne.w service_combat_encounter
 	move.l app_nearest_object_ptr(a6),d0
 	beq.b abs_0_00012F16
 	movea.l d0,a5
@@ -5835,7 +5835,7 @@ abs_0_00012F44:
 	bne.b abs_0_00012F56
 	bsr.w validate_npc_item_trade
 	bcs.b abs_0_00012F16
-	bra.w abs_0_00017792
+	bra.w initialize_combat_encounter
 abs_0_00012F56:
 	tst.b app_input_fire_pressed_ff(a6)
 	beq.b abs_0_00012F16
@@ -8771,7 +8771,8 @@ abs_0_0001778A:
 	addq.l #4,app_text_cursor_ptr(a6)
 	move.l (a7)+,d7
 	rts
-abs_0_00017792:
+    ; The temporary world-X bias uses WORD arithmetic. Camera midpoint uses wrapping WORD sums followed by logical shifts; the X low byte is masked to a boundary of 16 pixels.
+initialize_combat_encounter:
 	btst.b #2,app_ui_flags(a6)
 	beq.b abs_0_0001779E
 	bsr.w close_inventory_panel
@@ -8781,56 +8782,56 @@ abs_0_0001779E:
 	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001335A.l,a5
 	bsr.w enqueue_ui_overlay_update
-	clr.w app_02AE(a6)
-	clr.w app_02B0(a6)
+	clr.w app_player_attack_charge(a6)
+	clr.w app_opponent_attack_charge(a6)
 	move.w #$2710,d2
 	movea.l app_interaction_object_ptr(a6),a5
 	bset.b #6,world_object_shared_prefix_world_object_flags(a5)
 	move.l world_object_shared_prefix_world_x(a5),-(a7)
 	add.w d2,world_object_shared_prefix_world_x(a5)
-	bsr.w abs_0_0001864C
-	move.b d0,app_02B4(a6)
-	move.b d0,app_02B5(a6)
+	bsr.w resolve_selected_item_combat_parameters
+	move.b d0,app_opponent_attack_charge_countdown(a6)
+	move.b d0,app_opponent_attack_charge_reload(a6)
 	btst.b #GAME_EVENT_KRIPTONITE_CACHED_BIT,app_game_event_flags(a6)
 	beq.b abs_0_000177EC
 	lsr.b #1,d1
 abs_0_000177EC:
-	move.b d1,app_02B6(a6)
+	move.b d1,app_opponent_attack_damage(a6)
 	lea.l player_world_object.l,a5
 	move.l world_object_shared_prefix_world_x(a5),-(a7)
 	add.w d2,world_object_shared_prefix_world_x(a5)
-	bsr.w abs_0_0001864C
-	move.b d0,app_02B2(a6)
-	move.b d0,app_02B3(a6)
-	move.b d1,app_02B7(a6)
+	bsr.w resolve_selected_item_combat_parameters
+	move.b d0,app_player_attack_charge_countdown(a6)
+	move.b d0,app_player_attack_charge_reload(a6)
+	move.b d1,app_player_attack_damage(a6)
 	movea.l app_interaction_object_ptr(a6),a5
 	lea.l player_world_object.l,a4
 	move.b world_object_shared_prefix_item_definition_id(a5),d0
-	cmp.b #$42,d0
+	cmp.b #ITEM_ID_ICELORD,d0
 	bne.b abs_0_00017856
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	cmp.b #$1E,d0
+	cmp.b #ITEM_ID_SONICBLASTER,d0
 	bne.b abs_0_0001783E
 	moveq.l #2,d0
-	move.b d0,app_02B2(a6)
-	move.b d0,app_02B3(a6)
-	move.b #$32,app_02B7(a6)
+	move.b d0,app_player_attack_charge_countdown(a6)
+	move.b d0,app_player_attack_charge_reload(a6)
+	move.b #$32,app_player_attack_damage(a6)
 	bra.b abs_0_0001786C
 abs_0_0001783E:
-	cmp.b #$5,d0
+	cmp.b #ITEM_ID_SONICDRIVER,d0
 	bne.b abs_0_0001786C
 	moveq.l #2,d0
-	move.b d0,app_02B2(a6)
-	move.b d0,app_02B3(a6)
-	move.b #$14,app_02B7(a6)
+	move.b d0,app_player_attack_charge_countdown(a6)
+	move.b d0,app_player_attack_charge_reload(a6)
+	move.b #$14,app_player_attack_damage(a6)
 	bra.b abs_0_0001786C
 abs_0_00017856:
-	cmp.b #$44,d0
+	cmp.b #ITEM_ID_THIEF,d0
 	bne.b abs_0_0001786C
 	moveq.l #2,d0
-	move.b d0,app_02B4(a6)
-	move.b d0,app_02B5(a6)
-	move.b #$32,app_02B6(a6)
+	move.b d0,app_opponent_attack_charge_countdown(a6)
+	move.b d0,app_opponent_attack_charge_reload(a6)
+	move.b #$32,app_opponent_attack_damage(a6)
 abs_0_0001786C:
 	movem.l (a7)+,d0-d1
 	lea.l abs_0_0005C96E.l,a0
@@ -8844,37 +8845,38 @@ abs_0_0001786C:
 	andi.b #240,d1
 	move.w d1,$0004(a0)
 	move.b world_object_shared_prefix_item_definition_id(a5),d0
-	cmp.b #$49,d0
+	cmp.b #ITEM_ID_PRIEST,d0
 	bne.b abs_0_000178A8
 	bsr.w request_camera_refresh
 	move.w #$B8,$0004(a0)
 	move.w #$19C,$0006(a0)
 abs_0_000178A8:
-	clr.b app_02B8(a6)
-	clr.b app_02B9(a6)
+	clr.b app_player_hit_feedback_ticks_remaining(a6)
+	clr.b app_opponent_hit_feedback_ticks_remaining(a6)
 	lea.l abs_0_0005C912.l,a0
 	lea.l abs_0_0005C97A.l,a1
 	move.l a0,$0008(a1)
 	clr.w $0010(a0)
 	move.l #$1E928,$64C0.w
-abs_0_000178CC:
+    ; The early nonpositive player-health byte branch inherits A4. Player damage tests borrow/equality; opponent damage tests signed-negative/equality, giving different byte-underflow behavior.
+service_combat_encounter:
 	tst.b abs_0_0005C35F.l
-	bmi.w abs_0_000179A8
-	beq.w abs_0_000179A8
+	bmi.w handle_combat_player_defeat
+	beq.w handle_combat_player_defeat
 	movea.l app_interaction_object_ptr(a6),a5
-	subq.b #1,app_02B4(a6)
-	bne.b abs_0_00017938
-	move.b app_02B5(a6),d0
-	move.b d0,app_02B4(a6)
+	subq.b #1,app_opponent_attack_charge_countdown(a6)
+	bne.b process_player_combat_attack
+	move.b app_opponent_attack_charge_reload(a6),d0
+	move.b d0,app_opponent_attack_charge_countdown(a6)
 	subq.b #1,d0
 	bne.b abs_0_000178F4
-	addq.w #1,app_02B0(a6)
+	addq.w #1,app_opponent_attack_charge(a6)
 abs_0_000178F4:
-	addq.w #1,app_02B0(a6)
-	move.w app_02B0(a6),d0
+	addq.w #1,app_opponent_attack_charge(a6)
+	move.w app_opponent_attack_charge(a6),d0
 	cmp.b #$17,d0
-	bcs.b abs_0_00017938
-	clr.w app_02B0(a6)
+	bcs.b process_player_combat_attack
+	clr.w app_opponent_attack_charge(a6)
 	move.w app_07EE(a6),d0
 	move.w $0040(a5),d1
 	moveq.l #-1,d2
@@ -8882,38 +8884,38 @@ abs_0_000178F4:
 	lsr.b #1,d0
 	and.b d2,d1
 	cmp.b d0,d1
-	bcs.b abs_0_00017938
+	bcs.b process_player_combat_attack
 	lea.l player_world_object.l,a4
 	move.b world_object_shared_prefix_hit_points+1(a4),d0
-	sub.b app_02B6(a6),d0
-	beq.w abs_0_000179A8
-	bcs.w abs_0_000179A8
+	sub.b app_opponent_attack_damage(a6),d0
+	beq.w handle_combat_player_defeat
+	bcs.w handle_combat_player_defeat
 	move.b d0,world_object_shared_prefix_hit_points+1(a4)
-	bsr.w abs_0_00017A94
-abs_0_00017938:
+	bsr.w show_player_combat_hit_feedback
+process_player_combat_attack:
 	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_00017980
-	move.w app_02AE(a6),d0
+	move.w app_player_attack_charge(a6),d0
 	cmp.b #$19,d0
 	bcc.w abs_0_00017980
 	cmp.b #$17,d0
 	bcc.b abs_0_00017968
 	cmp.b #$11,d0
 	bcc.b abs_0_00017960
-	clr.w app_02AE(a6)
+	clr.w app_player_attack_charge(a6)
 	bra.w abs_0_00017980
 abs_0_00017960:
-	move.b app_02B7(a6),d0
+	move.b app_player_attack_damage(a6),d0
 	lsr.b #1,d0
 	bra.b abs_0_0001796C
 abs_0_00017968:
-	move.b app_02B7(a6),d0
+	move.b app_player_attack_damage(a6),d0
 abs_0_0001796C:
-	clr.w app_02AE(a6)
+	clr.w app_player_attack_charge(a6)
 	sub.b d0,$003D(a5)
-	bmi.w abs_0_000179E4
-	beq.w abs_0_000179E4
-	bsr.w abs_0_00017AE8
+	bmi.w handle_combat_opponent_defeat
+	beq.w handle_combat_opponent_defeat
+	bsr.w show_opponent_combat_hit_feedback
 abs_0_00017980:
 	lea.l opponent_health_overlay.l,a4
 	movea.l app_interaction_object_ptr(a6),a5
@@ -8921,10 +8923,10 @@ abs_0_00017980:
 	lea.l player_health_overlay.l,a4
 	lea.l player_world_object.l,a5
 	bsr.w draw_object_health_status
-	bsr.w abs_0_0001817A
-	bsr.w abs_0_00017B3C
+	bsr.w advance_and_draw_player_attack_charge
+	bsr.w service_combat_hit_feedback_timers
 	rts
-abs_0_000179A8:
+handle_combat_player_defeat:
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
@@ -8937,11 +8939,11 @@ abs_0_000179A8:
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
-	bra.b abs_0_000179EC
-abs_0_000179E4:
+	bra.b finish_combat_encounter
+handle_combat_opponent_defeat:
 	addq.b #1,app_defeated_object_count(a6)
 	movea.l app_interaction_object_ptr(a6),a5
-abs_0_000179EC:
+finish_combat_encounter:
 	move.l $0008(a5),d0
 	beq.b abs_0_00017A06
 	move.l #$24C28,$64C0.w
@@ -8969,7 +8971,7 @@ abs_0_00017A06:
 abs_0_00017A4E:
 	sub.w d2,world_object_shared_prefix_world_x(a5)
 	bsr.w abs_0_000124E0
-	bsr.w abs_0_00017B6E
+	bsr.w clear_combat_hit_feedback
 	lea.l abs_0_0005C940.l,a0
 	lea.l abs_0_0005C97A.l,a1
 	move.l a0,$0008(a1)
@@ -8982,10 +8984,10 @@ abs_0_00017A4E:
 	lea.l abs_0_0001335A.l,a5
 	bsr.w abs_0_0001639A
 	rts
-abs_0_00017A94:
+show_player_combat_hit_feedback:
 	movem.l d0/a0-a5,-(a7)
-	jsr abs_0_0005D326.l
-	move.b #$A,app_02B8(a6)
+	jsr start_player_combat_hit_audio.l
+	move.b #$A,app_player_hit_feedback_ticks_remaining(a6)
 	moveq.l #0,d0
 	move.b app_07EF(a6),d0
 	andi.b #28,d0
@@ -9002,10 +9004,10 @@ abs_0_00017A94:
 	move.w world_object_shared_prefix_world_y(a5),$0006(a3)
 	movem.l (a7)+,d0/a0-a5
 	rts
-abs_0_00017AE8:
+show_opponent_combat_hit_feedback:
 	movem.l d0/a0-a5,-(a7)
-	jsr abs_0_0005D32C.l
-	move.b #$A,app_02B9(a6)
+	jsr start_opponent_combat_hit_audio.l
+	move.b #$A,app_opponent_hit_feedback_ticks_remaining(a6)
 	moveq.l #0,d0
 	move.b app_07EF(a6),d0
 	andi.b #7,d0
@@ -9023,23 +9025,23 @@ abs_0_00017AE8:
 	move.w world_object_shared_prefix_world_y(a5),$0006(a3)
 	movem.l (a7)+,d0/a0-a5
 	rts
-abs_0_00017B3C:
-	tst.b app_02B8(a6)
+service_combat_hit_feedback_timers:
+	tst.b app_player_hit_feedback_ticks_remaining(a6)
 	beq.b abs_0_00017B54
-	subq.b #1,app_02B8(a6)
+	subq.b #1,app_player_hit_feedback_ticks_remaining(a6)
 	bne.b abs_0_00017B54
 	lea.l abs_0_000585B2.l,a0
 	move.l #abs_0_00058588,(a0)
 abs_0_00017B54:
-	tst.b app_02B9(a6)
+	tst.b app_opponent_hit_feedback_ticks_remaining(a6)
 	beq.b abs_0_00017B6C
-	subq.b #1,app_02B9(a6)
+	subq.b #1,app_opponent_hit_feedback_ticks_remaining(a6)
 	bne.b abs_0_00017B6C
 	lea.l abs_0_000585CC.l,a0
 	move.l #abs_0_00058588,(a0)
 abs_0_00017B6C:
 	rts
-abs_0_00017B6E:
+clear_combat_hit_feedback:
 	lea.l abs_0_000585B2.l,a0
 	lea.l abs_0_000585CC.l,a1
 	lea.l abs_0_00058588.l,a2
@@ -9523,23 +9525,23 @@ clear_item_receptacle_proximity:
 incorrect_receptacle_item_message:
 	dc.b "...INCORRECT OBJECT...",$00
 	dc.b $00
-abs_0_0001817A:
+advance_and_draw_player_attack_charge:
 	lea.l abs_0_0001335A.l,a5
 	tst.w $0006(a5)
 	bpl.w abs_0_000182D2
-	subq.b #1,app_02B2(a6)
+	subq.b #1,app_player_attack_charge_countdown(a6)
 	bne.w abs_0_000181B2
-	move.b app_02B3(a6),d0
-	move.b d0,app_02B2(a6)
+	move.b app_player_attack_charge_reload(a6),d0
+	move.b d0,app_player_attack_charge_countdown(a6)
 	cmp.b #$1,d0
 	beq.b abs_0_000181A2
-	addq.w #1,app_02AE(a6)
+	addq.w #1,app_player_attack_charge(a6)
 abs_0_000181A2:
-	addq.w #1,app_02AE(a6)
+	addq.w #1,app_player_attack_charge(a6)
 	moveq.l #40,d0
-	cmp.w app_02AE(a6),d0
+	cmp.w app_player_attack_charge(a6),d0
 	bcc.b abs_0_000181B2
-	clr.w app_02AE(a6)
+	clr.w app_player_attack_charge(a6)
 abs_0_000181B2:
 	move.b $0000(a5),d0
 	move.b $0001(a5),d1
@@ -9571,8 +9573,8 @@ abs_0_000181CA:
 	clr.w (a0)+
 	adda.l d0,a1
 	dbf.w d7,abs_0_000181CA
-	lea.l abs_0_000182D4(pc),a0
-	move.w app_02AE(a6),d7
+	lea.l combat_charge_full_cell_patterns(pc),a0
+	move.w app_player_attack_charge(a6),d7
 	move.w d7,d6
 	andi.w #7,d6
 	lsr.w #3,d7
@@ -9580,11 +9582,12 @@ abs_0_000181CA:
 	subq.w #1,d7
 abs_0_0001820A:
 	move.l (a0)+,d1
-	bsr.b abs_0_0001823A
+	bsr.b draw_combat_charge_pattern_cell
 	bsr.w advance_stored_text_origin_byte
 	dbf.w d7,abs_0_0001820A
 abs_0_00018216:
-	lea.l abs_0_000182E8(pc),a3
+	lea.l combat_charge_partial_cell_masks(pc),a3
+    ; At charge 40, five pattern longwords are consumed. The following longword read fetches the first four mask bytes; zero remainder then skips the partial-cell draw.
 	move.l (a0),d0
 	moveq.l #0,d1
 	move.b $0(a3,d6.w),d1
@@ -9599,7 +9602,7 @@ abs_0_00018216:
 	exg d0,d1
 	tst.b d6
 	beq.w abs_0_000182D2
-abs_0_0001823A:
+draw_combat_charge_pattern_cell:
 	movea.l app_text_cursor_ptr(a6),a2
 	moveq.l #40,d0
 	lea.l $00A0(a2),a2
@@ -9676,11 +9679,11 @@ abs_0_0001823A:
 	move.b d1,(a2)
 abs_0_000182D2:
 	rts
-abs_0_000182D4:
-	dc.b $FE,$00,$FE,$FE,$FE,$00,$FE,$FE,$FE,$00,$FE,$FE,$00,$FE,$FE,$00
-	dc.b $00,$FE,$FE,$00
-abs_0_000182E8:
-	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF
+combat_charge_full_cell_patterns:
+	dc.l $FE00FEFE,$FE00FEFE,$FE00FEFE,$00FEFE00	; lookup_table
+	dc.l $00FEFE00	; lookup_table
+combat_charge_partial_cell_masks:
+	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF	; lookup_table
 update_nearby_object_detection:
 	lea.l world_object_ptr_table(pc),a1
 	lea.l player_world_object.l,a4
@@ -9954,24 +9957,25 @@ health_status_good:
 health_status_dead:
 	dc.b 'D','E','A','D',$00	; health_status_strings
 	dc.b $00
-abs_0_0001864C:
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
+resolve_selected_item_combat_parameters:
 	clr.w d0
-	move.b $0046(a5),d0
-	subq.b #7,d0
+	move.b world_object_shared_prefix_selected_item_id(a5),d0
+	subq.b #ITEM_ID_PHOTOSABRE,d0
 	cmp.b #$7,d0
 	bcc.b abs_0_0001866A
 	clr.w d1
-	move.b abs_0_00018677(pc,d0.w),d1
-	move.b abs_0_00018670(pc,d0.w),d0
+	move.b weapon_combat_damage_table(pc,d0.w),d1
+	move.b weapon_combat_charge_reload_table(pc,d0.w),d0
 	move #$1,ccr
 	rts
 abs_0_0001866A:
 	moveq.l #3,d0
 	moveq.l #5,d1
 	rts
-abs_0_00018670:
+weapon_combat_charge_reload_table:
 	dc.b $04,$05,$02,$01,$04,$03,$02	; lookup_table
-abs_0_00018677:
+weapon_combat_damage_table:
 	dc.b $23,$15,$09,$07,$19,$0E,$08	; lookup_table
 restore_world_object_position_state:
 	move.l a0,-(a7)
@@ -21622,10 +21626,10 @@ abs_0_0005D31A:
 abs_0_0005D320:
 	move.w #$30F,d0
 	bra.b start_feedback_audio_sequence
-abs_0_0005D326:
+start_player_combat_hit_audio:
 	move.w #$103,d0
 	bra.b start_feedback_audio_sequence
-abs_0_0005D32C:
+start_opponent_combat_hit_audio:
 	move.w #$203,d0
 start_feedback_audio_sequence:
 	bclr.b #0,app_world_interaction_audio_flags(a6)
