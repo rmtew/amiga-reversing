@@ -90,6 +90,7 @@ def test_active_source_import_boundaries_are_current() -> None:
         "msvcrt",  # Windows target history lock
         "collections",
         "contextlib",
+        "contextvars",  # target-locked request and command snapshots
         "copy",
         "ctypes",
         "dataclasses",

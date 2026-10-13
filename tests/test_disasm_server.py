@@ -8757,6 +8757,7 @@ def test_reproduction_job_reuses_artifact_source(
     monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
     captured_source: list[str | None] = []
     captured_profile: list[object] = []
+    captured_package: list[object] = []
     artifact = _FakeCListingArtifact()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
@@ -8773,9 +8774,11 @@ def test_reproduction_job_reuses_artifact_source(
         project_root,
         pre_rendered_source_text=None,
         pre_rendered_source_profile=None,
+        pre_rendered_source_package=None,
     ):
         captured_source.append(pre_rendered_source_text)
         captured_profile.append(pre_rendered_source_profile)
+        captured_package.append(pre_rendered_source_package)
         return {"status": "exact"}
 
     monkeypatch.setattr(disasm_server, "run_reproduction", fake_run_reproduction)
@@ -8806,6 +8809,7 @@ def test_reproduction_job_reuses_artifact_source(
 
     assert captured_source == ["    SECTION section,code\n    rts\n"]
     assert captured_profile == [{"generation": "fake-source"}]
+    assert captured_package == [None]
     assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._LISTING_PROJECTION_SERVICE.reset()

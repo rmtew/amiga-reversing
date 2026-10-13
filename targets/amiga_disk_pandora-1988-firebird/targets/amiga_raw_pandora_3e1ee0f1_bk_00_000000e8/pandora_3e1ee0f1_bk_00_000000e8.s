@@ -535,6 +535,13 @@ title_star_record_lifetime RS.B 1
 title_star_record_unknown_byte RS.B 1
 title_star_record_SIZEOF EQU __RS
 
+; STRUCT world_behavior_node_sequence_command
+    RSRESET
+world_behavior_node_sequence_command_opcode RS.W 1
+world_behavior_node_sequence_command_state_node_ptr RS.L 1
+world_behavior_node_sequence_command_frame_sequence_ptr RS.L 1
+world_behavior_node_sequence_command_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -670,6 +677,7 @@ WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	EQU	6
 WORLD_CMD_SET_DELAY	EQU	5
 WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	EQU	27
 WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	EQU	25
+WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	EQU	30
 WORLD_CMD_SET_POSITION	EQU	23
 WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	EQU	32
 _ciaa	EQU	$BFE001
@@ -2037,115 +2045,1159 @@ world_object_handler_ptrs:
 	dc.l world_object_command_toggle_node_for_flag3_clear
 abs_0_000114B6:
 	dc.b $4A,$FB
-abs_0_000114B8:
-	dc.b $00,$17,$03,$04,$02,$14,$00,$1B,$00,$05,$9B,$00,$00,$05,$00,$01
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06,$00,$30
-	dc.b $00,$30,$FF,$F8,$00,$15,$00,$0C,$00,$00,$FF,$FA,$00,$05,$00,$01
-	dc.b $00,$06,$00,$48,$00,$48,$FF,$F8,$00,$15,$00,$0C,$00,$00,$FF,$FE
-	dc.b $00,$05,$00,$01,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$20,$00,$05
-	dc.b $00,$0A,$00,$1B,$00,$05,$9A,$CE,$00,$20,$00,$05,$00,$32,$00,$1B
-	dc.b $00,$05,$9A,$CE,$00,$15,$00,$0C,$00,$00,$00,$02,$00,$05,$00,$01
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$00,$00,$06
-	dc.b $00,$05,$00,$01,$00,$06,$00,$48,$00,$48,$FF,$F8,$00,$15,$00,$0C
-	dc.b $00,$00,$00,$02,$00,$05,$00,$01,$00,$06,$00,$30,$00,$30,$FF,$F8
-	dc.b $00,$14,$00,$01,$14,$B8
-abs_0_0001155E:
-	dc.b $00,$17,$03,$C4,$01,$A8,$00,$05,$00,$01,$00,$15,$00,$0C,$00,$01
-	dc.b $00,$02,$00,$05,$00,$02,$00,$06,$00,$30,$00,$30,$FF,$F8,$00,$15
-	dc.b $00,$0C,$00,$00,$00,$02,$00,$05,$00,$02,$00,$06,$00,$60,$00,$60
-	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02,$00,$06
-	dc.b $00,$48,$00,$48,$FF,$F8,$00,$15,$00,$0C,$00,$00,$00,$02,$00,$05
-	dc.b $00,$02,$00,$06,$00,$48,$00,$48,$FF,$F8,$00,$05,$00,$32,$00,$15
-	dc.b $00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$48,$00,$48
-	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02,$00,$06
-	dc.b $00,$48,$00,$48,$FF,$F8,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05
-	dc.b $00,$02,$00,$06,$00,$60,$00,$60,$FF,$F8,$00,$15,$00,$0C,$00,$01
-	dc.b $FF,$FE,$00,$05,$00,$02,$00,$06,$00,$30,$00,$30,$FF,$F8,$00,$14
-	dc.b $00,$01,$15,$5E
-abs_0_00011612:
-	dc.b $00,$17,$04,$CA,$00,$84,$00,$1B,$00,$05,$94,$0C,$00,$05,$00,$01
-	dc.b $00,$20,$00,$05,$00,$78,$00,$20,$00,$15,$00,$0C,$00,$00,$FF,$F9
-	dc.b $00,$05,$00,$02,$00,$06,$00,$14,$00,$14,$FF,$F8,$00,$1B,$00,$05
-	dc.b $93,$DA,$00,$15,$00,$0C,$00,$00,$00,$07,$00,$05,$00,$02,$00,$06
-	dc.b $00,$14,$00,$14,$FF,$F8,$00,$1B,$00,$05,$94,$0C,$00,$15,$00,$0C
-	dc.b $00,$00,$FF,$F9,$00,$05,$00,$02,$00,$06,$00,$0F,$00,$0F,$FF,$F8
-	dc.b $00,$1B,$00,$05,$93,$DA,$00,$15,$00,$0C,$00,$00,$00,$07,$00,$05
-	dc.b $00,$02,$00,$06,$00,$0F,$00,$0F,$FF,$F8,$00,$1B,$00,$05,$94,$0C
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$F9,$00,$05,$00,$02,$00,$06,$00,$07
-	dc.b $00,$07,$FF,$F8,$00,$1B,$00,$05,$93,$DA,$00,$15,$00,$0C,$00,$00
-	dc.b $00,$07,$00,$05,$00,$02,$00,$06,$00,$07,$00,$07,$FF,$F8,$00,$14
-	dc.b $00,$01,$16,$12
-abs_0_000116C6:
-	dc.b $00,$17,$05,$14,$00,$F4,$00,$1B,$00,$05,$98,$5E,$00,$05,$00,$01
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$78
-	dc.b $00,$78,$FF,$F8,$00,$1B,$00,$05,$98,$0A,$00,$05,$00,$32,$00,$1B
-	dc.b $00,$05,$97,$D8,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1B,$00,$05,$98,$5E,$00,$15
-	dc.b $00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$30,$00,$30
-	dc.b $FF,$F8,$00,$1B,$00,$05,$98,$0A,$00,$05,$00,$32,$00,$1B,$00,$05
-	dc.b $97,$D8,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02,$00,$06
-	dc.b $00,$30,$00,$30,$FF,$F8,$00,$1B,$00,$05,$98,$5E,$00,$15,$00,$0C
-	dc.b $00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06,$00,$60,$00,$60,$FF,$F8
-	dc.b $00,$1B,$00,$05,$98,$2C,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05
-	dc.b $00,$01,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1B,$00,$05,$98,$5E
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06,$00,$78
-	dc.b $00,$78,$FF,$F8,$00,$1B,$00,$05,$98,$0A,$00,$05,$00,$64,$00,$1B
-	dc.b $00,$05,$98,$2C,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$01
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1B,$00,$05,$98,$5E,$00,$15
-	dc.b $00,$0C,$00,$00,$FF,$FD,$00,$05,$00,$01,$00,$06,$00,$8A,$00,$8A
-	dc.b $FF,$F8,$00,$1B,$00,$05,$98,$0A,$00,$05,$00,$32,$00,$1B,$00,$05
-	dc.b $98,$90,$00,$15,$00,$0C,$00,$00,$00,$03,$00,$05,$00,$01,$00,$06
-	dc.b $00,$BA,$00,$BA,$FF,$F8,$00,$1B,$00,$05,$97,$D8,$00,$15,$00,$0C
-	dc.b $00,$01,$00,$02,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8
-	dc.b $00,$1B,$00,$05,$98,$90,$00,$15,$00,$0C,$00,$00,$00,$04,$00,$05
-	dc.b $00,$01,$00,$06,$00,$48,$00,$48,$FF,$F8,$00,$1B,$00,$05,$98,$2C
-	dc.b $00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$01,$00,$06,$00,$78
-	dc.b $00,$78,$FF,$F8,$00,$1B,$00,$05,$98,$0A,$00,$05,$00,$32,$00,$1B
-	dc.b $00,$05,$98,$5E,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01
-	dc.b $00,$06,$00,$90,$00,$90,$FF,$F8,$00,$1B,$00,$05,$98,$0A,$00,$05
-	dc.b $00,$32,$00,$1B,$00,$05,$98,$5E,$00,$15,$00,$0C,$00,$00,$FF,$FE
-	dc.b $00,$05,$00,$01,$00,$06,$00,$48,$00,$48,$FF,$F8,$00,$1B,$00,$05
-	dc.b $97,$D8,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$01,$00,$06
-	dc.b $00,$48,$00,$48,$FF,$F8,$00,$1B,$00,$05,$98,$90,$00,$15,$00,$0C
-	dc.b $00,$00,$00,$02,$00,$05,$00,$01,$00,$06,$00,$30,$00,$30,$FF,$F8
-	dc.b $00,$1B,$00,$05,$98,$2C,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05
-	dc.b $00,$01,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1B,$00,$05,$98,$5E
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$18
-	dc.b $00,$18,$FF,$F8,$00,$1B,$00,$05,$98,$0A,$00,$05,$00,$32,$00,$1B
-	dc.b $00,$05,$98,$2C,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$01
-	dc.b $00,$06,$00,$30,$00,$30,$FF,$F8,$00,$1B,$00,$05,$98,$90,$00,$15
-	dc.b $00,$0C,$00,$00,$00,$02,$00,$05,$00,$01,$00,$06,$00,$C0,$00,$C0
-	dc.b $FF,$F8,$00,$1B,$00,$05,$97,$D8,$00,$15,$00,$0C,$00,$01,$00,$02
-	dc.b $00,$05,$00,$01,$00,$06,$00,$48,$00,$48,$FF,$F8,$00,$1B,$00,$05
-	dc.b $98,$90,$00,$15,$00,$0C,$00,$00,$00,$02,$00,$05,$00,$01,$00,$06
-	dc.b $00,$A8,$00,$A8,$FF,$F8,$00,$14,$00,$01,$16,$C6
-abs_0_00011972:
-	dc.b $00,$17,$02,$D4,$05,$D4,$00,$1E,$00,$05,$C1,$66,$00,$05,$C0,$CA
-	dc.b $00,$05,$00,$01,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02
-	dc.b $00,$06,$00,$48,$00,$48,$FF,$F8,$00,$1E,$00,$05,$C1,$66,$00,$05
-	dc.b $C0,$A6,$00,$05,$00,$32,$00,$15,$00,$0C,$00,$00,$00,$02,$00,$05
-	dc.b $00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$00
-	dc.b $00,$02,$00,$05,$00,$01,$00,$06,$00,$30,$00,$30,$FF,$F8,$00,$15
-	dc.b $00,$0C,$00,$00,$00,$02,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$05,$00,$32,$00,$1E,$00,$05,$C1,$66,$00,$05,$C0,$EE
-	dc.b $00,$05,$00,$32,$00,$1E,$00,$05,$C1,$66,$00,$05,$C0,$B2,$00,$15
-	dc.b $00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06
-	dc.b $00,$30,$00,$30,$FF,$F8,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05
-	dc.b $00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$66
-	dc.b $00,$05,$C0,$D6,$00,$05,$00,$32,$00,$15,$00,$0C,$00,$01,$00,$02
-	dc.b $00,$05,$00,$02,$00,$06,$00,$48,$00,$48,$FF,$F8,$00,$1E,$00,$05
-	dc.b $C1,$66,$00,$05,$C0,$B2,$00,$05,$00,$64,$00,$14,$00,$01,$19,$72
-abs_0_00011A72:
-	dc.b $00,$17,$03,$64,$06,$94,$00,$1E,$00,$05,$C1,$8A,$00,$05,$C0,$A6
-	dc.b $00,$05,$00,$01,$00,$15,$00,$0C,$00,$00,$00,$08,$00,$05,$00,$01
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$8A,$00,$05
-	dc.b $C0,$EE,$00,$15,$00,$0C,$00,$01,$00,$08,$00,$05,$00,$01,$00,$06
-	dc.b $00,$18,$00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$8A,$00,$05,$C0,$B2
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$F8,$00,$05,$00,$01,$00,$06,$00,$18
-	dc.b $00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$8A,$00,$05,$C0,$CA,$00,$15
-	dc.b $00,$0C,$00,$01,$FF,$F8,$00,$05,$00,$01,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$14,$00,$01,$1A,$72
+world_object_thief_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0304	; world_x
+	dc.w $0214	; world_y
+thief_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $00059B00	; state_node_ptr
+thief_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+thief_script_command_0010:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+thief_script_command_0010_operand_word:
+	dc.w thief_script_command_001C_reload_count-thief_script_command_0010_operand_word	; operand_word
+thief_script_command_0014:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+thief_script_command_0018:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+thief_script_command_001C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+thief_script_command_001C_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w thief_script_command_0014-thief_script_command_001C	; branch_displacement
+thief_script_command_0024:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+thief_script_command_0024_operand_word:
+	dc.w thief_script_command_0030_reload_count-thief_script_command_0024_operand_word	; operand_word
+thief_script_command_0028:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFA	; operand_word
+thief_script_command_002C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+thief_script_command_0030:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+thief_script_command_0030_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w thief_script_command_0028-thief_script_command_0030	; branch_displacement
+thief_script_command_0038:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+thief_script_command_0038_operand_word:
+	dc.w thief_script_command_0044_reload_count-thief_script_command_0038_operand_word	; operand_word
+thief_script_command_003C:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+thief_script_command_0040:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+thief_script_command_0044:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+thief_script_command_0044_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w thief_script_command_003C-thief_script_command_0044	; branch_displacement
+thief_script_command_004C:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+thief_script_command_004E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $000A	; operand_word
+thief_script_command_0052:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $00059ACE	; state_node_ptr
+thief_script_command_0058:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+thief_script_command_005A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+thief_script_command_005E:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $00059ACE	; state_node_ptr
+thief_script_command_0064:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+thief_script_command_0064_operand_word:
+	dc.w thief_script_command_0070_reload_count-thief_script_command_0064_operand_word	; operand_word
+thief_script_command_0068:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+thief_script_command_006C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+thief_script_command_0070:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+thief_script_command_0070_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w thief_script_command_0068-thief_script_command_0070	; branch_displacement
+thief_script_command_0078:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+thief_script_command_0078_operand_word:
+	dc.w thief_script_command_0084_reload_count-thief_script_command_0078_operand_word	; operand_word
+thief_script_command_007C:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0006	; operand_word
+thief_script_command_0080:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+thief_script_command_0084:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+thief_script_command_0084_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w thief_script_command_007C-thief_script_command_0084	; branch_displacement
+thief_script_command_008C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+thief_script_command_008C_operand_word:
+	dc.w thief_script_command_0098_reload_count-thief_script_command_008C_operand_word	; operand_word
+thief_script_command_0090:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+thief_script_command_0094:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+thief_script_command_0098:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+thief_script_command_0098_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w thief_script_command_0090-thief_script_command_0098	; branch_displacement
+thief_script_command_00A0:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$14,$B8	; target_pointer
+world_object_menial_droid_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $03C4	; world_x
+	dc.w $01A8	; world_y
+menial_droid_script_command_0006:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+menial_droid_script_command_000A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_000A_operand_word:
+	dc.w menial_droid_script_command_0016_reload_count-menial_droid_script_command_000A_operand_word	; operand_word
+menial_droid_script_command_000E:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_0012:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_0016:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_0016_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w menial_droid_script_command_000E-menial_droid_script_command_0016	; branch_displacement
+menial_droid_script_command_001E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_001E_operand_word:
+	dc.w menial_droid_script_command_002A_reload_count-menial_droid_script_command_001E_operand_word	; operand_word
+menial_droid_script_command_0022:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_0026:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_002A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_002A_reload_count:
+	dc.w $0060	; reload_count
+	dc.w $0060	; remaining_count
+	dc.w menial_droid_script_command_0022-menial_droid_script_command_002A	; branch_displacement
+menial_droid_script_command_0032:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_0032_operand_word:
+	dc.w menial_droid_script_command_003E_reload_count-menial_droid_script_command_0032_operand_word	; operand_word
+menial_droid_script_command_0036:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+menial_droid_script_command_003A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_003E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_003E_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w menial_droid_script_command_0036-menial_droid_script_command_003E	; branch_displacement
+menial_droid_script_command_0046:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_0046_operand_word:
+	dc.w menial_droid_script_command_0052_reload_count-menial_droid_script_command_0046_operand_word	; operand_word
+menial_droid_script_command_004A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_004E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_0052:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_0052_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w menial_droid_script_command_004A-menial_droid_script_command_0052	; branch_displacement
+menial_droid_script_command_005A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+menial_droid_script_command_005E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_005E_operand_word:
+	dc.w menial_droid_script_command_006A_reload_count-menial_droid_script_command_005E_operand_word	; operand_word
+menial_droid_script_command_0062:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+menial_droid_script_command_0066:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_006A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_006A_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w menial_droid_script_command_0062-menial_droid_script_command_006A	; branch_displacement
+menial_droid_script_command_0072:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_0072_operand_word:
+	dc.w menial_droid_script_command_007E_reload_count-menial_droid_script_command_0072_operand_word	; operand_word
+menial_droid_script_command_0076:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_007A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_007E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_007E_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w menial_droid_script_command_0076-menial_droid_script_command_007E	; branch_displacement
+menial_droid_script_command_0086:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_0086_operand_word:
+	dc.w menial_droid_script_command_0092_reload_count-menial_droid_script_command_0086_operand_word	; operand_word
+menial_droid_script_command_008A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+menial_droid_script_command_008E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_0092:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_0092_reload_count:
+	dc.w $0060	; reload_count
+	dc.w $0060	; remaining_count
+	dc.w menial_droid_script_command_008A-menial_droid_script_command_0092	; branch_displacement
+menial_droid_script_command_009A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+menial_droid_script_command_009A_operand_word:
+	dc.w menial_droid_script_command_00A6_reload_count-menial_droid_script_command_009A_operand_word	; operand_word
+menial_droid_script_command_009E:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+menial_droid_script_command_00A2:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+menial_droid_script_command_00A6:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+menial_droid_script_command_00A6_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w menial_droid_script_command_009E-menial_droid_script_command_00A6	; branch_displacement
+menial_droid_script_command_00AE:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$15,$5E	; target_pointer
+world_object_squash_player_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $04CA	; world_x
+	dc.w $0084	; world_y
+squash_player_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$94,$0C	; state_node_ptr
+squash_player_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+squash_player_script_command_0010:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+squash_player_script_command_0012:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0078	; operand_word
+squash_player_script_command_0016:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+squash_player_script_command_0018:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+squash_player_script_command_0018_operand_word:
+	dc.w squash_player_script_command_0024_reload_count-squash_player_script_command_0018_operand_word	; operand_word
+squash_player_script_command_001C:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+squash_player_script_command_0020:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+squash_player_script_command_0024:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+squash_player_script_command_0024_reload_count:
+	dc.w $0014	; reload_count
+	dc.w $0014	; remaining_count
+	dc.w squash_player_script_command_001C-squash_player_script_command_0024	; branch_displacement
+squash_player_script_command_002C:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $000593DA	; state_node_ptr
+squash_player_script_command_0032:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+squash_player_script_command_0032_operand_word:
+	dc.w squash_player_script_command_003E_reload_count-squash_player_script_command_0032_operand_word	; operand_word
+squash_player_script_command_0036:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0007	; operand_word
+squash_player_script_command_003A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+squash_player_script_command_003E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+squash_player_script_command_003E_reload_count:
+	dc.w $0014	; reload_count
+	dc.w $0014	; remaining_count
+	dc.w squash_player_script_command_0036-squash_player_script_command_003E	; branch_displacement
+squash_player_script_command_0046:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$94,$0C	; state_node_ptr
+squash_player_script_command_004C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+squash_player_script_command_004C_operand_word:
+	dc.w squash_player_script_command_0058_reload_count-squash_player_script_command_004C_operand_word	; operand_word
+squash_player_script_command_0050:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+squash_player_script_command_0054:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+squash_player_script_command_0058:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+squash_player_script_command_0058_reload_count:
+	dc.w $000F	; reload_count
+	dc.w $000F	; remaining_count
+	dc.w squash_player_script_command_0050-squash_player_script_command_0058	; branch_displacement
+squash_player_script_command_0060:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $000593DA	; state_node_ptr
+squash_player_script_command_0066:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+squash_player_script_command_0066_operand_word:
+	dc.w squash_player_script_command_0072_reload_count-squash_player_script_command_0066_operand_word	; operand_word
+squash_player_script_command_006A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0007	; operand_word
+squash_player_script_command_006E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+squash_player_script_command_0072:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+squash_player_script_command_0072_reload_count:
+	dc.w $000F	; reload_count
+	dc.w $000F	; remaining_count
+	dc.w squash_player_script_command_006A-squash_player_script_command_0072	; branch_displacement
+squash_player_script_command_007A:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$94,$0C	; state_node_ptr
+squash_player_script_command_0080:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+squash_player_script_command_0080_operand_word:
+	dc.w squash_player_script_command_008C_reload_count-squash_player_script_command_0080_operand_word	; operand_word
+squash_player_script_command_0084:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+squash_player_script_command_0088:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+squash_player_script_command_008C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+squash_player_script_command_008C_reload_count:
+	dc.w $0007	; reload_count
+	dc.w $0007	; remaining_count
+	dc.w squash_player_script_command_0084-squash_player_script_command_008C	; branch_displacement
+squash_player_script_command_0094:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $000593DA	; state_node_ptr
+squash_player_script_command_009A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+squash_player_script_command_009A_operand_word:
+	dc.w squash_player_script_command_00A6_reload_count-squash_player_script_command_009A_operand_word	; operand_word
+squash_player_script_command_009E:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0007	; operand_word
+squash_player_script_command_00A2:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+squash_player_script_command_00A6:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+squash_player_script_command_00A6_reload_count:
+	dc.w $0007	; reload_count
+	dc.w $0007	; remaining_count
+	dc.w squash_player_script_command_009E-squash_player_script_command_00A6	; branch_displacement
+squash_player_script_command_00AE:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$16,$12	; target_pointer
+world_object_kriptonite_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0514	; world_x
+	dc.w $00F4	; world_y
+kriptonite_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$5E	; state_node_ptr
+kriptonite_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_0010:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0010_operand_word:
+	dc.w kriptonite_script_command_001C_reload_count-kriptonite_script_command_0010_operand_word	; operand_word
+kriptonite_script_command_0014:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_0018:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_001C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_001C_reload_count:
+	dc.w $0078	; reload_count
+	dc.w $0078	; remaining_count
+	dc.w kriptonite_script_command_0014-kriptonite_script_command_001C	; branch_displacement
+kriptonite_script_command_0024:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005980A	; state_node_ptr
+kriptonite_script_command_002A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+kriptonite_script_command_002E:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$97,$D8	; state_node_ptr
+kriptonite_script_command_0034:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0034_operand_word:
+	dc.w kriptonite_script_command_0040_reload_count-kriptonite_script_command_0034_operand_word	; operand_word
+kriptonite_script_command_0038:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_003C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_0040:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_0040_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kriptonite_script_command_0038-kriptonite_script_command_0040	; branch_displacement
+kriptonite_script_command_0048:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005985E	; state_node_ptr
+kriptonite_script_command_004E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_004E_operand_word:
+	dc.w kriptonite_script_command_005A_reload_count-kriptonite_script_command_004E_operand_word	; operand_word
+kriptonite_script_command_0052:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_0056:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_005A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_005A_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w kriptonite_script_command_0052-kriptonite_script_command_005A	; branch_displacement
+kriptonite_script_command_0062:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$0A	; state_node_ptr
+kriptonite_script_command_0068:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+kriptonite_script_command_006C:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $000597D8	; state_node_ptr
+kriptonite_script_command_0072:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0072_operand_word:
+	dc.w kriptonite_script_command_007E_reload_count-kriptonite_script_command_0072_operand_word	; operand_word
+kriptonite_script_command_0076:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_007A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_007E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_007E_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w kriptonite_script_command_0076-kriptonite_script_command_007E	; branch_displacement
+kriptonite_script_command_0086:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$5E	; state_node_ptr
+kriptonite_script_command_008C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_008C_operand_word:
+	dc.w kriptonite_script_command_0098_reload_count-kriptonite_script_command_008C_operand_word	; operand_word
+kriptonite_script_command_0090:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_0094:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_0098:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_0098_reload_count:
+	dc.w $0060	; reload_count
+	dc.w $0060	; remaining_count
+	dc.w kriptonite_script_command_0090-kriptonite_script_command_0098	; branch_displacement
+kriptonite_script_command_00A0:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005982C	; state_node_ptr
+kriptonite_script_command_00A6:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_00A6_operand_word:
+	dc.w kriptonite_script_command_00B2_reload_count-kriptonite_script_command_00A6_operand_word	; operand_word
+kriptonite_script_command_00AA:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_00AE:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_00B2:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_00B2_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kriptonite_script_command_00AA-kriptonite_script_command_00B2	; branch_displacement
+kriptonite_script_command_00BA:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$5E	; state_node_ptr
+kriptonite_script_command_00C0:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_00C0_operand_word:
+	dc.w kriptonite_script_command_00CC_reload_count-kriptonite_script_command_00C0_operand_word	; operand_word
+kriptonite_script_command_00C4:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_00C8:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_00CC:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_00CC_reload_count:
+	dc.w $0078	; reload_count
+	dc.w $0078	; remaining_count
+	dc.w kriptonite_script_command_00C4-kriptonite_script_command_00CC	; branch_displacement
+kriptonite_script_command_00D4:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005980A	; state_node_ptr
+kriptonite_script_command_00DA:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0064	; operand_word
+kriptonite_script_command_00DE:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$2C	; state_node_ptr
+kriptonite_script_command_00E4:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_00E4_operand_word:
+	dc.w kriptonite_script_command_00F0_reload_count-kriptonite_script_command_00E4_operand_word	; operand_word
+kriptonite_script_command_00E8:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_00EC:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_00F0:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_00F0_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kriptonite_script_command_00E8-kriptonite_script_command_00F0	; branch_displacement
+kriptonite_script_command_00F8:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005985E	; state_node_ptr
+kriptonite_script_command_00FE:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_00FE_operand_word:
+	dc.w kriptonite_script_command_010A_reload_count-kriptonite_script_command_00FE_operand_word	; operand_word
+kriptonite_script_command_0102:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFD	; operand_word
+kriptonite_script_command_0106:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_010A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_010A_reload_count:
+	dc.w $008A	; reload_count
+	dc.w $008A	; remaining_count
+	dc.w kriptonite_script_command_0102-kriptonite_script_command_010A	; branch_displacement
+kriptonite_script_command_0112:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$0A	; state_node_ptr
+kriptonite_script_command_0118:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+kriptonite_script_command_011C:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $00059890	; state_node_ptr
+kriptonite_script_command_0122:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0122_operand_word:
+	dc.w kriptonite_script_command_012E_reload_count-kriptonite_script_command_0122_operand_word	; operand_word
+kriptonite_script_command_0126:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0003	; operand_word
+kriptonite_script_command_012A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_012E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_012E_reload_count:
+	dc.w $00BA	; reload_count
+	dc.w $00BA	; remaining_count
+	dc.w kriptonite_script_command_0126-kriptonite_script_command_012E	; branch_displacement
+kriptonite_script_command_0136:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$97,$D8	; state_node_ptr
+kriptonite_script_command_013C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_013C_operand_word:
+	dc.w kriptonite_script_command_0148_reload_count-kriptonite_script_command_013C_operand_word	; operand_word
+kriptonite_script_command_0140:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_0144:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_0148:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_0148_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kriptonite_script_command_0140-kriptonite_script_command_0148	; branch_displacement
+kriptonite_script_command_0150:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $00059890	; state_node_ptr
+kriptonite_script_command_0156:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0156_operand_word:
+	dc.w kriptonite_script_command_0162_reload_count-kriptonite_script_command_0156_operand_word	; operand_word
+kriptonite_script_command_015A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0004	; operand_word
+kriptonite_script_command_015E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_0162:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_0162_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w kriptonite_script_command_015A-kriptonite_script_command_0162	; branch_displacement
+kriptonite_script_command_016A:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$2C	; state_node_ptr
+kriptonite_script_command_0170:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0170_operand_word:
+	dc.w kriptonite_script_command_017C_reload_count-kriptonite_script_command_0170_operand_word	; operand_word
+kriptonite_script_command_0174:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_0178:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_017C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_017C_reload_count:
+	dc.w $0078	; reload_count
+	dc.w $0078	; remaining_count
+	dc.w kriptonite_script_command_0174-kriptonite_script_command_017C	; branch_displacement
+kriptonite_script_command_0184:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005980A	; state_node_ptr
+kriptonite_script_command_018A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+kriptonite_script_command_018E:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$5E	; state_node_ptr
+kriptonite_script_command_0194:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0194_operand_word:
+	dc.w kriptonite_script_command_01A0_reload_count-kriptonite_script_command_0194_operand_word	; operand_word
+kriptonite_script_command_0198:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_019C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_01A0:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_01A0_reload_count:
+	dc.w $0090	; reload_count
+	dc.w $0090	; remaining_count
+	dc.w kriptonite_script_command_0198-kriptonite_script_command_01A0	; branch_displacement
+kriptonite_script_command_01A8:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005980A	; state_node_ptr
+kriptonite_script_command_01AE:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+kriptonite_script_command_01B2:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$5E	; state_node_ptr
+kriptonite_script_command_01B8:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_01B8_operand_word:
+	dc.w kriptonite_script_command_01C4_reload_count-kriptonite_script_command_01B8_operand_word	; operand_word
+kriptonite_script_command_01BC:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_01C0:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_01C4:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_01C4_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w kriptonite_script_command_01BC-kriptonite_script_command_01C4	; branch_displacement
+kriptonite_script_command_01CC:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $000597D8	; state_node_ptr
+kriptonite_script_command_01D2:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_01D2_operand_word:
+	dc.w kriptonite_script_command_01DE_reload_count-kriptonite_script_command_01D2_operand_word	; operand_word
+kriptonite_script_command_01D6:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_01DA:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_01DE:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_01DE_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w kriptonite_script_command_01D6-kriptonite_script_command_01DE	; branch_displacement
+kriptonite_script_command_01E6:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$90	; state_node_ptr
+kriptonite_script_command_01EC:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_01EC_operand_word:
+	dc.w kriptonite_script_command_01F8_reload_count-kriptonite_script_command_01EC_operand_word	; operand_word
+kriptonite_script_command_01F0:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_01F4:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_01F8:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_01F8_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w kriptonite_script_command_01F0-kriptonite_script_command_01F8	; branch_displacement
+kriptonite_script_command_0200:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005982C	; state_node_ptr
+kriptonite_script_command_0206:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0206_operand_word:
+	dc.w kriptonite_script_command_0212_reload_count-kriptonite_script_command_0206_operand_word	; operand_word
+kriptonite_script_command_020A:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_020E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_0212:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_0212_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kriptonite_script_command_020A-kriptonite_script_command_0212	; branch_displacement
+kriptonite_script_command_021A:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$5E	; state_node_ptr
+kriptonite_script_command_0220:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0220_operand_word:
+	dc.w kriptonite_script_command_022C_reload_count-kriptonite_script_command_0220_operand_word	; operand_word
+kriptonite_script_command_0224:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_0228:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_022C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_022C_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kriptonite_script_command_0224-kriptonite_script_command_022C	; branch_displacement
+kriptonite_script_command_0234:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005980A	; state_node_ptr
+kriptonite_script_command_023A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+kriptonite_script_command_023E:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$98,$2C	; state_node_ptr
+kriptonite_script_command_0244:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0244_operand_word:
+	dc.w kriptonite_script_command_0250_reload_count-kriptonite_script_command_0244_operand_word	; operand_word
+kriptonite_script_command_0248:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+kriptonite_script_command_024C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_0250:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_0250_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w kriptonite_script_command_0248-kriptonite_script_command_0250	; branch_displacement
+kriptonite_script_command_0258:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $00059890	; state_node_ptr
+kriptonite_script_command_025E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_025E_operand_word:
+	dc.w kriptonite_script_command_026A_reload_count-kriptonite_script_command_025E_operand_word	; operand_word
+kriptonite_script_command_0262:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_0266:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_026A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_026A_reload_count:
+	dc.w $00C0	; reload_count
+	dc.w $00C0	; remaining_count
+	dc.w kriptonite_script_command_0262-kriptonite_script_command_026A	; branch_displacement
+kriptonite_script_command_0272:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$97,$D8	; state_node_ptr
+kriptonite_script_command_0278:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0278_operand_word:
+	dc.w kriptonite_script_command_0284_reload_count-kriptonite_script_command_0278_operand_word	; operand_word
+kriptonite_script_command_027C:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_0280:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_0284:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_0284_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w kriptonite_script_command_027C-kriptonite_script_command_0284	; branch_displacement
+kriptonite_script_command_028C:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $00059890	; state_node_ptr
+kriptonite_script_command_0292:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kriptonite_script_command_0292_operand_word:
+	dc.w kriptonite_script_command_029E_reload_count-kriptonite_script_command_0292_operand_word	; operand_word
+kriptonite_script_command_0296:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+kriptonite_script_command_029A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kriptonite_script_command_029E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kriptonite_script_command_029E_reload_count:
+	dc.w $00A8	; reload_count
+	dc.w $00A8	; remaining_count
+	dc.w kriptonite_script_command_0296-kriptonite_script_command_029E	; branch_displacement
+kriptonite_script_command_02A6:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$16,$C6	; target_pointer
+world_object_glass_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $02D4	; world_x
+	dc.w $05D4	; world_y
+glass_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$66	; state_node_ptr
+	dc.b $00,$05,$C0,$CA	; frame_sequence_ptr
+glass_script_command_0010:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+glass_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_0014_operand_word:
+	dc.w glass_script_command_0020_reload_count-glass_script_command_0014_operand_word	; operand_word
+glass_script_command_0018:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+glass_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_0020_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w glass_script_command_0018-glass_script_command_0020	; branch_displacement
+glass_script_command_0028:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C166	; state_node_ptr
+	dc.l $0005C0A6	; frame_sequence_ptr
+glass_script_command_0032:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+glass_script_command_0036:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_0036_operand_word:
+	dc.w glass_script_command_0042_reload_count-glass_script_command_0036_operand_word	; operand_word
+glass_script_command_003A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_003E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_0042:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_0042_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w glass_script_command_003A-glass_script_command_0042	; branch_displacement
+glass_script_command_004A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_004A_operand_word:
+	dc.w glass_script_command_0056_reload_count-glass_script_command_004A_operand_word	; operand_word
+glass_script_command_004E:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_0052:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+glass_script_command_0056:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_0056_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w glass_script_command_004E-glass_script_command_0056	; branch_displacement
+glass_script_command_005E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_005E_operand_word:
+	dc.w glass_script_command_006A_reload_count-glass_script_command_005E_operand_word	; operand_word
+glass_script_command_0062:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_0066:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_006A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_006A_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w glass_script_command_0062-glass_script_command_006A	; branch_displacement
+glass_script_command_0072:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+glass_script_command_0076:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$66	; state_node_ptr
+	dc.b $00,$05,$C0,$EE	; frame_sequence_ptr
+glass_script_command_0080:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+glass_script_command_0084:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C166	; state_node_ptr
+	dc.l $0005C0B2	; frame_sequence_ptr
+glass_script_command_008E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_008E_operand_word:
+	dc.w glass_script_command_009A_reload_count-glass_script_command_008E_operand_word	; operand_word
+glass_script_command_0092:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+glass_script_command_0096:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_009A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_009A_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w glass_script_command_0092-glass_script_command_009A	; branch_displacement
+glass_script_command_00A2:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_00A2_operand_word:
+	dc.w glass_script_command_00AE_reload_count-glass_script_command_00A2_operand_word	; operand_word
+glass_script_command_00A6:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+glass_script_command_00AA:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+glass_script_command_00AE:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_00AE_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w glass_script_command_00A6-glass_script_command_00AE	; branch_displacement
+glass_script_command_00B6:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_00B6_operand_word:
+	dc.w glass_script_command_00C2_reload_count-glass_script_command_00B6_operand_word	; operand_word
+glass_script_command_00BA:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+glass_script_command_00BE:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_00C2:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_00C2_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w glass_script_command_00BA-glass_script_command_00C2	; branch_displacement
+glass_script_command_00CA:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$66	; state_node_ptr
+	dc.b $00,$05,$C0,$D6	; frame_sequence_ptr
+glass_script_command_00D4:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+glass_script_command_00D8:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+glass_script_command_00D8_operand_word:
+	dc.w glass_script_command_00E4_reload_count-glass_script_command_00D8_operand_word	; operand_word
+glass_script_command_00DC:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_00E0:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+glass_script_command_00E4:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+glass_script_command_00E4_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w glass_script_command_00DC-glass_script_command_00E4	; branch_displacement
+glass_script_command_00EC:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C166	; state_node_ptr
+	dc.l $0005C0B2	; frame_sequence_ptr
+glass_script_command_00F6:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0064	; operand_word
+glass_script_command_00FA:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$19,$72	; target_pointer
+world_object_kwik_kleen_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0364	; world_x
+	dc.w $0694	; world_y
+kwik_kleen_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$8A	; state_node_ptr
+	dc.b $00,$05,$C0,$A6	; frame_sequence_ptr
+kwik_kleen_script_command_0010:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kwik_kleen_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kwik_kleen_script_command_0014_operand_word:
+	dc.w kwik_kleen_script_command_0020_reload_count-kwik_kleen_script_command_0014_operand_word	; operand_word
+kwik_kleen_script_command_0018:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0008	; operand_word
+kwik_kleen_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kwik_kleen_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kwik_kleen_script_command_0020_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kwik_kleen_script_command_0018-kwik_kleen_script_command_0020	; branch_displacement
+kwik_kleen_script_command_0028:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C18A	; state_node_ptr
+	dc.l $0005C0EE	; frame_sequence_ptr
+kwik_kleen_script_command_0032:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kwik_kleen_script_command_0032_operand_word:
+	dc.w kwik_kleen_script_command_003E_reload_count-kwik_kleen_script_command_0032_operand_word	; operand_word
+kwik_kleen_script_command_0036:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0008	; operand_word
+kwik_kleen_script_command_003A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kwik_kleen_script_command_003E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kwik_kleen_script_command_003E_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kwik_kleen_script_command_0036-kwik_kleen_script_command_003E	; branch_displacement
+kwik_kleen_script_command_0046:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$8A	; state_node_ptr
+	dc.b $00,$05,$C0,$B2	; frame_sequence_ptr
+kwik_kleen_script_command_0050:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kwik_kleen_script_command_0050_operand_word:
+	dc.w kwik_kleen_script_command_005C_reload_count-kwik_kleen_script_command_0050_operand_word	; operand_word
+kwik_kleen_script_command_0054:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF8	; operand_word
+kwik_kleen_script_command_0058:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kwik_kleen_script_command_005C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kwik_kleen_script_command_005C_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kwik_kleen_script_command_0054-kwik_kleen_script_command_005C	; branch_displacement
+kwik_kleen_script_command_0064:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C18A	; state_node_ptr
+	dc.l $0005C0CA	; frame_sequence_ptr
+kwik_kleen_script_command_006E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+kwik_kleen_script_command_006E_operand_word:
+	dc.w kwik_kleen_script_command_007A_reload_count-kwik_kleen_script_command_006E_operand_word	; operand_word
+kwik_kleen_script_command_0072:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFF8	; operand_word
+kwik_kleen_script_command_0076:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+kwik_kleen_script_command_007A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+kwik_kleen_script_command_007A_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w kwik_kleen_script_command_0072-kwik_kleen_script_command_007A	; branch_displacement
+kwik_kleen_script_command_0082:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$1A,$72	; target_pointer
 world_object_technician_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0304	; world_x
@@ -2201,114 +3253,1156 @@ technician_script_command_0042:
 technician_script_command_004A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.b $00,$01,$1A,$FA	; target_pointer
-abs_0_00011B4A:
-	dc.b $00,$17,$02,$A4,$04,$B4,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05
-	dc.b $00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$00
-	dc.b $00,$02,$00,$05,$00,$02,$00,$06,$00,$78,$00,$78,$FF,$F8,$00,$15
-	dc.b $00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$78,$00,$78
-	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02,$00,$06
-	dc.b $00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$00,$00,$01,$00,$05
-	dc.b $00,$02,$00,$06,$00,$40,$00,$40,$FF,$F8,$00,$15,$00,$0C,$00,$01
-	dc.b $00,$01,$00,$05,$00,$02,$00,$06,$00,$40,$00,$40,$FF,$F8,$00,$15
-	dc.b $00,$0C,$00,$00,$00,$02,$00,$05,$00,$01,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06
-	dc.b $00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FF,$00,$05
-	dc.b $00,$02,$00,$06,$00,$40,$00,$40,$FF,$F8,$00,$15,$00,$0C,$00,$00
-	dc.b $FF,$FF,$00,$05,$00,$02,$00,$06,$00,$40,$00,$40,$FF,$F8,$00,$14
-	dc.b $00,$01,$1B,$4A
-abs_0_00011C1E:
-	dc.b $00,$17,$01,$B4,$02,$A4,$00,$1B,$00,$05,$A3,$0E,$00,$05,$00,$01
-	dc.b $00,$15,$00,$0C,$00,$01,$00,$04,$00,$05,$00,$01,$00,$06,$00,$18
-	dc.b $00,$18,$FF,$F8,$00,$1B,$00,$05,$A3,$6A,$00,$15,$00,$0C,$00,$00
-	dc.b $00,$07,$00,$05,$00,$02,$00,$06,$00,$0E,$00,$0E,$FF,$F8,$00,$1B
-	dc.b $00,$05,$A3,$3C,$00,$15,$00,$0C,$00,$01,$FF,$FC,$00,$05,$00,$01
-	dc.b $00,$06,$00,$12,$00,$12,$FF,$F8,$00,$1B,$00,$05,$A3,$6A,$00,$20
-	dc.b $00,$05,$00,$1E,$00,$20,$00,$1B,$00,$05,$A3,$3C,$00,$15,$00,$0C
-	dc.b $00,$01,$FF,$FC,$00,$05,$00,$01,$00,$06,$00,$06,$00,$06,$FF,$F8
-	dc.b $00,$1B,$00,$05,$A3,$9C,$00,$15,$00,$0C,$00,$00,$FF,$F9,$00,$05
-	dc.b $00,$02,$00,$06,$00,$07,$00,$07,$FF,$F8,$00,$1B,$00,$05,$A3,$3C
-	dc.b $00,$15,$00,$0C,$00,$01,$FF,$FC,$00,$05,$00,$01,$00,$06,$00,$0C
-	dc.b $00,$0C,$FF,$F8,$00,$20,$00,$05,$00,$32,$00,$20,$00,$1B,$00,$05
-	dc.b $A3,$9C,$00,$15,$00,$0C,$00,$00,$FF,$FF,$00,$05,$00,$01,$00,$06
-	dc.b $00,$05,$00,$05,$FF,$F8,$00,$20,$00,$15,$00,$0C,$00,$00,$FF,$FF
-	dc.b $00,$05,$00,$01,$00,$06,$00,$05,$00,$05,$FF,$F8,$00,$05,$00,$0A
-	dc.b $00,$20,$00,$1B,$00,$05,$A3,$CE,$00,$05,$00,$14,$00,$1B,$00,$05
-	dc.b $A3,$6A,$00,$15,$00,$0C,$00,$00,$00,$05,$00,$05,$00,$02,$00,$06
-	dc.b $00,$02,$00,$02,$FF,$F8,$00,$1B,$00,$05,$A3,$0E,$00,$15,$00,$0C
-	dc.b $00,$01,$00,$04,$00,$05,$00,$01,$00,$06,$00,$0C,$00,$0C,$FF,$F8
-	dc.b $00,$1B,$00,$05,$A3,$9C,$00,$15,$00,$0C,$00,$00,$FF,$F9,$00,$05
-	dc.b $00,$02,$00,$06,$00,$07,$00,$07,$FF,$F8,$00,$1B,$00,$05,$A3,$0E
-	dc.b $00,$15,$00,$0C,$00,$01,$00,$04,$00,$05,$00,$01,$00,$06,$00,$24
-	dc.b $00,$24,$FF,$F8,$00,$1B,$00,$05,$A3,$6A,$00,$15,$00,$0C,$00,$00
-	dc.b $00,$07,$00,$05,$00,$02,$00,$06,$00,$23,$00,$23,$FF,$F8,$00,$1B
-	dc.b $00,$05,$A3,$0E,$00,$15,$00,$0C,$00,$01,$00,$04,$00,$05,$00,$01
-	dc.b $00,$06,$00,$0C,$00,$0C,$FF,$F8,$00,$1B,$00,$05,$A3,$9C,$00,$15
-	dc.b $00,$0C,$00,$00,$FF,$F9,$00,$05,$00,$02,$00,$06,$00,$15,$00,$15
-	dc.b $FF,$F8,$00,$1B,$00,$05,$A3,$3C,$00,$15,$00,$0C,$00,$01,$FF,$FD
-	dc.b $00,$05,$00,$01,$00,$06,$00,$2E,$00,$2E,$FF,$F8,$00,$1B,$00,$05
-	dc.b $A3,$9C,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06
-	dc.b $00,$03,$00,$03,$FF,$F8,$00,$20,$00,$05,$00,$0F,$00,$20,$00,$1B
-	dc.b $00,$05,$A3,$CE,$00,$05,$00,$0F,$00,$1B,$00,$05,$A3,$CE,$00,$05
-	dc.b $00,$0A,$00,$1B,$00,$05,$A3,$CE,$00,$05,$00,$0A,$00,$1B,$00,$05
-	dc.b $A3,$9C,$00,$20,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01
-	dc.b $00,$06,$00,$01,$00,$01,$FF,$F8,$00,$20,$00,$1B,$00,$05,$A3,$EC
-	dc.b $00,$05,$00,$0A,$00,$1B,$00,$05,$A3,$EC,$00,$05,$00,$14,$00,$1B
-	dc.b $00,$05,$A3,$EC,$00,$05,$00,$14,$00,$1B,$00,$05,$A3,$6A,$00,$15
-	dc.b $00,$0C,$00,$00,$00,$05,$00,$05,$00,$01,$00,$06,$00,$01,$00,$01
-	dc.b $FF,$F8,$00,$1B,$00,$05,$A3,$3C,$00,$15,$00,$0C,$00,$01,$FF,$FD
-	dc.b $00,$05,$00,$01,$00,$06,$00,$12,$00,$12,$FF,$F8,$00,$1B,$00,$05
-	dc.b $A3,$9C,$00,$15,$00,$0C,$00,$00,$FF,$F9,$00,$05,$00,$02,$00,$06
-	dc.b $00,$0D,$00,$0D,$FF,$F8,$00,$14,$00,$01,$1C,$1E
-abs_0_00011EBA:
-	dc.b $00,$17,$03,$30,$02,$D8,$00,$05,$00,$01,$00,$1E,$00,$05,$C1,$0C
-	dc.b $00,$05,$C0,$0E,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1E,$00,$05,$C0,$FA,$00,$05
-	dc.b $C0,$B2,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$01,$00,$06
-	dc.b $00,$48,$00,$48,$FF,$F8,$00,$1E,$00,$05,$C0,$FA,$00,$05,$C0,$D6
-	dc.b $00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02,$00,$06,$00,$18
-	dc.b $00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$0C,$00,$05,$C0,$36,$00,$05
-	dc.b $00,$1E,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02,$00,$06
-	dc.b $00,$18,$00,$18,$FF,$F8,$00,$1E,$00,$05,$C0,$FA,$00,$05,$C0,$9A
-	dc.b $00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$01,$00,$06,$00,$48
-	dc.b $00,$48,$FF,$F8,$00,$1E,$00,$05,$C0,$FA,$00,$05,$C0,$CA,$00,$15
-	dc.b $00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$14,$00,$01,$1E,$BA
-abs_0_00011F82:
-	dc.b $00,$17,$04,$50,$03,$C8,$00,$05,$00,$01,$00,$1E,$00,$05,$C1,$C0
-	dc.b $00,$05,$C0,$22,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$AE,$00,$05
-	dc.b $C0,$A6,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$01,$00,$06
-	dc.b $00,$48,$00,$48,$FF,$F8,$00,$1E,$00,$05,$C1,$AE,$00,$05,$C0,$E2
-	dc.b $00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$18
-	dc.b $00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$C0,$00,$05,$BF,$FA,$00,$05
-	dc.b $00,$1E,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02,$00,$06
-	dc.b $00,$18,$00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$AE,$00,$05,$C0,$BE
-	dc.b $00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$01,$00,$06,$00,$48
-	dc.b $00,$48,$FF,$F8,$00,$1E,$00,$05,$C1,$AE,$00,$05,$C0,$EE,$00,$15
-	dc.b $00,$0C,$00,$01,$00,$02,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$14,$00,$01,$1F,$82
-abs_0_0001204A:
-	dc.b $00,$17,$02,$10,$05,$A8,$00,$05,$00,$01,$00,$1E,$00,$05,$C1,$54
-	dc.b $00,$05,$C0,$36,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FC
-	dc.b $00,$05,$00,$01,$00,$06,$00,$30,$00,$30,$FF,$F8,$00,$15,$00,$0C
-	dc.b $00,$01,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8
-	dc.b $00,$05,$00,$32,$00,$1E,$00,$05,$C1,$54,$00,$05,$C0,$0E,$00,$15
-	dc.b $00,$0C,$00,$01,$00,$02,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$01,$00,$04,$00,$05,$00,$01,$00,$06
-	dc.b $00,$30,$00,$30,$FF,$F8,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05
-	dc.b $00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$14,$00,$01,$20,$4A
-abs_0_000120EA:
-	dc.b $00,$17,$01,$50,$04,$B8,$00,$05,$00,$01,$00,$1E,$00,$05,$C1,$30
-	dc.b $00,$05,$C0,$0E,$00,$15,$00,$0C,$00,$01,$00,$02,$00,$05,$00,$02
-	dc.b $00,$06,$00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$01,$00,$04
-	dc.b $00,$05,$00,$01,$00,$06,$00,$30,$00,$30,$FF,$F8,$00,$15,$00,$0C
-	dc.b $00,$01,$00,$02,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8
-	dc.b $00,$05,$00,$32,$00,$1E,$00,$05,$C1,$30,$00,$05,$C0,$36,$00,$15
-	dc.b $00,$0C,$00,$01,$FF,$FE,$00,$05,$00,$02,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FC,$00,$05,$00,$01,$00,$06
-	dc.b $00,$30,$00,$30,$FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05
-	dc.b $00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$14,$00,$01,$20,$EA
+world_object_gardener_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $02A4	; world_x
+	dc.w $04B4	; world_y
+gardener_script_command_0006:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_0006_operand_word:
+	dc.w gardener_script_command_0012_reload_count-gardener_script_command_0006_operand_word	; operand_word
+gardener_script_command_000A:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+gardener_script_command_000E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_0012:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_0012_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w gardener_script_command_000A-gardener_script_command_0012	; branch_displacement
+gardener_script_command_001A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_001A_operand_word:
+	dc.w gardener_script_command_0026_reload_count-gardener_script_command_001A_operand_word	; operand_word
+gardener_script_command_001E:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_0022:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_0026:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_0026_reload_count:
+	dc.w $0078	; reload_count
+	dc.w $0078	; remaining_count
+	dc.w gardener_script_command_001E-gardener_script_command_0026	; branch_displacement
+gardener_script_command_002E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_002E_operand_word:
+	dc.w gardener_script_command_003A_reload_count-gardener_script_command_002E_operand_word	; operand_word
+gardener_script_command_0032:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+gardener_script_command_0036:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_003A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_003A_reload_count:
+	dc.w $0078	; reload_count
+	dc.w $0078	; remaining_count
+	dc.w gardener_script_command_0032-gardener_script_command_003A	; branch_displacement
+gardener_script_command_0042:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_0042_operand_word:
+	dc.w gardener_script_command_004E_reload_count-gardener_script_command_0042_operand_word	; operand_word
+gardener_script_command_0046:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_004A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_004E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_004E_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w gardener_script_command_0046-gardener_script_command_004E	; branch_displacement
+gardener_script_command_0056:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_0056_operand_word:
+	dc.w gardener_script_command_0062_reload_count-gardener_script_command_0056_operand_word	; operand_word
+gardener_script_command_005A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0001	; operand_word
+gardener_script_command_005E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_0062:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_0062_reload_count:
+	dc.w $0040	; reload_count
+	dc.w $0040	; remaining_count
+	dc.w gardener_script_command_005A-gardener_script_command_0062	; branch_displacement
+gardener_script_command_006A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_006A_operand_word:
+	dc.w gardener_script_command_0076_reload_count-gardener_script_command_006A_operand_word	; operand_word
+gardener_script_command_006E:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0001	; operand_word
+gardener_script_command_0072:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_0076:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_0076_reload_count:
+	dc.w $0040	; reload_count
+	dc.w $0040	; remaining_count
+	dc.w gardener_script_command_006E-gardener_script_command_0076	; branch_displacement
+gardener_script_command_007E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_007E_operand_word:
+	dc.w gardener_script_command_008A_reload_count-gardener_script_command_007E_operand_word	; operand_word
+gardener_script_command_0082:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_0086:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+gardener_script_command_008A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_008A_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w gardener_script_command_0082-gardener_script_command_008A	; branch_displacement
+gardener_script_command_0092:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_0092_operand_word:
+	dc.w gardener_script_command_009E_reload_count-gardener_script_command_0092_operand_word	; operand_word
+gardener_script_command_0096:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+gardener_script_command_009A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+gardener_script_command_009E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_009E_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w gardener_script_command_0096-gardener_script_command_009E	; branch_displacement
+gardener_script_command_00A6:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_00A6_operand_word:
+	dc.w gardener_script_command_00B2_reload_count-gardener_script_command_00A6_operand_word	; operand_word
+gardener_script_command_00AA:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFF	; operand_word
+gardener_script_command_00AE:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_00B2:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_00B2_reload_count:
+	dc.w $0040	; reload_count
+	dc.w $0040	; remaining_count
+	dc.w gardener_script_command_00AA-gardener_script_command_00B2	; branch_displacement
+gardener_script_command_00BA:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+gardener_script_command_00BA_operand_word:
+	dc.w gardener_script_command_00C6_reload_count-gardener_script_command_00BA_operand_word	; operand_word
+gardener_script_command_00BE:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFF	; operand_word
+gardener_script_command_00C2:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+gardener_script_command_00C6:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+gardener_script_command_00C6_reload_count:
+	dc.w $0040	; reload_count
+	dc.w $0040	; remaining_count
+	dc.w gardener_script_command_00BE-gardener_script_command_00C6	; branch_displacement
+gardener_script_command_00CE:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$1B,$4A	; target_pointer
+world_object_hooligan_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $01B4	; world_x
+	dc.w $02A4	; world_y
+hooligan_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$0E	; state_node_ptr
+hooligan_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_0010:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0010_operand_word:
+	dc.w hooligan_script_command_001C_reload_count-hooligan_script_command_0010_operand_word	; operand_word
+hooligan_script_command_0014:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0004	; operand_word
+hooligan_script_command_0018:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_001C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_001C_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w hooligan_script_command_0014-hooligan_script_command_001C	; branch_displacement
+hooligan_script_command_0024:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A36A	; state_node_ptr
+hooligan_script_command_002A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_002A_operand_word:
+	dc.w hooligan_script_command_0036_reload_count-hooligan_script_command_002A_operand_word	; operand_word
+hooligan_script_command_002E:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0007	; operand_word
+hooligan_script_command_0032:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+hooligan_script_command_0036:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0036_reload_count:
+	dc.w $000E	; reload_count
+	dc.w $000E	; remaining_count
+	dc.w hooligan_script_command_002E-hooligan_script_command_0036	; branch_displacement
+hooligan_script_command_003E:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$3C	; state_node_ptr
+hooligan_script_command_0044:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0044_operand_word:
+	dc.w hooligan_script_command_0050_reload_count-hooligan_script_command_0044_operand_word	; operand_word
+hooligan_script_command_0048:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFC	; operand_word
+hooligan_script_command_004C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_0050:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0050_reload_count:
+	dc.w $0012	; reload_count
+	dc.w $0012	; remaining_count
+	dc.w hooligan_script_command_0048-hooligan_script_command_0050	; branch_displacement
+hooligan_script_command_0058:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A36A	; state_node_ptr
+hooligan_script_command_005E:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_0060:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $001E	; operand_word
+hooligan_script_command_0064:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_0066:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$3C	; state_node_ptr
+hooligan_script_command_006C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_006C_operand_word:
+	dc.w hooligan_script_command_0078_reload_count-hooligan_script_command_006C_operand_word	; operand_word
+hooligan_script_command_0070:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFC	; operand_word
+hooligan_script_command_0074:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_0078:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0078_reload_count:
+	dc.w $0006	; reload_count
+	dc.w $0006	; remaining_count
+	dc.w hooligan_script_command_0070-hooligan_script_command_0078	; branch_displacement
+hooligan_script_command_0080:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A39C	; state_node_ptr
+hooligan_script_command_0086:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0086_operand_word:
+	dc.w hooligan_script_command_0092_reload_count-hooligan_script_command_0086_operand_word	; operand_word
+hooligan_script_command_008A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+hooligan_script_command_008E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+hooligan_script_command_0092:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0092_reload_count:
+	dc.w $0007	; reload_count
+	dc.w $0007	; remaining_count
+	dc.w hooligan_script_command_008A-hooligan_script_command_0092	; branch_displacement
+hooligan_script_command_009A:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$3C	; state_node_ptr
+hooligan_script_command_00A0:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_00A0_operand_word:
+	dc.w hooligan_script_command_00AC_reload_count-hooligan_script_command_00A0_operand_word	; operand_word
+hooligan_script_command_00A4:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFC	; operand_word
+hooligan_script_command_00A8:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_00AC:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_00AC_reload_count:
+	dc.w $000C	; reload_count
+	dc.w $000C	; remaining_count
+	dc.w hooligan_script_command_00A4-hooligan_script_command_00AC	; branch_displacement
+hooligan_script_command_00B4:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_00B6:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+hooligan_script_command_00BA:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_00BC:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A39C	; state_node_ptr
+hooligan_script_command_00C2:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_00C2_operand_word:
+	dc.w hooligan_script_command_00CE_reload_count-hooligan_script_command_00C2_operand_word	; operand_word
+hooligan_script_command_00C6:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFF	; operand_word
+hooligan_script_command_00CA:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_00CE:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_00CE_reload_count:
+	dc.w $0005	; reload_count
+	dc.w $0005	; remaining_count
+	dc.w hooligan_script_command_00C6-hooligan_script_command_00CE	; branch_displacement
+hooligan_script_command_00D6:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_00D8:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_00D8_operand_word:
+	dc.w hooligan_script_command_00E4_reload_count-hooligan_script_command_00D8_operand_word	; operand_word
+hooligan_script_command_00DC:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFF	; operand_word
+hooligan_script_command_00E0:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_00E4:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_00E4_reload_count:
+	dc.w $0005	; reload_count
+	dc.w $0005	; remaining_count
+	dc.w hooligan_script_command_00DC-hooligan_script_command_00E4	; branch_displacement
+hooligan_script_command_00EC:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $000A	; operand_word
+hooligan_script_command_00F0:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_00F2:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$CE	; state_node_ptr
+hooligan_script_command_00F8:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0014	; operand_word
+hooligan_script_command_00FC:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A36A	; state_node_ptr
+hooligan_script_command_0102:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0102_operand_word:
+	dc.w hooligan_script_command_010E_reload_count-hooligan_script_command_0102_operand_word	; operand_word
+hooligan_script_command_0106:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0005	; operand_word
+hooligan_script_command_010A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+hooligan_script_command_010E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_010E_reload_count:
+	dc.w $0002	; reload_count
+	dc.w $0002	; remaining_count
+	dc.w hooligan_script_command_0106-hooligan_script_command_010E	; branch_displacement
+hooligan_script_command_0116:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$0E	; state_node_ptr
+hooligan_script_command_011C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_011C_operand_word:
+	dc.w hooligan_script_command_0128_reload_count-hooligan_script_command_011C_operand_word	; operand_word
+hooligan_script_command_0120:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0004	; operand_word
+hooligan_script_command_0124:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_0128:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0128_reload_count:
+	dc.w $000C	; reload_count
+	dc.w $000C	; remaining_count
+	dc.w hooligan_script_command_0120-hooligan_script_command_0128	; branch_displacement
+hooligan_script_command_0130:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A39C	; state_node_ptr
+hooligan_script_command_0136:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0136_operand_word:
+	dc.w hooligan_script_command_0142_reload_count-hooligan_script_command_0136_operand_word	; operand_word
+hooligan_script_command_013A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+hooligan_script_command_013E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+hooligan_script_command_0142:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0142_reload_count:
+	dc.w $0007	; reload_count
+	dc.w $0007	; remaining_count
+	dc.w hooligan_script_command_013A-hooligan_script_command_0142	; branch_displacement
+hooligan_script_command_014A:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$0E	; state_node_ptr
+hooligan_script_command_0150:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0150_operand_word:
+	dc.w hooligan_script_command_015C_reload_count-hooligan_script_command_0150_operand_word	; operand_word
+hooligan_script_command_0154:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0004	; operand_word
+hooligan_script_command_0158:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_015C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_015C_reload_count:
+	dc.w $0024	; reload_count
+	dc.w $0024	; remaining_count
+	dc.w hooligan_script_command_0154-hooligan_script_command_015C	; branch_displacement
+hooligan_script_command_0164:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A36A	; state_node_ptr
+hooligan_script_command_016A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_016A_operand_word:
+	dc.w hooligan_script_command_0176_reload_count-hooligan_script_command_016A_operand_word	; operand_word
+hooligan_script_command_016E:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0007	; operand_word
+hooligan_script_command_0172:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+hooligan_script_command_0176:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0176_reload_count:
+	dc.w $0023	; reload_count
+	dc.w $0023	; remaining_count
+	dc.w hooligan_script_command_016E-hooligan_script_command_0176	; branch_displacement
+hooligan_script_command_017E:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$0E	; state_node_ptr
+hooligan_script_command_0184:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0184_operand_word:
+	dc.w hooligan_script_command_0190_reload_count-hooligan_script_command_0184_operand_word	; operand_word
+hooligan_script_command_0188:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0004	; operand_word
+hooligan_script_command_018C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_0190:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0190_reload_count:
+	dc.w $000C	; reload_count
+	dc.w $000C	; remaining_count
+	dc.w hooligan_script_command_0188-hooligan_script_command_0190	; branch_displacement
+hooligan_script_command_0198:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A39C	; state_node_ptr
+hooligan_script_command_019E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_019E_operand_word:
+	dc.w hooligan_script_command_01AA_reload_count-hooligan_script_command_019E_operand_word	; operand_word
+hooligan_script_command_01A2:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+hooligan_script_command_01A6:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+hooligan_script_command_01AA:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_01AA_reload_count:
+	dc.w $0015	; reload_count
+	dc.w $0015	; remaining_count
+	dc.w hooligan_script_command_01A2-hooligan_script_command_01AA	; branch_displacement
+hooligan_script_command_01B2:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$3C	; state_node_ptr
+hooligan_script_command_01B8:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_01B8_operand_word:
+	dc.w hooligan_script_command_01C4_reload_count-hooligan_script_command_01B8_operand_word	; operand_word
+hooligan_script_command_01BC:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFD	; operand_word
+hooligan_script_command_01C0:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_01C4:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_01C4_reload_count:
+	dc.w $002E	; reload_count
+	dc.w $002E	; remaining_count
+	dc.w hooligan_script_command_01BC-hooligan_script_command_01C4	; branch_displacement
+hooligan_script_command_01CC:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A39C	; state_node_ptr
+hooligan_script_command_01D2:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_01D2_operand_word:
+	dc.w hooligan_script_command_01DE_reload_count-hooligan_script_command_01D2_operand_word	; operand_word
+hooligan_script_command_01D6:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+hooligan_script_command_01DA:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_01DE:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_01DE_reload_count:
+	dc.w $0003	; reload_count
+	dc.w $0003	; remaining_count
+	dc.w hooligan_script_command_01D6-hooligan_script_command_01DE	; branch_displacement
+hooligan_script_command_01E6:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_01E8:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $000F	; operand_word
+hooligan_script_command_01EC:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_01EE:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$CE	; state_node_ptr
+hooligan_script_command_01F4:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $000F	; operand_word
+hooligan_script_command_01F8:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A3CE	; state_node_ptr
+hooligan_script_command_01FE:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $000A	; operand_word
+hooligan_script_command_0202:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$CE	; state_node_ptr
+hooligan_script_command_0208:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $000A	; operand_word
+hooligan_script_command_020C:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A39C	; state_node_ptr
+hooligan_script_command_0212:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_0214:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0214_operand_word:
+	dc.w hooligan_script_command_0220_reload_count-hooligan_script_command_0214_operand_word	; operand_word
+hooligan_script_command_0218:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+hooligan_script_command_021C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_0220:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0220_reload_count:
+	dc.w $0001	; reload_count
+	dc.w $0001	; remaining_count
+	dc.w hooligan_script_command_0218-hooligan_script_command_0220	; branch_displacement
+hooligan_script_command_0228:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+hooligan_script_command_022A:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$EC	; state_node_ptr
+hooligan_script_command_0230:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $000A	; operand_word
+hooligan_script_command_0234:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A3EC	; state_node_ptr
+hooligan_script_command_023A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0014	; operand_word
+hooligan_script_command_023E:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$EC	; state_node_ptr
+hooligan_script_command_0244:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0014	; operand_word
+hooligan_script_command_0248:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A36A	; state_node_ptr
+hooligan_script_command_024E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_024E_operand_word:
+	dc.w hooligan_script_command_025A_reload_count-hooligan_script_command_024E_operand_word	; operand_word
+hooligan_script_command_0252:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0005	; operand_word
+hooligan_script_command_0256:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_025A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_025A_reload_count:
+	dc.w $0001	; reload_count
+	dc.w $0001	; remaining_count
+	dc.w hooligan_script_command_0252-hooligan_script_command_025A	; branch_displacement
+hooligan_script_command_0262:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A3,$3C	; state_node_ptr
+hooligan_script_command_0268:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0268_operand_word:
+	dc.w hooligan_script_command_0274_reload_count-hooligan_script_command_0268_operand_word	; operand_word
+hooligan_script_command_026C:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFD	; operand_word
+hooligan_script_command_0270:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+hooligan_script_command_0274:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_0274_reload_count:
+	dc.w $0012	; reload_count
+	dc.w $0012	; remaining_count
+	dc.w hooligan_script_command_026C-hooligan_script_command_0274	; branch_displacement
+hooligan_script_command_027C:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A39C	; state_node_ptr
+hooligan_script_command_0282:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+hooligan_script_command_0282_operand_word:
+	dc.w hooligan_script_command_028E_reload_count-hooligan_script_command_0282_operand_word	; operand_word
+hooligan_script_command_0286:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+hooligan_script_command_028A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+hooligan_script_command_028E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+hooligan_script_command_028E_reload_count:
+	dc.w $000D	; reload_count
+	dc.w $000D	; remaining_count
+	dc.w hooligan_script_command_0286-hooligan_script_command_028E	; branch_displacement
+hooligan_script_command_0296:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$1C,$1E	; target_pointer
+world_object_pianist_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0330	; world_x
+	dc.w $02D8	; world_y
+pianist_script_command_0006:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+pianist_script_command_000A:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$0C	; state_node_ptr
+	dc.b $00,$05,$C0,$0E	; frame_sequence_ptr
+pianist_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+pianist_script_command_0014_operand_word:
+	dc.w pianist_script_command_0020_reload_count-pianist_script_command_0014_operand_word	; operand_word
+pianist_script_command_0018:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+pianist_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+pianist_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+pianist_script_command_0020_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w pianist_script_command_0018-pianist_script_command_0020	; branch_displacement
+pianist_script_command_0028:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C0FA	; state_node_ptr
+	dc.l $0005C0B2	; frame_sequence_ptr
+pianist_script_command_0032:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+pianist_script_command_0032_operand_word:
+	dc.w pianist_script_command_003E_reload_count-pianist_script_command_0032_operand_word	; operand_word
+pianist_script_command_0036:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+pianist_script_command_003A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+pianist_script_command_003E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+pianist_script_command_003E_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w pianist_script_command_0036-pianist_script_command_003E	; branch_displacement
+pianist_script_command_0046:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C0,$FA	; state_node_ptr
+	dc.b $00,$05,$C0,$D6	; frame_sequence_ptr
+pianist_script_command_0050:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+pianist_script_command_0050_operand_word:
+	dc.w pianist_script_command_005C_reload_count-pianist_script_command_0050_operand_word	; operand_word
+pianist_script_command_0054:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+pianist_script_command_0058:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+pianist_script_command_005C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+pianist_script_command_005C_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w pianist_script_command_0054-pianist_script_command_005C	; branch_displacement
+pianist_script_command_0064:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C10C	; state_node_ptr
+	dc.l $0005C036	; frame_sequence_ptr
+pianist_script_command_006E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $001E	; operand_word
+pianist_script_command_0072:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+pianist_script_command_0072_operand_word:
+	dc.w pianist_script_command_007E_reload_count-pianist_script_command_0072_operand_word	; operand_word
+pianist_script_command_0076:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+pianist_script_command_007A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+pianist_script_command_007E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+pianist_script_command_007E_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w pianist_script_command_0076-pianist_script_command_007E	; branch_displacement
+pianist_script_command_0086:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C0,$FA	; state_node_ptr
+	dc.b $00,$05,$C0,$9A	; frame_sequence_ptr
+pianist_script_command_0090:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+pianist_script_command_0090_operand_word:
+	dc.w pianist_script_command_009C_reload_count-pianist_script_command_0090_operand_word	; operand_word
+pianist_script_command_0094:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+pianist_script_command_0098:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+pianist_script_command_009C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+pianist_script_command_009C_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w pianist_script_command_0094-pianist_script_command_009C	; branch_displacement
+pianist_script_command_00A4:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C0FA	; state_node_ptr
+	dc.l $0005C0CA	; frame_sequence_ptr
+pianist_script_command_00AE:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+pianist_script_command_00AE_operand_word:
+	dc.w pianist_script_command_00BA_reload_count-pianist_script_command_00AE_operand_word	; operand_word
+pianist_script_command_00B2:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+pianist_script_command_00B6:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+pianist_script_command_00BA:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+pianist_script_command_00BA_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w pianist_script_command_00B2-pianist_script_command_00BA	; branch_displacement
+pianist_script_command_00C2:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$1E,$BA	; target_pointer
+world_object_flight_controller_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0450	; world_x
+	dc.w $03C8	; world_y
+flight_controller_script_command_0006:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+flight_controller_script_command_000A:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$C0	; state_node_ptr
+	dc.b $00,$05,$C0,$22	; frame_sequence_ptr
+flight_controller_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+flight_controller_script_command_0014_operand_word:
+	dc.w flight_controller_script_command_0020_reload_count-flight_controller_script_command_0014_operand_word	; operand_word
+flight_controller_script_command_0018:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+flight_controller_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+flight_controller_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+flight_controller_script_command_0020_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w flight_controller_script_command_0018-flight_controller_script_command_0020	; branch_displacement
+flight_controller_script_command_0028:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C1AE	; state_node_ptr
+	dc.l $0005C0A6	; frame_sequence_ptr
+flight_controller_script_command_0032:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+flight_controller_script_command_0032_operand_word:
+	dc.w flight_controller_script_command_003E_reload_count-flight_controller_script_command_0032_operand_word	; operand_word
+flight_controller_script_command_0036:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+flight_controller_script_command_003A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+flight_controller_script_command_003E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+flight_controller_script_command_003E_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w flight_controller_script_command_0036-flight_controller_script_command_003E	; branch_displacement
+flight_controller_script_command_0046:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$AE	; state_node_ptr
+	dc.b $00,$05,$C0,$E2	; frame_sequence_ptr
+flight_controller_script_command_0050:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+flight_controller_script_command_0050_operand_word:
+	dc.w flight_controller_script_command_005C_reload_count-flight_controller_script_command_0050_operand_word	; operand_word
+flight_controller_script_command_0054:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+flight_controller_script_command_0058:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+flight_controller_script_command_005C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+flight_controller_script_command_005C_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w flight_controller_script_command_0054-flight_controller_script_command_005C	; branch_displacement
+flight_controller_script_command_0064:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C1C0	; state_node_ptr
+	dc.l $0005BFFA	; frame_sequence_ptr
+flight_controller_script_command_006E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $001E	; operand_word
+flight_controller_script_command_0072:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+flight_controller_script_command_0072_operand_word:
+	dc.w flight_controller_script_command_007E_reload_count-flight_controller_script_command_0072_operand_word	; operand_word
+flight_controller_script_command_0076:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+flight_controller_script_command_007A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+flight_controller_script_command_007E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+flight_controller_script_command_007E_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w flight_controller_script_command_0076-flight_controller_script_command_007E	; branch_displacement
+flight_controller_script_command_0086:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$AE	; state_node_ptr
+	dc.b $00,$05,$C0,$BE	; frame_sequence_ptr
+flight_controller_script_command_0090:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+flight_controller_script_command_0090_operand_word:
+	dc.w flight_controller_script_command_009C_reload_count-flight_controller_script_command_0090_operand_word	; operand_word
+flight_controller_script_command_0094:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+flight_controller_script_command_0098:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+flight_controller_script_command_009C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+flight_controller_script_command_009C_reload_count:
+	dc.w $0048	; reload_count
+	dc.w $0048	; remaining_count
+	dc.w flight_controller_script_command_0094-flight_controller_script_command_009C	; branch_displacement
+flight_controller_script_command_00A4:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C1AE	; state_node_ptr
+	dc.l $0005C0EE	; frame_sequence_ptr
+flight_controller_script_command_00AE:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+flight_controller_script_command_00AE_operand_word:
+	dc.w flight_controller_script_command_00BA_reload_count-flight_controller_script_command_00AE_operand_word	; operand_word
+flight_controller_script_command_00B2:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+flight_controller_script_command_00B6:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+flight_controller_script_command_00BA:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+flight_controller_script_command_00BA_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w flight_controller_script_command_00B2-flight_controller_script_command_00BA	; branch_displacement
+flight_controller_script_command_00C2:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$1F,$82	; target_pointer
+world_object_wackobrain_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0210	; world_x
+	dc.w $05A8	; world_y
+wackobrain_script_command_0006:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+wackobrain_script_command_000A:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$54	; state_node_ptr
+	dc.b $00,$05,$C0,$36	; frame_sequence_ptr
+wackobrain_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+wackobrain_script_command_0014_operand_word:
+	dc.w wackobrain_script_command_0020_reload_count-wackobrain_script_command_0014_operand_word	; operand_word
+wackobrain_script_command_0018:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+wackobrain_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+wackobrain_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+wackobrain_script_command_0020_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w wackobrain_script_command_0018-wackobrain_script_command_0020	; branch_displacement
+wackobrain_script_command_0028:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+wackobrain_script_command_0028_operand_word:
+	dc.w wackobrain_script_command_0034_reload_count-wackobrain_script_command_0028_operand_word	; operand_word
+wackobrain_script_command_002C:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFC	; operand_word
+wackobrain_script_command_0030:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+wackobrain_script_command_0034:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+wackobrain_script_command_0034_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w wackobrain_script_command_002C-wackobrain_script_command_0034	; branch_displacement
+wackobrain_script_command_003C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+wackobrain_script_command_003C_operand_word:
+	dc.w wackobrain_script_command_0048_reload_count-wackobrain_script_command_003C_operand_word	; operand_word
+wackobrain_script_command_0040:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+wackobrain_script_command_0044:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+wackobrain_script_command_0048:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+wackobrain_script_command_0048_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w wackobrain_script_command_0040-wackobrain_script_command_0048	; branch_displacement
+wackobrain_script_command_0050:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+wackobrain_script_command_0054:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C154	; state_node_ptr
+	dc.l $0005C00E	; frame_sequence_ptr
+wackobrain_script_command_005E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+wackobrain_script_command_005E_operand_word:
+	dc.w wackobrain_script_command_006A_reload_count-wackobrain_script_command_005E_operand_word	; operand_word
+wackobrain_script_command_0062:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+wackobrain_script_command_0066:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+wackobrain_script_command_006A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+wackobrain_script_command_006A_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w wackobrain_script_command_0062-wackobrain_script_command_006A	; branch_displacement
+wackobrain_script_command_0072:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+wackobrain_script_command_0072_operand_word:
+	dc.w wackobrain_script_command_007E_reload_count-wackobrain_script_command_0072_operand_word	; operand_word
+wackobrain_script_command_0076:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0004	; operand_word
+wackobrain_script_command_007A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+wackobrain_script_command_007E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+wackobrain_script_command_007E_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w wackobrain_script_command_0076-wackobrain_script_command_007E	; branch_displacement
+wackobrain_script_command_0086:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+wackobrain_script_command_0086_operand_word:
+	dc.w wackobrain_script_command_0092_reload_count-wackobrain_script_command_0086_operand_word	; operand_word
+wackobrain_script_command_008A:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+wackobrain_script_command_008E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+wackobrain_script_command_0092:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+wackobrain_script_command_0092_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w wackobrain_script_command_008A-wackobrain_script_command_0092	; branch_displacement
+wackobrain_script_command_009A:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$20,$4A	; target_pointer
+world_object_defence_controller_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0150	; world_x
+	dc.w $04B8	; world_y
+defence_controller_script_command_0006:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+defence_controller_script_command_000A:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C1,$30	; state_node_ptr
+	dc.b $00,$05,$C0,$0E	; frame_sequence_ptr
+defence_controller_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+defence_controller_script_command_0014_operand_word:
+	dc.w defence_controller_script_command_0020_reload_count-defence_controller_script_command_0014_operand_word	; operand_word
+defence_controller_script_command_0018:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+defence_controller_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+defence_controller_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+defence_controller_script_command_0020_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w defence_controller_script_command_0018-defence_controller_script_command_0020	; branch_displacement
+defence_controller_script_command_0028:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+defence_controller_script_command_0028_operand_word:
+	dc.w defence_controller_script_command_0034_reload_count-defence_controller_script_command_0028_operand_word	; operand_word
+defence_controller_script_command_002C:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0004	; operand_word
+defence_controller_script_command_0030:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+defence_controller_script_command_0034:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+defence_controller_script_command_0034_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w defence_controller_script_command_002C-defence_controller_script_command_0034	; branch_displacement
+defence_controller_script_command_003C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+defence_controller_script_command_003C_operand_word:
+	dc.w defence_controller_script_command_0048_reload_count-defence_controller_script_command_003C_operand_word	; operand_word
+defence_controller_script_command_0040:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+defence_controller_script_command_0044:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+defence_controller_script_command_0048:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+defence_controller_script_command_0048_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w defence_controller_script_command_0040-defence_controller_script_command_0048	; branch_displacement
+defence_controller_script_command_0050:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+defence_controller_script_command_0054:
+	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005C130	; state_node_ptr
+	dc.l $0005C036	; frame_sequence_ptr
+defence_controller_script_command_005E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+defence_controller_script_command_005E_operand_word:
+	dc.w defence_controller_script_command_006A_reload_count-defence_controller_script_command_005E_operand_word	; operand_word
+defence_controller_script_command_0062:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+defence_controller_script_command_0066:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+defence_controller_script_command_006A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+defence_controller_script_command_006A_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w defence_controller_script_command_0062-defence_controller_script_command_006A	; branch_displacement
+defence_controller_script_command_0072:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+defence_controller_script_command_0072_operand_word:
+	dc.w defence_controller_script_command_007E_reload_count-defence_controller_script_command_0072_operand_word	; operand_word
+defence_controller_script_command_0076:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFC	; operand_word
+defence_controller_script_command_007A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+defence_controller_script_command_007E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+defence_controller_script_command_007E_reload_count:
+	dc.w $0030	; reload_count
+	dc.w $0030	; remaining_count
+	dc.w defence_controller_script_command_0076-defence_controller_script_command_007E	; branch_displacement
+defence_controller_script_command_0086:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+defence_controller_script_command_0086_operand_word:
+	dc.w defence_controller_script_command_0092_reload_count-defence_controller_script_command_0086_operand_word	; operand_word
+defence_controller_script_command_008A:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+defence_controller_script_command_008E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+defence_controller_script_command_0092:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+defence_controller_script_command_0092_reload_count:
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w defence_controller_script_command_008A-defence_controller_script_command_0092	; branch_displacement
+defence_controller_script_command_009A:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$20,$EA	; target_pointer
 world_object_megabio_feed_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0348	; world_x
@@ -2496,20 +4590,163 @@ doctor_script_command_0048:
 doctor_script_command_0050:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l $00012256	; target_pointer
-abs_0_000122AC:
-	dc.b $00,$17,$04,$25,$04,$D4,$00,$1B,$00,$05,$A6,$76,$00,$05,$00,$01
-	dc.b $00,$15,$00,$0C,$00,$01,$00,$06,$00,$05,$00,$01,$00,$06,$00,$04
-	dc.b $00,$04,$FF,$F8,$00,$15,$00,$0C,$00,$00,$00,$02,$00,$05,$00,$01
-	dc.b $00,$06,$00,$08,$00,$08,$FF,$F8,$00,$15,$00,$0C,$00,$00,$FF,$FE
-	dc.b $00,$05,$00,$01,$00,$06,$00,$04,$00,$04,$FF,$F8,$00,$15,$00,$0C
-	dc.b $00,$01,$FF,$FD,$00,$05,$00,$01,$00,$06,$00,$04,$00,$04,$FF,$F8
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$01,$00,$06,$00,$04
-	dc.b $00,$04,$FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FD,$00,$05,$00,$01
-	dc.b $00,$06,$00,$02,$00,$02,$FF,$F8,$00,$15,$00,$0C,$00,$00,$00,$03
-	dc.b $00,$05,$00,$01,$00,$06,$00,$06,$00,$06,$FF,$F8,$00,$15,$00,$0C
-	dc.b $00,$01,$FF,$FD,$00,$05,$00,$01,$00,$06,$00,$02,$00,$02,$FF,$F8
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$FD,$00,$05,$00,$01,$00,$06,$00,$06
-	dc.b $00,$06,$FF,$F8,$00,$14,$00,$01,$22,$AC
+world_object_death_fly_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0425	; world_x
+	dc.w $04D4	; world_y
+death_fly_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A676	; state_node_ptr
+death_fly_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_0010:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_0010_operand_word:
+	dc.w death_fly_script_command_001C_reload_count-death_fly_script_command_0010_operand_word	; operand_word
+death_fly_script_command_0014:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0006	; operand_word
+death_fly_script_command_0018:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_001C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_001C_reload_count:
+	dc.w $0004	; reload_count
+	dc.w $0004	; remaining_count
+	dc.w death_fly_script_command_0014-death_fly_script_command_001C	; branch_displacement
+death_fly_script_command_0024:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_0024_operand_word:
+	dc.w death_fly_script_command_0030_reload_count-death_fly_script_command_0024_operand_word	; operand_word
+death_fly_script_command_0028:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+death_fly_script_command_002C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_0030:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_0030_reload_count:
+	dc.w $0008	; reload_count
+	dc.w $0008	; remaining_count
+	dc.w death_fly_script_command_0028-death_fly_script_command_0030	; branch_displacement
+death_fly_script_command_0038:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_0038_operand_word:
+	dc.w death_fly_script_command_0044_reload_count-death_fly_script_command_0038_operand_word	; operand_word
+death_fly_script_command_003C:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+death_fly_script_command_0040:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_0044:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_0044_reload_count:
+	dc.w $0004	; reload_count
+	dc.w $0004	; remaining_count
+	dc.w death_fly_script_command_003C-death_fly_script_command_0044	; branch_displacement
+death_fly_script_command_004C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_004C_operand_word:
+	dc.w death_fly_script_command_0058_reload_count-death_fly_script_command_004C_operand_word	; operand_word
+death_fly_script_command_0050:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFD	; operand_word
+death_fly_script_command_0054:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_0058:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_0058_reload_count:
+	dc.w $0004	; reload_count
+	dc.w $0004	; remaining_count
+	dc.w death_fly_script_command_0050-death_fly_script_command_0058	; branch_displacement
+death_fly_script_command_0060:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_0060_operand_word:
+	dc.w death_fly_script_command_006C_reload_count-death_fly_script_command_0060_operand_word	; operand_word
+death_fly_script_command_0064:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+death_fly_script_command_0068:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_006C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_006C_reload_count:
+	dc.w $0004	; reload_count
+	dc.w $0004	; remaining_count
+	dc.w death_fly_script_command_0064-death_fly_script_command_006C	; branch_displacement
+death_fly_script_command_0074:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_0074_operand_word:
+	dc.w death_fly_script_command_0080_reload_count-death_fly_script_command_0074_operand_word	; operand_word
+death_fly_script_command_0078:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFD	; operand_word
+death_fly_script_command_007C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_0080:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_0080_reload_count:
+	dc.w $0002	; reload_count
+	dc.w $0002	; remaining_count
+	dc.w death_fly_script_command_0078-death_fly_script_command_0080	; branch_displacement
+death_fly_script_command_0088:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_0088_operand_word:
+	dc.w death_fly_script_command_0094_reload_count-death_fly_script_command_0088_operand_word	; operand_word
+death_fly_script_command_008C:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0003	; operand_word
+death_fly_script_command_0090:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_0094:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_0094_reload_count:
+	dc.w $0006	; reload_count
+	dc.w $0006	; remaining_count
+	dc.w death_fly_script_command_008C-death_fly_script_command_0094	; branch_displacement
+death_fly_script_command_009C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_009C_operand_word:
+	dc.w death_fly_script_command_00A8_reload_count-death_fly_script_command_009C_operand_word	; operand_word
+death_fly_script_command_00A0:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFD	; operand_word
+death_fly_script_command_00A4:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_00A8:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_00A8_reload_count:
+	dc.w $0002	; reload_count
+	dc.w $0002	; remaining_count
+	dc.w death_fly_script_command_00A0-death_fly_script_command_00A8	; branch_displacement
+death_fly_script_command_00B0:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+death_fly_script_command_00B0_operand_word:
+	dc.w death_fly_script_command_00BC_reload_count-death_fly_script_command_00B0_operand_word	; operand_word
+death_fly_script_command_00B4:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFD	; operand_word
+death_fly_script_command_00B8:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+death_fly_script_command_00BC:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+death_fly_script_command_00BC_reload_count:
+	dc.w $0006	; reload_count
+	dc.w $0006	; remaining_count
+	dc.w death_fly_script_command_00B4-death_fly_script_command_00BC	; branch_displacement
+death_fly_script_command_00C4:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$22,$AC	; target_pointer
 world_object_priest_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $00B6	; world_x
@@ -2523,8 +4760,16 @@ priest_script_command_000C:
 priest_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l $00012382	; target_pointer
-abs_0_0001238C:
-	dc.b $00,$17,$01,$75,$01,$A1,$00,$05,$27,$10,$00,$14,$00,$01,$23,$92
+world_object_bank_manager_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0175	; world_x
+	dc.w $01A1	; world_y
+bank_manager_script_command_0006:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $2710	; operand_word
+bank_manager_script_command_000A:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.l $00012392	; target_pointer
 world_object_entry_officer_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0197	; world_x
@@ -16615,8 +18860,8 @@ world_object_squash_player:
 	dc.l $0001B390	; trade_offer_table_ptr
 	dc.l $0001B2F8	; initial_inventory_slots_ptr
 	dc.l $0001B398	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011612	; behavior_script_ptr
-	dc.l abs_0_00011612	; initial_behavior_script_ptr
+	dc.l world_object_squash_player_behavior_script	; behavior_script_ptr
+	dc.l world_object_squash_player_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_000593B4	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -16685,8 +18930,8 @@ world_object_kriptonite:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B2,$C8	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_000116C6	; behavior_script_ptr
-	dc.l abs_0_000116C6	; initial_behavior_script_ptr
+	dc.l world_object_kriptonite_behavior_script	; behavior_script_ptr
+	dc.l world_object_kriptonite_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_000597B2	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -16800,8 +19045,8 @@ world_object_thief:
 	dc.l $0001B3A0	; trade_offer_table_ptr
 	dc.l $0001B278	; initial_inventory_slots_ptr
 	dc.l $0001B3A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_000114B8	; behavior_script_ptr
-	dc.l abs_0_000114B8	; initial_behavior_script_ptr
+	dc.l world_object_thief_behavior_script	; behavior_script_ptr
+	dc.l world_object_thief_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_00059AA8	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17022,8 +19267,8 @@ world_object_hooligan:
 	dc.l $0001B3A0	; trade_offer_table_ptr
 	dc.l $0001B158	; initial_inventory_slots_ptr
 	dc.l $0001B3A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011C1E	; behavior_script_ptr
-	dc.l abs_0_00011C1E	; initial_behavior_script_ptr
+	dc.l world_object_hooligan_behavior_script	; behavior_script_ptr
+	dc.l world_object_hooligan_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005A2BC	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17185,8 +19430,8 @@ world_object_death_fly:
 	dc.l $0001B3A0	; trade_offer_table_ptr
 	dc.l $0001B208	; initial_inventory_slots_ptr
 	dc.l $0001B3A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_000122AC	; behavior_script_ptr
-	dc.l abs_0_000122AC	; initial_behavior_script_ptr
+	dc.l world_object_death_fly_behavior_script	; behavior_script_ptr
+	dc.l world_object_death_fly_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005A636	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17622,8 +19867,8 @@ world_object_menial_droid:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B3,$08	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_0001155E	; behavior_script_ptr
-	dc.l abs_0_0001155E	; initial_behavior_script_ptr
+	dc.l world_object_menial_droid_behavior_script	; behavior_script_ptr
+	dc.l world_object_menial_droid_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005ADC0	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17693,8 +19938,8 @@ world_object_gardener:
 	dc.l $0001B3A0	; trade_offer_table_ptr
 	dc.l $0001B218	; initial_inventory_slots_ptr
 	dc.l $0001B3A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011B4A	; behavior_script_ptr
-	dc.l abs_0_00011B4A	; initial_behavior_script_ptr
+	dc.l world_object_gardener_behavior_script	; behavior_script_ptr
+	dc.l world_object_gardener_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005AF90	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18156,8 +20401,8 @@ world_object_bank_manager:
 	dc.l $0001B3A0	; trade_offer_table_ptr
 	dc.l $0001B288	; initial_inventory_slots_ptr
 	dc.l $0001B3A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_0001238C	; behavior_script_ptr
-	dc.l abs_0_0001238C	; initial_behavior_script_ptr
+	dc.l world_object_bank_manager_behavior_script	; behavior_script_ptr
+	dc.l world_object_bank_manager_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005B992	; position_descriptor_ptr
 	dc.w $0175	; world_x
 	dc.w $01A1	; world_y
@@ -18247,8 +20492,8 @@ world_object_pianist:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$08	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011EBA	; behavior_script_ptr
-	dc.l abs_0_00011EBA	; initial_behavior_script_ptr
+	dc.l world_object_pianist_behavior_script	; behavior_script_ptr
+	dc.l world_object_pianist_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005BE7A	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18281,8 +20526,8 @@ world_object_defence_controller:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$88	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_000120EA	; behavior_script_ptr
-	dc.l abs_0_000120EA	; initial_behavior_script_ptr
+	dc.l world_object_defence_controller_behavior_script	; behavior_script_ptr
+	dc.l world_object_defence_controller_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005BEBA	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18315,8 +20560,8 @@ world_object_wackobrain:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$98	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_0001204A	; behavior_script_ptr
-	dc.l abs_0_0001204A	; initial_behavior_script_ptr
+	dc.l world_object_wackobrain_behavior_script	; behavior_script_ptr
+	dc.l world_object_wackobrain_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005BEFA	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18349,8 +20594,8 @@ world_object_glass:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$A8	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011972	; behavior_script_ptr
-	dc.l abs_0_00011972	; initial_behavior_script_ptr
+	dc.l world_object_glass_behavior_script	; behavior_script_ptr
+	dc.l world_object_glass_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005BF3A	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18383,8 +20628,8 @@ world_object_kwik_kleen:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B2,$48	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011A72	; behavior_script_ptr
-	dc.l abs_0_00011A72	; initial_behavior_script_ptr
+	dc.l world_object_kwik_kleen_behavior_script	; behavior_script_ptr
+	dc.l world_object_kwik_kleen_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005BF7A	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18417,8 +20662,8 @@ world_object_flight_controller:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$18	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011F82	; behavior_script_ptr
-	dc.l abs_0_00011F82	; initial_behavior_script_ptr
+	dc.l world_object_flight_controller_behavior_script	; behavior_script_ptr
+	dc.l world_object_flight_controller_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005BFBA	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y

@@ -180,6 +180,7 @@ def test_roundtrip_report_verifies_without_persisting_reproduction_report(monkey
                 "profile": True,
                 "persist_report": False,
                 "pre_rendered_source_text": "rts\n",
+                "pre_rendered_source_package": None,
             },
         }
     ]
@@ -409,6 +410,7 @@ def test_roundtrip_report_update_mode_writes_then_verifies_pre_rendered_source(m
                 "persist_report": False,
                 "pre_rendered_source_text": "rts\n",
                 "pre_rendered_source_profile": {"generation": "facts_v2_asm_source"},
+                "pre_rendered_source_package": None,
             },
         }
     ]

@@ -2980,7 +2980,7 @@ static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const
 static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t size, const char *expr,
     const char *comment) {
   const char *directive = size == 4U ? "dc.l" : size == 2U ? "dc.w" : "dc.b";
-  char line[256];
+  char line[M68K_RENDER_PLANNED_EXPRESSION_TEXT_CAPACITY + 128U + 16U];
   if (preview == NULL || expr == NULL || expr[0] == '\0') return;
   if (comment != NULL && comment[0] != '\0')
     snprintf(line, sizeof(line), "\t%s %s\t; %s\n", directive, expr, comment);

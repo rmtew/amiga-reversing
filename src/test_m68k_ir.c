@@ -12775,7 +12775,7 @@ static int test_manual_data_reference_identity_and_signed_encoding(void) {
 
 static int test_manual_base_displacement_renders_canonical_difference(void) {
   unsigned variant;
-  for (variant = 0U; variant < 4U; ++variant) {
+  for (variant = 0U; variant < 7U; ++variant) {
     M68kObject object;
     M68kSection section;
     M68kObjectAddResult added;
@@ -12784,9 +12784,12 @@ static int test_manual_base_displacement_renders_canonical_difference(void) {
     M68kFactsV2Profile profile;
     M68kAnalysisManualDataReference *ref;
     char *source = NULL;
+    char base_name[64] = "base_anchor";
+    char target_name[64] = "target_anchor";
+    char expected_word[320];
     uint8_t bytes[16] = {0x60U, 0x02U, 0U, 4U, 0x4EU, 0x75U};
     uint32_t base = variant == 1U ? 12U : variant == 3U ? 4U : 8U;
-    uint32_t target = variant == 0U || variant == 3U ? 12U : 8U;
+    uint32_t target = variant == 0U || variant >= 3U ? 12U : 8U;
     uint16_t raw = (uint16_t)(target - base);
     bytes[2] = (uint8_t)(raw >> 8U);
     bytes[3] = (uint8_t)raw;
@@ -12806,14 +12809,26 @@ static int test_manual_base_displacement_renders_canonical_difference(void) {
     policy.structured_data_items[0].offset = 2U;
     policy.structured_data_items[0].size = 2U;
     policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+    if (variant == 4U || variant == 5U) {
+      const char *actor = variant == 4U ? "flight_controller" : "defence_controller";
+      snprintf(base_name, sizeof(base_name), "%s_script_command_0014_operand_word", actor);
+      snprintf(target_name, sizeof(target_name), "%s_script_command_0020_reload_count", actor);
+    } else if (variant == 6U) {
+      memset(base_name, 'b', sizeof(base_name) - 1U);
+      base_name[sizeof(base_name) - 1U] = '\0';
+      memset(target_name, 't', sizeof(target_name) - 1U);
+      target_name[sizeof(target_name) - 1U] = '\0';
+      memset(policy.structured_data_items[0].comment, 'x', 127U);
+      policy.structured_data_items[0].comment[127U] = '\0';
+    }
     policy.named_label_count = variant == 2U ? 1U : 2U;
     policy.named_labels[0].has_section_index = 1U;
     policy.named_labels[0].offset = base;
-    snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "base_anchor");
+    snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "%s", base_name);
     if (variant != 2U) {
       policy.named_labels[1].has_section_index = 1U;
       policy.named_labels[1].offset = target;
-      snprintf(policy.named_labels[1].name, sizeof(policy.named_labels[1].name), "target_anchor");
+      snprintf(policy.named_labels[1].name, sizeof(policy.named_labels[1].name), "%s", target_name);
     }
     if (variant == 3U) {
       /* The runtime-named code anchor and source-named data anchor share
@@ -12843,8 +12858,14 @@ static int test_manual_base_displacement_renders_canonical_difference(void) {
     M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
       &source, &profile, &analysis, 1U, m68k_diag_sink(NULL)));
     M68K_C_ASSERT(source != NULL);
-    M68K_C_ASSERT(strstr(source, variant == 2U ? "\tdc.w base_anchor-base_anchor" :
-      "\tdc.w target_anchor-base_anchor") != NULL);
+    if (variant == 6U)
+      snprintf(expected_word, sizeof(expected_word), "\tdc.w %s-%s\t; %s\n", target_name, base_name,
+        policy.structured_data_items[0].comment);
+    else
+      snprintf(expected_word, sizeof(expected_word), "\tdc.w %s-%s", variant == 2U ? base_name : target_name,
+        base_name);
+    M68K_C_ASSERT(strstr(source, expected_word) != NULL);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
     M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].data_reference_count);
     if (variant == 3U) M68K_C_ASSERT(strstr(source, "ORG $100") != NULL);
     M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].runtime_address_ref_count);
