@@ -2012,6 +2012,10 @@ size_t platform_file_entry_comment_count_capacity(void) {
   return M68K_ANALYSIS_ENTRY_COMMENT_LIMIT;
 }
 
+size_t platform_file_target_equate_count_capacity(void) {
+  return M68K_ANALYSIS_TARGET_EQUATE_LIMIT;
+}
+
 int platform_file_validate_entry_comment_text(const char *json_string, const char *text) {
   char parsed[sizeof(((M68kAnalysisEntryComment *)0)->comment)];
   if (json_string == NULL || text == NULL ||
@@ -3328,7 +3332,8 @@ static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char
       return 1;
     }
   }
-  if (policy->target_equate_count >= M68K_ANALYSIS_TARGET_EQUATE_LIMIT) return 0;
+  /* A distinct failure lets the metadata loader report storage exhaustion. */
+  if (policy->target_equate_count >= M68K_ANALYSIS_TARGET_EQUATE_LIMIT) return -1;
   slot = &policy->target_equates[policy->target_equate_count++];
   memset(slot, 0, sizeof(*slot));
   if (!copy_policy_text(slot->name, sizeof(slot->name), name)) {
@@ -8739,8 +8744,16 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_end;
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
-    if (!append_metadata_target_equate_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata target equate");
+    int equate_result = append_metadata_target_equate_local(object_start, object_end, policy);
+    if (equate_result <= 0) {
+      if (equate_result < 0) {
+        char message[96];
+        snprintf(message, sizeof(message), "target equate capacity exceeded (%u)",
+          (unsigned)M68K_ANALYSIS_TARGET_EQUATE_LIMIT);
+        platform_file_add_error(diagnostics.list, message);
+      } else {
+        platform_file_add_error(diagnostics.list, "failed parsing target metadata target equate");
+      }
       return -1;
     }
     cursor = object_end;

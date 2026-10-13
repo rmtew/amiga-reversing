@@ -810,6 +810,22 @@ def extract_macos_hfs_code_resource_bytes_with_c_backend(
     )
 
 
+def validate_target_equate_count_with_c_backend(
+    count: int, *, project_root: Path = PROJECT_ROOT,
+) -> None:
+    """Validate the canonical effective EQU count against native storage."""
+    dll = _platform_file_dll(project_root)
+    capacity = dll.platform_file_target_equate_count_capacity
+    capacity.argtypes = []
+    capacity.restype = c_size_t
+    limit = capacity()
+    if count > limit:
+        raise ValueError(
+            f"native metadata supports at most {limit} target equates; "
+            f"candidate contains {count} including seeded, manual, and generated equates"
+        )
+
+
 def validate_entry_comments_with_c_backend(
     texts: tuple[str, ...], *, active_count: int | None = None, project_root: Path = PROJECT_ROOT,
 ) -> None:

@@ -108,7 +108,7 @@ presentation, not the semantic recovery status below.
 | Entity animation / updates | Byte phase/count/mode fields, packed clock, saved XY/geometry, rectangle union and current drawing; shared image/mask/stride header and current-to-previous geometry type flow | Eligibility, variant geometry and complete caller/lifetime coverage | Conditional extended nodes, sequence bounds and attachment cycles |
 | Player movement / collision / camera | Axis scaling, tile probes, request versus drift/commit, direction/idle modes, bitset and camera handoff; movement script, directional prefixes, copied-pointer links and corrected idle field; two typed camera countdown/margin profiles, sequential field reads and movement scroll triggers | Initialized-map restriction prefix, unchecked profile index and coordinates, and pointer/lifetime limits; ambiguous or inactive runtime mappings refused | Raw escape helper, inherited exit-delay state and positive-X/state-tail overlap |
 | Inventory / trading / NPC | Four-entry records, 81 table identities, selected offer/reset/panel/name/pocket paths and proven item/name constants | Cursor domains, unmatched-search writes, duplicated display identities and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
-| Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Escape helper and delay initialization, event bits 0/2, complete writer/lifetime coverage; new symbolic state/tile/event constants await native equate-capacity decision |
+| Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Escape helper and delay initialization, event bits 0/2, complete writer/lifetime and domain coverage |
 | Text / fonts / overlays | Reviewed compact and large fonts, masks and rendering contracts | Overlay callback ownership and 128-byte clear versus 64-byte layout | Queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; typed playback/DMA service inputs and paired feedback requests; 29 configurations and six canonical initializer-relative envelope references; eleven sample extents and mutable writers | Unchecked selector bounds; reset retains ticks and NPC pending bits, so inactive service cannot drain a pending nonzero tick count; phase and storage lifetime limits | Remaining caller/state combinations and write ownership |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; first mask-input bank and border cells now classified | Known consumers establish only selected physical prefixes | No proven tail consumer: apparent $5AFFA call resolves to source $4AFFA; remaining purpose/bounds unknown |
@@ -950,8 +950,14 @@ are absent, and scoped `representation.symbol` accepts a named constant rather
 than an arbitrary expression. These gaps do not block this item batch, which
 uses the existing generic scoped path. A reusable field-domain path and validated
 scoped expressions are candidates when the next subsystem needs them; none
-should infer a domain merely from numerical equality. The native 128-equate
-capacity will also need generic owned growth before extensive new domains.
+should infer a domain merely from numerical equality. Native equate storage now
+supports 512 distinct names. The catalog/redo path
+checks the canonical candidate count, including generated reference equates,
+against the native accessor before append; native parsing explicitly rejects
+overflow. Updates of existing names remain valid at capacity. Focused fixtures
+cover 512 names through C and vasm, a 513th-name refusal, duplicate updates,
+atomic catalog rejection, generated equates and redo. The 14 reviewed mission
+state, tile and event-bit constants use the existing scoped symbol path.
 Proven record-size advances such as LEA's displacement need an appropriate
 scoped displacement representation too; inventing an out-of-range struct field
 solely to print a size name would encode the wrong fact.

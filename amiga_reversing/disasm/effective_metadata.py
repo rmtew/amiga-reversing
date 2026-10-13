@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from functools import lru_cache
@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm.binary_source import (
+    BinarySource,
     DiskEntryBinarySource,
     RawAddressModel,
     RawBinarySource,
@@ -61,9 +62,13 @@ from amiga_reversing.disasm.target_metadata import (
 )
 
 
-def effective_target_metadata(target_dir: Path, *, include_decision_journal: bool = True) -> TargetMetadata | None:
+def effective_target_metadata(
+    target_dir: Path, *, include_decision_journal: bool = True,
+    pending_actions: Sequence[dict[str, object]] = (),
+    binary_source: BinarySource | None = None,
+) -> TargetMetadata | None:
     metadata = load_target_metadata(target_dir)
-    metadata = _apply_manual_seed_projection(target_dir, metadata)
+    metadata = _apply_manual_seed_projection(target_dir, metadata, pending_actions=pending_actions, binary_source=binary_source)
     if include_decision_journal:
         metadata = _apply_decision_journal_projection(target_dir, metadata)
     return metadata
@@ -1777,11 +1782,16 @@ def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] 
     return source_start, source_end, base_addr
 
 
-def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
+def _apply_manual_seed_projection(
+    target_dir: Path, metadata: TargetMetadata | None, *,
+    pending_actions: Sequence[dict[str, object]] = (),
+    binary_source: BinarySource | None = None,
+) -> TargetMetadata | None:
     projection = load_manual_projection(
         target_dir,
-        binary_source=resolve_target_binary_source(target_dir),
+        binary_source=binary_source or resolve_target_binary_source(target_dir),
         stronger_metadata=metadata,
+        pending_actions=pending_actions,
     )
     conflicted_seed_ids: set[str] = set()
     conflicted_label_ids: set[str] = set()

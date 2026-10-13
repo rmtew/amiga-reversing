@@ -343,6 +343,7 @@ def append_manual_actions(
             projection = replay()
             additions.append(action)
         if additions:
+            _validate_candidate_equate_capacity(target_dir, additions, binary_source=binary_source)
             _validate_changed_native_comments(initial_projection, projection)
             suffix = additions if records else [header, *additions]
             atomic_append_history(path, "".join(json.dumps(record, sort_keys=True) + "\n" for record in suffix).encode("utf-8"))
@@ -2276,26 +2277,49 @@ def _project_actions(
     )
 
 
+def _validate_candidate_equate_capacity(
+    target_dir: Path, pending_actions: Sequence[dict[str, object]], *, binary_source: BinarySource,
+) -> None:
+    # Use the renderer's canonical merge, including generated reference proxies,
+    # while the append lock still protects the candidate from concurrent writes.
+    from amiga_reversing.disasm.c_backend import (
+        validate_target_equate_count_with_c_backend,
+    )
+    from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+
+    metadata = effective_target_metadata(target_dir, pending_actions=pending_actions, binary_source=binary_source)
+    if metadata is not None and metadata.target_equates:
+        validate_target_equate_count_with_c_backend(len(metadata.target_equates))
+
+
 def load_manual_projection(
     target_dir: Path,
     *,
     binary_source: BinarySource | None = None,
     stronger_metadata: TargetMetadata | None = None,
     assembler_profile: AssemblerProfile = VASM_PROFILE,
+    pending_actions: Sequence[dict[str, object]] = (),
 ) -> ManualActionLogProjection:
     path = manual_action_log_path(target_dir)
-    if not path.exists():
+    if not path.exists() and not pending_actions:
         return _empty_projection(path)
 
     records: list[dict[str, object]] = []
     try:
-        with open(path, encoding="utf-8") as handle:
-            for line_number, line in enumerate(handle, start=1):
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                record = _object(json.loads(stripped), what=f"line {line_number}")
-                records.append(record)
+        if path.exists():
+            with open(path, encoding="utf-8") as handle:
+                for line_number, line in enumerate(handle, start=1):
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    record = _object(json.loads(stripped), what=f"line {line_number}")
+                    records.append(record)
+        elif pending_actions:
+            if binary_source is None:
+                raise ValueError("pending manual actions require a source binary")
+            records.append({"record": "manual_action_log_header", "version": MANUAL_ACTION_LOG_VERSION,
+                            "target_identity": build_target_identity(binary_source)})
+        records.extend(pending_actions)
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         return _blocked_projection(
             path,

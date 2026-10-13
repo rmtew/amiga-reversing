@@ -1,5 +1,34 @@
 #include "m68k_ir.h"
 #include "m68k_c_unit_test.h"
+#include "platform_file_lib.h"
+
+#include <string.h>
+
+static int test_target_equates_full_capacity_clone(void) {
+  M68kAnalysisPolicy source = {0}, copy = {0};
+  uint16_t index;
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TARGET_EQUATE_LIMIT, platform_file_target_equate_count_capacity());
+  source.target_equate_count = M68K_ANALYSIS_TARGET_EQUATE_LIMIT;
+  for (index = 0U; index < source.target_equate_count; ++index) {
+    snprintf(source.target_equates[index].name, sizeof(source.target_equates[index].name),
+      "constant_%u", (unsigned)index);
+    source.target_equates[index].value = index;
+  }
+  source.target_equates[source.target_equate_count - 1U].value_style_id =
+    M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL;
+  snprintf(source.target_equates[source.target_equate_count - 1U].value_expr,
+    sizeof(source.target_equates[0].value_expr), "constant_0+511");
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT_U32(source.target_equate_count, copy.target_equate_count);
+  M68K_C_ASSERT(memcmp(source.target_equates, copy.target_equates, sizeof(source.target_equates)) == 0);
+  memset(source.target_equates, 0, sizeof(source.target_equates));
+  m68k_analysis_policy_destroy(&source);
+  M68K_C_ASSERT_STR("constant_511", copy.target_equates[copy.target_equate_count - 1U].name);
+  M68K_C_ASSERT_STR("constant_0+511", copy.target_equates[copy.target_equate_count - 1U].value_expr);
+  M68K_C_ASSERT_INT(511, copy.target_equates[copy.target_equate_count - 1U].value);
+  m68k_analysis_policy_destroy(&copy);
+  return 0;
+}
 
 static int test_manual_representations_inline_and_zero_init(void) {
   M68kAnalysisPolicy source = {0}, copy = {0};
@@ -72,6 +101,7 @@ static int test_manual_representations_invalid_copy_preserves_destination(void) 
 
 int m68k_c_policy_storage_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"target_equates_full_capacity_clone", test_target_equates_full_capacity_clone},
     {"manual_representations_inline_and_zero_init", test_manual_representations_inline_and_zero_init},
     {"manual_representations_heap_clone_growth_and_bound", test_manual_representations_heap_clone_growth_and_bound},
     {"manual_representations_invalid_copy_preserves_destination", test_manual_representations_invalid_copy_preserves_destination},

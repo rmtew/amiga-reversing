@@ -494,6 +494,12 @@ ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 DMAF_CLRALL	EQU	$7FFF
+GAME_EVENT_ESCAPE_CARD_OK_BIT	EQU	4
+GAME_EVENT_ESCAPE_TRIGGERED_BIT	EQU	3
+GAME_EVENT_FEEDBACK_AUDIO_LATCH_BIT	EQU	7
+GAME_EVENT_KRIPTONITE_CACHED_BIT	EQU	1
+GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
+GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
 INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING	EQU	$3
@@ -593,6 +599,14 @@ ITEM_ID_THIEF	EQU	$44
 ITEM_ID_WACKOBRAIN	EQU	$62
 ITEM_ID_WOOKEY_WIG	EQU	$1C
 ITEM_ID_WRENCH	EQU	$2
+SELF_DESTRUCT_STATE_ACCEPT_CARDS	EQU	$1
+SELF_DESTRUCT_STATE_ARMED	EQU	$FF
+SELF_DESTRUCT_STATE_AWAIT_DISK	EQU	$0
+SELF_DESTRUCT_STATE_REJECTED	EQU	$2
+TILE_ID_SELF_DESTRUCT_A	EQU	$18E
+TILE_ID_SELF_DESTRUCT_B	EQU	$190
+TILE_ID_TERMINAL_A	EQU	$9C
+TILE_ID_TERMINAL_B	EQU	$9F
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 WORLD_CMD_CALL_FUNCTION	EQU	7
@@ -829,9 +843,9 @@ wait_for_completed_frame:
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	jsr update_player_proximity_audio.l
-	btst.b #5,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_00010676
-	btst.b #3,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_00010676
 	tst.b app_self_destruct_state(a6)
 	bpl.b abs_0_0001066C
@@ -883,7 +897,7 @@ return_immediately:
 	rts
     ; Self-destruct expiry inhibits player movement and starts outcome/exit handling. Main and modal services share the exit countdown; main waits for the scrolling-message latch to clear.
 handle_self_destruct_countdown_expiry:
-	bset.b #5,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0001074C
 	bsr.w abs_0_00017B6E
 	bclr.b #1,app_ui_flags(a6)
@@ -2567,7 +2581,7 @@ abs_0_00012754:
 close_inventory_panel:
 	bsr.w reset_inventory_panel_state
 	bsr.w hide_cursor_sprite_pointers
-	bclr.b #1,app_game_event_flags(a6)
+	bclr.b #GAME_EVENT_KRIPTONITE_CACHED_BIT,app_game_event_flags(a6)
 	move.b #ITEM_ID_KRIPTONITE,d0
 	lea.l app_carried_item_ids(a6),a0
 	lea.l app_pocket_item_ids(a6),a1
@@ -2581,7 +2595,7 @@ abs_0_00012794:
 	cmp.b player_world_object_selected_item_id.l,d0
 	bne.b abs_0_000127AE
 abs_0_000127A8:
-	bset.b #1,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_KRIPTONITE_CACHED_BIT,app_game_event_flags(a6)
 abs_0_000127AE:
 	bclr.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
@@ -3085,7 +3099,7 @@ abs_0_00012DAE:
 	bset.b #3,app_02C2(a6)
 abs_0_00012DDC:
 	bsr.w draw_four_digit_value_with_blank_mask
-	btst.b #5,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_00012DF8
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_00012DF8
@@ -6102,7 +6116,7 @@ abs_0_0001779E:
 	bsr.w abs_0_0001864C
 	move.b d0,app_02B4(a6)
 	move.b d0,app_02B5(a6)
-	btst.b #1,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_KRIPTONITE_CACHED_BIT,app_game_event_flags(a6)
 	beq.b abs_0_000177EC
 	lsr.b #1,d1
 abs_0_000177EC:
@@ -6649,7 +6663,7 @@ abs_0_00017F06:
 abs_0_00017F08:
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.b abs_0_00017F02
-	btst.b #3,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_00017F02
 	move.w world_position_descriptor_prefix_world_x(a1),d0
 	move.w world_position_descriptor_prefix_world_y(a1),d1
@@ -6704,11 +6718,11 @@ abs_0_00017F96:
 abs_0_00017FA6:
 	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
 	bne.b abs_0_00017FC2
-	bclr.b #4,app_game_event_flags(a6)
+	bclr.b #GAME_EVENT_ESCAPE_CARD_OK_BIT,app_game_event_flags(a6)
 	moveq.l #3,d1
 	cmp.b #$37,d0
 	bne.b abs_0_0001800A
-	bset.b #4,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_ESCAPE_CARD_OK_BIT,app_game_event_flags(a6)
 abs_0_00017FC2:
 	bset.b d1,app_authorized_checkpoint_seen_bits(a6)
 	bne.b abs_0_00017FDE
@@ -8263,13 +8277,13 @@ abs_0_000196EA:
 	move.l $0(a1,d0.l),d0
 	sub.l d6,d0
 	lsr.l #7,d0
-	cmp.w #$9F,d0
+	cmp.w #TILE_ID_TERMINAL_B,d0
 	beq.w run_terminal_modal_loop
-	cmp.w #$9C,d0
+	cmp.w #TILE_ID_TERMINAL_A,d0
 	beq.w run_terminal_modal_loop
-	cmp.w #$18E,d0
+	cmp.w #TILE_ID_SELF_DESTRUCT_A,d0
 	beq.w run_self_destruct_modal_loop
-	cmp.w #$190,d0
+	cmp.w #TILE_ID_SELF_DESTRUCT_B,d0
 	beq.w run_self_destruct_modal_loop
 	bsr.w test_msb_first_bitset_bit
 	bne.w hold_player_movement_animation
@@ -8279,11 +8293,11 @@ abs_0_00019770:
 	move.l (a0),d0
 	subi.l #118952,d0
 	lsr.l #7,d0
-	btst.b #4,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_ESCAPE_CARD_OK_BIT,app_game_event_flags(a6)
 	beq.b abs_0_000197D0
 	cmp.w #$EC,d0
 	bne.b abs_0_000197D0
-	bset.b #3,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	move.l #$5C5A4,player_position_state.l
 	clr.l player_position_state_state_node_ptr.l
 	lea.l initialize_audio_player.l,a0
@@ -8291,20 +8305,20 @@ abs_0_00019770:
 	clr.b $0EC9(a0)
 	clr.b $0ED5(a0)
 	clr.b $0EE1(a0)
-	bclr.b #7,app_game_event_flags(a6)
+	bclr.b #GAME_EVENT_FEEDBACK_AUDIO_LATCH_BIT,app_game_event_flags(a6)
 	move.l a6,-(a7)
 	moveq.l #1,d0
 	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
 	jmp abs_0_0005C994.l
 abs_0_000197D0:
-	cmp.w #$9F,d0
+	cmp.w #TILE_ID_TERMINAL_B,d0
 	beq.w run_terminal_modal_loop
-	cmp.w #$9C,d0
+	cmp.w #TILE_ID_TERMINAL_A,d0
 	beq.w run_terminal_modal_loop
-	cmp.w #$18E,d0
+	cmp.w #TILE_ID_SELF_DESTRUCT_A,d0
 	beq.w run_self_destruct_modal_loop
-	cmp.w #$190,d0
+	cmp.w #TILE_ID_SELF_DESTRUCT_B,d0
 	beq.w run_self_destruct_modal_loop
 	lea.l tile_movement_block_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
@@ -8646,9 +8660,9 @@ process_self_destruct_card_input:
 	move.b app_self_destruct_state(a6),d1
 	beq.w abs_0_00019D76
 	bmi.w abs_0_00019DA8
-	cmp.b #$2,d1
+	cmp.b #SELF_DESTRUCT_STATE_REJECTED,d1
 	beq.w abs_0_00019DA8
-	cmp.b #$1,d1
+	cmp.b #SELF_DESTRUCT_STATE_ACCEPT_CARDS,d1
 	bne.w abs_0_00019DA8
 	move.b d0,d1
 	subi.b #ITEM_ID_CODE_WHITE,d1
@@ -8710,7 +8724,7 @@ abs_0_00019DAA:
 	st.b app_self_destruct_state(a6)
 	bra.b abs_0_00019E18
 abs_0_00019DBA:
-	move.b #$2,app_self_destruct_state(a6)
+	move.b #SELF_DESTRUCT_STATE_REJECTED,app_self_destruct_state(a6)
 	bra.b abs_0_00019DA4
 render_self_destruct_card_sequence:
 	moveq.l #2,d0
@@ -8742,7 +8756,7 @@ abs_0_00019DD0:
 	bsr.w draw_compact_text_string
 	rts
 abs_0_00019E12:
-	cmp.b #$1,d1
+	cmp.b #SELF_DESTRUCT_STATE_ACCEPT_CARDS,d1
 	bne.b abs_0_00019E84
 abs_0_00019E18:
 	move.b #$E,app_text_plane_mask(a6)
@@ -8780,7 +8794,7 @@ abs_0_00019E52:
 abs_0_00019E82:
 	rts
 abs_0_00019E84:
-	cmp.b #$2,d1
+	cmp.b #SELF_DESTRUCT_STATE_REJECTED,d1
 	bne.b abs_0_00019EA2
 	move.b #$5,app_text_plane_mask(a6)
 	moveq.l #2,d0
@@ -19228,7 +19242,7 @@ abs_0_0005C9AC:
 	rts
     ; Announce once. Self-destruct state and the Earth deadline select the outcome; escape plus deposited/carried salvage chooses salvage or defeat rank. Counting is cumulative and byte-sized.
 enqueue_game_outcome_and_rank_messages:
-	bset.b #6,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0005C9AC
 	tst.b app_self_destruct_state(a6)
 	bpl.b abs_0_0005C9CC
@@ -19239,7 +19253,7 @@ enqueue_game_outcome_and_rank_messages:
 	bra.b abs_0_0005C9DC
 abs_0_0005C9CC:
 	lea.l escape_without_destroying_pandora_message(pc),a0
-	btst.b #3,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0005C9DC
 	lea.l pandora_mystery_unsolved_message(pc),a0
 abs_0_0005C9DC:
@@ -19255,7 +19269,7 @@ abs_0_0005C9F0:
 	addq.b #1,app_salvage_item_count(a6)
 abs_0_0005C9FE:
 	dbf.w d7,abs_0_0005C9F0
-	btst.b #3,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0005CA18
 	bset.b #1,player_world_object_selected_item_id.l
 	lea.l posthumous_mercenary_rank_prefix(pc),a0
@@ -19268,7 +19282,7 @@ abs_0_0005CA18:
 	lea.l science_and_salvage_rank_prefix(pc),a0
 abs_0_0005CA2A:
 	jsr enqueue_status_message.l
-	btst.b #3,app_game_event_flags(a6)
+	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0005CA3C
 	bsr.b select_defeat_rank_message
 	bra.b abs_0_0005CA64
@@ -19517,7 +19531,7 @@ start_feedback_audio_sequence:
 	movem.l d1-d7/a1-a6,-(a7)
 	jsr start_audio_sequence.l
 	movem.l (a7)+,d1-d7/a1-a6
-	bset.b #7,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_FEEDBACK_AUDIO_LATCH_BIT,app_game_event_flags(a6)
 	rts
 abs_0_0005D34C:
 	bset.b #0,app_world_interaction_flags(a6)
@@ -19531,7 +19545,7 @@ abs_0_0005D364:
 	rts
     ; Reset keeps ticks and NPC pending bits. An already-pending handler waits on nonzero channel-2 ticks; inactive dispatch cannot drain them. Another writer or reactivation is needed.
 clear_security_checkpoint_audio_state:
-	bclr.b #7,app_game_event_flags(a6)
+	bclr.b #GAME_EVENT_FEEDBACK_AUDIO_LATCH_BIT,app_game_event_flags(a6)
 	movem.l d1-d7/a1-a6,-(a7)
 	jsr reset_audio_channels.l
 	movem.l (a7)+,d1-d7/a1-a6
