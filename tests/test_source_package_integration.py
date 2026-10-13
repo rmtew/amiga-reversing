@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -27,6 +28,17 @@ from amiga_reversing.disasm.source_package import (
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 
 pytestmark = pytest.mark.c_backend
+
+
+def assert_asset_source_names(rendered):
+    assets = [row for row in rendered.source_package["manifest"]["files"] if row["kind"] == "asset"]
+    assert len({row["asset_id"] for row in assets}) == len(assets)
+    assert len({row["path"].casefold() for row in assets}) == len(assets)
+    for row in assets:
+        assert row["path"] == f"assets/{row['name']}.bin"
+        assert re.search(rf"(?m)^{re.escape(row['name'])}:\s*(?:;[^\n]*\n\s*)*"
+                         rf'INCBIN "{re.escape(row["path"])}"', rendered.source_text, re.IGNORECASE)
+    return assets
 
 
 @pytest.fixture
@@ -175,10 +187,20 @@ def test_explicit_bitmap_classification_cannot_hide_relocations(native_target):
 
 def test_persistent_policy_normal_render_regeneration_and_moved_companions(native_target, tmp_path: Path, monkeypatch):
     from amiga_reversing.disasm.effective_metadata import effective_metadata_file
-    from amiga_reversing.disasm.manual_action_catalog import target_catalog_manual_payload
-    from amiga_reversing.disasm.manual_actions import ManualActionKind, append_manual_action
-    from amiga_reversing.disasm.source_rendering import render_source_from_binary_source_or_raise, publish_rendered_source
-    from amiga_reversing.disasm.source_package_publish import load_published_source_package
+    from amiga_reversing.disasm.manual_action_catalog import (
+        target_catalog_manual_payload,
+    )
+    from amiga_reversing.disasm.manual_actions import (
+        ManualActionKind,
+        append_manual_action,
+    )
+    from amiga_reversing.disasm.source_package_publish import (
+        load_published_source_package,
+    )
+    from amiga_reversing.disasm.source_rendering import (
+        publish_rendered_source,
+        render_source_from_binary_source_or_raise,
+    )
 
     original, paths = native_target
     entry = paths.target_dir / "canonical.s"
@@ -202,6 +224,38 @@ def test_persistent_policy_normal_render_regeneration_and_moved_companions(nativ
     again = render()
     assert again.source_package == packaged.source_package
     publish_rendered_source(again, entry, target_id="asset-fixture", project_root=PROJECT_ROOT)
+    initial_assets = assert_asset_source_names(again)
+    sample = next(row for row in initial_assets if row["classification"] == "sound_sample")
+    assert sample["name_is_generated"] is True
+    unrelated = paths.target_dir / "assets/user.bin"
+    unrelated.write_bytes(b"unrelated target companion")
+    append_manual_action(paths.target_dir, kind=ManualActionKind.CREATE_MANUAL_LABEL,
+        payload={"label": {"label_id": "sample-head", "scope": "global", "hunk": 1,
+                           "addr": sample["source_offset"], "name": "title_sound"}},
+        binary_source=paths.binary_source)
+    named = render()
+    named_sample = next(row for row in assert_asset_source_names(named) if row["asset_id"] == sample["asset_id"])
+    assert named_sample["name"] == "title_sound" and named_sample["name_is_generated"] is False
+    publish_rendered_source(named, entry, target_id="asset-fixture", project_root=PROJECT_ROOT)
+    assert not (paths.target_dir / sample["path"]).exists()
+    renamed_name = "intro_sound_for_title_screen_playback_with_amiga_sample_channel"
+    assert len(renamed_name) == 63
+    append_manual_action(paths.target_dir, kind=ManualActionKind.RENAME_MANUAL_LABEL,
+        payload={"label_id": "sample-head", "name": renamed_name}, binary_source=paths.binary_source)
+    packaged = render()
+    renamed_sample = next(row for row in assert_asset_source_names(packaged) if row["asset_id"] == sample["asset_id"])
+    assert renamed_sample["name"] == renamed_name and renamed_sample["name_is_generated"] is False
+    for field in ("asset_id", "source_section_index", "source_offset", "size", "sha256"):
+        assert sample[field] == named_sample[field] == renamed_sample[field]
+    assert {row["asset_id"] for row in assert_asset_source_names(packaged)} == {
+        row["asset_id"] for row in initial_assets}
+    publish_rendered_source(packaged, entry, target_id="asset-fixture", project_root=PROJECT_ROOT)
+    assert not (paths.target_dir / named_sample["path"]).exists()
+    assert (paths.target_dir / renamed_sample["path"]).read_bytes() == b"\x7e" * sample["size"]
+    assert unrelated.read_bytes() == b"unrelated target companion"
+    again = render()
+    assert source_package_zip(again.source_package) == source_package_zip(packaged.source_package)
+    publish_rendered_source(again, entry, target_id="asset-fixture", project_root=PROJECT_ROOT)
     from amiga_reversing.disasm import reproduction
     monkeypatch.setattr(reproduction, "resolve_project_paths", lambda *a, **kw: paths)
     monkeypatch.setattr(reproduction, "rebuilt_target_dir", lambda *a, **kw: tmp_path / "reproduction")
@@ -209,8 +263,10 @@ def test_persistent_policy_normal_render_regeneration_and_moved_companions(nativ
     assert report["status"] == "exact", report
     assert report["source_package_sha256"] == packaged.source_package["sha256"]
     moved = materialize_source_package(load_published_source_package(paths.target_dir), tmp_path / "clean-copy")
-    from amiga_reversing.disasm.c_backend import assemble_platform_source_path_with_c_backend
-    rebuilt, _ = assemble_platform_source_path_with_c_backend("amiga-hunk", moved, include_dir=moved.parent,
+    from amiga_reversing.disasm.c_backend import (
+        assemble_platform_source_path_with_c_backend,
+    )
+    rebuilt, _ = assemble_platform_source_path_with_c_backend("amiga-hunk", moved, include_dir=None,
         output_path=tmp_path / "clean-c.hunk", project_root=PROJECT_ROOT)
     assert rebuilt == original
     executable = os.environ.get("VASM") or str(PROJECT_ROOT / "ext/vasm/vasmm68k_mot")
@@ -223,7 +279,7 @@ def test_persistent_policy_normal_render_regeneration_and_moved_companions(nativ
     append_manual_action(paths.target_dir, kind=ManualActionKind.UNDO_ACTION,
         payload={"undoes_action_id": action["action_id"]}, binary_source=paths.binary_source)
     restored = render()
-    assert restored.source_text == inline.source_text and restored.source_package is None
+    assert restored.source_text == packaged.inline_source_text and restored.source_package is None
     publish_rendered_source(restored, entry, target_id="asset-fixture", project_root=PROJECT_ROOT)
     assert not any(record["kind"] == "asset" for record in load_published_source_package(paths.target_dir)["manifest"]["files"])
 

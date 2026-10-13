@@ -1259,9 +1259,10 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
     size_t section_index, uint32_t offset, uint32_t *io_logical_pc) {
   const M68kAnalysisStructuredDataItem *item =
     lookup_structured_data_item_at_offset(lookup, section_index, offset);
-  char line[160];
-  char name[64];
-  char storage_name[64];
+  char line[sizeof(((M68kRenderPlannedLabel *)0)->name) +
+    sizeof(((M68kAnalysisStructuredDataItem *)0)->struct_name) + 16U];
+  char name[sizeof(((M68kRenderPlannedLabel *)0)->name)];
+  char storage_name[sizeof(((M68kRenderPlannedLabel *)0)->storage_name)];
   const M68kRenderPlannedLabel *planned_label;
   uint32_t runtime_address;
   int has_runtime_address;
@@ -4453,7 +4454,8 @@ static int append_planned_label_statement(M68kRenderIRPreview *preview, const M6
   label.has_storage_label = has_runtime_address && runtime_address != offset &&
     (lookup_source_offset_is_materialized_runtime_range_start(lookup, section_index, offset) ||
      lookup_storage_label_has_inbound_target_ref(lookup, section_index, offset));
-  (void)format_rendered_asm_label_with_generation(lookup, label.name, sizeof(label.name), section_index, offset);
+  label.name_is_generated = format_rendered_asm_label_with_generation(lookup, label.name,
+    sizeof(label.name), section_index, offset);
   if (label.has_storage_label != 0U) {
     (void)format_storage_asm_label_with_generation(lookup, label.storage_name, sizeof(label.storage_name),
       section_index, offset);

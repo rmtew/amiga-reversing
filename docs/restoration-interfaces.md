@@ -116,6 +116,14 @@ Normal target source output is configured through the revision-bound catalog com
 The Manual Action Log owns this presentation policy; undo/redo restores it.
 Normal regeneration uses the same native asset planner as ZIP export and publishes
 relative companion assets, SDK dependencies, and `source-package-manifest.json`.
+The native planner uses the selected source symbol for both the asset label and
+filename, with a separate target-scoped section/range identity. Unnamed assets
+retain provisional names; portable collision handling belongs to that same
+native planner. Python validates and publishes its inventory without deriving
+asset purpose or boundaries.
+Native manual label facts currently accept names up to 63 bytes; widening that
+input capacity is separate from preserving names already present in the render
+plan.
 The manifest guards owned files against edits and removes only obsolete owned
 companions. Classification, meaningful tables, pointers, relocations and ambiguous
 ranges remain governed by native analysis. First adoption requires the current

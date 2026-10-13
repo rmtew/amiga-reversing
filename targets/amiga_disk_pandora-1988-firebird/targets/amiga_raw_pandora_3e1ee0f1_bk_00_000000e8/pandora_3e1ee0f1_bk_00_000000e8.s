@@ -10600,7 +10600,7 @@ four_byte_rows_20:
 	dc.l $1FFFFFF0,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8	; data
 	dc.l $1FFFFFF8,$0FFFFFF0,$00000000,$00000000	; data
 world_tile_pixels_000_through_011:
-	INCBIN "assets/section-0000-offset-0000d0a8-size-00000600.bin"
+	INCBIN "assets/world_tile_pixels_000_through_011.bin"
 ; bitmap
 	dc.b $7F,$FE,$DF,$FF,$DF,$FF,$C0,$00,$B0,$01,$6F,$FF,$EF,$FF,$6F,$FC
 	dc.b $DB,$F9,$37,$FF,$F7,$FF,$30,$02,$EC,$45,$1B,$FF,$FB,$FF,$19,$B2
@@ -10611,7 +10611,7 @@ world_tile_pixels_000_through_011:
 	dc.b $B7,$F7,$78,$0D,$F7,$FD,$40,$0C,$B7,$FB,$78,$06,$F7,$FE,$40,$06
 	dc.b $B7,$FD,$78,$03,$F7,$FF,$40,$03,$87,$FE,$78,$01,$87,$FF,$00,$01
 world_tile_pixels_013_through_039:
-	INCBIN "assets/section-0000-offset-0000d728-size-00000d80.bin"
+	INCBIN "assets/world_tile_pixels_013_through_039.bin"
 ; bitmap
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FE,$FF,$FF,$FF,$FF,$FF,$FF
 	dc.b $1F,$FE,$FF,$FD,$9F,$FD,$9F,$FD,$06,$06,$FF,$F9,$86,$09,$86,$09
@@ -10622,7 +10622,7 @@ world_tile_pixels_013_through_039:
 	dc.b $3A,$EA,$E5,$15,$A0,$31,$A0,$11,$7F,$DC,$C0,$23,$C0,$31,$C0,$31
 	dc.b $7F,$FC,$C0,$03,$C0,$01,$C0,$01,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 world_tile_pixels_041_through_042:
-	INCBIN "assets/section-0000-offset-0000e528-size-00000100.bin"
+	INCBIN "assets/world_tile_pixels_041_through_042.bin"
 ; bitmap
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$80,$00,$80,$00,$80,$00
 	dc.b $7F,$FF,$80,$00,$80,$00,$80,$00,$00,$07,$FF,$F8,$FF,$F8,$FF,$F8
@@ -10633,7 +10633,7 @@ world_tile_pixels_041_through_042:
 	dc.b $78,$0F,$87,$F0,$80,$00,$80,$00,$07,$FF,$F8,$00,$F8,$00,$F8,$00
 	dc.b $07,$FF,$F8,$00,$F8,$00,$F8,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 world_tile_pixels_044_through_046:
-	INCBIN "assets/section-0000-offset-0000e6a8-size-00000180.bin"
+	INCBIN "assets/world_tile_pixels_044_through_046.bin"
 ; bitmap
 	dcb.b $8,$FF
 	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
@@ -10645,7 +10645,7 @@ world_tile_pixels_044_through_046:
 	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
 	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00
 world_tile_pixels_048_through_049:
-	INCBIN "assets/section-0000-offset-0000e8a8-size-00000100.bin"
+	INCBIN "assets/world_tile_pixels_048_through_049.bin"
 ; bitmap
 	dcb.b $8,$FF
 	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
@@ -10657,7 +10657,7 @@ world_tile_pixels_048_through_049:
 	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
 	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00
 world_tile_pixels_051_through_055:
-	INCBIN "assets/section-0000-offset-0000ea28-size-00000280.bin"
+	INCBIN "assets/world_tile_pixels_051_through_055.bin"
 ; bitmap
 	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$01,$80,$01,$80
 	dc.b $00,$00,$FF,$FF,$03,$80,$03,$80,$00,$00,$FF,$FF,$07,$FF,$06,$FF
@@ -10693,7 +10693,7 @@ world_tile_pixels_057:
 	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
 	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
 world_tile_pixels_060_through_061:
-	INCBIN "assets/section-0000-offset-0000eea8-size-00000100.bin"
+	INCBIN "assets/world_tile_pixels_060_through_061.bin"
 ; bitmap
 	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
 	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
@@ -10712,7 +10712,7 @@ world_tile_pixels_060_through_061:
 	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
 	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
 world_tile_pixels_064_through_070:
-	INCBIN "assets/section-0000-offset-0000f0a8-size-00000380.bin"
+	INCBIN "assets/world_tile_pixels_064_through_070.bin"
 ; bitmap
 	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
 	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
@@ -10776,7 +10776,7 @@ world_tile_pixels_064_through_070:
 	dc.b $00,$00,$25,$14,$FF,$FF,$FF,$FF,$DA,$EB,$25,$14,$FF,$FF,$FF,$FF
 	dc.b $DA,$EB,$FF,$FF,$00,$00,$00,$00,$00,$00
 world_tile_pixels_078_through_089:
-	INCBIN "assets/section-0000-offset-0000f7a8-size-00000600.bin"
+	INCBIN "assets/world_tile_pixels_078_through_089.bin"
 ; bitmap
 	dcb.b $8,$FF
 	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
@@ -10788,7 +10788,7 @@ world_tile_pixels_078_through_089:
 	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
 	dc.b $00,$01,$FF,$FE,$FF,$FE,$FF,$FE
 world_tile_pixels_091_through_094:
-	INCBIN "assets/section-0000-offset-0000fe28-size-00000200.bin"
+	INCBIN "assets/world_tile_pixels_091_through_094.bin"
 ; bitmap
 	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$03,$C0,$FF,$FF,$03,$C0,$03,$C0
 	dc.b $04,$20,$FF,$FF,$07,$E0,$07,$E0,$0B,$D0,$FF,$FF,$0F,$F0,$0F,$F0
@@ -10799,7 +10799,7 @@ world_tile_pixels_091_through_094:
 	dc.b $0B,$D0,$FF,$FF,$0F,$F0,$0F,$F0,$04,$20,$FF,$FF,$07,$E0,$07,$E0
 	dc.b $03,$C0,$FF,$FF,$03,$C0,$03,$C0,$00,$00,$FF,$FF,$00,$00,$00,$00
 world_tile_pixels_096_through_101:
-	INCBIN "assets/section-0000-offset-000100a8-size-00000300.bin"
+	INCBIN "assets/world_tile_pixels_096_through_101.bin"
 ; bitmap
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$F0,$1F,$FF,$FF,$0F,$E0,$0F,$E0
 	dc.b $00,$00,$EF,$EF,$FF,$FF,$EF,$EF,$00,$10,$EF,$FF,$FF,$EF,$EF,$EF
@@ -13042,7 +13042,7 @@ abs_0_00028984:
 	dc.b $00,$02,$00,$02,$80,$2C,$FF,$D7,$00,$04,$00,$04,$80,$58,$FF,$AF
 	dc.b $00,$08,$00,$08
 world_tile_pixels_372_through_380:
-	INCBIN "assets/section-0000-offset-00018aa8-size-00000480.bin"
+	INCBIN "assets/world_tile_pixels_372_through_380.bin"
 ; bitmap
 	dc.b $F1,$FF,$FE,$00,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00
 	dc.b $F0,$00,$FF,$FF,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00
@@ -13738,7 +13738,7 @@ abs_0_0002A152:
 	dc.b $F4,$B2,$FB,$5D,$10,$10,$F0,$10,$EB,$17,$F5,$EA,$21,$22,$E1,$22
 	dc.b $F1,$4B,$CE,$B6,$42,$02,$C2,$02,$FF,$FF,$AE,$EE,$AE,$EE,$AE,$EE
 world_tile_pixels_466_through_489:
-	INCBIN "assets/section-0000-offset-0001b9a8-size-00000c00.bin"
+	INCBIN "assets/world_tile_pixels_466_through_489.bin"
 ; bitmap
 	dc.b $1F,$FF,$FF,$FF,$FF,$FF,$C0,$00,$18,$00,$FF,$FF,$FF,$FF,$C7,$FF
 	dc.b $18,$00,$FF,$FF,$FF,$FF,$C7,$FF,$18,$00,$FF,$FF,$FF,$FF,$C7,$FF
@@ -13749,7 +13749,7 @@ world_tile_pixels_466_through_489:
 	dc.b $00,$00,$FF,$FF,$F8,$00,$F8,$00,$00,$00,$FF,$FF,$F8,$00,$F8,$00
 	dc.b $00,$00,$FF,$FF,$F8,$00,$F8,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
 world_tile_pixels_491_through_498:
-	INCBIN "assets/section-0000-offset-0001c628-size-00000400.bin"
+	INCBIN "assets/world_tile_pixels_491_through_498.bin"
 ; bitmap
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
@@ -13760,7 +13760,7 @@ world_tile_pixels_491_through_498:
 	dc.b $00,$03,$FF,$FC,$00,$07,$00,$04,$00,$01,$FF,$FE,$00,$03,$00,$02
 	dc.b $00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF,$00,$00,$00,$00
 world_tile_pixels_500_through_507:
-	INCBIN "assets/section-0000-offset-0001caa8-size-00000400.bin"
+	INCBIN "assets/world_tile_pixels_500_through_507.bin"
 ; bitmap
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$38,$00,$3F,$FF,$38,$00,$38,$00
 	dc.b $70,$00,$7F,$FF,$70,$00,$70,$00,$71,$FF,$7E,$00,$70,$00,$70,$00
@@ -14016,101 +14016,101 @@ world_tile_pixels_500_through_507:
 	dc.b $F0
 	dcb.b $E,$00
 scene_pixel_cells_for_mask_bank_01:
-	INCBIN "assets/section-0000-offset-0001dd28-size-00000c00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_01.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_02:
-	INCBIN "assets/section-0000-offset-0001e928-size-00000c00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_02.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_03:
-	INCBIN "assets/section-0000-offset-0001f528-size-00000e00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_03.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_04:
-	INCBIN "assets/section-0000-offset-00020328-size-00000e00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_04.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_05:
-	INCBIN "assets/section-0000-offset-00021128-size-00000800.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_05.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_06:
-	INCBIN "assets/section-0000-offset-00021928-size-00000d80.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_06.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_07:
-	INCBIN "assets/section-0000-offset-000226a8-size-000001b0.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_07.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_13:
-	INCBIN "assets/section-0000-offset-00022858-size-00000a20.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_13.bin"
 ; bitmap
 world_position_frame_pixels_00_through_05:
-	INCBIN "assets/section-0000-offset-00023278-size-00000c00.bin"
+	INCBIN "assets/world_position_frame_pixels_00_through_05.bin"
 ; bitmap
 world_position_frame_pixels_06_through_11:
-	INCBIN "assets/section-0000-offset-00023e78-size-00000600.bin"
+	INCBIN "assets/world_position_frame_pixels_06_through_11.bin"
 ; bitmap
 world_position_frame_pixels_12_through_17:
-	INCBIN "assets/section-0000-offset-00024478-size-00000c00.bin"
+	INCBIN "assets/world_position_frame_pixels_12_through_17.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_17:
-	INCBIN "assets/section-0000-offset-00025078-size-00001da0.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_17.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_18:
-	INCBIN "assets/section-0000-offset-00026e18-size-00004450.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_18.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_19:
-	INCBIN "assets/section-0000-offset-0002b268-size-00001e00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_19.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_20:
-	INCBIN "assets/section-0000-offset-0002d068-size-000013d0.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_20.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_21:
-	INCBIN "assets/section-0000-offset-0002e438-size-000043e0.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_21.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_08:
-	INCBIN "assets/section-0000-offset-00032818-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_08.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_09:
-	INCBIN "assets/section-0000-offset-00032c18-size-00000460.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_09.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_10:
-	INCBIN "assets/section-0000-offset-00033078-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_10.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_11:
-	INCBIN "assets/section-0000-offset-00033478-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_11.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_12:
-	INCBIN "assets/section-0000-offset-00033878-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_12.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_22:
-	INCBIN "assets/section-0000-offset-00033c78-size-00000800.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_22.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_23:
-	INCBIN "assets/section-0000-offset-00034478-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_23.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_24:
-	INCBIN "assets/section-0000-offset-00034878-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_24.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_26:
-	INCBIN "assets/section-0000-offset-00034c78-size-00001bc0.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_26.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_25:
-	INCBIN "assets/section-0000-offset-00036838-size-00000a00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_25.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_27:
-	INCBIN "assets/section-0000-offset-00037238-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_27.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_28:
-	INCBIN "assets/section-0000-offset-00037638-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_28.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_29:
-	INCBIN "assets/section-0000-offset-00037a38-size-00000f00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_29.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_30:
-	INCBIN "assets/section-0000-offset-00038938-size-00001490.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_30.bin"
 ; bitmap
 	dcb.b $570,$00
 scene_pixel_cells_for_mask_bank_31:
-	INCBIN "assets/section-0000-offset-0003a338-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_31.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_00:
-	INCBIN "assets/section-0000-offset-0003a738-size-00002c00.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_00.bin"
 ; bitmap
 abs_0_0004D338:
 	dcb.b $8,$00
@@ -14638,31 +14638,31 @@ abs_0_0004D338:
 	dc.b $80,$03,$FE,$03,$FE,$00,$80
 	dcb.b $8,$00
 scene_pixel_cells_for_mask_bank_32:
-	INCBIN "assets/section-0000-offset-0003efa8-size-00000800.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_32.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_33:
-	INCBIN "assets/section-0000-offset-0003f7a8-size-00000600.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_33.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_34:
-	INCBIN "assets/section-0000-offset-0003fda8-size-00000110.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_34.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_35:
-	INCBIN "assets/section-0000-offset-0003feb8-size-00000400.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_35.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_36:
-	INCBIN "assets/section-0000-offset-000402b8-size-00000360.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_36.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_37:
-	INCBIN "assets/section-0000-offset-00040618-size-00000600.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_37.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_38:
-	INCBIN "assets/section-0000-offset-00040c18-size-000001f0.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_38.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_39:
-	INCBIN "assets/section-0000-offset-00040e08-size-00000200.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_39.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_40:
-	INCBIN "assets/section-0000-offset-00041008-size-00000d20.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_40.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_41:
 	dc.w $0000,$0000,$0000,$0000,$7980,$0000,$0000,$7980	; bitmap
@@ -14676,19 +14676,19 @@ scene_pixel_cells_for_mask_bank_41:
 	dc.w $07E0,$0000,$0000,$07E0,$E840,$01BF,$01BF,$F9FF	; bitmap
 	dc.w $0400,$0380,$0380,$0780,$1800,$6000,$6000,$7800	; bitmap
 scene_pixel_cells_for_mask_bank_42:
-	INCBIN "assets/section-0000-offset-00041dc8-size-00000ba0.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_42.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_43:
-	INCBIN "assets/section-0000-offset-00042968-size-00000580.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_43.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_44:
-	INCBIN "assets/section-0000-offset-00042ee8-size-00000428.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_44.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_45:
-	INCBIN "assets/section-0000-offset-00043310-size-00000470.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_45.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_46:
-	INCBIN "assets/section-0000-offset-00043780-size-00000370.bin"
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_46.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_47:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00
@@ -21380,7 +21380,7 @@ audio_sample_record_stream:
 period_divisor:
 	dc.w $2102	; data
 audio_sample_00_payload:
-	INCBIN "assets/section-0000-offset-0004eade-size-000013ee.bin"
+	INCBIN "assets/audio_sample_00_payload.bin"
 ; sound_sample
 byte_length_2:
 	dc.l $00000C4C	; data
@@ -21589,28 +21589,28 @@ byte_length_3:
 period_divisor_3:
 	dc.w $2102	; data
 audio_sample_02_payload:
-	INCBIN "assets/section-0000-offset-00050b24-size-0000121a.bin"
+	INCBIN "assets/audio_sample_02_payload.bin"
 ; sound_sample
 byte_length_4:
 	dc.l $0000157C	; data
 period_divisor_4:
 	dc.w $49D4	; data
 audio_sample_03_payload:
-	INCBIN "assets/section-0000-offset-00051d44-size-0000157c.bin"
+	INCBIN "assets/audio_sample_03_payload.bin"
 ; sound_sample
 byte_length_5:
 	dc.l $000014B4	; data
 period_divisor_5:
 	dc.w $34BC	; data
 audio_sample_04_payload:
-	INCBIN "assets/section-0000-offset-000532c6-size-000014b4.bin"
+	INCBIN "assets/audio_sample_04_payload.bin"
 ; sound_sample
 byte_length_6:
 	dc.l $000007D0	; data
 period_divisor_6:
 	dc.w $3EE4	; data
 audio_sample_05_payload:
-	INCBIN "assets/section-0000-offset-00054780-size-000007d0.bin"
+	INCBIN "assets/audio_sample_05_payload.bin"
 ; sound_sample
 byte_length_7:
 	dc.l $00000040	; data

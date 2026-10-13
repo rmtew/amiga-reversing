@@ -1,6 +1,7 @@
 #include "m68k_c_unit_test.h"
 #include "m68k_source_package.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -37,10 +38,12 @@ static int test_multiple_assets_are_deterministic_original_bytes(void) {
   M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &first));
   M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &second));
   M68K_C_ASSERT(strcmp(first, second) == 0);
-  M68K_C_ASSERT(strstr(first, "assets/section-0000-offset-00000000-size-00000004.bin") != NULL);
-  M68K_C_ASSERT(strstr(first, "assets/section-0000-offset-00000004-size-00000004.bin") != NULL);
+  M68K_C_ASSERT(strstr(first, "assets/provisional_asset_s0000_o00000000_n00000004.bin") != NULL);
+  M68K_C_ASSERT(strstr(first, "assets/provisional_asset_s0000_o00000004_n00000004.bin") != NULL);
   M68K_C_ASSERT(strstr(first, "\"data_hex\":\"05060708\"") != NULL);
   M68K_C_ASSERT(strstr(first, "INCBIN") != NULL);
+  M68K_C_ASSERT(strstr(first, "provisional_asset_s0000_o00000000_n00000004:\\u000A") != NULL);
+  M68K_C_ASSERT(strstr(first, "\"name_is_generated\":true") != NULL);
   free(first); free(second);
   m68k_render_plan_destroy(&plan);
   return 0;
@@ -107,6 +110,9 @@ static int test_comments_and_leading_org_survive(void) {
   M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
   M68K_C_ASSERT(strstr(json, "ORG $1000") != NULL);
   M68K_C_ASSERT(strstr(json, "; asset annotation") != NULL);
+  M68K_C_ASSERT(strstr(json, "ORG $1000") <
+    strstr(json, "provisional_asset_s0000_o00000000_n00000004:"));
+  M68K_C_ASSERT(strstr(json, "provisional_asset_s0000_o00000000_n00000004:\\u000A\\u0009INCBIN") != NULL);
   M68K_C_ASSERT(strstr(json, "; preserved") != NULL);
   M68K_C_ASSERT(strstr(json, "INCBIN") != NULL);
   free(json);
@@ -224,8 +230,188 @@ static int test_coalesces_small_rows_and_respects_boundaries(void) {
   return 0;
 }
 
+static int package_label(M68kRenderPlan *plan, uint32_t offset, const char *name, int generated) {
+  M68kRenderPlannedLabel label = {0};
+  char text[104];
+  label.source_offset = offset;
+  label.name_is_generated = (uint8_t)generated;
+  strcpy(label.name, name);
+  snprintf(text, sizeof(text), "%s:\n", name);
+  if (m68k_render_plan_append_label(plan, &label) != 0) return -1;
+  return m68k_render_plan_append_text_row(plan, M68K_RENDER_PLAN_ROW_LABEL, 0U, text, NULL);
+}
+
+static int test_native_names_and_stable_identity(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kRenderPlan plan;
+  uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+  char *json = NULL;
+  unsigned pass;
+  for (pass = 0U; pass < 2U; ++pass) {
+    const char *name = pass ? "scene_pixel_cells_for_mask_bank_00" : "reviewed_pixel_cells";
+    char expected[160];
+    package_fixture(&object, &section, bytes, &plan);
+    M68K_C_ASSERT_INT(0, package_label(&plan, 0U, name, 0));
+    M68K_C_ASSERT(package_row(&plan, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != NULL);
+    M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
+    snprintf(expected, sizeof(expected), "assets/%s.bin", name);
+    M68K_C_ASSERT(strstr(json, expected) != NULL);
+    snprintf(expected, sizeof(expected), "%s:\\u000A", name);
+    M68K_C_ASSERT(strstr(json, expected) != NULL);
+    M68K_C_ASSERT(strstr(json, "\"asset_id\":\"section-0000-offset-00000000-size-00000004\"") != NULL);
+    M68K_C_ASSERT(strstr(json, "\"name_is_generated\":false") != NULL);
+    M68K_C_ASSERT(strstr(json, "provisional_asset") == NULL);
+    free(json); json = NULL;
+    m68k_render_plan_destroy(&plan);
+  }
+  return 0;
+}
+
+static int test_provisional_and_portable_aliases(void) {
+  const char *names[] = {"generated_0000", ".local_pixels", "unsafe/pixels", "CON"};
+  unsigned scenario;
+  for (scenario = 0U; scenario < sizeof(names) / sizeof(names[0]); ++scenario) {
+    M68kObject object;
+    M68kSection section;
+    M68kRenderPlan plan;
+    uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+    char *json = NULL;
+    package_fixture(&object, &section, bytes, &plan);
+    M68K_C_ASSERT_INT(0, package_label(&plan, 0U, names[scenario], scenario == 0U));
+    M68K_C_ASSERT(package_row(&plan, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != NULL);
+    M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
+    M68K_C_ASSERT(strstr(json, names[scenario]) != NULL);
+    if (scenario == 1U) {
+      M68K_C_ASSERT(strstr(json, "INCBIN") == NULL);
+      M68K_C_ASSERT(strstr(json, "\"assets\":[]") != NULL);
+      free(json);
+      m68k_render_plan_destroy(&plan);
+      continue;
+    }
+    if (scenario == 0U) {
+      M68K_C_ASSERT(strstr(json, "assets/generated_0000.bin") != NULL);
+      M68K_C_ASSERT(strstr(json, "\"name_is_generated\":true") != NULL);
+      free(json);
+      m68k_render_plan_destroy(&plan);
+      continue;
+    }
+    M68K_C_ASSERT(strstr(json, "provisional_asset_s0000_o00000000_n00000004:\\u000A") != NULL);
+    M68K_C_ASSERT(strstr(json, "assets/provisional_asset_s0000_o00000000_n00000004.bin") != NULL);
+    M68K_C_ASSERT(strstr(json, "\"name_is_generated\":true") != NULL);
+    free(json);
+    m68k_render_plan_destroy(&plan);
+  }
+  return 0;
+}
+
+static int test_case_collision_and_symbol_reservations(void) {
+  unsigned reverse;
+  for (reverse = 0U; reverse < 2U; ++reverse) {
+    M68kObject object;
+    M68kSection section;
+    M68kRenderPlan plan;
+    M68kRenderPlannedDeclaration declaration = {0};
+    M68kRenderPlannedRuntimeAlias runtime_alias = {0};
+    uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+    char *json = NULL, *again = NULL;
+    unsigned index;
+    package_fixture(&object, &section, bytes, &plan);
+    /* Both exact source spellings survive; every filesystem collision gets a
+     * global alias. Native non-asset declarations and runtime aliases reserve
+     * spellings too, even when they match the first disambiguation attempt. */
+    strcpy(declaration.name, "Pixels__asset_s0000_o00000000_n00000004_0");
+    M68K_C_ASSERT_INT(0, m68k_render_plan_append_declaration(&plan, &declaration));
+    strcpy(runtime_alias.name, "pixels__asset_s0000_o00000004_n00000004_0");
+    M68K_C_ASSERT_INT(0, m68k_render_plan_append_runtime_alias(&plan, &runtime_alias));
+    for (index = 0U; index < 2U; ++index) {
+      unsigned slot = reverse ? 1U - index : index;
+      M68K_C_ASSERT_INT(0, package_label(&plan, slot * 4U, slot ? "pixels" : "Pixels", 0));
+      M68K_C_ASSERT(package_row(&plan, slot * 4U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != NULL);
+    }
+    M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
+    M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &again));
+    M68K_C_ASSERT(strcmp(json, again) == 0);
+    M68K_C_ASSERT(strstr(json, "assets/Pixels__asset_s0000_o00000000_n00000004_1.bin") != NULL);
+    M68K_C_ASSERT(strstr(json, "assets/pixels__asset_s0000_o00000004_n00000004_1.bin") != NULL);
+    M68K_C_ASSERT(strstr(json, "Pixels:\\u000A") != NULL);
+    M68K_C_ASSERT(strstr(json, "pixels:\\u000A") != NULL);
+    free(json); free(again);
+    m68k_render_plan_destroy(&plan);
+  }
+  return 0;
+}
+
+static int test_full_native_basename_is_not_truncated(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kRenderPlan plan;
+  uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+  char name[96], expected[112];
+  char *json = NULL;
+  memset(name, 'a', sizeof(name) - 1U);
+  name[sizeof(name) - 1U] = '\0';
+  package_fixture(&object, &section, bytes, &plan);
+  M68K_C_ASSERT_INT(0, package_label(&plan, 0U, name, 0));
+  M68K_C_ASSERT(package_row(&plan, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != NULL);
+  M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
+  snprintf(expected, sizeof(expected), "assets/%s.bin", name);
+  M68K_C_ASSERT(strstr(json, expected) != NULL);
+  M68K_C_ASSERT(strstr(json, "\"name_is_generated\":false") != NULL);
+  free(json);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
+static int test_local_symbol_scope_blocks_new_alias_only(void) {
+  unsigned scenario;
+  for (scenario = 0U; scenario < 6U; ++scenario) {
+    M68kObject object;
+    M68kSection section;
+    M68kRenderPlan plan;
+    M68kRenderPlannedDeclaration declaration = {0};
+    M68kRenderPlannedExpression expression = {0};
+    M68kRenderPlannedInstruction instruction = {0};
+    uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+    char *json = NULL;
+    package_fixture(&object, &section, bytes, &plan);
+    if (scenario == 0U || scenario >= 4U) {
+      M68K_C_ASSERT_INT(0, package_label(&plan, 7U, ".later_local", 0));
+    } else if (scenario == 1U) {
+      strcpy(declaration.name, ".local_decl");
+      M68K_C_ASSERT_INT(0, m68k_render_plan_append_declaration(&plan, &declaration));
+    } else if (scenario == 2U) {
+      instruction.instruction.operand_count = 1U;
+      strcpy(instruction.instruction.operands[0].symbol_ref.name, ".local_operand");
+      M68K_C_ASSERT_INT(0, m68k_render_plan_append_instruction(&plan, &instruction));
+    } else {
+      expression.source_offset = 7U;
+      strcpy(expression.base_symbol, ".local_base");
+      M68K_C_ASSERT_INT(0, m68k_render_plan_append_expression(&plan, &expression));
+    }
+    if (scenario >= 4U) M68K_C_ASSERT_INT(0, package_label(&plan, 0U, "known_pixels", scenario == 5U));
+    M68K_C_ASSERT(package_row(&plan, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != NULL);
+    M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
+    if (scenario >= 4U) {
+      M68K_C_ASSERT(strstr(json, "assets/known_pixels.bin") != NULL);
+    } else {
+      M68K_C_ASSERT(strstr(json, "INCBIN") == NULL);
+      M68K_C_ASSERT(strstr(json, "\"assets\":[]") != NULL);
+      M68K_C_ASSERT(strstr(json, "dc.b") != NULL);
+    }
+    free(json);
+    m68k_render_plan_destroy(&plan);
+  }
+  return 0;
+}
+
 int m68k_c_source_package_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"local_symbol_scope_blocks_new_alias_only", test_local_symbol_scope_blocks_new_alias_only},
+    {"full_native_basename_is_not_truncated", test_full_native_basename_is_not_truncated},
+    {"native_names_and_stable_identity", test_native_names_and_stable_identity},
+    {"provisional_and_portable_aliases", test_provisional_and_portable_aliases},
+    {"case_collision_and_symbol_reservations", test_case_collision_and_symbol_reservations},
     {"multiple_assets_are_deterministic_original_bytes", test_multiple_assets_are_deterministic_original_bytes},
     {"conservative_ineligibility", test_conservative_ineligibility},
     {"comments_and_leading_org_survive", test_comments_and_leading_org_survive},

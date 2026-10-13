@@ -121,7 +121,8 @@ typedef struct M68kRenderPlannedLabel {
   uint32_t runtime_address;
   uint8_t has_runtime_address;
   uint8_t has_storage_label;
-  uint8_t reserved[2];
+  uint8_t name_is_generated;
+  uint8_t reserved;
   char name[96];
   char storage_name[96];
 } M68kRenderPlannedLabel;

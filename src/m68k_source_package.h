@@ -6,6 +6,10 @@
 
 /* Projects the existing native plan without modifying it or touching files.
  * The caller owns *out_json (free()). Asset paths are package-root relative.
+ * Each asset has a coordinate-based asset_id independent of its native name.
+ * name matches the INCBIN basename and a source label; name_is_generated marks
+ * a generated native name or package alias. Existing labels stay; assets that
+ * require an alias remain inline when native local symbols make scope unsafe.
  * Only evidenced bitmap/sample rows are eligible; unsupported layouts stay
  * source. minimum_asset_size must be nonzero. */
 int m68k_source_package_json_alloc(const M68kObject *object, const M68kRenderPlan *plan,

@@ -51,6 +51,47 @@ def test_publish_in_populated_target_is_deterministic_and_cleans_only_owned_file
     assert not (tmp_path / "exec").exists()
 
 
+@pytest.mark.parametrize("edit_obsolete", [False, True])
+def test_asset_rename_preserves_native_identity_and_removes_only_unchanged_owned_path(
+    tmp_path: Path, edit_obsolete: bool,
+):
+    def named_package(name: str):
+        return build_source_package({
+            "filename": "demo.s", "source_text": f'{name}:\n    INCBIN "assets/{name}.bin"\n',
+            "target": "demo", "assembler_profile": "vasm", "metadata_hash": "metadata",
+            "target_identity_sha256": "binary",
+        }, [{"path": f"assets/{name}.bin", "name": name, "name_is_generated": False,
+             "asset_id": "section-0001-offset-00002000-size-00000003",
+             "source_section_index": 1, "source_offset": 8192, "size": 3,
+             "data_hex": "0001ff"}], 3)
+
+    initial = named_package("title_sound")
+    renamed = named_package("intro_sound")
+    publish_source_package(initial, tmp_path)
+    unrelated = tmp_path / "assets/user.bin"
+    unrelated.write_bytes(b"user")
+    obsolete = tmp_path / "assets/title_sound.bin"
+    if edit_obsolete:
+        obsolete.write_bytes(b"user edit")
+        before = inventory(tmp_path)
+        with pytest.raises(ValueError, match="modified"):
+            publish_source_package(renamed, tmp_path)
+        assert inventory(tmp_path) == before
+    else:
+        publish_source_package(renamed, tmp_path)
+        assert not obsolete.exists()
+        assert (tmp_path / "assets/intro_sound.bin").read_bytes() == b"\0\1\xff"
+        assert unrelated.read_bytes() == b"user"
+        assert load_published_source_package(tmp_path) == renamed
+        old_asset = next(row for row in initial["manifest"]["files"] if row["kind"] == "asset")
+        new_asset = next(row for row in renamed["manifest"]["files"] if row["kind"] == "asset")
+        assert old_asset["asset_id"] == new_asset["asset_id"]
+        assert old_asset["sha256"] == new_asset["sha256"]
+        before = inventory(tmp_path)
+        publish_source_package(renamed, tmp_path)
+        assert inventory(tmp_path) == before
+
+
 @pytest.mark.parametrize("proof", ["text", "hash"])
 def test_initial_canonical_takeover_requires_exact_expected_bytes(tmp_path: Path, proof: str):
     source = tmp_path / "demo.s"

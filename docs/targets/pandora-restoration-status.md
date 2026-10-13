@@ -91,6 +91,9 @@ than a new coverage metric. No row claims complete subsystem recovery.
 Normal source regeneration now persists `binary_assets` presentation (minimum
 256 bytes) through the Manual Action Log. The checked-in source uses relative
 INCBIN companions recorded in its [ownership manifest](../../targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-package-manifest.json).
+Asset labels and filenames share the reviewed native purpose name; separate
+section/range identities survive naming changes, with provisional names retained
+where purpose is unknown.
 Native classification and conservative boundaries still govern selection;
 structured tables, pointers and ambiguous spans stay inline. This changes source
 presentation, not the semantic recovery status below.
@@ -110,9 +113,9 @@ presentation, not the semantic recovery status below.
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; first mask-input bank and border cells now classified | Known consumers establish only selected physical prefixes | No proven tail consumer: apparent $5AFFA call resolves to source $4AFFA; remaining purpose/bounds unknown |
 | Alternate execution layout | Address-class constraints identified | Current source identities are conditional on native views | Changed code/data/DMA placement and temporal/late lineage remain unimplemented or unproven |
 
-The parallel asset-export task owns INCBIN packaging and assembler support.
-This ledger can supply reviewed boundaries; it will not create a competing
-export path. Original disk/loader parity remains explicitly out of scope.
+The normal native asset planner owns INCBIN selection and naming; the shared
+publisher owns companion files. Original disk/loader parity remains explicitly
+out of scope.
 
 ## Framework repairs accompanying the startup batch
 
