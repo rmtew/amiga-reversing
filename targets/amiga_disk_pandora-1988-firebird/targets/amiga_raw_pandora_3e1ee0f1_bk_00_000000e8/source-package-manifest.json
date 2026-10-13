@@ -14,7 +14,7 @@
         "size": 5102,
         "source_offset": 322270,
         "source_row_count": 319,
-        "source_row_id": 31009,
+        "source_row_id": 31018,
         "source_section_index": 0
       },
       {
@@ -29,7 +29,7 @@
         "size": 4634,
         "source_offset": 330532,
         "source_row_count": 290,
-        "source_row_id": 31535,
+        "source_row_id": 31544,
         "source_section_index": 0
       },
       {
@@ -44,7 +44,7 @@
         "size": 5500,
         "source_offset": 335172,
         "source_row_count": 347,
-        "source_row_id": 31830,
+        "source_row_id": 31839,
         "source_section_index": 0
       },
       {
@@ -59,7 +59,7 @@
         "size": 5300,
         "source_offset": 340678,
         "source_row_count": 332,
-        "source_row_id": 32182,
+        "source_row_id": 32191,
         "source_section_index": 0
       },
       {
@@ -74,7 +74,7 @@
         "size": 2000,
         "source_offset": 345984,
         "source_row_count": 125,
-        "source_row_id": 32519,
+        "source_row_id": 32528,
         "source_section_index": 0
       },
       {
@@ -1058,11 +1058,11 @@
       {
         "kind": "source",
         "path": "pandora_3e1ee0f1_bk_00_000000e8.s",
-        "sha256": "3defdf18310e7dc748fc59c7474f0539da78d6da20d7c5bded3a64074d2f32fb",
-        "size": 1032131
+        "sha256": "218f164c0683dbd430bf0bff21ecb2abe28544a6d81c40b204e11977b3ab6d8e",
+        "size": 1034253
       }
     ],
-    "metadata_hash": "3a0e8668f2715607aba959ae1d3fe2de37a547e366f456480a9d85e3cc8de378",
+    "metadata_hash": "00f0cd9b3a94085e261d8ca28a2f098ca6dc221061b768c876d9fb663b08d27d",
     "policy": {
       "id": "native-evidenced-opaque-v1",
       "minimum_asset_size": 256
@@ -1072,5 +1072,5 @@
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "9ed08930e9610b9615839cf5b08da556b8de8db2dd555370fdabc593054e564d"
+  "sha256": "6f0fbc2559a2154d988bb205767729e1adb89a869b684ca734da9fd5eb63cacb"
 }

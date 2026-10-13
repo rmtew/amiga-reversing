@@ -7489,7 +7489,7 @@ begin_security_checkpoint_response:
 	move.l a5,d0
 	beq.b abs_0_00018982
 	move.w abs_0_00010772.l,app_02D2(a6)
-	jsr abs_0_0005D310.l
+	jsr start_paired_feedback_audio_sequences.l
 	addq.b #1,app_02CF(a6)
 	movea.l $0014(a5),a0
 	move.b (a0),$0046(a5)
@@ -19465,8 +19465,11 @@ abs_0_0005D304:
 abs_0_0005D30A:
 	move.w #$201,d0
 	bra.b start_feedback_audio_sequence
-abs_0_0005D310:
-	dc.b $70,$0E,$61,$1C,$30,$3C,$03,$0C,$60,$16
+start_paired_feedback_audio_sequences:
+	moveq.l #14,d0
+	bsr.b start_feedback_audio_sequence
+	move.w #$30C,d0
+	bra.b start_feedback_audio_sequence
 abs_0_0005D31A:
 	move.w #$102,d0
 	bra.b start_feedback_audio_sequence
@@ -19495,9 +19498,13 @@ abs_0_0005D34C:
 abs_0_0005D364:
 	move.w d0,d0
 	rts
+    ; Reset keeps ticks and NPC pending bits. An already-pending handler waits on nonzero channel-2 ticks; inactive dispatch cannot drain them. Another writer or reactivation is needed.
 clear_security_checkpoint_audio_state:
-	dc.b $08,$AE,$00,$07,$03,$3C,$48,$E7,$7F,$7E,$4E,$B9,$00,$05,$D8,$72
-	dc.b $4C,$DF,$7E,$FE,$4E,$75
+	bclr.b #7,app_033C(a6)
+	movem.l d1-d7/a1-a6,-(a7)
+	jsr reset_audio_channels.l
+	movem.l (a7)+,d1-d7/a1-a6
+	rts
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_musician:
 	jsr is_player_within_world_object_interaction_range.l
@@ -20617,6 +20624,7 @@ start_audio_sequence:
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
 	lea.l initialize_audio_player(pc),a3
 	bsr.w initialize_audio_sample_metadata
+    ; Unchecked packed selector: high byte is channel 0..3; low byte is configuration 0..28. EXT.W sign-extends the low byte for the 22-byte lookup; the channel selects playback and DMA records.
 	move.w d0,$0EB0(a3)
 	moveq.l #0,d7
 	lea.l audio_channel_dma_configurations(pc),a4
@@ -20708,73 +20716,73 @@ abs_0_0005E4F8:
 abs_0_0005E510:
 	rts
 service_audio_channel_playback:
-	subq.b #1,$0012(a1)
+	subq.b #1,audio_channel_playback_state_playback_ticks_remaining(a1)
 	bne.b abs_0_0005E550
-	sf.b $0018(a1)
+	sf.b audio_channel_playback_state_active(a1)
 	move.w d2,_custom+dmacon.l
-	sf.b $000B(a4)
-	tst.b $000A(a4)
+	sf.b audio_channel_dma_configuration_start_pending(a4)
+	tst.b audio_channel_dma_configuration_enabled(a4)
 	beq.b abs_0_0005E54E
-	move.l $0000(a4),aud0+ac_ptr(a0)	; sound_sample pointer
-	move.w $0004(a4),aud0+ac_len(a0)
-	move.w $0006(a4),aud0+ac_per(a0)	; audio period
-	move.w $0008(a4),aud0+ac_vol(a0)
+	move.l audio_channel_dma_configuration_sample_ptr.w(a4),aud0+ac_ptr(a0)	; sound_sample pointer
+	move.w audio_channel_dma_configuration_sample_length(a4),aud0+ac_len(a0)
+	move.w audio_channel_dma_configuration_sample_period(a4),aud0+ac_per(a0)	; audio period
+	move.w audio_channel_dma_configuration_sample_volume(a4),aud0+ac_vol(a0)
 	ori.w #33280,d2
 	move.w d2,_custom+dmacon.l
 abs_0_0005E54E:
 	rts
 abs_0_0005E550:
-	tst.b $0015(a1)
+	tst.b audio_channel_playback_state_update_disabled(a1)
 	beq.b abs_0_0005E558
 	rts
 abs_0_0005E558:
-	tst.b $000F(a1)
+	tst.b audio_channel_playback_state_period_delta_interval(a1)
 	beq.b abs_0_0005E580
-	subq.b #1,$0017(a1)
+	subq.b #1,audio_channel_playback_state_period_delta_countdown(a1)
 	bne.b abs_0_0005E580
-	move.b $000F(a1),$0017(a1)
-	move.l $0004(a1),d0
-	move.b $0010(a1),d1
+	move.b audio_channel_playback_state_period_delta_interval(a1),audio_channel_playback_state_period_delta_countdown(a1)
+	move.l audio_channel_playback_state_period_delta_step_pair(a1),d0
+	move.b audio_channel_playback_state_period_delta_select(a1),d1
 	ror.b #1,d1
 	bcs.b abs_0_0005E578
 	swap.w d0
 abs_0_0005E578:
-	move.b d1,$0010(a1)
-	add.w d0,$0008(a1)
+	move.b d1,audio_channel_playback_state_period_delta_select(a1)
+	add.w d0,audio_channel_playback_state_current_period(a1)
 abs_0_0005E580:
-	move.w $0000(a1),d1
-	add.w d1,$0008(a1)
-	tst.b $000E(a1)
+	move.w audio_channel_playback_state_period_delta.w(a1),d1
+	add.w d1,audio_channel_playback_state_current_period(a1)
+	tst.b audio_channel_playback_state_period_reset_interval(a1)
 	beq.b abs_0_0005E5A0
-	subq.b #1,$0016(a1)
+	subq.b #1,audio_channel_playback_state_period_reset_countdown(a1)
 	bne.b abs_0_0005E5A0
-	move.b $000E(a1),$0016(a1)
-	move.w $0002(a1),$0008(a1)
+	move.b audio_channel_playback_state_period_reset_interval(a1),audio_channel_playback_state_period_reset_countdown(a1)
+	move.w audio_channel_playback_state_period_reset_value(a1),audio_channel_playback_state_current_period(a1)
 abs_0_0005E5A0:
-	subq.b #1,$0019(a1)
+	subq.b #1,audio_channel_playback_state_sequence_countdown(a1)
 	bne.b abs_0_0005E5BE
-	move.b $0013(a1),$0019(a1)
-	movea.l $001A(a1),a2
+	move.b audio_channel_playback_state_sequence_interval(a1),audio_channel_playback_state_sequence_countdown(a1)
+	movea.l audio_channel_playback_state_sequence_ptr(a1),a2
     ; Secondary envelope: negative byte retains pointer and previous volume. Reload H gives H eligible service visits (zero wraps 256), unlike primary H+1; duration/update-disable gates apply.
 	move.b (a2)+,d0
 	bmi.b abs_0_0005E5BE
-	move.l a2,$001A(a1)
+	move.l a2,audio_channel_playback_state_sequence_ptr(a1)
 	ext.w d0
 	move.w d0,$00A8(a0)
 abs_0_0005E5BE:
-	move.w $0008(a1),d1
+	move.w audio_channel_playback_state_current_period(a1),d1
 	cmp.w #$7C,d1
 	bge.b abs_0_0005E5CA
 	moveq.l #124,d1
 abs_0_0005E5CA:
 	move.w d1,$00A6(a0)
-	move.l $000A(a1),d1
-	move.b $0011(a1),d0
+	move.l audio_channel_playback_state_sample_address_offset_pair(a1),d1
+	move.b audio_channel_playback_state_sample_address_offset_select(a1),d0
 	ror.b #1,d0
 	bcs.b abs_0_0005E5DC
 	swap.w d1
 abs_0_0005E5DC:
-	move.b d0,$0011(a1)
+	move.b d0,audio_channel_playback_state_sample_address_offset_select(a1)
 	movea.l audio_sample_address_base(pc),a1
 	adda.w d1,a1
 	move.l a1,$00A0(a0)
@@ -21282,6 +21290,7 @@ audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $00	; update_disabled
 audio_sample_address_base:
 	dc.l $00000000	; audio_sequence_envelope
+    ; Six signed offsets from initialize_audio_player locate secondary volume envelopes. All 29 configurations select 0..5; double the index, load a signed word, then add the audio-player base.
 envelope_offsets:
 	dc.w $1170,$11A0,$11B9,$11BB,$11CB,$11D6	; audio_sequence_envelope
 secondary_volume_envelope_0:
