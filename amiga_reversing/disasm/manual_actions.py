@@ -344,6 +344,7 @@ def append_manual_actions(
             additions.append(action)
         if additions:
             _validate_candidate_equate_capacity(target_dir, additions, binary_source=binary_source)
+            _validate_candidate_policy_capacity(target_dir, additions, binary_source=binary_source)
             _validate_changed_native_comments(initial_projection, projection)
             suffix = additions if records else [header, *additions]
             atomic_append_history(path, "".join(json.dumps(record, sort_keys=True) + "\n" for record in suffix).encode("utf-8"))
@@ -1428,7 +1429,7 @@ def _validated_data_block_interpreted_ref(
     if width > 4 or source_value >= (1 << (width * 8)):
         raise ValueError("data_block_interpreted_ref source_value does not fit width")
     if reference_kind == "base_displacement":
-        validate_base_displacement_owner(ref, element)
+        validate_base_displacement_owner(ref, element, defer_struct_leaf=True)
         layout = (layouts or {}).get(element_key[0], {})
         source_start = _manual_seed_int(layout, "source_start")
         source_addr = None if source_start is None else source_start + element_key[1]
@@ -2290,6 +2291,41 @@ def _validate_candidate_equate_capacity(
     metadata = effective_target_metadata(target_dir, pending_actions=pending_actions, binary_source=binary_source)
     if metadata is not None and metadata.target_equates:
         validate_target_equate_count_with_c_backend(len(metadata.target_equates))
+
+
+# These actions can change native structured-item or named-label expansion.
+# Presentation, EQU-only, and register-contract edits do not need this codec pass.
+_POLICY_STORAGE_ACTION_KINDS = frozenset({
+    ManualActionKind.CREATE_MANUAL_SEED, ManualActionKind.REMOVE_MANUAL_SEED,
+    ManualActionKind.RENAME_DATA_SYMBOL, ManualActionKind.SUPPRESS_SEEDED_ITEM,
+    ManualActionKind.CREATE_MANUAL_LABEL, ManualActionKind.REMOVE_MANUAL_LABEL,
+    ManualActionKind.RENAME_MANUAL_LABEL, ManualActionKind.CHANGE_LABEL_SCOPE,
+    ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT, ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT,
+    ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT, ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT_FIELD,
+    ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT_FIELD, ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT_FIELD,
+    ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT,
+    ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT,
+    ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT, ManualActionKind.REPRESENT_MANUAL_DATA_BLOCK_ELEMENT,
+    ManualActionKind.INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF, ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF,
+    ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW, ManualActionKind.REMOVE_MANUAL_EXECUTION_VIEW,
+    ManualActionKind.CREATE_MANUAL_RUNTIME_OBSERVATION_VIEW, ManualActionKind.REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW,
+    ManualActionKind.CREATE_MANUAL_RUNTIME_DATA_RANGE, ManualActionKind.REMOVE_MANUAL_RUNTIME_DATA_RANGE,
+    ManualActionKind.UNDO_ACTION, ManualActionKind.REDO_ACTION,
+})
+
+
+def _validate_candidate_policy_capacity(
+    target_dir: Path, pending_actions: Sequence[dict[str, object]], *, binary_source: BinarySource,
+) -> None:
+    if not any(manual_action_kind(str(action["kind"])) in _POLICY_STORAGE_ACTION_KINDS
+               for action in pending_actions):
+        return
+    from amiga_reversing.disasm.c_backend import validate_policy_storage_with_c_backend
+    from amiga_reversing.disasm.effective_metadata import effective_metadata_text
+
+    text = effective_metadata_text(target_dir, pending_actions=pending_actions, binary_source=binary_source)
+    if text:
+        validate_policy_storage_with_c_backend(binary_source, metadata_text=text)
 
 
 def load_manual_projection(

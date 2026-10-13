@@ -318,10 +318,20 @@ def test_invalid_distinct_locator_does_not_bypass_validation_or_leak_snapshot(
     assert server._COMMAND_NAVIGATION_SNAPSHOTS.get() is None
     assert not (batch_target.directory / "manual_actions.jsonl").exists()
     assert journal.read_bytes() == b"preserve journal bytes\n"
+    # The immutable navigation payload survives a rejected request, but the
+    # separate lookup must still validate the current source identity.
+    hashes = []
+    original_key = server._project_listing_cache_key
+    def fresh_key(name):
+        hashes.append(name)
+        return original_key(name)
+    monkeypatch.setattr(server, "_project_listing_cache_key", fresh_key)
     server._resolve_command_locator(
         "bloodwych", batch_target.entries[1]["context"]["locator"]
     )
-    assert len(calls) == 2
+    assert hashes and set(hashes) == {"bloodwych"}
+    assert len(calls) == 1
+    assert server._COMMAND_NAVIGATION_SNAPSHOTS.get() is None
 
 
 def test_navigation_exception_restores_request_scope(batch_target, monkeypatch):

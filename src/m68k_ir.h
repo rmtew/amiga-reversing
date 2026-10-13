@@ -46,8 +46,19 @@ typedef struct M68kRenderPolicy {
 
 #define M68K_ANALYSIS_REGISTER_SEED_LIMIT 64U
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 256U
-#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 4096U
-#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 4096U
+#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 8192U
+#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 8192U
+#if M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT > UINT16_MAX || M68K_ANALYSIS_NAMED_LABEL_LIMIT > UINT16_MAX
+#error Analysis policy collection limits must fit their uint16_t counters
+#endif
+
+#define M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED (-2)
+#define M68K_ANALYSIS_STORAGE_CAPACITY_NONE 0U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_STRUCTURED_DATA 1U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_NAMED_LABELS 2U
+/* Nonfatal: authoritative source-analysis arena items exceed the policy mirror. */
+#define M68K_ANALYSIS_STORAGE_STRUCTURED_MIRROR_INCOMPLETE 3U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES 4U
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
@@ -55,7 +66,10 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
 #define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 512U
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
-#define M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT 128U
+#define M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT 512U
+#if M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT > UINT16_MAX
+#error Manual data reference limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT 32U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
@@ -723,7 +737,8 @@ typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
   uint8_t disable_implicit_entry_points;
-  uint8_t reserved0[1];
+  /* Transient storage status in the previously reserved ABI byte. */
+  uint8_t storage_capacity_status;
   uint16_t register_seed_count;
   uint16_t function_summary_count;
   uint16_t entry_point_count;
@@ -2776,8 +2791,12 @@ int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
-int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count);
-int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16_t required_count);
+int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy);
+/* 0: reserved, -1: invalid storage/allocation failure, -2: capacity exceeded.
+   Accept wide requests so a caller cannot implicitly narrow an oversized count. */
+int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, size_t required_count);
+int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, size_t required_count);
 /* Initialize before indexed writes; reserve before exceeding the inline capacity.
    Zero-initialized policies support reserve/copy/destroy. Copy destinations must
    be fresh or destroyed, as for the other owned policy collections. */

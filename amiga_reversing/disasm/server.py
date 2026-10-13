@@ -198,6 +198,30 @@ _LISTING_PROJECTION_SERVICE = ListingProjectionService()
 _COMMAND_NAVIGATION_SNAPSHOTS: ContextVar[dict[tuple[str, str], tuple[object, object]] | None] = ContextVar(
     "command_navigation_snapshots", default=None
 )
+_LISTING_CACHE_KEY_SNAPSHOT: ContextVar[dict[str, str] | None] = ContextVar(
+    "listing_cache_key_snapshot", default=None
+)
+
+
+@contextlib.contextmanager
+def _listing_read_snapshot():
+    """Reuse full content hashes only within one target-locked operation."""
+    if _LISTING_CACHE_KEY_SNAPSHOT.get() is not None:
+        yield
+        return
+    token = _LISTING_CACHE_KEY_SNAPSHOT.set({})
+    try:
+        yield
+    finally:
+        _LISTING_CACHE_KEY_SNAPSHOT.reset(token)
+
+
+def _discard_listing_read_snapshot(project_name: str) -> None:
+    snapshot = _LISTING_CACHE_KEY_SNAPSHOT.get()
+    if snapshot is not None:
+        snapshot.pop(project_name, None)
+
+
 WEB_STATE_COMMAND_CONTRACT = "locator-command-v1"
 _SOURCE_EVIDENCE_CONTEXT_KEYS = (
     "source_evidence_id",
@@ -1060,6 +1084,7 @@ def _clear_project_listing_cache(project_name: str, *, keep_stale_artifact: bool
 
 
 def _clear_project_listing_cache_locked(project_name: str, *, keep_stale_artifact: bool = False) -> None:
+    _discard_listing_read_snapshot(project_name)
     if keep_stale_artifact:
         _LISTING_PROJECTION_SERVICE.invalidate_project_keep_artifact(project_name)
     else:
@@ -1309,6 +1334,16 @@ def _is_listing_project(project: ProjectRecord) -> bool:
 
 
 def _project_listing_cache_key(project_name: str) -> str:
+    snapshot = _LISTING_CACHE_KEY_SNAPSHOT.get()
+    if snapshot is not None and project_name in snapshot:
+        return snapshot[project_name]
+    key = _compute_project_listing_cache_key(project_name)
+    if snapshot is not None:
+        snapshot[project_name] = key
+    return key
+
+
+def _compute_project_listing_cache_key(project_name: str) -> str:
     try:
         project = get_project(project_name)
     except FileNotFoundError:
@@ -2413,7 +2448,10 @@ def _resolve_command_locator(
                 if cached is not None and cached[0] is artifact:
                     navigation = cached[1]
                 else:
-                    navigation, _navigation_profile = navigation_payload()
+                    navigation, _navigation_profile = _LISTING_PROJECTION_SERVICE.cached_native_navigation_payload(
+                        project_id=project_name, artifact=artifact,
+                        current_cache_key=_project_listing_cache_key(project_name),
+                    )
                     if snapshots is not None:
                         snapshots[snapshot_key] = (artifact, navigation)
         finally:
@@ -2431,7 +2469,7 @@ def _resolve_command_locator(
     if isinstance(navigation, Mapping):
         app_slot_analysis = navigation.get("app_slot_analysis")
         if isinstance(app_slot_analysis, Mapping):
-            row["app_slot_analysis"] = dict(app_slot_analysis)
+            row["app_slot_analysis"] = deepcopy(app_slot_analysis)
         groups = navigation.get("groups")
         if isinstance(groups, Mapping):
             for source_key, row_key in (
@@ -2442,7 +2480,7 @@ def _resolve_command_locator(
             ):
                 value = groups.get(source_key)
                 if isinstance(value, list):
-                    row[row_key] = list(value)
+                    row[row_key] = deepcopy(value)
     row["stable_key"] = row.get("row_key")
     row["stableKey"] = row.get("row_key")
     row["row_id"] = row.get("row_key")
@@ -2925,6 +2963,7 @@ def _apply_manual_action_commands(
     binary_source = resolve_target_binary_source(paths.target_dir)
     if binary_source is None:
         raise ValueError(f"Project {project_name} has no source binary")
+    _discard_listing_read_snapshot(project_name)
     append_started_at = time.perf_counter()
     appended_actions = append_manual_actions(
         paths.target_dir,
@@ -3721,7 +3760,7 @@ def route_request(
     if len(parts) >= 3 and parts[:2] == ["api", "projects"] and parts[2] != "create":
         from amiga_reversing.disasm.target_history import target_lock
         directory = Path(get_project(parts[2]).target_dir)
-        with target_lock(directory):
+        with target_lock(directory), _listing_read_snapshot():
             return _route_request_unlocked(method, path, query, body)
     return _route_request_unlocked(method, path, query, body)
 
@@ -4129,10 +4168,13 @@ def _route_request_unlocked(
                 )
             listing_artifact = _listing_read_artifact(project_name)
             if listing_artifact is not None:
-                navigation_payload, _ = listing_artifact.navigation_payload()
+                navigation_payload, _ = _LISTING_PROJECTION_SERVICE.cached_native_navigation_payload(
+                    project_id=project_name, artifact=listing_artifact,
+                    current_cache_key=_project_listing_cache_key(project_name),
+                )
                 return {
                     "ok": True,
-                    "data": _overlay_listing_navigation_payload(project_name, navigation_payload, listing_artifact),
+                    "data": _overlay_listing_navigation_payload(project_name, deepcopy(navigation_payload), listing_artifact),
                 }
             raise ValueError(
                 f"C listing artifact not loaded for project: {project_name}"

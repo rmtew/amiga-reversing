@@ -4573,7 +4573,7 @@ def _data_block_element_ref_payload(
         validate_base_displacement_reference(ref, source_hunk=source_hunk, source_addr=source_addr)
         owner = _active_data_block_element(rows[0], context) if rows else None
         if owner is not None:
-            validate_base_displacement_owner(ref, owner)
+            validate_base_displacement_owner(ref, owner, defer_struct_leaf=True)
     for field_name in ("base_evidence_id", "source_evidence_id"):
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():

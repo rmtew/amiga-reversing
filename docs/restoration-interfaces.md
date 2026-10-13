@@ -104,6 +104,10 @@ as fresh catalog state, so dependent commands require a new inspection.
 
 Run `interpret`, inspect its new revision, then `verify`. Verification returns a
 `receipt_id`; review acceptance requires that receipt for the current subject.
+`review_batch` reviews 1–100 unique `action_ids` with one decision, reason and
+current verification receipt. It validates every action and the complete
+decision chain before one atomic append, including supersessions. Its bounded
+response contains decision identities, one compact proof and the fresh revision.
 A bounded `probe` associates its configured scenario with an explicit question
 and verification receipt. “Not observed” records the tested conditions; it is
 not proof of unreachability. `history` preserves decisions and shows whether
@@ -148,7 +152,7 @@ Launch the adapter through an MCP host's stdio configuration:
 
 The project server must already run. The adapter opens no listener and only
 connects to a local HTTP origin. Its domain tools mirror state, export, query,
-inspect, interpret, interpret_batch, verify, probe, review, history and rollback. Read operations
+inspect, interpret, interpret_batch, verify, probe, review, review_batch, history and rollback. Read operations
 are annotated read-only; mutations require explicit revisions. HTTP domain
 refusals surface as MCP tool errors, without automatic retries.
 

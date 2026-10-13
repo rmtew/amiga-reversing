@@ -58,6 +58,7 @@ from amiga_reversing.disasm.target_metadata import (
     apply_suppressed_seeded_items,
     load_target_metadata,
     target_metadata_json_payload,
+    validate_base_displacement_owner,
     validate_base_displacement_reference,
 )
 
@@ -1487,6 +1488,7 @@ def _data_block_element_interpreted_ref_representation(
 def _data_block_element_interpreted_data_reference(
     layout: DataBlockLayoutMetadata,
     ref: Mapping[str, object],
+    custom_structs: Mapping[str, CustomStructMetadata],
 ) -> ManualDataReferenceMetadata | None:
     if not isinstance(ref, dict) or ref.get("reference_kind") != "base_displacement":
         return None
@@ -1497,6 +1499,30 @@ def _data_block_element_interpreted_data_reference(
     addr, end = layout.source_start + offset, layout.source_start + offset + 2
     if addr < layout.source_start or end > layout.source_end:
         raise ValueError("base_displacement must occupy one word within its layout")
+    owners = [element for element in layout.elements
+              if element.offset <= offset and offset + 2 <= element.offset + element.width]
+    if len(owners) != 1:
+        raise ValueError("base_displacement requires one unambiguous data-block owner")
+    owner = owners[0]
+    validate_base_displacement_owner(ref, {
+        "offset": owner.offset, "width": owner.width, "kind": owner.kind,
+        "array_stride": owner.array_stride, "type_binding": owner.type_binding,
+    }, defer_struct_leaf=True)
+    if _data_block_bound_struct(owner, custom_structs) is not None:
+        # Use the same merged declarations and field expansion as source
+        # generation. This includes seeded types and current field edits and
+        # rejects invalid/overlapping declarations and invalid array strides.
+        leaves = _data_block_bound_struct_entities(layout, owner, custom_structs)
+        matches = [leaf for leaf in leaves if leaf.addr == addr and leaf.end == end
+                   and leaf.unit == "word" and (leaf.field_type or "").upper() in {"WORD", "UWORD"}
+                   and leaf.value_kind == "scalar" and leaf.field_name]
+        if len(matches) != 1:
+            raise ValueError("base_displacement requires an exact declared WORD leaf in its struct owner")
+    elif owner.kind in {DataBlockElementKind.STRUCT, DataBlockElementKind.PLATFORM_STRUCT} or (
+        isinstance(owner.type_binding, dict)
+        and owner.type_binding.get("binding_kind") in {"custom_struct", "platform_struct"}
+    ):
+        raise ValueError("base_displacement struct owner requires a resolved type declaration")
     base = cast(dict[str, int], ref["base_locator"])
     return ManualDataReferenceMetadata(
         addr=addr, hunk=layout.hunk, size=2,
@@ -2278,7 +2304,9 @@ def _apply_manual_seed_projection(
                 relative_ref_interpretations.setdefault(key, embedded_ref)
         for (layout_id, _), ref in relative_ref_interpretations.items():
             if layout_id == effective_layout.layout_id:
-                interpreted_data_reference = _data_block_element_interpreted_data_reference(effective_layout, ref)
+                interpreted_data_reference = _data_block_element_interpreted_data_reference(
+                    effective_layout, ref, merged_custom_structs,
+                )
                 if interpreted_data_reference is not None:
                     manual_data_references.append(interpreted_data_reference)
     merged_target_equates = {equate.name: equate for equate in target_equates}
@@ -2444,14 +2472,21 @@ def _a5_decision_identity_matches_ref(identity: Mapping[str, object], ref: Mappi
     return True
 
 
-def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool = True) -> str:
-    metadata = effective_target_metadata(target_dir, include_decision_journal=include_decision_journal)
+def effective_metadata_text(
+    target_dir: Path, *, include_decision_journal: bool = True,
+    pending_actions: Sequence[dict[str, object]] = (), binary_source: BinarySource | None = None,
+) -> str:
+    metadata = effective_target_metadata(
+        target_dir, include_decision_journal=include_decision_journal,
+        pending_actions=pending_actions, binary_source=binary_source,
+    )
     if metadata is None:
         return ""
     payload = target_metadata_json_payload(metadata)
     projection = load_manual_projection(
         target_dir,
-        binary_source=resolve_target_binary_source(target_dir),
+        binary_source=binary_source or resolve_target_binary_source(target_dir),
+        pending_actions=pending_actions,
     )
     if projection.runtime_observation_views:
         observations = [dict(view) for view in projection.runtime_observation_views]

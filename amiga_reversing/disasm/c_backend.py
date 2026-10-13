@@ -864,6 +864,29 @@ def validate_entry_comments_with_c_backend(
                              "(including Unicode escapes and escaped control characters)")
 
 
+def validate_policy_storage_with_c_backend(
+    binary_source: BinarySource, *, metadata_text: str, project_root: Path = PROJECT_ROOT,
+) -> None:
+    """Check expanded native storage, including object seeds, before persistence."""
+    # The existing native API takes a filename, not inline JSON. Keep the
+    # candidate isolated and disposable; the target histories remain untouched.
+    with tempfile.TemporaryDirectory(prefix="amiga-policy-preflight-") as directory:
+        metadata_path = Path(directory) / "metadata.json"
+        metadata_path.write_text(metadata_text, encoding="utf-8")
+        try:
+            effective_policy_project_source_with_c_backend(
+                binary_source, metadata_path=metadata_path, project_root=project_root,
+            )
+        except RuntimeError as exc:
+            message = str(exc).removeprefix("C backend DLL failed: ")
+            if any(kind in message for kind in (
+                "structured data item capacity exceeded", "named label capacity exceeded",
+                "manual data reference capacity exceeded",
+            )):
+                raise ValueError(message) from exc
+            raise
+
+
 def effective_policy_project_source_with_c_backend(
     binary_source: BinarySource,
     *,

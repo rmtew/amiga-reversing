@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import uuid
+from contextlib import nullcontext
 from datetime import UTC, datetime
 
 from amiga_reversing.disasm.decision_journal import (
@@ -58,8 +59,9 @@ def revisions(target_id: str) -> dict[str, str]:
             "revision": _digest({"subject": subject, "history": history_revision(directory)})}
 
 
-def require_revision(target_id, expected):
-    current = revisions(target_id)
+def require_revision(target_id, expected, *, current=None):
+    if current is None:
+        current = revisions(target_id)
     if not isinstance(expected, str) or expected != current["revision"]:
         raise ValueError("stale_revision: supply the exact revision from the inspected state; reload before deciding")
     return current
@@ -79,11 +81,12 @@ def _records(target_id):
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()][1:] if path.exists() else []
 
 
-def _history(target_id):
+def _history(target_id, *, subject_revision=None, journal=None):
     records = _records(target_id)
     projection = load_manual_projection(_paths(target_id).target_dir, binary_source=_paths(target_id).binary_source)
     active_ids = set(projection.active_action_ids)
-    journal = read_decision_journal(_paths(target_id).target_dir)
+    if journal is None:
+        journal = read_decision_journal(_paths(target_id).target_dir)
     if not journal["valid"]:
         raise ValueError("invalid_decision_history: repair history before restoration")
     decisions = journal.get("records", [])
@@ -96,7 +99,7 @@ def _history(target_id):
                 if action_id in by_action:
                     raise ValueError("conflicting interpretation decisions require explicit supersession")
                 by_action[action_id] = record
-    subject = revisions(target_id)["subject_revision"]
+    subject = subject_revision if subject_revision is not None else revisions(target_id)["subject_revision"]
     result = []
     for record in records:
         action_id = record.get("action_id")
@@ -249,7 +252,7 @@ def _query(target_id, body, current):
     elif kind in {"symbols", "references", "fields", "instructions", "edges"}:
         page = artifact.query_payload(**filters, offset=offset, limit=limit)
         if kind == "symbols":
-            interpretations = _history(target_id)
+            interpretations = _history(target_id, subject_revision=current["subject_revision"])
             for item in page["items"]:
                 identity = _source_identity(item)
                 matching = [entry for entry in interpretations if identity is not None and entry["active"]
@@ -292,7 +295,7 @@ def _inspect(target_id, body, current):
     relationships = {kind: _query(target_id, {"kind": kind, "section_index": section,
                      "source_offset": offset, "limit": 30}, current) for kind in ("references", "edges")}
     key = row.get("stable_key") or row.get("row_key")
-    interpretations = [h for h in _history(target_id) if key in h["interpretation"].get("evidence_refs", [])]
+    interpretations = [h for h in _history(target_id, subject_revision=current["subject_revision"]) if key in h["interpretation"].get("evidence_refs", [])]
     function = _query(target_id, {"kind": "functions", "section_index": section,
                        "source_offset": offset, "limit": 1}, current)
     return {**current, "locator": locator, "function": function, "instructions": instructions,
@@ -342,17 +345,50 @@ def _interpret_batch(target_id, body, current):
     return _server()._execute_catalog_commands_unchecked(target_id, prepared)
 
 
-def _review(target_id, body, current):
+def _prepare_review_records(target_id, body, current, item, chain):
+    action_id, choice, reason = item["action_id"], body["decision"], body["reason"]
+    refs = item["interpretation"].get("evidence_refs", [])
+    record = {"schema": "evidence-decision/v1", "decision_id": f"restoration-{uuid.uuid4().hex}",
+              "created_at": datetime.now(UTC).isoformat(), "actor": {"kind": "tool", "name": "restoration"},
+              "action": {"accept": "accept_fact", "defer": "defer_fact", "reject": "reject_fact"}[choice],
+              "candidate_id": f"restoration:{action_id}", "selected_identity": {"target_id": target_id,
+                 "subject_kind": "action", "subject_id": action_id}, "evidence_refs": refs,
+              "conflicts": [], "fact_type": "restoration_interpretation", "scope": {"kind": "manual_action"},
+              "reason": reason, "subject_revision": current["subject_revision"],
+              "verification_id": body.get("verification_id"), "probe_id": body.get("probe_id"),
+              "prev": decision_journal_next_prev(chain)}
+    if choice != "accept":
+        record[f"{choice}_reason"] = reason
+    batch = []
+    previous = item.get("decision")
+    if previous:
+        supersession = {"schema": "evidence-decision/v1", "decision_id": f"restoration-{uuid.uuid4().hex}",
+            "created_at": datetime.now(UTC).isoformat(), "actor": {"kind": "tool", "name": "restoration"},
+            "action": "supersede_decision", "supersedes_decision_id": previous["decision_id"],
+            "replacement_decision_id": record["decision_id"], "reason": reason,
+            "prev": decision_journal_next_prev(chain)}
+        batch.append(supersession)
+        record["prev"] = decision_journal_next_prev([supersession])
+    return [*batch, record], record
+
+
+def _review_many(target_id, body, current, action_ids):
     from amiga_reversing.disasm import restoration_verification as verification
-    action_id, choice, reason = body.get("action_id"), body.get("decision"), body.get("reason")
+    choice, reason = body.get("decision"), body.get("reason")
     if choice not in {"accept", "defer", "reject"} or not isinstance(reason, str) or not reason.strip():
         raise ValueError("review requires accept/defer/reject and a reason")
-    item = next((i for i in _history(target_id) if i["action_id"] == action_id), None)
-    if item is None or not item["active"]:
-        raise ValueError("review requires a current active manual action")
-    refs = item["interpretation"].get("evidence_refs", [])
-    if not refs:
-        raise ValueError("legacy action has no evidence; revise it through an evidence-bearing command before review")
+    directory = _paths(target_id).target_dir
+    journal = read_decision_journal(directory)
+    history = _history(target_id, subject_revision=current["subject_revision"], journal=journal)
+    by_id = {item["action_id"]: item for item in history}
+    items = []
+    for action_id in action_ids:
+        item = by_id.get(action_id) if isinstance(action_id, str) else None
+        if item is None or not item["active"]:
+            raise ValueError("review requires a current active manual action")
+        if not item["interpretation"].get("evidence_refs", []):
+            raise ValueError("legacy action has no evidence; revise it through an evidence-bearing command before review")
+        items.append(item)
     proof = None
     if choice == "accept":
         proof = verification.load_receipt(target_id, body.get("verification_id"))
@@ -363,50 +399,67 @@ def _review(target_id, body, current):
         probe = verification.load_receipt(target_id, body["probe_id"])
         if probe.get("kind") != "probe" or probe.get("subject_revision") != current["subject_revision"]:
             raise ValueError("probe belongs to a stale source subject")
-    directory = _paths(target_id).target_dir
-    journal = read_decision_journal(directory)
-    record = {"schema": "evidence-decision/v1", "decision_id": f"restoration-{uuid.uuid4().hex}",
-              "created_at": datetime.now(UTC).isoformat(), "actor": {"kind": "tool", "name": "restoration"},
-              "action": {"accept": "accept_fact", "defer": "defer_fact", "reject": "reject_fact"}[choice],
-              "candidate_id": f"restoration:{action_id}", "selected_identity": {"target_id": target_id,
-                 "subject_kind": "action", "subject_id": action_id}, "evidence_refs": refs,
-              "conflicts": [], "fact_type": "restoration_interpretation", "scope": {"kind": "manual_action"},
-              "reason": reason, "subject_revision": current["subject_revision"],
-              "verification_id": body.get("verification_id"), "probe_id": body.get("probe_id"),
-              "prev": decision_journal_next_prev(journal.get("records", []))}
-    if choice != "accept":
-        record[f"{choice}_reason"] = reason
-    batch = []
-    previous = item.get("decision")
-    if previous:
-        supersession = {"schema": "evidence-decision/v1", "decision_id": f"restoration-{uuid.uuid4().hex}",
-            "created_at": datetime.now(UTC).isoformat(), "actor": {"kind": "tool", "name": "restoration"},
-            "action": "supersede_decision", "supersedes_decision_id": previous["decision_id"],
-            "replacement_decision_id": record["decision_id"], "reason": reason,
-            "prev": decision_journal_next_prev(journal.get("records", []))}
-        batch.append(supersession)
-        record["prev"] = decision_journal_next_prev([*journal.get("records", []), supersession])
-    result = append_decision_records(directory, [*batch, record])
+    chain = list(journal.get("records", []))
+    additions, decisions = [], []
+    for item in items:
+        records, decision = _prepare_review_records(target_id, body, current, item, chain)
+        additions.extend(records)
+        chain.extend(records)
+        decisions.append(decision)
+    _discard_read_snapshot(target_id)
+    result = append_decision_records(directory, additions)
     if result["status"] != "appended":
         raise ValueError(f"decision rejected: {result.get('diagnostics')}")
-    return {"decision": record, "verification": proof, "probe": probe}
+    return {"decisions": decisions, "verification": proof, "probe": probe}
+
+
+def _review(target_id, body, current):
+    result = _review_many(target_id, body, current, [body.get("action_id")])
+    return {"decision": result["decisions"][0], "verification": result["verification"], "probe": result["probe"]}
+
+
+def _review_batch(target_id, body, current):
+    action_ids = body.get("action_ids")
+    if not isinstance(action_ids, list) or not 1 <= len(action_ids) <= 100:
+        raise ValueError("review_batch requires 1..100 action_ids")
+    if any(not isinstance(identity, str) or not identity or len(identity) > 256 for identity in action_ids):
+        raise ValueError("review_batch action_ids must be nonempty strings of at most 256 characters")
+    if len(set(action_ids)) != len(action_ids):
+        raise ValueError("review_batch action_ids must be unique")
+    reason = body.get("reason")
+    if isinstance(reason, str) and len(reason) > 4096:
+        raise ValueError("review_batch reason must contain at most 4096 characters")
+    result = _review_many(target_id, body, current, action_ids)
+    def receipt_preview(receipt):
+        return None if receipt is None else {key: receipt[key] for key in ("receipt_id", "kind", "subject_revision", "exact") if key in receipt}
+    return {"decisions": [{"action_id": record["selected_identity"]["subject_id"],
+                           "decision_id": record["decision_id"], "action": record["action"]}
+                          for record in result["decisions"]],
+            "verification": receipt_preview(result["verification"]), "probe": receipt_preview(result["probe"])}
+
+
+def _discard_read_snapshot(target_id):
+    discard = getattr(_server(), "_discard_listing_read_snapshot", None)
+    if discard is not None:
+        discard(target_id)
 
 
 def execute(target_id: str, body: dict) -> dict:
     """One shared operation boundary for HTTP, UI, CLI and MCP."""
     operation = body.get("operation")
     directory = _paths(target_id).target_dir
-    with target_lock(directory):
+    snapshot = getattr(_server(), "_listing_read_snapshot", nullcontext)
+    with target_lock(directory), snapshot():
         current = revisions(target_id)
-        if operation in {"interpret", "interpret_batch", "command", "verify", "probe", "review", "rollback"}:
-            current = require_revision(target_id, body.get("expected_revision"))
+        if operation in {"interpret", "interpret_batch", "command", "verify", "probe", "review", "review_batch", "rollback"}:
+            current = require_revision(target_id, body.get("expected_revision"), current=current)
         elif body.get("expected_revision") is not None:
-            current = require_revision(target_id, body["expected_revision"])
+            current = require_revision(target_id, body["expected_revision"], current=current)
         if operation == "state":
             server = _server()
             artifact = server._LISTING_PROJECTION_SERVICE.valid_artifact(target_id, server._project_listing_cache_key(target_id))
             job = None if artifact is not None else server._start_listing_job(target_id, retry_failed=False)
-            history = _history(target_id)
+            history = _history(target_id, subject_revision=current["subject_revision"])
             return {**current, "ready": artifact is not None, "job": job,
                     "history_summary": {"actions": len(history), "unassessed": sum(i["status"] == "unassessed" for i in history)},
                     "unknowns": ["Semantic interpretations require evidence; exact bytes alone do not validate meaning."]}
@@ -417,7 +470,7 @@ def execute(target_id: str, body: dict) -> dict:
         if operation == "history":
             filters = {"operation": "history"}
             offset, limit = _pagination(body, current["revision"], filters)
-            return _envelope(_page(list(reversed(_history(target_id))), offset, limit), current, filters)
+            return _envelope(_page(list(reversed(_history(target_id, subject_revision=current["subject_revision"]))), offset, limit), current, filters)
         if operation == "interpret":
             result = _interpret(target_id, body, current)
         elif operation == "interpret_batch":
@@ -436,16 +489,20 @@ def execute(target_id: str, body: dict) -> dict:
                 raise ValueError("source changed during verification; receipt is not current")
         elif operation == "review":
             result = _review(target_id, body, current)
+        elif operation == "review_batch":
+            result = _review_batch(target_id, body, current)
         elif operation == "rollback":
             action_id = body.get("action_id")
             records = _records(target_id)
             if not any(r.get("action_id") == action_id and r.get("kind") not in {"undo_action", "redo_action"} for r in records):
                 raise ValueError("rollback requires a source action id")
             redo = body.get("redo", False)
+            _discard_read_snapshot(target_id)
             action = append_manual_action(directory, kind=ManualActionKind.REDO_ACTION if redo else ManualActionKind.UNDO_ACTION,
                 payload={"redoes_action_id" if redo else "undoes_action_id": action_id}, binary_source=_paths(target_id).binary_source)
             _server()._clear_project_listing_cache(target_id, keep_stale_artifact=True)
             result = {"action": action}
         else:
             raise ValueError("unknown restoration operation")
+        _discard_read_snapshot(target_id)
         return {**result, **revisions(target_id)}

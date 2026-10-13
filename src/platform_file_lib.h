@@ -30,6 +30,9 @@ PLATFORM_FILE_API size_t platform_file_entry_comment_text_capacity(void);
 PLATFORM_FILE_API size_t platform_file_entry_comment_count_capacity(void);
 /* Native target equate storage bound for durable-writer preflight. */
 PLATFORM_FILE_API size_t platform_file_target_equate_count_capacity(void);
+PLATFORM_FILE_API size_t platform_file_structured_data_item_count_capacity(void);
+PLATFORM_FILE_API size_t platform_file_named_label_count_capacity(void);
+PLATFORM_FILE_API size_t platform_file_manual_data_reference_count_capacity(void);
 /* 0: supported, 1: parsing/capacity failure, 2: lossy metadata string codec. */
 PLATFORM_FILE_API int platform_file_validate_entry_comment_text(const char *json_string, const char *text);
 typedef struct PlatformFileListingStream PlatformFileListingStream;

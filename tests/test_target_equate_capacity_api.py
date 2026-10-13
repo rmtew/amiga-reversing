@@ -36,6 +36,8 @@ def target(tmp_path, monkeypatch):
     monkeypatch.setattr(c_backend, "_platform_file_dll", lambda root: SimpleNamespace(
         platform_file_target_equate_count_capacity=capacity,
     ))
+    # This fixture exposes only the EQU codec; policy storage has separate tests.
+    monkeypatch.setattr(c_backend, "validate_policy_storage_with_c_backend", lambda *args, **kwargs: None)
     monkeypatch.setattr(server, "resolve_project_paths", lambda *args, **kwargs: SimpleNamespace(target_dir=tmp_path))
     monkeypatch.setattr(server, "resolve_target_binary_source", lambda directory: source)
     return tmp_path, source

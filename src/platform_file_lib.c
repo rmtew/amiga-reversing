@@ -2016,6 +2016,50 @@ size_t platform_file_target_equate_count_capacity(void) {
   return M68K_ANALYSIS_TARGET_EQUATE_LIMIT;
 }
 
+size_t platform_file_structured_data_item_count_capacity(void) {
+  return M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT;
+}
+
+size_t platform_file_named_label_count_capacity(void) {
+  return M68K_ANALYSIS_NAMED_LABEL_LIMIT;
+}
+
+size_t platform_file_manual_data_reference_count_capacity(void) {
+  return M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT;
+}
+
+static int platform_file_add_policy_capacity_error_local(const M68kAnalysisPolicy *policy, M68kDiagList *list) {
+  if (policy == NULL) return 0;
+  if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES ||
+      policy->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) {
+    char message[96];
+    snprintf(message, sizeof(message), "manual data reference capacity exceeded (%u)",
+      (unsigned)M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT);
+    platform_file_add_error(list, message);
+    return 1;
+  }
+  if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_STRUCTURED_DATA) {
+    char message[96];
+    snprintf(message, sizeof(message), "structured data item capacity exceeded (%u)",
+      (unsigned)M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT);
+    platform_file_add_error(list, message);
+    return 1;
+  }
+  if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_NAMED_LABELS) {
+    char message[96];
+    snprintf(message, sizeof(message), "named label capacity exceeded (%u)",
+      (unsigned)M68K_ANALYSIS_NAMED_LABEL_LIMIT);
+    platform_file_add_error(list, message);
+    return 1;
+  }
+  return 0;
+}
+
+static void platform_file_add_policy_parse_error_local(const M68kAnalysisPolicy *policy,
+    M68kDiagList *list, const char *fallback) {
+  if (!platform_file_add_policy_capacity_error_local(policy, list)) platform_file_add_error(list, fallback);
+}
+
 int platform_file_validate_entry_comment_text(const char *json_string, const char *text) {
   char parsed[sizeof(((M68kAnalysisEntryComment *)0)->comment)];
   if (json_string == NULL || text == NULL ||
@@ -7058,7 +7102,7 @@ static int policy_add_named_label_domain_local(M68kAnalysisPolicy *policy, uint3
   unsigned suffix;
   size_t index;
   if (policy == NULL || name == NULL || name[0] == '\0' ||
-      policy->named_label_count >= M68K_ANALYSIS_NAMED_LABEL_LIMIT) return 0;
+      !m68k_analysis_policy_named_labels_valid(policy)) return 0;
   snprintf(unique_name, sizeof(unique_name), "%s", name);
   for (index = 0U; index < policy->named_label_count; ++index) {
     const M68kAnalysisNamedLabel *existing = &policy->named_labels[index];
@@ -7079,7 +7123,7 @@ static int policy_add_named_label_domain_local(M68kAnalysisPolicy *policy, uint3
     if (!collision) break;
     snprintf(unique_name, sizeof(unique_name), "%s_%u", name, suffix);
   }
-  if (m68k_analysis_policy_reserve_named_labels(policy, (uint16_t)(policy->named_label_count + 1U)) != 0)
+  if (m68k_analysis_policy_reserve_named_labels(policy, (size_t)policy->named_label_count + 1U) != 0)
     return 0;
   label = &policy->named_labels[policy->named_label_count++];
   memset(label, 0, sizeof(*label));
@@ -7344,10 +7388,9 @@ static int policy_add_amiga_lvo_argument_seeds_local(M68kAnalysisPolicy *policy,
 static int policy_add_structured_data_item_section_local(M68kAnalysisPolicy *policy, uint8_t has_section_index,
     uint32_t section_index, uint32_t offset, uint32_t size, uint8_t kind, const char *comment) {
   M68kAnalysisStructuredDataItem *item;
-  if (policy == NULL || size == 0U ||
-      policy->structured_data_item_count >= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return 0;
+  if (policy == NULL || size == 0U) return 0;
   if (m68k_analysis_policy_reserve_structured_data_items(policy,
-      (uint16_t)(policy->structured_data_item_count + 1U)) != 0)
+      (size_t)policy->structured_data_item_count + 1U) != 0)
     return 0;
   item = &policy->structured_data_items[policy->structured_data_item_count++];
   memset(item, 0, sizeof(*item));
@@ -7834,6 +7877,11 @@ static int append_metadata_manual_data_reference_local(const char *start, const 
   int present = 0;
   char kind[32];
   uint16_t index;
+  if (policy == NULL) return 0;
+  if (policy->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES;
+    return 0;
+  }
   memset(&ref, 0, sizeof(ref));
   kind[0] = '\0';
 #define REQUIRED_UINT(key, field) \
@@ -7870,7 +7918,10 @@ static int append_metadata_manual_data_reference_local(const char *start, const 
     if (existing->section_index == ref.section_index && existing->offset < ref.offset + 2U &&
         ref.offset < existing->offset + 2U) return 0;
   }
-  if (policy->manual_data_reference_count >= M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) return 0;
+  if (policy->manual_data_reference_count >= M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES;
+    return 0;
+  }
   policy->manual_data_references[policy->manual_data_reference_count++] = ref;
   return 1;
 }
@@ -8651,7 +8702,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
   text_end = text + strlen(text);
   target_type[0] = '\0';
   if (!json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type))) {
-    platform_file_add_error(diagnostics.list, "failed parsing target metadata target_type");
+    platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata target_type");
     return -1;
   }
   target_type_id = metadata_target_type_id_from_text_local(target_type);
@@ -8659,7 +8710,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     policy->disable_implicit_entry_points = 1U;
   }
   if (!append_metadata_source_context_local(text, policy)) {
-    platform_file_add_error(diagnostics.list, "failed parsing target metadata source context");
+    platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata source context");
     return -1;
   }
   cursor = json_find_array_local(text, "entry_register_seeds", &array_end);
@@ -8668,7 +8719,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_register_seed_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata entry register seed");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata entry register seed");
       return -1;
     }
     cursor = object_end;
@@ -8679,7 +8730,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_function_summary_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata function summary");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata function summary");
       return -1;
     }
     cursor = object_end;
@@ -8690,7 +8741,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_abstract_region_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata abstract region");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata abstract region");
       return -1;
     }
     cursor = object_end;
@@ -8701,7 +8752,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_entry_point_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata code entrypoint");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata code entrypoint");
       return -1;
     }
     cursor = object_end;
@@ -8712,7 +8763,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_seeded_code_label_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata code label");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata code label");
       return -1;
     }
     cursor = object_end;
@@ -8723,7 +8774,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_entry_comment_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata entry comment");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata entry comment");
       return -1;
     }
     cursor = object_end;
@@ -8734,7 +8785,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_seeded_entity_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata seeded entity");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata seeded entity");
       return -1;
     }
     cursor = object_end;
@@ -8752,7 +8803,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
           (unsigned)M68K_ANALYSIS_TARGET_EQUATE_LIMIT);
         platform_file_add_error(diagnostics.list, message);
       } else {
-        platform_file_add_error(diagnostics.list, "failed parsing target metadata target equate");
+        platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata target equate");
       }
       return -1;
     }
@@ -8764,7 +8815,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_custom_struct_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata custom struct");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata custom struct");
       return -1;
     }
     cursor = object_end;
@@ -8775,7 +8826,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_manual_representation_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata manual representation");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata manual representation");
       return -1;
     }
     cursor = object_end;
@@ -8786,7 +8837,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_manual_runtime_address_ref_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata manual runtime address ref");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata manual runtime address ref");
       return -1;
     }
     cursor = object_end;
@@ -8797,7 +8848,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_manual_data_reference_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata manual data reference");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata manual data reference");
       return -1;
     }
     cursor = object_end;
@@ -8808,7 +8859,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_execution_view_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata execution view");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata execution view");
       return -1;
     }
     cursor = object_end;
@@ -8819,7 +8870,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_runtime_observation_view_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata runtime observation view");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata runtime observation view");
       return -1;
     }
     cursor = object_end;
@@ -8830,7 +8881,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_absolute_code_label_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata absolute code label");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata absolute code label");
       return -1;
     }
     cursor = object_end;
@@ -8843,10 +8894,11 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
   const char *array_end;
   const char *cursor;
   if (!append_metadata_bootblock_structure_local(text, policy)) {
-    platform_file_add_error(diagnostics.list, "failed parsing target metadata bootblock structure");
+    platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata bootblock structure");
     return -1;
   }
   if (!append_metadata_resident_structure_local(text, policy)) {
+    if (platform_file_add_policy_capacity_error_local(policy, diagnostics.list)) return -1;
     append_metadata_resident_parse_issue_local(text, policy);
     platform_file_add_warning(diagnostics.list, "failed parsing target metadata resident structure");
   }
@@ -8856,7 +8908,7 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_rsset_layout_region_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata RSSET layout region");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata RSSET layout region");
       return -1;
     }
     cursor = object_end;
@@ -8867,7 +8919,7 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_absolute_storage_slot_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata absolute storage slot");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata absolute storage slot");
       return -1;
     }
     cursor = object_end;
@@ -8878,7 +8930,7 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
     if (!append_metadata_rsset_use_site_binding_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata RSSET use-site binding");
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata RSSET use-site binding");
       return -1;
     }
     cursor = object_end;
@@ -8926,6 +8978,7 @@ static int platform_file_analysis_policy_load_target_metadata_for_platform_local
     platform_file_add_error(diagnostics.list, "failed reading target metadata");
     return -1;
   }
+  policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_NONE;
   if (append_metadata_generic_policy_text_local(text, policy, diagnostics) != 0) {
     free(text);
     return -1;
@@ -8937,6 +8990,10 @@ static int platform_file_analysis_policy_load_target_metadata_for_platform_local
     }
   } else if (metadata_text_has_amiga_policy_local(text)) {
     platform_file_add_error(diagnostics.list, "target metadata contains Amiga-only policy for this platform");
+    free(text);
+    return -1;
+  }
+  if (platform_file_add_policy_capacity_error_local(policy, diagnostics.list)) {
     free(text);
     return -1;
   }
@@ -8957,7 +9014,9 @@ int platform_file_analysis_policy_load_target_metadata(M68kAnalysisPolicy *polic
     platform_file_add_error(diagnostics.list, "failed reading target metadata");
     return -1;
   }
+  policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_NONE;
   result = append_metadata_generic_policy_text_local(text, policy, diagnostics);
+  if (result == 0 && platform_file_add_policy_capacity_error_local(policy, diagnostics.list)) result = -1;
   free(text);
   return result;
 }
@@ -9136,6 +9195,7 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
     const M68kAnalysisPolicy *policy) {
   uint16_t index;
   if (object == NULL || policy == NULL) return 0;
+  if (platform_file_add_policy_capacity_error_local(policy, diagnostics)) return 0;
   if (policy->has_entry_offset &&
       !validate_policy_offset_local(diagnostics, object, 0U, 0U, policy->entry_offset,
         "target metadata analysis start offset is out of range for source file"))

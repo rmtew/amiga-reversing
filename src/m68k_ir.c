@@ -1273,6 +1273,13 @@ int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *so
   if (source_analysis == NULL || item == NULL) return -1;
   arena = source_analysis->arena;
   if (arena == NULL) return -1;
+  /* The arena vector is authoritative and may include extra synthesized facts.
+     Reserve its bounded policy mirror first when that mirror has room. */
+  if (source_analysis->policy.structured_data_item_count < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
+    int result = m68k_analysis_policy_reserve_structured_data_items(&source_analysis->policy,
+      (size_t)source_analysis->policy.structured_data_item_count + 1U);
+    if (result != 0) return result;
+  }
   copy = *item;
   m68k_analysis_structured_data_item_refresh_text_lengths(&copy);
   grown = (M68kAnalysisStructuredDataItem *)arena_grow_array(arena,
@@ -1282,10 +1289,10 @@ int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *so
   source_analysis->structured_data_items = grown;
   source_analysis->structured_data_items[source_analysis->structured_data_item_count++] = copy;
   if (source_analysis->policy.structured_data_item_count < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
-    if (m68k_analysis_policy_reserve_structured_data_items(&source_analysis->policy,
-        (uint16_t)(source_analysis->policy.structured_data_item_count + 1U)) != 0)
-      return -1;
     source_analysis->policy.structured_data_items[source_analysis->policy.structured_data_item_count++] = copy;
+  } else {
+    if (source_analysis->policy.storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_NONE)
+      source_analysis->policy.storage_capacity_status = M68K_ANALYSIS_STORAGE_STRUCTURED_MIRROR_INCOMPLETE;
   }
   return 0;
 }
@@ -1548,6 +1555,7 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
 
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   if (policy == NULL) return;
+  policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_NONE;
   if (policy->custom_struct_owner != 0U && policy->custom_structs != NULL) free(policy->custom_structs);
   if (policy->structured_data_items_owner != 0U && policy->structured_data_items != NULL)
     free(policy->structured_data_items);
@@ -1572,16 +1580,47 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   policy->manual_representations_owner = 0U;
 }
 
-int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count) {
+int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->structured_data_item_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
+      policy->structured_data_item_capacity > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
+      policy->structured_data_item_count > policy->structured_data_item_capacity) return 0;
+  if (policy->structured_data_items == NULL)
+    return policy->structured_data_item_capacity == 0U && policy->structured_data_items_owner == 0U;
+  if (policy->structured_data_items == policy->structured_data_items_inline)
+    return policy->structured_data_item_capacity <= 4U && policy->structured_data_items_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->named_label_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT ||
+      policy->named_label_capacity > M68K_ANALYSIS_NAMED_LABEL_LIMIT ||
+      policy->named_label_count > policy->named_label_capacity) return 0;
+  if (policy->named_labels == NULL)
+    return policy->named_label_capacity == 0U && policy->named_labels_owner == 0U;
+  if (policy->named_labels == policy->named_labels_inline)
+    return policy->named_label_capacity <= 4U && policy->named_labels_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, size_t required_count) {
   M68kAnalysisStructuredDataItem *grown;
   uint16_t capacity;
-  if (policy == NULL || required_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return -1;
+  if (policy == NULL) return -1;
+  if (required_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_STRUCTURED_DATA;
+    return M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED;
+  }
+  if (!m68k_analysis_policy_structured_data_items_valid(policy)) return -1;
+  if (policy->structured_data_items == NULL && required_count <= 4U) {
+    policy->structured_data_items = policy->structured_data_items_inline;
+    policy->structured_data_item_capacity = 4U;
+  }
   if (required_count <= policy->structured_data_item_capacity) return 0;
   capacity = policy->structured_data_item_capacity < 4U ? 4U : policy->structured_data_item_capacity;
   while (capacity < required_count) {
-    uint16_t next = (uint16_t)(capacity * 2U);
-    capacity = next > capacity && next <= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ? next :
-      M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT;
+    size_t next = (size_t)capacity * 2U;
+    capacity = (uint16_t)(next <= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ? next :
+      M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT);
   }
   grown = (M68kAnalysisStructuredDataItem *)calloc(capacity, sizeof(*grown));
   if (grown == NULL) return -1;
@@ -1594,15 +1633,24 @@ int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *polic
   return 0;
 }
 
-int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16_t required_count) {
+int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, size_t required_count) {
   M68kAnalysisNamedLabel *grown;
   uint16_t capacity;
-  if (policy == NULL || required_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT) return -1;
+  if (policy == NULL) return -1;
+  if (required_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_NAMED_LABELS;
+    return M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED;
+  }
+  if (!m68k_analysis_policy_named_labels_valid(policy)) return -1;
+  if (policy->named_labels == NULL && required_count <= 4U) {
+    policy->named_labels = policy->named_labels_inline;
+    policy->named_label_capacity = 4U;
+  }
   if (required_count <= policy->named_label_capacity) return 0;
   capacity = policy->named_label_capacity < 4U ? 4U : policy->named_label_capacity;
   while (capacity < required_count) {
-    uint16_t next = (uint16_t)(capacity * 2U);
-    capacity = next > capacity && next <= M68K_ANALYSIS_NAMED_LABEL_LIMIT ? next : M68K_ANALYSIS_NAMED_LABEL_LIMIT;
+    size_t next = (size_t)capacity * 2U;
+    capacity = (uint16_t)(next <= M68K_ANALYSIS_NAMED_LABEL_LIMIT ? next : M68K_ANALYSIS_NAMED_LABEL_LIMIT);
   }
   grown = (M68kAnalysisNamedLabel *)calloc(capacity, sizeof(*grown));
   if (grown == NULL) return -1;
@@ -1664,6 +1712,9 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
   M68kAnalysisNamedLabel *named_labels = NULL;
   M68kAnalysisManualRepresentation *manual_representations = NULL;
   if (dest == NULL || src == NULL) return -1;
+  if (!m68k_analysis_policy_structured_data_items_valid(src) ||
+      !m68k_analysis_policy_named_labels_valid(src) ||
+      src->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) return -1;
   if (dest == src) return 0;
   custom_struct_count = src->custom_struct_count;
   if (custom_struct_count != 0U) {

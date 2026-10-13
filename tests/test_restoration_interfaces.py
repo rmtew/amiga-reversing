@@ -120,6 +120,18 @@ def test_cli_batch_forwards_one_revision_and_entries(operation_server):
     assert requests[-1] == {"operation": "interpret_batch", **parameters}
 
 
+def test_cli_review_batch_forwards_ids_and_shared_proof(operation_server):
+    url, requests = operation_server
+    parameters = {"expected_revision": "current", "action_ids": ["action-1", "action-2"],
+                  "decision": "accept", "reason": "Inspected consumers and exact source", "verification_id": "proof"}
+    result = subprocess.run([
+        sys.executable, "-m", "amiga_reversing.tools.restoration", "--server", url,
+        "--target", "demo", "review_batch", "--request", "-",
+    ], input=json.dumps(parameters), cwd=ROOT, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    assert requests[-1] == {"operation": "review_batch", **parameters}
+
+
 def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
     pytest.importorskip("mcp")
     from mcp import ClientSession
@@ -140,7 +152,7 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             initialized = await session.initialize()
             assert initialized.server_info.name == "Amiga source restoration"
             tools = (await session.list_tools()).tools
-            assert len(tools) == 11
+            assert len(tools) == 12
             by_name = {tool.name: tool for tool in tools}
             assert by_name["restoration_query"].annotations.read_only_hint
             assert not by_name["restoration_interpret"].annotations.read_only_hint
@@ -193,6 +205,13 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             assert not batch.is_error
             assert requests[-1] == {"operation": "interpret_batch", "expected_revision": "current", "entries": entries}
             assert not by_name["restoration_interpret_batch"].annotations.read_only_hint
+            reviewed = await session.call_tool("restoration_review_batch", {
+                "project": "demo", "expected_revision": "current", "action_ids": ["action-1", "action-2"],
+                "decision": "accept", "reason": "Exact source and inspected consumers", "verification_id": "proof"})
+            assert not reviewed.is_error
+            assert requests[-1]["operation"] == "review_batch"
+            assert requests[-1]["action_ids"] == ["action-1", "action-2"]
+            assert not by_name["restoration_review_batch"].annotations.read_only_hint
             rejected = await session.call_tool(
                 "restoration_verify", {"project": "demo", "expected_revision": "old"}
             )

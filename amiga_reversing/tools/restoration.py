@@ -29,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
             "verify",
             "probe",
             "review",
+            "review_batch",
             "history",
             "rollback",
         ),

@@ -1462,8 +1462,15 @@ def validate_base_displacement_reference(ref: Mapping[str, object], *, source_hu
         raise ValueError("base_displacement does not accept runtime_address")
 
 
-def validate_base_displacement_owner(ref: Mapping[str, object], element: Mapping[str, object]) -> None:
-    """Accept only encoded word scalars or aligned entries in a word array."""
+def validate_base_displacement_owner(
+    ref: Mapping[str, object], element: Mapping[str, object], *, defer_struct_leaf: bool = False,
+) -> None:
+    """Check storage bounds; typed leaves require the merged type projection.
+
+    Catalog payload preparation and history replay do not have seeded type
+    definitions. They may defer only a bound structure's leaf check. Effective
+    metadata must then prove an actual WORD field before projecting the ref.
+    """
     offset, owner_offset, width = ref.get("offset"), element.get("offset"), element.get("width")
     if any(not isinstance(value, int) or isinstance(value, bool) for value in (offset, owner_offset, width)):
         raise ValueError("base_displacement requires integer owner/source spans")
@@ -1471,7 +1478,14 @@ def validate_base_displacement_owner(ref: Mapping[str, object], element: Mapping
     scalar_word = element.get("kind") == "scalar" and width == 2 and offset == owner_offset
     array_word = (element.get("kind") == "array" and element.get("array_stride") == 2
                   and (offset - owner_offset) % 2 == 0 and width % 2 == 0)
-    if not (scalar_word or array_word) or offset < owner_offset or offset + 2 > owner_offset + width:
+    binding = element.get("type_binding")
+    deferred_struct = (
+        defer_struct_leaf and element.get("kind") in {"struct", "platform_struct", "array"}
+        and isinstance(binding, Mapping)
+        and binding.get("binding_kind") in {"custom_struct", "platform_struct"}
+        and isinstance(binding.get("bound_type_id"), str) and bool(binding.get("bound_type_id"))
+    )
+    if not (scalar_word or array_word or deferred_struct) or offset < owner_offset or offset + 2 > owner_offset + width:
         raise ValueError("base_displacement requires a scalar word or aligned word-array entry")
 
 

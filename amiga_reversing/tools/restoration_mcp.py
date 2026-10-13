@@ -210,6 +210,21 @@ def create_server(client: RestorationClient):
         )
 
     @server.tool(annotations=write, structured_output=True)
+    def restoration_review_batch(
+        project: str,
+        expected_revision: str,
+        action_ids: list[str],
+        decision: Literal["accept", "defer", "reject"],
+        reason: str,
+        verification_id: str | None = None,
+        probe_id: str | None = None,
+    ) -> dict[str, object]:
+        """Atomically review 1..100 distinct actions using one current proof and reason."""
+        return call(project, "review_batch", expected_revision=expected_revision,
+                    action_ids=action_ids, decision=decision, reason=reason,
+                    verification_id=verification_id, probe_id=probe_id)
+
+    @server.tool(annotations=write, structured_output=True)
     def restoration_rollback(
         project: str, expected_revision: str, action_id: str, redo: bool = False
     ) -> dict[str, object]:
