@@ -487,6 +487,54 @@ saved_tilemap_context_header_tile_column RS.W 1
 saved_tilemap_context_header_tile_row RS.W 1
 saved_tilemap_context_header_SIZEOF EQU __RS
 
+; STRUCT world_behavior_word_operand_command
+    RSRESET
+world_behavior_word_operand_command_opcode RS.W 1
+world_behavior_word_operand_command_operand_word RS.W 1
+world_behavior_word_operand_command_SIZEOF EQU __RS
+
+; STRUCT world_behavior_repeat_command
+    RSRESET
+world_behavior_repeat_command_opcode RS.W 1
+world_behavior_repeat_command_reload_count RS.W 1
+world_behavior_repeat_command_remaining_count RS.W 1
+world_behavior_repeat_command_branch_displacement RS.W 1
+world_behavior_repeat_command_SIZEOF EQU __RS
+
+; STRUCT world_behavior_absolute_pointer_command
+    RSRESET
+world_behavior_absolute_pointer_command_opcode RS.W 1
+world_behavior_absolute_pointer_command_target_pointer RS.L 1
+world_behavior_absolute_pointer_command_SIZEOF EQU __RS
+
+; STRUCT world_behavior_set_position_command
+    RSRESET
+world_behavior_set_position_command_opcode RS.W 1
+world_behavior_set_position_command_world_x RS.W 1
+world_behavior_set_position_command_world_y RS.W 1
+world_behavior_set_position_command_SIZEOF EQU __RS
+
+; STRUCT world_behavior_node_command
+    RSRESET
+world_behavior_node_command_opcode RS.W 1
+world_behavior_node_command_state_node_ptr RS.L 1
+world_behavior_node_command_SIZEOF EQU __RS
+
+; STRUCT world_behavior_opcode_only_command
+    RSRESET
+world_behavior_opcode_only_command_opcode RS.W 1
+world_behavior_opcode_only_command_SIZEOF EQU __RS
+
+; STRUCT title_star_record
+    RSRESET
+title_star_record_origin_x RS.W 1
+title_star_record_origin_y RS.W 1
+title_star_record_projected_x RS.W 1
+title_star_record_projected_y RS.W 1
+title_star_record_lifetime RS.B 1
+title_star_record_unknown_byte RS.B 1
+title_star_record_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -613,9 +661,17 @@ TILE_ID_TERMINAL_A	EQU	$9C
 TILE_ID_TERMINAL_B	EQU	$9F
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
+WORLD_CMD_ADD_X	EQU	0
+WORLD_CMD_ADD_Y	EQU	1
 WORLD_CMD_CALL_FUNCTION	EQU	7
+WORLD_CMD_COPY_RELATIVE_WORD	EQU	21
 WORLD_CMD_JUMP_ABSOLUTE	EQU	20
+WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	EQU	6
 WORLD_CMD_SET_DELAY	EQU	5
+WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	EQU	27
+WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	EQU	25
+WORLD_CMD_SET_POSITION	EQU	23
+WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	EQU	32
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
 absolute_slot_000007E8	EQU	$7E8
@@ -674,13 +730,13 @@ dblk_ref_h0_00010CF0	EQU	$10CF0
 dblk_ref_h0_00010CFC	EQU	$10CFC
 dblk_ref_h0_00010D08	EQU	$10D08
 dblk_ref_h0_00010D14	EQU	$10D14
+dblk_ref_h0_0004859A_runtime_0005859A	EQU	$5859A
+dblk_ref_h0_000485A6_runtime_000585A6	EQU	$585A6
+dblk_ref_h0_00048CD0_runtime_00058CD0	EQU	$58CD0
+dblk_ref_h0_00048CDC_runtime_00058CDC	EQU	$58CDC
+dblk_ref_h0_00048CE8_runtime_00058CE8	EQU	$58CE8
+dblk_ref_h0_00048CF4_runtime_00058CF4	EQU	$58CF4
 dblk_ref_h0_0004C312_runtime_0005C312	EQU	$5C312
-dblk_ref_h0_0005859A	EQU	$5859A
-dblk_ref_h0_000585A6	EQU	$585A6
-dblk_ref_h0_00058CD0	EQU	$58CD0
-dblk_ref_h0_00058CDC	EQU	$58CDC
-dblk_ref_h0_00058CE8	EQU	$58CE8
-dblk_ref_h0_00058CF4	EQU	$58CF4
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_trap_0_instruction_vector	EQU	$80
@@ -1217,20 +1273,20 @@ abs_0_00010B68:
 	dc.b $00,$E0,$02,$00,$04,$00,$06,$00,$08,$00,$0A,$00,$0C,$00,$0E,$00
 	dc.b $0E,$00,$02,$2A,$04,$4A,$06,$6A,$08,$8A,$0A,$AA,$0C,$CA,$0E,$EA
 update_star_motion:
-	move.w $0000(a2),d0
+	move.w title_star_record_origin_x.w(a2),d0
 	asl.w #4,d0
-	move.b $0008(a2),d1
+	move.b title_star_record_lifetime(a2),d1
 	ext.w d1
 	ext.l d0
 	divs.w d1,d0
-	move.w d0,$0004(a2)
-	move.w $0002(a2),d0
+	move.w d0,title_star_record_projected_x(a2)
+	move.w title_star_record_origin_y(a2),d0
 	asl.w #4,d0
 	ext.l d0
 	divs.w d1,d0
-	move.w d0,$0006(a2)
+	move.w d0,title_star_record_projected_y(a2)
 	subq.b #1,d1
-	move.b d1,$0008(a2)
+	move.b d1,title_star_record_lifetime(a2)
 	cmp.b #$10,d1
 	rts
 reset_star_motion:
@@ -1244,10 +1300,10 @@ abs_0_00010BE6:
 	bpl.b abs_0_00010BEC
 	neg.w d0
 abs_0_00010BEC:
-	move.w d0,$0000(a2)
+	move.w d0,title_star_record_origin_x.w(a2)
 	asl.w #4,d0
 	asr.w #6,d0
-	move.w d0,$0004(a2)
+	move.w d0,title_star_record_projected_x(a2)
 	swap.w d1
 	move.l d1,d0
 	andi.w #127,d0
@@ -1259,45 +1315,46 @@ abs_0_00010C08:
 	bpl.b abs_0_00010C0E
 	neg.w d0
 abs_0_00010C0E:
-	move.w d0,$0002(a2)
+	move.w d0,title_star_record_origin_y(a2)
 	asl.w #4,d0
 	asr.w #6,d0
-	move.w d0,$0006(a2)
-	move.b #$40,$0008(a2)
+	move.w d0,title_star_record_projected_y(a2)
+	move.b #$40,title_star_record_lifetime(a2)
 	rts
 initialize_star_motion_with_random_lifetime:
 	bsr.b reset_star_motion
+    ; KNOWN: type A2=Target code-entry register seed:title_star_record
 abs_0_00010C24:
 	bsr.w advance_pseudorandom_state
 	andi.b #63,d1
 	addq.b #1,d1
 	cmp.b #$11,d1
 	bcs.b abs_0_00010C24
-	move.b d1,$0008(a2)
-	move.w $0000(a2),d0
+	move.b d1,title_star_record_lifetime(a2)
+	move.w title_star_record_origin_x.w(a2),d0
 	asl.w #4,d0
 	ext.w d1
 	ext.l d0
 	divs.w d1,d0
-	move.w d0,$0004(a2)
-	move.w $0002(a2),d0
+	move.w d0,title_star_record_projected_x(a2)
+	move.w title_star_record_origin_y(a2),d0
 	asl.w #4,d0
 	ext.l d0
 	divs.w d1,d0
-	move.w d0,$0006(a2)
+	move.w d0,title_star_record_projected_y(a2)
 	rts
 clear_star_pixel:
 	moveq.l #0,d2
 	bra.b abs_0_00010C6A
 render_star_pixel_by_lifetime:
 	moveq.l #0,d2
-	move.b $0008(a2),d2
+	move.b title_star_record_lifetime(a2),d2
 	subi.b #16,d2
 	lsr.b #3,d2
 	addq.b #1,d2
 abs_0_00010C6A:
-	move.w $0004(a2),d0
-	move.w $0006(a2),d1
+	move.w title_star_record_projected_x(a2),d0
+	move.w title_star_record_projected_y(a2),d1
 	addi.w #160,d0
 	addi.w #100,d1
 	move.w d0,d3
@@ -2089,12 +2146,61 @@ abs_0_00011A72:
 	dc.b $00,$18,$FF,$F8,$00,$1E,$00,$05,$C1,$8A,$00,$05,$C0,$CA,$00,$15
 	dc.b $00,$0C,$00,$01,$FF,$F8,$00,$05,$00,$01,$00,$06,$00,$18,$00,$18
 	dc.b $FF,$F8,$00,$14,$00,$01,$1A,$72
-abs_0_00011AFA:
-	dc.b $00,$17,$03,$04,$07,$64,$00,$1B,$00,$05,$B3,$6C,$00,$20,$00,$05
-	dc.b $00,$1E,$00,$20,$00,$15,$00,$0C,$00,$00,$FF,$F9,$00,$05,$00,$02
-	dc.b $00,$06,$00,$0F,$00,$0F,$FF,$F8,$00,$1B,$00,$05,$B3,$3A,$00,$20
-	dc.b $00,$05,$00,$1E,$00,$20,$00,$15,$00,$0C,$00,$00,$00,$07,$00,$05
-	dc.b $00,$02,$00,$06,$00,$0F,$00,$0F,$FF,$F8,$00,$14,$00,$01,$1A,$FA
+world_object_technician_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0304	; world_x
+	dc.w $0764	; world_y
+technician_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$B3,$6C	; state_node_ptr
+technician_script_command_000C:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+technician_script_command_000E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $001E	; operand_word
+technician_script_command_0012:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+technician_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+technician_script_command_0018:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+technician_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+technician_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $000F	; reload_count
+	dc.w $000F	; remaining_count
+	dc.w $FFF8	; branch_displacement
+technician_script_command_0028:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005B33A	; state_node_ptr
+technician_script_command_002E:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+technician_script_command_0030:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $001E	; operand_word
+technician_script_command_0034:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+technician_script_command_0036:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+technician_script_command_003A:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0007	; operand_word
+technician_script_command_003E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+technician_script_command_0042:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $000F	; reload_count
+	dc.w $000F	; remaining_count
+	dc.w $FFF8	; branch_displacement
+technician_script_command_004A:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$1A,$FA	; target_pointer
 abs_0_00011B4A:
 	dc.b $00,$17,$02,$A4,$04,$B4,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05
 	dc.b $00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$15,$00,$0C,$00,$00
@@ -2203,35 +2309,193 @@ abs_0_000120EA:
 	dc.b $FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FC,$00,$05,$00,$01,$00,$06
 	dc.b $00,$30,$00,$30,$FF,$F8,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05
 	dc.b $00,$02,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$14,$00,$01,$20,$EA
-abs_0_0001218A:
-	dc.b $00,$17,$03,$48,$00,$A8,$00,$1B,$00,$05,$C2,$E4,$00,$05,$27,$10
-	dc.b $00,$14,$00,$01,$21,$96
-abs_0_000121A0:
-	dc.b $00,$17,$03,$06,$00,$E2,$00,$1B,$00,$05,$87,$BA,$00,$05,$27,$10
-	dc.b $00,$14,$00,$01,$21,$AC
-abs_0_000121B6:
-	dc.b $00,$17,$05,$20,$00,$C0,$00,$1B,$00,$05,$9F,$C6,$00,$05,$27,$10
-	dc.b $00,$14,$00,$01,$21,$C2
-abs_0_000121CC:
-	dc.b $00,$17,$01,$80,$04,$02,$00,$07,$00,$05,$B0,$EA,$00,$05,$00,$64
-	dc.b $00,$07,$00,$05,$B1,$00,$00,$05,$00,$06,$00,$07,$00,$05,$B1,$00
-	dc.b $00,$14,$00,$01,$21,$D8
-abs_0_000121F2:
-	dc.b $00,$17,$04,$D2,$03,$48,$00,$1B,$00,$05,$B8,$E6,$00,$05,$00,$64
-	dc.b $00,$20,$00,$05,$00,$05,$00,$20,$00,$14,$00,$01,$21,$FE
-abs_0_00012210:
-	dc.b $00,$17,$01,$BA,$04,$CC,$00,$1B,$00,$05,$BA,$4C,$00,$20,$00,$05
-	dc.b $00,$FA,$00,$20,$00,$15,$00,$0C,$00,$01,$00,$04,$00,$05,$00,$01
-	dc.b $00,$06,$00,$04,$00,$04,$FF,$F8,$00,$05,$00,$64,$00,$15,$00,$0C
-	dc.b $00,$01,$FF,$FC,$00,$05,$00,$01,$00,$06,$00,$04,$00,$04,$FF,$F8
-	dc.b $00,$14,$00,$01,$22,$1C
-abs_0_00012256:
-	dc.b $00,$17,$03,$4A,$05,$AC,$00,$1B,$00,$05,$B6,$FA,$00,$20,$00,$05
-	dc.b $01,$2C,$00,$20,$00,$1B,$00,$05,$B6,$CC,$00,$15,$00,$0C,$00,$01
-	dc.b $00,$01,$00,$05,$00,$01,$00,$06,$00,$28,$00,$28,$FF,$F8,$00,$20
-	dc.b $00,$05,$00,$C8,$00,$20,$00,$1B,$00,$05,$B6,$FA,$00,$15,$00,$0C
-	dc.b $00,$01,$FF,$FF,$00,$05,$00,$01,$00,$06,$00,$28,$00,$28,$FF,$F8
-	dc.b $00,$14,$00,$01,$22,$56
+world_object_megabio_feed_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0348	; world_x
+	dc.w $00A8	; world_y
+megabio_feed_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$C2,$E4	; state_node_ptr
+megabio_feed_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $2710	; operand_word
+megabio_feed_script_command_0010:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.l $00012196	; target_pointer
+world_object_musician_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0306	; world_x
+	dc.w $00E2	; world_y
+musician_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $000587BA	; state_node_ptr
+musician_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $2710	; operand_word
+musician_script_command_0010:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$21,$AC	; target_pointer
+world_object_icelord_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0520	; world_x
+	dc.w $00C0	; world_y
+icelord_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$9F,$C6	; state_node_ptr
+icelord_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $2710	; operand_word
+icelord_script_command_0010:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.l $000121C2	; target_pointer
+world_object_diabetic_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0180	; world_x
+	dc.w $0402	; world_y
+diabetic_script_command_0006:
+	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
+	dc.l $0005B0EA	; target_pointer
+diabetic_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0064	; operand_word
+diabetic_script_command_0010:
+	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
+	dc.b $00,$05,$B1,$00	; target_pointer
+diabetic_script_command_0016:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0006	; operand_word
+diabetic_script_command_001A:
+	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
+	dc.l $0005B100	; target_pointer
+diabetic_script_command_0020:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$21,$D8	; target_pointer
+world_object_security_officer_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $04D2	; world_x
+	dc.w $0348	; world_y
+security_officer_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$B8,$E6	; state_node_ptr
+security_officer_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0064	; operand_word
+security_officer_script_command_0010:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+security_officer_script_command_0012:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0005	; operand_word
+security_officer_script_command_0016:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+security_officer_script_command_0018:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.l $000121FE	; target_pointer
+world_object_chemist_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $01BA	; world_x
+	dc.w $04CC	; world_y
+chemist_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005BA4C	; state_node_ptr
+chemist_script_command_000C:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+chemist_script_command_000E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $00FA	; operand_word
+chemist_script_command_0012:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+chemist_script_command_0014:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+chemist_script_command_0018:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0004	; operand_word
+chemist_script_command_001C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+chemist_script_command_0020:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $0004	; reload_count
+	dc.w $0004	; remaining_count
+	dc.w $FFF8	; branch_displacement
+chemist_script_command_0028:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0064	; operand_word
+chemist_script_command_002C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+chemist_script_command_0030:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFC	; operand_word
+chemist_script_command_0034:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+chemist_script_command_0038:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $0004	; reload_count
+	dc.w $0004	; remaining_count
+	dc.w $FFF8	; branch_displacement
+chemist_script_command_0040:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$22,$1C	; target_pointer
+world_object_doctor_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $034A	; world_x
+	dc.w $05AC	; world_y
+doctor_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$B6,$FA	; state_node_ptr
+doctor_script_command_000C:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+doctor_script_command_000E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $012C	; operand_word
+doctor_script_command_0012:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+doctor_script_command_0014:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005B6CC	; state_node_ptr
+doctor_script_command_001A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+doctor_script_command_001E:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0001	; operand_word
+doctor_script_command_0022:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+doctor_script_command_0026:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $0028	; reload_count
+	dc.w $0028	; remaining_count
+	dc.w $FFF8	; branch_displacement
+doctor_script_command_002E:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+doctor_script_command_0030:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $00C8	; operand_word
+doctor_script_command_0034:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+doctor_script_command_0036:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$B6,$FA	; state_node_ptr
+doctor_script_command_003C:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+doctor_script_command_0040:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFF	; operand_word
+doctor_script_command_0044:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+doctor_script_command_0048:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $0028	; reload_count
+	dc.w $0028	; remaining_count
+	dc.w $FFF8	; branch_displacement
+doctor_script_command_0050:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.l $00012256	; target_pointer
 abs_0_000122AC:
 	dc.b $00,$17,$04,$25,$04,$D4,$00,$1B,$00,$05,$A6,$76,$00,$05,$00,$01
 	dc.b $00,$15,$00,$0C,$00,$01,$00,$06,$00,$05,$00,$01,$00,$06,$00,$04
@@ -2246,27 +2510,157 @@ abs_0_000122AC:
 	dc.b $00,$01,$FF,$FD,$00,$05,$00,$01,$00,$06,$00,$02,$00,$02,$FF,$F8
 	dc.b $00,$15,$00,$0C,$00,$00,$FF,$FD,$00,$05,$00,$01,$00,$06,$00,$06
 	dc.b $00,$06,$FF,$F8,$00,$14,$00,$01,$22,$AC
-abs_0_00012376:
-	dc.b $00,$17,$00,$B6,$01,$8A,$00,$19,$00,$05,$9D,$48,$00,$05,$27,$10
-	dc.b $00,$14,$00,$01,$23,$82
+world_object_priest_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $00B6	; world_x
+	dc.w $018A	; world_y
+priest_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$9D,$48	; state_node_ptr
+priest_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $2710	; operand_word
+priest_script_command_0010:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.l $00012382	; target_pointer
 abs_0_0001238C:
 	dc.b $00,$17,$01,$75,$01,$A1,$00,$05,$27,$10,$00,$14,$00,$01,$23,$92
-abs_0_0001239C:
-	dc.b $00,$17,$01,$97,$03,$62,$00,$1B,$00,$05,$A5,$40,$00,$05,$00,$14
-	dc.b $00,$15,$00,$0C,$00,$00,$FF,$F9,$00,$05,$00,$02,$00,$06,$00,$15
-	dc.b $00,$15,$FF,$F8,$00,$20,$00,$05,$00,$1E,$00,$07,$00,$05,$B1,$1A
-	dc.b $00,$05,$27,$10,$00,$14,$00,$01,$23,$CC
-abs_0_000123D6:
-	dc.b $00,$17,$03,$30,$04,$70,$00,$1B,$00,$05,$A7,$A6,$00,$05,$00,$01
-	dc.b $00,$20,$00,$05,$00,$C8,$00,$20,$00,$1B,$00,$05,$A7,$A6,$00,$15
-	dc.b $00,$0C,$00,$01,$00,$02,$00,$05,$00,$01,$00,$06,$00,$18,$00,$18
-	dc.b $FF,$F8,$00,$05,$00,$64,$00,$15,$00,$0C,$00,$01,$FF,$FE,$00,$05
-	dc.b $00,$01,$00,$06,$00,$18,$00,$18,$FF,$F8,$00,$14,$00,$01,$23,$D6
-abs_0_00012426:
-	dc.b $00,$17,$01,$7E,$06,$38,$00,$05,$00,$01,$00,$15,$00,$0C,$00,$00
-	dc.b $00,$02,$00,$05,$00,$02,$00,$06,$00,$A8,$00,$A8,$FF,$F8,$00,$05
-	dc.b $00,$32,$00,$15,$00,$0C,$00,$00,$FF,$FE,$00,$05,$00,$02,$00,$06
-	dc.b $00,$A8,$00,$A8,$FF,$F8,$00,$05,$00,$4B,$00,$14,$00,$01,$24,$26
+world_object_entry_officer_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0197	; world_x
+	dc.w $0362	; world_y
+entry_officer_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A540	; state_node_ptr
+entry_officer_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0014	; operand_word
+entry_officer_script_command_0010:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+entry_officer_script_command_0014:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFF9	; operand_word
+entry_officer_script_command_0018:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+entry_officer_script_command_001C:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $0015	; reload_count
+	dc.w $0015	; remaining_count
+	dc.w $FFF8	; branch_displacement
+entry_officer_script_command_0024:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+entry_officer_script_command_0026:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $001E	; operand_word
+entry_officer_script_command_002A:
+	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
+	dc.l $0005B11A	; target_pointer
+entry_officer_script_command_0030:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $2710	; operand_word
+entry_officer_script_command_0034:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$23,$CC	; target_pointer
+world_object_driffid_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $0330	; world_x
+	dc.w $0470	; world_y
+driffid_script_command_0006:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.b $00,$05,$A7,$A6	; state_node_ptr
+driffid_script_command_000C:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+driffid_script_command_0010:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+driffid_script_command_0012:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $00C8	; operand_word
+driffid_script_command_0016:
+	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
+driffid_script_command_0018:
+	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
+	dc.l $0005A7A6	; state_node_ptr
+driffid_script_command_001E:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+driffid_script_command_0022:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $0002	; operand_word
+driffid_script_command_0026:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+driffid_script_command_002A:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w $FFF8	; branch_displacement
+driffid_script_command_0032:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0064	; operand_word
+driffid_script_command_0036:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+driffid_script_command_003A:
+	dc.w WORLD_CMD_ADD_Y	; opcode
+	dc.w $FFFE	; operand_word
+driffid_script_command_003E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+driffid_script_command_0042:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $0018	; reload_count
+	dc.w $0018	; remaining_count
+	dc.w $FFF8	; branch_displacement
+driffid_script_command_004A:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$23,$D6	; target_pointer
+world_object_robomechanic_behavior_script:
+	dc.w WORLD_CMD_SET_POSITION	; opcode
+	dc.w $017E	; world_x
+	dc.w $0638	; world_y
+robomechanic_script_command_0006:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0001	; operand_word
+robomechanic_script_command_000A:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+robomechanic_script_command_000E:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $0002	; operand_word
+robomechanic_script_command_0012:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+robomechanic_script_command_0016:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $00A8	; reload_count
+	dc.w $00A8	; remaining_count
+	dc.w $FFF8	; branch_displacement
+robomechanic_script_command_001E:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0032	; operand_word
+robomechanic_script_command_0022:
+	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
+	dc.w $000C	; operand_word
+robomechanic_script_command_0026:
+	dc.w WORLD_CMD_ADD_X	; opcode
+	dc.w $FFFE	; operand_word
+robomechanic_script_command_002A:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $0002	; operand_word
+robomechanic_script_command_002E:
+	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
+	dc.w $00A8	; reload_count
+	dc.w $00A8	; remaining_count
+	dc.w $FFF8	; branch_displacement
+robomechanic_script_command_0036:
+	dc.w WORLD_CMD_SET_DELAY	; opcode
+	dc.w $004B	; operand_word
+robomechanic_script_command_003A:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
+	dc.b $00,$01,$24,$26	; target_pointer
 process_active_world_object_chains:
 	move.l app_active_world_object_ptr_table(a6),d0
 	beq.b abs_0_00012488
@@ -5784,299 +6178,299 @@ abs_0_00017244:
 	lea.l $00066DC8.l,a1
 	moveq.l #10,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_01.l,a0
 	lea.l $00069B6C.l,a1
 	moveq.l #5,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_02.l,a0
 	lea.l absolute_slot_0007D380.l,a1
 	moveq.l #5,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_03.l,a0
 	lea.l absolute_slot_0007D000.l,a1
 	moveq.l #6,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_04.l,a0
 	lea.l absolute_slot_0007D680.l,a1
 	moveq.l #6,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_05.l,a0
 	lea.l absolute_slot_0007DA00.l,a1
 	moveq.l #3,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_06.l,a0
 	lea.l absolute_slot_0007DC00.l,a1
 	moveq.l #7,d6
 	moveq.l #54,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_07.l,a0
 	lea.l absolute_slot_0007DF60.l,a1
 	moveq.l #0,d6
 	moveq.l #54,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_08.l,a0
 	lea.l absolute_slot_0007FDB0.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_09.l,a0
 	lea.l $00065580.l,a1
 	moveq.l #0,d6
 	move.w #$8C,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_10.l,a0
 	lea.l $00065698.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_11.l,a0
 	lea.l $00065798.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_12.l,a0
 	lea.l $00065898.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_13.l,a0
 	lea.l absolute_slot_0007DFCC.l,a1
 	moveq.l #5,d6
 	moveq.l #54,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l world_position_frame_pixels_00_through_05.l,a0
 	lea.l absolute_slot_0007E254.l,a1
 	moveq.l #5,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l world_position_frame_pixels_06_through_11.l,a0
 	lea.l absolute_slot_0007E554.l,a1
 	moveq.l #32,d7
 	moveq.l #5,d6
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l world_position_frame_pixels_12_through_17.l,a0
 	lea.l absolute_slot_0007E6D4.l,a1
 	moveq.l #64,d7
 	moveq.l #5,d6
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_17.l,a0
 	lea.l absolute_slot_0007E9D4.l,a1
 	moveq.l #0,d6
 	move.w #$3B4,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_18.l,a0
 	lea.l absolute_slot_000010F0.l,a1
 	moveq.l #0,d6
 	move.w #$88A,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_19.l,a0
 	lea.l absolute_slot_0007F630.l,a1
 	moveq.l #15,d6
 	moveq.l #60,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_20.l,a0
 	lea.l absolute_slot_0007F13C.l,a1
 	moveq.l #0,d6
 	move.w #$27A,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_21.l,a0
 	lea.l absolute_slot_00002204.l,a1
 	moveq.l #0,d6
 	move.w #$87C,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_22.l,a0
 	lea.l $00065A98.l,a1
 	moveq.l #7,d6
 	moveq.l #32,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_23.l,a0
 	lea.l $00065998.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_24.l,a0
 	lea.l $00065C98.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_25.l,a0
 	lea.l $00065F98.l,a1
 	moveq.l #4,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_26.l,a0
 	lea.l $00066218.l,a1
 	moveq.l #0,d6
 	move.w #$378,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_27.l,a0
 	lea.l $00065D98.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_28.l,a0
 	lea.l $00065E98.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_29.l,a0
 	lea.l $00066908.l,a1
 	moveq.l #7,d6
 	moveq.l #60,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_30.l,a0
 	lea.l absolute_slot_000032FC.l,a1
 	moveq.l #0,d6
 	move.w #$292,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_31.l,a0
 	lea.l $00066CC8.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
-	lea.l abs_0_0004D338.l,a0
+	bsr.w generate_four_plane_mask_bank
+	lea.l scene_pixel_cells_for_910_cell_mask_bank.l,a0
 	lea.l $000678C8.l,a1
 	moveq.l #0,d6
 	move.w #$38E,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_32.l,a0
 	lea.l $00067FE4.l,a1
 	moveq.l #3,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_33.l,a0
 	lea.l $000681E4.l,a1
 	moveq.l #1,d6
 	moveq.l #96,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_34.l,a0
 	lea.l $00068364.l,a1
 	moveq.l #0,d6
 	moveq.l #34,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_35.l,a0
 	lea.l $000683A8.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_36.l,a0
 	lea.l $000684A8.l,a1
 	moveq.l #2,d6
 	moveq.l #36,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_37.l,a0
 	lea.l $00069846.l,a1
 	moveq.l #5,d6
 	moveq.l #32,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_38.l,a0
 	lea.l $00068580.l,a1
 	moveq.l #0,d6
 	moveq.l #62,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_39.l,a0
 	lea.l $000685FC.l,a1
 	moveq.l #0,d6
 	moveq.l #64,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_40.l,a0
 	lea.l $0006867C.l,a1
 	moveq.l #5,d6
 	moveq.l #70,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_41.l,a0
 	lea.l $0006910E.l,a1
 	moveq.l #0,d6
 	moveq.l #20,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_42.l,a0
 	lea.l $000689C4.l,a1
 	moveq.l #0,d6
 	move.w #$174,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_43.l,a0
 	lea.l $00068CAC.l,a1
 	moveq.l #0,d6
 	move.w #$B0,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_44.l,a0
 	lea.l $00068E0C.l,a1
 	moveq.l #0,d6
 	move.w #$85,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_45.l,a0
 	lea.l $00068F16.l,a1
 	moveq.l #0,d6
 	move.w #$8E,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_46.l,a0
 	lea.l $00069032.l,a1
 	moveq.l #0,d6
 	moveq.l #110,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_47.l,a0
 	lea.l $00069136.l,a1
 	moveq.l #0,d6
 	move.w #$388,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_48.l,a0
 	lea.l $000699C6.l,a1
 	moveq.l #0,d6
 	moveq.l #22,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_49.l,a0
 	lea.l $000699F2.l,a1
 	moveq.l #0,d6
 	moveq.l #32,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_50.l,a0
 	lea.l $00069A32.l,a1
 	moveq.l #6,d6
 	moveq.l #16,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_51.l,a0
 	lea.l $00069B12.l,a1
 	moveq.l #0,d6
 	moveq.l #45,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_52.l,a0
 	lea.l $0006A818.l,a1
 	moveq.l #0,d6
 	moveq.l #16,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_53.l,a0
 	lea.l $0006A7A0.l,a1
 	moveq.l #0,d6
 	moveq.l #60,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_54.l,a0
 	lea.l $0006A764.l,a1
 	moveq.l #0,d6
 	moveq.l #30,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_55.l,a0
 	lea.l $00069E6C.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_56.l,a0
 	lea.l $00069F6C.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	lea.l scene_pixel_cells_for_mask_bank_57.l,a0
 	lea.l $0006A06C.l,a1
 	moveq.l #0,d6
 	move.w #$37C,d7
-	bsr.w abs_0_00017730
+	bsr.w generate_four_plane_mask_bank
 	rts
-abs_0_00017718:
+generate_four_plane_cell_masks:
 	movem.l d0/d7/a0-a1,-(a7)
 abs_0_0001771C:
 	move.w (a0)+,d0
@@ -6087,14 +6481,14 @@ abs_0_0001771C:
 	dbf.w d7,abs_0_0001771C
 	movem.l (a7)+,d0/d7/a0-a1
 	rts
-abs_0_00017730:
+generate_four_plane_mask_bank:
 	move.w d7,d0
 	lsl.w #3,d0
 	move.w d7,d1
 	add.w d1,d1
 	subq.w #1,d7
 abs_0_0001773A:
-	bsr.b abs_0_00017718
+	bsr.b generate_four_plane_cell_masks
 	adda.w d0,a0
 	adda.w d1,a1
 	dbf.w d6,abs_0_0001773A
@@ -8084,7 +8478,7 @@ abs_0_0001941E:
 abs_0_0001942E:
 	move.w d0,$0004(a1)
 	move.w d1,$0006(a1)
-	btst.b #4,$0019(a2)
+	btst.b #4,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_0001944A
 	lea.l abs_0_0001944C(pc),a0
 	bsr.w enqueue_scrolling_message
@@ -13854,259 +14248,9 @@ world_tile_pixels_491_through_498:
 world_tile_pixels_500_through_507:
 	INCBIN "assets/world_tile_pixels_500_through_507.bin"
 ; bitmap
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$38,$00,$3F,$FF,$38,$00,$38,$00
-	dc.b $70,$00,$7F,$FF,$70,$00,$70,$00,$71,$FF,$7E,$00,$70,$00,$70,$00
-	dc.b $A2,$00,$FD,$FF,$A0,$10,$A0,$10,$A2,$00,$FD,$FF,$A0,$30,$A0,$30
-	dc.b $A2,$0F,$FD,$F0,$A0,$7F,$A0,$7F,$A2,$3D,$FD,$C0,$A0,$C0,$A0,$FF
-	dc.b $A2,$1F,$FD,$E0,$A0,$7F,$A0,$7F,$7E,$00,$01,$FF,$00,$30,$00,$30
-	dc.b $FE,$00,$FD,$FF,$FC,$10,$FC,$10,$A3,$FF,$FD,$FF,$A1,$FF,$A1,$FF
-	dc.b $A0,$00,$FF,$FF,$A0,$00,$A0,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$03,$FF,$FC,$80,$00,$80,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FE,$00,$01,$00,$00,$00,$00,$00,$01,$FF,$FF,$00,$01,$00,$01
-	dc.b $00,$01,$FF,$FF,$00,$01,$00,$01,$C0,$F1,$00,$0F,$FF,$F1,$FF,$01
-	dc.b $00,$01,$0B,$FF,$00,$01,$FF,$F1,$C0,$F1,$00,$0F,$FF,$F1,$FF,$01
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FF,$00,$01,$00,$01
-	dc.b $FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dcb.b $E,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dcb.b $E,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FD,$FF,$FD,$FF,$FD
-	dc.b $00,$03,$FF,$FD,$00,$01,$00,$01,$00,$03,$FF,$FD,$00,$01,$00,$01
-	dc.b $00,$03,$FF,$FD,$00,$01,$00,$01,$C0,$03,$7F,$FD,$40,$01,$40,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$6E,$EE,$91,$11,$91,$11,$91,$11
-	dc.b $48,$88,$B7,$77,$B7,$77,$B7,$77,$48,$88,$B7,$77,$B7,$77,$B7,$77
-	dc.b $4A,$AA,$B7,$77,$93,$33,$93,$33
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$EE,$EE,$11,$11,$11,$11,$11,$11
-	dc.b $88,$88,$77,$77,$77,$77,$77,$77,$88,$88,$77,$77,$77,$77,$77,$77
-	dc.b $AA,$AA,$77,$77,$33,$33,$33,$33,$FF,$F0,$FF,$F0,$FF,$F0,$FF,$F0
-	dc.b $00,$1C,$FF,$FC,$00,$1C,$00,$1C,$00,$0E,$FF,$FE,$00,$0E,$00,$0E
-	dc.b $00,$0E,$FF,$FA,$00,$0A,$00,$0A,$00,$06,$FF,$FD,$00,$04,$00,$04
-	dc.b $00,$06,$FF,$FD,$00,$04,$00,$04,$00,$06,$FF,$FD,$00,$04,$00,$04
-	dc.b $00,$06,$FF,$FD,$00,$04,$00,$04,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$00,$FF,$FA,$FF,$FD,$FF,$F8,$FF,$F8
-	dc.b $00,$02,$FF,$FD,$FF,$F0,$FF,$F0,$EE,$EA,$11,$15,$11,$10,$11,$10
-	dc.b $88,$8A,$77,$75,$77,$70,$77,$70,$88,$8A,$77,$75,$77,$70,$77,$70
-	dc.b $AA,$AA,$77,$75,$33,$30,$33,$30,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$80,$06,$FF,$F9,$80,$01,$80,$01
-	dc.b $80,$06,$FF,$F9,$80,$01,$80,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$60,$03,$FF,$FD,$E0,$01,$E0,$01
-	dc.b $60,$03,$FF,$FD,$E0,$01,$E0,$01,$6E,$EE,$91,$11,$91,$11,$91,$11
-	dc.b $48,$88,$B7,$77,$B7,$77,$B7,$77,$48,$88,$B7,$77,$B7,$77,$B7,$77
-	dc.b $4A,$AA,$B7,$77,$93,$33,$93,$33,$6E,$EE,$91,$11,$91,$11,$91,$11
-	dc.b $48,$88,$B7,$77,$B7,$77,$B7,$77,$48,$88,$B7,$77,$B7,$77,$B7,$77
-	dc.b $4A,$AA,$B7,$77,$93,$33,$93,$33,$6E,$EE,$91,$11,$91,$11,$91,$11
-	dc.b $48,$88,$B7,$77,$B7,$77,$B7,$77,$48,$88,$B7,$77,$B7,$77,$B7,$77
-	dc.b $4A,$AA,$B7,$77,$93,$33,$93,$33,$6E,$EE,$91,$11,$91,$11,$91,$11
-	dc.b $48,$88,$B7,$77,$B7,$77,$B7,$77,$48,$88,$B7,$77,$B7,$77,$B7,$77
-	dc.b $4A,$AA,$B7,$77,$93,$33,$93,$33,$EE,$EE,$11,$11,$11,$11,$11,$11
-	dc.b $88,$88,$77,$77,$77,$77,$77,$77,$88,$88,$77,$77,$77,$77,$77,$77
-	dc.b $AA,$AA,$77,$77,$33,$33,$33,$33,$EE,$EE,$11,$11,$11,$11,$11,$11
-	dc.b $88,$88,$77,$77,$77,$77,$77,$77,$88,$88,$77,$77,$77,$77,$77,$77
-	dc.b $AA,$AA,$77,$77,$33,$33,$33,$33,$EE,$EE,$11,$11,$11,$11,$11,$11
-	dc.b $88,$88,$77,$77,$77,$77,$77,$77,$88,$88,$77,$77,$77,$77,$77,$77
-	dc.b $AA,$AA,$77,$77,$33,$33,$33,$33,$EE,$EE,$11,$11,$11,$11,$11,$11
-	dc.b $88,$88,$77,$77,$77,$77,$77,$77,$88,$88,$77,$77,$77,$77,$77,$77
-	dc.b $AA,$AA,$77,$77,$33,$33,$33,$33,$EE,$EA,$11,$15,$11,$10,$11,$10
-	dc.b $88,$8A,$77,$75,$77,$70,$77,$70,$88,$8A,$77,$75,$77,$70,$77,$70
-	dc.b $AA,$AA,$77,$75,$33,$30,$33,$30,$EE,$EA,$11,$15,$11,$10,$11,$10
-	dc.b $88,$8A,$77,$75,$77,$70,$77,$70,$88,$8A,$77,$75,$77,$70,$77,$70
-	dc.b $AA,$AA,$77,$75,$33,$30,$33,$30,$EE,$EA,$11,$15,$11,$10,$11,$10
-	dc.b $88,$8A,$77,$75,$77,$70,$77,$70,$88,$8A,$77,$75,$77,$70,$77,$70
-	dc.b $AA,$AA,$77,$75,$33,$30,$33,$30,$EE,$EA,$11,$15,$11,$10,$11,$10
-	dc.b $88,$8A,$77,$75,$77,$70,$77,$70,$88,$8A,$77,$75,$77,$70,$77,$70
-	dc.b $AA,$AA,$77,$75,$33,$30,$33,$30,$6E,$EE,$91,$11,$91,$11,$91,$11
-	dc.b $48,$88,$B7,$77,$B7,$77,$B7,$77,$48,$88,$B7,$77,$B7,$77,$B7,$77
-	dc.b $4A,$AA,$B7,$77,$93,$33,$93,$33,$6E,$EE,$91,$11,$91,$11,$91,$11
-	dc.b $48,$88,$B7,$77,$B7,$77,$B7,$77,$48,$88,$B7,$77,$B7,$77,$B7,$77
-	dc.b $48,$88,$B7,$77,$A6,$66,$A6,$66,$48,$88,$B7,$77,$A6,$66,$A6,$66
-	dc.b $2A,$AA,$F7,$77,$A2,$22,$A2,$22,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$03,$60
-	dc.b $FF,$FF,$03,$E0,$03,$00,$7E,$1F,$83,$E0,$03,$E0,$03,$E0,$40,$00
-	dc.b $BF,$FF,$3F,$FF,$3D,$FF,$EE,$EE,$11,$11,$11,$11,$11,$11,$88,$88
-	dc.b $77,$77,$77,$77,$77,$77,$88,$88,$77,$77,$77,$77,$77,$77,$AA,$AA
-	dc.b $77,$77,$33,$33,$33,$33,$EE,$EE,$11,$11,$11,$11,$11,$11,$88,$88
-	dc.b $77,$77,$77,$77,$77,$77,$88,$88,$77,$77,$77,$77,$77,$77,$88,$88
-	dc.b $77,$77,$66,$66,$66,$66,$88,$88,$77,$77,$66,$66,$66,$66,$AA,$AA
-	dc.b $77,$77,$22,$22,$22,$22,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$EE,$EA,$11,$15,$11,$10,$11,$10,$88,$8A
-	dc.b $77,$75,$77,$70,$77,$70,$88,$8A,$77,$75,$77,$70,$77,$70,$AA,$AA
-	dc.b $77,$75,$33,$30,$33,$30,$EE,$EA,$11,$15,$11,$10,$11,$10,$88,$8A
-	dc.b $77,$75,$77,$70,$77,$70,$88,$8A,$77,$75,$77,$70,$77,$70,$88,$8A
-	dc.b $77,$75,$66,$60,$66,$60,$88,$8A,$77,$75,$66,$60,$66,$60,$AA,$AA
-	dc.b $77,$75,$22,$20,$22,$20,$FF,$F2,$00,$0D,$00,$00,$00,$00,$00,$02
-	dc.b $FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02
-	dc.b $FF,$FD,$00,$00,$00,$00,$FF,$FA,$00,$05,$00,$00,$00,$00,$00,$0A
-	dc.b $FF,$FD,$FF,$F8,$FF,$F8,$42,$00,$BF,$FF,$3F,$FF,$3D,$FF,$7C,$1F
-	dc.b $BF,$FF,$3F,$FF,$3F,$FF,$02,$20,$FF,$FF,$03,$E0,$01,$C0,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$7F,$FF
-	dc.b $80,$00,$00,$00,$00,$00,$40,$00,$BF,$FF,$3F,$FF,$3F,$FF,$40,$00
-	dc.b $BF,$FF,$3F,$FF,$3F,$FF,$7F,$FF,$BF,$FF,$3F,$FF,$3F,$FF,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$1B
-	dc.b $FF,$FF,$00,$1F,$00,$18,$7F,$F0,$80,$1F,$00,$1F,$00,$1F,$40,$00
-	dc.b $BF,$FF,$3F,$FF,$3F,$EF,$40,$10,$BF,$FF,$3F,$FF,$3F,$EF,$7F,$E0
-	dc.b $BF,$FF,$3F,$FF,$3F,$FF,$00,$00
-	dcb.b $E,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $03,$60,$FF,$FF,$03,$E0,$03,$00,$FE,$1F,$03,$E0,$03,$E0,$03,$E0
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FD,$FF,$02,$00,$FF,$FF,$FF,$FF,$FD,$FF
-	dc.b $FC,$1F,$FF,$FF,$FF,$FF,$FF,$FF,$02,$20,$FF,$FF,$03,$E0,$01,$C0
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dcb.b $E,$FF
-	dc.b $00,$0A,$FF,$FD,$FF,$F8,$FF,$F8,$FF,$FA,$FF,$FD,$FF,$F8,$FF,$F8
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$FF,$FA,$00,$05,$00,$00,$00,$00
-	dc.b $00,$0A,$FF,$FD,$FF,$F8,$FF,$F8,$00,$0A,$FF,$FD,$FF,$F8,$FF,$F8
-	dc.b $FF,$FA,$FF,$FD,$FF,$F8,$FF,$F8,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $FF,$FA,$00,$05,$00,$00,$00,$00,$00,$0A,$FF,$FD,$FF,$F8,$FF,$F8
-	dc.b $00,$0A,$FF,$FD,$FF,$F8,$FF,$F8,$FF,$FA,$FF,$FD,$FF,$F8,$FF,$F8
-	dc.b $00,$11,$FF,$FF,$00,$1F,$00,$0E,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$30,$70,$7F,$7F,$F0,$70,$FF,$BF,$20,$60,$7F,$7F,$E0,$60,$FF
-	dc.b $BF,$00,$40,$7F,$7F,$C0,$40,$FF,$BF,$00,$40,$7F,$7F,$C0,$40,$FF
-	dc.b $BF,$00,$40,$7F,$7F,$C0,$40,$FF,$BF,$00,$40,$7F,$7F,$C0,$40,$FF
-	dc.b $BF,$00,$40,$7F,$7F,$C0,$40,$FF,$BF,$00,$40,$7F,$7F,$C0,$40,$FF
-	dc.b $BF,$00,$40,$7F,$7F,$C0,$40,$FF,$80,$00,$40,$40,$7F,$FF,$7F,$FF
-	dc.b $7F,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FE,$00,$01,$00,$00,$00,$00,$00,$01,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $33,$FD,$7F,$FF,$FF,$FF,$F0,$03,$3F,$FD,$7F,$FF,$FF,$FF,$E0,$03
-	dc.b $1F,$FD,$7F,$FF,$FF,$FF,$C0,$03,$3F,$FD,$7F,$FF,$FF,$FF,$C0,$03
-	dc.b $3F,$FD,$7F,$FF,$FF,$FF,$C0,$03,$3F,$FD,$7F,$FF,$FF,$FF,$C0,$03
-	dc.b $3F,$FD,$7F,$FF,$FF,$FF,$C0,$03,$3F,$FD,$7F,$FF,$FF,$FF,$C0,$03
-	dc.b $3F,$FD,$7F,$FF,$FF,$FF,$C0,$03,$00,$01,$7F
-	dcb.b $D,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $00,$02,$FF,$FD,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $0F,$FC,$F0,$03,$00,$00,$00,$00,$08,$02,$F7,$FF,$07,$FE,$07,$FE
-	dc.b $0A,$02,$F5,$FF,$05,$FE,$05,$FE,$0A,$02,$F5,$FF,$05,$FE,$05,$FE
-	dc.b $08,$02,$F7,$FF,$05,$FE,$05,$FE,$08,$02,$F7,$FF,$05,$FE,$05,$FE
-	dc.b $0A,$02,$F7,$FF,$07,$FE,$07,$FE,$0B,$FA,$F6,$07,$06,$06,$06,$06
-	dc.b $0A,$02,$F5,$FF,$05,$FE,$05,$FE,$0A,$02,$F5,$FF,$05,$FE,$05,$FE
-	dc.b $0A,$02,$F5,$FF,$05,$FE,$05,$FE,$0A,$02,$F5,$FF,$05,$FE,$05,$FE
-	dc.b $0A,$02,$F5,$FF,$05,$FE,$05,$FE,$08,$02,$F7,$FF,$07,$FE,$07,$FE
-	dc.b $07,$FC,$FF,$FF,$07,$FC,$07,$FC,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $12,$40,$ED,$BF,$0C,$90,$0C,$90,$00,$20,$FF,$DF,$12,$D0,$12,$D0
-	dc.b $00,$40,$FF,$BF,$12,$B0,$12,$B0,$12,$20,$ED,$DF,$0C,$90,$0C,$90
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$12,$24,$ED,$DB,$0C,$D8,$0C,$D8
-	dc.b $00,$00,$FF,$FF,$12,$90,$12,$90,$00,$00,$FF,$FF,$12,$D8,$12,$D8
-	dc.b $12,$00,$ED,$FF,$0C,$90,$0C,$90,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$1F,$FF,$E0,$00,$00,$00,$00,$00
-	dc.b $20,$00,$DF,$FF,$1F,$FF,$1F,$FF,$2F,$FF,$DC,$00,$1B,$FF,$1C,$00
-	dc.b $2F,$FF,$D0,$00,$1F,$FF,$17,$FF,$20,$00,$DF,$FF,$1F,$FF,$1F,$FF
-	dc.b $1F,$FF,$FF,$FF,$1F,$FF,$1F,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FE,$00,$01,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FD,$00,$03,$FF,$FF,$00,$03
-	dc.b $FF,$FD,$00,$03,$FF,$FF,$FF,$FF,$00,$01
-	dcb.b $E,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $80,$01,$FF,$FF,$80,$01,$80,$01,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $3F,$FF,$40,$00,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$40,$00,$3F,$FF,$00,$00,$00,$00
-	dc.b $40,$00,$3F,$FF,$00,$00,$00,$00,$30,$00,$0F,$FF,$00,$00,$00,$00
-	dc.b $0F,$FF
-	dcb.b $E,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF
-	dcb.b $E,$00
-	dc.b $80,$03,$FF,$FD,$80,$01,$80,$01,$00,$03,$FF,$FD,$00,$01,$00,$01
-	dc.b $00,$03,$FF,$FD,$00,$01,$00,$01,$00,$03,$FF,$FD,$00,$01,$00,$01
-	dc.b $FF,$FF,$00,$01,$00,$01,$00,$01
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF
-	dcb.b $F,$00
-	dc.b $02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00,$00
-	dc.b $02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00,$FF
-	dc.b $FE,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FC,$FF,$FC,$FF,$FC,$00
-	dc.b $02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00,$00
-	dc.b $02,$FF,$FD,$00,$00,$00,$00,$00,$02,$FF,$FD,$00,$00,$00,$00,$00
-	dc.b $06,$FF,$F9,$00,$00,$00,$00,$00,$06,$FF,$F8,$00,$00,$00,$00,$00
-	dc.b $0E,$FF,$F0,$00,$00,$00,$00,$00,$1C,$FF,$E0,$00,$00,$00,$00,$FF
-	dc.b $F0
-	dcb.b $E,$00
+modal_tile_bitmaps:
+	INCBIN "assets/modal_tile_bitmaps.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_01:
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_01.bin"
 ; bitmap
@@ -14204,531 +14348,9 @@ scene_pixel_cells_for_mask_bank_31:
 scene_pixel_cells_for_mask_bank_00:
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_00.bin"
 ; bitmap
-abs_0_0004D338:
-	dcb.b $8,$00
-	dc.b $80,$00,$80,$00,$80,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$00
-	dc.b $C0,$00,$C0,$00,$C0,$00,$80,$00,$00,$01,$00,$01,$00,$01,$00,$00
-	dc.b $C0,$00,$C0,$00,$C0,$00,$80,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $20,$00,$E0,$00,$E0,$00,$40,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $20,$00,$E0,$00,$E0,$00,$40,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $20,$00,$E0,$00,$E0,$00,$40,$00,$00,$06,$00,$07,$00,$07,$00,$02
-	dc.b $10,$00,$F0,$00,$F0,$00,$40,$00,$00,$06,$00,$05,$00,$07,$00,$00
-	dc.b $30,$00,$D0,$00,$F0,$00,$40,$00,$00,$07,$00,$04,$00,$07,$00,$00
-	dc.b $70,$00,$90,$00,$F0,$00,$00,$00,$00,$3F,$00,$3F,$00,$3F,$00,$02
-	dc.b $1E,$00,$FE,$00,$FE,$00,$20,$00,$00,$7F,$00,$7F,$00,$7F,$00,$3A
-	dc.b $29,$00,$FF,$00,$FF,$00,$10,$00,$00,$C5,$00,$FF,$00,$FF,$00,$40
-	dc.b $28,$80,$FF,$80,$FF,$80,$10,$00,$00,$C5,$00,$FF,$00,$FF,$00,$40
-	dc.b $20,$80,$FF,$80,$FF,$80,$10,$00,$00,$C2,$00,$FF,$00,$FF,$00,$40
-	dc.b $25,$80,$FF,$80,$FF,$80,$10,$00,$01,$B1,$01,$FF,$01,$FF,$00,$90
-	dc.b $C6,$C0,$FF,$C0,$FF,$C0,$20,$80,$03,$0A,$03,$FF,$03,$FF,$01,$2A
-	dc.b $8A,$60,$FF,$E0,$FF,$E0,$84,$40,$06,$A4,$07,$FF,$07,$FF,$02,$44
-	dc.b $4D,$B0,$FF,$F0,$FF,$F0,$42,$20,$07,$54,$07,$FF,$07,$FF,$02,$34
-	dc.b $05,$70,$FF,$F0,$FF,$F0,$0A,$20,$0D,$55,$0F,$FF,$0F,$FF,$05,$34
-	dc.b $04,$58,$FF,$F8,$FF,$F8,$0B,$50,$0D,$55,$0F,$FF,$0F,$FF,$05,$34
-	dc.b $04,$58,$FF,$F8,$FF,$F8,$0B,$50,$0E,$BC,$0F,$BF,$0F,$BF,$05,$14
-	dc.b $80,$B8,$FF,$F8,$FF,$F8,$0B,$50,$18,$BC,$1F,$BF,$1F,$BF,$08,$14
-	dc.b $40,$8C,$FE,$FC,$FE,$FC,$0A,$08,$19,$36,$1F,$3F,$1F,$3F,$08,$16
-	dc.b $20,$4C,$FE,$7C,$FE,$7C,$0A,$08,$1B,$35,$1F,$3F,$1F,$3F,$08,$15
-	dc.b $00,$6C,$FE,$7C,$FE,$7C,$0E,$08,$1A,$20,$1E,$3F,$1E,$3F,$0C,$04
-	dc.b $88,$2C,$FE,$3C,$FE,$3C,$96,$18,$19,$64,$1F,$7F,$1F,$7F,$08,$23
-	dc.b $12,$4C,$FF,$7C,$FF,$7C,$E9,$08,$1F,$67,$1F,$7F,$1F,$7F,$08,$20
-	dc.b $EA,$7C,$FF,$7C,$FF,$7C,$11,$08,$1C,$62,$1C,$7F,$1C,$7F,$08,$20
-	dc.b $F6,$1C,$FF,$1C,$FF,$1C,$01,$08,$1E,$69,$1E,$7F,$1E,$7F,$0C,$28
-	dc.b $52,$3C,$FF,$3C,$FF,$3C,$81,$18,$0C,$70,$0C,$7F,$0C,$7F,$00,$31
-	dc.b $2A,$18,$3F,$18,$3F,$18,$01,$00,$00,$64,$00,$7F,$00,$7F,$00,$25
-	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$68,$00,$7F,$00,$7F,$00,$29
-	dc.b $26,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$2A
-	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$0A
-	dc.b $36,$00,$3F,$00,$3F,$00,$15,$00,$00,$6E,$00,$7E,$00,$7E,$00,$20
-	dc.b $33,$00,$3F,$00,$3F,$00,$10,$00,$00,$62,$00,$7E,$00,$7E,$00,$20
-	dc.b $1D,$00,$1F,$00,$1F,$00,$00,$00,$00,$64,$00,$7C,$00,$7C,$00,$20
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$40,$00,$7C,$00,$7C,$00,$04
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$C0,$00,$F8,$00,$F8,$00,$48
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$D0,$00,$F8,$00,$F8,$00,$48
-	dc.b $14,$00,$1F,$00,$1F,$00,$05,$00,$00,$80,$00,$F0,$00,$F0,$00,$10
-	dc.b $15,$00,$1F,$80,$1F,$80,$05,$80,$01,$D0,$01,$F0,$01,$F0,$00,$80
-	dc.b $0E,$80,$0F,$C0,$0F,$C0,$04,$C0,$03,$D8,$03,$F8,$03,$F8,$01,$50
-	dc.b $13,$40,$1F,$E0,$1F,$E0,$02,$60,$01,$88,$01,$F8,$01,$F8,$00,$80
-	dc.b $13,$C0,$1F,$C0,$1F,$C0,$05,$00,$03,$D4,$03,$FC,$03,$FC,$01,$20
-	dc.b $2B,$40,$3F,$E0,$3F,$E0,$15,$80,$04,$04,$07,$8C,$07,$8C,$01,$88
-	dc.b $00,$80,$03,$80,$03,$80,$03,$80
-	dcb.b $8,$00
-	dc.b $80,$00,$80,$00,$80,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$00
-	dc.b $E0,$00,$E0,$00,$E0,$00,$40,$00,$00,$01,$00,$01,$00,$01,$00,$00
-	dc.b $E0,$00,$E0,$00,$E0,$00,$40,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $F0,$00,$F0,$00,$F0,$00,$60,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $F0,$00,$F0,$00,$F0,$00,$60,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $F0,$00,$F0,$00,$F0,$00,$60,$00,$00,$06,$00,$07,$00,$07,$00,$02
-	dc.b $C8,$00,$F8,$00,$F8,$00,$60,$00,$00,$06,$00,$05,$00,$07,$00,$00
-	dc.b $D8,$00,$E8,$00,$F8,$00,$60,$00,$00,$07,$00,$04,$00,$07,$00,$00
-	dc.b $F8,$00,$C8,$00,$F8,$00,$40,$00,$00,$1F,$00,$1F,$00,$1F,$00,$02
-	dc.b $CE,$00,$FE,$00,$FE,$00,$50,$00,$00,$4F,$00,$5F,$00,$5F,$00,$0A
-	dc.b $D5,$00,$FF,$00,$FF,$00,$48,$00,$00,$D5,$00,$FF,$00,$FF,$00,$70
-	dc.b $D4,$80,$FF,$80,$FF,$80,$48,$00,$00,$D5,$00,$FF,$00,$FF,$00,$70
-	dc.b $D0,$80,$FF,$80,$FF,$80,$48,$00,$00,$D2,$00,$FF,$00,$FF,$00,$70
-	dc.b $D3,$80,$FF,$80,$FF,$80,$48,$00,$01,$91,$01,$FF,$01,$FF,$00,$B0
-	dc.b $62,$C0,$FF,$C0,$FF,$C0,$B0,$80,$03,$2A,$03,$FF,$03,$FF,$01,$6A
-	dc.b $E4,$60,$FF,$E0,$FF,$E0,$A2,$40,$06,$A4,$07,$F7,$07,$F7,$02,$44
-	dc.b $67,$B0,$FF,$F0,$FF,$F0,$20,$20,$07,$14,$07,$FF,$07,$FF,$02,$74
-	dc.b $33,$70,$FF,$F0,$FF,$F0,$14,$20,$0D,$55,$0F,$FF,$0F,$FF,$05,$34
-	dc.b $32,$58,$FF,$F8,$FF,$F8,$15,$50,$0D,$55,$0F,$F7,$0F,$F7,$05,$34
-	dc.b $32,$58,$FF,$F8,$FF,$F8,$15,$50,$0E,$BC,$0F,$BF,$0F,$BF,$05,$14
-	dc.b $B0,$B8,$FF,$F8,$FF,$F8,$15,$50,$18,$BC,$1F,$BF,$1F,$BF,$08,$14
-	dc.b $50,$8C,$FE,$FC,$FE,$FC,$0A,$08,$19,$36,$1F,$3F,$1F,$3F,$08,$16
-	dc.b $30,$4C,$FE,$7C,$FE,$7C,$0A,$08,$1B,$35,$1F,$3F,$1F,$3F,$08,$15
-	dc.b $08,$6C,$FE,$7C,$FE,$7C,$06,$08,$1A,$20,$1E,$3F,$1E,$3F,$0C,$04
-	dc.b $88,$2C,$FE,$3C,$FE,$3C,$96,$18,$19,$64,$1F,$7F,$1F,$7F,$08,$23
-	dc.b $12,$4C,$FF,$7C,$FF,$7C,$E9,$08,$1F,$67,$1F,$7F,$1F,$7F,$08,$20
-	dc.b $EA,$7C,$FF,$7C,$FF,$7C,$11,$08,$1C,$62,$1C,$7F,$1C,$7F,$08,$20
-	dc.b $F6,$1C,$FF,$1C,$FF,$1C,$01,$08,$1E,$69,$1E,$7F,$1E,$7F,$0C,$28
-	dc.b $52,$3C,$FF,$3C,$FF,$3C,$81,$18,$0C,$70,$0C,$7F,$0C,$7F,$00,$31
-	dc.b $2A,$18,$3F,$18,$3F,$18,$01,$00,$00,$64,$00,$7F,$00,$7F,$00,$25
-	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$68,$00,$7F,$00,$7F,$00,$29
-	dc.b $26,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$2A
-	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$00,$78,$00,$7E,$00,$7E,$00,$0A
-	dc.b $36,$00,$3F,$00,$3F,$00,$15,$00,$00,$6E,$00,$7E,$00,$7E,$00,$20
-	dc.b $33,$00,$3F,$00,$3F,$00,$10,$00,$00,$62,$00,$7E,$00,$7E,$00,$20
-	dc.b $1D,$00,$1F,$00,$1F,$00,$00,$00,$00,$64,$00,$7C,$00,$7C,$00,$20
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$40,$00,$7C,$00,$7C,$00,$04
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$C0,$00,$F8,$00,$F8,$00,$48
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$D0,$00,$F8,$00,$F8,$00,$48
-	dc.b $14,$00,$1F,$00,$1F,$00,$05,$00,$00,$80,$00,$F0,$00,$F0,$00,$10
-	dc.b $15,$00,$1F,$80,$1F,$80,$05,$80,$01,$D0,$01,$F0,$01,$F0,$00,$80
-	dc.b $0E,$80,$0F,$C0,$0F,$C0,$04,$C0,$03,$D8,$03,$F8,$03,$F8,$01,$50
-	dc.b $13,$40,$1F,$E0,$1F,$E0,$02,$60,$01,$88,$01,$F8,$01,$F8,$00,$80
-	dc.b $13,$C0,$1F,$C0,$1F,$C0,$05,$00,$03,$D4,$03,$FC,$03,$FC,$01,$20
-	dc.b $2B,$40,$3F,$E0,$3F,$E0,$15,$80,$04,$04,$07,$8C,$07,$8C,$01,$88
-	dc.b $00,$80,$03,$80,$03,$80,$03,$80
-	dcb.b $8,$00
-	dc.b $80,$00,$80,$00,$80,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$00
-	dc.b $80,$00,$C0,$00,$C0,$00,$C0,$00,$00,$01,$00,$01,$00,$01,$00,$00
-	dc.b $80,$00,$C0,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $00,$00,$C0,$00,$C0,$00,$40,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $20,$00,$E0,$00,$E0,$00,$60,$00,$00,$03,$00,$03,$00,$03,$00,$01
-	dc.b $30,$00,$F0,$00,$F0,$00,$60,$00,$00,$06,$00,$07,$00,$07,$00,$02
-	dc.b $30,$00,$F0,$00,$F0,$00,$60,$00,$00,$06,$00,$05,$00,$07,$00,$00
-	dc.b $38,$00,$F8,$00,$F8,$00,$70,$00,$00,$07,$00,$04,$00,$07,$00,$00
-	dc.b $38,$00,$F8,$00,$F8,$00,$70,$00,$00,$9F,$00,$9F,$00,$9F,$00,$82
-	dc.b $3A,$00,$FA,$00,$FA,$00,$70,$00,$00,$9F,$00,$9F,$00,$9F,$00,$1A
-	dc.b $25,$00,$FF,$00,$FF,$00,$70,$00,$04,$85,$06,$BF,$06,$BF,$06,$00
-	dc.b $2C,$80,$F7,$80,$FF,$80,$70,$00,$00,$45,$02,$7F,$02,$7F,$00,$40
-	dc.b $3C,$80,$E7,$80,$FF,$80,$60,$00,$00,$42,$00,$7F,$00,$7F,$00,$40
-	dc.b $27,$80,$FF,$80,$FF,$80,$68,$00,$03,$71,$03,$7F,$03,$7F,$02,$50
-	dc.b $EA,$C0,$FF,$C0,$FF,$C0,$64,$80,$01,$8A,$01,$BF,$01,$BF,$01,$2A
-	dc.b $88,$60,$FF,$E0,$FF,$E0,$26,$40,$00,$A4,$00,$B7,$00,$B7,$00,$04
-	dc.b $EB,$B0,$FF,$F0,$FF,$F0,$64,$20,$00,$94,$00,$BF,$00,$BF,$00,$34
-	dc.b $EB,$70,$FF,$F0,$FF,$F0,$24,$20,$01,$95,$01,$BF,$01,$BF,$00,$B4
-	dc.b $32,$58,$FF,$F8,$FF,$F8,$19,$50,$03,$15,$03,$B7,$03,$B7,$01,$34
-	dc.b $32,$58,$FF,$F8,$FF,$F8,$11,$50,$06,$BC,$07,$BF,$07,$BF,$02,$14
-	dc.b $F0,$B8,$FF,$F8,$FF,$F8,$55,$50,$07,$3C,$07,$BF,$07,$BF,$02,$14
-	dc.b $60,$8C,$FE,$FC,$FE,$FC,$4A,$08,$0D,$37,$0F,$BF,$0F,$BF,$05,$17
-	dc.b $E0,$4C,$FE,$7C,$FE,$7C,$CA,$08,$0D,$35,$0F,$BF,$0F,$BF,$05,$15
-	dc.b $70,$6C,$FE,$7C,$FE,$7C,$3E,$08,$0E,$A1,$0F,$BF,$0F,$BF,$05,$05
-	dc.b $E8,$2C,$FE,$3C,$FE,$3C,$B6,$18,$18,$E7,$1F,$FF,$1F,$FF,$08,$27
-	dc.b $3A,$4C,$FF,$7C,$FF,$7C,$F9,$08,$19,$67,$1F,$7F,$1F,$7F,$08,$24
-	dc.b $EE,$7C,$FF,$7C,$FF,$7C,$1D,$08,$1B,$7A,$1F,$7F,$1F,$7F,$08,$38
-	dc.b $DE,$1C,$FF,$1C,$FF,$1C,$07,$08,$1A,$69,$1E,$7F,$1E,$7F,$0C,$28
-	dc.b $4E,$3C,$FF,$3C,$FF,$3C,$83,$18,$19,$70,$1F,$7F,$1F,$7F,$08,$31
-	dc.b $23,$18,$3F,$18,$3F,$18,$03,$00,$1F,$64,$1F,$7F,$1F,$7F,$08,$25
-	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$1C,$68,$1C,$7F,$1C,$7F,$08,$29
-	dc.b $26,$00,$3F,$00,$3F,$00,$01,$00,$1E,$78,$1E,$7E,$1E,$7E,$0C,$2A
-	dc.b $22,$00,$3F,$00,$3F,$00,$01,$00,$0C,$7C,$0C,$7E,$0C,$7E,$00,$0E
-	dc.b $36,$00,$3F,$00,$3F,$00,$15,$00,$00,$6E,$00,$7E,$00,$7E,$00,$28
-	dc.b $33,$00,$3F,$00,$3F,$00,$10,$00,$00,$72,$00,$7E,$00,$7E,$00,$30
-	dc.b $1D,$00,$1F,$00,$1F,$00,$00,$00,$00,$64,$00,$7C,$00,$7C,$00,$20
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$40,$00,$7C,$00,$7C,$00,$04
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$C0,$00,$F8,$00,$F8,$00,$48
-	dc.b $18,$00,$1F,$00,$1F,$00,$09,$00,$00,$D0,$00,$F8,$00,$F8,$00,$48
-	dc.b $14,$00,$1F,$00,$1F,$00,$05,$00,$00,$80,$00,$F0,$00,$F0,$00,$10
-	dc.b $15,$00,$1F,$80,$1F,$80,$05,$80,$01,$D0,$01,$F0,$01,$F0,$00,$80
-	dc.b $0E,$80,$0F,$C0,$0F,$C0,$04,$C0,$03,$D8,$03,$F8,$03,$F8,$01,$50
-	dc.b $13,$40,$1F,$E0,$1F,$E0,$02,$60,$01,$88,$01,$F8,$01,$F8,$00,$80
-	dc.b $13,$C0,$1F,$C0,$1F,$C0,$05,$00,$03,$D4,$03,$FC,$03,$FC,$01,$20
-	dc.b $2B,$40,$3F,$E0,$3F,$E0,$15,$80,$04,$04,$07,$8C,$07,$8C,$01,$88
-	dc.b $00,$80,$03,$80,$03,$80,$03,$80,$00,$00,$01,$00,$01
-	dcb.b $C,$00
-	dc.b $10,$01,$10,$01,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $80,$00,$E0,$00,$E0,$00,$40
-	dcb.b $8,$00
-	dc.b $01,$80,$01,$C0,$01,$C0,$00,$C0
-	dcb.b $8,$00
-	dc.b $01,$C0,$01,$E0,$01,$E0,$00,$E0
-	dcb.b $8,$00
-	dc.b $01,$80,$01,$E0,$01,$E0,$00,$A0
-	dcb.b $8,$00
-	dc.b $01,$80,$01,$F0,$01,$F0,$00,$90
-	dcb.b $8,$00
-	dc.b $01,$80,$01,$F0,$01,$F0,$00,$90
-	dcb.b $9,$00
-	dc.b $D1,$03,$E9,$03,$F9,$00,$49,$02,$00,$02,$00,$02,$00,$00,$00,$00
-	dc.b $F0,$11,$C9,$11,$F9,$00,$48,$01,$00,$83,$00,$83,$00,$80,$00,$02
-	dc.b $70,$32,$7C,$32,$7C,$02,$24,$05,$00,$87,$00,$87,$00,$84,$00,$00
-	dc.b $68,$00,$7C,$00,$7C,$00,$24,$39,$00,$3F,$20,$3F,$20,$38,$00,$40
-	dc.b $3E,$40,$3E,$40,$3E,$40,$16,$4D,$00,$7F,$E0,$7F,$E0,$4C,$00,$00
-	dc.b $09,$00,$CF,$00,$CF,$00,$09,$0B,$70,$7F,$70,$7F,$70,$0C,$00,$01
-	dc.b $88,$01,$8F,$01,$8F,$01,$88,$5D,$00,$F3,$78,$FF,$78,$10,$00,$02
-	dc.b $30,$03,$BF,$03,$BF,$02,$30,$56,$80,$DB,$D8,$DF,$D8,$19,$18,$02
-	dc.b $21,$03,$FF,$03,$FF,$02,$20,$C2,$00,$EF,$C8,$EF,$C8,$29,$08,$02
-	dc.b $E0,$03,$FE,$03,$FE,$02,$20,$16,$10,$FF,$F0,$FF,$F0,$F1,$00,$01
-	dc.b $C0,$01,$DE,$01,$DE,$00,$00,$10,$08,$FF,$F8,$FF,$F8,$34,$80,$00
-	dc.b $10,$00,$1E,$00,$1E,$00,$10,$00,$08,$FE,$F8,$FE,$F8,$2A,$20,$00
-	dc.b $B7,$00,$BF,$00,$BF,$00,$17,$40,$08,$7F,$F8,$7F,$F8,$6A,$A0,$00
-	dc.b $34,$00,$3F,$00,$3F,$00,$17,$10,$20,$FE,$F0,$FE,$F0,$FE,$B0,$08
-	dc.b $21,$08,$3F,$08,$3F,$08,$05,$88,$38,$9E,$B8,$9E,$B8,$96,$B8,$00
-	dc.b $67,$00,$7F,$00,$7F,$00,$27,$1A,$4C,$9F,$7C,$9F,$7C,$99,$08,$00
-	dc.b $E7,$00,$FF,$00,$FF,$00,$24,$8E,$6C,$9F,$7C,$9F,$7C,$1D,$08,$0A
-	dc.b $FA,$0A,$FF,$0A,$FF,$0A,$38,$B6,$2C,$BF,$3C,$BF,$3C,$07,$18,$09
-	dc.b $E9,$0B,$FF,$0B,$FF,$08,$A8,$12,$4C,$BF,$7C,$BF,$7C,$83,$08,$0B
-	dc.b $70,$0B,$FF,$0B,$FF,$09,$31,$2B,$7C,$3F,$7C,$3F,$7C,$03,$08,$06
-	dc.b $E4,$0F,$FF,$0F,$FF,$02,$25,$22,$1C,$3F,$1C,$3F,$1C,$01,$08,$07
-	dc.b $68,$0F,$FF,$0F,$FF,$02,$29,$26,$3C,$3F,$3C,$3F,$3C,$01,$18,$1D
-	dc.b $78,$1F,$FE,$1F,$FE,$15,$2A,$22,$18,$3F,$18,$3F,$18,$01,$00,$0D
-	dc.b $7C,$0F,$FE,$0F,$FE,$05,$0E,$36,$00,$3F,$00,$3F,$00,$15,$00,$0E
-	dc.b $EE,$1F,$FE,$1F,$FE,$05,$28,$33,$00,$3F,$00,$3F,$00,$10,$00,$18
-	dc.b $F2,$1F,$FE,$1F,$FE,$08,$30,$1D,$00,$1F,$00,$1F,$00,$00,$00,$19
-	dc.b $64,$1F,$7C,$1F,$7C,$08,$20,$18,$00,$1F,$00,$1F,$00,$09,$00,$1B
-	dc.b $40,$1F,$7C,$1F,$7C,$08,$04,$18,$00,$1F,$00,$1F,$00,$09,$00,$1A
-	dc.b $40,$1E,$78,$1E,$78,$0C,$48,$18,$00,$1F,$00,$1F,$00,$09,$00,$19
-	dc.b $50,$1F,$78,$1F,$78,$08,$48,$14,$00,$1F,$00,$1F,$00,$05,$00,$1F
-	dc.b $00,$1F,$70,$1F,$70,$08,$10,$15,$00,$1F,$80,$1F,$80,$05,$80,$1C
-	dc.b $10,$1D,$70,$1D,$70,$08,$00,$0E,$80,$0F,$C0,$0F,$C0,$04,$C0,$1E
-	dc.b $58,$1F,$78,$1F,$78,$0C,$50,$13,$40,$1F,$E0,$1F,$E0,$02,$60,$0D
-	dc.b $48,$0D,$F8,$0D,$F8,$01,$40,$13,$C0,$1F,$C0,$1F,$C0,$05,$00,$03
-	dc.b $D4,$03,$FC,$03,$FC,$01,$20,$2B,$40,$3F,$E0,$3F,$E0,$15,$80,$04
-	dc.b $04,$07,$8C,$07,$8C,$01,$88,$00,$80,$03,$80,$03,$80,$03,$80,$08
-	dc.b $00,$08,$00,$08,$00,$08
-	dcb.b $2B,$00
-	dc.b $20,$00,$20
-	dcb.b $D,$00
-	dc.b $20,$00,$20
-	dcb.b $1D,$00
-	dc.b $18,$00,$18,$00,$18
-	dcb.b $9,$00
-	dc.b $08,$00,$1C,$00,$1C,$00,$0C
-	dcb.b $9,$00
-	dc.b $18,$00,$1E,$00,$1E,$00,$0A
-	dcb.b $9,$00
-	dc.b $18,$30,$1F,$30,$1F,$30,$09,$30
-	dcb.b $8,$00
-	dc.b $0C,$00,$0F,$B0,$0F,$B0,$04,$90
-	dcb.b $8,$00
-	dc.b $0D,$00,$0E,$D0,$0F,$D0,$04,$50,$04,$00,$04,$00,$04,$00,$00,$00
-	dc.b $07,$00,$04,$C0,$07,$C0,$00,$00,$0A,$00,$0E,$00,$0E,$00,$08,$00
-	dc.b $07,$00,$17,$C8,$17,$C8,$05,$00,$12,$00,$1E,$00,$1E,$00,$10,$00
-	dc.b $01,$A0,$31,$E0,$31,$E0,$00,$00,$14,$00,$1C,$00,$1C,$00,$10,$00
-	dc.b $00,$C0,$00,$C0,$00,$C0,$00,$00,$24,$00,$3C,$00,$3C,$00,$20,$00
-	dc.b $80,$1C,$80,$1C,$80,$1C,$80,$1C,$F8,$00,$C8,$00,$F8,$00,$C0,$00
-	dc.b $00,$E0,$00,$FF,$00,$FF,$00,$E1,$98,$00,$E8,$00,$F8,$00,$80,$00
-	dc.b $00,$80,$00,$FF,$00,$FF,$00,$87,$10,$00,$70,$00,$70,$00,$00,$00
-	dc.b $06,$80,$06,$FF,$06,$FF,$06,$81,$30,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $09,$80,$0F,$FF,$0F,$FF,$08,$81,$40,$00,$40,$00,$40,$00,$00,$00
-	dc.b $09,$40,$0F,$7F,$0F,$7F,$08,$41,$10,$00,$10,$00,$10,$00,$10,$00
-	dc.b $0B,$20,$0F,$3F,$0F,$3F,$08,$20,$08,$00,$98,$00,$98,$00,$98,$00
-	dc.b $04,$10,$04,$1F,$04,$1F,$00,$11,$34,$10,$3C,$10,$3C,$10,$04,$10
-	dc.b $01,$18,$01,$1F,$01,$1F,$00,$06,$30,$10,$3C,$18,$3C,$18,$10,$10
-	dc.b $00,$70,$00,$7C,$00,$7C,$00,$04,$2B,$10,$3F,$18,$3F,$18,$03,$10
-	dc.b $00,$60,$00,$7E,$00,$7E,$00,$26,$62,$08,$7F,$18,$7F,$18,$21,$00
-	dc.b $08,$60,$08,$7F,$08,$7F,$08,$23,$44,$40,$7E,$40,$7E,$40,$02,$00
-	dc.b $08,$18,$0C,$1F,$0C,$1F,$08,$09,$40,$04,$7C,$14,$7C,$14,$44,$00
-	dc.b $08,$0C,$0C,$0F,$0C,$0F,$08,$05,$C0,$6C,$FC,$7C,$FC,$7C,$04,$08
-	dc.b $02,$04,$06,$44,$06,$44,$06,$40,$20,$2C,$38,$3C,$38,$3C,$08,$18
-	dc.b $01,$0E,$01,$0E,$01,$0E,$01,$06,$F8,$4C,$F8,$7C,$F8,$7C,$00,$08
-	dc.b $11,$18,$11,$9F,$11,$9F,$11,$88,$C0,$7C,$FC,$7C,$FC,$7C,$4C,$08
-	dc.b $0D,$30,$0D,$BF,$0D,$BF,$0D,$B0,$C0,$1C,$FC,$1C,$FC,$1C,$44,$08
-	dc.b $20,$30,$23,$BF,$23,$BF,$20,$A1,$70,$3C,$7F,$3C,$7F,$3C,$23,$18
-	dc.b $14,$60,$35,$7E,$35,$7E,$04,$62,$74,$18,$7F,$18,$7F,$18,$35,$00
-	dc.b $04,$60,$0F,$FC,$0F,$FC,$0D,$EC,$35,$00,$3F,$80,$3F,$80,$05,$80
-	dc.b $07,$64,$07,$F4,$07,$F4,$03,$A4,$0E,$80,$0F,$C0,$0F,$C0,$04,$C0
-	dc.b $0F,$60,$0F,$F8,$0F,$F8,$09,$A8,$13,$40,$1F,$E0,$1F,$E0,$02,$60
-	dc.b $18,$E8,$1F,$F8,$1F,$F8,$1A,$60,$13,$C0,$1F,$C0,$1F,$C0,$05,$00
-	dc.b $07,$54,$07,$DC,$07,$DC,$07,$80,$2B,$40,$3F,$E0,$3F,$E0,$15,$80
-	dc.b $0E,$74,$0F,$FC,$0F,$FC,$09,$88,$00,$80,$03,$80,$03,$80,$03,$80
-	dc.b $10,$00,$10,$00,$10,$00,$10
-	dcb.b $4B,$00
-	dc.b $20,$00,$20
-	dcb.b $D,$00
-	dc.b $20,$00,$20
-	dcb.b $1C,$00
-	dc.b $18,$00,$18,$00,$18,$00,$18
-	dcb.b $B,$00
-	dc.b $18,$00,$18,$00,$08
-	dcb.b $B,$00
-	dc.b $10,$00,$10,$00,$10
-	dcb.b $B,$00
-	dc.b $02,$00,$02
-	dcb.b $A,$00
-	dc.b $18,$00,$18,$00,$18
-	dcb.b $B,$00
-	dc.b $16,$00,$1E,$00,$1E
-	dcb.b $B,$00
-	dc.b $1B,$C0,$7F,$C0,$7F,$C0,$00,$00,$00,$C0,$00,$C0,$00,$C0,$00,$80
-	dc.b $0E,$F0,$2F,$70,$2F,$F0,$06,$00,$07,$40,$07,$C0,$07,$C0,$07,$00
-	dc.b $09,$88,$0F,$78,$0F,$F8,$08,$00,$1E,$40,$19,$C0,$1F,$C0,$18,$00
-	dc.b $09,$90,$0F,$F0,$0F,$F0,$08,$00,$23,$80,$3D,$80,$3F,$80,$20,$00
-	dc.b $8B,$70,$8F,$78,$8F,$78,$88,$78,$46,$00,$7E,$00,$7E,$00,$40,$00
-	dc.b $04,$D0,$04,$FC,$04,$FC,$00,$DC,$18,$00,$78,$00,$78,$00,$00,$00
-	dc.b $01,$88,$01,$FC,$01,$FC,$00,$94,$20,$00,$20,$00,$20,$00,$00,$00
-	dc.b $09,$90,$09,$FC,$09,$FC,$09,$A4
-	dcb.b $8,$00
-	dc.b $15,$00,$1D,$FE,$1D,$FE,$15,$06
-	dcb.b $8,$00
-	dc.b $23,$80,$3F,$FF,$3F,$FF,$21,$83,$01,$80,$01,$80,$01,$80,$00,$00
-	dc.b $22,$C0,$3E,$FF,$3E,$FF,$20,$C1,$07,$C0,$07,$C0,$07,$C0,$03,$80
-	dc.b $3C,$20,$3C,$3F,$3C,$3F,$38,$21,$FA,$40,$FF,$C0,$FF,$C0,$06,$00
-	dc.b $00,$3C,$00,$3C,$00,$3C,$00,$3C,$24,$00,$3F,$C0,$3F,$C0,$0C,$40
-	dcb.b $8,$00
-	dc.b $F8,$00,$FF,$80,$FF,$80,$01,$80,$00,$00,$00,$01,$00,$01,$00,$00
-	dc.b $C0,$00,$F6,$00,$F6,$00,$46,$00,$20,$00,$20,$01,$20,$01,$00,$00
-	dc.b $C0,$10,$F8,$10,$F8,$10,$58,$10,$4A,$3C,$4A,$3C,$4A,$3C,$48,$30
-	dc.b $04,$12,$04,$1A,$04,$1A,$04,$12,$1B,$C2,$1B,$FE,$1B,$FE,$18,$C0
-	dc.b $06,$D0,$C6,$D8,$C6,$D8,$C2,$D0,$37,$00,$3F,$FF,$3F,$FF,$11,$06
-	dc.b $02,$4E,$FA,$5E,$FA,$5E,$38,$46,$4B,$03,$6B,$FF,$6B,$FF,$60,$3C
-	dc.b $88,$40,$FE,$40,$FE,$40,$0A,$00,$02,$00,$5E,$C8,$5E,$C8,$4C,$C8
-	dc.b $6C,$04,$7F,$94,$7F,$94,$24,$80,$08,$E8,$0B,$F8,$0B,$F8,$02,$60
-	dc.b $34,$6C,$3F,$7C,$3F,$7C,$00,$28,$1F,$54,$1F,$DC,$1F,$DC,$19,$80
-	dc.b $C2,$AC,$C2,$BC,$C2,$BC,$00,$38,$14,$74,$15,$FC,$15,$FC,$11,$88
-	dc.b $00,$0C,$00,$0C,$00,$0C,$00,$08,$20,$00,$20,$00,$20,$00,$20
-	dcb.b $3B,$00
-	dc.b $40,$00,$40
-	dcb.b $C,$00
-	dc.b $40,$40,$40,$40,$40,$00,$40
-	dcb.b $9,$00
-	dc.b $80,$00,$C0,$00,$C0,$00,$C0
-	dcb.b $B,$00
-	dc.b $60,$00,$60,$00,$20
-	dcb.b $8,$00
-	dc.b $78,$00,$78,$00,$78
-	dcb.b $B,$00
-	dc.b $47,$00,$7F,$04,$7F,$04
-	dcb.b $A,$00
-	dc.b $3F,$E0,$3C,$E0,$3F,$E0,$10
-	dcb.b $9,$00
-	dc.b $26,$18,$3D,$F8,$3F,$F8,$20
-	dcb.b $9,$00
-	dc.b $24,$08,$3F,$F8,$3F,$F8,$20,$00,$FF,$E0,$FF,$E0,$FF,$E0,$FF,$C0
-	dc.b $1B,$10,$1B,$F0,$1B,$F0,$18,$00,$8C,$40,$F3,$C0,$FF,$C0,$00,$00
-	dc.b $00,$F0,$00,$F0,$00,$F0,$00,$C0,$85,$80,$FB,$80,$FF,$80,$00,$00
-	dc.b $01,$38,$01,$F8,$01,$F8,$01,$38,$FE,$00,$FE,$00,$FE,$00,$00,$00
-	dc.b $06,$04,$07,$FC,$07,$FC,$06,$14,$04,$00,$04,$00,$04,$00,$04,$00
-	dc.b $89,$02,$8F,$FE,$8F,$FE,$88,$12,$50,$00,$50,$00,$50,$00,$40,$00
-	dc.b $3D,$80,$3F,$FE,$3F,$FE,$3C,$22,$90,$00,$F0,$00,$F0,$00,$80,$00
-	dc.b $44,$80,$7F,$FE,$7F,$FE,$40,$22,$C1,$E0,$E1,$E0,$E1,$E0,$80,$00
-	dc.b $44,$80,$7F,$FE,$7F,$FE,$40,$02,$3F,$D0,$BF,$F0,$BF,$F0,$01,$C0
-	dc.b $77,$1C,$7F,$FC,$7F,$FC,$72,$10,$7C,$10,$7F,$F0,$7F,$F0,$3C,$00
-	dc.b $1F,$FE,$1F,$FE,$1F,$FE,$00,$84,$06,$00,$FF,$E0,$FF,$E0,$C2,$60
-	dc.b $47,$5A,$7F,$FF,$7F,$FF,$01,$09,$02,$40,$FF,$C0,$FF,$C0,$3D,$C0
-	dc.b $0F,$39,$6F,$FF,$6F,$FF,$00,$08,$88,$40,$FE,$40,$FE,$40,$4A,$00
-	dc.b $13,$38,$DF,$FF,$DF,$FF,$4C,$C8,$4C,$00,$FF,$80,$FF,$80,$24,$80
-	dc.b $08,$EC,$0B,$FF,$0B,$FF,$02,$64,$74,$F8,$FF,$F8,$FF,$F8,$00,$20
-	dc.b $1F,$76,$1F,$FF,$1F,$FF,$19,$80,$62,$A4,$E2,$B4,$E2,$B4,$00,$30
-	dc.b $14,$75,$15,$FD,$15,$FD,$11,$88,$C0,$0C,$C0,$0C,$C0,$0C,$00,$08
-	dc.b $40,$00,$40,$00,$40,$00,$40
-	dcb.b $29,$00
-	dc.b $01,$00,$81,$80,$81,$80,$01
-	dcb.b $9,$00
-	dc.b $01,$00,$81,$C0,$81,$C0,$01,$80
-	dcb.b $18,$00
-	dc.b $FF,$E0,$FF,$E0,$FF,$E0
-	dcb.b $A,$00
-	dc.b $C6,$20,$F9,$F0,$FF,$F0,$40,$00,$C0,$00,$C0,$00,$C0,$00,$C0,$00
-	dc.b $44,$21,$7B,$E1,$7F,$E1,$00,$00,$3F,$00,$FF,$00,$FF,$00,$3F,$00
-	dc.b $7F,$D1,$7F,$F1,$7F,$F1,$20,$30,$0C,$E0,$F3,$E0,$FF,$E0,$00,$C0
-	dc.b $4C,$09,$7F,$F9,$7F,$F9,$4C,$48,$84,$40,$FB,$C0,$FF,$C0,$00,$00
-	dc.b $84,$0D,$FF,$FD,$FF,$FD,$80,$89,$FF,$80,$FF,$80,$FF,$80,$80,$00
-	dc.b $47,$87,$7F,$FF,$7F,$FF,$40,$8D,$1C,$00,$DC,$00,$DC,$00,$00,$00
-	dc.b $47,$0A,$7F,$FF,$7F,$FF,$41,$09,$3B,$80,$FF,$80,$FF,$80,$38,$00
-	dc.b $BF,$29,$FF,$FF,$FF,$FF,$BC,$18,$A3,$F8,$FF,$F8,$FF,$F8,$63,$80
-	dc.b $13,$38,$DF,$FF,$DF,$FF,$4C,$C8,$40,$28,$FF,$F8,$FF,$F8,$3C,$20
-	dc.b $08,$EC,$0B,$FF,$0B,$FF,$02,$64,$74,$00,$FF,$F8,$FF,$F8,$03,$F8
-	dc.b $1F,$76,$1F,$FF,$1F,$FF,$19,$80,$62,$A4,$E2,$B4,$E2,$B4,$00,$30
-	dc.b $14,$75,$15,$FD,$15,$FD,$11,$88,$C0,$0C,$C0,$0C,$C0,$0C,$00,$08
-	dc.b $00,$80,$00,$C0,$00,$C0,$00,$80
-	dcb.b $9,$00
-	dc.b $80,$08,$80,$08,$80
-	dcb.b $A,$00
-	dc.b $0E,$4C,$0E,$6C,$0E,$6C,$08,$0C
-	dcb.b $8,$00
-	dc.b $37,$E4,$77,$EC,$77,$EC,$27,$80
-	dcb.b $8,$00
-	dc.b $06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10,$18,$00,$18,$00,$18,$00,$10,$00
-	dc.b $4E,$09,$7F,$F9,$7F,$F9,$48,$48,$80,$00,$90,$00,$90,$00,$00,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E1,$00,$E1,$80,$E1,$80,$81,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$80,$FD,$80,$FD,$80,$60,$00
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$80,$FF,$80,$FF,$80,$38,$00
-	dc.b $F1,$20,$FF,$FF,$FF,$FF,$8E,$45,$8F,$F8,$F7,$F8,$FF,$F8,$07,$80
-	dc.b $13,$00,$DF,$FF,$DF,$FF,$4C,$F8,$4E,$28,$F3,$F8,$FF,$F8,$82,$20
-	dc.b $08,$EC,$0B,$FF,$0B,$FF,$02,$64,$30,$00,$FF,$F8,$FF,$F8,$41,$F8
-	dc.b $1F,$76,$1F,$FF,$1F,$FF,$19,$80,$00,$A4,$FF,$B4,$FF,$B4,$7F,$30
-	dc.b $14,$75,$15,$FD,$15,$FD,$11,$88,$C7,$0C,$C7,$0C,$C7,$0C,$00,$08
-	dc.b $00,$00,$10,$08,$10,$08
-	dcb.b $A,$00
-	dc.b $30,$10,$30,$10,$30,$10,$20
-	dcb.b $9,$00
-	dc.b $0C,$00,$0C,$40,$0C,$40
-	dcb.b $A,$00
-	dc.b $47,$98,$7F,$B8,$7F,$B8,$47,$98
-	dcb.b $8,$00
-	dc.b $16,$70,$97,$F0,$97,$F0,$16,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $4E,$09,$FF,$F9,$FF,$F9,$48,$48,$88,$00,$98,$00,$98,$00,$08,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E8,$00,$E8,$00,$E8,$00,$80,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$20,$FC,$60,$FC,$60,$60,$20
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$C0,$FF,$E0,$FF,$E0,$38,$00
-	dc.b $F1,$20,$FF,$FF,$FF,$FF,$8E,$45,$8F,$F8,$F7,$F8,$FF,$F8,$07,$80
-	dc.b $13,$00,$DF,$FF,$DF,$FF,$4C,$F8,$4E,$28,$F3,$F8,$FF,$F8,$82,$20
-	dc.b $08,$EC,$0B,$FF,$0B,$FF,$02,$64,$30,$00,$FF,$F8,$FF,$F8,$41,$F8
-	dc.b $1F,$76,$1F,$FF,$1F,$FF,$19,$80,$00,$A4,$FF,$B4,$FF,$B4,$7F,$30
-	dc.b $14,$75,$15,$FD,$15,$FD,$11,$88,$C7,$0C,$C7,$0C,$C7,$0C,$00,$08
-	dc.b $07,$80,$07,$80,$07,$80,$07,$80
-	dcb.b $8,$00
-	dc.b $06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $CE,$09,$FF,$F9,$FF,$F9,$C8,$48,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E0,$00,$E0,$00,$E0,$00,$80,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$00,$FC,$00,$FC,$00,$60,$00
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$80,$FF,$80,$FF,$80,$38,$00
-	dc.b $F1,$20,$FF,$FF,$FF,$FF,$8E,$45,$8F,$F8,$F7,$F8,$FF,$F8,$07,$80
-	dc.b $13,$00,$DF,$FF,$DF,$FF,$4C,$F8,$4E,$28,$F3,$F8,$FF,$F8,$82,$20
-	dc.b $08,$EC,$0B,$FF,$0B,$FF,$02,$64,$30,$00,$FF,$F8,$FF,$F8,$41,$F8
-	dc.b $1F,$76,$1F,$FF,$1F,$FF,$19,$80,$00,$A4,$FF,$B4,$FF,$B4,$7F,$30
-	dc.b $14,$75,$15,$FD,$15,$FD,$11,$88,$C7,$0C,$C7,$0C,$C7,$0C,$00,$08
-	dc.b $07,$80,$07,$80,$07,$80,$07,$80
-	dcb.b $8,$00
-	dc.b $06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $CE,$09,$FF,$F9,$FF,$F9,$C8,$48,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E0,$00,$E0,$00,$E0,$00,$80,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$00,$FC,$00,$FC,$00,$60,$00
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$80,$FF,$80,$FF,$80,$38,$00
-	dc.b $F1,$20,$FF,$FF,$FF,$FF,$8E,$45,$8F,$F8,$F7,$F8,$FF,$F8,$07,$80
-	dc.b $13,$00,$DF,$FF,$DF,$FF,$4C,$F8,$4E,$28,$F3,$F8,$FF,$F8,$82,$20
-	dc.b $08,$EC,$0B,$FF,$0B,$FF,$02,$64,$30,$00,$FF,$F8,$FF,$F8,$41,$F8
-	dc.b $1F,$76,$1F,$FF,$1F,$FF,$19,$80,$00,$A4,$FF,$B4,$FF,$B4,$7F,$30
-	dc.b $14,$75,$15,$FD,$15,$FD,$11,$88,$C7,$0C,$C7,$0C,$C7,$0C,$00,$08
-	dc.b $07,$80,$07,$80,$07,$80,$07,$80
-	dcb.b $8,$00
-	dc.b $06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $CE,$09,$FF,$F9,$FF,$F9,$C8,$48,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E0,$00,$E0,$00,$E0,$00,$80,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$00,$FC,$00,$FC,$00,$60,$00
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$80,$FF,$80,$FF,$80,$38,$00
-	dc.b $F1,$20,$FF,$FF,$FF,$FF,$8E,$45,$8F,$F8,$F7,$F8,$FF,$F8,$07,$80
-	dc.b $13,$00,$DF,$FF,$DF,$FF,$4C,$F8,$4E,$28,$F3,$F8,$FF,$F8,$82,$20
-	dc.b $08,$EC,$7B,$FF,$7B,$FF,$02,$64,$30,$00,$FF,$F8,$FF,$F8,$41,$F8
-	dc.b $1F,$76,$7F,$FF,$7F,$FF,$19,$80,$00,$A4,$FF,$FE,$FF,$FE,$7F,$30
-	dc.b $20,$44,$FF,$FF,$FF,$FF,$20,$44,$68,$08,$FF,$FF,$FF,$FF,$68,$08
-	dc.b $07,$80,$07,$80,$07,$80,$07,$80
-	dcb.b $8,$00
-	dc.b $06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $CE,$09,$FF,$F9,$FF,$F9,$C8,$48,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E0,$00,$E0,$00,$E0,$00,$80,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$00,$FC,$00,$FC,$00,$60,$00
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$80,$FF,$80,$FF,$80,$38,$00
-	dc.b $F1,$20,$FF,$FF,$FF,$FF,$8E,$45,$8F,$F8,$F7,$F8,$FF,$F8,$07,$80
-	dc.b $13,$00,$DF,$FF,$DF,$FF,$4C,$F8,$4E,$28,$F3,$F8,$FF,$F8,$82,$20
-	dc.b $08,$EC,$0B,$FF,$0B,$FF,$02,$64,$30,$04,$FF,$FE,$FF,$FE,$41,$F8
-	dc.b $20,$44,$FF,$FF,$FF,$FF,$20,$44,$68,$08,$FF,$FF,$FF,$FF,$68,$08
-	dc.b $00,$00,$07,$FE,$07,$FE,$00,$00,$00,$00,$01,$FE,$01,$FE,$00,$00
-	dc.b $00,$00,$1F,$80,$1F,$80
-	dcb.b $A,$00
-	dc.b $07,$80,$07,$80,$07,$80,$07,$80
-	dcb.b $8,$00
-	dc.b $06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $CE,$09,$FF,$F9,$FF,$F9,$C8,$48,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E0,$00,$E0,$00,$E0,$00,$80,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$00,$FC,$00,$FC,$00,$60,$00
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$80,$FF,$80,$FF,$80,$38,$00
-	dc.b $F1,$20,$FF,$FF,$FF,$FF,$8E,$45,$8F,$F8,$F7,$F8,$FF,$F8,$07,$80
-	dc.b $13,$00,$DF,$FF,$DF,$FF,$4C,$F8,$4E,$2C,$F3,$FE,$FF,$FE,$82,$20
-	dc.b $20,$44,$FF,$FF,$FF,$FF,$20,$44,$68,$08,$FF,$FF,$FF,$FF,$68,$08
-	dc.b $00,$00,$07,$FF,$07,$FF,$00,$00,$04,$10,$FF,$FE,$FF,$FE,$04,$10
-	dc.b $00,$80,$1F,$FC,$1F,$FC,$00,$80
-	dcb.b $9,$00
-	dc.b $A0,$01,$FE,$01,$FE,$00,$A0
-	dcb.b $8,$00
-	dc.b $07,$80,$07,$80,$07,$80,$07,$80
-	dcb.b $8,$00
-	dc.b $06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $CE,$09,$FF,$F9,$FF,$F9,$C8,$48,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $9E,$0F,$FF,$FF,$FF,$FF,$80,$89,$E0,$00,$E0,$00,$E0,$00,$80,$00
-	dc.b $7B,$F7,$67,$FF,$7F,$FF,$00,$8D,$FC,$00,$FC,$00,$FC,$00,$60,$00
-	dc.b $D3,$4B,$EF,$FF,$FF,$FF,$41,$00,$3F,$80,$F7,$FE,$FF,$FE,$30,$00
-	dc.b $28,$44,$FF,$FF,$FF,$FF,$28,$44,$6C,$08,$F3,$FF,$FF,$FF,$60,$08
-	dc.b $08,$00,$1F,$FF,$1F,$FF,$08,$00,$08,$10,$FF,$FE,$FF,$FE,$08,$10
-	dc.b $00,$80,$FF,$FF,$FF,$FF,$00,$80,$00,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $00,$A0,$01,$FE,$01,$FE,$00,$A0
-	dcb.b $9,$00
-	dc.b $20,$00,$7F,$00,$7F,$00,$20,$A0,$00,$F8,$00,$F8,$00,$A0
-	dcb.b $9,$00
-	dc.b $A0,$00,$FE,$00,$FE,$00,$A0,$00,$06,$60,$07,$E0,$07,$E0,$06,$60
-	dcb.b $8,$00
-	dc.b $3B,$10,$3F,$F0,$3F,$F0,$3B,$10
-	dcb.b $8,$00
-	dc.b $DE,$09,$E7,$FF,$FF,$FF,$C0,$48,$80,$00,$FE,$00,$FE,$00,$00,$00
-	dc.b $9E,$0F,$EF,$FF,$FF,$FF,$80,$89,$E8,$00,$F7,$F8,$FF,$F8,$80,$00
-	dc.b $28,$44,$FF,$FF,$FF,$FF,$28,$44,$6C,$08,$F3,$FF,$FF,$FF,$60,$08
-	dc.b $08,$00,$1F,$FF,$1F,$FF,$08,$00,$04,$10,$FF,$FE,$FF,$FE,$04,$10
-	dc.b $00,$80,$FF,$FF,$FF,$FF,$00,$80,$00,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $00,$A0,$1F,$FE,$1F,$FE,$00,$A0
-	dcb.b $9,$00
-	dc.b $A0,$00,$FF,$00,$FF,$00,$A0,$A0,$00,$F8,$00,$F8,$00,$A0,$00,$00
-	dc.b $80,$01,$FF,$01,$FF,$00,$80,$A0,$00,$FE,$00,$FE,$00,$A0,$00,$02
-	dc.b $80,$0F,$F8,$0F,$F8,$02,$80,$00,$00,$07,$C0,$07,$C0,$00,$00,$02
-	dc.b $80,$7F,$C0,$7F,$C0,$02,$80
-	dcb.b $18,$00
-	dc.b $07,$80,$3F,$FF,$3F,$FF,$07,$80,$00,$00,$80,$00,$80,$00,$00,$00
-	dc.b $1E,$60,$07,$FF,$1F,$FF,$06,$60,$00,$00,$FE,$00,$FE,$00,$00,$00
-	dc.b $3B,$50,$EF,$FF,$FF,$FF,$2B,$10,$08,$00,$F7,$F8,$FF,$F8,$00,$00
-	dc.b $2E,$74,$FF,$FF,$FF,$FF,$28,$44,$6C,$08,$F3,$FF,$FF,$FF,$60,$08
-	dc.b $08,$00,$1F,$FF,$1F,$FF,$08,$00,$04,$10,$FF,$FE,$FF,$FE,$04,$10
-	dc.b $00,$80,$FF,$FF,$FF,$FF,$00,$80,$00,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $00,$A0,$1F,$FE,$1F,$FE,$00,$A0
-	dcb.b $9,$00
-	dc.b $A0,$00,$FF,$00,$FF,$00,$A0,$A0,$00,$F8,$00,$F8,$00,$A0,$00,$00
-	dc.b $80,$01,$FF,$01,$FF,$00,$80,$A0,$00,$FE,$00,$FE,$00,$A0,$00,$02
-	dc.b $80,$0F,$F8,$0F,$F8,$02,$80,$00,$00,$07,$C0,$07,$C0,$00,$00,$02
-	dc.b $80,$7F,$C0,$7F,$C0,$02,$80
-	dcb.b $19,$00
-	dc.b $04,$00,$FF,$00,$FF,$00,$04,$00,$00,$07,$E0,$07,$E0,$00,$00,$00
-	dc.b $04,$07,$FF,$07,$FF,$00,$04,$00,$00,$FC,$00,$FC,$00,$00,$00,$00
-	dc.b $04,$7F,$FF,$7F,$FF,$00,$04,$00,$00,$80,$00,$80,$00,$00,$00,$18
-	dc.b $04,$27,$FF,$3F,$FF,$00,$04,$40,$00,$FE,$00,$FE,$00,$40,$00,$10
-	dc.b $04,$EF,$FF,$FF,$FF,$00,$04,$48,$00,$F7,$F8,$FF,$F8,$40,$00,$08
-	dc.b $04,$FF,$FF,$FF,$FF,$08,$04,$4C,$08,$F3,$FF,$FF,$FF,$40,$08,$08
-	dc.b $00,$1F,$FF,$1F,$FF,$08,$00,$04,$10,$FF,$FE,$FF,$FE,$04,$10,$00
-	dc.b $80,$FF,$FF,$FF,$FF,$00,$80,$00,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $A0,$1F,$FE,$1F,$FE,$00,$A0
-	dcb.b $9,$00
-	dc.b $A0,$00,$FF,$00,$FF,$00,$A0,$A0,$00,$F8,$00,$F8,$00,$A0,$00,$00
-	dc.b $80,$01,$FF,$01,$FF,$00,$80,$A0,$00,$FE,$00,$FE,$00,$A0,$00,$02
-	dc.b $80,$0F,$FF,$0F,$FF,$02,$80,$20,$00,$FF,$F8,$FF,$F8,$20,$00,$02
-	dc.b $80,$7F,$C0,$7F,$C0,$02,$80
-	dcb.b $9,$00
-	dc.b $80,$07,$E0,$07,$E0,$00,$80
-	dcb.b $9,$00
-	dc.b $80,$03,$FE,$03,$FE,$00,$80
-	dcb.b $8,$00
+scene_pixel_cells_for_910_cell_mask_bank:
+	INCBIN "assets/scene_pixel_cells_for_910_cell_mask_bank.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_32:
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_32.bin"
 ; bitmap
@@ -16206,8 +15828,8 @@ world_object_musician:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B2,$E8	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_000121A0	; behavior_script_ptr
-	dc.l abs_0_000121A0	; initial_behavior_script_ptr
+	dc.l world_object_musician_behavior_script	; behavior_script_ptr
+	dc.l world_object_musician_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_00058794	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17248,8 +16870,8 @@ world_object_priest:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B2,$98	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00012376	; behavior_script_ptr
-	dc.l abs_0_00012376	; initial_behavior_script_ptr
+	dc.l world_object_priest_behavior_script	; behavior_script_ptr
+	dc.l world_object_priest_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_00059CB8	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17322,8 +16944,8 @@ world_object_icelord:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B3,$18	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_000121B6	; behavior_script_ptr
-	dc.l abs_0_000121B6	; initial_behavior_script_ptr
+	dc.l world_object_icelord_behavior_script	; behavior_script_ptr
+	dc.l world_object_icelord_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_00059F24	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17501,8 +17123,8 @@ world_object_entry_officer:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$68	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_0001239C	; behavior_script_ptr
-	dc.l abs_0_0001239C	; initial_behavior_script_ptr
+	dc.l world_object_entry_officer_behavior_script	; behavior_script_ptr
+	dc.l world_object_entry_officer_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005A500	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -17612,8 +17234,8 @@ world_object_driffid:
 	dc.l $0001B3A0	; trade_offer_table_ptr
 	dc.l $0001B1F8	; initial_inventory_slots_ptr
 	dc.l $0001B3A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_000123D6	; behavior_script_ptr
-	dc.l abs_0_000123D6	; initial_behavior_script_ptr
+	dc.l world_object_driffid_behavior_script	; behavior_script_ptr
+	dc.l world_object_driffid_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005A754	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18233,8 +17855,8 @@ world_object_technician:
 	dc.b $00,$01,$B3,$60	; trade_offer_table_ptr
 	dc.b $00,$01,$B2,$28	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$68	; initial_trade_offer_table_ptr
-	dc.l abs_0_00011AFA	; behavior_script_ptr
-	dc.l abs_0_00011AFA	; initial_behavior_script_ptr
+	dc.l world_object_technician_behavior_script	; behavior_script_ptr
+	dc.l world_object_technician_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005B314	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18302,8 +17924,8 @@ world_object_robomechanic:
 	dc.b $00,$01,$B3,$70	; trade_offer_table_ptr
 	dc.b $00,$01,$B2,$38	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$78	; initial_trade_offer_table_ptr
-	dc.l abs_0_00012426	; behavior_script_ptr
-	dc.l abs_0_00012426	; initial_behavior_script_ptr
+	dc.l world_object_robomechanic_behavior_script	; behavior_script_ptr
+	dc.l world_object_robomechanic_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005B49C	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18359,8 +17981,8 @@ world_object_doctor:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$C8	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_00012256	; behavior_script_ptr
-	dc.l abs_0_00012256	; initial_behavior_script_ptr
+	dc.l world_object_doctor_behavior_script	; behavior_script_ptr
+	dc.l world_object_doctor_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005B672	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18428,8 +18050,8 @@ world_object_diabetic:
 	dc.l $0001B320	; trade_offer_table_ptr
 	dc.l $0001B148	; initial_inventory_slots_ptr
 	dc.l $0001B328	; initial_trade_offer_table_ptr
-	dc.l abs_0_000121CC	; behavior_script_ptr
-	dc.l abs_0_000121CC	; initial_behavior_script_ptr
+	dc.l world_object_diabetic_behavior_script	; behavior_script_ptr
+	dc.l world_object_diabetic_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005B7A0	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18486,8 +18108,8 @@ world_object_security_officer:
 	dc.b $00,$01,$B3,$30	; trade_offer_table_ptr
 	dc.b $00,$01,$B1,$38	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$38	; initial_trade_offer_table_ptr
-	dc.l abs_0_000121F2	; behavior_script_ptr
-	dc.l abs_0_000121F2	; initial_behavior_script_ptr
+	dc.l world_object_security_officer_behavior_script	; behavior_script_ptr
+	dc.l world_object_security_officer_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005B8C0	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18580,8 +18202,8 @@ world_object_chemist:
 	dc.l $0001B340	; trade_offer_table_ptr
 	dc.l $0001B1E8	; initial_inventory_slots_ptr
 	dc.l $0001B348	; initial_trade_offer_table_ptr
-	dc.l abs_0_00012210	; behavior_script_ptr
-	dc.l abs_0_00012210	; initial_behavior_script_ptr
+	dc.l world_object_chemist_behavior_script	; behavior_script_ptr
+	dc.l world_object_chemist_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005BA0C	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
@@ -18969,8 +18591,8 @@ world_object_megabio_feed:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B2,$D8	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_0001218A	; behavior_script_ptr
-	dc.l abs_0_0001218A	; initial_behavior_script_ptr
+	dc.l world_object_megabio_feed_behavior_script	; behavior_script_ptr
+	dc.l world_object_megabio_feed_behavior_script	; initial_behavior_script_ptr
 	dc.l abs_0_0005C2BE	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
