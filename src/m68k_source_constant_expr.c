@@ -33,11 +33,12 @@ static int parse_constant_expression_primary(const char **cursor, M68kSourceCons
     *cursor += 2;
     return 1;
   }
-  if (**cursor == '+' || **cursor == '-') {
-    int sign = (**cursor == '-') ? -1 : 1;
+  if (**cursor == '+' || **cursor == '-' || **cursor == '~') {
+    int op = **cursor;
     ++(*cursor);
     if (!parse_constant_expression_primary(cursor, lookup, user_data, out_value)) return 0;
-    *out_value *= sign;
+    if (op == '~') *out_value = (int32_t)~(uint32_t)*out_value;
+    else if (op == '-') *out_value = (int32_t)(0U - (uint32_t)*out_value);
     return 1;
   }
   while ((*cursor)[length] != '\0'
@@ -50,6 +51,8 @@ static int parse_constant_expression_primary(const char **cursor, M68kSourceCons
     && (*cursor)[length] != ')'
     && (*cursor)[length] != '|'
     && (*cursor)[length] != '!'
+    && (*cursor)[length] != '&'
+    && (*cursor)[length] != '~'
     && (*cursor)[length] != '<'
     && (*cursor)[length] != '>') {
     ++length;
@@ -122,7 +125,27 @@ static int parse_constant_expression_shift(const char **cursor, M68kSourceConsta
     if ((*cursor)[0] != '<' || (*cursor)[1] != '<') break;
     *cursor += 2;
     if (!parse_constant_expression_add(cursor, lookup, user_data, &rhs)) return 0;
+    if (rhs < 0 || rhs >= 32) return 0;
     value = (int32_t)((uint32_t)value << rhs);
+  }
+  *out_value = value;
+  return 1;
+}
+
+static int parse_constant_expression_and(const char **cursor, M68kSourceConstantLookupFn lookup, void *user_data,
+    int32_t *out_value) {
+  /* Preserve the existing arithmetic > shift > OR grammar, inserting AND
+     between shift and OR. Vasm binds shifts/bitwise operators above addition;
+     mixed arithmetic expressions need explicit parentheses for portability. */
+  int32_t value = 0;
+  if (!parse_constant_expression_shift(cursor, lookup, user_data, &value)) return 0;
+  while (1) {
+    int32_t rhs = 0;
+    skip_expression_spaces(cursor);
+    if (**cursor != '&') break;
+    ++(*cursor);
+    if (!parse_constant_expression_shift(cursor, lookup, user_data, &rhs)) return 0;
+    value = (int32_t)((uint32_t)value & (uint32_t)rhs);
   }
   *out_value = value;
   return 1;
@@ -131,13 +154,13 @@ static int parse_constant_expression_shift(const char **cursor, M68kSourceConsta
 static int parse_constant_expression_or(const char **cursor, M68kSourceConstantLookupFn lookup, void *user_data,
     int32_t *out_value) {
   int32_t value = 0;
-  if (!parse_constant_expression_shift(cursor, lookup, user_data, &value)) return 0;
+  if (!parse_constant_expression_and(cursor, lookup, user_data, &value)) return 0;
   while (1) {
     int32_t rhs = 0;
     skip_expression_spaces(cursor);
     if (**cursor != '|' && **cursor != '!') break;
     ++(*cursor);
-    if (!parse_constant_expression_shift(cursor, lookup, user_data, &rhs)) return 0;
+    if (!parse_constant_expression_and(cursor, lookup, user_data, &rhs)) return 0;
     value = (int32_t)((uint32_t)value | (uint32_t)rhs);
   }
   *out_value = value;

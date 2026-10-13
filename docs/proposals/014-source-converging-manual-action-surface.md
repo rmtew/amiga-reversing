@@ -1761,6 +1761,34 @@ The historical implementation issue mapping was:
   or metadata-only path, record it in a new focused issue before continuing
   broad planner expansion.
 
+## Deferred scoped constant expressions
+
+Assessment: 2026-10-13. Typed data literals already expose exact field-local
+byte, word and long identities through canonical `ManualRepresentation`.
+`representation.symbol` resolves one existing target or platform constant;
+native policy stores its ID. A composite expression belongs to this same
+presentation fact, rather than a separate target expression registry.
+
+The coherent extension needs bounded single-line syntax and lossless Python and
+native metadata codecs, shared constant-parser lookup over policy EQU and
+platform constants, and width-aware comparison with the actual encoded bytes.
+Validation must run before history append and again before native emission.
+EQU rename/removal must update or remove dependent expressions by symbol token,
+and split data ranges must not emit a full-width expression for a shorter chunk.
+Positive tests should cover typed byte/word/long fields, known flag combinations
+with numeric residual bits, replay and rename/removal; refusal tests should
+preserve history on unknown names, value/width mismatch or injected source.
+
+The present atomic append transaction replays candidates but validates only
+changed native comments. Effective metadata application reloads persisted
+history. Candidate projection preflight therefore needs to be factored into
+that canonical transaction first; a server-only check would leave direct
+producers unvalidated. This is a deferred capability, not a small renderer-only
+addition. Existing single-constant field representations remain supported.
+Future expression fixtures must also account for the existing native/vasm
+precedence difference between arithmetic and shifts by using explicit
+parentheses; adding operators does not silently redefine the old grammar.
+
 ## Non-Goals
 
 - No private agent mutation APIs.

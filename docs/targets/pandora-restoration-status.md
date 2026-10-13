@@ -915,9 +915,9 @@ This criterion applies to all established domains as each subsystem is reviewed:
 IDs, opcodes, states, flags, masks and meaningful sizes. Bit indices used by
 BTST/BSET/BCLR/BCHG must differ from masks used by AND/OR and stored flags.
 Combination expressions must retain unknown residual bits and respect operand
-width. Current native constant expressions support arithmetic, parentheses,
-left shifts and OR (`|`); prior full-source C/vasm gates exercise emitted OR and
-shift expressions. Native `&`, complement `~`, XOR and right shift are currently
+width. At this item-ID checkpoint, native constant expressions supported
+arithmetic, parentheses, left shifts and OR (`|`); prior full-source C/vasm gates
+exercised emitted OR and shift expressions. Native `&`, complement `~`, XOR and right shift were then
 unsupported. No Devpac compatibility is asserted. Width-bound clear masks can
 use explicit supported subtraction such as `$FF-(MASK_A|MASK_B)` only with
 bounded masks and exact independent proof.
@@ -965,3 +965,80 @@ unrelated metadata, record/layout attributes and history prefixes. Runtime
 execution is not newly claimed by this static naming pass. The broader
 opcode/state/flag/mask/size criterion is adopted, but its systematic application
 and the reusable gaps above remain ongoing work rather than completed recovery.
+
+## Native flag expressions and the next animation slice
+
+Continuation checkpoint: 2026-10-13, after `61bd4659`.
+
+The shared native constant parser now accepts bitwise AND (`&`) and unary
+complement (`~`). Both operate on 32-bit values; byte/word clear masks should
+explicitly retain their width, for example `($FF & ~MASK)`. The parser keeps its
+existing arithmetic/shift ordering, inserts AND between shifts and OR, and
+rejects negative or out-of-range left-shift counts. Unary negation uses unsigned
+arithmetic before converting back, avoiding signed overflow in that touched
+path. XOR, right shift, relocatable bitwise expressions and general arithmetic
+overflow remain outside this extension.
+
+Native and vasm have an existing precedence difference between arithmetic and
+shifts/bitwise operators. Portable mixed expressions require explicit
+parentheses; this extension does not silently redefine the previous grammar.
+The focused parser suite passes 23 tests under undefined-behavior checking.
+Fifteen permanent independent-oracle fixtures pass against the rebuilt
+production backend, comparing complete HUNK output and independently expected
+raw bytes. They cover byte/word/long data and immediates, complements, retained
+unknown literal bits, high bits, shifts and parenthesized arithmetic. The native
+suite retains its pre-existing Ancient unknown-payload identification failure,
+also reproduced against the unchanged prior production backend.
+
+Composite typed-field expressions are deferred for a specific transaction
+boundary, described in [Proposal 014](../proposals/014-source-converging-manual-action-surface.md#deferred-scoped-constant-expressions).
+Correct support needs candidate metadata projection before canonical history
+append, width/value verification, lossless native storage and token-aware EQU
+rename/removal. A server-only check would leave other producers unvalidated.
+The existing canonical single-symbol representation remains suitable for the
+observed animation records; no separate annotation store or target domain
+registry is introduced.
+
+The connected source slice names animation bit indices for hold-header (0),
+skip-update (1), hold-at-end (2) and chain-at-end (3), plus the separately named
+stored header-hold mask (1). Sixteen actual bit-operation operands and eighteen
+typed mode bytes use those names. The six zero mode bytes remain numeric; no
+combined animation flags are present in these records. Chain-at-end takes
+priority over hold-at-end. End-hold selects the header frame immediately, with
+optional header XY restoration on the next eligible held-header call. Existing
+purpose-level routine comments remain intact. The unrelated script-search
+state bit 3, phase arithmetic, unknown node byte and conditional extended-node
+pointer remain distinct or unresolved.
+
+`calculate_tilemap_buffer_offset` now uses `BITMAP_WORD_ALIGNMENT_MASK`, defined
+as `($FF&~1)`, for its original ANDI.B immediate at source `$6DD0`. This clears
+only bit 0 of the shifted X byte offset while preserving the upper register
+byte; it does not promise aligned row offsets. It is a coordinate-alignment
+mask, not an animation flag. No invented combination or blanket substitution
+based on equal numbers is used.
+
+The unchanged-source checkpoint with the rebuilt backend and both dependent
+target stages pass complete C and independent vasm reproduction of all 376,832
+original bytes. Final receipt:
+`8428495754673fe51ca4a97b398f0a10b81a3d58781c5a82edfb04cccf27c80f`;
+source SHA256: `69acf840c3f7bdab3cd66bd3841e359a0a6773a905c4c4b337378466fa952b0b`.
+Independent review confirms that normalizing only the six EQU additions and
+35 symbolic uses reproduces the entire `61bd4659` source. Existing EQU and
+representation entries, all custom structures/layouts, the binary and both
+history prefixes remain intact. All 41 actions are accepted through the normal
+Decision Journal using the final receipt. The live native listing serves the
+sixteen animation bit names, the alignment operand and stored hold-mask byte;
+the restarted UI returns HTTP 200. No external hosting is enabled.
+This is a bounded source-quality slice, not complete source recovery or a new
+runtime behavior claim.
+
+Reproduce the native build and permanent oracle fixtures from the repository:
+
+```sh
+make -j4
+.venv/bin/python -m pytest -q tests/test_bitwise_expression_oracle.py
+```
+
+The loopback service was restarted once after the backend build, retaining
+`http://127.0.0.1:8123/`. Native library aliases share SHA256
+`d8ec03dc93150e0f1750b37081326f02db4be1b2fa1317041e681158a35f07ce`.

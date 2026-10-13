@@ -467,6 +467,12 @@ cmd_xy_limit RS.L 1
 cmd_xy_disp RS.W 1
 cmd_xy_SIZEOF EQU __RS
 
+ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
+ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
+ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
+ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
+ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
+BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 DMAF_CLRALL	EQU	$7FFF
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
@@ -1729,7 +1735,7 @@ world_object_command_set_node_if_flag3_clear:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 abs_0_000112A2:
 	addq.l #6,a4
 	rts
@@ -1747,7 +1753,7 @@ abs_0_000112C0:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 abs_0_000112D2:
 	addq.l #6,a4
 	rts
@@ -1765,7 +1771,7 @@ abs_0_000112F0:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 abs_0_00011302:
 	addq.l #6,a4
 	rts
@@ -1777,7 +1783,7 @@ world_object_command_set_node_sequence_if_flag3_clear:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_0001132E:
 	lea.l $000A(a4),a4
@@ -1796,7 +1802,7 @@ abs_0_0001134E:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_00011366:
 	lea.l $000A(a4),a4
@@ -1815,7 +1821,7 @@ abs_0_00011386:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_0001139E:
 	lea.l $000A(a4),a4
@@ -1833,7 +1839,7 @@ abs_0_000113AC:
 	bra.b abs_0_000113AC
 abs_0_000113BE:
 	movea.l world_position_state_record_state_node_ptr(a0),a1
-	bchg.b #0,WorldPositionStateNode_mode_flags(a1)
+	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 abs_0_000113C8:
 	addq.l #2,a4
 	rts
@@ -1849,7 +1855,7 @@ abs_0_000113D4:
 	bra.b abs_0_000113D4
 abs_0_000113E6:
 	movea.l world_position_state_record_state_node_ptr(a0),a1
-	bchg.b #0,WorldPositionStateNode_mode_flags(a1)
+	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 abs_0_000113F0:
 	addq.l #2,a4
 	rts
@@ -5222,7 +5228,7 @@ calculate_tilemap_buffer_offset:
 	move.l d1,-(a7)
 	move.w d0,d2
 	lsr.w #3,d2
-	andi.b #254,d2
+	andi.b #BITMAP_WORD_ALIGNMENT_MASK,d2
 	add.w d1,d1
 	add.w $0(a6,d1.w),d2
 	move.l (a7)+,d1
@@ -6666,14 +6672,14 @@ abs_0_00017FC2:
 	addq.b #1,app_0338(a6)
 abs_0_00017FDE:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
-	bset.b #0,WorldPositionStateNode_mode_flags(a3)
+	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
 	bra.b abs_0_00017FDE
 abs_0_00017FF4:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
-	bclr.b #0,WorldPositionStateNode_mode_flags(a3)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
@@ -8028,9 +8034,9 @@ advance_entity_animation:
 	beq.w abs_0_000195E0
 	movea.l world_position_state_record_state_node_ptr(a4),a0
 	movea.l WorldPositionStateNode_frame_sequence_ptr(a0),a1
-	btst.b #1,WorldPositionStateNode_mode_flags(a0)
+	btst.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
 	bne.w abs_0_000195E0
-	btst.b #0,WorldPositionStateNode_mode_flags(a0)
+	btst.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_00019556
 	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d0
@@ -8052,18 +8058,18 @@ abs_0_00019568:
 	addq.b #1,d0
 	cmp.b WorldPositionStateNode_frame_count(a0),d0
 	bcs.b abs_0_000195BE
-	btst.b #3,WorldPositionStateNode_mode_flags(a0)
+	btst.b #ANIM_MODE_CHAIN_AT_END_BIT,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_00019596
     ; Chained mode uses an extended node: its next-node pointer at +$12 lies beyond the 18-byte basic record.
 	movea.l $0012(a0),a0
 	clr.w $0010(a0)
-	bclr.b #0,$000A(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,$000A(a0)
 	move.l a0,world_position_state_record_state_node_ptr(a4)
 	bra.b abs_0_000195E0
 abs_0_00019596:
-	btst.b #2,WorldPositionStateNode_mode_flags(a0)
+	btst.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_000195AA
-	bset.b #0,WorldPositionStateNode_mode_flags(a0)
+	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)
 	bra.b abs_0_000195E0
 abs_0_000195AA:
@@ -26725,7 +26731,7 @@ world_position_state_nodes_gap_65_5:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$88	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26734,7 +26740,7 @@ world_position_state_nodes_gap_77_6:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059150	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26743,7 +26749,7 @@ world_position_state_nodes_gap_89_7:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$88	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26752,7 +26758,7 @@ world_position_state_nodes_gap_9B_8:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059150	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26761,7 +26767,7 @@ world_position_state_nodes_gap_AD_9:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$88	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
 	dc.w $0000
@@ -26771,7 +26777,7 @@ world_position_state_nodes_gap_BF_10:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059150	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26780,7 +26786,7 @@ world_position_state_nodes_gap_D1_11:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$88	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_E3_12:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26789,7 +26795,7 @@ world_position_state_nodes_gap_E3_12:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059188	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_F5_13:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26798,7 +26804,7 @@ world_position_state_nodes_gap_F5_13:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$50	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_107_14:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26807,7 +26813,7 @@ world_position_state_nodes_gap_107_14:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059188	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_119_15:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26816,7 +26822,7 @@ world_position_state_nodes_gap_119_15:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$50	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_12B_16:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26825,7 +26831,7 @@ world_position_state_nodes_gap_12B_16:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059188	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_13D_17:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26834,7 +26840,7 @@ world_position_state_nodes_gap_13D_17:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$88	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_14F_18:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26843,7 +26849,7 @@ world_position_state_nodes_gap_14F_18:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059150	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_161_19:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26852,7 +26858,7 @@ world_position_state_nodes_gap_161_19:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$88	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_173_20:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26861,7 +26867,7 @@ world_position_state_nodes_gap_173_20:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059188	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_185_21:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26870,7 +26876,7 @@ world_position_state_nodes_gap_185_21:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.b $00,$05,$91,$88	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_197_22:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -26879,7 +26885,7 @@ world_position_state_nodes_gap_197_22:
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
 	dc.l $00059188	; frame_sequence_ptr
-	dc.b $01	; mode_flags
+	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_1A9_23:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
