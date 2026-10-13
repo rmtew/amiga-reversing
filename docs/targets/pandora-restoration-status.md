@@ -96,7 +96,7 @@ than a new coverage metric. No row claims complete subsystem recovery.
 | World commands / objects | All 33 handler identities and operand contracts; selected object prefixes | Proximity, links and command callee effects | Script instances, arbitrary pointer targets and object lifetime |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks | Geometry consumers and allocation/chain limits | Disputed banks, complete write ownership and DMA constraints |
 | Entity animation / updates | Byte phase/count/mode fields, packed clock, saved XY/geometry, rectangle union and current drawing | Eligibility, variant geometry and complete caller/lifetime coverage | Conditional extended nodes, sequence bounds and attachment cycles |
-| Player movement / collision / camera | Axis scaling, actual tile probes, request versus drift/commit, direction/idle modes, bitset and countdown/scroll handoff | Initialized-map restriction prefix, unchecked coordinates and shared-node pointer validity | Special-transfer gameplay roles, positive-X/state-tail overlap, inferred idle-load annotation and configured timer producer |
+| Player movement / collision / camera | Axis scaling, actual tile probes, request versus drift/commit, direction/idle modes, bitset and countdown/scroll handoff; movement script and three directional node/frame prefixes | Initialized-map restriction prefix, unchecked coordinates, shared-node pointer validity and numeric copied-address script pointers | Special-transfer gameplay roles, positive-X/state-tail overlap, inferred idle-load annotation, configured timer producer and source/runtime data-reference support |
 | Inventory / trading / NPC | Four-entry records, 81 table identities, selected offer/reset/panel/name/pocket paths and proven item/name constants | Cursor domains, unmatched-search writes, duplicated display identities and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
 | Text / fonts / overlays | Reviewed compact and large fonts, masks and rendering contracts | Overlay callback ownership and 128-byte clear versus 64-byte layout | Queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume, secondary streams; eleven sample extents and mutable writers | Phase, arbitrary selector and storage lifetime limits | Remaining caller/state combinations and write ownership |
@@ -1105,3 +1105,59 @@ support already exists, so the current fact/anchor path needs diagnosis rather
 than a claim that the architecture is absent. This remains a source-quality
 blocker for complete recovery. Special tile-transfer roles and the positive-X
 node's physical overlap with the player-state tail also remain explicit.
+
+## Movement script and directional animation data
+
+The connected data follow-through names and types the negative-X, positive-Y
+and negative-Y animation headers and their physical frame-pointer prefixes.
+Their 18-byte headers retain the established animation-node structure; the
+pointer sequences contain eight, seven and seven longwords respectively,
+including each held-header frame. These are bounded physical prefixes, not
+proof of arbitrary sequence traversal, allocation or lifetime. The positive-X
+header overlaps the existing player-state tail and remains deliberately
+unreclassified until its dual role and phase ownership are resolved.
+
+The 16-byte `player_movement_script_loop` now exposes its function-call, delay
+and absolute-jump operands. Three opcode words use `WORLD_CMD_CALL_FUNCTION`,
+`WORLD_CMD_SET_DELAY` and `WORLD_CMD_JUMP_ABSOLUTE`. Its delay word is mutable:
+horizontal movement writes two, while vertical or idle movement writes one;
+a blocked horizontal request can reach the idle overwrite. This is an
+interpreter countdown operand, with no wall-clock or axis-selector claim.
+
+The stored call pointer `$195E2` and self-jump pointer `$5C312` remain numeric.
+Existing native copied-view facts identify source `$95E2` and `$4C312`, but the
+current data-element reference producer and projection collapse encoded
+runtime addresses with source offsets. The bounded extension required to
+preserve both identities is recorded in Proposal 014; no target-specific base
+subtraction or alternate mapping store was added.
+
+The 64-byte tile restriction array exposed a metadata codec limit: its former
+91-byte layout role became a seeded subtype with a 63-byte maximum. The failed
+array fact was withdrawn normally, the empty layout replaced with the same
+bounds/name/unit and a concise role, and the array rebound. All failed and
+corrective records remain visible. A second supported metadata correction
+removed redundant numeric formatting from the three opcode fields so their
+symbol facts render, and retained the meaningful loop label. The binary style
+currently renders only the first 16 restriction bytes; the full 64-byte
+classification is bound, while the remaining bytes retain numeric hex output.
+No framework change was made for this presentation limit.
+
+Final whole-image C and independent vasm verification reproduces all 376,832
+original bytes, with receipt
+`e5f1c7be644fd9a35de603680839ab01c6ffbe2125cb1768a72925750545bd9a`
+and source SHA256
+`e12c74b7cacd49fec489a0d6fe7e5c0e5f48e058a1f8d59278668d64dd09b559`.
+The seven new disjoint layouts describe 158 bytes. All 325 other pre-existing
+layouts and all pre-existing structures, callable/input facts, application
+slots and native views are unchanged. The sole old-layout replacement is the
+documented tile-mask role correction. Both history prefixes and the original
+binary are preserved; 36 new action records retain the failed attempt,
+withdrawal and source-format corrections.
+
+Independent review checks the complete rendered-source diff, all three opcode
+symbols, the semantic loop anchor and both object script references. The normal
+Decision Journal accepts the 34 eligible interpretation records against the
+final receipt; the withdrawn failed array and its undo marker remain in history.
+The live UI remains available at `http://127.0.0.1:8123/` without a backend
+restart. Exact assembly and static consumer evidence do not establish emulator
+execution or complete gameplay recovery.

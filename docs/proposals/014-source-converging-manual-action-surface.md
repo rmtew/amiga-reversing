@@ -1789,6 +1789,41 @@ Future expression fixtures must also account for the existing native/vasm
 precedence difference between arithmetic and shifts by using explicit
 parentheses; adding operators does not silently redefine the old grammar.
 
+## Deferred serialized runtime pointers in data elements
+
+Assessment: 2026-10-13. The current absolute data-element reference command
+requires decoded `source_value == target_offset`. Its effective projection also
+sets the native reference's `runtime_address` from `target_offset`. This
+collapses the encoded address and canonical source identity. It works for the
+currently supported flat-address cases, but cannot describe a copied runtime
+pointer whose target has a different source offset.
+
+The player movement script provides two concrete cases: stored `$195E2` targets
+accepted code at source `$95E2`; stored `$5C312` targets its own script at source
+`$4C312`. The latter's primary loader data locator reports `$6C312`, while
+inspected native copy-view and absolute-writer facts corroborate the copied
+address `$5C312`. Substituting an encoded runtime value as a source offset would
+attach the reference to the wrong source. These two reference actions were not
+applied; their decoded scalar fields and original numeric pointers remain.
+
+The next focused extension should use the existing canonical interpreted-ref
+owner and native view/source resolver to validate encoded runtime value and
+target source identity separately. Preserve that separation through symbolic
+projection, source-owned xrefs and cleanup; require emitted symbol values to
+match the stored bytes. Do not introduce a second mapping store or a fixed
+target-specific base subtraction. Cover flat and zero-offset cases, unique
+copied/base-shifted mappings, conflicting or inactive views, owner cleanup and
+full C/vasm output. Producer-only relaxation would leave the projection wrong.
+
+Layout roles also project into seeded-entity `subtype`, whose native codec
+accepts at most 63 bytes. A layout-only stage can therefore succeed with a long
+role and fail later when an element generates that seed. Use concise role tags;
+keep detailed contracts in interpretation evidence and documentation. A future
+producer preflight should check the complete projected native codec without
+invalidating preserved historical records. The movement restriction layout's
+91-byte role exposed this case and was corrected through normal withdrawal,
+layout replacement and array binding, preserving history.
+
 ## Non-Goals
 
 - No private agent mutation APIs.

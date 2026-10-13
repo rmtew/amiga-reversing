@@ -577,6 +577,9 @@ ITEM_ID_WOOKEY_WIG	EQU	$1C
 ITEM_ID_WRENCH	EQU	$2
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
+WORLD_CMD_CALL_FUNCTION	EQU	7
+WORLD_CMD_JUMP_ABSOLUTE	EQU	20
+WORLD_CMD_SET_DELAY	EQU	5
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
 absolute_slot_000007E8	EQU	$7E8
@@ -8148,7 +8151,7 @@ abs_0_00019644:
 	move.w d1,d5
 	tst.w app_player_move_request_x_step(a6)
 	beq.b abs_0_000196A2
-	move.w #$2,abs_0_0005C31A.l
+	move.w #$2,player_movement_script_delay_ticks.l
 	tst.w app_player_move_request_x_step(a6)
 	bpl.b abs_0_00019698
 	move.w d5,d1
@@ -8163,7 +8166,7 @@ abs_0_00019698:
 abs_0_000196A2:
 	tst.w app_player_move_request_y_step(a6)
 	beq.w select_player_movement_animation
-	move.w #$1,abs_0_0005C31A.l
+	move.w #$1,player_movement_script_delay_ticks.l
 	btst.b #2,world_object_shared_prefix_movement_direction_flags(a4)
 	beq.b abs_0_000196C0
 	move.w #$7,app_player_lateral_drift(a6)
@@ -8297,7 +8300,7 @@ select_player_movement_animation:
 	tst.w d0
 	beq.b abs_0_00019870
 	bpl.b abs_0_00019862
-	lea.l abs_0_0005C776.l,a1
+	lea.l player_move_negative_x_animation.l,a1
 	bset.b #2,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019862:
@@ -8308,11 +8311,11 @@ abs_0_00019870:
 	tst.w d1
 	beq.b abs_0_00019890
 	bpl.b abs_0_00019884
-	lea.l abs_0_0005C7D6.l,a1
+	lea.l player_move_negative_y_animation.l,a1
 	bset.b #0,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019884:
-	lea.l abs_0_0005C7A8.l,a1
+	lea.l player_move_positive_y_animation.l,a1
 	bset.b #1,world_object_shared_prefix_movement_direction_flags(a4)
 abs_0_00019890:
 	movea.l world_position_state_record_state_node_ptr(a0),a2
@@ -8398,7 +8401,7 @@ hold_player_movement_animation:
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
-	move.w #$1,abs_0_0005C31A.l
+	move.w #$1,player_movement_script_delay_ticks.l
 	bclr.b #6,app_status_flags(a6)
 abs_0_000199AA:
 	rts
@@ -9358,7 +9361,7 @@ abs_0_0001A813:
 	dcb.b $9,$00
 	dc.b $DD,$80
 tile_movement_block_bits:
-	dc.b $FF,$FF,$FF,$FF,$FF,$F0,$0C,$00,$C2,$0C,$09,$12,$06,$C0,$00,$00
+	dc.b %11111111,%11111111,%11111111,%11111111,%11111111,%11110000,%00001100,%00000000,%11000010,%00001100,%00001001,%00010010,%00000110,%11000000,%00000000,%00000000
 	dc.b $00,$00,$1C,$0F,$C5,$03,$F0,$3F,$03,$F7,$C7,$FF,$FF,$07,$FF,$FF
 	dc.b $FF,$F8,$00,$FF,$FF,$FF,$FF,$FC,$3F,$FF,$FF,$F8,$10,$00,$03,$E1
 	dc.b $FE,$03,$F3,$FF,$FF,$7B,$00,$00,$01,$17,$9E,$FF,$EF,$FF,$8C,$60
@@ -28992,10 +28995,19 @@ abs_0_0005C2BE:
 	dcb.b $9,$00
 	dc.b $05,$C2,$52,$00,$05,$C2,$52,$00,$05,$C2,$64,$00,$05,$C2,$76,$00
 	dc.b $05,$C2,$88,$00,$05,$C2,$9A,$00,$05,$C2,$AC
-abs_0_0005C312:
-	dc.b $00,$07,$00,$01,$95,$E2,$00,$05
-abs_0_0005C31A:
-	dc.b $00,$01,$00,$14,$00,$05,$C3,$12
+    ; Repeat player movement through an absolute call, mutable delay word and self jump. Delay loads the object interpreter countdown before the next loop pass.
+player_movement_script_loop:
+	dc.w WORLD_CMD_CALL_FUNCTION	; Player movement call-delay-jump loop; mutable delay operand
+movement_callback_ptr:
+	dc.l $000195E2	; Player movement call-delay-jump loop; mutable delay operand
+delay_opcode:
+	dc.w WORLD_CMD_SET_DELAY	; Player movement call-delay-jump loop; mutable delay operand
+player_movement_script_delay_ticks:
+	dc.w $0001	; Player movement call-delay-jump loop; mutable delay operand
+jump_opcode:
+	dc.w WORLD_CMD_JUMP_ABSOLUTE	; Player movement call-delay-jump loop; mutable delay operand
+loop_script_ptr:
+	dc.l $0005C312	; Player movement call-delay-jump loop; mutable delay operand
 player_world_object:
 	dc.b $00,$00,$00,$00	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -29006,8 +29018,8 @@ player_world_object:
 	dc.b $00,$01,$B3,$A0	; trade_offer_table_ptr
 	dc.b $00,$01,$B3,$A0	; initial_inventory_slots_ptr
 	dc.b $00,$01,$B3,$A0	; initial_trade_offer_table_ptr
-	dc.l abs_0_0005C312	; behavior_script_ptr
-	dc.l abs_0_0005C312	; initial_behavior_script_ptr
+	dc.l player_movement_script_loop	; behavior_script_ptr
+	dc.l player_movement_script_loop	; initial_behavior_script_ptr
 	dc.l player_position_descriptor	; position_descriptor_ptr
 player_world_object_world_x:
 	dc.w $0000	; world_x
@@ -29044,31 +29056,72 @@ player_world_object_world_object_flags:
 	dc.b $D8,$80,$00,$02,$00,$1D,$00,$1B,$00,$02,$00,$00,$00,$03,$0D,$28
 	dc.b $00,$07,$D9,$00,$00,$02,$00,$1E,$00,$13,$00,$06,$00,$00,$00,$03
 	dc.b $0F,$28,$00,$07,$D9,$80,$00,$02,$00,$1E,$00,$11,$00,$07,$00,$00
+abs_0_0005C406:
 	dc.b $00,$03,$17,$28,$00,$07,$DB,$80,$00,$02,$00,$1E,$00,$0E,$00,$0B
-	dc.b $00,$00,$00,$02,$F5,$28,$00,$07,$D0,$00,$00,$02,$00,$1E,$00,$17
-	dc.b $00,$07,$00,$00,$00,$02,$F7,$28,$00,$07,$D0,$80,$00,$02,$00,$1D
-	dc.b $00,$1C,$00,$01,$00,$00,$00,$02,$F9,$28,$00,$07,$D1,$00,$00,$02
-	dc.b $00,$1D,$00,$12,$00,$07,$00,$00,$00,$02,$FB,$28,$00,$07,$D1,$80
-	dc.b $00,$02,$00,$1E,$00,$13,$00,$06,$00,$00,$00,$02,$FD,$28,$00,$07
-	dc.b $D2,$00,$00,$02,$00,$1D,$00,$1B,$00,$03,$00,$00,$00,$02,$FF,$28
-	dc.b $00,$07,$D2,$80,$00,$02,$00,$1E,$00,$13,$00,$07,$00,$00,$00,$03
-	dc.b $01,$28,$00,$07,$D3,$00,$00,$02,$00,$1D,$00,$12,$00,$07,$00,$00
+	dc.b $00,$00
+abs_0_0005C418:
+	dc.b $00,$02,$F5,$28,$00,$07,$D0,$00,$00,$02,$00,$1E,$00,$17,$00,$07
+	dc.b $00,$00
+abs_0_0005C42A:
+	dc.b $00,$02,$F7,$28,$00,$07,$D0,$80,$00,$02,$00,$1D,$00,$1C,$00,$01
+	dc.b $00,$00
+abs_0_0005C43C:
+	dc.b $00,$02,$F9,$28,$00,$07,$D1,$00,$00,$02,$00,$1D,$00,$12,$00,$07
+	dc.b $00,$00
+abs_0_0005C44E:
+	dc.b $00,$02,$FB,$28,$00,$07,$D1,$80,$00,$02,$00,$1E,$00,$13,$00,$06
+	dc.b $00,$00
+abs_0_0005C460:
+	dc.b $00,$02,$FD,$28,$00,$07,$D2,$00,$00,$02,$00,$1D,$00,$1B,$00,$03
+	dc.b $00,$00
+abs_0_0005C472:
+	dc.b $00,$02,$FF,$28,$00,$07,$D2,$80,$00,$02,$00,$1E,$00,$13,$00,$07
+	dc.b $00,$00
+abs_0_0005C484:
+	dc.b $00,$03,$01,$28,$00,$07,$D3,$00,$00,$02,$00,$1D,$00,$12,$00,$07
+	dc.b $00,$00
+abs_0_0005C496:
 	dc.b $00,$03,$11,$28,$00,$07,$DA,$00,$00,$02,$00,$20,$00,$1C,$00,$02
-	dc.b $00,$00,$00,$02,$E9,$28,$00,$07,$D3,$80,$00,$02,$00,$20,$00,$1C
-	dc.b $00,$02,$00,$00,$00,$02,$EB,$28,$00,$07,$D4,$00,$00,$02,$00,$1F
-	dc.b $00,$1C,$00,$02,$00,$00,$00,$02,$ED,$28,$00,$07,$D4,$80,$00,$02
-	dc.b $00,$20,$00,$1C,$00,$02,$00,$00,$00,$02,$EF,$28,$00,$07,$D5,$00
-	dc.b $00,$02,$00,$20,$00,$1C,$00,$02,$00,$00,$00,$02,$F1,$28,$00,$07
-	dc.b $D5,$80,$00,$02,$00,$1F,$00,$1C,$00,$02,$00,$00,$00,$02,$F3,$28
-	dc.b $00,$07,$D6,$00,$00,$02,$00,$20,$00,$1C,$00,$02,$00,$00,$00,$03
-	dc.b $13,$28,$00,$07,$DA,$80,$00,$02,$00,$1E,$00,$18,$00,$04,$00,$00
+	dc.b $00,$00
+abs_0_0005C4A8:
+	dc.b $00,$02,$E9,$28,$00,$07,$D3,$80,$00,$02,$00,$20,$00,$1C,$00,$02
+	dc.b $00,$00
+abs_0_0005C4BA:
+	dc.b $00,$02,$EB,$28,$00,$07,$D4,$00,$00,$02,$00,$1F,$00,$1C,$00,$02
+	dc.b $00,$00
+abs_0_0005C4CC:
+	dc.b $00,$02,$ED,$28,$00,$07,$D4,$80,$00,$02,$00,$20,$00,$1C,$00,$02
+	dc.b $00,$00
+abs_0_0005C4DE:
+	dc.b $00,$02,$EF,$28,$00,$07,$D5,$00,$00,$02,$00,$20,$00,$1C,$00,$02
+	dc.b $00,$00
+abs_0_0005C4F0:
+	dc.b $00,$02,$F1,$28,$00,$07,$D5,$80,$00,$02,$00,$1F,$00,$1C,$00,$02
+	dc.b $00,$00
+abs_0_0005C502:
+	dc.b $00,$02,$F3,$28,$00,$07,$D6,$00,$00,$02,$00,$20,$00,$1C,$00,$02
+	dc.b $00,$00
+abs_0_0005C514:
+	dc.b $00,$03,$13,$28,$00,$07,$DA,$80,$00,$02,$00,$1E,$00,$18,$00,$04
+	dc.b $00,$00
+abs_0_0005C526:
 	dc.b $00,$02,$DD,$28,$00,$06,$9B,$6C,$00,$02,$00,$20,$00,$16,$00,$04
-	dc.b $00,$00,$00,$02,$DF,$28,$00,$06,$9B,$EC,$00,$02,$00,$20,$00,$18
-	dc.b $00,$04,$00,$00,$00,$02,$E1,$28,$00,$06,$9C,$6C,$00,$02,$00,$20
-	dc.b $00,$18,$00,$04,$00,$00,$00,$02,$E3,$28,$00,$06,$9C,$EC,$00,$02
-	dc.b $00,$20,$00,$18,$00,$04,$00,$00,$00,$02,$E5,$28,$00,$06,$9D,$6C
-	dc.b $00,$02,$00,$20,$00,$18,$00,$04,$00,$00,$00,$02,$E7,$28,$00,$06
-	dc.b $9D,$EC,$00,$02,$00,$20,$00,$18,$00,$04,$00,$00
+	dc.b $00,$00
+abs_0_0005C538:
+	dc.b $00,$02,$DF,$28,$00,$06,$9B,$EC,$00,$02,$00,$20,$00,$18,$00,$04
+	dc.b $00,$00
+abs_0_0005C54A:
+	dc.b $00,$02,$E1,$28,$00,$06,$9C,$6C,$00,$02,$00,$20,$00,$18,$00,$04
+	dc.b $00,$00
+abs_0_0005C55C:
+	dc.b $00,$02,$E3,$28,$00,$06,$9C,$EC,$00,$02,$00,$20,$00,$18,$00,$04
+	dc.b $00,$00
+abs_0_0005C56E:
+	dc.b $00,$02,$E5,$28,$00,$06,$9D,$6C,$00,$02,$00,$20,$00,$18,$00,$04
+	dc.b $00,$00
+abs_0_0005C580:
+	dc.b $00,$02,$E7,$28,$00,$06,$9D,$EC,$00,$02,$00,$20,$00,$18,$00,$04
+	dc.b $00,$00
 abs_0_0005C592:
 	dc.b $00,$04,$76,$38,$00,$06,$5E,$98,$00,$04,$00,$20,$00,$40,$00,$00
 	dc.b $00,$00,$00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$20,$00,$20
@@ -29125,38 +29178,78 @@ player_position_state_interaction_data_ptr:
 	dcb.b $9,$00
 	dc.b $05,$C3,$76,$00,$05,$C3,$88,$00,$05,$C3,$9A,$00,$05,$C3,$AC,$00
 	dc.b $05,$C3,$BE,$00,$05,$C3,$D0,$00,$05,$C3,$E2,$00,$05,$C3,$F4
-abs_0_0005C776:
-	dc.b $00,$05,$C7,$1E,$07,$40,$00,$05,$C7,$88
-	dcb.b $9,$00
-	dc.b $05,$C4,$06,$00,$05,$C4,$18,$00,$05,$C4,$2A,$00,$05,$C4,$3C,$00
-	dc.b $05,$C4,$4E,$00,$05,$C4,$60,$00,$05,$C4,$72,$00,$05,$C4,$84
-abs_0_0005C7A8:
-	dc.b $00,$05,$C7,$1E,$06,$80,$00,$05,$C7,$BA
-	dcb.b $9,$00
-	dc.b $05,$C4,$96,$00,$05,$C4,$A8,$00,$05,$C4,$BA,$00,$05,$C4,$CC,$00
-	dc.b $05,$C4,$DE,$00,$05,$C4,$F0,$00,$05,$C5,$02
-abs_0_0005C7D6:
-	dc.b $00,$05,$C7,$1E,$06,$80,$00,$05,$C7,$E8
-	dcb.b $9,$00
-	dc.b $05,$C5,$14,$00,$05,$C5,$26,$00,$05,$C5,$38,$00,$05,$C5,$4A,$00
-	dc.b $05,$C5,$5C,$00,$05,$C5,$6E,$00,$05,$C5,$80,$00,$05,$5C,$60,$00
-	dc.b $06,$9B,$12,$00,$01,$00,$18,$00,$10,$00,$00,$00,$00,$00,$05,$5D
-	dc.b $20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10,$00,$00,$00,$00,$00
-	dc.b $05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04,$00,$20,$00,$00,$00
-	dc.b $02,$00,$05,$5E,$08,$00,$06,$A8,$28,$00,$02,$00,$04,$00,$20,$00
-	dc.b $00,$00,$02,$00,$04,$A7,$38,$00,$06,$6D,$C8,$00,$04,$00,$20,$00
-	dc.b $40,$00,$00,$00,$00,$00,$04,$AB,$38,$00,$06,$6E,$C8,$00,$04,$00
-	dc.b $20,$00,$40,$00,$00,$00,$00,$00,$04,$AF,$38,$00,$06,$6F,$C8,$00
-	dc.b $04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$B3,$38,$00,$06,$70
-	dc.b $C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$B7,$38,$00
-	dc.b $06,$71,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$BB
-	dc.b $38,$00,$06,$72,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00
-	dc.b $04,$BF,$38,$00,$06,$73,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00
-	dc.b $00,$00,$04,$C3,$38,$00,$06,$74,$C8,$00,$04,$00,$20,$00,$40,$00
-	dc.b $00,$00,$00,$00,$04,$C7,$38,$00,$06,$75,$C8,$00,$04,$00,$20,$00
-	dc.b $40,$00,$00,$00,$00,$00,$04,$CB,$38,$00,$06,$76,$C8,$00,$04,$00
-	dc.b $20,$00,$40,$00,$00,$00,$00,$00,$04,$CF,$38,$00,$06,$77,$C8,$00
-	dc.b $04,$00,$20,$00,$40,$00,$00,$00,$00
+player_move_negative_x_animation:
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.b $07	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C788	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+player_move_negative_x_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+player_move_negative_x_frames:
+	dc.l abs_0_0005C406	; frame_ptr
+	dc.l abs_0_0005C418	; frame_ptr
+	dc.l abs_0_0005C42A	; frame_ptr
+	dc.l abs_0_0005C43C	; frame_ptr
+	dc.l abs_0_0005C44E	; frame_ptr
+	dc.l abs_0_0005C460	; frame_ptr
+	dc.l abs_0_0005C472	; frame_ptr
+	dc.l abs_0_0005C484	; frame_ptr
+player_move_positive_y_animation:
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.b $06	; frame_count
+	dc.b $80	; phase_step
+	dc.b $00,$05,$C7,$BA	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+player_move_positive_y_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+player_move_positive_y_frames:
+	dc.l abs_0_0005C496	; frame_ptr
+	dc.l abs_0_0005C4A8	; frame_ptr
+	dc.l abs_0_0005C4BA	; frame_ptr
+	dc.l abs_0_0005C4CC	; frame_ptr
+	dc.l abs_0_0005C4DE	; frame_ptr
+	dc.l abs_0_0005C4F0	; frame_ptr
+	dc.l abs_0_0005C502	; frame_ptr
+player_move_negative_y_animation:
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.b $06	; frame_count
+	dc.b $80	; phase_step
+	dc.l $0005C7E8	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+player_move_negative_y_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+player_move_negative_y_frames:
+	dc.l abs_0_0005C514	; frame_ptr
+	dc.l abs_0_0005C526	; frame_ptr
+	dc.l abs_0_0005C538	; frame_ptr
+	dc.l abs_0_0005C54A	; frame_ptr
+	dc.l abs_0_0005C55C	; frame_ptr
+	dc.l abs_0_0005C56E	; frame_ptr
+	dc.l abs_0_0005C580	; frame_ptr
+	dc.b $00,$05,$5C,$60,$00,$06,$9B,$12,$00,$01,$00,$18,$00,$10,$00,$00
+	dc.b $00,$00,$00,$05,$5D,$20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10
+	dc.b $00,$00,$00,$00,$00,$05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04
+	dc.b $00,$20,$00,$00,$00,$02,$00,$05,$5E,$08,$00,$06,$A8,$28,$00,$02
+	dc.b $00,$04,$00,$20,$00,$00,$00,$02,$00,$04,$A7,$38,$00,$06,$6D,$C8
+	dc.b $00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$AB,$38,$00,$06
+	dc.b $6E,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$AF,$38
+	dc.b $00,$06,$6F,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04
+	dc.b $B3,$38,$00,$06,$70,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00
+	dc.b $00,$04,$B7,$38,$00,$06,$71,$C8,$00,$04,$00,$20,$00,$40,$00,$00
+	dc.b $00,$00,$00,$04,$BB,$38,$00,$06,$72,$C8,$00,$04,$00,$20,$00,$40
+	dc.b $00,$00,$00,$00,$00,$04,$BF,$38,$00,$06,$73,$C8,$00,$04,$00,$20
+	dc.b $00,$40,$00,$00,$00,$00,$00,$04,$C3,$38,$00,$06,$74,$C8,$00,$04
+	dc.b $00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$C7,$38,$00,$06,$75,$C8
+	dc.b $00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$CB,$38,$00,$06
+	dc.b $76,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$CF,$38
+	dc.b $00,$06,$77,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00
 abs_0_0005C912:
 	dc.b $00,$05,$C9,$6E,$06,$40,$00,$05,$C9,$24
 	dcb.b $9,$00
