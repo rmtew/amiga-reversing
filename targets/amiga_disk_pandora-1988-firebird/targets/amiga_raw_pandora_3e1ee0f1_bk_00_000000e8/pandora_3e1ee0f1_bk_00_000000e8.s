@@ -76,7 +76,9 @@ app_tilemap_width RS.W 1
 app_tilemap_height RS.W 1
 app_input_x_step RS.W 1
 app_input_y_step RS.W 1
-    RS.B 10
+app_player_move_request_x_step RS.W 1
+app_player_move_request_y_step RS.W 1
+    RS.B 6
 app_front_bitplane_base RS.L 1
 app_back_bitplane_base RS.L 1
 app_display_bitplane_base RS.L 1
@@ -120,14 +122,14 @@ app_0284 RS.B 1
 app_0285 RS.B 1
 app_0286 RS.W 1
 app_0288 RS.B 1
-app_0289 RS.B 1
+app_camera_scroll_ticks_remaining RS.B 1
     RS.B 4
 app_028E RS.W 1
 app_0290 RS.W 1
 app_0292 RS.W 1
 app_0294 RS.W 1
-app_0296 RS.W 1
-app_0298 RS.W 1
+app_camera_scroll_delta_x RS.W 1
+app_camera_scroll_delta_y RS.W 1
 app_029A RS.L 1
 app_029E RS.L 1
 app_02A2 RS.L 1
@@ -164,8 +166,8 @@ app_02DA RS.L 1
     RS.B 60
 app_031A RS.B 1
 app_031B RS.B 1
-app_031C RS.W 1
-app_031E RS.W 1
+app_last_accepted_move_request_x_step RS.W 1
+app_last_accepted_move_request_y_step RS.W 1
 app_0320 RS.W 1
 app_0322 RS.W 1
 app_0324 RS.W 1
@@ -178,7 +180,7 @@ app_032C RS.L 1
     RS.B 8
 app_0338 RS.B 1
 app_0339 RS.B 1
-app_033A RS.W 1
+app_player_lateral_drift RS.W 1
 app_033C RS.B 1
 app_world_interaction_flags RS.B 1
 app_world_interaction_audio_flags RS.B 1
@@ -772,7 +774,7 @@ wait_for_completed_frame:
 	beq.b wait_for_completed_frame
 	bsr.w abs_0_00012EE6
 	bsr.w update_inventory_panel_availability
-	bsr.w abs_0_00017D48
+	bsr.w update_camera_scroll
 	bsr.w handle_inventory_panel_input
 	bsr.w snapshot_entity_draw_state
 	bsr.w abs_0_000124FE
@@ -2800,7 +2802,7 @@ handle_item_too_large_for_pockets:
 	moveq.l #0,d0
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	lea.l item_pocket_restriction_bits_bytes.l,a0
-	bsr.w test_bitmap_pixel_bit
+	bsr.w test_msb_first_bitset_bit
 	movem.l (a7)+,d0/a0
 	beq.b transfer_selected_item_to_pocket_inventory
 	tst.w app_scrolling_message_timer(a6)
@@ -4000,7 +4002,8 @@ world_tile_definition_offset_records:
 	dc.w $6700,$2A00,$1500,$1500,$1500,$6C00,$6880,$1A80	; world_tile_definition_offset_record_table
 	dc.w $1500,$1500,$2A00,$1100,$1100,$1180,$6C80,$6C80	; world_tile_definition_offset_record_table
 	dc.w $6C80,$6F80,$6C80,$0900	; world_tile_definition_offset_record_table
-test_bitmap_pixel_bit:
+    ; A0 bitset, D0.W index. Tests MSB-first; Z is clear when set. Preserves D0/D1; caller supplies a valid index.
+test_msb_first_bitset_bit:
 	movem.l d0-d1,-(a7)
 	move.w d0,d1
 	lsr.w #3,d1
@@ -4743,6 +4746,7 @@ abs_0_000167BA:
 	move.w #(16<<6)|1,bltsize(a5)	; blitter size 16 rows x 1 words (2 bytes/row)
 	movea.l (a7)+,a5
 	rts
+    ; D0/D1 world pixels select a 16-pixel tile. Return its pointer-grid cell in A0; preserve D0/D1. Coordinates are unchecked.
 get_tilemap_cell_pointer:
 	movem.l d0-d1,-(a7)
 	lsr.w #4,d0
@@ -6113,7 +6117,7 @@ abs_0_0001786C:
 	move.b world_object_shared_prefix_item_definition_id(a5),d0
 	cmp.b #$49,d0
 	bne.b abs_0_000178A8
-	bsr.w abs_0_00017D32
+	bsr.w request_camera_refresh
 	move.w #$B8,$0004(a0)
 	move.w #$19C,$0006(a0)
 abs_0_000178A8:
@@ -6448,22 +6452,25 @@ objects_traded_message:
 	dc.b "..... YOU HAVE TRADED OBJECTS ...."
 start_trade_result_countdown:
 	move.l d0,d7
-abs_0_00017D24:
+    ; Start timed camera scrolling with the existing XY deltas and the byte countdown from app_02C9.
+begin_camera_scroll:
 	bset.b #4,app_status_flags(a6)
-	move.b app_02C9(a6),app_0289(a6)
+	move.b app_02C9(a6),app_camera_scroll_ticks_remaining(a6)
 	rts
-abs_0_00017D32:
+    ; Request a two-tick camera refresh with zero XY scroll deltas.
+request_camera_refresh:
 	bset.b #4,app_status_flags(a6)
-	move.b #$2,app_0289(a6)
-	clr.w app_0296(a6)
-	clr.w app_0298(a6)
+	move.b #$2,app_camera_scroll_ticks_remaining(a6)
+	clr.w app_camera_scroll_delta_x(a6)
+	clr.w app_camera_scroll_delta_y(a6)
 	rts
-abs_0_00017D48:
-	subq.b #1,app_0289(a6)
+    ; Count down camera service; advance XY while active, clamp Y to the map view range, and render. Expiry clears active state and deltas.
+update_camera_scroll:
+	subq.b #1,app_camera_scroll_ticks_remaining(a6)
 	bne.b abs_0_00017D60
 	bclr.b #4,app_status_flags(a6)
-	clr.w app_0296(a6)
-	clr.w app_0298(a6)
+	clr.w app_camera_scroll_delta_x(a6)
+	clr.w app_camera_scroll_delta_y(a6)
 	bra.w abs_0_00017D9C
 abs_0_00017D60:
 	lea.l player_world_object.l,a5
@@ -6471,7 +6478,7 @@ abs_0_00017D60:
 	subq.w #8,d1
 	lsl.w #4,d1
 	move.w app_tilemap_scroll_y(a6),d0
-	add.w app_0298(a6),d0
+	add.w app_camera_scroll_delta_y(a6),d0
 	bpl.b abs_0_00017D7A
 	moveq.l #0,d0
 abs_0_00017D7A:
@@ -6483,7 +6490,7 @@ abs_0_00017D80:
 	lsr.w #4,d0
 	move.w d0,app_tile_row(a6)
 	move.w app_tilemap_scroll_x(a6),d0
-	add.w app_0296(a6),d0
+	add.w app_camera_scroll_delta_x(a6),d0
 	move.w d0,app_tilemap_scroll_x(a6)
 	lsr.w #4,d0
 	move.w d0,app_tile_column(a6)
@@ -7500,7 +7507,7 @@ abs_0_000189DA:
 	clr.b world_object_shared_prefix_selected_item_id(a4)
 	bset.b #4,app_02A6(a6)
 	lea.l abs_0_0001A813.l,a0
-	bsr.w test_bitmap_pixel_bit
+	bsr.w test_msb_first_bitset_bit
 	beq.b abs_0_000189FA
 	addq.b #1,app_02D9(a6)
 abs_0_000189FA:
@@ -7667,10 +7674,10 @@ abs_0_00019074:
 abs_0_00019088:
 	jsr poll_joystick1_directions_and_fire.l
 	bne.b abs_0_00019088
-	clr.w app_0296(a6)
-	clr.w app_0298(a6)
+	clr.w app_camera_scroll_delta_x(a6)
+	clr.w app_camera_scroll_delta_y(a6)
 	bset.b #4,app_status_flags(a6)
-	move.b #$2,app_0289(a6)
+	move.b #$2,app_camera_scroll_ticks_remaining(a6)
 	bsr.w swap_tilemap_context
 	move.l #$4000,app_tilemap_base(a6)
 	rts
@@ -7847,8 +7854,8 @@ abs_0_0001926E:
 	moveq.l #14,d2
 	add.w d2,d0
 	add.w d2,d1
-	move.w app_031C(a6),d2
-	move.w app_031E(a6),d3
+	move.w app_last_accepted_move_request_x_step(a6),d2
+	move.w app_last_accepted_move_request_y_step(a6),d3
 	asl.w #1,d2
 	asl.w #1,d3
 	add.w d2,d0
@@ -7871,8 +7878,8 @@ abs_0_000192DE:
 	move.l $0(a0,d0.l),d0
 	subi.l #118952,d0
 	lsr.l #7,d0
-	lea.l abs_0_0001A822.l,a0
-	bsr.w test_bitmap_pixel_bit
+	lea.l tile_movement_block_bits.l,a0
+	bsr.w test_msb_first_bitset_bit
 	bne.w abs_0_00019410
 	move.w d5,d0
 	move.w d6,d1
@@ -8092,39 +8099,41 @@ abs_0_000195BE:
 	move.w $6(a2,d0.w),world_position_state_record_world_y_offset(a4)
 abs_0_000195E0:
 	rts
+    ; Scale input to axis-only requests (X*7, Y*4), test candidate geometry against tile restrictions, then commit position and choose animation. Accepted requests supply item-effect direction.
 update_player_world_movement:
 	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
-	bne.w abs_0_00019984
+	bne.w hold_player_movement_animation
 	btst.b #4,app_status_flags(a6)
 	bne.w abs_0_000199AA
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.w abs_0_000199AA
-	clr.w app_033A(a6)
+	clr.w app_player_lateral_drift(a6)
 	move.w app_input_x_step(a6),d0
 	move.w app_input_y_step(a6),d1
 	move.w d0,d2
 	asl.w #3,d0
 	sub.w d2,d0
 	asl.w #2,d1
-	move.w d0,$01CA(a6)
-	move.w d1,$01CC(a6)
+	move.w d0,app_player_move_request_x_step(a6)
+	move.w d1,app_player_move_request_y_step(a6)
 	tst.w d0
 	beq.b abs_0_0001962A
 	tst.w d1
-	bne.w abs_0_00019984
+	bne.w hold_player_movement_animation
 abs_0_0001962A:
 	move.w d1,d2
 	or.w d0,d2
-	beq.w abs_0_00019984
+	beq.w hold_player_movement_animation
 	lea.l player_world_object.l,a4
 	btst.b #4,app_02A6(a6)
 	beq.b abs_0_00019644
 	bsr.w enforce_id_card_requirement
+    ; Probe candidate frame bounds: X motion samples its chosen X edge at maxY-4; Y motion samples left+3, midpoint and right-4 at maxY-3 for negative Y, or maxY for positive Y.
 abs_0_00019644:
-	add.w $0030(a4),d0
-	add.w $0032(a4),d1
-	movea.l $002C(a4),a1
+	add.w world_object_shared_prefix_world_x(a4),d0
+	add.w world_object_shared_prefix_world_y(a4),d1
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a4),a1
 	lea.l player_position_state.l,a2
 	movea.l world_position_state_record_current_geometry_ptr.w(a2),a3
 	add.w world_position_state_record_world_x_offset(a2),d0
@@ -8137,10 +8146,10 @@ abs_0_00019644:
 	move.w d1,d4
 	add.w world_position_collision_bounds_world_y_extent(a3),d1
 	move.w d1,d5
-	tst.w $01CA(a6)
+	tst.w app_player_move_request_x_step(a6)
 	beq.b abs_0_000196A2
 	move.w #$2,abs_0_0005C31A.l
-	tst.w $01CA(a6)
+	tst.w app_player_move_request_x_step(a6)
 	bpl.b abs_0_00019698
 	move.w d5,d1
 	subq.w #4,d1
@@ -8152,23 +8161,23 @@ abs_0_00019698:
 	move.w d3,d0
 	bra.w abs_0_00019770
 abs_0_000196A2:
-	tst.w $01CC(a6)
-	beq.w abs_0_00019844
+	tst.w app_player_move_request_y_step(a6)
+	beq.w select_player_movement_animation
 	move.w #$1,abs_0_0005C31A.l
-	btst.b #2,$004B(a4)
+	btst.b #2,world_object_shared_prefix_movement_direction_flags(a4)
 	beq.b abs_0_000196C0
-	move.w #$7,app_033A(a6)
+	move.w #$7,app_player_lateral_drift(a6)
 abs_0_000196C0:
-	btst.b #3,$004B(a4)
+	btst.b #3,world_object_shared_prefix_movement_direction_flags(a4)
 	beq.b abs_0_000196CE
-	move.w #$FFF9,app_033A(a6)
+	move.w #$FFF9,app_player_lateral_drift(a6)
 abs_0_000196CE:
-	lea.l abs_0_0001A822.l,a0
+	lea.l tile_movement_block_bits.l,a0
 	move.l #$1D0A8,d6
 	movea.l app_tilemap_base(a6),a1
 	move.w d5,d1
 	subq.w #3,d1
-	tst.w $01CC(a6)
+	tst.w app_player_move_request_y_step(a6)
 	bmi.b abs_0_000196EA
 	addq.w #3,d1
 abs_0_000196EA:
@@ -8184,8 +8193,8 @@ abs_0_000196EA:
 	move.l $0(a1,d0.l),d0
 	sub.l d6,d0
 	lsr.l #7,d0
-	bsr.w test_bitmap_pixel_bit
-	bne.w abs_0_00019984
+	bsr.w test_msb_first_bitset_bit
+	bne.w hold_player_movement_animation
 	moveq.l #0,d0
 	move.w d2,d0
 	add.w d3,d0
@@ -8197,8 +8206,8 @@ abs_0_000196EA:
 	move.l $0(a1,d0.l),d0
 	sub.l d6,d0
 	lsr.l #7,d0
-	bsr.w test_bitmap_pixel_bit
-	bne.w abs_0_00019984
+	bsr.w test_msb_first_bitset_bit
+	bne.w hold_player_movement_animation
 	moveq.l #0,d0
 	move.w d3,d0
 	subq.w #4,d0
@@ -8217,9 +8226,9 @@ abs_0_000196EA:
 	beq.w run_gameplay_update_loop
 	cmp.w #$190,d0
 	beq.w run_gameplay_update_loop
-	bsr.w test_bitmap_pixel_bit
-	bne.w abs_0_00019984
-	bra.w abs_0_000197FE
+	bsr.w test_msb_first_bitset_bit
+	bne.w hold_player_movement_animation
+	bra.w commit_player_move_request
 abs_0_00019770:
 	bsr.w get_tilemap_cell_pointer
 	move.l (a0),d0
@@ -8252,24 +8261,25 @@ abs_0_000197D0:
 	beq.w run_gameplay_update_loop
 	cmp.w #$190,d0
 	beq.w run_gameplay_update_loop
-	lea.l abs_0_0001A822.l,a0
-	bsr.w test_bitmap_pixel_bit
-	bne.w abs_0_00019984
-abs_0_000197FE:
+	lea.l tile_movement_block_bits.l,a0
+	bsr.w test_msb_first_bitset_bit
+	bne.w hold_player_movement_animation
+    ; Save the accepted request before lateral drift. Drift changes X and suppresses Y commit; otherwise Y wraps by map_height*16 with one correction.
+commit_player_move_request:
 	tst.b app_02D8(a6)
-	bne.w abs_0_00019984
-	move.w $01CA(a6),d0
-	move.w $01CC(a6),d1
-	move.w d0,app_031C(a6)
-	move.w d1,app_031E(a6)
-	add.w app_033A(a6),d0
-	add.w d0,$0030(a4)
-	sub.w app_033A(a6),d0
-	tst.w app_033A(a6)
-	bne.b abs_0_00019844
+	bne.w hold_player_movement_animation
+	move.w app_player_move_request_x_step(a6),d0
+	move.w app_player_move_request_y_step(a6),d1
+	move.w d0,app_last_accepted_move_request_x_step(a6)
+	move.w d1,app_last_accepted_move_request_y_step(a6)
+	add.w app_player_lateral_drift(a6),d0
+	add.w d0,world_object_shared_prefix_world_x(a4)
+	sub.w app_player_lateral_drift(a6),d0
+	tst.w app_player_lateral_drift(a6)
+	bne.b select_player_movement_animation
 	move.w app_tilemap_height(a6),d3
 	lsl.w #4,d3
-	move.w $0032(a4),d2
+	move.w world_object_shared_prefix_world_y(a4),d2
 	add.w d1,d2
 	bpl.b abs_0_0001983A
 	add.w d3,d2
@@ -8279,55 +8289,56 @@ abs_0_0001983A:
 	bcc.b abs_0_00019840
 	add.w d3,d2
 abs_0_00019840:
-	move.w d2,$0032(a4)
-abs_0_00019844:
-	clr.b $004B(a4)
+	move.w d2,world_object_shared_prefix_world_y(a4)
+    ; Choose the directional node and direction bits from the request. Restart index/phase only when the node changes; clear held-header and skip-update modes.
+select_player_movement_animation:
+	clr.b world_object_shared_prefix_movement_direction_flags(a4)
 	lea.l player_position_state.l,a0
 	tst.w d0
 	beq.b abs_0_00019870
 	bpl.b abs_0_00019862
 	lea.l abs_0_0005C776.l,a1
-	bset.b #2,$004B(a4)
+	bset.b #2,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019862:
 	lea.l player_position_state_interaction_data_ptr.l,a1
-	bset.b #3,$004B(a4)
+	bset.b #3,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019870:
 	tst.w d1
 	beq.b abs_0_00019890
 	bpl.b abs_0_00019884
 	lea.l abs_0_0005C7D6.l,a1
-	bset.b #0,$004B(a4)
+	bset.b #0,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019884:
 	lea.l abs_0_0005C7A8.l,a1
-	bset.b #1,$004B(a4)
+	bset.b #1,world_object_shared_prefix_movement_direction_flags(a4)
 abs_0_00019890:
 	movea.l world_position_state_record_state_node_ptr(a0),a2
 	cmpa.l a2,a1
 	beq.b abs_0_000198A2
 	movea.l a1,a2
 	move.l a2,world_position_state_record_state_node_ptr(a0)
-	clr.w $0010(a2)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a2)
 abs_0_000198A2:
-	bclr.b #0,$000A(a2)
-	bclr.b #1,$000A(a2)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a2)
+	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a2)
 	tst.w d0
 	beq.b abs_0_0001990A
 	bpl.b abs_0_000198D8
 	move.w app_028E(a6),d2
-	move.w $0030(a4),d0
+	move.w world_object_shared_prefix_world_x(a4),d0
 	cmp.w d2,d0
 	bcc.b abs_0_0001990A
 	move.w app_tilemap_scroll_x(a6),d0
 	subi.w #48,d0
 	bmi.b abs_0_0001990A
-	move.w #$FFF0,app_0296(a6)
-	clr.w app_0298(a6)
-	bra.w abs_0_00017D24
+	move.w #$FFF0,app_camera_scroll_delta_x(a6)
+	clr.w app_camera_scroll_delta_y(a6)
+	bra.w begin_camera_scroll
 abs_0_000198D8:
-	move.w $0030(a4),d0
+	move.w world_object_shared_prefix_world_x(a4),d0
 	addi.w #24,d0
 	move.w app_0290(a6),d2
 	cmp.w d2,d0
@@ -8338,14 +8349,14 @@ abs_0_000198D8:
 	lsl.w #4,d1
 	cmp.w d1,d0
 	bcc.w abs_0_000199AA
-	move.w #$10,app_0296(a6)
-	clr.w app_0298(a6)
-	bra.w abs_0_00017D24
+	move.w #$10,app_camera_scroll_delta_x(a6)
+	clr.w app_camera_scroll_delta_y(a6)
+	bra.w begin_camera_scroll
 abs_0_0001990A:
 	tst.w d1
 	beq.w abs_0_000199AA
 	bpl.b abs_0_0001994C
-	move.w $0032(a4),d0
+	move.w world_object_shared_prefix_world_y(a4),d0
 	cmp.w #$10,d0
 	bcc.b abs_0_00019934
 	move.w app_tilemap_height(a6),d0
@@ -8353,39 +8364,40 @@ abs_0_0001990A:
 	lsl.w #4,d0
 	move.w d0,app_tilemap_scroll_y(a6)
 	addi.w #80,d0
-	move.w d0,$0032(a4)
-	bra.w abs_0_00017D32
+	move.w d0,world_object_shared_prefix_world_y(a4)
+	bra.w request_camera_refresh
 abs_0_00019934:
 	move.w app_0292(a6),d2
 	cmp.w d2,d0
 	bcc.w abs_0_000199AA
-	clr.w app_0296(a6)
-	move.w #$FFF0,app_0298(a6)
-	bra.w abs_0_00017D24
+	clr.w app_camera_scroll_delta_x(a6)
+	move.w #$FFF0,app_camera_scroll_delta_y(a6)
+	bra.w begin_camera_scroll
 abs_0_0001994C:
-	move.w $0032(a4),d0
+	move.w world_object_shared_prefix_world_y(a4),d0
 	move.w app_tilemap_height(a6),d1
 	subq.w #3,d1
 	lsl.w #4,d1
 	cmp.w d1,d0
 	bcs.b abs_0_0001996A
 	clr.w app_tilemap_scroll_y(a6)
-	move.w #$10,$0032(a4)
-	bra.w abs_0_00017D32
+	move.w #$10,world_object_shared_prefix_world_y(a4)
+	bra.w request_camera_refresh
 abs_0_0001996A:
 	move.w app_0294(a6),d2
 	addi.w #32,d0
 	cmp.w d2,d0
 	bcs.b abs_0_000199AA
-	clr.w app_0296(a6)
-	move.w #$10,app_0298(a6)
-	bra.w abs_0_00017D24
-abs_0_00019984:
+	clr.w app_camera_scroll_delta_x(a6)
+	move.w #$10,app_camera_scroll_delta_y(a6)
+	bra.w begin_camera_scroll
+    ; Hold the current animation header after idle or blocked movement: reset index/phase, set held-header mode and clear skip-update. This node dereference has no local null guard.
+hold_player_movement_animation:
 	lea.l player_position_state_state_node_ptr.l,a0
 	movea.l (a0),a0	; operand 1: world_position_state_record_current_geometry_ptr at (a0)
-	clr.w world_position_state_record_position_descriptor_ptr(a0)
-	bset.b #0,$000A(a0)
-	bclr.b #1,$000A(a0)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
 	move.w #$1,abs_0_0005C31A.l
 	bclr.b #6,app_status_flags(a6)
 abs_0_000199AA:
@@ -8569,10 +8581,10 @@ abs_0_00019C88:
 	bne.b abs_0_00019C32
 	jsr poll_joystick1_directions_and_fire.l
 	beq.b abs_0_00019C32
-	clr.w app_0296(a6)
-	clr.w app_0298(a6)
+	clr.w app_camera_scroll_delta_x(a6)
+	clr.w app_camera_scroll_delta_y(a6)
 	bset.b #4,app_status_flags(a6)
-	move.b #$2,app_0289(a6)
+	move.b #$2,app_camera_scroll_ticks_remaining(a6)
 	bsr.w swap_tilemap_context
 	move.l #$4000,app_tilemap_base(a6)
 	rts
@@ -8795,8 +8807,8 @@ abs_0_00019F6E:
 	clr.l (a2)
 abs_0_00019F82:
 	dbf.w d7,abs_0_00019F6E
-	clr.w app_0296(a6)
-	clr.w app_0298(a6)
+	clr.w app_camera_scroll_delta_x(a6)
+	clr.w app_camera_scroll_delta_y(a6)
 	clr.b app_0338(a6)
 	clr.b app_0339(a6)
 	clr.b app_0326(a6)
@@ -9345,7 +9357,7 @@ abs_0_0001A813:
 	dc.b $00,$00,$01,$D8
 	dcb.b $9,$00
 	dc.b $DD,$80
-abs_0_0001A822:
+tile_movement_block_bits:
 	dc.b $FF,$FF,$FF,$FF,$FF,$F0,$0C,$00,$C2,$0C,$09,$12,$06,$C0,$00,$00
 	dc.b $00,$00,$1C,$0F,$C5,$03,$F0,$3F,$03,$F7,$C7,$FF,$FF,$07,$FF,$FF
 	dc.b $FF,$F8,$00,$FF,$FF,$FF,$FF,$FC,$3F,$FF,$FF,$F8,$10,$00,$03,$E1
@@ -29188,7 +29200,7 @@ abs_0_0005C9DC:
 	lea.l abs_0_0001A813.l,a0
 abs_0_0005C9F0:
 	move.b (a1)+,d0
-	jsr test_bitmap_pixel_bit.l
+	jsr test_msb_first_bitset_bit.l
 	beq.b abs_0_0005C9FE
 	addq.b #1,app_02D9(a6)
 abs_0_0005C9FE:

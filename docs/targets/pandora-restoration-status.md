@@ -83,7 +83,7 @@ self-modification. Startup copying executable bytes is already established.
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
 
-Current checklist (2026-10-12): “documented” means the selected facts and
+Current checklist (2026-10-13): “documented” means the selected facts and
 consumer contracts below are reviewed; “partial” retains a known semantic or
 lifecycle limit. “Unanalysed” identifies the next evidence dependency, rather
 than a new coverage metric. No row claims complete subsystem recovery.
@@ -96,6 +96,7 @@ than a new coverage metric. No row claims complete subsystem recovery.
 | World commands / objects | All 33 handler identities and operand contracts; selected object prefixes | Proximity, links and command callee effects | Script instances, arbitrary pointer targets and object lifetime |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks | Geometry consumers and allocation/chain limits | Disputed banks, complete write ownership and DMA constraints |
 | Entity animation / updates | Byte phase/count/mode fields, packed clock, saved XY/geometry, rectangle union and current drawing | Eligibility, variant geometry and complete caller/lifetime coverage | Conditional extended nodes, sequence bounds and attachment cycles |
+| Player movement / collision / camera | Axis scaling, actual tile probes, request versus drift/commit, direction/idle modes, bitset and countdown/scroll handoff | Initialized-map restriction prefix, unchecked coordinates and shared-node pointer validity | Special-transfer gameplay roles, positive-X/state-tail overlap, inferred idle-load annotation and configured timer producer |
 | Inventory / trading / NPC | Four-entry records, 81 table identities, selected offer/reset/panel/name/pocket paths and proven item/name constants | Cursor domains, unmatched-search writes, duplicated display identities and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
 | Text / fonts / overlays | Reviewed compact and large fonts, masks and rendering contracts | Overlay callback ownership and 128-byte clear versus 64-byte layout | Queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume, secondary streams; eleven sample extents and mutable writers | Phase, arbitrary selector and storage lifetime limits | Remaining caller/state combinations and write ownership |
@@ -1042,3 +1043,65 @@ make -j4
 The loopback service was restarted once after the backend build, retaining
 `http://127.0.0.1:8123/`. Native library aliases share SHA256
 `d8ec03dc93150e0f1750b37081326f02db4be1b2fa1317041e681158a35f07ce`.
+
+## Player movement, tile restrictions and camera handoff
+
+Continuation checkpoint: 2026-10-13, after `7769dc98`.
+
+This previously underdocumented gameplay path now distinguishes requested
+motion, accepted requests and actual position updates. Word arithmetic scales
+input X by seven and Y by four. Diagonal and zero requests take the idle path;
+some state gates instead return without holding the node. Candidate bounds
+combine object coordinates, animation offsets and current geometry. Horizontal
+probes sample the chosen X edge at maximum Y minus four. Vertical probes sample
+left plus three, midpoint and right minus four, using maximum Y minus three for
+negative Y or maximum Y for positive Y. This is the inspected algorithm, not a
+generic swept-rectangle collision guarantee.
+
+The accepted request is saved separately for the selected-item effect ray.
+On vertical movement the previous direction can request lateral drift: bit 2
+adds seven, bit 3 subtracts seven and wins if both are set. Drift adjusts X and
+suppresses Y commit. Otherwise the Y coordinate receives one map-height-times-16
+wrap correction. The requested direction selects the animation node; only a
+node change resets its packed index/phase. Idle or blocked movement holds the
+header and clears skip-update. Scoped input facts expose existing object and
+node fields at the actual established pointer points rather than asserting an
+A4 object input before its LEA.
+
+The renamed `test_msb_first_bitset_bit` is shared by all eight known item,
+terminal and tile-mask callers. It preserves D0/D1, uses an unsigned word index
+with MSB-first byte ordering and returns Z clear for a set bit; it checks no
+table bound. The initialized selector/definition tables independently produce
+475 distinct tile IDs with maximum 507, requiring the 64-byte physical movement
+restriction prefix at source `$A822..$A862`. The adjacent overlay queue has its
+own clear/read producers. Bits 508..511 retain unknown meaning. Dynamic or
+arbitrary pointer-derived IDs, allocation ownership and copy/lifetime remain
+unproven. Tile-cell lookup also retains its unchecked-coordinate and low-word
+addition limits.
+
+Named camera state connects movement's X/Y scroll requests to timed service and
+redraw. One entry loads the byte countdown from the existing configuration
+slot; another requests two service visits with zero deltas. Each eligible
+service decrements the byte, advances/clamps Y and advances X while active, or
+clears active state and deltas on expiry; both paths redraw. Zero countdown
+wrap and arbitrary map/coordinate safety are not hidden by these names. The
+configuration writer and complete callback/lifetime coverage remain unknown.
+
+The original 272 movement instructions and their direct-helper evidence match
+the binary. The first connected checkpoint adds 35 canonical facts and passes
+full C and independent vasm reproduction of all 376,832 original bytes. Receipt:
+`b2361742c4f45bf14b2aec879bdd511bbd03d9e12593e70dd14624e0e2c33cc7`;
+source SHA256: `52ca2aa50f252f65bfd32b31a390e5565ab40e37269c2db8ce2b46cf6a2ccf06`.
+All 35 actions are independently source-reviewed and accepted through the normal
+Decision Journal with that receipt.
+Prior structures, layouts, constants, native views and both historical prefixes
+are preserved. No framework/backend change or new runtime claim is involved.
+
+The idle pointer load at source `$998A` still has an incorrect inferred
+geometry-field annotation. The following `$998C` clock reset now correctly names
+the animation-node field. No safe per-instance override was found; removing the
+shared geometry field would damage legitimate uses. Native interior-pointer
+support already exists, so the current fact/anchor path needs diagnosis rather
+than a claim that the architecture is absent. This remains a source-quality
+blocker for complete recovery. Special tile-transfer roles and the positive-X
+node's physical overlap with the player-state tail also remain explicit.
