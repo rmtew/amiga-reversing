@@ -46,10 +46,12 @@ def create_server(client: RestorationClient):
     def restoration_export(
         project: str, assembler_profile: Literal["vasm", "devpac"] = "vasm",
         binary_assets: bool = False, minimum_asset_size: int = 256,
+        structure_macros: bool = False,
     ) -> dict[str, object]:
         """Export source or a vasm ZIP package through the shared source-export operation. Export is not verification."""
         return call(project, "export", assembler_profile=assembler_profile,
-                    binary_assets=binary_assets, minimum_asset_size=minimum_asset_size)
+                    binary_assets=binary_assets, minimum_asset_size=minimum_asset_size,
+                    structure_macros=structure_macros)
 
     @server.tool(annotations=read, structured_output=True)
     def restoration_query(
@@ -62,6 +64,7 @@ def create_server(client: RestorationClient):
             "edges",
             "functions",
             "gaps",
+            "typed_pointers",
         ],
         expected_revision: str,
         query: str | None = None,
@@ -80,6 +83,7 @@ def create_server(client: RestorationClient):
         end_offset: int | None = None,
         symbol: str | None = None,
         struct_name: str | None = None,
+        exceptions_only: bool | None = None,
         field_offset: int | None = None,
         direction: Literal["incoming", "outgoing", "both"] | None = None,
         limit: int = 25,
@@ -96,6 +100,7 @@ def create_server(client: RestorationClient):
             "end_offset": end_offset,
             "symbol": symbol,
             "struct_name": struct_name,
+            "exceptions_only": exceptions_only,
             "field_offset": field_offset,
             "direction": direction,
             "limit": limit,

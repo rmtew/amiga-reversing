@@ -483,6 +483,13 @@ def listing_element_action_catalog(
                 ),
             ]
         )
+    if element_kind == "absolute_address" and _optional_int(context.get("value")) is not None and context.get("width_bytes") in {2, 4}:
+        actions.append(
+            _context_log_action(
+                "representation.symbol", "Use symbol", "set_representation", context,
+                {"representation": "symbol"}, _symbol_representation_parameter_schema(),
+            )
+        )
     if element_kind == "immediate":
         actions.append(
             _context_log_action(
@@ -2514,6 +2521,13 @@ def _target_equate_payload(params: Mapping[str, object]) -> dict[str, object]:
         equate["value_expression"] = value_expression.strip()
     if equate.get("value_representation") == "symbol" and "value_expression" not in equate:
         raise ValueError("target_equate symbol value_representation requires value_expression")
+    from .pointer_domains import validate_runtime_address_symbol
+    for key in ("group", "address_domain", "extent_bytes"):
+        if key in params:
+            equate[key] = params[key]
+    validate_runtime_address_symbol(value=value, group=equate.get("group"),
+        address_domain=equate.get("address_domain"), extent_bytes=equate.get("extent_bytes"),
+        value_expression=equate.get("value_expression"))
     return equate
 
 
@@ -2557,7 +2571,7 @@ def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, objec
         "offset": offset,
         "size": size,
     }
-    for field_name in ("available_since", "struct", "pointer_struct", "named_base", "value_kind"):
+    for field_name in ("available_since", "struct", "pointer_struct", "named_base", "value_kind", "pointer_address_domain", "pointer_symbol_group"):
         value = field.get(field_name)
         if isinstance(value, str) and value.strip():
             payload[field_name] = value.strip()
@@ -2569,6 +2583,9 @@ def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, objec
         raise ValueError("custom struct field pointer_struct requires value_kind struct_pointer")
     if value_kind == "struct_pointer" and pointer_struct is None:
         raise ValueError("custom struct field value_kind struct_pointer requires pointer_struct")
+    from .pointer_domains import validate_pointer_domain
+    validate_pointer_domain(value_kind=value_kind, size=size,
+        address_domain=payload.get("pointer_address_domain"), symbol_group=payload.get("pointer_symbol_group"))
     return payload
 
 
@@ -3680,6 +3697,9 @@ def _target_equate_parameter_schema() -> dict[str, object]:
                 "enum": ["hex", "decimal", "binary", "character", "symbol"],
             },
             "value_expression": {"type": "string"},
+            "group": {"type": "string"},
+            "address_domain": {"type": "string", "enum": ["runtime"]},
+            "extent_bytes": {"type": "integer", "minimum": 1, "maximum": 4294967295},
         },
         "required": ["name", "value"],
     }
@@ -3744,6 +3764,9 @@ def _custom_struct_parameter_schema() -> dict[str, object]:
                         "struct": {"type": "string"},
                         "pointer_struct": {"type": "string"},
                         "named_base": {"type": "string"},
+                        "value_kind": {"type": "string", "enum": ["scalar", "target_pointer", "struct_pointer"]},
+                        "pointer_address_domain": {"type": "string", "enum": ["legacy", "mapped_source", "runtime_only"]},
+                        "pointer_symbol_group": {"type": "string"},
                     },
                     "required": ["name", "type", "offset", "size"],
                 },
@@ -3793,6 +3816,8 @@ def _custom_struct_field_parameter_schema() -> dict[str, object]:
                 "default": "scalar",
             },
             "named_base": {"type": "string"},
+            "pointer_address_domain": {"type": "string", "enum": ["legacy", "mapped_source", "runtime_only"]},
+            "pointer_symbol_group": {"type": "string"},
             "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["struct_name", "name", "type", "offset", "size"],
@@ -5011,6 +5036,12 @@ def _representation_payload(
         if not isinstance(symbol, str) or not symbol.strip():
             raise ValueError("symbol representation requires parameter symbol")
         representation["symbol"] = symbol.strip()
+        if element_kind == "absolute_address":
+            element_context = selected_listing_element_context(row, element_context or {})
+            value = _optional_int((element_context or {}).get("value"))
+            width = _optional_int((element_context or {}).get("width_bytes"))
+            if value is None or not 0 <= value <= 0xFFFFFFFF or width not in {2, 4}:
+                raise ValueError("absolute symbol representation requires a decoded address and width")
     row_index = _optional_int(row.get("row_index"))
     if row_index is not None:
         representation["row_index"] = row_index
@@ -5611,7 +5642,12 @@ def _target_source_output_action() -> dict[str, object]:
 
 
 def _target_source_export_action() -> dict[str, object]:
-    profile_ids = ["vasm", "devpac", "vasm-package"]
+    profile_ids = ["vasm", "devpac", "vasm-package", "vasm-macros", "vasm-package-macros"]
+    profile_labels = {
+        "vasm-package": "vasm + binary assets (ZIP)",
+        "vasm-macros": "vasm + structure macros",
+        "vasm-package-macros": "vasm + structure macros + binary assets (ZIP)",
+    }
     action = _target_transient(
         "target.source_export",
         "Export Source",
@@ -5631,7 +5667,7 @@ def _target_source_export_action() -> dict[str, object]:
         "parameter": "assembler_profile",
         "default": "vasm",
         "options": [
-            {"value": profile_id, "label": "vasm + binary assets (ZIP)" if profile_id == "vasm-package" else profile_id, "preview": {"kind": "source_export", "text": "not verification"}}
+            {"value": profile_id, "label": profile_labels.get(profile_id, profile_id), "preview": {"kind": "source_export", "text": "not verification"}}
             for profile_id in profile_ids
         ],
         "preview": {"kind": "source_export"},

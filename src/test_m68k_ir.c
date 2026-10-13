@@ -6952,6 +6952,91 @@ static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
   return 0;
 }
 
+static int test_facts_v2_absolute_operand_manual_equate_preserves_encoding(void) {
+  unsigned variant;
+  for (variant = 0U; variant < 6U; ++variant) {
+    M68kObject object;
+    M68kSection section;
+    M68kAnalysisPolicy policy;
+    M68kFactsV2Profile profile;
+    M68kSourceAnalysisIR analysis;
+    char *source = NULL;
+    uint8_t bytes[8] = {0x43U, 0xf9U, 0x00U, 0x00U, 0x12U, 0x34U, 0x4eU, 0x75U};
+    size_t size = sizeof(bytes);
+    uint32_t value = 0x1234U;
+    int should_alias = variant < 3U;
+    if (variant == 0U) {
+      bytes[1] = 0xf8U; bytes[2] = 0x12U; bytes[3] = 0x34U;
+      bytes[4] = 0x4eU; bytes[5] = 0x75U; size = 6U;
+    } else if (variant == 2U) {
+      bytes[3] = 0x06U; bytes[4] = 0x6dU; bytes[5] = 0xc8U; value = 0x66dc8U;
+    } else if (variant == 4U) {
+      bytes[3] = 0xdfU; bytes[4] = 0xf0U; bytes[5] = 0x00U; value = 0xdff000U;
+    }
+    memset(&section, 0, sizeof(section));
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+    section.kind = M68K_SECTION_CODE; section.size = size; section.data_size = size; section.data = bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+    m68k_analysis_policy_init_default(&policy);
+    policy.target_equate_count = 1U;
+    snprintf(policy.target_equates[0].name, sizeof(policy.target_equates[0].name), "manual_ram_address");
+    policy.target_equates[0].value = value + (variant == 3U ? 1U : 0U);
+    policy.manual_representation_count = 1U;
+    policy.manual_representations[0].has_section_index = 1U;
+    policy.manual_representations[0].section_index = 0U;
+    policy.manual_representations[0].offset = 0U;
+    policy.manual_representations[0].size = (uint32_t)(size - 2U);
+    policy.manual_representations[0].style_id = M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL;
+    policy.manual_representations[0].has_operand_index = 1U;
+    policy.manual_representations[0].operand_index = 0U;
+    policy.manual_representations[0].target_equate_index = 1U;
+    if (variant == 5U) {
+      policy.absolute_storage_slot_count = 1U;
+      policy.absolute_storage_slots[0].address = value;
+      policy.absolute_storage_slots[0].size = 4U;
+      policy.absolute_storage_slots[0].storage_kind_id = M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER;
+      snprintf(policy.absolute_storage_slots[0].symbol, sizeof(policy.absolute_storage_slots[0].symbol), "user_ram_slot");
+      snprintf(policy.absolute_storage_slots[0].storage_kind, sizeof(policy.absolute_storage_slots[0].storage_kind), "pointer");
+    }
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+      &profile, &analysis, 0U, m68k_diag_sink(NULL)));
+    if (variant == 3U) M68K_C_ASSERT_U32(1U, profile.asm_source_refused);
+    if (!should_alias && profile.asm_source_refused != 0U) {
+      m68k_facts_v2_free_text(source);
+      m68k_ir_source_analysis_destroy(&analysis);
+      policy.manual_representation_count = 0U;
+      M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+        &profile, &analysis, 1U, m68k_diag_sink(NULL)));
+    }
+    M68K_C_ASSERT(source != NULL);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+    if (should_alias) {
+      M68K_C_ASSERT(strstr(source, variant == 0U ? "lea.l manual_ram_address.w,a1" :
+        "lea.l manual_ram_address.l,a1") != NULL);
+    } else {
+      M68K_C_ASSERT(strstr(source, "lea.l manual_ram_address") == NULL);
+      if (variant == 4U) M68K_C_ASSERT(strstr(source, "lea.l _custom.l,a1") != NULL);
+      if (variant == 5U) M68K_C_ASSERT(strstr(source, "lea.l user_ram_slot.l,a1") != NULL);
+    }
+    {
+      unsigned char *rebuilt = NULL;
+      size_t rebuilt_size = 0U;
+      char *assembly_profile = NULL, *assembly_error = NULL;
+      M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "",
+        source, "68000", &rebuilt, &rebuilt_size, &assembly_profile, &assembly_error));
+      M68K_C_ASSERT(rebuilt_size == size);
+      M68K_C_ASSERT(memcmp(rebuilt, bytes, size) == 0);
+      platform_file_free_bytes(rebuilt); platform_file_free_text(assembly_profile); platform_file_free_text(assembly_error);
+    }
+    m68k_facts_v2_free_text(source);
+    m68k_ir_source_analysis_destroy(&analysis);
+    m68k_analysis_policy_destroy(&policy);
+    m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_accepts_reachable_68030_pmmu(void) {
   M68kObject object;
   M68kSection section;
@@ -39110,6 +39195,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_affine_static_interior_expression_conflicting_join_clobbers},
     {"facts_v2_affine_static_interior_expression_same_identity_join_survives",
       test_facts_v2_affine_static_interior_expression_same_identity_join_survives},
+    {"facts_v2_absolute_operand_manual_equate_preserves_encoding",
+      test_facts_v2_absolute_operand_manual_equate_preserves_encoding},
     {"facts_v2_render_asm_source_records_manual_equate_access",
       test_facts_v2_render_asm_source_records_manual_equate_access},
     {"facts_v2_render_asm_source_accepts_reachable_68030_pmmu",

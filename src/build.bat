@@ -97,6 +97,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_source_file_emit.c ^
     src\m68k_source_file_parse.c ^
     src\m68k_source_include.c ^
+    src\m68k_source_macro.c ^
     src\m68k_symbolic_parse.c ^
     src\m68k_source_text_util.c ^
     src\platform_common.c ^

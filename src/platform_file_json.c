@@ -6916,14 +6916,26 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
      * the listing always exposes a selectable immediate literal.
      */
     int is_immediate = listing_operand_is_immediate_value(operand, NULL);
+    uint8_t shape = m68k_instruction_operand_decoded_ea_shape(operand);
+    int is_absolute = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD || shape == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
     unsigned width_bits = 0U;
     int32_t signed_value = (int32_t)operand->value.value;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
     int has_base_register = operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U;
-    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !has_base_register) continue;
+    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !is_absolute && !has_base_register) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
-    if (is_immediate) {
+    if (is_absolute) {
+      unsigned width = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ? 2U : 4U;
+      if (json_builder_appendf(builder,
+          "{\"kind\":\"absolute_address\",\"operand_index\":%u,\"value\":%u,\"width_bytes\":%u,\"width_bits\":%u",
+          (unsigned)operand_index, (unsigned)operand->value.value, width, width * 8U) != 0) return -1;
+      if (symbol_name != NULL && symbol_name[0] != '\0' && operand->symbol_ref.name_is_generated == 0U) {
+        if (json_builder_append(builder, ",\"symbol\":") != 0 ||
+            json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+      }
+      if (json_builder_append(builder, "}") != 0) return -1;
+    } else if (is_immediate) {
       if (instruction->size_suffix == 'b') width_bits = 8U;
       else if (instruction->size_suffix == 'w') width_bits = 16U;
       else if (instruction->size_suffix == 'l') width_bits = 32U;
@@ -8822,6 +8834,8 @@ static int listing_stmt_has_operand_parts(const M68kStatementIR *stmt) {
     int16_t displacement = 0;
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
     if (listing_operand_is_immediate_value(operand, NULL)) return 1;
+    if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ||
+        m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG) return 1;
     if (operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U) return 1;
   }
   return 0;
@@ -8903,13 +8917,54 @@ static int listing_structured_data_item_has_json(const M68kAnalysisStructuredDat
     !item->is_pointer && !item->has_target);
 }
 
+/* Expose the authoritative render-plan decision; never resolve addresses in JSON. */
+static int append_listing_pointer_resolution_json(JsonBuilder *builder,
+    const M68kAnalysisStructuredDataItem *item, const M68kRenderPlan *plan, uint32_t section) {
+  const M68kRenderPlannedExpression *expression = NULL;
+  const char *domain = item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE
+    ? "mapped_source" : item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY
+    ? "runtime_only" : "legacy";
+  const char *outcome = "unresolved";
+  const char *reason = "field_boundary";
+  if (plan != NULL) {
+    expression = m68k_render_plan_find_expression(plan, section, item->offset, UINT32_MAX,
+      M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY);
+    if (expression == NULL) expression = m68k_render_plan_find_expression(plan, section, item->offset,
+      UINT32_MAX, M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER);
+  }
+  if (expression != NULL) {
+    reason = expression->reason;
+    if (strcmp(reason, "null_pointer") == 0) outcome = "null";
+    else if (expression->outcome == M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC) outcome = "symbolic";
+    else if (expression->outcome == M68K_RENDER_PLANNED_EXPRESSION_INVALID) outcome = "invalid";
+  }
+  if (json_builder_append(builder, ",\"pointer_resolution\":{\"address_domain\":") != 0 ||
+      json_builder_append_json_string(builder, domain) != 0 ||
+      json_builder_append(builder, ",\"symbol_group\":") != 0 ||
+      json_builder_append_json_string(builder, item->pointer_symbol_group) != 0 ||
+      json_builder_append(builder, ",\"outcome\":") != 0 ||
+      json_builder_append_json_string(builder, outcome) != 0 ||
+      json_builder_append(builder, ",\"reason\":") != 0 ||
+      json_builder_append_json_string(builder, reason) != 0) return -1;
+  if (expression != NULL) {
+    if (json_builder_appendf(builder, ",\"encoded_value\":%u,\"addend\":%d,\"symbol\":",
+        (unsigned)expression->logical_address, expression->addend) != 0 ||
+        json_builder_append_json_string(builder, expression->target_symbol) != 0) return -1;
+    if (expression->has_target && json_builder_appendf(builder,
+        ",\"target_section_index\":%u,\"target_offset\":%u",
+        (unsigned)expression->target_section_index, (unsigned)expression->target_offset) != 0) return -1;
+  } else if (json_builder_append(builder, ",\"encoded_value\":null") != 0) return -1;
+  return json_builder_append(builder, "}");
+}
+
 static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index, const char *line_start,
     size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode, const char *operand,
     const char *comment, int section_index, const M68kStatementIR *stmt,
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
     const char *analysis_generation, const char *plan_data_class, uint32_t plan_data_class_flags,
     int has_plan_runtime_address, uint32_t plan_runtime_address, int has_plan_source_range,
-    uint32_t plan_source_offset, uint32_t plan_source_size, uint32_t native_direct_feature_flags) {
+    uint32_t plan_source_offset, uint32_t plan_source_size, uint32_t native_direct_feature_flags,
+    const M68kRenderPlan *render_plan) {
   char text[1200];
   char label_text[1024];
   const char *row_kind = listing_row_kind_name(row_kind_id);
@@ -9103,6 +9158,9 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
     if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
   }
+  if (structured_item != NULL && structured_item->is_pointer && structured_item->size == 4U &&
+      append_listing_pointer_resolution_json(builder, structured_item, render_plan,
+        (uint32_t)section_index) != 0) return -1;
   if (row_data_class != NULL) {
     if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
     if (json_builder_append_json_string(builder, row_data_class) != 0)
@@ -9127,7 +9185,7 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     sizeof(operand), comment, sizeof(comment));
   return append_listing_row_json_parsed(builder, row_index, line_start, line_length, row_kind_id, stripped, opcode,
     operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation, NULL, 0U, 0, 0U,
-    0, 0U, 0U, 0U);
+    0, 0U, 0U, 0U, NULL);
 }
 
 typedef struct ListingSourceHeaderRow {
@@ -9374,7 +9432,7 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
           context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL,
           context->current_plan_row != NULL ? context->current_plan_row->data_class_flags : 0U,
           has_plan_runtime_address, plan_runtime_address, has_plan_source_range, plan_source_offset,
-          plan_source_size, context->current_native_direct_feature_flags) != 0)
+          plan_source_size, context->current_native_direct_feature_flags, context->render_plan) != 0)
         return -1;
     } else if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind_id,
         section_index, stmt, context->analysis_policy, context->source_analysis, context->analysis_generation) != 0)

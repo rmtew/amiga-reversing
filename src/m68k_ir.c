@@ -1540,6 +1540,35 @@ int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode) {
   return 0;
 }
 
+int m68k_analysis_policy_resolve_pointer_address(const M68kAnalysisPolicy *policy, uint32_t value,
+    uint32_t *out_section, uint32_t *out_offset) {
+  uint16_t index;
+  uint8_t best_provenance = 0U;
+  int found = 0, ambiguous = 0;
+  if (policy == NULL || out_section == NULL || out_offset == NULL) return 0;
+  for (index = 0U; index < policy->runtime_range_count; ++index) {
+    const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[index];
+    uint32_t delta, offset;
+    if (!range->has_section_index || range->size == 0U || value < range->runtime_address ||
+        (range->use_mask != M68K_ANALYSIS_RUNTIME_RANGE_USE_DEFAULT &&
+         (range->use_mask & M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET) == 0U)) continue;
+    delta = value - range->runtime_address;
+    if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+    offset = range->offset + delta;
+    /* An explicit observation supersedes weaker load metadata; distinct
+     * mappings with equally strong provenance remain ambiguous. */
+    if (found && range->provenance < best_provenance) continue;
+    if (!found || range->provenance > best_provenance) {
+      *out_section = range->section_index;
+      *out_offset = offset;
+      best_provenance = range->provenance;
+      found = 1;
+      ambiguous = 0;
+    } else if (*out_section != range->section_index || *out_offset != offset) ambiguous = 1;
+  }
+  return ambiguous ? 2 : found;
+}
+
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
   if (policy == NULL) return;
 

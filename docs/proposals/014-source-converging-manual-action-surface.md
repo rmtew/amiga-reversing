@@ -1792,6 +1792,15 @@ parentheses; adding operators does not silently redefine the old grammar.
 
 ## Deferred serialized runtime pointers in data elements
 
+Update: 2026-10-13. Canonical typed fields now support shared `mapped_source`
+and `runtime_only` pointer domains, using native view resolution and bounded
+runtime symbol namespaces. The known script-pointer family is promoted through
+its schema, so the two examples below now render symbolically without an
+individual reference action. The per-instance interpreted-ref producer and
+projection limitation described below remains deferred; the new field path
+must not be mistaken for a relaxation of that command. See
+[framework validation](../validation/typed-structure-framework-2026-10-13.md).
+
 Assessment: 2026-10-13. The current absolute data-element reference command
 requires decoded `source_value == target_offset`. Its effective projection also
 sets the native reference's `runtime_address` from `target_offset`. This
@@ -1805,7 +1814,8 @@ accepted code at source `$95E2`; stored `$5C312` targets its own script at sourc
 inspected native copy-view and absolute-writer facts corroborate the copied
 address `$5C312`. Substituting an encoded runtime value as a source offset would
 attach the reference to the wrong source. These two reference actions were not
-applied; their decoded scalar fields and original numeric pointers remain.
+applied in the original assessment; shared schema pointer semantics now resolve
+them while preserving their original encoded values.
 
 The next focused extension should use the existing canonical interpreted-ref
 owner and native view/source resolver to validate encoded runtime value and

@@ -1774,7 +1774,9 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     assert export_action["category"] == "target_tooling"
     assert export_action["appends_to_manual_action_log"] is False
     assert export_action["action"] == "export_source"
-    assert export_action["parameter_schema"]["properties"]["assembler_profile"]["enum"] == ["vasm", "devpac", "vasm-package"]
+    assert export_action["parameter_schema"]["properties"]["assembler_profile"]["enum"] == [
+        "vasm", "devpac", "vasm-package", "vasm-macros", "vasm-package-macros",
+    ]
     equate_action = next(action for action in actions if action["action_id"] == "target.equate.add")
     assert equate_action["category"] == "target_metadata"
     assert equate_action["appends_to_manual_action_log"] is True
@@ -1914,6 +1916,20 @@ def test_route_source_export_returns_selected_profile(monkeypatch: pytest.Monkey
     assert payload["ok"] is True
     assert cast(dict[str, object], payload["data"])["filename"] == "bloodwych-devpac.s"
     assert calls == [("bloodwych", "devpac")]
+
+
+def test_route_source_export_structure_macros_are_explicit_boolean(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: _binary_project(name, ready=True))
+    calls = []
+    def export(name, **options):
+        calls.append(options)
+        return {"status": "ok", "source_text": "", "filename": "demo.s"}
+    monkeypatch.setattr(disasm_server, "source_export_payload", export)
+    disasm_server._source_export_payload("demo", {"structure_macros": ["true"]})
+    assert calls[0]["structure_macros"] is True
+    with pytest.raises(ValueError, match="structure_macros must be true or false"):
+        disasm_server._source_export_payload("demo", {"structure_macros": ["yes"]})
+    assert len(calls) == 1
 
 
 def test_route_source_export_accepts_macos_listing_project(monkeypatch: pytest.MonkeyPatch) -> None:

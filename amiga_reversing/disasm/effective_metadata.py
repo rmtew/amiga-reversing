@@ -514,6 +514,9 @@ def _manual_target_equate_to_metadata(equate: dict[str, object]) -> TargetEquate
         comment=_manual_seed_text(equate, "comment"),
         value_representation=value_representation,
         value_expression=_manual_seed_text(equate, "value_expression"),
+        group=_manual_seed_text(equate, "group"),
+        address_domain=_manual_seed_text(equate, "address_domain"),
+        extent_bytes=_manual_seed_int(equate, "extent_bytes"),
     )
 
 
@@ -556,7 +559,8 @@ def _manual_custom_struct_field_to_metadata(field: dict[str, object]) -> CustomS
         named_base=_manual_seed_text(field, "named_base"),
         value_kind=("struct_pointer" if _manual_seed_text(field, "pointer_struct") is not None
                     else (_manual_seed_text(field, "value_kind") or "scalar")),
-    )
+        pointer_address_domain=_manual_seed_text(field, "pointer_address_domain"),
+        pointer_symbol_group=_manual_seed_text(field, "pointer_symbol_group"),    )
 
 
 def _manual_custom_struct_to_metadata(struct: dict[str, object]) -> CustomStructMetadata | None:
@@ -957,12 +961,12 @@ def _data_block_unit_from_width(width: int) -> str:
 def _data_block_unit_for_address(addr: int, width: int) -> str:
     """Return a directive unit that is valid at the emitted source address.
 
-    Structured records need not have a stride aligned to every field width.
-    In that case preserve the typed-field metadata but render its bytes using
-    byte directives, rather than seeding an invalid word/long entity.
+    WORD and LONG directives may start at an even address. Record strides
+    need not be multiples of the field width; preserve the declared LONG unit
+    across an 18-byte record array while retaining bytes at odd addresses.
     """
     unit = _data_block_unit_from_width(width)
-    alignment = {"word": 2, "long": 4}.get(unit, 1)
+    alignment = {"word": 2, "long": 2}.get(unit, 1)
     return unit if addr % alignment == 0 else "byte"
 
 
@@ -1247,6 +1251,8 @@ def _data_block_custom_struct_field_entity(
         c_type=field.type,
         pointer_struct=field.pointer_struct,
         value_kind=field.value_kind,
+        pointer_address_domain=field.pointer_address_domain,
+        pointer_symbol_group=field.pointer_symbol_group,
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,

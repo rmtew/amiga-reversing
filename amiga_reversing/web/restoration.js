@@ -57,8 +57,8 @@ async function openRestorationPanel() {
     <header><strong>Source restoration</strong><span id="restoration-revision"></span><button type="button" id="restoration-close">Close</button></header>
     <p>Select a gap, inspect evidence, preserve an interpretation, rebuild, then review.</p>
     <div id="restoration-status" role="status">Preparing analysis…</div>
-    <nav><button type="button" id="restoration-refresh">Refresh state</button><button type="button" id="restoration-selected">Inspect selected source</button><button type="button" id="restoration-history">History</button></nav>
-    <form id="restoration-search"><label>Explore <select name="kind">${["gaps", "symbols", "functions", "references", "fields", "edges", "instructions"].map(x => `<option>${x}</option>`).join("")}</select></label><label>Name / symbol <input name="query" type="search"></label><button>Search</button></form>
+    <nav><button type="button" id="restoration-refresh">Refresh state</button><button type="button" id="restoration-selected">Inspect selected source</button><button type="button" id="restoration-history">History</button><button type="button" id="restoration-pointer-exceptions">Pointer exceptions</button></nav>
+    <form id="restoration-search"><label>Explore <select name="kind">${["gaps", "symbols", "functions", "references", "fields", "edges", "instructions", "typed_pointers"].map(x => `<option value="${x}">${x === "typed_pointers" ? "pointer exceptions" : x}</option>`).join("")}</select></label><label>Name / symbol / type <input name="query" type="search"></label><button>Search</button></form>
     <div id="restoration-results"></div><button id="restoration-next" type="button" hidden>Next page</button>
     <section id="restoration-inspection"></section>
     <section class="restoration-validation"><h3>Verify and review</h3><button id="restoration-verify" type="button">Regenerate and verify exact bytes</button><div id="restoration-verification"></div>
@@ -81,10 +81,14 @@ async function openRestorationPanel() {
     event.preventDefault();
     const form = new FormData(event.target);
     const kind = form.get("kind"), text = String(form.get("query") || "").trim();
-    restorationView.query = {kind, limit: 25, ...(text ? {[kind === "references" ? "symbol" : "query"]: text} : {})};
+    restorationView.query = {kind, limit: 25, ...(kind === "typed_pointers" ? {exceptions_only: true} : {}), ...(text ? {[kind === "typed_pointers" ? "struct_name" : kind === "references" ? "symbol" : "query"]: text} : {})};
     await restorationSearch();
   });
   panel.querySelector("#restoration-next").onclick = safe(() => restorationSearch(restorationView.page.next_cursor));
+  panel.querySelector("#restoration-pointer-exceptions").onclick = safe(async () => {
+    restorationView.query = {kind: "typed_pointers", exceptions_only: true, limit: 25};
+    await restorationSearch();
+  });
   panel.querySelector("#restoration-history").onclick = safe(async () => {
     restorationView.query = null;
     const result = await restorationRun("history", {expected_revision: restorationView.revision, limit: 25});
@@ -122,7 +126,9 @@ function restorationShowPage(result) {
   restorationView.page = result;
   const items = result.items || [];
   const node = document.getElementById("restoration-results");
-  node.innerHTML = `<p>${items.length} of ${result.total ?? "unknown"} facts · ${escapeHtml(restorationValue(result.scope || "current revision"))}</p>${restorationFacts(items)}`;
+  const pointerSummary = result.population_total !== undefined
+    ? `<p>${result.population_total} typed pointers: ${result.outcomes?.symbolic || 0} symbolic, ${result.outcomes?.null || 0} null, ${result.outcomes?.unresolved || 0} unresolved, ${result.outcomes?.invalid || 0} invalid. Boundary fragments require inspection.</p>` : "";
+  node.innerHTML = `${pointerSummary}<p>${items.length} of ${result.total ?? "unknown"} ${result.exceptions_only ? "exceptions" : "facts"} · ${escapeHtml(restorationValue(result.scope || "current revision"))}</p>${restorationFacts(items)}`;
   document.getElementById("restoration-next").hidden = !result.next_cursor;
   node.querySelectorAll("[data-restore-inspect]").forEach(button => { button.onclick = async () => {
     try { await restorationInspect(items[Number(button.dataset.restoreInspect)]); } catch (_) { /* message displayed */ }

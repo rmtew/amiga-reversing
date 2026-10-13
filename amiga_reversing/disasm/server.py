@@ -888,9 +888,14 @@ def _source_export_payload(project_name: str, query: dict[str, list[str]]) -> di
     if binary_assets not in {"true", "false"}:
         raise ValueError("binary_assets must be true or false")
     options = {}
+    structure_macros = _first_query_value(query, "structure_macros") or "false"
+    if structure_macros not in {"true", "false"}:
+        raise ValueError("structure_macros must be true or false")
     if binary_assets == "true":
         options = {"binary_assets": True,
                    "minimum_asset_size": int(_first_query_value(query, "minimum_asset_size") or "256")}
+    if structure_macros == "true":
+        options["structure_macros"] = True
     payload = source_export_payload(
         project_name, assembler_profile=assembler_profile, project_root=PROJECT_ROOT, **options,
     )
@@ -1583,7 +1588,9 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                 )
             try:
                 if getattr(getattr(listing_artifact, "source_output_policy", None), "mode", "inline") == "binary_assets":
-                    from amiga_reversing.disasm.source_rendering import render_source_from_binary_source_or_raise
+                    from amiga_reversing.disasm.source_rendering import (
+                        render_source_from_binary_source_or_raise,
+                    )
                     paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
                     rendering = render_source_from_binary_source_or_raise(target_id=project_name,
                         binary_source=paths.binary_source, target_dir=paths.target_dir, metadata_path=None,

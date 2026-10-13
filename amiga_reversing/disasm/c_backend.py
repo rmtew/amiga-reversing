@@ -530,6 +530,7 @@ def listing_artifact_source_projection_with_c_backend_profile(
 def listing_artifact_source_package_with_c_backend(
     binary_source: BinarySource, *, minimum_asset_size: int = 256,
     metadata_path: Path | None = None, project_root: Path = PROJECT_ROOT,
+    structure_macros: bool = False,
 ) -> dict[str, object]:
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         artifact = CListingArtifact.create(
@@ -540,6 +541,16 @@ def listing_artifact_source_package_with_c_backend(
     try:
         payload = artifact.source_package_payload(minimum_asset_size)
         payload["canonical_source_text"] = artifact.inline_source_text_with_profile()[0]
+        if structure_macros:
+            from amiga_reversing.disasm.structure_macro_rendering import (
+                render_structure_macros,
+            )
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path else {}
+            text, report = render_structure_macros(str(payload["source_text"]),
+                canonical_source_text=str(payload["canonical_source_text"]), metadata=metadata,
+                source_plan=artifact.source_plan_payload())
+            payload["source_text"] = text
+            payload["structure_macros"] = report
         return payload
     finally:
         artifact.close()
@@ -1746,6 +1757,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc.argtypes = [c_void_p, POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc.argtypes = [
         c_void_p, c_uint32, POINTER(c_void_p),
     ]
@@ -2177,6 +2190,11 @@ class CListingArtifact:
         analysis = cast(dict[str, object], combined.get("analysis", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return analysis, profile
+
+    def source_plan_payload(self) -> dict[str, object]:
+        """Internal canonical row coordinates for schema-derived presentations."""
+        return cast(dict[str, object], json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc)))
 
     def source_package_payload(self, minimum_asset_size: int = 256) -> dict[str, object]:
         if type(minimum_asset_size) is not int or not 1 <= minimum_asset_size <= 0xFFFFFFFF:

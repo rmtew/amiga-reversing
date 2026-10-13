@@ -30,7 +30,7 @@ from amiga_reversing.disasm.target_history import history_revision, target_lock
 
 _FUNCTION_CACHE: dict[tuple[str, str], dict] = {}
 _QUERY_KEYS = {"kind", "query", "section_index", "source_offset", "end_offset", "symbol",
-               "struct_name", "field_offset", "direction", "relation"}
+               "struct_name", "field_offset", "direction", "relation", "exceptions_only"}
 
 
 def _server():
@@ -211,6 +211,8 @@ def _query(target_id, body, current):
     if "field_offset" in filters and (type(filters["field_offset"]) is not int or not -0x80000000 <= filters["field_offset"] <= 0x7FFFFFFF):
         raise ValueError("field_offset must be a signed 32-bit integer")
     kind = filters.get("kind")
+    if "exceptions_only" in filters and kind != "typed_pointers":
+        raise ValueError("exceptions_only requires typed_pointers")
     if filters.get("query") and kind in {"references", "fields", "edges", "gaps"}:
         raise ValueError(f"query text is unsupported for {kind}")
     artifact = _artifact(target_id)
@@ -245,6 +247,23 @@ def _query(target_id, body, current):
                          "native CFG function candidate relation", items[0].get("unknowns"))
         else:
             page = _page(compact, offset, limit, unknowns=facts.get("unknowns"))
+    elif kind == "typed_pointers":
+        from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+        from amiga_reversing.disasm.typed_pointer_report import typed_pointer_report
+        unsupported = set(filters) - {"kind", "struct_name", "exceptions_only"}
+        if unsupported:
+            raise ValueError("typed_pointers supports only struct_name and exceptions_only filtering")
+        metadata = effective_target_metadata(_paths(target_id).target_dir)
+        if metadata is None:
+            raise ValueError("Target metadata is required")
+        page = typed_pointer_report(
+            metadata, artifact.row_for_source_offset,
+            offset=offset, limit=limit, struct_name=filters.get("struct_name"),
+            exceptions_only=filters.get("exceptions_only", False),
+        )
+        page.pop("next_offset", None)
+        page["scope"] = "canonical bound pointer fields and native render-plan outcomes"
+        page["unknowns"] = page.pop("limits")
     elif kind == "gaps":
         items = _server()._cached_analysis_review_items(target_id, artifact)
         page = _page(items, offset, limit, "native analysis review items",

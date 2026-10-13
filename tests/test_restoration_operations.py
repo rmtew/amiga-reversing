@@ -122,6 +122,36 @@ def current():
     return invoke("state")["revision"]
 
 
+def test_typed_pointer_query_uses_revision_bound_cursor_and_rejects_ignored_filters(target, monkeypatch):
+    from amiga_reversing.disasm import effective_metadata
+    from amiga_reversing.disasm.target_metadata import (
+        SeededEntityMetadata,
+        TargetMetadata,
+        TargetMetadataReviewStatus,
+        TargetMetadataSeedOrigin,
+    )
+    fields = tuple(SeededEntityMetadata(
+        addr=addr, end=addr + 4, struct_name="Record", field_name="pointer",
+        value_kind="target_pointer", seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED, citation="test",
+    ) for addr in (0, 4))
+    metadata = TargetMetadata(target_type="raw", entry_register_seeds=(), seeded_entities=fields)
+    original_effective = effective_metadata.effective_target_metadata
+    monkeypatch.setattr(effective_metadata, "effective_target_metadata", lambda _: metadata)
+    first = invoke("query", kind="typed_pointers", struct_name="Record", limit=1)
+    assert first["total"] == 2 and first["items"][0]["source_offset"] == 0
+    second = invoke("query", kind="typed_pointers", struct_name="Record", limit=1,
+                    cursor=first["next_cursor"])
+    assert second["items"][0]["source_offset"] == 4 and not second["has_more"]
+    monkeypatch.setattr(effective_metadata, "effective_target_metadata", original_effective)
+    target.add()
+    with pytest.raises(ValueError, match="stale_cursor"):
+        invoke("query", kind="typed_pointers", struct_name="Record", limit=1,
+               cursor=first["next_cursor"])
+    with pytest.raises(ValueError, match="only struct_name"):
+        invoke("query", kind="typed_pointers", source_offset=0)
+
+
 def test_reads_preserve_legacy_annotations_and_unknown_fields(target):
     target.add()
     path = target.directory / "manual_actions.jsonl"

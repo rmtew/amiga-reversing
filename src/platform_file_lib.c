@@ -2912,6 +2912,20 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
   }
 }
 
+static int pointer_domain_from_text_local(const char *domain, const char *group,
+    uint32_t width, uint8_t is_pointer, uint8_t *out_domain) {
+  uint8_t value = M68K_ANALYSIS_POINTER_DOMAIN_LEGACY;
+  if (domain != NULL && domain[0] != '\0' && strcmp(domain, "legacy") != 0) {
+    if (strcmp(domain, "mapped_source") == 0) value = M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE;
+    else if (strcmp(domain, "runtime_only") == 0) value = M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY;
+    else return 0;
+    if (!is_pointer || width != 4U) return 0;
+  }
+  if ((value == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY) != (group != NULL && group[0] != '\0')) return 0;
+  *out_domain = value;
+  return 1;
+}
+
 static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_struct,
     const char *object_start, const char *object_end) {
   M68kAnalysisCustomStructField *field;
@@ -2925,6 +2939,8 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
   char pointer_struct[64];
   char named_base[64];
   char value_kind[32];
+  char pointer_domain[24] = "";
+  char pointer_group[64] = "";
   if (custom_struct == NULL || custom_struct->field_count >= M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT)
     return 0;
   name[0] = '\0';
@@ -2941,7 +2957,9 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
       !json_optional_string_field_local(object_start, object_end, "pointer_struct", pointer_struct,
         sizeof(pointer_struct)) ||
       !json_optional_string_field_local(object_start, object_end, "named_base", named_base, sizeof(named_base)) ||
-      !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind))) {
+      !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
+      !json_optional_string_field_local(object_start, object_end, "pointer_address_domain", pointer_domain, sizeof(pointer_domain)) ||
+      !json_optional_string_field_local(object_start, object_end, "pointer_symbol_group", pointer_group, sizeof(pointer_group))) {
     return 0;
   }
   if (name[0] == '\0' || !has_offset || !has_size || size == 0U || size > UINT16_MAX) return 0;
@@ -2965,6 +2983,9 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
   field->value_kind = pointer_struct[0] != '\0' ? M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER :
     (strcmp(value_kind, "target_pointer") == 0 ? M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER :
       M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR);
+  if (!pointer_domain_from_text_local(pointer_domain, pointer_group, size,
+      field->value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR, &field->pointer_address_domain) ||
+      !copy_policy_text(field->pointer_symbol_group, sizeof(field->pointer_symbol_group), pointer_group)) return 0;
   return 1;
 }
 
@@ -7659,6 +7680,8 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   char c_type[64];
   char pointer_struct[64];
   char value_kind[32];
+  char pointer_domain[24] = "";
+  char pointer_group[64] = "";
   char value_domain[64];
   MetadataSeededEntityClassification classification;
   entity_type[0] = '\0';
@@ -7691,6 +7714,8 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
       !json_optional_string_field_local(object_start, object_end, "pointer_struct", pointer_struct,
         sizeof(pointer_struct)) ||
       !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
+      !json_optional_string_field_local(object_start, object_end, "pointer_address_domain", pointer_domain, sizeof(pointer_domain)) ||
+      !json_optional_string_field_local(object_start, object_end, "pointer_symbol_group", pointer_group, sizeof(pointer_group)) ||
       !json_optional_string_field_local(object_start, object_end, "value_domain", value_domain,
         sizeof(value_domain))) {
     return 0;
@@ -7708,6 +7733,10 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
         classification.role_flags, classification.is_pointer)) {
     return 0;
   }
+  if (!pointer_domain_from_text_local(pointer_domain, pointer_group, end - addr, classification.is_pointer,
+      &policy->structured_data_items[item_index].pointer_address_domain) ||
+      !copy_policy_text(policy->structured_data_items[item_index].pointer_symbol_group,
+        sizeof(policy->structured_data_items[item_index].pointer_symbol_group), pointer_group)) return 0;
   if (name[0] != '\0' && !policy_add_named_label_local(policy, has_hunk ? hunk : 0U, addr, name)) return 0;
   return policy_set_structured_data_item_kb_metadata_local(policy, item_index, field_type[0] != '\0' ? field_type : unit,
     c_type, pointer_struct, value_domain[0] != '\0' ? value_domain : encoding, NULL, 0U, 0);
@@ -7753,7 +7782,13 @@ static int append_metadata_target_equate_local(const char *object_start, const c
   const char *value_start;
   char number_text[32];
   char *endptr = NULL;
-  long parsed;
+  long long parsed;
+  char group[64] = "";
+  char address_domain[24] = "";
+  uint32_t extent_bytes = 0U;
+  int has_extent = 0;
+  int result;
+  uint16_t index;
   size_t used = 0U;
   char name[64];
   char value_representation[16];
@@ -7766,7 +7801,10 @@ static int append_metadata_target_equate_local(const char *object_start, const c
       !json_optional_string_field_local(object_start, object_end, "value_representation",
         value_representation, sizeof(value_representation)) ||
       !json_optional_string_field_local(object_start, object_end, "value_expression",
-        value_expression, sizeof(value_expression))) {
+        value_expression, sizeof(value_expression)) ||
+      !json_optional_string_field_local(object_start, object_end, "group", group, sizeof(group)) ||
+      !json_optional_string_field_local(object_start, object_end, "address_domain", address_domain, sizeof(address_domain)) ||
+      !json_number_field_local(object_start, object_end, "extent_bytes", &extent_bytes, &has_extent)) {
     return 0;
   }
   value_start = json_find_key_local(object_start, object_end, "value");
@@ -7779,8 +7817,12 @@ static int append_metadata_target_equate_local(const char *object_start, const c
   }
   number_text[used] = '\0';
   if (used == 0U) return 0;
-  parsed = strtol(number_text, &endptr, 10);
-  if (endptr == NULL || *endptr != '\0' || parsed < INT32_MIN || parsed > INT32_MAX) return 0;
+  parsed = strtoll(number_text, &endptr, 10);
+  if (endptr == NULL || *endptr != '\0') return 0;
+  if (address_domain[0] != '\0') {
+    if (value_expression[0] != '\0' || strcmp(address_domain, "runtime") != 0 || group[0] == '\0' || !has_extent || extent_bytes == 0U ||
+        parsed < 0 || (uint64_t)parsed > UINT32_MAX || (uint64_t)parsed + extent_bytes > UINT64_C(0x100000000)) return 0;
+  } else if (has_extent || parsed < INT32_MIN || parsed > INT32_MAX) return 0;
   if (value_representation[0] != '\0') {
     value_style_id = analysis_representation_style_id_from_text_local(value_representation);
     if (value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
@@ -7788,7 +7830,16 @@ static int append_metadata_target_equate_local(const char *object_start, const c
       return 0;
     }
   }
-  return policy_add_target_equate_local(policy, name, (int32_t)parsed, value_style_id, value_expression);
+  result = policy_add_target_equate_local(policy, name, (int32_t)(uint32_t)parsed, value_style_id, value_expression);
+  if (result <= 0) return result;
+  for (index = 0U; index < policy->target_equate_count; ++index) {
+    M68kAnalysisTargetEquate *equate = &policy->target_equates[index];
+    if (strcmp(equate->name, name) != 0) continue;
+    equate->address_domain = address_domain[0] != '\0';
+    equate->extent_bytes = extent_bytes;
+    return copy_policy_text(equate->group, sizeof(equate->group), group);
+  }
+  return 0;
 }
 
 static int append_metadata_rsset_use_site_binding_local(const char *object_start, const char *object_end,
@@ -9814,7 +9865,8 @@ static void enrich_policy_pointer_targets_from_object_local(M68kAnalysisPolicy *
     uint32_t section_index;
     const M68kSection *section;
     uint32_t target_offset;
-    if (!item->is_pointer || item->has_target || item->size != 4U) continue;
+    if (!item->is_pointer || item->has_target || item->size != 4U ||
+        item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY) continue;
     section_index = item->has_section_index ? item->section_index : 0U;
     if (section_index >= object->section_count) continue;
     section = &object->sections[section_index];
@@ -9827,7 +9879,10 @@ static void enrich_policy_pointer_targets_from_object_local(M68kAnalysisPolicy *
        * numerically in the storage extent while still naming a different
        * source byte through a runtime view, so resolve the address model
        * before considering a section-storage value. */
-      if (!policy_runtime_address_to_source_offset_for_use_local(policy, target_offset,
+      if (item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE) {
+        if (m68k_analysis_policy_resolve_pointer_address(policy, target_offset,
+            &target_section_index, &source_target_offset) != 1) continue;
+      } else if (!policy_runtime_address_to_source_offset_for_use_local(policy, target_offset,
           M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET, &target_section_index, &source_target_offset) &&
           source_target_offset >= section->size) {
         continue;
@@ -13500,6 +13555,45 @@ cleanup:
   json_builder_destroy(&builder);
   platform_file_free_text(json);
   return text_result_to_alloc(&result, out_text);
+}
+
+int platform_file_facts_v2_listing_artifact_source_plan_json_alloc(PlatformFileListingArtifact *artifact,
+    char **out_text) {
+  JsonBuilder builder = {0}; size_t index;
+  if (!out_text) return -1;
+  *out_text = NULL;
+  if (!artifact || json_builder_create(&builder) || json_builder_append(&builder, "{\"rows\":[")) goto failed;
+  for (index = 0U; index < artifact->source_plan.row_count; ++index) {
+    const M68kRenderPlanRow *row = &artifact->source_plan.rows[index];
+    size_t line_index;
+    if ((index && json_builder_append(&builder, ",")) || json_builder_appendf(&builder,
+        "{\"id\":%u,\"kind\":%u,\"source_section_index\":%u,\"source_offset\":%u,"
+        "\"source_size\":%u,\"has_source_range\":%u,\"start_byte\":%llu,\"byte_count\":%llu,\"text\":",
+        (unsigned)row->id, (unsigned)row->kind, (unsigned)row->source_section_index,
+        (unsigned)row->source_offset, (unsigned)row->source_size, (unsigned)row->has_source_range,
+        (unsigned long long)row->start_byte, (unsigned long long)row->byte_count) ||
+        json_builder_append_json_string(&builder, row->text ? row->text : "") ||
+        json_builder_appendf(&builder, ",\"source_line_mask\":%u,\"label_line_mask\":%u,\"directive_line_mask\":%u,\"line_ranges\":[",
+            (unsigned)row->source_line_mask, (unsigned)row->label_line_mask, (unsigned)row->directive_line_mask)) goto failed;
+    for (line_index = 0U; line_index < row->line_count && line_index < 32U; ++line_index) {
+      if ((line_index && json_builder_append(&builder, ",")) || json_builder_appendf(&builder,
+          "[%u,%u,%u]", (unsigned)row->source_line_offsets[line_index],
+          (unsigned)row->source_line_sizes[line_index], (unsigned)row->label_line_source_offsets[line_index])) goto failed;
+    }
+    if (json_builder_append(&builder, "]}")) goto failed;
+  }
+  if (json_builder_append(&builder, "],\"labels\":[")) goto failed;
+  for (index = 0U; index < artifact->source_plan.label_count; ++index) {
+    const M68kRenderPlannedLabel *label = &artifact->source_plan.labels[index];
+    if ((index && json_builder_append(&builder, ",")) || json_builder_appendf(&builder,
+        "{\"source_section_index\":%u,\"source_offset\":%u,\"name\":",
+        (unsigned)label->source_section_index, (unsigned)label->source_offset) ||
+        json_builder_append_json_string(&builder, label->name) || json_builder_append(&builder, "}")) goto failed;
+  }
+  if (json_builder_append(&builder, "]}")) goto failed;
+  *out_text = json_builder_build(&builder); json_builder_destroy(&builder);
+  return *out_text ? 0 : -1;
+failed: json_builder_destroy(&builder); return -1;
 }
 
 int platform_file_facts_v2_listing_artifact_source_package_json_alloc(PlatformFileListingArtifact *artifact,

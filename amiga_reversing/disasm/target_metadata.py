@@ -9,6 +9,7 @@ from typing import TypeGuard, cast
 
 from .amiga_metadata import ResidentAutoinitMetadata
 from .binary_source import BinarySourceKind
+from .pointer_domains import validate_pointer_domain, validate_runtime_address_symbol
 
 TARGET_METADATA_FILE_NAME = "target_metadata.json"
 TARGET_SEEDED_METADATA_FILE_NAME = "target_seeded_metadata.json"
@@ -683,8 +684,12 @@ class CustomStructFieldMetadata:
     pointer_struct: str | None = None
     named_base: str | None = None
     value_kind: str = "scalar"
+    pointer_address_domain: str | None = None
+    pointer_symbol_group: str | None = None
 
     def __post_init__(self) -> None:
+        validate_pointer_domain(value_kind=self.value_kind, size=self.size,
+            address_domain=self.pointer_address_domain, symbol_group=self.pointer_symbol_group)
         if self.value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
             raise ValueError(f"unsupported custom struct field value_kind: {self.value_kind}")
         if self.pointer_struct is not None:
@@ -721,7 +726,7 @@ class CustomStructFieldMetadata:
             value_kind = "scalar"
         if value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
             raise ValueError(f"unsupported custom struct field value_kind: {value_kind}")
-        if value_kind == "struct_pointer":
+        if value_kind == "struct_pointer" and pointer_struct is None:
             raise ValueError("struct_pointer fields require pointer_struct")
         return cls(
             name=name,
@@ -733,6 +738,8 @@ class CustomStructFieldMetadata:
             pointer_struct=pointer_struct,
             named_base=named_base,
             value_kind=value_kind,
+            pointer_address_domain=cast(str | None, payload.get("pointer_address_domain")),
+            pointer_symbol_group=cast(str | None, payload.get("pointer_symbol_group")),
         )
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -1039,12 +1046,16 @@ class SeededEntityMetadata:
     pointer_struct: str | None = None
     value_kind: str | None = None
     value_domain: str | None = None
+    pointer_address_domain: str | None = None
+    pointer_symbol_group: str | None = None
     owner_action_id: str | None = None
     source_evidence_id: str | None = None
     parent_evidence_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        validate_pointer_domain(value_kind=self.value_kind, size=(self.end or self.addr) - self.addr,
+            address_domain=self.pointer_address_domain, symbol_group=self.pointer_symbol_group)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SeededEntityMetadata:
@@ -1122,6 +1133,8 @@ class SeededEntityMetadata:
             pointer_struct=pointer_struct,
             value_kind=value_kind,
             value_domain=value_domain,
+            pointer_address_domain=cast(str | None, payload.get("pointer_address_domain")),
+            pointer_symbol_group=cast(str | None, payload.get("pointer_symbol_group")),
             owner_action_id=owner_action_id,
             source_evidence_id=source_evidence_id,
             parent_evidence_ids=tuple(parent_evidence_ids),
@@ -1389,9 +1402,15 @@ class TargetEquateMetadata:
     comment: str | None = None
     value_representation: ManualRepresentationStyle | None = None
     value_expression: str | None = None
+    group: str | None = None
+    address_domain: str | None = None
+    extent_bytes: int | None = None
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        validate_runtime_address_symbol(value=self.value, group=self.group,
+            address_domain=self.address_domain, extent_bytes=self.extent_bytes,
+            value_expression=self.value_expression)
         if self.value_representation is not None:
             assert isinstance(self.value_representation, ManualRepresentationStyle)
         if self.value_expression is not None:
@@ -1424,6 +1443,9 @@ class TargetEquateMetadata:
             if value_representation is None
             else _manual_representation_style(value_representation),
             value_expression=value_expression,
+            group=cast(str | None, payload.get("group")),
+            address_domain=cast(str | None, payload.get("address_domain")),
+            extent_bytes=cast(int | None, payload.get("extent_bytes")),
         )
 
 
@@ -2094,6 +2116,20 @@ def _function_summary_location_payload(location: object) -> dict[str, object]:
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
+    # Optional address-domain declarations do not change the legacy wire shape.
+    for entity in payload.get("seeded_entities", ()):
+        for key in ("pointer_address_domain", "pointer_symbol_group"):
+            if entity.get(key) is None:
+                entity.pop(key, None)
+    for struct in payload.get("custom_structs", ()):
+        for field in struct.get("fields", ()):
+            for key in ("pointer_address_domain", "pointer_symbol_group"):
+                if field.get(key) is None:
+                    field.pop(key, None)
+    for equate in payload.get("target_equates", ()):
+        for key in ("group", "address_domain", "extent_bytes"):
+            if equate.get(key) is None:
+                equate.pop(key, None)
     if metadata.source_output_policy == SourceOutputPolicyMetadata():
         payload.pop("source_output_policy", None)
     function_summaries = payload.get("function_summaries")

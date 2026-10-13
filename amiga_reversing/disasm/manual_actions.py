@@ -2291,6 +2291,23 @@ def _validate_candidate_equate_capacity(
     metadata = effective_target_metadata(target_dir, pending_actions=pending_actions, binary_source=binary_source)
     if metadata is not None and metadata.target_equates:
         validate_target_equate_count_with_c_backend(len(metadata.target_equates))
+    # Absolute-address presentation rules carry the current native literal.
+    # Resolve against the whole candidate so a new EQU and its use can share
+    # one atomic batch, without changing historical representation records.
+    equates = {equate.name: equate.value for equate in metadata.target_equates} if metadata is not None else {}
+    for action in pending_actions:
+        if action.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION:
+            continue
+        representation = action.get("representation")
+        if not isinstance(representation, dict) or representation.get("element_kind") != "absolute_address" or representation.get("style") != "symbol":
+            continue
+        value = representation.get("value")
+        width = representation.get("width_bytes")
+        symbol = representation.get("symbol")
+        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 0xFFFFFFFF or width not in {2, 4}:
+            raise ValueError("absolute symbol representation requires a decoded address and width")
+        if not isinstance(symbol, str) or equates.get(symbol) != value:
+            raise ValueError("absolute symbol representation EQU value must match the decoded address")
 
 
 # These actions can change native structured-item or named-label expansion.

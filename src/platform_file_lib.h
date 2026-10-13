@@ -178,6 +178,9 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_anchor_window_json
 /* Additive projection; never alters the canonical listing plan or analysis. */
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_package_json_alloc(
   PlatformFileListingArtifact *artifact, uint32_t minimum_asset_size, char **out_text);
+/* Internal presentation projection: canonical plan coordinates, never new facts. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_plan_json_alloc(
+  PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_text_profile_alloc(
     PlatformFileListingArtifact *artifact, char **out_text, char **out_profile_json);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_summary_json_alloc(PlatformFileListingArtifact *artifact,

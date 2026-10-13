@@ -39,6 +39,8 @@ python -m amiga_reversing.tools.restoration --target TARGET inspect \
 python -m amiga_reversing.tools.restoration --target TARGET query \
   --kind functions --section-index 0 --source-offset 0x6676 \
   --relation unresolved_transfers --expected-revision REVISION
+python -m amiga_reversing.tools.restoration --target TARGET query \
+  --kind typed_pointers --struct-name TYPE --exceptions-only --limit 20 --expected-revision REVISION
 ```
 
 Poll `state` until `ready` before querying. Stop if its job reports `failed` and
@@ -48,6 +50,20 @@ start a new build. Responses include `revision`,
 `subject_revision`, explicit scope and unknowns. Pages contain `items`, `total`
 and `next_cursor`; send that cursor with the same query and revision to continue.
 The server rejects stale cursors rather than joining different snapshots.
+
+`typed_pointers` selects canonical bound fields with explicit pointer semantics,
+and supports only the optional `struct_name` filter. Its total and outcome/reason
+counts cover the entire selected population, while field details are paged.
+With `exceptions_only: true`, `total` counts unresolved/invalid fields and
+`population_total` retains the full denominator. The UI's **Pointer exceptions**
+button uses this same operation; resolved and null fields need no individual action.
+The native render plan owns each resolution; the report does not infer pointers
+from names, comments, or numeric values. Source boundaries, missing mappings,
+conflicts and missing native results remain explicit. For a standalone summary:
+
+```sh
+python -m amiga_reversing.tools.typed_pointer_report --target TARGET --summary
+```
 
 `query` text is a case-sensitive literal substring of symbol names for `symbols`
 and generated instruction text for `instructions`; it does not normalize numeric
@@ -153,6 +169,29 @@ companions. Classification, meaningful tables, pointers, relocations and ambiguo
 ranges remain governed by native analysis. First adoption requires the current
 canonical source to match freshly rendered inline source. Explicit ZIP export
 continues to select its own presentation independently.
+
+Custom pointer fields can explicitly declare `pointer_address_domain` as
+`mapped_source` or `runtime_only`; omission retains the existing `legacy`
+behavior. `mapped_source` requires a unique eligible source mapping and an
+expression whose encoded value matches the original. `runtime_only` requires
+`pointer_symbol_group` and never falls back to a source mapping. The normal
+EQU command can declare a runtime address symbol with `address_domain: runtime`,
+`group`, and a positive `extent_bytes`. These extents describe address symbols,
+not allocated memory, pointee types, DMA safety, lifetime, or phase exclusivity.
+Schema edits propagate through all bound instances; evidence remains required.
+
+Optional structure macros are an export view of the same canonical schemas.
+Choose **vasm + structure macros** in Export Source, or use:
+
+```sh
+python -m amiga_reversing.tools.source_export TARGET --structure-macros -o compact.s
+python -m amiga_reversing.tools.source_export TARGET --structure-macros \
+  --binary-assets --verify-package -o compact.zip
+```
+
+The HTTP export, restoration client/CLI and MCP export accept the same
+`structure_macros` boolean. Expanded source remains the default; export reports
+eligible instance and fallback counts. See [macro capabilities and limits](structure-macro-source-export.md).
 
 ## MCP
 

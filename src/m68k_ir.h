@@ -495,6 +495,8 @@ typedef struct M68kAnalysisStructuredDataItem {
   char semantic_role[65];
   char source_pattern[65];
   char comment[97];
+  uint8_t pointer_address_domain;
+  char pointer_symbol_group[64];
 } M68kAnalysisStructuredDataItem;
 
 typedef enum M68kAnalysisStructuredDataPlatformKind {
@@ -661,7 +663,16 @@ typedef struct M68kAnalysisTargetEquate {
   uint8_t value_style_id;
   uint8_t reserved[3];
   char value_expr[64];
+  char group[64];
+  uint32_t extent_bytes;
+  uint8_t address_domain;
 } M68kAnalysisTargetEquate;
+
+typedef enum M68kAnalysisPointerAddressDomain {
+  M68K_ANALYSIS_POINTER_DOMAIN_LEGACY = 0,
+  M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE = 1,
+  M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY = 2
+} M68kAnalysisPointerAddressDomain;
 
 /* The stored value's semantics are independent of its assembly width and
  * field name.  A typed pointer is identified by pointer_struct; a generic
@@ -682,6 +693,8 @@ typedef struct M68kAnalysisCustomStructField {
   char named_base[64];
   uint8_t value_kind;
   uint8_t reserved[3];
+  uint8_t pointer_address_domain;
+  char pointer_symbol_group[64];
 } M68kAnalysisCustomStructField;
 
 typedef struct M68kAnalysisCustomStruct {
@@ -2791,6 +2804,9 @@ void m68k_render_policy_init_default(M68kRenderPolicy *policy);
 void m68k_render_policy_init_for_syntax(M68kRenderPolicy *policy, uint8_t syntax_mode);
 int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
+/* 0: unmapped, 1: unique, 2: ambiguous. No section-offset fallback. */
+int m68k_analysis_policy_resolve_pointer_address(const M68kAnalysisPolicy *policy, uint32_t value,
+  uint32_t *out_section, uint32_t *out_offset);
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
 int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy);
