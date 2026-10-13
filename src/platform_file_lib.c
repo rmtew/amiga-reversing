@@ -2696,6 +2696,8 @@ static int append_metadata_seeded_code_label_local(const char *object_start, con
   int has_hunk = 0;
   char name[64];
   char comment[192];
+  uint16_t label_count;
+  uint16_t label_index;
   name[0] = '\0';
   comment[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &offset, &has_offset) ||
@@ -2705,7 +2707,21 @@ static int append_metadata_seeded_code_label_local(const char *object_start, con
     return 0;
   }
   if (!has_offset || name[0] == '\0') return 1;
+  label_count = policy->named_label_count;
   if (!policy_add_named_label_local(policy, has_hunk ? hunk : 0U, offset, name)) return 0;
+  if (policy->named_label_count > label_count) {
+    policy->named_labels[policy->named_label_count - 1U].is_source_declaration = 1U;
+  } else {
+    for (label_index = 0U; label_index < policy->named_label_count; ++label_index) {
+      M68kAnalysisNamedLabel *label = &policy->named_labels[label_index];
+      if (label->has_section_index && label->section_index == (has_hunk ? hunk : 0U) &&
+          label->offset == offset && label->domain == M68K_ANALYSIS_LABEL_DOMAIN_SOURCE &&
+          strcmp(label->name, name) == 0) {
+        label->is_source_declaration = 1U;
+        break;
+      }
+    }
+  }
   if (comment[0] != '\0' && !policy_add_entry_comment_local(policy, has_hunk ? hunk : 0U, offset, comment)) return 0;
   return 1;
 }

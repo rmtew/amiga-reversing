@@ -518,7 +518,9 @@ typedef enum M68kAnalysisLabelDomain {
 typedef struct M68kAnalysisNamedLabel {
   uint8_t has_section_index;
   uint8_t domain;
-  uint8_t reserved[2];
+  /* An actual seeded source declaration, rather than an expanded field name. */
+  uint8_t is_source_declaration;
+  uint8_t reserved[1];
   uint32_t section_index;
   uint32_t offset;
   char name[64];

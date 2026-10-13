@@ -1108,9 +1108,11 @@ static const M68kAnalysisStructuredDataItem *lookup_generated_custom_field_item_
 static int render_asm_should_emit_label_statement(const M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     size_t section_index, uint32_t offset) {
+  const M68kAnalysisStructuredDataItem *item;
   (void)preview;
   if (!lookup_should_emit_label_statement(lookup, section, accepted_start, section_index, offset)) return 0;
-  if (lookup_generated_custom_field_item_at(lookup, section_index, offset) == NULL) {
+  item = lookup_generated_custom_field_item_at(lookup, section_index, offset);
+  if (item == NULL || lookup_structured_field_has_explicit_label(lookup, item, section_index, offset)) {
     return 1;
   }
   return lookup_label_has_statement_ref(lookup, section_index, offset);

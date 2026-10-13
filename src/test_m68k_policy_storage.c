@@ -68,6 +68,7 @@ static int test_data_and_labels_capacity_clone_and_wide_bounds(void) {
   source.named_label_count = 8192U;
   source.structured_data_items[8191U].offset = 12345U;
   snprintf(source.named_labels[8191U].name, sizeof(source.named_labels[8191U].name), "last_label");
+  source.named_labels[8191U].is_source_declaration = 1U;
   M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
   M68K_C_ASSERT(copy.structured_data_items != source.structured_data_items);
   M68K_C_ASSERT(copy.named_labels != source.named_labels);
@@ -78,6 +79,7 @@ static int test_data_and_labels_capacity_clone_and_wide_bounds(void) {
   M68K_C_ASSERT_U32(8192U, copy.named_label_count);
   M68K_C_ASSERT_U32(12345U, copy.structured_data_items[8191U].offset);
   M68K_C_ASSERT_STR("last_label", copy.named_labels[8191U].name);
+  M68K_C_ASSERT_U32(1U, copy.named_labels[8191U].is_source_declaration);
   saved_data = copy.structured_data_items;
   saved_labels = copy.named_labels;
   for (index = 0U; index < sizeof(oversized) / sizeof(oversized[0]); ++index) {

@@ -446,6 +446,26 @@ static int lookup_policy_structured_item_targets_offset(const M68kRenderLookup *
   return 0;
 }
 
+int lookup_structured_field_has_explicit_label(const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, size_t section_index, uint32_t offset) {
+  char name[128];
+  uint16_t index;
+  if (item == NULL || item->offset != offset || item->field_name[0] == '\0') return 0;
+  /* Expanded fields carry an automatic instance_field label. A separately
+     named source anchor at that exact field boundary remains a declaration. */
+  if (format_lookup_asm_label_with_generation(lookup, name, sizeof(name), section_index, offset) != 0U) return 0;
+  if (strcmp(name, item->label) != 0) return 1;
+  if (lookup->policy == NULL) return 0;
+  for (index = 0U; index < lookup->policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
+    const M68kAnalysisNamedLabel *label = &lookup->policy->named_labels[index];
+    if (label->is_source_declaration && label->domain == M68K_ANALYSIS_LABEL_DOMAIN_SOURCE &&
+        label->offset == offset &&
+        (label->has_section_index ? label->section_index == section_index : section_index == 0U) &&
+        strcmp(label->name, name) == 0) return 1;
+  }
+  return 0;
+}
+
 int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, size_t section_index, uint32_t offset) {
   const M68kAnalysisStructuredDataItem *item;
@@ -453,6 +473,7 @@ int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
   item = lookup_structured_data_item_at_offset(lookup, section_index, offset);
   if (item != NULL && lookup_policy_has_custom_struct_named(lookup, item->struct_name) &&
       lookup_structured_item_has_generated_custom_field_label(item) &&
+      !lookup_structured_field_has_explicit_label(lookup, item, section_index, offset) &&
       !lookup_label_has_target_ref(lookup, section_index, offset) &&
       !lookup_label_has_statement_ref(lookup, section_index, offset) &&
       !lookup_policy_structured_item_targets_offset(lookup, section_index, offset)) {

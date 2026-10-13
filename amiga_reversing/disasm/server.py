@@ -201,6 +201,25 @@ _COMMAND_NAVIGATION_SNAPSHOTS: ContextVar[dict[tuple[str, str], tuple[object, ob
 _LISTING_CACHE_KEY_SNAPSHOT: ContextVar[dict[str, str] | None] = ContextVar(
     "listing_cache_key_snapshot", default=None
 )
+_COMMAND_METADATA_SNAPSHOTS: ContextVar[dict[Path, dict[str, object]] | None] = ContextVar(
+    "command_metadata_snapshots", default=None
+)
+
+
+def _command_preparation_metadata(target_dir: Path, *, typed: bool = False):
+    """Reuse current metadata only during locked command preparation."""
+    snapshots = _COMMAND_METADATA_SNAPSHOTS.get()
+    values = {} if snapshots is None else snapshots.setdefault(target_dir, {})
+    kind = "typed" if typed else "wire"
+    if kind not in values:
+        if typed:
+            from amiga_reversing.disasm.effective_metadata import (
+                effective_target_metadata,
+            )
+            values[kind] = effective_target_metadata(target_dir)
+        else:
+            values[kind] = json.loads(effective_metadata_text(target_dir))
+    return values[kind]
 
 
 @contextlib.contextmanager
@@ -2699,9 +2718,11 @@ def _execute_catalog_commands_unchecked(project_name: str, bodies: list[dict]) -
     # This memo belongs only to this locked preparation stage, before any append.
     context_cache = {}
     navigation_token = _COMMAND_NAVIGATION_SNAPSHOTS.set({})
+    metadata_token = _COMMAND_METADATA_SNAPSHOTS.set({})
     try:
         prepared = [_prepare_catalog_command(project_name, body, workflow_profile, context_cache) for body in bodies]
     finally:
+        _COMMAND_METADATA_SNAPSHOTS.reset(metadata_token)
         _COMMAND_NAVIGATION_SNAPSHOTS.reset(navigation_token)
     result = _apply_manual_action_commands(project_name, prepared, workflow_profile=workflow_profile)
     response_started_at = time.perf_counter()
@@ -2866,20 +2887,19 @@ def _validate_data_block_base_displacement_ref(
     project: ProjectRecord, artifact: object, ref: Mapping[str, object],
 ) -> None:
     """Validate a stored displacement without treating its bits as an address."""
+    from amiga_reversing.disasm.effective_metadata import (
+        _data_block_element_interpreted_data_reference,
+    )
+
     _validate_data_block_runtime_ref_source_bytes(project, artifact, ref)
-    metadata = json.loads(effective_metadata_text(Path(project.target_dir)))
+    metadata = _command_preparation_metadata(Path(project.target_dir))
+    typed_metadata = _command_preparation_metadata(Path(project.target_dir), typed=True)
+    if typed_metadata is None:
+        raise ValueError("base-displacement reference requires current effective type metadata")
+    typed_layout = next(item for item in typed_metadata.data_block_layouts
+                        if item.layout_id == ref.get("layout_id"))
     layout = next(item for item in metadata.get("data_block_layouts", [])
                   if item.get("layout_id") == ref.get("layout_id"))
-    offset = cast(int, ref["offset"])
-    owners = [element for element in layout.get("elements", [])
-              if element["offset"] <= offset and offset + 2 <= element["offset"] + element["width"]]
-    if len(owners) != 1:
-        raise ValueError("base-displacement reference requires one owning word element or array")
-    element = owners[0]
-    if not ((element.get("kind") == "scalar" and element["width"] == 2 and element["offset"] == offset) or
-            (element.get("kind") == "array" and element.get("array_stride") == 2 and
-             (offset - element["offset"]) % 2 == 0)):
-        raise ValueError("base-displacement reference requires a scalar word or aligned word-array entry")
     base = ref.get("base_locator")
     if (not isinstance(base, Mapping) or ref.get("width") != 2 or
             ref.get("signed") is not True or ref.get("scale", 1) != 1 or
@@ -2892,6 +2912,11 @@ def _validate_data_block_base_displacement_ref(
             not 0 <= target <= 0xFFFFFFFF or
             base_offset + (raw - 0x10000 if raw & 0x8000 else raw) != target):
         raise ValueError("base-displacement target must equal base plus signed encoded displacement")
+    # Use the source projection's merged declarations and exact WORD-leaf
+    # validator; a typed command must retain its enclosing struct ownership.
+    _data_block_element_interpreted_data_reference(
+        typed_layout, ref, {item.name: item for item in typed_metadata.custom_structs},
+    )
     query = getattr(artifact, "query_payload", None)
     if not callable(query):
         raise ValueError("base-displacement reference requires current native source labels")
@@ -2912,7 +2937,7 @@ def _validate_data_block_runtime_ref_source_bytes(
     project: ProjectRecord, artifact: object, ref: Mapping[str, object],
 ) -> None:
     """Validate the owner through the existing effective metadata projection."""
-    metadata = json.loads(effective_metadata_text(Path(project.target_dir)))
+    metadata = _command_preparation_metadata(Path(project.target_dir))
     layouts = [layout for layout in metadata.get("data_block_layouts", [])
                if layout.get("layout_id") == ref.get("layout_id")]
     width, offset = ref.get("width"), ref.get("offset")

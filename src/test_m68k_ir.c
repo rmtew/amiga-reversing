@@ -30707,6 +30707,91 @@ static int test_facts_v2_render_asm_source_drops_storage_derived_type_across_unm
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_honors_explicit_typed_field_labels(void) {
+  unsigned variant;
+  for (variant = 0U; variant < 3U; ++variant) {
+    M68kObject object;
+    M68kSection section = {0};
+    M68kAnalysisPolicy policy;
+    M68kFactsV2Profile profile;
+    char *source = NULL;
+    uint16_t index;
+    uint8_t bytes[22] = {0x60U, 0x12U, [12] = 0x00U, [13] = 0x06U,
+      [14] = 0xFFU, [15] = 0xF8U, [16] = 0x00U, [17] = 0x06U,
+      [18] = 0xFFU, [19] = 0xF8U, [20] = 0x4EU, [21] = 0x75U};
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+    object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    section.kind = M68K_SECTION_CODE;
+    section.size = sizeof(bytes);
+    section.data_size = sizeof(bytes);
+    section.data = bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+    m68k_analysis_policy_init_default(&policy);
+    policy.custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*policy.custom_structs));
+    M68K_C_ASSERT(policy.custom_structs != NULL);
+    policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+    policy.custom_struct_owner = 1U;
+    snprintf(policy.custom_structs[0].name, sizeof(policy.custom_structs[0].name), "Command");
+    policy.custom_structs[0].size = 4U;
+    policy.custom_structs[0].field_count = 2U;
+    for (index = 0U; index < 2U; ++index) {
+      policy.custom_structs[0].fields[index].offset = (uint32_t)index * 2U;
+      policy.custom_structs[0].fields[index].size = 2U;
+      snprintf(policy.custom_structs[0].fields[index].name,
+        sizeof(policy.custom_structs[0].fields[index].name), "%s", index == 0U ? "opcode" : "branch");
+    }
+    policy.structured_data_item_count = 4U;
+    for (index = 0U; index < 4U; ++index) {
+      M68kAnalysisStructuredDataItem *item = &policy.structured_data_items[index];
+      item->has_section_index = 1U;
+      item->offset = 12U + (uint32_t)index * 2U;
+      item->size = 2U;
+      item->kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+      snprintf(item->struct_name, sizeof(item->struct_name), "Command");
+      snprintf(item->field_name, sizeof(item->field_name), "%s", index % 2U == 0U ? "opcode" : "branch");
+      snprintf(item->label, sizeof(item->label), "commands_%s_%u", item->field_name, (unsigned)index / 2U);
+    }
+    policy.named_label_count = 4U;
+    for (index = 0U; index < 4U; ++index) policy.named_labels[index].has_section_index = 1U;
+    policy.named_labels[0].offset = 12U;
+    snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "commands");
+    policy.named_labels[1].offset = 14U;
+    snprintf(policy.named_labels[1].name, sizeof(policy.named_labels[1].name), "%s",
+      variant == 1U ? "first_branch_word" : "commands_branch_0");
+    policy.named_labels[2].offset = 18U;
+    snprintf(policy.named_labels[2].name, sizeof(policy.named_labels[2].name), "%s",
+      variant == 1U ? "second_branch_word" : "commands_branch_1");
+    policy.named_labels[1].is_source_declaration = variant == 2U;
+    policy.named_labels[2].is_source_declaration = variant == 2U;
+    /* A name in the middle of a WORD is not a declared field boundary. */
+    policy.named_labels[3].offset = 15U;
+    policy.named_labels[3].is_source_declaration = 1U;
+    snprintf(policy.named_labels[3].name, sizeof(policy.named_labels[3].name), "word_interior");
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+      m68k_diag_sink(NULL)));
+    M68K_C_ASSERT(source != NULL);
+    M68K_C_ASSERT(strstr(source, "word_interior:") == NULL);
+    if (variant == 0U) {
+      M68K_C_ASSERT(strstr(source, "commands_branch_0:") == NULL);
+      M68K_C_ASSERT(strstr(source, "commands_branch_1:") == NULL);
+    } else if (variant == 1U) {
+      M68K_C_ASSERT(strstr(source, "first_branch_word:\n\tdc.w $FFF8\t; branch") != NULL);
+      M68K_C_ASSERT(strstr(source, "second_branch_word:\n\tdc.w $FFF8\t; branch") != NULL);
+    } else {
+      M68K_C_ASSERT(strstr(source, "commands_branch_0:\n\tdc.w $FFF8\t; branch") != NULL);
+      M68K_C_ASSERT(strstr(source, "commands_branch_1:\n\tdc.w $FFF8\t; branch") != NULL);
+    }
+    M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+    M68K_C_ASSERT_U32(4U, policy.structured_data_item_count);
+    M68K_C_ASSERT_STR("commands_branch_0", policy.structured_data_items[1].label);
+    free(source);
+    m68k_analysis_policy_destroy(&policy);
+    m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type(void) {
   M68kObject object;
   M68kSection section;
@@ -39542,6 +39627,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_does_not_record_untyped_unknown_call_consumer},
     {"facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call",
       test_facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call},
+    {"facts_v2_render_asm_source_honors_explicit_typed_field_labels",
+      test_facts_v2_render_asm_source_honors_explicit_typed_field_labels},
     {"facts_v2_render_asm_source_propagates_pointer_table_pointee_type",
       test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type},
     {"facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin",
