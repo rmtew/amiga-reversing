@@ -542,6 +542,19 @@ world_behavior_node_sequence_command_state_node_ptr RS.L 1
 world_behavior_node_sequence_command_frame_sequence_ptr RS.L 1
 world_behavior_node_sequence_command_SIZEOF EQU __RS
 
+; STRUCT world_position_render_state_prefix
+    RSRESET
+world_position_render_state_prefix_current_geometry_ptr RS.L 1
+world_position_render_state_prefix_previous_geometry_ptr RS.L 1
+world_position_render_state_prefix_state_node_ptr RS.L 1
+world_position_render_state_prefix_world_x_offset RS.W 1
+world_position_render_state_prefix_world_y_offset RS.W 1
+world_position_render_state_prefix_position_descriptor_ptr RS.L 1
+world_position_render_state_prefix_attachment_state_ptr RS.L 1
+world_position_render_state_prefix_interaction_flags RS.B 1
+world_position_render_state_prefix_world_object_flags RS.B 1
+world_position_render_state_prefix_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -970,13 +983,13 @@ handle_self_destruct_countdown_expiry:
 	bsr.w clear_combat_hit_feedback
 	bclr.b #1,app_ui_flags(a6)
 	beq.b abs_0_00010724
-	lea.l abs_0_0005C940.l,a0
-	lea.l abs_0_0005C97A.l,a1
-	move.l a0,$0008(a1)
-	move.b $0005(a0),$0011(a0)
-	subq.b #1,$0011(a0)
-	clr.b $0010(a0)
-	bclr.b #0,$000A(a0)
+	lea.l combat_exit_animation_node.l,a0
+	lea.l combat_visual_render_state.l,a1
+	move.l a0,world_position_render_state_prefix_state_node_ptr(a1)
+	move.b WorldPositionStateNode_phase_step(a0),WorldPositionStateNode_frame_index_and_phase+1(a0)
+	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
+	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
 	lea.l abs_0_0001332E.l,a5
 	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001335A.l,a5
@@ -4958,20 +4971,22 @@ abs_0_000124DA:
 	dbf.w d7,abs_0_000124BE
 abs_0_000124DE:
 	rts
-abs_0_000124E0:
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
+copy_world_object_xy_to_position_descriptor:
 	move.l a0,-(a7)
-	movea.l vhposw(a5),a0
-	move.l serdat(a5),$0004(a0)
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
+	move.l world_object_shared_prefix_world_x(a5),world_position_descriptor_prefix_world_x(a0)
 	movea.l (a7)+,a0
 abs_0_000124EE:
 	rts
+    ; This loop advances A0 through the pointer table while the callee selects A5. The entries do not update A5; its object input is inherited.
 abs_0_000124F0:
 	lea.l world_object_ptr_table(pc),a1
 abs_0_000124F4:
 	move.l (a1)+,d0
 	beq.b abs_0_000124EE
 	movea.l d0,a0
-	bsr.b abs_0_000124E0
+	bsr.b copy_world_object_xy_to_position_descriptor
 	bra.b abs_0_000124F4
 abs_0_000124FE:
 	move.l app_active_world_object_ptr_table(a6),d0
@@ -5931,7 +5946,7 @@ world_object_sort_source_ptrs:
 	dc.l abs_0_000593B4
 	dc.l abs_0_000597B2
 	dc.l abs_0_0005B8C0
-	dc.l abs_0_0005C96E
+	dc.l combat_visual_position_descriptor
 	dc.l abs_0_00059AA8
 	dc.l abs_0_00059CB8
 	dc.l player_position_descriptor
@@ -8834,29 +8849,29 @@ abs_0_00017856:
 	move.b #$32,app_opponent_attack_damage(a6)
 abs_0_0001786C:
 	movem.l (a7)+,d0-d1
-	lea.l abs_0_0005C96E.l,a0
+	lea.l combat_visual_position_descriptor.l,a0
 	add.w d0,d1
 	lsr.w #1,d1
-	move.w d1,$0006(a0)
+	move.w d1,world_position_descriptor_prefix_world_y(a0)
 	swap.w d0
 	swap.w d1
 	add.w d0,d1
 	lsr.w #1,d1
 	andi.b #240,d1
-	move.w d1,$0004(a0)
+	move.w d1,world_position_descriptor_prefix_world_x(a0)
 	move.b world_object_shared_prefix_item_definition_id(a5),d0
 	cmp.b #ITEM_ID_PRIEST,d0
 	bne.b abs_0_000178A8
 	bsr.w request_camera_refresh
-	move.w #$B8,$0004(a0)
-	move.w #$19C,$0006(a0)
+	move.w #$B8,world_position_descriptor_prefix_world_x(a0)
+	move.w #$19C,world_position_descriptor_prefix_world_y(a0)
 abs_0_000178A8:
 	clr.b app_player_hit_feedback_ticks_remaining(a6)
 	clr.b app_opponent_hit_feedback_ticks_remaining(a6)
-	lea.l abs_0_0005C912.l,a0
-	lea.l abs_0_0005C97A.l,a1
-	move.l a0,$0008(a1)
-	clr.w $0010(a0)
+	lea.l combat_active_animation_node.l,a0
+	lea.l combat_visual_render_state.l,a1
+	move.l a0,world_position_render_state_prefix_state_node_ptr(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	move.l #$1E928,$64C0.w
     ; The early nonpositive player-health byte branch inherits A4. Player damage tests borrow/equality; opponent damage tests signed-negative/equality, giving different byte-underflow behavior.
 service_combat_encounter:
@@ -8955,14 +8970,14 @@ abs_0_00017A06:
 	bsr.w restore_world_object_position_state
 	bset.b #1,$0048(a5)
 	bclr.b #1,app_ui_flags(a6)
-	lea.l abs_0_0005C97A.l,a0
-	clr.l (a0)
+	lea.l combat_visual_render_state.l,a0
+	clr.l (a0)	; operand 1: world_position_render_state_prefix_current_geometry_ptr at (a0)
 	move.w #$2710,d2
 	sub.w d2,$0030(a5)
 	move.w $0030(a5),d0
 	andi.b #240,d0
 	move.w d0,$0030(a5)
-	bsr.w abs_0_000124E0
+	bsr.w copy_world_object_xy_to_position_descriptor
 	lea.l player_world_object.l,a5
 	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
 	beq.b abs_0_00017A4E
@@ -8970,15 +8985,15 @@ abs_0_00017A06:
 	bclr.b #6,world_object_shared_prefix_world_object_flags(a5)
 abs_0_00017A4E:
 	sub.w d2,world_object_shared_prefix_world_x(a5)
-	bsr.w abs_0_000124E0
+	bsr.w copy_world_object_xy_to_position_descriptor
 	bsr.w clear_combat_hit_feedback
-	lea.l abs_0_0005C940.l,a0
-	lea.l abs_0_0005C97A.l,a1
-	move.l a0,$0008(a1)
-	move.b $0005(a0),$0011(a0)
-	subq.b #1,$0011(a0)
-	clr.b $0010(a0)
-	bclr.b #0,$000A(a0)
+	lea.l combat_exit_animation_node.l,a0
+	lea.l combat_visual_render_state.l,a1
+	move.l a0,world_position_render_state_prefix_state_node_ptr(a1)
+	move.b WorldPositionStateNode_phase_step(a0),WorldPositionStateNode_frame_index_and_phase+1(a0)
+	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
+	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
 	lea.l abs_0_0001332E.l,a5
 	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001335A.l,a5
@@ -9977,18 +9992,20 @@ weapon_combat_charge_reload_table:
 	dc.b $04,$05,$02,$01,$04,$03,$02	; lookup_table
 weapon_combat_damage_table:
 	dc.b $23,$15,$09,$07,$19,$0E,$08	; lookup_table
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 restore_world_object_position_state:
 	move.l a0,-(a7)
-	movea.l $004E(a5),a0
+	movea.l world_object_shared_prefix_saved_position_state_ptr(a5),a0
 	move.l a0,-(a7)
-	movea.l $0008(a0),a0
-	bclr.b #0,$000A(a0)
-	clr.w $0010(a0)
-	movea.l $002C(a5),a0
-	move.l $0000(a0),$004E(a5)
-	move.l (a7)+,$0000(a0)
+	movea.l world_position_state_record_state_node_ptr(a0),a0
+	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
+	move.l world_position_descriptor_prefix_position_state_ptr.w(a0),world_object_shared_prefix_saved_position_state_ptr(a5)
+	move.l (a7)+,world_position_descriptor_prefix_position_state_ptr.w(a0)
 	movea.l (a7)+,a0
 	rts
+    ; Walk the null-terminated table; skip entries with flag bit 1 set and add D0 to item-state bytes modulo 256. Combat callbacks run before opponent deactivation. A5 is preserved.
 adjust_active_world_object_item_state:
 	movem.l d1/a0/a5,-(a7)
 	lea.l world_object_ptr_table.l,a0
@@ -11643,7 +11660,7 @@ abs_0_0001A0D2:
 	move.b d0,$0048(a5)
 	btst.b #1,$0048(a5)
 	beq.b abs_0_0001A0E2
-	bsr.w abs_0_000124E0
+	bsr.w copy_world_object_xy_to_position_descriptor
 abs_0_0001A0E2:
 	moveq.l #0,d0
 	move.b $004A(a5),d0
@@ -19995,15 +20012,15 @@ initialize_player_and_fixed_animation_nodes:
 	lea.l player_position_state_interaction_data_ptr.l,a0
 	lea.l player_position_state_state_node_ptr.l,a4
 	move.l a0,(a4)	; operand 2: world_position_state_record_state_node_ptr at (a4)
-	lea.l abs_0_0005C96E.l,a0
+	lea.l combat_visual_position_descriptor.l,a0
 	move.w #$2710,d0
-	move.w d0,$0004(a0)
-	move.w d0,$0006(a0)
-	move.w d0,$0008(a0)
-	move.w d0,$000A(a0)
-	movea.l $0000(a0),a0
-	clr.l $0004(a0)
-	clr.l $0000(a0)
+	move.w d0,world_position_descriptor_prefix_world_x(a0)
+	move.w d0,world_position_descriptor_prefix_world_y(a0)
+	move.w d0,world_position_descriptor_prefix_previous_world_x(a0)
+	move.w d0,world_position_descriptor_prefix_previous_world_y(a0)
+	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
+	clr.l world_position_state_record_previous_geometry_ptr(a0)
+	clr.l world_position_state_record_current_geometry_ptr.w(a0)
 	lea.l abs_0_00059B86.l,a0
 	lea.l abs_0_00059CDE.l,a4
 	move.l a0,(a4)
@@ -21306,34 +21323,127 @@ player_move_negative_y_frames:
 	dc.b $00,$00,$00,$05,$5D,$20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10
 	dc.b $00,$00,$00,$00,$00,$05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04
 	dc.b $00,$20,$00,$00,$00,$02,$00,$05,$5E,$08,$00,$06,$A8,$28,$00,$02
-	dc.b $00,$04,$00,$20,$00,$00,$00,$02,$00,$04,$A7,$38,$00,$06,$6D,$C8
-	dc.b $00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$AB,$38,$00,$06
-	dc.b $6E,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$AF,$38
-	dc.b $00,$06,$6F,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04
-	dc.b $B3,$38,$00,$06,$70,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00
-	dc.b $00,$04,$B7,$38,$00,$06,$71,$C8,$00,$04,$00,$20,$00,$40,$00,$00
-	dc.b $00,$00,$00,$04,$BB,$38,$00,$06,$72,$C8,$00,$04,$00,$20,$00,$40
-	dc.b $00,$00,$00,$00,$00,$04,$BF,$38,$00,$06,$73,$C8,$00,$04,$00,$20
-	dc.b $00,$40,$00,$00,$00,$00,$00,$04,$C3,$38,$00,$06,$74,$C8,$00,$04
-	dc.b $00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$C7,$38,$00,$06,$75,$C8
-	dc.b $00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$CB,$38,$00,$06
-	dc.b $76,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00,$00,$04,$CF,$38
-	dc.b $00,$06,$77,$C8,$00,$04,$00,$20,$00,$40,$00,$00,$00,$00
-abs_0_0005C912:
-	dc.b $00,$05,$C9,$6E,$06,$40,$00,$05,$C9,$24
-	dcb.b $9,$00
-	dc.b $05,$C8,$4C,$00,$05,$C8,$4C,$00,$05,$C8,$5E,$00,$05,$C8,$70,$00
-	dc.b $05,$C8,$82,$00,$05,$C8,$94,$00,$05,$C8,$A6
-abs_0_0005C940:
-	dc.b $00,$05,$C9,$6E,$06,$2B,$00,$05,$C9,$52,$04
-	dcb.b $C,$00
-	dc.b $05,$C8,$B8,$00,$05,$C8,$CA,$00,$05,$C8,$DC,$00,$05,$C8,$EE,$00
-	dc.b $05,$C9,$00,$00,$00,$00,$00
-abs_0_0005C96E:
-	dc.b $00,$05,$C9,$7A,$27,$10,$01,$F4,$27,$10,$01,$F4
-abs_0_0005C97A:
-	dcb.b $C,$00
-	dc.b $FF,$F0,$FF,$FC,$00,$05,$C9,$6E,$00,$00,$00,$00,$00,$00
+	dc.b $00,$04,$00,$20,$00,$00,$00,$02
+combat_encounter_geometry_headers:
+	dc.l $0004A738	; bitplane_data_ptr
+	dc.l $00066DC8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$04,$AB,$38	; bitplane_data_ptr
+	dc.b $00,$06,$6E,$C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $0004AF38	; bitplane_data_ptr
+	dc.l $00066FC8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$04,$B3,$38	; bitplane_data_ptr
+	dc.b $00,$06,$70,$C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $0004B738	; bitplane_data_ptr
+	dc.l $000671C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$04,$BB,$38	; bitplane_data_ptr
+	dc.b $00,$06,$72,$C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $0004BF38	; bitplane_data_ptr
+	dc.l $000673C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$04,$C3,$38	; bitplane_data_ptr
+	dc.b $00,$06,$74,$C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $0004C738	; bitplane_data_ptr
+	dc.l $000675C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$04,$CB,$38	; bitplane_data_ptr
+	dc.b $00,$06,$76,$C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l $0004CF38	; bitplane_data_ptr
+	dc.l $000677C8	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+combat_active_animation_node:
+	dc.l combat_visual_position_descriptor	; position_descriptor_ptr
+	dc.b $06	; frame_count
+	dc.b $40	; phase_step
+	dc.l $0005C924	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+combat_active_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+combat_active_frame_sequence:
+	dc.l $0005C84C,$0005C84C,$0005C85E,$0005C870	; animation_frame_sequence
+	dc.l $0005C882,$0005C894,$0005C8A6	; animation_frame_sequence
+combat_exit_animation_node:
+	dc.l combat_visual_position_descriptor	; position_descriptor_ptr
+	dc.b $06	; frame_count
+	dc.b $2B	; phase_step
+	dc.b $00,$05,$C9,$52	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+combat_exit_animation_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+combat_exit_frame_sequence:
+	dc.l $00000000,$0005C8B8,$0005C8CA,$0005C8DC	; animation_frame_sequence
+	dc.l $0005C8EE,$0005C900,$00000000	; animation_frame_sequence
+combat_visual_position_descriptor:
+	dc.l combat_visual_render_state	; position_state_ptr
+	dc.w $2710	; world_x
+	dc.w $01F4	; world_y
+	dc.w $2710	; previous_world_x
+	dc.w $01F4	; previous_world_y
+combat_visual_render_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $FFF0	; world_x_offset
+	dc.w $FFFC	; world_y_offset
+	dc.l combat_visual_position_descriptor	; position_descriptor_ptr
+	dc.b $00,$00,$00,$00	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
     ; Announce outcome, inhibit player movement, then test-and-set escape bit. Reload 70 only if it was clear; the known escape caller pre-sets it, preserving the inherited delay.
 announce_escape_and_inhibit_movement:
 	bsr.w enqueue_game_outcome_and_rank_messages

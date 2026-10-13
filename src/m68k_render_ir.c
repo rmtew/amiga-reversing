@@ -1621,6 +1621,12 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
         seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
       continue;
     }
+    /* An explicit pointer input replaces the register's incoming identity.
+     * A game struct need not resolve to a platform library or hardware base;
+     * leaving the old identity alive would mislabel its fields as registers. */
+    if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
+      platform_state_clear_register(state, seed->reg_index);
+    }
     if (platform_state_name_is_app_base(seed->name)) {
       platform_state_set_register_app_base(state, seed->reg_kind, seed->reg_index);
       continue;

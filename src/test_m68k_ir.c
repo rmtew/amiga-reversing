@@ -20683,6 +20683,93 @@ static int test_facts_v2_render_asm_source_renders_policy_entry_comment(void) {
   return 0;
 }
 
+static int test_facts_v2_struct_seed_replaces_hardware_base_and_allows_later_hardware(void) {
+  unsigned variant;
+  for (variant = 0U; variant < 2U; ++variant) {
+    M68kObject object;
+    M68kSection section = {0};
+    M68kAnalysisPolicy policy;
+    M68kFactsV2Profile profile;
+    M68kSourceAnalysisIR analysis;
+    char *source = NULL;
+    size_t index;
+    int later_hardware = 0;
+    uint32_t typed_offset = variant == 0U ? 6U : 26U;
+    uint32_t hardware_offset = variant == 0U ? 20U : 16U;
+    uint8_t bytes[36] = {
+      0x4BU, 0xF9U, 0x00U, 0xDFU, 0xF0U, 0x00U, /* lea _custom,a5 */
+      0x20U, 0x2DU, 0x00U, 0x2CU,               /* move.l $2c(a5),d0 */
+      0x22U, 0x2DU, 0x00U, 0x30U,               /* move.l $30(a5),d1 */
+      0x4BU, 0xF9U, 0x00U, 0xDFU, 0xF0U, 0x00U,
+      0x20U, 0x2DU, 0x00U, 0x2CU,
+      0x4EU, 0x75U
+    };
+    if (variant == 1U) {
+      /* A real call infers the incoming hardware identity at helper+26, where
+         the explicit struct input must take precedence. */
+      const uint8_t called_helper[] = {
+        0x4BU, 0xF9U, 0x00U, 0xDFU, 0xF0U, 0x00U,
+        0x61U, 0x00U, 0x00U, 0x12U,
+        0x4BU, 0xF9U, 0x00U, 0xDFU, 0xF0U, 0x00U,
+        0x20U, 0x2DU, 0x00U, 0x2CU, 0x4EU, 0x75U,
+        0U, 0U, 0U, 0U,
+        0x20U, 0x2DU, 0x00U, 0x2CU,
+        0x22U, 0x2DU, 0x00U, 0x30U, 0x4EU, 0x75U
+      };
+      memcpy(bytes, called_helper, sizeof(called_helper));
+    }
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+    object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    section.kind = M68K_SECTION_CODE;
+    section.size = section.data_size = sizeof(bytes);
+    section.data = bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+    m68k_analysis_policy_init_default(&policy);
+    policy.custom_structs = (M68kAnalysisCustomStruct *)calloc(1U, sizeof(*policy.custom_structs));
+    M68K_C_ASSERT(policy.custom_structs != NULL);
+    policy.custom_struct_count = policy.custom_struct_capacity = policy.custom_struct_owner = 1U;
+    snprintf(policy.custom_structs[0].name, sizeof(policy.custom_structs[0].name), "ObjectPrefix");
+    policy.custom_structs[0].size = 52U;
+    policy.custom_structs[0].field_count = 2U;
+    policy.custom_structs[0].fields[0].offset = 44U;
+    policy.custom_structs[0].fields[0].size = 4U;
+    snprintf(policy.custom_structs[0].fields[0].name,
+      sizeof(policy.custom_structs[0].fields[0].name), "descriptor_ptr");
+    policy.custom_structs[0].fields[1].offset = 48U;
+    policy.custom_structs[0].fields[1].size = 4U;
+    snprintf(policy.custom_structs[0].fields[1].name,
+      sizeof(policy.custom_structs[0].fields[1].name), "packed_xy");
+    policy.register_seed_count = 1U;
+    policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+    policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+    policy.register_seeds[0].reg_index = 5U;
+    policy.register_seeds[0].has_section_index = policy.register_seeds[0].has_entry_offset = 1U;
+    policy.register_seeds[0].entry_offset = typed_offset;
+    snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "ObjectPrefix");
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+      &source, &profile, &analysis, 1U, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT(source != NULL);
+    M68K_C_ASSERT(strstr(source, "move.l ObjectPrefix_descriptor_ptr(a5),d0") != NULL);
+    M68K_C_ASSERT(strstr(source, "move.l ObjectPrefix_packed_xy(a5),d1") != NULL);
+    M68K_C_ASSERT(strstr(source, "move.l serdat(a5),d1") == NULL);
+    M68K_C_ASSERT(strstr(source, "move.l vhposw(a5),d0") != NULL);
+    for (index = 0U; index < analysis.sections[0].platform_address_use_count; ++index) {
+      const M68kPlatformAddressUseIR *use = &analysis.sections[0].platform_address_uses[index];
+      if (use->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS) continue;
+      M68K_C_ASSERT(use->offset != typed_offset && use->offset != typed_offset + 4U);
+      if (use->offset == hardware_offset) later_hardware = 1;
+    }
+    M68K_C_ASSERT(later_hardware);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+    free(source);
+    m68k_ir_source_analysis_destroy(&analysis);
+    m68k_analysis_policy_destroy(&policy);
+    m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_renders_policy_register_seed_comment(void) {
   M68kObject object;
   M68kSection section;
@@ -39357,6 +39444,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_reencodes_restricted_ea_instruction},
     {"facts_v2_render_asm_source_renders_policy_entry_comment",
       test_facts_v2_render_asm_source_renders_policy_entry_comment},
+    {"facts_v2_struct_seed_replaces_hardware_base_and_allows_later_hardware",
+      test_facts_v2_struct_seed_replaces_hardware_base_and_allows_later_hardware},
     {"facts_v2_render_asm_source_renders_policy_register_seed_comment",
       test_facts_v2_render_asm_source_renders_policy_register_seed_comment},
     {"facts_v2_render_asm_source_renders_seeded_lvo_symbol",
