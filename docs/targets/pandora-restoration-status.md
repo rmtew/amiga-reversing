@@ -194,20 +194,26 @@ self-modification. Startup copying executable bytes is already established.
 
 ## Derived subsystem ledger
 
-Latest source checkpoint (2026-10-13): five shared pointer rules cover 175
-world-object fields; seven independently reviewed and accepted catalog actions
-also name the 60-reference shared
-empty inventory/offer bank and expose its mutation limit. Eight consumer
-instructions gain typed field names/annotations automatically. Native pointer
-snapshot: 2,446 fields, 1,991 symbolic, 452 NULL, three existing boundary fragments.
-Expanded C/vasm receipt `01f5838b9d8b1a50d89136df4186986b8805cd6339bce157fdf3bd5c8b44356f`;
-source SHA256 `9009c3c8b3849dcbf426c446d768ba81ae938d5a927f60ca68782ea38642f28f`.
-Actual compact ZIP is also full-file C/vasm exact: 27 definitions, 1,497 compact
-records and 752 expanded fallbacks (the shared bank preserves its explicit
-label/comment); source SHA256 `21afbe995f4cc0a07217a564b058fdcd9a264da4e73c791e430e0fbfa5d4c648`.
-The 81 existing table layouts, 68 assets, nine SDK includes and history prefixes
-remain intact. Focused regressions: 76 passed. Machine receipts are retained in
-`.runtime-state/pandora-analysis/inventory-trade-followup/`; no new runtime claim.
+Latest source checkpoint (2026-10-13): three shared attachment rules cover 119
+fields (23 symbolic, 96 NULL). A separate 52-byte owner accounts for two checkpoint
+attachment states; all 439 prior layouts, including the 22-state table, remain
+unchanged. Ten catalog actions, including three consumer-view corrections, were
+independently reviewed and journal-accepted. The initial graph closes 112 prefixes
+with 23 links, no cycles and a maximum chain of three records. The established conditional consumer view retains
+field names; physical prefixes stay 26 bytes, with +26 valid only for separately
+proved tail owners. Later alias writes and lifetimes remain open. Shared empty
+inventory/offer +8/+9 fall-through aliases setup/palette scratch; original zero
+offers and clear trade-ready flags cannot arm a matching trade.
+Native pointer snapshot: 2,566 fields, 2,018 symbolic, 545 NULL, three fragments.
+Expanded C/vasm receipt `54bf90a9678802b39086b0392c37baecda441ca8a26fd743e7c0977cfb5f5f60`;
+source SHA256 `22535a6b55279a5f9ef7966f608ba12ef0750ff90048472da2fc41846b1814e8`.
+Actual compact ZIP is full-file C/vasm exact: 27 definitions, 1,497 compact records,
+754 expanded fallbacks; source SHA256 `3b4eb4322865f401a0d84274e6dad9a5a52f8fdc2e3895408cbbf1e51d7918cb`.
+All 68 assets, nine SDK includes and history prefixes remain intact; 76 focused
+tests passed. All 7,111 non-data tabbed source lines retain their previous text.
+Machine receipts: `.runtime-state/pandora-analysis/attachment-chain-followup/`.
+Remaining pointer-named scalars: 31 audio fields, plus eight separate cursors.
+Native custom-prefix type joins remain a framework gap; no new runtime claim.
 
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
@@ -235,9 +241,9 @@ presentation, not the semantic recovery status below.
 | World commands / objects | All 33 handler identities and operand contracts; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | Mutable scripts, callback effects, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
 | Combat / encounter | Proximity/trade entry, equipment reload/damage tables, player/opponent charge state, health overlays, hit feedback, charge gauge and defeat cleanup; initialized callback targets and their shared item-state helper | Four non-null callbacks among 35 initialized objects; callback precedes opponent deactivation; item-state addition wraps modulo 256 and skips flag-bit-1 objects. XY-copy and saved-state swap use typed object fields; the table wrapper loads A0 but the helper inherits A5 | Mutable callback replacements, fixed-RAM pointer purpose, complete state/pointer lifetimes and indirect callers; nine initialized saved-state pointers are null |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks; mask-input/border consumers and shared 20×8 modal grid; fixed NPC and receptacle geometry/descriptor families | Receptacle deposit saves the attachment, completion/restart restores it and clears the saved pointer; restart clears the entire interaction flags byte, including proximity bit 0 | Remaining banks, complete write ownership, arbitrary attachment chains and DMA constraints |
-| Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table now uses its exact 26-byte prefix instead of an incompatible 30-byte binding | Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, attachment cycles and complete caller/lifetime coverage |
+| Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table retains its exact 26-byte prefix; two checkpoint attachment states have a separate 52-byte owner. Shared rules cover 119 attachment fields | Initial 112-prefix attachment graph closes with 23 links, no cycles and maximum chain three. Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, later attachment cycles/alias writes and complete caller/lifetime coverage |
 | Player movement / collision / camera | Axis scaling, tile probes, request versus drift/commit, direction/idle modes, bitset and camera handoff; movement script, directional prefixes, copied-pointer links and corrected idle field; two typed camera countdown/margin profiles, sequential field reads and movement scroll triggers | Initialized-map restriction prefix, unchecked profile index and coordinates, and pointer/lifetime limits; ambiguous or inactive runtime mappings refused | Later exit-delay reset/writer coverage and reachable inherited state; shared positive-X node word and held-frame/player-layout boundary |
-| Inventory / trading / NPC | Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Shared inventory/offer interpretation, self-copy aliases, unmatched-search +8/+9 accesses, cursor domains, duplicated display identities and selected security callbacks | Complete callers, templates' write ownership and lifecycle |
+| Inventory / trading / NPC | Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
 | Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter; decoded escape helper, six conditional 70-step reloads and distinct main/modal exit gates; fade/brain health latches | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Later delay reset/writer coverage, reachable zero/inherited states and complete writer/lifetime and domain coverage |
 | Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; typed playback/DMA service inputs and paired feedback requests; 29 configurations and six canonical initializer-relative envelope references; eleven sample extents and mutable writers | Unchecked selector bounds; reset retains ticks and NPC pending bits, so inactive service cannot drain a pending nonzero tick count; phase and storage lifetime limits | Remaining caller/state combinations and write ownership |

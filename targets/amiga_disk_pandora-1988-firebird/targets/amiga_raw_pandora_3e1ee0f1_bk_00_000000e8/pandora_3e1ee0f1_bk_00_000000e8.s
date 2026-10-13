@@ -13580,7 +13580,7 @@ squash_player_initial_trade_offers:
 	dc.b $00	; trade_threshold
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-    ; Shared by inventory and offer pointers. Reset copies can alias this bank; unmatched searches reach +8/+9 beyond the eight-byte prefix. Initial zero contents do not prove immutability.
+    ; Shared inventory/offer bank; reset copies can self-alias. Unmatched +8/+9 accesses hit the first setup word, also title-palette scratch. Later writers/pointer changes remain unproved.
 shared_empty_inventory_trade_slots:
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
@@ -13590,6 +13590,7 @@ shared_empty_inventory_trade_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
+    ; Original shared offers contain only ID 0 and all 29 owners start with trade-ready bit 3 clear. Matching requires player ID >=2 before arming a trade; this does not cover later state changes.
 world_runtime_setup_records:
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
@@ -18861,7 +18862,7 @@ item_receptacle_lifecycle_records:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l item_receptacle_position_descriptors	; position_descriptor_ptr
-	dc.l $000588E0	; attachment_state_ptr
+	dc.l item_receptacle_0_attachment_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_0_primary_interaction_data_ptr:
@@ -18889,7 +18890,7 @@ item_receptacle_1_primary_state:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l item_receptacle_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
-	dc.l $00058922	; attachment_state_ptr
+	dc.l item_receptacle_1_attachment_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_1_primary_interaction_data_ptr:
@@ -18917,7 +18918,7 @@ item_receptacle_2_primary_state:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l item_receptacle_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
-	dc.l $00058964	; attachment_state_ptr
+	dc.l item_receptacle_2_attachment_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_2_primary_interaction_data_ptr:
@@ -18945,7 +18946,7 @@ item_receptacle_3_primary_state:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l item_receptacle_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
-	dc.l $000589A6	; attachment_state_ptr
+	dc.l item_receptacle_3_attachment_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_3_primary_interaction_data_ptr:
@@ -18973,7 +18974,7 @@ item_receptacle_4_primary_state:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l item_receptacle_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
-	dc.l $000589E8	; attachment_state_ptr
+	dc.l item_receptacle_4_attachment_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_4_primary_interaction_data_ptr:
@@ -19015,7 +19016,7 @@ item_receptacle_5_primary_state:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l item_receptacle_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
-	dc.l $00058A48	; attachment_state_ptr
+	dc.l item_receptacle_5_attachment_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_5_primary_interaction_data_ptr:
@@ -19551,7 +19552,7 @@ world_position_state_records_current_geometry_ptr_20:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
-	dc.l $00058F3C	; attachment_state_ptr
+	dc.l checkpoint_attachment_states	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $10	; world_object_flags
 world_position_state_records_current_geometry_ptr_21:
@@ -19561,15 +19562,28 @@ world_position_state_records_current_geometry_ptr_21:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
-	dc.l $00058F56	; attachment_state_ptr
+	dc.l checkpoint_attachment_states+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $10	; world_object_flags
-	dcb.b $9,$00
-	dc.b $05,$8F,$B8,$00,$00,$00,$20,$00,$05,$8C,$E8,$00,$00,$00,$00,$00
-	dc.b $10
-	dcb.b $9,$00
-	dc.b $05,$8F,$CA,$00,$00,$00,$20,$00,$05,$8C,$F4,$00,$00,$00,$00,$00
-	dc.b $10
+checkpoint_attachment_states:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_4	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0020	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $10	; world_object_flags
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l world_position_state_nodes_position_descriptor_ptr_5	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0020	; world_y_offset
+	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $10	; world_object_flags
 world_position_state_nodes:
 	dc.l world_position_descriptors_position_state_ptr_18	; position_descriptor_ptr
 	dc.b $04	; frame_count
@@ -19610,6 +19624,7 @@ world_position_state_nodes_gap_41_3:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_4:
 	dc.l world_position_descriptors_position_state_ptr_20	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
@@ -19619,6 +19634,7 @@ world_position_state_nodes_gap_53_4:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
+world_position_state_nodes_position_descriptor_ptr_5:
 	dc.l world_position_descriptors_position_state_ptr_21	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
@@ -21035,7 +21051,7 @@ priest_states_49B98_2:
 	dc.w $0017	; world_x_offset
 	dc.w $FFFD	; world_y_offset
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
-	dc.l $00059CDE	; attachment_state_ptr
+	dc.l priest_states_49B98_2_current_geometry_ptr_1	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
 priest_states_49B98_2_current_geometry_ptr_1:
@@ -22589,7 +22605,7 @@ lieutenant_commander_states_4AB5E_1:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l lieutenant_commander_animation_bank	; position_descriptor_ptr
-	dc.l $0005AB84	; attachment_state_ptr
+	dc.l lieutenant_commander_states_4AB5E_1+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_1	; current_geometry_ptr
@@ -22674,7 +22690,7 @@ commander_states_4AC3A_1:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l commander_animation_bank	; position_descriptor_ptr
-	dc.l $0005AC60	; attachment_state_ptr
+	dc.l commander_states_4AC3A_1+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_2	; current_geometry_ptr
@@ -22800,7 +22816,7 @@ menial_droid_states_4AD66_2:
 	dc.w $0007	; world_x_offset
 	dc.w $001F	; world_y_offset
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
-	dc.l $0005ADE6	; attachment_state_ptr
+	dc.l menial_droid_states_4AD66_2+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $08	; world_object_flags
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_4	; current_geometry_ptr
@@ -22809,7 +22825,7 @@ menial_droid_states_4AD66_2:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
-	dc.l $0005AE00	; attachment_state_ptr
+	dc.l menial_droid_states_4AD66_2+$34	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $02	; world_object_flags
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_4	; current_geometry_ptr
@@ -23368,7 +23384,7 @@ robomechanic_states_4B454_2:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
-	dc.l $0005B4C2	; attachment_state_ptr
+	dc.l robomechanic_states_4B454_2+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $02	; world_object_flags
 	dc.l robomechanic_animation_bank_2_bitplane_data_ptr_3	; current_geometry_ptr
@@ -23580,7 +23596,7 @@ doctor_states_4B552_2_current_geometry_ptr_1:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
-	dc.l $0005B6B2	; attachment_state_ptr
+	dc.l doctor_states_4B552_2+$34	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
 	dc.l doctor_animation_bank_bitplane_data_ptr_14	; current_geometry_ptr
@@ -23678,7 +23694,7 @@ diabetic_states_4B7A0_1:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
-	dc.l $0005B7C6	; attachment_state_ptr
+	dc.l diabetic_states_4B7A0_1+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $02	; world_object_flags
 	dc.l $00000000	; current_geometry_ptr
@@ -23698,7 +23714,7 @@ diabetic_states_4B7A0_1_current_geometry_ptr_2:
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
-	dc.l $0005B7FA	; attachment_state_ptr
+	dc.l diabetic_states_4B7A0_1+$4E	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
 	dc.l doctor_animation_bank_bitplane_data_ptr_15	; current_geometry_ptr
@@ -24409,7 +24425,7 @@ pianist_primary_position_state:
 	dc.w $000C	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
-	dc.l $0005BEA0	; attachment_state_ptr
+	dc.l pianist_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
 pianist_attachment_position_state:
@@ -24435,7 +24451,7 @@ defence_controller_primary_position_state:
 	dc.w $000C	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
-	dc.l $0005BEE0	; attachment_state_ptr
+	dc.l defence_controller_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
 defence_controller_attachment_position_state:
@@ -24461,7 +24477,7 @@ wackobrain_primary_position_state:
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
-	dc.l $0005BF20	; attachment_state_ptr
+	dc.l wackobrain_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
 wackobrain_attachment_position_state:
@@ -24487,7 +24503,7 @@ glass_primary_position_state:
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l glass_position_descriptor	; position_descriptor_ptr
-	dc.l $0005BF60	; attachment_state_ptr
+	dc.l glass_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
 glass_attachment_position_state:
@@ -24513,7 +24529,7 @@ kwik_kleen_primary_position_state:
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
-	dc.l $0005BFA0	; attachment_state_ptr
+	dc.l kwik_kleen_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
 kwik_kleen_attachment_position_state:
@@ -24539,7 +24555,7 @@ flight_controller_primary_position_state:
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
-	dc.l $0005BFE0	; attachment_state_ptr
+	dc.l flight_controller_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
 flight_controller_attachment_position_state:
