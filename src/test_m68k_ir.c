@@ -12708,6 +12708,154 @@ static int test_source_analysis_does_not_rebind_zero_offset_consumer(void) {
   return 0;
 }
 
+static int test_manual_data_reference_identity_and_signed_encoding(void) {
+  M68kSectionAnalysisIR section;
+  M68kDataReferenceIR ref;
+  M68kDataReferenceIR conflict;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section, test_ir_result_arena()));
+  memset(&ref, 0, sizeof(ref));
+  ref.source_kind = M68K_DATA_REFERENCE_SOURCE_MANUAL;
+  ref.source_offset = 2U;
+  ref.reference_kind = M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT;
+  ref.raw_value_width = 2U;
+  ref.raw_value_signed = 1U;
+  ref.raw_value = 0xFFFCU;
+  ref.has_base = 1U;
+  ref.base_offset = 12U;
+  ref.target_offset = 8U;
+  ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+  ref.owner_kind = "data_block_interpreted_ref";
+  ref.owner_id = "word:negative";
+  ref.owner_layout_id = "words";
+  ref.xref_generation_mode = "bidirectional";
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_data_reference(&section, &ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_data_reference(&section, &ref));
+  M68K_C_ASSERT_U32(1U, (uint32_t)section.data_reference_count);
+  M68K_C_ASSERT_STR("word:negative", section.data_references[0].owner_id);
+  conflict = ref;
+  conflict.base_offset = 16U;
+  conflict.target_offset = 12U;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.owner_id = "same-span-different-owner";
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.raw_value_signed = 0U;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.raw_value = 0x10000U;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.xref_generation_mode = "unknown";
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.base_section_index = 1U;
+  conflict.target_section_index = 1U;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.owner_id = NULL;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.base_offset = 32776U;
+  conflict.target_offset = 8U;
+  conflict.raw_value = 0x8000U;
+  conflict.owner_id = "word:min";
+  conflict.source_offset = 4U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  conflict = ref;
+  conflict.base_offset = 8U;
+  conflict.target_offset = 32775U;
+  conflict.raw_value = 0x7FFFU;
+  conflict.owner_id = "word:max";
+  conflict.source_offset = 6U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_data_reference(&section, &conflict));
+  m68k_ir_section_analysis_destroy(&section);
+  return 0;
+}
+
+static int test_manual_base_displacement_renders_canonical_difference(void) {
+  unsigned variant;
+  for (variant = 0U; variant < 4U; ++variant) {
+    M68kObject object;
+    M68kSection section;
+    M68kObjectAddResult added;
+    M68kAnalysisPolicy policy;
+    M68kSourceAnalysisIR analysis;
+    M68kFactsV2Profile profile;
+    M68kAnalysisManualDataReference *ref;
+    char *source = NULL;
+    uint8_t bytes[16] = {0x60U, 0x02U, 0U, 4U, 0x4EU, 0x75U};
+    uint32_t base = variant == 1U ? 12U : variant == 3U ? 4U : 8U;
+    uint32_t target = variant == 0U || variant == 3U ? 12U : 8U;
+    uint16_t raw = (uint16_t)(target - base);
+    bytes[2] = (uint8_t)(raw >> 8U);
+    bytes[3] = (uint8_t)raw;
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    memset(&section, 0, sizeof(section));
+    section.kind = M68K_SECTION_CODE;
+    section.size = sizeof(bytes);
+    section.data_size = sizeof(bytes);
+    section.data = bytes;
+    added = m68k_object_add_section(&object, &section);
+    M68K_C_ASSERT(added.ok);
+    m68k_analysis_policy_init_default(&policy);
+    policy.entry_point_count = 1U;
+    policy.entry_points[0].has_section_index = 1U;
+    policy.structured_data_item_count = 1U;
+    policy.structured_data_items[0].has_section_index = 1U;
+    policy.structured_data_items[0].offset = 2U;
+    policy.structured_data_items[0].size = 2U;
+    policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+    policy.named_label_count = variant == 2U ? 1U : 2U;
+    policy.named_labels[0].has_section_index = 1U;
+    policy.named_labels[0].offset = base;
+    snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "base_anchor");
+    if (variant != 2U) {
+      policy.named_labels[1].has_section_index = 1U;
+      policy.named_labels[1].offset = target;
+      snprintf(policy.named_labels[1].name, sizeof(policy.named_labels[1].name), "target_anchor");
+    }
+    if (variant == 3U) {
+      /* The runtime-named code anchor and source-named data anchor share
+       * one emitted ORG. Different alias spellings are not different domains. */
+      policy.runtime_range_count = 1U;
+      policy.runtime_ranges[0].has_section_index = 1U;
+      policy.runtime_ranges[0].size = sizeof(bytes);
+      policy.runtime_ranges[0].runtime_address = 0x100U;
+      policy.runtime_entry_point_count = 1U;
+      policy.runtime_entry_points[0].has_section_index = 1U;
+      policy.runtime_entry_points[0].runtime_address = 0x100U;
+      policy.named_labels[0].domain = M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME;
+      policy.named_labels[0].offset = 0x100U + base;
+    }
+    policy.manual_data_reference_count = 1U;
+    ref = &policy.manual_data_references[0];
+    ref->offset = 2U;
+    ref->size = 2U;
+    ref->raw_value = raw;
+    ref->base_offset = base;
+    ref->target_offset = target;
+    snprintf(ref->owner_kind, sizeof(ref->owner_kind), "data_block_interpreted_ref");
+    snprintf(ref->owner_id, sizeof(ref->owner_id), "word");
+    snprintf(ref->owner_layout_id, sizeof(ref->owner_layout_id), "words");
+    snprintf(ref->xref_generation_mode, sizeof(ref->xref_generation_mode), "bidirectional");
+    memset(&analysis, 0, sizeof(analysis));
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+      &source, &profile, &analysis, 1U, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT(source != NULL);
+    M68K_C_ASSERT(strstr(source, variant == 2U ? "\tdc.w base_anchor-base_anchor" :
+      "\tdc.w target_anchor-base_anchor") != NULL);
+    M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].data_reference_count);
+    if (variant == 3U) M68K_C_ASSERT(strstr(source, "ORG $100") != NULL);
+    M68K_C_ASSERT_U32(0U, (uint32_t)analysis.sections[0].runtime_address_ref_count);
+    free(source);
+    m68k_ir_source_analysis_destroy(&analysis);
+    m68k_analysis_policy_destroy(&policy);
+    m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 static int test_source_analysis_data_reference_exports_table_entry(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -38739,6 +38887,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_rejects_scalar_table_origin},
     {"source_analysis_does_not_rebind_zero_offset_consumer",
       test_source_analysis_does_not_rebind_zero_offset_consumer},
+    {"manual_data_reference_identity_and_signed_encoding", test_manual_data_reference_identity_and_signed_encoding},
+    {"manual_base_displacement_renders_canonical_difference", test_manual_base_displacement_renders_canonical_difference},
     {"source_analysis_data_reference_exports_table_entry",
       test_source_analysis_data_reference_exports_table_entry},
     {"source_analysis_immediate_text_token_exports_operand_fact",

@@ -415,6 +415,8 @@ const char *m68k_data_reference_source_kind_name(uint8_t source_kind) {
   switch (source_kind) {
     case M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY:
       return "table_entry";
+    case M68K_DATA_REFERENCE_SOURCE_MANUAL:
+      return "manual";
     default:
       return NULL;
   }
@@ -2540,9 +2542,35 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
       ref->target_status == M68K_TABLE_ENTRY_TARGET_STATUS_UNKNOWN) {
     return 0;
   }
+  if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
+      (!ref->owner_kind || !ref->owner_id || !ref->owner_layout_id || !ref->xref_generation_mode ||
+       !ref->owner_id[0] || !ref->owner_kind[0] || !ref->owner_layout_id[0] ||
+       (strcmp(ref->xref_generation_mode, "bidirectional") && strcmp(ref->xref_generation_mode, "source_only") &&
+        strcmp(ref->xref_generation_mode, "none")) || ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT ||
+       !ref->has_base || ref->raw_value_width != 2U || !ref->raw_value_signed || ref->raw_value > UINT16_MAX ||
+       ref->source_offset > UINT32_MAX - 2U ||
+       ref->base_section_index != ref->target_section_index ||
+       ref->base_section_index != section_analysis->section_index ||
+       (int64_t)ref->base_offset + (int16_t)ref->raw_value != (int64_t)ref->target_offset)) return -1;
   for (index = 0U; index < section_analysis->data_reference_count; ++index) {
     M68kDataReferenceIR *existing = &section_analysis->data_references[index];
-    if (existing->source_kind == ref->source_kind &&
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
+        existing->source_kind == ref->source_kind && existing->owner_id != NULL && ref->owner_id != NULL &&
+        strcmp(existing->owner_id, ref->owner_id) == 0) {
+      if (existing->source_offset != ref->source_offset || existing->reference_kind != ref->reference_kind ||
+          existing->raw_value != ref->raw_value || existing->raw_value_width != ref->raw_value_width ||
+          existing->raw_value_signed != ref->raw_value_signed || existing->has_base != ref->has_base ||
+          existing->base_section_index != ref->base_section_index || existing->base_offset != ref->base_offset ||
+          existing->target_section_index != ref->target_section_index || existing->target_offset != ref->target_offset ||
+          existing->owner_element_offset != ref->owner_element_offset ||
+          strcmp(existing->owner_kind, ref->owner_kind) || strcmp(existing->owner_layout_id, ref->owner_layout_id) ||
+          strcmp(existing->xref_generation_mode, ref->xref_generation_mode)) return -1;
+      return 0;
+    }
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
+        existing->source_kind == ref->source_kind && existing->source_offset < ref->source_offset + 2U &&
+        ref->source_offset < existing->source_offset + existing->raw_value_width) return -1;
+    if (ref->source_kind != M68K_DATA_REFERENCE_SOURCE_MANUAL && existing->source_kind == ref->source_kind &&
         existing->source_offset == ref->source_offset &&
         existing->table_start_offset == ref->table_start_offset &&
         existing->table_entry_index == ref->table_entry_index &&
@@ -2565,7 +2593,19 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
       section_analysis->data_references, section_analysis->data_reference_count,
       &section_analysis->data_reference_capacity, 16U, sizeof(*section_analysis->data_references));
   if (section_analysis->data_references == NULL) return -1;
-  section_analysis->data_references[section_analysis->data_reference_count++] = *ref;
+  {
+    M68kDataReferenceIR copy = *ref;
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL) {
+      if (ref->owner_kind == NULL || ref->owner_id == NULL || ref->owner_layout_id == NULL ||
+          ref->xref_generation_mode == NULL) return -1;
+      copy.owner_kind = arena_strdup(section_analysis->arena, ref->owner_kind);
+      copy.owner_id = arena_strdup(section_analysis->arena, ref->owner_id);
+      copy.owner_layout_id = arena_strdup(section_analysis->arena, ref->owner_layout_id);
+      copy.xref_generation_mode = arena_strdup(section_analysis->arena, ref->xref_generation_mode);
+      if (!copy.owner_kind || !copy.owner_id || !copy.owner_layout_id || !copy.xref_generation_mode) return -1;
+    }
+    section_analysis->data_references[section_analysis->data_reference_count++] = copy;
+  }
   return 0;
 }
 

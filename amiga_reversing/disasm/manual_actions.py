@@ -23,6 +23,8 @@ from amiga_reversing.disasm.target_history import atomic_append_history, target_
 from amiga_reversing.disasm.target_metadata import (
     SuppressedSeededItemKind,
     TargetMetadata,
+    validate_base_displacement_owner,
+    validate_base_displacement_reference,
 )
 
 MANUAL_ACTION_LOG_FILE_NAME = "manual_actions.jsonl"
@@ -353,7 +355,9 @@ def _validate_changed_native_comments(
     # Share the effective-metadata projection so row-only notes are not mistaken
     # for native entry comments. Lazy imports avoid the projection import cycle.
     from amiga_reversing.disasm.c_backend import validate_entry_comments_with_c_backend
-    from amiga_reversing.disasm.effective_metadata import _manual_comment_to_entry_comment
+    from amiga_reversing.disasm.effective_metadata import (
+        _manual_comment_to_entry_comment,
+    )
 
     def entries(projection: ManualActionLogProjection) -> tuple[tuple[int | None, int, str], ...]:
         return tuple((entry.hunk, entry.addr, entry.comment) for comment in projection.comments
@@ -1366,6 +1370,7 @@ def _data_block_interpreted_ref_key(ref: dict[str, object]) -> str:
 def _validated_data_block_interpreted_ref(
     ref: dict[str, object],
     elements: dict[tuple[str, int], dict[str, object]],
+    layouts: dict[str, dict[str, object]] | None = None,
 ) -> dict[str, object]:
     element_key = _data_block_element_key(ref)
     width = _manual_seed_int(ref, "width")
@@ -1401,8 +1406,8 @@ def _validated_data_block_interpreted_ref(
     ):
         raise ValueError("data_block_interpreted_ref must fit within owning element")
     reference_kind = ref.get("reference_kind")
-    if reference_kind != "absolute":
-        raise ValueError("data_block_interpreted_ref supports only absolute references")
+    if reference_kind not in {"absolute", "base_displacement"}:
+        raise ValueError("data_block_interpreted_ref supports only absolute and base_displacement references")
     target_hunk = _manual_seed_int(ref, "target_hunk")
     target_offset = _manual_seed_int(ref, "target_offset")
     if target_hunk is None or target_hunk < 0:
@@ -1421,6 +1426,13 @@ def _validated_data_block_interpreted_ref(
         raise ValueError("data_block_interpreted_ref requires non-negative source_value")
     if width > 4 or source_value >= (1 << (width * 8)):
         raise ValueError("data_block_interpreted_ref source_value does not fit width")
+    if reference_kind == "base_displacement":
+        validate_base_displacement_owner(ref, element)
+        layout = (layouts or {}).get(element_key[0], {})
+        source_start = _manual_seed_int(layout, "source_start")
+        source_addr = None if source_start is None else source_start + element_key[1]
+        validate_base_displacement_reference(ref, source_hunk=_manual_seed_int(layout, "hunk"), source_addr=source_addr)
+        return dict(ref)
     runtime_address = _manual_seed_int(ref, "runtime_address")
     if runtime_address is not None and runtime_address != source_value:
         raise ValueError("data_block_interpreted_ref runtime_address must match source_value")
@@ -1847,7 +1859,9 @@ def _project_actions(
             continue
         active_action_ids.append(action.action_id)
         if action.kind is ManualActionKind.SET_SOURCE_OUTPUT_POLICY:
-            from amiga_reversing.disasm.target_metadata import SourceOutputPolicyMetadata
+            from amiga_reversing.disasm.target_metadata import (
+                SourceOutputPolicyMetadata,
+            )
             source_output_policy = asdict(SourceOutputPolicyMetadata.from_dict(
                 _action_object(action, "source_output_policy")))
         elif action.kind is ManualActionKind.CREATE_MANUAL_SEED:
@@ -2094,7 +2108,9 @@ def _project_actions(
             removed_data_block_elements[element_key] = removed
             for ref_id in list(data_block_interpreted_refs):
                 ref = data_block_interpreted_refs[ref_id]
-                if _data_block_element_key(ref) == element_key:
+                ref_key = _data_block_element_key(ref)
+                removed_width = _manual_seed_int(removed, "width") or 0
+                if ref_key[0] == element_key[0] and element_key[1] <= ref_key[1] < element_key[1] + removed_width:
                     removed_ref = data_block_interpreted_refs.pop(ref_id)
                     removed_ref["cleanup_action_id"] = action.action_id
                     removed_data_block_interpreted_refs[ref_id] = removed_ref
@@ -2102,8 +2118,23 @@ def _project_actions(
             ref = _validated_data_block_interpreted_ref(
                 _action_object(action, "data_block_interpreted_ref"),
                 data_block_elements,
+                data_block_layouts,
             )
             ref_id = _data_block_interpreted_ref_key(ref)
+            layout = data_block_layouts[_data_block_element_key(ref)[0]]
+            source_hunk = _manual_seed_int(layout, "hunk")
+            source_start = cast(int, _manual_seed_int(layout, "source_start")) + cast(int, _manual_seed_int(ref, "offset"))
+            source_end = source_start + cast(int, _manual_seed_int(ref, "width"))
+            for existing_id, existing_ref in data_block_interpreted_refs.items():
+                if existing_id == ref_id or "base_displacement" not in {
+                    ref.get("reference_kind"), existing_ref.get("reference_kind"),
+                }:
+                    continue
+                existing_layout = data_block_layouts[_data_block_element_key(existing_ref)[0]]
+                existing_start = cast(int, _manual_seed_int(existing_layout, "source_start")) + cast(int, _manual_seed_int(existing_ref, "offset"))
+                existing_end = existing_start + cast(int, _manual_seed_int(existing_ref, "width"))
+                if source_hunk == _manual_seed_int(existing_layout, "hunk") and source_start < existing_end and existing_start < source_end:
+                    raise ValueError("base_displacement source span overlaps a different interpreted-reference owner")
             removed_data_block_interpreted_refs.pop(ref_id, None)
             data_block_interpreted_refs[ref_id] = ref
         elif action.kind is ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF:

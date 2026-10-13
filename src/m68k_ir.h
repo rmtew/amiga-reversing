@@ -55,6 +55,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
 #define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
+#define M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT 128U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT 32U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
@@ -693,6 +694,23 @@ typedef struct M68kAnalysisManualRuntimeAddressRef {
   char xref_generation_mode[32];
 } M68kAnalysisManualRuntimeAddressRef;
 
+/* Explicit encoded data relation, independent of runtime address evidence. */
+typedef struct M68kAnalysisManualDataReference {
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t size;
+  uint32_t raw_value;
+  uint32_t base_section_index;
+  uint32_t base_offset;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t owner_element_offset;
+  char owner_kind[32];
+  char owner_id[96];
+  char owner_layout_id[64];
+  char xref_generation_mode[32];
+} M68kAnalysisManualDataReference;
+
 /* Named source-section range used by summary abstract-region effects. */
 typedef struct M68kAnalysisAbstractRegion {
   uint32_t section_index;
@@ -720,6 +738,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t manual_representation_count;
   uint16_t target_equate_count;
   uint16_t manual_runtime_address_ref_count;
+  uint16_t manual_data_reference_count;
   uint16_t abstract_region_count;
   uint16_t custom_struct_count;
   uint16_t custom_struct_capacity;
@@ -755,6 +774,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisManualRepresentation *manual_representations;
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
   M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];
+  M68kAnalysisManualDataReference manual_data_references[M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT];
   M68kAnalysisAbstractRegion abstract_regions[M68K_ANALYSIS_ABSTRACT_REGION_LIMIT];
   M68kAnalysisCustomStruct *custom_structs;
 } M68kAnalysisPolicy;
@@ -2233,7 +2253,8 @@ typedef struct M68kTableEntryIR {
 
 typedef enum M68kDataReferenceSourceKind {
   M68K_DATA_REFERENCE_SOURCE_UNKNOWN = 0,
-  M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY = 1
+  M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY = 1,
+  M68K_DATA_REFERENCE_SOURCE_MANUAL = 2
 } M68kDataReferenceSourceKind;
 
 typedef enum M68kDataReferenceEvidenceFlag {
@@ -2245,6 +2266,11 @@ typedef enum M68kDataReferenceEvidenceFlag {
   M68K_DATA_REFERENCE_EVIDENCE_TEXT_TARGET = 1U << 5,
   M68K_DATA_REFERENCE_EVIDENCE_STRING_TARGET = 1U << 6
 } M68kDataReferenceEvidenceFlag;
+
+typedef enum M68kDataReferenceKind {
+  M68K_DATA_REFERENCE_KIND_UNKNOWN = 0,
+  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT = 1
+} M68kDataReferenceKind;
 
 typedef struct M68kDataReferenceIR {
   uint32_t source_offset;
@@ -2265,6 +2291,17 @@ typedef struct M68kDataReferenceIR {
   uint32_t raw_value;
   uint32_t target_section_index;
   uint32_t target_offset;
+  uint8_t reference_kind;
+  uint8_t raw_value_width;
+  uint8_t raw_value_signed;
+  uint8_t has_base;
+  uint32_t base_section_index;
+  uint32_t base_offset;
+  uint32_t owner_element_offset;
+  char *owner_kind;
+  char *owner_id;
+  char *owner_layout_id;
+  char *xref_generation_mode;
 } M68kDataReferenceIR;
 
 typedef enum M68kImmediateTextTokenEvidenceFlag {

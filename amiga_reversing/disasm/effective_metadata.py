@@ -27,6 +27,7 @@ from amiga_reversing.disasm.manual_actions import (
 from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
     AbsoluteCodeLabelMetadata,
+    AbsoluteStorageSlotMetadata,
     CustomStructFieldMetadata,
     CustomStructMetadata,
     DataBlockElementKind,
@@ -37,25 +38,26 @@ from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     ExecutionViewMetadata,
     FunctionSummaryMetadata,
+    ManualDataReferenceMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
     ManualRuntimeAddressRefMetadata,
-    AbsoluteStorageSlotMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     RssetUseSiteBindingMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
+    SourceOutputPolicyMetadata,
     SuppressedSeededItemMetadata,
     TargetEquateMetadata,
     TargetMetadata,
-    SourceOutputPolicyMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
     apply_suppressed_seeded_items,
     load_target_metadata,
     target_metadata_json_payload,
+    validate_base_displacement_reference,
 )
 
 
@@ -1477,6 +1479,34 @@ def _data_block_element_interpreted_ref_representation(
     )
 
 
+def _data_block_element_interpreted_data_reference(
+    layout: DataBlockLayoutMetadata,
+    ref: Mapping[str, object],
+) -> ManualDataReferenceMetadata | None:
+    if not isinstance(ref, dict) or ref.get("reference_kind") != "base_displacement":
+        return None
+    validate_base_displacement_reference(ref, source_hunk=layout.hunk)
+    offset = _manual_seed_int(ref, "offset")
+    if offset is None:
+        raise ValueError("base_displacement requires source offset")
+    addr, end = layout.source_start + offset, layout.source_start + offset + 2
+    if addr < layout.source_start or end > layout.source_end:
+        raise ValueError("base_displacement must occupy one word within its layout")
+    base = cast(dict[str, int], ref["base_locator"])
+    return ManualDataReferenceMetadata(
+        addr=addr, hunk=layout.hunk, size=2,
+        source_value=cast(int, ref["source_value"]), reference_kind="base_displacement", signed=True,
+        base_hunk=base["hunk"], base_offset=base["offset"],
+        target_hunk=cast(int, ref["target_hunk"]), target_offset=cast(int, ref["target_offset"]),
+        owner_kind="data_block_interpreted_ref", owner_id=cast(str, _manual_data_block_reference_id(ref)),
+        owner_layout_id=layout.layout_id, owner_element_offset=cast(int, ref["offset"]),
+        xref_generation_mode=str(ref.get("xref_generation_mode") or "bidirectional"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "data_block_ref_id"),
+    )
+
+
 def _data_block_element_interpreted_ref_runtime_address_ref(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
@@ -1856,6 +1886,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     manual_representations = list(metadata.manual_representations)
     target_equates = list(metadata.target_equates)
     manual_runtime_address_refs = list(metadata.manual_runtime_address_refs)
+    manual_data_references = list(metadata.manual_data_references)
     custom_structs = list(metadata.custom_structs)
     rsset_layout_regions = list(metadata.rsset_layout_regions)
     rsset_use_site_bindings = list(metadata.rsset_use_site_bindings)
@@ -1956,11 +1987,23 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_runtime_address_refs = [
             ref for ref in manual_runtime_address_refs if ref.owner_layout_id not in removed_data_block_layout_ids
         ]
+        manual_data_references = [
+            ref for ref in manual_data_references if ref.owner_layout_id not in removed_data_block_layout_ids
+        ]
     removed_data_block_element_keys = {
         removed_element_key
         for element in removed_data_block_element_projections
         if (removed_element_key := _manual_data_block_element_key(element)) is not None
     }
+    removed_element_spans = [
+        (key[0], key[1], key[1] + width)
+        for element in removed_data_block_element_projections
+        if (key := _manual_data_block_element_key(element)) is not None
+        if (width := _manual_seed_int(element, "width")) is not None
+    ]
+    def removed_element_owns_reference(ref: ManualDataReferenceMetadata | ManualRuntimeAddressRefMetadata) -> bool:
+        return any(layout_id == ref.owner_layout_id and start <= ref.owner_element_offset < end
+                   for layout_id, start, end in removed_element_spans)
     if removed_data_block_element_keys:
         data_block_layouts = [
             replace(
@@ -1976,7 +2019,11 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_runtime_address_refs = [
             ref
             for ref in manual_runtime_address_refs
-            if (ref.owner_layout_id, ref.owner_element_offset) not in removed_data_block_element_keys
+            if not removed_element_owns_reference(ref)
+        ]
+        manual_data_references = [
+            ref for ref in manual_data_references
+            if not removed_element_owns_reference(ref)
         ]
     removed_data_block_interpreted_refs = _manual_data_block_reference_removals(
         removed_data_block_interpreted_ref_projections
@@ -2001,6 +2048,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         ]
         manual_runtime_address_refs = [
             ref for ref in manual_runtime_address_refs if ref.owner_id not in removed_ref_ids
+        ]
+        manual_data_references = [
+            ref for ref in manual_data_references if ref.owner_id not in removed_ref_ids
         ]
     for seed in required_seeds:
         seed_kind = seed.get("kind")
@@ -2136,6 +2186,35 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     data_block_reference_interpretations = _manual_data_block_reference_interpretations(
         data_block_interpreted_ref_projections
     )
+    active_ref_owner_keys = {
+        key for ref in data_block_interpreted_ref_projections
+        if (key := _manual_data_block_element_key(ref)) is not None
+    }
+    manual_data_references = [
+        ref for ref in manual_data_references
+        if (ref.owner_layout_id, ref.owner_element_offset) not in active_ref_owner_keys
+    ]
+    replaced_ref_citations = {
+        ref.citation for ref in manual_runtime_address_refs
+        if (ref.owner_layout_id, ref.owner_element_offset) in active_ref_owner_keys
+    }
+    for layout in data_block_layouts:
+        for element in layout.elements:
+            embedded_ref = element.reference_interpretation
+            if isinstance(embedded_ref, dict) and _manual_data_block_element_key(embedded_ref) in active_ref_owner_keys:
+                replaced_ref_citations.add(_manual_action_citation(embedded_ref, "data_block_ref_id"))
+    manual_runtime_address_refs = [
+        ref for ref in manual_runtime_address_refs
+        if (ref.owner_layout_id, ref.owner_element_offset) not in active_ref_owner_keys
+    ]
+    manual_representations = [
+        representation for representation in manual_representations
+        if representation.element_kind != "data_block_interpreted_ref"
+        or representation.citation not in replaced_ref_citations
+    ]
+    target_equates = [
+        equate for equate in target_equates if equate.citation not in replaced_ref_citations
+    ]
     for layout_projection in data_block_layout_projections:
         data_block_layout = _manual_data_block_layout_to_metadata(
             layout_projection,
@@ -2162,6 +2241,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 entity = _data_block_element_entity(effective_layout, element)
                 if entity is not None:
                     seeded_entities.append(entity)
+            if isinstance(element.reference_interpretation, dict) and element.reference_interpretation.get("reference_kind") == "base_displacement":
+                continue
             interpreted_ref_equate = (
                 _data_block_interpreted_ref_equate(element.reference_interpretation)
                 if isinstance(element.reference_interpretation, dict)
@@ -2178,6 +2259,18 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 element_representation = _data_block_element_representation(effective_layout, element)
                 if element_representation is not None:
                     manual_representations.append(element_representation)
+    # Each encoded word has its own canonical ref, even inside a wider array.
+    relative_ref_interpretations = dict(data_block_reference_interpretations)
+    for effective_layout in effective_data_block_layouts:
+        for element in effective_layout.elements:
+            embedded_ref = element.reference_interpretation
+            if isinstance(embedded_ref, dict) and (key := _manual_data_block_element_key(embedded_ref)) is not None:
+                relative_ref_interpretations.setdefault(key, embedded_ref)
+        for (layout_id, _), ref in relative_ref_interpretations.items():
+            if layout_id == effective_layout.layout_id:
+                interpreted_data_reference = _data_block_element_interpreted_data_reference(effective_layout, ref)
+                if interpreted_data_reference is not None:
+                    manual_data_references.append(interpreted_data_reference)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     merged_manual_runtime_address_refs = {
         (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr, ref.target_hunk, ref.target_offset): ref
@@ -2207,6 +2300,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_representations=tuple(manual_representations),
         target_equates=tuple(merged_target_equates.values()),
         manual_runtime_address_refs=tuple(merged_manual_runtime_address_refs.values()),
+        manual_data_references=tuple({
+            (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr): ref
+            for ref in manual_data_references
+        }.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
         absolute_storage_slots=tuple(merged_absolute_storage_slots.values()),

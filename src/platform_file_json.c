@@ -5020,6 +5020,21 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (json_builder_append_json_string(&builder,
           m68k_data_reference_source_kind_name(ref->source_kind)) != 0)
         goto oom;
+      if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL) {
+        if (json_builder_appendf(&builder,
+            ",\"reference_kind\":\"base_displacement\",\"source_value\":%u,\"width\":%u,\"signed\":%s,"
+            "\"base_section_index\":%u,\"base_offset\":%u,\"owner_element_offset\":%u,\"owner_kind\":",
+            (unsigned)ref->raw_value, (unsigned)ref->raw_value_width, ref->raw_value_signed ? "true" : "false",
+            (unsigned)ref->base_section_index, (unsigned)ref->base_offset, (unsigned)ref->owner_element_offset) != 0 ||
+            json_builder_append_nullable_string(&builder, ref->owner_kind) != 0 ||
+            json_builder_append(&builder, ",\"owner_id\":") != 0 ||
+            json_builder_append_nullable_string(&builder, ref->owner_id) != 0 ||
+            json_builder_append(&builder, ",\"owner_layout_id\":") != 0 ||
+            json_builder_append_nullable_string(&builder, ref->owner_layout_id) != 0 ||
+            json_builder_append(&builder, ",\"xref_generation_mode\":") != 0 ||
+            json_builder_append_nullable_string(&builder, ref->xref_generation_mode) != 0) goto oom;
+      }
+      if (ref->source_kind != M68K_DATA_REFERENCE_SOURCE_MANUAL) {
       if (json_builder_appendf(&builder,
           ",\"table_start_offset\":%u,\"table_entry_index\":%u,\"table_entry_offset\":%u,"
           "\"table_entry_size\":%u,\"raw_value\":%u,\"table_kind_id\":%u,\"table_kind\":",
@@ -5037,6 +5052,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (json_builder_append_nullable_string(&builder,
           m68k_analysis_structured_data_source_pattern_name(ref->source_pattern_id)) != 0)
         goto oom;
+      }
       if (json_builder_appendf(&builder,
           ",\"target_section_index\":%u,\"target_offset\":%u,"
           "\"target_status\":%u,\"target_status_name\":",

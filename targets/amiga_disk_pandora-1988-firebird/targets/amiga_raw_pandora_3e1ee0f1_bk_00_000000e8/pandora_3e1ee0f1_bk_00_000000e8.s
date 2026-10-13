@@ -21292,7 +21292,12 @@ audio_sample_address_base:
 	dc.l $00000000	; audio_sequence_envelope
     ; Six signed offsets from initialize_audio_player locate secondary volume envelopes. All 29 configurations select 0..5; double the index, load a signed word, then add the audio-player base.
 envelope_offsets:
-	dc.w $1170,$11A0,$11B9,$11BB,$11CB,$11D6	; audio_sequence_envelope
+	dc.w secondary_volume_envelope_0-initialize_audio_player	; audio_sequence_envelope
+	dc.w secondary_volume_envelope_1-initialize_audio_player
+	dc.w secondary_volume_envelope_2-initialize_audio_player
+	dc.w secondary_volume_envelope_3-initialize_audio_player
+	dc.w secondary_volume_envelope_4-initialize_audio_player
+	dc.w secondary_volume_envelope_5-initialize_audio_player
 secondary_volume_envelope_0:
 	dc.b $40,$38,$30,$28,$3A,$36,$32,$2C,$28,$30,$2E,$2C,$2A,$24,$26,$24	; audio_sequence_envelope
 	dc.b $22,$20,$1E,$1C,$1A,$18,$16,$14,$12,$10,$0E,$0C,$0A,$0C,$08,$04

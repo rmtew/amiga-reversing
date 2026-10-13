@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import cast
+from typing import TypeGuard, cast
 
 from .amiga_metadata import ResidentAutoinitMetadata
 from .binary_source import BinarySourceKind
@@ -1427,6 +1427,109 @@ class TargetEquateMetadata:
         )
 
 
+def validate_base_displacement_reference(ref: Mapping[str, object], *, source_hunk: int | None = None, source_addr: int | None = None) -> None:
+    """Validate the bounded signed-word, unscaled, same-section reference form."""
+    def integer(value: object) -> TypeGuard[int]:
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    width = ref.get("width", ref.get("size"))
+    source_value = ref.get("source_value")
+    base = ref.get("base_locator")
+    if not isinstance(base, Mapping):
+        raise ValueError("base_displacement requires explicit base_locator")
+    base_hunk, base_offset = base.get("hunk"), base.get("offset")
+    target_hunk, target_offset = ref.get("target_hunk"), ref.get("target_offset")
+    scale = ref.get("scale", 1)
+    if not integer(width) or width != 2 or ref.get("signed") is not True or not integer(scale) or scale != 1:
+        raise ValueError("base_displacement supports only signed 16-bit width 2 and scale 1")
+    if not integer(source_value) or not 0 <= source_value <= 0xFFFF:
+        raise ValueError("base_displacement source_value must be unsigned encoded 16-bit bits")
+    if any(not integer(value) or not 0 <= value <= 0xFFFFFFFF for value in (base_hunk, base_offset, target_hunk, target_offset)):
+        raise ValueError("base_displacement requires unsigned 32-bit base and target locators")
+    if source_hunk is not None and (not integer(source_hunk) or not 0 <= source_hunk <= 0xFFFFFFFF):
+        raise ValueError("base_displacement source section must be unsigned 32-bit")
+    if base_hunk != target_hunk or (source_hunk is not None and base_hunk != source_hunk):
+        raise ValueError("base_displacement requires source, base and target in the same section")
+    if source_addr is not None and (not integer(source_addr) or not 0 <= source_addr <= 0xFFFFFFFD):
+        raise ValueError("base_displacement source word must fit a 32-bit section span")
+    target_locator = ref.get("target_locator")
+    if target_locator is not None and (not isinstance(target_locator, Mapping) or not integer(target_locator.get("hunk")) or not integer(target_locator.get("offset")) or target_locator.get("hunk") != target_hunk or target_locator.get("offset") != target_offset):
+        raise ValueError("base_displacement target_locator must match target_hunk/target_offset")
+    displacement = source_value if source_value < 0x8000 else source_value - 0x10000
+    if cast(int, base_offset) + displacement != target_offset:
+        raise ValueError("base_displacement target_offset must equal base offset plus signed source_value")
+    if "runtime_address" in ref:
+        raise ValueError("base_displacement does not accept runtime_address")
+
+
+def validate_base_displacement_owner(ref: Mapping[str, object], element: Mapping[str, object]) -> None:
+    """Accept only encoded word scalars or aligned entries in a word array."""
+    offset, owner_offset, width = ref.get("offset"), element.get("offset"), element.get("width")
+    if any(not isinstance(value, int) or isinstance(value, bool) for value in (offset, owner_offset, width)):
+        raise ValueError("base_displacement requires integer owner/source spans")
+    offset, owner_offset, width = cast(int, offset), cast(int, owner_offset), cast(int, width)
+    scalar_word = element.get("kind") == "scalar" and width == 2 and offset == owner_offset
+    array_word = (element.get("kind") == "array" and element.get("array_stride") == 2
+                  and (offset - owner_offset) % 2 == 0 and width % 2 == 0)
+    if not (scalar_word or array_word) or offset < owner_offset or offset + 2 > owner_offset + width:
+        raise ValueError("base_displacement requires a scalar word or aligned word-array entry")
+
+
+@dataclass(frozen=True, slots=True)
+class ManualDataReferenceMetadata:
+    addr: int
+    hunk: int
+    size: int
+    source_value: int
+    reference_kind: str
+    signed: bool
+    base_hunk: int
+    base_offset: int
+    target_hunk: int
+    target_offset: int
+    owner_kind: str
+    owner_id: str
+    owner_layout_id: str
+    owner_element_offset: int
+    xref_generation_mode: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        if self.reference_kind != "base_displacement":
+            raise ValueError("manual_data_references supports only base_displacement")
+        validate_base_displacement_reference(
+            {**asdict(self), "base_locator": {"hunk": self.base_hunk, "offset": self.base_offset}},
+            source_hunk=self.hunk, source_addr=self.addr,
+        )
+        assert isinstance(self.owner_element_offset, int) and not isinstance(self.owner_element_offset, bool)
+        assert 0 <= self.owner_element_offset <= 0xFFFFFFFF
+        assert self.owner_kind == "data_block_interpreted_ref"
+        assert isinstance(self.owner_id, str) and self.owner_id
+        assert isinstance(self.owner_layout_id, str) and self.owner_layout_id
+        assert isinstance(self.citation, str)
+        assert self.xref_generation_mode in {"bidirectional", "source_only", "none"}
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> ManualDataReferenceMetadata:
+        return cls(
+            addr=cast(int, payload["addr"]), hunk=cast(int, payload["hunk"]),
+            size=cast(int, payload["size"]), source_value=cast(int, payload["source_value"]),
+            reference_kind=cast(str, payload["reference_kind"]), signed=cast(bool, payload["signed"]),
+            base_hunk=cast(int, payload["base_hunk"]), base_offset=cast(int, payload["base_offset"]),
+            target_hunk=cast(int, payload["target_hunk"]), target_offset=cast(int, payload["target_offset"]),
+            owner_kind=cast(str, payload["owner_kind"]), owner_id=cast(str, payload["owner_id"]),
+            owner_layout_id=cast(str, payload["owner_layout_id"]),
+            owner_element_offset=cast(int, payload["owner_element_offset"]),
+            xref_generation_mode=cast(str, payload["xref_generation_mode"]),
+            seed_origin=_target_metadata_seed_origin(payload["seed_origin"]),
+            review_status=_target_metadata_review_status(payload["review_status"]),
+            citation=cast(str, payload["citation"]),
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class ManualRuntimeAddressRefMetadata:
     addr: int
@@ -1748,6 +1851,7 @@ class TargetMetadata:
     manual_representations: tuple[ManualRepresentationMetadata, ...] = ()
     target_equates: tuple[TargetEquateMetadata, ...] = ()
     manual_runtime_address_refs: tuple[ManualRuntimeAddressRefMetadata, ...] = ()
+    manual_data_references: tuple[ManualDataReferenceMetadata, ...] = ()
     data_block_layouts: tuple[DataBlockLayoutMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
@@ -1854,6 +1958,10 @@ class TargetMetadata:
             manual_runtime_address_refs=tuple(
                 ManualRuntimeAddressRefMetadata.from_dict(_json_object(ref_payload))
                 for ref_payload in _json_list(manual_runtime_address_refs)
+            ),
+            manual_data_references=tuple(
+                ManualDataReferenceMetadata.from_dict(_json_object(ref_payload))
+                for ref_payload in _json_list(payload.get("manual_data_references", []))
             ),
             data_block_layouts=tuple(
                 DataBlockLayoutMetadata.from_dict(_json_object(layout_payload))
@@ -2208,6 +2316,8 @@ def apply_suppressed_seeded_items(
         entry_comments=seeded.entry_comments,
         manual_representations=seeded.manual_representations,
         target_equates=seeded.target_equates,
+        manual_runtime_address_refs=seeded.manual_runtime_address_refs,
+        manual_data_references=seeded.manual_data_references,
         data_block_layouts=seeded.data_block_layouts,
         execution_views=seeded.execution_views,
         suppressed_seeded_items=(),
@@ -2530,6 +2640,16 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             seeded.manual_representations,
         ),
         target_equates=_merge_target_equates(manual.target_equates, seeded.target_equates),
+        manual_runtime_address_refs=_merge_unique_by_key(
+            manual.manual_runtime_address_refs, seeded.manual_runtime_address_refs,
+            key=lambda ref: (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr),
+            what="manual runtime address reference",
+        ),
+        manual_data_references=_merge_unique_by_key(
+            manual.manual_data_references, seeded.manual_data_references,
+            key=lambda ref: (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr),
+            what="manual data reference",
+        ),
         data_block_layouts=_merge_data_block_layouts(
             manual.data_block_layouts,
             seeded.data_block_layouts,

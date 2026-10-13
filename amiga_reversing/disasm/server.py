@@ -2780,6 +2780,10 @@ def _prepare_manual_action_command(
         if kind != "interpret_manual_data_block_element_ref":
             continue
         ref = cast(dict[str, object], payload["data_block_interpreted_ref"])
+        _validate_data_block_reference_owners(project, ref)
+        if ref.get("reference_kind") == "base_displacement":
+            _validate_data_block_base_displacement_ref(project, _valid_c_listing_artifact(project_name), ref)
+            continue
         runtime_address = ref.get("runtime_address")
         if runtime_address is None:
             continue
@@ -2796,6 +2800,74 @@ def _prepare_manual_action_command(
     if interpretation is not None:
         action_payloads = [(kind, {**payload, "interpretation": interpretation}) for kind, payload in action_payloads]
     return action_payloads
+
+
+def _validate_data_block_reference_owners(project: ProjectRecord, ref: Mapping[str, object]) -> None:
+    """A new relative interpretation cannot coexist with another span owner."""
+    state = getattr(project, "manual_state", None)
+    if not isinstance(state, Mapping):
+        return
+    layouts = {item["layout_id"]: item for item in state.get("data_block_layouts", [])}
+    layout = layouts.get(ref.get("layout_id"))
+    if layout is None:
+        return  # The regular owner validator diagnoses a missing layout.
+    start = layout["source_start"] + ref["offset"]
+    for other in state.get("data_block_interpreted_refs", []):
+        if (other.get("data_block_ref_id") == ref.get("data_block_ref_id") or
+                "base_displacement" not in {ref.get("reference_kind"), other.get("reference_kind")}):
+            continue
+        other_layout = layouts.get(other.get("layout_id"))
+        if other_layout is None or other_layout["hunk"] != layout["hunk"]:
+            continue
+        other_start = other_layout["source_start"] + other["offset"]
+        if other_start < start + ref["width"] and start < other_start + other["width"]:
+            raise ValueError("base-displacement reference conflicts with another interpretation owner")
+
+
+def _validate_data_block_base_displacement_ref(
+    project: ProjectRecord, artifact: object, ref: Mapping[str, object],
+) -> None:
+    """Validate a stored displacement without treating its bits as an address."""
+    _validate_data_block_runtime_ref_source_bytes(project, artifact, ref)
+    metadata = json.loads(effective_metadata_text(Path(project.target_dir)))
+    layout = next(item for item in metadata.get("data_block_layouts", [])
+                  if item.get("layout_id") == ref.get("layout_id"))
+    offset = cast(int, ref["offset"])
+    owners = [element for element in layout.get("elements", [])
+              if element["offset"] <= offset and offset + 2 <= element["offset"] + element["width"]]
+    if len(owners) != 1:
+        raise ValueError("base-displacement reference requires one owning word element or array")
+    element = owners[0]
+    if not ((element.get("kind") == "scalar" and element["width"] == 2 and element["offset"] == offset) or
+            (element.get("kind") == "array" and element.get("array_stride") == 2 and
+             (offset - element["offset"]) % 2 == 0)):
+        raise ValueError("base-displacement reference requires a scalar word or aligned word-array entry")
+    base = ref.get("base_locator")
+    if (not isinstance(base, Mapping) or ref.get("width") != 2 or
+            ref.get("signed") is not True or ref.get("scale", 1) != 1 or
+            "runtime_address" in ref or
+            base.get("hunk") != layout["hunk"] or ref.get("target_hunk") != layout["hunk"]):
+        raise ValueError("base-displacement reference requires signed16 scale-one same-section source coordinates")
+    raw, base_offset, target = ref.get("source_value"), base.get("offset"), ref.get("target_offset")
+    if (type(raw) is not int or not 0 <= raw <= 0xFFFF or type(base_offset) is not int or
+            not 0 <= base_offset <= 0xFFFFFFFF or type(target) is not int or
+            not 0 <= target <= 0xFFFFFFFF or
+            base_offset + (raw - 0x10000 if raw & 0x8000 else raw) != target):
+        raise ValueError("base-displacement target must equal base plus signed encoded displacement")
+    query = getattr(artifact, "query_payload", None)
+    if not callable(query):
+        raise ValueError("base-displacement reference requires current native source labels")
+    for coordinate in {base_offset, target}:
+        result = query(kind="symbols", section_index=layout["hunk"], source_offset=coordinate,
+                       end_offset=coordinate + 1, limit=100)
+        if not any(item.get("source_offset") == coordinate and item.get("section_index") == layout["hunk"]
+                   for item in result.get("items", [])):
+            raise ValueError("base-displacement base and target require independently renderable native source labels")
+    start = layout["source_start"] + cast(int, ref["offset"])
+    for other in metadata.get("manual_data_references", []):
+        if (other.get("owner_id") != ref.get("data_block_ref_id") and other.get("hunk") == layout["hunk"] and
+                other["addr"] < start + 2 and start < other["addr"] + other["size"]):
+            raise ValueError("base-displacement reference conflicts with another owner at this source span")
 
 
 def _validate_data_block_runtime_ref_source_bytes(
