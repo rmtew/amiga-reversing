@@ -25,7 +25,6 @@ from amiga_reversing.disasm.binary_source import (
     resolve_target_binary_source,
 )
 from amiga_reversing.disasm.c_backend import (
-    listing_artifact_source_text_with_c_backend_profile,
     render_project_source_with_c_backend,
 )
 from amiga_reversing.disasm.callback_slot_report import (
@@ -3906,14 +3905,14 @@ def _verify_a5_cascade_child(
     with TemporaryDirectory(prefix="cascade-verify-") as tmp:
         temp_root = Path(tmp)
         staged_target_dir = _stage_cascade_target(target_id, project_root=project_root, temp_root=temp_root)
-        baseline_text, baseline_profile = _cascade_render_source(target_id, project_root=temp_root)
+        baseline_text, baseline_profile, _baseline_package = _cascade_render_source(target_id, project_root=temp_root)
         baseline_contains = _a5_expected_render_token(expected) in baseline_text if _a5_expected_render_token(expected) else False
         record = _cascade_a5_decision_record(target_id, child, staged_target_dir)
         append_result = append_decision_record(staged_target_dir, record)
         if append_result.get("status") != "appended":
             return _cascade_verifier_blocked(target_id, child, "staged_decision_record_rejected", {"append_result": append_result})
         semantic = _verify_project_a5_hardware_ref(target_id, expected, project_root=temp_root)
-        effective_text, effective_profile = _cascade_render_source(target_id, project_root=temp_root)
+        effective_text, effective_profile, effective_package = _cascade_render_source(target_id, project_root=temp_root)
         delta = _cascade_render_delta_layer(
             baseline_text,
             effective_text,
@@ -3926,6 +3925,7 @@ def _verify_a5_cascade_child(
             effective_text,
             effective_profile,
             project_root=temp_root,
+            source_package=effective_package,
         )
     fixed_point = {
         "layer": "fixed_point",
@@ -4063,16 +4063,16 @@ def _application_for_verified_cascade_child(
         staged_append = append_decision_record(staged_target_dir, staged_record)
         if staged_append.get("status") != "appended":
             return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "staged_apply_record_rejected", "append_result": staged_append}
-        source_text, source_profile = _cascade_render_source(target_id, project_root=temp_root)
-        exact = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=temp_root)
+        source_text, source_profile, source_package = _cascade_render_source(target_id, project_root=temp_root)
+        exact = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=temp_root, source_package=source_package)
         if exact.get("status") != "passed":
             return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "staged_exact_round_trip_failed", "exact_round_trip": exact}
     real_record = _cascade_record_with_current_prev(target_dir, record)
     append_result = append_decision_record(target_dir, real_record)
     if append_result.get("status") != "appended":
         return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "decision_record_rejected", "append_result": append_result}
-    source_text, source_profile = _cascade_render_source(target_id, project_root=project_root)
-    exact_after = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=project_root)
+    source_text, source_profile, source_package = _cascade_render_source(target_id, project_root=project_root)
+    exact_after = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=project_root, source_package=source_package)
     return {
         "status": "applied" if exact_after.get("status") == "passed" else "blocked",
         "derived_child_fact_id": child_id,
@@ -4110,14 +4110,14 @@ def _cascade_verifier_blocked(
     }
 
 
-def _cascade_render_source(target_id: str, *, project_root: Path) -> tuple[str, dict[str, object]]:
+def _cascade_render_source(target_id: str, *, project_root: Path) -> tuple[str, dict[str, object], dict | None]:
+    from amiga_reversing.disasm.source_rendering import render_source_from_binary_source_or_raise
     paths = resolve_project_paths(target_id, project_root=project_root)
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        return listing_artifact_source_text_with_c_backend_profile(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=project_root,
-        )
+        rendering = render_source_from_binary_source_or_raise(target_id=target_id,
+            binary_source=paths.binary_source, target_dir=paths.target_dir,
+            metadata_path=metadata_path, project_root=project_root)
+    return rendering.source_text, rendering.listing_profile, rendering.source_package
 
 
 def _cascade_exact_round_trip_layer(
@@ -4126,6 +4126,7 @@ def _cascade_exact_round_trip_layer(
     source_profile: Mapping[str, object],
     *,
     project_root: Path,
+    source_package: dict | None = None,
 ) -> dict[str, object]:
     try:
         report = run_reproduction(
@@ -4133,6 +4134,7 @@ def _cascade_exact_round_trip_layer(
             project_root=project_root,
             pre_rendered_source_text=source_text,
             pre_rendered_source_profile=source_profile,
+            pre_rendered_source_package=source_package,
         )
     except Exception as exc:
         return {"layer": "exact_round_trip", "status": "failed", "message": str(exc)}

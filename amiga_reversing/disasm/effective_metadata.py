@@ -50,6 +50,7 @@ from amiga_reversing.disasm.target_metadata import (
     SuppressedSeededItemMetadata,
     TargetEquateMetadata,
     TargetMetadata,
+    SourceOutputPolicyMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
     apply_suppressed_seeded_items,
@@ -1808,6 +1809,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     removed_execution_view_projections = projection.removed_execution_views
     if (
         not required_seeds
+        and projection.source_output_policy is None
         and not labels
         and not comments
         and not representations
@@ -2190,6 +2192,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     }
     result = replace(
         metadata,
+        source_output_policy=(metadata.source_output_policy if projection.source_output_policy is None
+                              else SourceOutputPolicyMetadata.from_dict(projection.source_output_policy)),
         entry_register_seeds=tuple(entry_register_seeds),
         function_summaries=tuple({
             summary.function_summary_id: summary

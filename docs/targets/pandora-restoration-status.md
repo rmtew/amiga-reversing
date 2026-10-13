@@ -88,6 +88,13 @@ consumer contracts below are reviewed; “partial” retains a known semantic or
 lifecycle limit. “Unanalysed” identifies the next evidence dependency, rather
 than a new coverage metric. No row claims complete subsystem recovery.
 
+Normal source regeneration now persists `binary_assets` presentation (minimum
+256 bytes) through the Manual Action Log. The checked-in source uses relative
+INCBIN companions recorded in its [ownership manifest](../../targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-package-manifest.json).
+Native classification and conservative boundaries still govern selection;
+structured tables, pointers and ambiguous spans stay inline. This changes source
+presentation, not the semantic recovery status below.
+
 | Subsystem | Documented | Partial | Unanalysed / next dependency |
 | --- | --- | --- | --- |
 | Bootstrap / initialization | Fixed-base overlap-safe copy, continuation, supervisor/stack/workspace and initial buffers | Dependent resource setup and storage lifetimes | Copy-helper return lineage, temporal overwrites and alternate placement |

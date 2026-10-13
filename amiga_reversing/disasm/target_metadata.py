@@ -15,6 +15,27 @@ TARGET_SEEDED_METADATA_FILE_NAME = "target_seeded_metadata.json"
 TARGET_CORRECTIONS_FILE_NAME = "target_corrections.json"
 
 
+@dataclass(frozen=True, slots=True)
+class SourceOutputPolicyMetadata:
+    """Presentation only; native data classifications determine eligibility."""
+
+    mode: str = "inline"
+    minimum_asset_size: int = 256
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.mode, str) or self.mode not in {"inline", "binary_assets"}:
+            raise ValueError("source output mode must be inline or binary_assets")
+        if type(self.minimum_asset_size) is not int or not 1 <= self.minimum_asset_size <= 0xFFFFFFFF:
+            raise ValueError("minimum_asset_size must be 1..4294967295")
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> SourceOutputPolicyMetadata:
+        if set(payload) - {"mode", "minimum_asset_size"}:
+            raise ValueError("unsupported source output policy field")
+        return cls(mode=cast(str, payload.get("mode", "inline")),
+                   minimum_asset_size=cast(int, payload.get("minimum_asset_size", 256)))
+
+
 class TargetMetadataSeedOrigin(StrEnum):
     MANUAL_ANALYSIS = "manual_analysis"
     PRIMARY_DOC = "primary_doc"
@@ -1730,6 +1751,7 @@ class TargetMetadata:
     data_block_layouts: tuple[DataBlockLayoutMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
+    source_output_policy: SourceOutputPolicyMetadata = SourceOutputPolicyMetadata()
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> TargetMetadata:
@@ -1771,6 +1793,8 @@ class TargetMetadata:
                 )
         return cls(
             target_type=target_type,
+            source_output_policy=SourceOutputPolicyMetadata.from_dict(
+                _json_object(payload.get("source_output_policy", {}))),
             entry_register_seeds=tuple(
                 EntryRegisterSeedMetadata.from_dict(_json_object(seed))
                 for seed in seeds
@@ -1948,6 +1972,8 @@ def _function_summary_location_payload(location: object) -> dict[str, object]:
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
+    if metadata.source_output_policy == SourceOutputPolicyMetadata():
+        payload.pop("source_output_policy", None)
     function_summaries = payload.get("function_summaries")
     if isinstance(function_summaries, list | tuple):
         for summary in function_summaries:
@@ -2150,6 +2176,7 @@ def apply_suppressed_seeded_items(
     suppressed = set(suppressed_seeded_items)
     return TargetMetadata(
         target_type=seeded.target_type,
+        source_output_policy=seeded.source_output_policy,
         entry_register_seeds=seeded.entry_register_seeds,
         function_summaries=seeded.function_summaries,
         bootblock=seeded.bootblock,
@@ -2463,6 +2490,7 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
     seeded = apply_suppressed_seeded_items(seeded, manual.suppressed_seeded_items)
     return TargetMetadata(
         target_type=manual.target_type,
+        source_output_policy=manual.source_output_policy,
         entry_register_seeds=manual.entry_register_seeds,
         function_summaries=manual.function_summaries,
         bootblock=_merge_optional_field(manual.bootblock, seeded.bootblock, what="bootblock metadata"),

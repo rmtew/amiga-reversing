@@ -47,6 +47,28 @@ def test_hygiene_preserves_source_import_facts(tmp_path: Path) -> None:
     assert report.safe_to_clean_run is True
 
 
+def test_hygiene_uses_validated_package_inventory_and_preserves_unknown_companions(tmp_path: Path) -> None:
+    from amiga_reversing.disasm.source_package import build_source_package
+    from amiga_reversing.disasm.source_package_publish import PUBLISH_MANIFEST, publish_source_package
+    target = _target(tmp_path)
+    package = build_source_package({"target": "demo", "filename": "demo.s", "source_text": 'INCBIN "assets/a.bin"\n',
+        "assembler_profile": "vasm", "metadata_hash": "metadata", "target_identity_sha256": "original"},
+        [{"path": "assets/a.bin", "size": 1, "data_hex": "ff"}], 256)
+    publish_source_package(package, target)
+    report = inspect_target_hygiene("demo", project_root=tmp_path)
+    assert report.safe_to_continue
+    assert _entry(report, "assets/a.bin")["class"] == TargetFileClass.GENERATED_OUTPUT
+    (target / "assets/user.bin").write_bytes(b"keep")
+    assert inspect_target_hygiene("demo", project_root=tmp_path).unknown_files == ("assets/user.bin",)
+    (target / "assets/a.bin").write_bytes(b"edited")
+    dirty = inspect_target_hygiene("demo", project_root=tmp_path)
+    assert PUBLISH_MANIFEST in dirty.unknown_files
+    assert not dirty.safe_to_clean_run
+    cleanup = clean_run_target_workspace("demo", project_root=tmp_path)
+    assert cleanup.status == "blocked"
+    assert (target / "assets/user.bin").read_bytes() == b"keep"
+
+
 def test_hygiene_classifies_disk_import_state_and_nested_targets(tmp_path: Path) -> None:
     target_dir = _target(tmp_path)
     _touch(target_dir / "manifest.json")

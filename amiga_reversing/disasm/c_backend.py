@@ -43,6 +43,7 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
 )
 from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.target_metadata import SourceOutputPolicyMetadata
 
 type ApiCallRowKey = tuple[int, int]
 
@@ -503,6 +504,15 @@ def listing_artifact_source_text_with_c_backend_profile(
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[str, dict[str, object]]:
+    text, profile, _package = listing_artifact_source_projection_with_c_backend_profile(
+        binary_source, metadata_path=metadata_path, project_root=project_root)
+    return text, profile
+
+
+def listing_artifact_source_projection_with_c_backend_profile(
+    binary_source: BinarySource, *, metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT, use_persisted_policy: bool = True,
+) -> tuple[str, dict[str, object], dict[str, object] | None]:
     metadata_text = _metadata_path_text(metadata_path)
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         artifact = CListingArtifact.create(
@@ -512,7 +522,7 @@ def listing_artifact_source_text_with_c_backend_profile(
             project_root=project_root,
         )
     try:
-        return artifact.source_text_with_profile()
+        return artifact.source_projection_with_profile(use_persisted_policy=use_persisted_policy)
     finally:
         artifact.close()
 
@@ -529,7 +539,7 @@ def listing_artifact_source_package_with_c_backend(
         )
     try:
         payload = artifact.source_package_payload(minimum_asset_size)
-        payload["canonical_source_text"] = artifact.source_text_with_profile()[0]
+        payload["canonical_source_text"] = artifact.inline_source_text_with_profile()[0]
         return payload
     finally:
         artifact.close()
@@ -1956,12 +1966,18 @@ class _CBackendSourceFile:
         self.runtime_load_address = runtime_load_address
 
 
+def _source_output_policy_from_metadata_path(metadata_path: str) -> SourceOutputPolicyMetadata:
+    metadata = json.loads(Path(metadata_path).read_text(encoding="utf-8")) if metadata_path else {}
+    return SourceOutputPolicyMetadata.from_dict(metadata.get("source_output_policy", {}))
+
+
 class CListingArtifact:
-    def __init__(self, dll: CDLL, handle: c_void_p, *, runtime_observation_views: tuple[dict[str, object], ...] = (), runtime_data_ranges: tuple[dict[str, object], ...] = ()) -> None:
+    def __init__(self, dll: CDLL, handle: c_void_p, *, runtime_observation_views: tuple[dict[str, object], ...] = (), runtime_data_ranges: tuple[dict[str, object], ...] = (), source_output_policy: SourceOutputPolicyMetadata | None = None) -> None:
         self._dll = dll
         self._handle = handle
         self._runtime_observation_views = runtime_observation_views
         self._runtime_data_ranges = runtime_data_ranges
+        self.source_output_policy = source_output_policy or SourceOutputPolicyMetadata()
 
     @classmethod
     def create(
@@ -1974,6 +1990,7 @@ class CListingArtifact:
         include_dir: str,
         project_root: Path,
     ) -> CListingArtifact:
+        source_output_policy = _source_output_policy_from_metadata_path(metadata_text)
         dll = _platform_file_dll(project_root)
         artifact = c_void_p()
         error = c_void_p()
@@ -2002,7 +2019,8 @@ class CListingArtifact:
             error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
             if result != 0 or not artifact.value:
                 raise RuntimeError(f"C backend DLL failed: {error_text}")
-            return cls(dll, artifact, runtime_observation_views=runtime_observation_views, runtime_data_ranges=runtime_data_ranges)
+            return cls(dll, artifact, runtime_observation_views=runtime_observation_views, runtime_data_ranges=runtime_data_ranges,
+                       source_output_policy=source_output_policy)
         finally:
             if error.value:
                 dll.platform_file_free_text(error)
@@ -2017,6 +2035,7 @@ class CListingArtifact:
         include_dir: str,
         project_root: Path,
     ) -> CListingArtifact:
+        source_output_policy = _source_output_policy_from_metadata_path(metadata_text)
         dll = _platform_file_dll(project_root)
         artifact = c_void_p()
         error = c_void_p()
@@ -2034,7 +2053,7 @@ class CListingArtifact:
             error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
             if result != 0 or not artifact.value:
                 raise RuntimeError(f"C backend DLL failed: {error_text}")
-            return cls(dll, artifact)
+            return cls(dll, artifact, source_output_policy=source_output_policy)
         finally:
             if error.value:
                 dll.platform_file_free_text(error)
@@ -2050,6 +2069,7 @@ class CListingArtifact:
         include_dir: str,
         project_root: Path,
     ) -> CListingArtifact:
+        source_output_policy = _source_output_policy_from_metadata_path(metadata_text)
         dll = _platform_file_dll(project_root)
         artifact = c_void_p()
         error = c_void_p()
@@ -2068,7 +2088,7 @@ class CListingArtifact:
             error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
             if result != 0 or not artifact.value:
                 raise RuntimeError(f"C backend DLL failed: {error_text}")
-            return cls(dll, artifact)
+            return cls(dll, artifact, source_output_policy=source_output_policy)
         finally:
             if error.value:
                 dll.platform_file_free_text(error)
@@ -2083,6 +2103,7 @@ class CListingArtifact:
         include_dir: str,
         project_root: Path,
     ) -> CListingArtifact:
+        source_output_policy = _source_output_policy_from_metadata_path(metadata_text)
         dll = _platform_file_dll(project_root)
         artifact = c_void_p()
         error = c_void_p()
@@ -2100,7 +2121,7 @@ class CListingArtifact:
             error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
             if result != 0 or not artifact.value:
                 raise RuntimeError(f"C backend DLL failed: {error_text}")
-            return cls(dll, artifact)
+            return cls(dll, artifact, source_output_policy=source_output_policy)
         finally:
             if error.value:
                 dll.platform_file_free_text(error)
@@ -2122,7 +2143,7 @@ class CListingArtifact:
         if type(minimum_asset_size) is not int or not 1 <= minimum_asset_size <= 0xFFFFFFFF:
             raise ValueError("minimum_asset_size must be 1..4294967295")
         # Keep the exact same refusal gate as the canonical source export.
-        _, profile = self.source_text_with_profile()
+        _, profile = self.inline_source_text_with_profile()
         if facts_v2_source_refused(profile):
             raise FactsV2SourceRefused(profile)
         return cast(dict[str, object], json.loads(self._text_from_artifact_call(
@@ -2131,6 +2152,21 @@ class CListingArtifact:
         )))
 
     def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
+        text, profile, _package = self.source_projection_with_profile()
+        return text, profile
+
+    def source_projection_with_profile(self, *, use_persisted_policy: bool = True) -> tuple[str, dict[str, object], dict[str, object] | None]:
+        text, profile = self.inline_source_text_with_profile()
+        if not use_persisted_policy or self.source_output_policy.mode == "inline":
+            return text, profile, None
+        if facts_v2_source_refused(profile):
+            raise FactsV2SourceRefused(profile)
+        package = self.source_package_payload(self.source_output_policy.minimum_asset_size)
+        package["canonical_source_text"] = text
+        package["minimum_asset_size"] = self.source_output_policy.minimum_asset_size
+        return str(package["source_text"]), profile, package
+
+    def inline_source_text_with_profile(self) -> tuple[str, dict[str, object]]:
         result = CProfiledOperation(self._dll).call_text_with_profile(
             self._dll.platform_file_facts_v2_listing_artifact_source_text_profile_alloc,
             self._handle,

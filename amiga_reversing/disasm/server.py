@@ -1510,6 +1510,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
         cache_key = _reproduction_cache_key(project_name)
         pre_rendered_source_profile: dict[str, object] | None = None
         pre_rendered_source_text: str | None = None
+        pre_rendered_source_package = None
         row_for_section_offset = None
         _log_event("reproduction_job start", job_id=job_id, project=project_name)
         if not _set_job_state(job_id, status="building"):
@@ -1527,7 +1528,17 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                     )
                 )
             try:
-                pre_rendered_source_text, pre_rendered_source_profile = listing_artifact.source_text_with_profile()
+                if getattr(getattr(listing_artifact, "source_output_policy", None), "mode", "inline") == "binary_assets":
+                    from amiga_reversing.disasm.source_rendering import render_source_from_binary_source_or_raise
+                    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+                    rendering = render_source_from_binary_source_or_raise(target_id=project_name,
+                        binary_source=paths.binary_source, target_dir=paths.target_dir, metadata_path=None,
+                        project_root=PROJECT_ROOT, artifact=listing_artifact)
+                    pre_rendered_source_text = rendering.source_text
+                    pre_rendered_source_profile = rendering.listing_profile
+                    pre_rendered_source_package = rendering.source_package
+                else:
+                    pre_rendered_source_text, pre_rendered_source_profile = listing_artifact.source_text_with_profile()
             except Exception as exc:
                 message = f"artifact source unavailable: {exc}"
                 _log_event(
@@ -1555,6 +1566,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                         pre_rendered_source_text=pre_rendered_source_text,
                         pre_rendered_source_profile=pre_rendered_source_profile,
                         row_for_section_offset=row_for_section_offset,
+                        pre_rendered_source_package=pre_rendered_source_package,
                     )
                 except TypeError as exc:
                     if (
@@ -1566,6 +1578,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                             project_root=PROJECT_ROOT,
                             pre_rendered_source_text=pre_rendered_source_text,
                             pre_rendered_source_profile=pre_rendered_source_profile,
+                            pre_rendered_source_package=pre_rendered_source_package,
                         )
                     else:
                         raise
@@ -1575,6 +1588,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                     project_root=PROJECT_ROOT,
                     pre_rendered_source_text=pre_rendered_source_text,
                     pre_rendered_source_profile=pre_rendered_source_profile,
+                    pre_rendered_source_package=pre_rendered_source_package,
                 )
         else:
             report = run_reproduction(
@@ -3033,7 +3047,9 @@ def _manual_action_application_payload(
 ) -> dict[str, object]:
     local_effects: list[dict[str, object]] = []
     pending_ranges: list[dict[str, object]] = []
-    if kind == "create_manual_label":
+    if kind == "set_source_output_policy":
+        local_effects.append({"kind": "source_output_policy", "source_output_policy": action_payload["source_output_policy"]})
+    elif kind == "create_manual_label":
         label = action_payload.get("label")
         if isinstance(label, Mapping):
             local_effects.append(

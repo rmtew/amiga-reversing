@@ -110,6 +110,18 @@ not proof of unreachability. `history` preserves decisions and shows whether
 verification is current. `rollback` takes `action_id` and optional `redo: true`;
 it appends through existing history rather than deleting annotations.
 
+Normal target source output is configured through the revision-bound catalog command
+`target.source_output.configure` in target context, with `mode` set to `inline`
+(default) or `binary_assets`, and optional `minimum_asset_size` (default 256).
+The Manual Action Log owns this presentation policy; undo/redo restores it.
+Normal regeneration uses the same native asset planner as ZIP export and publishes
+relative companion assets, SDK dependencies, and `source-package-manifest.json`.
+The manifest guards owned files against edits and removes only obsolete owned
+companions. Classification, meaningful tables, pointers, relocations and ambiguous
+ranges remain governed by native analysis. First adoption requires the current
+canonical source to match freshly rendered inline source. Explicit ZIP export
+continues to select its own presentation independently.
+
 ## MCP
 
 Launch the adapter through an MCP host's stdio configuration:

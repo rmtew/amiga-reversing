@@ -120,6 +120,7 @@ def _c_backend_binary_source_export(
             metadata_path=metadata_path,
             project_root=project_root,
             workflow_id="source_export",
+            use_persisted_policy=False,
         )
         native_package = None
         if minimum_asset_size is not None and not rendering.refused:

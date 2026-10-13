@@ -19,8 +19,8 @@ def test_source_rendering_result_owns_profile_and_refusal(monkeypatch, tmp_path:
     }
     monkeypatch.setattr(
         source_rendering,
-        "listing_artifact_source_text_with_c_backend_profile",
-        lambda *args, **kwargs: ("", profile),
+        "listing_artifact_source_projection_with_c_backend_profile",
+        lambda *args, **kwargs: ("", profile, None),
     )
     monkeypatch.setattr(source_rendering, "effective_metadata_hash", lambda target_dir: "metadata-hash")
 

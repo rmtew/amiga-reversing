@@ -11142,7 +11142,7 @@ def test_cascade_apply_blocks_exact_failure_before_real_write(
     append_paths: list[Path] = []
     monkeypatch.setattr(reversing_loop, "inspect_cascade_state", lambda *args, **kwargs: state)
     monkeypatch.setattr(reversing_loop, "_stage_cascade_target", lambda target_id, project_root, temp_root: _target(temp_root))
-    monkeypatch.setattr(reversing_loop, "_cascade_render_source", lambda *args, **kwargs: ("    move.w dmacon(a5),d0\n", {}))
+    monkeypatch.setattr(reversing_loop, "_cascade_render_source", lambda *args, **kwargs: ("    move.w dmacon(a5),d0\n", {}, None))
     monkeypatch.setattr(
         reversing_loop,
         "_cascade_exact_round_trip_layer",
@@ -11175,7 +11175,7 @@ def test_cascade_apply_writes_only_decision_journal_after_verified_dry_run(
     append_paths: list[Path] = []
     monkeypatch.setattr(reversing_loop, "inspect_cascade_state", lambda *args, **kwargs: state)
     monkeypatch.setattr(reversing_loop, "_stage_cascade_target", lambda target_id, project_root, temp_root: _target(temp_root))
-    monkeypatch.setattr(reversing_loop, "_cascade_render_source", lambda *args, **kwargs: ("    move.w dmacon(a5),d0\n", {}))
+    monkeypatch.setattr(reversing_loop, "_cascade_render_source", lambda *args, **kwargs: ("    move.w dmacon(a5),d0\n", {}, None))
     monkeypatch.setattr(
         reversing_loop,
         "_cascade_exact_round_trip_layer",

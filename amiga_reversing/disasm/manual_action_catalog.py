@@ -14,6 +14,7 @@ from amiga_reversing.disasm.listing_context import (
     selected_listing_element_context,
 )
 from amiga_reversing.disasm.reproduction import builtin_reproduction_profiles
+from amiga_reversing.disasm.target_metadata import SourceOutputPolicyMetadata
 
 _KNOWLEDGE_PATH = Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_includes_parsed.json"
 
@@ -103,6 +104,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("target.open_reproduction_report", "Open Reproduction", "open_reproduction_report", None),
         _target_reproduction_profile_action(),
         _target_source_export_action(),
+        _target_source_output_action(),
         _target_equate_action(),
         _target_equate_edit_action(),
         _target_equate_represent_action(),
@@ -208,6 +210,10 @@ def target_catalog_manual_payload(
         return "interpret_manual_data_block_element_ref", {
             "data_block_interpreted_ref": _data_block_element_ref_payload([], params)
         }
+    if action.get("action") == "set_source_output_policy":
+        from dataclasses import asdict
+        return "set_source_output_policy", {"source_output_policy": asdict(
+            SourceOutputPolicyMetadata.from_dict(dict(params)))}
     if action.get("action") == "create_manual_target_equate":
         return "create_manual_target_equate", {"target_equate": _target_equate_payload(params)}
     if action.get("action") == "rename_manual_target_equate":
@@ -5564,6 +5570,16 @@ def _target_reproduction_profile_action() -> dict[str, object]:
         "preview": {"kind": "reproduction_profile"},
     }
     return action
+
+
+def _target_source_output_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.source_output.configure", "Configure source output", "set_source_output_policy",
+        {"type": "object", "properties": {
+            "mode": {"type": "string", "enum": ["inline", "binary_assets"], "default": "inline"},
+            "minimum_asset_size": {"type": "integer", "minimum": 1, "maximum": 4294967295, "default": 256},
+        }, "required": ["mode"]},
+    )
 
 
 def _target_source_export_action() -> dict[str, object]:

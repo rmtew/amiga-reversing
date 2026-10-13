@@ -114,6 +114,36 @@ static int test_comments_and_leading_org_survive(void) {
   return 0;
 }
 
+static int test_coalesced_role_comments_are_compact(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kRenderPlan plan;
+  M68kRenderPlanRow *row;
+  uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+  char *json = NULL;
+  const char *first;
+  unsigned index;
+  package_fixture(&object, &section, bytes, &plan);
+  for (index = 0U; index < 2U; ++index) {
+    M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
+      "\tdc.b $01,$02 ; bitmap\n\tdc.b $03,$04 ; bitmap consumer bound\n", &row));
+    m68k_render_plan_row_set_source_range(row, 0U, index * 4U, 4U);
+    m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, NULL, 0U);
+    m68k_render_plan_row_set_data_class_flags(row, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
+  }
+  M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 8U, &json));
+  first = strstr(json, "; bitmap\\u000A");
+  M68K_C_ASSERT(first != NULL);
+  M68K_C_ASSERT(strstr(first + 1, "; bitmap\\u000A") == NULL);
+  first = strstr(json, "; bitmap consumer bound");
+  M68K_C_ASSERT(first != NULL);
+  M68K_C_ASSERT(strstr(first + 1, "; bitmap consumer bound") != NULL);
+  M68K_C_ASSERT(strstr(json, "INCBIN") != NULL);
+  free(json);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 static int test_large_asset_and_unfamiliar_layout(void) {
   M68kObject object;
   M68kSection section;
@@ -199,6 +229,7 @@ int m68k_c_source_package_tests(void) {
     {"multiple_assets_are_deterministic_original_bytes", test_multiple_assets_are_deterministic_original_bytes},
     {"conservative_ineligibility", test_conservative_ineligibility},
     {"comments_and_leading_org_survive", test_comments_and_leading_org_survive},
+    {"coalesced_role_comments_are_compact", test_coalesced_role_comments_are_compact},
     {"large_asset_and_unfamiliar_layout", test_large_asset_and_unfamiliar_layout},
     {"coalesces_small_rows_and_respects_boundaries", test_coalesces_small_rows_and_respects_boundaries}
   };

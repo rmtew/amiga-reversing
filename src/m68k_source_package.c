@@ -109,7 +109,20 @@ static int eligible(const M68kObject *object, const M68kRenderPlan *plan,
   return saw_data;
 }
 
-static int append_asset_source(JsonBuilder *source, const M68kRenderPlanRow *row, const char *path, int *emitted) {
+/* A coalesced asset needs its native role comment once. Keep every other
+ * annotation, including comments containing the role plus additional text. */
+static int role_comment(const char *comment, size_t length, uint32_t flags) {
+  const char *role = flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP ? "bitmap" : "sound_sample";
+  if (!length || *comment != ';') return 0;
+  ++comment; --length;
+  while (length && (*comment == ' ' || *comment == '\t')) { ++comment; --length; }
+  while (length && (comment[length - 1U] == ' ' || comment[length - 1U] == '\t' ||
+      comment[length - 1U] == '\r' || comment[length - 1U] == '\n')) --length;
+  return length == strlen(role) && !memcmp(comment, role, length);
+}
+
+static int append_asset_source(JsonBuilder *source, const M68kRenderPlanRow *row, const char *path,
+    int *emitted, int *role_emitted) {
   const char *cursor = row->text;
   while (*cursor) {
     const char *end = strchr(cursor, '\n');
@@ -118,7 +131,12 @@ static int append_asset_source(JsonBuilder *source, const M68kRenderPlanRow *row
       const char *comment = memchr(cursor, ';', length);
       if (!*emitted && json_builder_appendf(source, "\tINCBIN \"%s\"\n", path) != 0) return -1;
       *emitted = 1;
-      if (comment && json_builder_append_len(source, comment, length - (size_t)(comment - cursor)) != 0) return -1;
+      if (comment) {
+        size_t comment_size = length - (size_t)(comment - cursor);
+        int is_role = role_comment(comment, comment_size, row->data_class_flags);
+        if ((!is_role || !*role_emitted) && json_builder_append_len(source, comment, comment_size) != 0) return -1;
+        if (is_role) *role_emitted = 1;
+      }
     } else if (json_builder_append_len(source, cursor, length) != 0) return -1;
     cursor = end + 1;
   }
@@ -170,13 +188,14 @@ int m68k_source_package_json_alloc(const M68kObject *object, const M68kRenderPla
       char path[96];
       uint32_t byte_index;
       int emitted = 0;
+      int role_emitted = 0;
       const uint8_t *bytes = object->sections[row->source_section_index].data + row->source_offset;
       const char *classification = row->data_class_flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP
         ? "bitmap" : "sound_sample";
       snprintf(path, sizeof(path), "assets/section-%04u-offset-%08x-size-%08x.bin",
         (unsigned)row->source_section_index, (unsigned)row->source_offset, (unsigned)run_size);
       for (run_index = index; run_index < end; ++run_index)
-        if (append_asset_source(&source, &plan->rows[run_index], path, &emitted) != 0) goto done;
+        if (append_asset_source(&source, &plan->rows[run_index], path, &emitted, &role_emitted) != 0) goto done;
       if ((count && json_builder_append(&assets, ",") != 0) ||
           json_builder_appendf(&assets, "{\"path\":\"%s\",\"source_section_index\":%u,\"source_offset\":%u,"
             "\"size\":%u,\"classification\":\"%s\",\"data_class_flags\":%u,\"source_row_id\":%u,\"source_row_count\":%u,\"data_hex\":\"",

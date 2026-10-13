@@ -13,13 +13,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 from amiga_reversing.amiga_disk.models import DiskManifest
-from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import AssetDataBinarySource
 from amiga_reversing.disasm.c_backend import benchmark_from_facts_v2_asm_source_profile
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_ids import target_output_stem
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.disasm.source_rendering import (
+    publish_rendered_source,
     render_source_from_binary_source_or_raise,
 )
 
@@ -141,8 +141,6 @@ def _benchmark_binary_target(
     target_dir = paths.target_dir
     disasm_path = paths.output_path or _default_disasm_path(target_dir, target)
 
-    disasm_path.unlink(missing_ok=True)
-
     start = time.perf_counter()
     if isinstance(paths.binary_source, AssetDataBinarySource):
         data = paths.binary_source.read_bytes()
@@ -166,7 +164,6 @@ def _benchmark_binary_target(
             )
         return record
 
-    assembler_profile_name = _assembler_profile_for_target(target_dir)
     c_benchmark: dict[str, object] | None = None
     try:
         with effective_metadata_file(target_dir) as metadata_path:
@@ -178,13 +175,10 @@ def _benchmark_binary_target(
                 project_root=ROOT,
                 workflow_id="benchmark_target_source_rendering",
             )
-        rendered_text = rendering.source_text
         c_benchmark = benchmark_from_facts_v2_asm_source_profile(rendering.listing_profile)
         c_benchmark["workflow_profile"] = rendering.workflow_profile
         c_benchmark["path"] = paths.binary_source.display_path
-        assembler_profile = load_assembler_profile(assembler_profile_name)
-        newline = "\n" if assembler_profile.render.line_ending == "lf" else "\r\n"
-        disasm_path.write_text(rendered_text, encoding="utf-8", newline=newline)
+        publish_rendered_source(rendering, disasm_path, target_id=target, project_root=ROOT)
         elapsed = time.perf_counter() - start
         if not disasm_path.exists():
             raise FileNotFoundError(f"missing benchmark output {disasm_path}")

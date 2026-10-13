@@ -19,6 +19,7 @@ from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.disasm.source_rendering import (
     render_source_from_binary_source_or_raise,
 )
+from amiga_reversing.disasm.source_package import materialize_source_package
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -98,7 +99,10 @@ def roundtrip_vasm_target(target: str, *, project_root: Path = ROOT) -> VasmRoun
     try:
         source_path = temp_root / f"{target}.s"
         output_path = temp_root / Path(binary_source.display_path).name
-        source_path.write_text(rendered_source, encoding="utf-8", newline=newline)
+        if rendering.source_package is None:
+            source_path.write_text(rendered_source, encoding="utf-8", newline=newline)
+        else:
+            source_path = materialize_source_package(rendering.source_package, temp_root / "package")
         cmd = [
             str(_vasm_executable(project_root)),
             output_format,
@@ -107,14 +111,14 @@ def roundtrip_vasm_target(target: str, *, project_root: Path = ROOT) -> VasmRoun
             "-quiet",
             "-nosym",
             *(["-kick1hunks"] if output_format == "-Fhunkexe" else []),
-            *_include_args(project_root),
+            *(_include_args(project_root) if rendering.source_package is None else []),
             "-o",
             str(output_path),
             str(source_path),
         ]
         result = subprocess.run(
             cmd,
-            cwd=project_root,
+            cwd=source_path.parent,
             capture_output=True,
             text=True,
             timeout=120,

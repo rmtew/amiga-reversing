@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from amiga_reversing.disasm import restoration_verification as rv
+from amiga_reversing.disasm import source_rendering
 from amiga_reversing.disasm.c_backend import (
     assemble_platform_source_text_with_c_backend,
 )
@@ -155,12 +156,17 @@ def test_native_include_joins_root_and_nested_paths(tmp_path):
     assert rebuilt == bytes.fromhex("002a")
 
 
+@pytest.fixture(autouse=True)
+def source_identity_reader(monkeypatch):
+    monkeypatch.setattr(source_rendering, "read_binary_source_bytes", lambda source: rv.read_binary_source_bytes(source))
+
+
 def test_verify_binds_one_source_to_both_gates(tmp_path, monkeypatch):
     monkeypatch.setattr(rv, "PROJECT_ROOT", tmp_path)
     source_path = tmp_path / "restored.s"
     rebuilt = tmp_path / "rebuilt.bin"
     rebuilt.write_bytes(b"\x4e\x75")
-    paths = SimpleNamespace(output_path=source_path, binary_source=object())
+    paths = SimpleNamespace(output_path=source_path, binary_source=object(), target_dir=tmp_path)
     monkeypatch.setattr(rv, "resolve_project_paths", lambda _: paths)
     monkeypatch.setattr(rv, "read_binary_source_bytes", lambda _: b"\x4e\x75")
     calls = []
@@ -179,7 +185,7 @@ def test_verify_binds_one_source_to_both_gates(tmp_path, monkeypatch):
 
     monkeypatch.setattr(rv, "run_reproduction", reproduce)
     monkeypatch.setattr(rv, "run_vasm_oracle", oracle)
-    artifact = SimpleNamespace(source_text_with_profile=lambda: (" rts\n", {}))
+    artifact = SimpleNamespace(source_projection_with_profile=lambda **kw: (" rts\n", {}, None))
     result = rv.verify("target", "revision", artifact=artifact)
     assert calls == [" rts\n", " rts\n"]
     assert source_path.read_text() == " rts\n"
@@ -189,7 +195,7 @@ def test_verify_binds_one_source_to_both_gates(tmp_path, monkeypatch):
 
 def test_failed_reproduction_cannot_reuse_surviving_binary(tmp_path, monkeypatch):
     monkeypatch.setattr(rv, "PROJECT_ROOT", tmp_path)
-    paths = SimpleNamespace(output_path=None, binary_source=object())
+    paths = SimpleNamespace(output_path=None, binary_source=object(), target_dir=tmp_path)
     monkeypatch.setattr(rv, "resolve_project_paths", lambda _: paths)
     monkeypatch.setattr(rv, "read_binary_source_bytes", lambda _: b"original")
     monkeypatch.setattr(
@@ -201,7 +207,7 @@ def test_failed_reproduction_cannot_reuse_surviving_binary(tmp_path, monkeypatch
         },
     )
     monkeypatch.setattr(rv, "run_vasm_oracle", lambda *a, **k: {})
-    artifact = SimpleNamespace(source_text_with_profile=lambda: ("invalid\n", {}))
+    artifact = SimpleNamespace(source_projection_with_profile=lambda **kw: ("invalid\n", {}, None))
     result = rv.verify("target", "revision", artifact=artifact)
     assert result["status"] == "failed"
     assert result["rebuilt_path"] is None and result["output_sha256"] is None
@@ -225,7 +231,7 @@ def test_oracle_mismatch_blocks_exact_acceptance(tmp_path, monkeypatch):
     monkeypatch.setattr(
         rv,
         "resolve_project_paths",
-        lambda _: SimpleNamespace(output_path=None, binary_source=None),
+        lambda _: SimpleNamespace(output_path=None, binary_source=None, target_dir=tmp_path),
     )
     monkeypatch.setattr(rv, "read_binary_source_bytes", lambda _: b"exact native")
     monkeypatch.setattr(
@@ -242,7 +248,7 @@ def test_oracle_mismatch_blocks_exact_acceptance(tmp_path, monkeypatch):
     result = rv.verify(
         "target",
         "revision",
-        artifact=SimpleNamespace(source_text_with_profile=lambda: ("source", {})),
+        artifact=SimpleNamespace(source_projection_with_profile=lambda **kw: ("source", {}, None)),
     )
     assert result["framework_exact"] is True
     assert result["exact"] is False

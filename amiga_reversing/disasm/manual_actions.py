@@ -136,6 +136,7 @@ def _manual_label_scope_from_json(value: object) -> ManualLabelScope | None:
 
 
 class ManualActionKind(StrEnum):
+    SET_SOURCE_OUTPUT_POLICY = "set_source_output_policy"
     CREATE_MANUAL_SEED = "create_manual_seed"
     REMOVE_MANUAL_SEED = "remove_manual_seed"
     RENAME_DATA_SYMBOL = "rename_data_symbol"
@@ -249,6 +250,7 @@ class ManualActionLogProjection:
     inactive_action_ids: tuple[str, ...]
     diagnostics: tuple[dict[str, object], ...]
     review_items: tuple[dict[str, object], ...]
+    source_output_policy: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
         result = asdict(self)
@@ -1837,13 +1839,18 @@ def _project_actions(
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
     inactive_action_ids: list[str] = []
+    source_output_policy = None
 
     for action in actions:
         if action.action_id in undone_action_ids:
             inactive_action_ids.append(action.action_id)
             continue
         active_action_ids.append(action.action_id)
-        if action.kind is ManualActionKind.CREATE_MANUAL_SEED:
+        if action.kind is ManualActionKind.SET_SOURCE_OUTPUT_POLICY:
+            from amiga_reversing.disasm.target_metadata import SourceOutputPolicyMetadata
+            source_output_policy = asdict(SourceOutputPolicyMetadata.from_dict(
+                _action_object(action, "source_output_policy")))
+        elif action.kind is ManualActionKind.CREATE_MANUAL_SEED:
             _put_by_id(seeds, _projected_manual_seed(action), "seed_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_SEED:
             _drop_by_id(seeds, action, "seed_id")
@@ -2234,6 +2241,7 @@ def _project_actions(
         inactive_action_ids=tuple(inactive_action_ids),
         diagnostics=finalized_review_items,
         review_items=finalized_review_items,
+        source_output_policy=source_output_policy,
     )
 
 
