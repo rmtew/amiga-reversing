@@ -496,10 +496,13 @@ BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 DMAF_CLRALL	EQU	$7FFF
 GAME_EVENT_ESCAPE_CARD_OK_BIT	EQU	4
 GAME_EVENT_ESCAPE_TRIGGERED_BIT	EQU	3
+GAME_EVENT_FADE_HEALTH_DISPLAY_LATCH_BIT	EQU	2
 GAME_EVENT_FEEDBACK_AUDIO_LATCH_BIT	EQU	7
 GAME_EVENT_KRIPTONITE_CACHED_BIT	EQU	1
+GAME_EVENT_MOBIAN_BRAIN_HEAL_LATCH_BIT	EQU	0
 GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
 GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
+GAME_EXIT_DELAY_SERVICE_STEPS	EQU	70
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
 INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING	EQU	$3
@@ -570,6 +573,7 @@ ITEM_ID_LT_COMMANDER	EQU	$3A
 ITEM_ID_MEDIC	EQU	$3D
 ITEM_ID_MEGABIO_FEED	EQU	$67
 ITEM_ID_MENIAL_DROID	EQU	$51
+ITEM_ID_MOBIAN_BRAIN	EQU	$68
 ITEM_ID_MUSICIAN	EQU	$40
 ITEM_ID_NOTHING	EQU	$1
 ITEM_ID_PHOTOSABRE	EQU	$7
@@ -800,7 +804,7 @@ abs_0_00010498:
 	bsr.w render_tilemap_view_to_back_buffer
 	move.l #$78000,app_front_bitplane_base(a6)
 	bsr.w abs_0_0001079E
-	jsr abs_0_0005AFFA.l
+	jsr initialize_player_and_fixed_animation_nodes.l
 	bsr.w abs_0_0001253C
 	bsr.w abs_0_000124F0
 	bsr.w abs_0_000124FE
@@ -919,7 +923,7 @@ abs_0_00010724:
 	move.l a0,app_current_palette(a6)
 	st.b app_player_movement_commit_inhibited(a6)
 	bset.b #1,player_world_object_world_object_flags.l
-	move.b #$46,app_game_exit_service_ticks_remaining(a6)
+	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	jsr enqueue_game_outcome_and_rank_messages.l
 abs_0_0001074C:
 	bra.w swap_front_back_display_buffers
@@ -957,7 +961,7 @@ abs_0_0001079E:
 	bsr.b abs_0_000107C6
 	lea.l abs_0_0001340A(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_000132D6(pc),a5
+	lea.l player_health_overlay(pc),a5
 	bsr.b abs_0_000107C6
 	lea.l abs_0_0001332E(pc),a5
 	bsr.b abs_0_000107C6
@@ -3089,7 +3093,7 @@ abs_0_00012DAE:
 	move.b $0001(a0),d1
 	addq.b #1,d0
 	addq.b #1,d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	move.w app_earth_orbit_countdown_bcd(a6),d0
 	clr.b app_02C2(a6)
 	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
@@ -3323,12 +3327,44 @@ abs_0_000132AA:
 	dc.b $02,$12,$13,$03,$06,$03,$00,$00,$00,$01,$AA,$ED
 abs_0_000132B6:
 	dcb.b $20,$00
-abs_0_000132D6:
-	dc.b $22,$11,$06,$03,$01,$0E,$00,$00,$00,$01,$AA,$BA
-	dcb.b $20,$00
-abs_0_00013302:
-	dc.b $22,$14,$06,$03,$01,$0F,$00,$00,$00,$01,$AA,$F9
-	dcb.b $20,$00
+player_health_overlay:
+	dc.b $22	; x
+player_health_overlay_y:
+	dc.b $11	; y
+	dc.b $06	; width
+	dc.b $03	; height
+	dc.b $01	; title_x_offset
+	dc.b $0E	; text_color
+	dc.b $00	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AABA	; title_ptr
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+opponent_health_overlay:
+	dc.b $22	; x
+opponent_health_overlay_y:
+	dc.b $14	; y
+	dc.b $06	; width
+	dc.b $03	; height
+	dc.b $01	; title_x_offset
+	dc.b $0F	; text_color
+	dc.b $00	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AAF9	; title_ptr
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
 abs_0_0001332E:
 	dc.b $22,$14,$06,$03,$01,$09,$00,$00,$00,$01,$AA,$BF,$00,$01,$AA,$E3
 	dcb.b $1C,$00
@@ -4183,7 +4219,7 @@ abs_0_00016108:
 	move.l d0,app_text_cursor_ptr(a6)
 	movea.l d0,a0
 	rts
-abs_0_00016126:
+set_text_cursor_in_overlay_plane:
 	andi.w #63,d0
 	andi.w #31,d1
 	lsl.w #4,d1
@@ -4411,7 +4447,7 @@ abs_0_0001632C:
 abs_0_00016332:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	movea.l ui_overlay_descriptor_bitmap_ptr(a5),a1
 	clr.w d0
 	clr.w d1
@@ -4444,7 +4480,7 @@ abs_0_00016366:
 abs_0_0001639A:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	movea.l ui_overlay_descriptor_bitmap_ptr(a5),a1
 	clr.w d0
 	clr.w d1
@@ -4483,7 +4519,7 @@ abs_0_0001640E:
 	add.b d0,d1
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	addq.b #1,d0
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	clr.b app_text_plane_mask(a6)
 	movea.l a0,a2
 	clr.w d7
@@ -4499,7 +4535,7 @@ abs_0_00016432:
 abs_0_00016444:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	clr.w d0
 	clr.w d1
 	move.b ui_overlay_descriptor_height(a5),d0
@@ -4535,21 +4571,21 @@ draw_ui_overlay_border_and_title:
 	move.l d7,-(a7)
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_top_left_cell(pc),a0
 	bsr.w copy_ui_border_cell_to_text_cursor
 	move.b ui_overlay_descriptor_width(a5),d0
 	subq.b #1,d0
 	add.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_top_right_cell(pc),a0
 	bsr.w copy_ui_border_cell_to_text_cursor
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_height(a5),d1
 	subq.b #1,d1
 	add.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_bottom_left_cell(pc),a0
 	bsr.w copy_ui_border_cell_to_text_cursor
 	move.b ui_overlay_descriptor_width(a5),d0
@@ -4558,13 +4594,13 @@ draw_ui_overlay_border_and_title:
 	subq.b #1,d1
 	add.b ui_overlay_descriptor_x.w(a5),d0
 	add.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_bottom_right_cell(pc),a0
 	bsr.w copy_ui_border_cell_to_text_cursor
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d0
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_horizontal_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_width(a5),d7
@@ -4578,7 +4614,7 @@ abs_0_00016532:
 	move.b ui_overlay_descriptor_height(a5),d1
 	subq.b #1,d1
 	add.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_horizontal_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_width(a5),d7
@@ -4590,7 +4626,7 @@ abs_0_0001655E:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_vertical_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_height(a5),d7
@@ -4604,7 +4640,7 @@ abs_0_00016584:
 	add.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	lea.l ui_border_vertical_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_height(a5),d7
@@ -4616,7 +4652,7 @@ abs_0_000165B4:
 	move.b ui_overlay_descriptor_title_x_offset(a5),d0
 	add.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	movea.l ui_overlay_descriptor_title_ptr(a5),a0
 	bsr.w abs_0_000162A8
 	move.l (a7)+,d7
@@ -4631,7 +4667,7 @@ abs_0_000165F0:
 	move.b d7,d1
 	addq.b #1,d1
 	add.b $0001(a5),d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
@@ -4661,7 +4697,7 @@ abs_0_00016632:
 	add.b $0001(a5),d0
 	move.b d0,d1
 	move.b $0000(a5),d0
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
@@ -6102,7 +6138,7 @@ abs_0_00017792:
 	bsr.w close_inventory_panel
 abs_0_0001779E:
 	bset.b #1,app_ui_flags(a6)
-	lea.l abs_0_00013302.l,a5
+	lea.l opponent_health_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
 	lea.l abs_0_0001335A.l,a5
 	bsr.w enqueue_ui_overlay_update
@@ -6240,27 +6276,27 @@ abs_0_0001796C:
 	beq.w abs_0_000179E4
 	bsr.w abs_0_00017AE8
 abs_0_00017980:
-	lea.l abs_0_00013302.l,a4
+	lea.l opponent_health_overlay.l,a4
 	movea.l app_interaction_object_ptr(a6),a5
-	bsr.w abs_0_00018544
-	lea.l abs_0_000132D6.l,a4
+	bsr.w draw_object_health_status
+	lea.l player_health_overlay.l,a4
 	lea.l player_world_object.l,a5
-	bsr.w abs_0_00018544
+	bsr.w draw_object_health_status
 	bsr.w abs_0_0001817A
 	bsr.w abs_0_00017B3C
 	rts
 abs_0_000179A8:
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
-	move.b #$46,app_game_exit_service_ticks_remaining(a6)
+	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	lea.l abs_0_0005C5B6.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a4)
 	lea.l abs_0_0005C592.l,a1
 	move.l a1,$0000(a0)
 	move.l a1,$0004(a0)
 	movea.l a4,a5
-	lea.l abs_0_000132D6.l,a4
-	bsr.w abs_0_00018544
+	lea.l player_health_overlay.l,a4
+	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
 	bra.b abs_0_000179EC
 abs_0_000179E4:
@@ -6561,11 +6597,11 @@ service_gameplay_palette_transition:
 	bcc.b abs_0_00017DEE
 	cmp.b #$1,d0
 	bne.b abs_0_00017DD6
-	bset.b #2,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_FADE_HEALTH_DISPLAY_LATCH_BIT,app_game_event_flags(a6)
 	bne.b abs_0_00017DD6
-	lea.l abs_0_000132D6.l,a4
+	lea.l player_health_overlay.l,a4
 	lea.l player_world_object.l,a5
-	bsr.w abs_0_00018544
+	bsr.w draw_object_health_status
 abs_0_00017DD6:
 	lea.l abs_0_000134C2.l,a0
 	lea.l abs_0_000134E2.l,a1
@@ -6753,8 +6789,8 @@ abs_0_0001800A:
 	bmi.b abs_0_00018032
 	move.b d0,world_object_shared_prefix_hit_points+1(a4)
 	movea.l a4,a5
-	lea.l abs_0_000132D6.l,a4
-	bsr.w abs_0_00018544
+	lea.l player_health_overlay.l,a4
+	bsr.w draw_object_health_status
 	jsr abs_0_0005D31A.l
 	rts
 abs_0_00018032:
@@ -6768,10 +6804,10 @@ abs_0_00018032:
 	bclr.b #0,$000A(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w restore_world_object_position_state
-	move.b #$46,app_game_exit_service_ticks_remaining(a6)
+	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	clr.w world_object_shared_prefix_hit_points(a5)
-	lea.l abs_0_000132D6.l,a4
-	bsr.w abs_0_00018544
+	lea.l player_health_overlay.l,a4
+	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
 	rts
 handle_item_receptacle_interaction:
@@ -6828,14 +6864,14 @@ deposit_item_in_receptacle:
 	move.b item_receptacle_interaction_data_required_item_definition_id(a3),world_object_shared_prefix_selected_item_id(a4)
 	bsr.w refresh_selected_item_name_display
 	move.b $0046(a4),d0
-	cmp.b #$68,d0
+	cmp.b #ITEM_ID_MOBIAN_BRAIN,d0
 	bne.b abs_0_0001814C
-	bset.b #0,app_game_event_flags(a6)
+	bset.b #GAME_EVENT_MOBIAN_BRAIN_HEAL_LATCH_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0001814C
 	move.w #$5F,$003C(a4)
 	movea.l a4,a5
-	lea.l abs_0_000132D6.l,a4
-	bsr.w abs_0_00018544
+	lea.l player_health_overlay.l,a4
+	bsr.w draw_object_health_status
 	jsr abs_0_0005D2FE.l
 abs_0_0001814C:
 	rts
@@ -6870,7 +6906,7 @@ abs_0_000181B2:
 	move.b $0001(a5),d1
 	addq.b #1,d0
 	addq.b #1,d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	moveq.l #5,d7
 	lea.l $00A0(a0),a1
 	moveq.l #40,d0
@@ -7217,58 +7253,67 @@ abs_0_0001853A:
 	bra.b abs_0_00018504
 abs_0_00018542:
 	rts
-abs_0_00018544:
-	move.b $0000(a4),d0
-	move.b $0001(a4),d1
+    ; Render DIRE/POOR/FAIR/GOOD/DEAD from word hit points; zero means DEAD and nonzero values clamp to 95. Update the overlay's RGB12 palette color and text plane. Known input records only.
+draw_object_health_status:
+	move.b ui_overlay_descriptor_x.w(a4),d0
+	move.b ui_overlay_descriptor_y(a4),d1
 	addq.b #1,d0
 	addq.b #1,d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	moveq.l #0,d0
 	moveq.l #0,d5
-	move.b $0005(a4),d0
+	move.b ui_overlay_descriptor_text_color(a4),d0
 	move.b d0,app_text_plane_mask(a6)
 	move.w d0,d6
 	add.w d6,d6
-	move.w $003C(a5),d0
+	move.w world_object_shared_prefix_hit_points(a5),d0
 	beq.b abs_0_0001859A
 	cmp.w #$60,d0
 	bcs.b abs_0_00018572
 	moveq.l #95,d0
 abs_0_00018572:
-	move.b abs_0_000185C6(pc,d0.w),d5
+	move.b health_grade_index_table(pc,d0.w),d5
 	move.w d5,d4
 	add.w d4,d4
 	lea.l abs_0_000134C2.l,a0
-	move.w abs_0_0001859E(pc,d4.w),$0(a0,d6.w)
+	move.w health_grade_rgb12_table(pc,d4.w),$0(a0,d6.w)
 	lsr.w #2,d5
 	move.w d5,d3
 	lsl.w #2,d3
 	add.w d5,d3
-	lea.l abs_0_00018632(pc),a3
+	lea.l health_status_text_records(pc),a3
 	adda.w d3,a3
 	bsr.w draw_compact_text_string
 	rts
 abs_0_0001859A:
 	moveq.l #96,d0
 	bra.b abs_0_00018572
-abs_0_0001859E:
-	dc.w $0800,$0A00,$0C00,$0E00,$0420,$0640,$0860,$0A80	; lookup_table
-	dc.w $0840,$0A60,$0C80,$0E80,$0888,$0AAA,$0CCC,$0EEE	; lookup_table
-	dc.w $006E,$006E,$006E,$006E	; lookup_table
-abs_0_000185C6:
-	dc.b $00,$00,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$02,$02,$02,$02	; lookup_table
-	dc.b $02,$02,$03,$03,$03,$03,$03,$03,$04,$04,$04,$04,$04,$04,$05,$05	; lookup_table
-	dc.b $05,$05,$05,$05,$06,$06,$06,$06,$06,$06,$07,$07,$07,$07,$07,$07	; lookup_table
-	dc.b $08,$08,$08,$08,$08,$08,$09,$09,$09,$09,$09,$09,$0A,$0A,$0A,$0A	; lookup_table
-	dc.b $0A,$0A,$0B,$0B,$0B,$0B,$0B,$0B,$0C,$0C,$0C,$0C,$0C,$0C,$0D,$0D	; lookup_table
-	dc.b $0D,$0D,$0D,$0D,$0E,$0E,$0E,$0E,$0E,$0E,$0F,$0F,$0F,$0F,$0F,$0F	; lookup_table
-	dc.b $10,$10,$10,$10,$10,$10,$11,$11,$11,$11,$11,$11	; lookup_table
-abs_0_00018632:
-	dc.b "DIRE",$00
-	dc.b "POOR",$00
-	dc.b "FAIR",$00
-	dc.b "GOOD",$00
-	dc.b "DEAD",$00
+health_grade_rgb12_table:
+	dc.w $0800,$0A00,$0C00,$0E00,$0420,$0640,$0860,$0A80	; health_grade_colors
+	dc.w $0840,$0A60,$0C80,$0E80,$0888,$0AAA,$0CCC,$0EEE	; health_grade_colors
+	dc.w $006E	; health_grade_colors
+health_grade_rgb12_raw_suffix:
+	dc.w $006E,$006E,$006E	; health_grade_colors
+health_grade_index_table:
+	dc.b $00	; lookup_table
+	dc.b $00,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$02,$02,$02,$02,$02
+	dc.b $02,$03,$03,$03,$03,$03,$03,$04,$04,$04,$04,$04,$04,$05,$05,$05
+	dc.b $05,$05,$05,$06,$06,$06,$06,$06,$06,$07,$07,$07,$07,$07,$07,$08
+	dc.b $08,$08,$08,$08,$08,$09,$09,$09,$09,$09,$09,$0A,$0A,$0A,$0A,$0A
+	dc.b $0A,$0B,$0B,$0B,$0B,$0B,$0B,$0C,$0C,$0C,$0C,$0C,$0C,$0D,$0D,$0D
+	dc.b $0D,$0D,$0D,$0E,$0E,$0E,$0E,$0E,$0E,$0F,$0F,$0F,$0F,$0F,$0F,$10
+health_grade_index_raw_suffix:
+	dc.b $10,$10,$10,$10,$10,$11,$11,$11,$11,$11,$11	; health_grade_lookup
+health_status_text_records:
+	dc.b 'D','I','R','E',$00	; health_status_strings
+health_status_poor:
+	dc.b 'P','O','O','R',$00	; health_status_strings
+health_status_fair:
+	dc.b 'F','A','I','R',$00	; health_status_strings
+health_status_good:
+	dc.b 'G','O','O','D',$00	; health_status_strings
+health_status_dead:
+	dc.b 'D','E','A','D',$00	; health_status_strings
 	dc.b $00
 abs_0_0001864C:
 	clr.w d0
@@ -7349,10 +7394,10 @@ abs_0_000186F4:
 	bclr.b #0,$000A(a0)
 	bset.b #1,$0048(a5)
 	bsr.w restore_world_object_position_state
-	move.b #$46,app_game_exit_service_ticks_remaining(a6)
+	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	clr.w $003C(a5)
-	lea.l abs_0_000132D6.l,a4
-	bsr.w abs_0_00018544
+	lea.l player_health_overlay.l,a4
+	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
 	jsr abs_0_0005D31A.l
 abs_0_0001874E:
@@ -7471,8 +7516,8 @@ abs_0_00018864:
 	clr.b d0
 abs_0_0001887C:
 	move.b d0,world_object_shared_prefix_hit_points+1(a5)
-	lea.l abs_0_000132D6.l,a4
-	bsr.w abs_0_00018544
+	lea.l player_health_overlay.l,a4
+	bsr.w draw_object_health_status
 	move.b #$1F,app_02CE(a6)
 	move.w #$32,app_02D0(a6)
 abs_0_00018896:
@@ -7490,7 +7535,7 @@ abs_0_000188BC:
 	lea.l player_world_object.l,a4
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
-	move.b #$46,app_game_exit_service_ticks_remaining(a6)
+	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	jsr enqueue_game_outcome_and_rank_messages.l
 	lea.l abs_0_0005C5B6.l,a0
 	move.l a0,$004E(a4)
@@ -7498,8 +7543,8 @@ abs_0_000188BC:
 	move.l a1,$0000(a0)
 	move.l a1,$0004(a0)
 	movea.l a4,a5
-	lea.l abs_0_000132D6.l,a4
-	bsr.w abs_0_00018544
+	lea.l player_health_overlay.l,a4
+	bsr.w draw_object_health_status
 	jsr restore_world_object_position_state.l
 	bset.b #1,$0048(a5)
 	bra.w abs_0_0001884E
@@ -8310,7 +8355,7 @@ abs_0_00019770:
 	moveq.l #1,d0
 	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
-	jmp abs_0_0005C994.l
+	jmp announce_escape_and_inhibit_movement.l
 abs_0_000197D0:
 	cmp.w #TILE_ID_TERMINAL_B,d0
 	beq.w run_terminal_modal_loop
@@ -8561,7 +8606,7 @@ abs_0_00019A96:
 	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #0,d0
 	moveq.l #24,d1
-	bsr.w abs_0_00016126
+	bsr.w set_text_cursor_in_overlay_plane
 	move.l a0,app_01EC(a6)
 	clr.b app_020B(a6)
 	bsr.w abs_0_00016146
@@ -9481,6 +9526,7 @@ eight_row_glyph_records:
 	dc.b $00,$66,$66,$66,$3C,$3C,$18,$00,$00,$63,$63,$6B,$6B,$7F,$6B,$00
 	dc.b $00,$66,$66,$3C,$3C,$66,$66,$00,$00,$66,$66,$7E,$06,$06,$7E,$00
 	dc.b $00,$7E,$0E,$1C,$38,$7E,$7E,$00
+abs_0_0001AABA:
 	dc.b "LIFE",$00
 	dc.b "DIST",$00
 	dc.b "CHAR",$00
@@ -9490,7 +9536,9 @@ eight_row_glyph_records:
 	dc.b "9999",$00
 	dc.b "BODY",$00
 	dc.b "HOLDING",$00
-	dc.b $48,$49,$54,$00,$45,$4E,$4D,$59,$00
+	dc.b $48,$49,$54,$00
+abs_0_0001AAF9:
+	dc.b $45,$4E,$4D,$59,$00
 abs_0_0001AAFE:
 	dc.b $00,$06,$38,$00,$44,$00,$44,$00,$44,$00,$44,$00,$38,$00,$00,$00
 	dc.b $00,$04,$20,$00,$60,$00,$20,$00,$20,$00,$20,$00,$70,$00,$00,$00
@@ -18071,7 +18119,8 @@ abs_0_0005AF90:
 	dcb.b $9,$00
 	dc.b $05,$AF,$24,$00,$05,$AF,$24,$00,$05,$AF,$36,$00,$05,$AF,$48,$00
 	dc.b $05,$AF,$5A,$00,$05,$AF,$6C
-abs_0_0005AFFA:
+    ; Install initial player/fixed animation nodes and coordinates. Positive-X shares a long with player state; scripts may replace frame sequences. No alias-lifetime or allocation guarantee.
+initialize_player_and_fixed_animation_nodes:
 	lea.l player_position_state_interaction_data_ptr.l,a0
 	lea.l player_position_state_state_node_ptr.l,a4
 	move.l a0,(a4)	; operand 2: world_position_state_record_state_node_ptr at (a4)
@@ -19017,81 +19066,241 @@ player_world_object_world_object_flags:
 	dc.b $00	; initial_item_state
 	dc.l $00000000	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
+abs_0_0005C376:
 	dc.b $00,$03,$15,$28,$00,$07,$DB,$00,$00,$02,$00,$1E,$00,$0E,$00,$07
-	dc.b $00,$00,$00,$03,$03,$28,$00,$07,$D6,$80,$00,$02,$00,$1E,$00,$18
-	dc.b $00,$02,$00,$00,$00,$03,$05,$28,$00,$07,$D7,$00,$00,$02,$00,$1D
-	dc.b $00,$1C,$00,$03,$00,$00,$00,$03,$07,$28,$00,$07,$D7,$80,$00,$02
-	dc.b $00,$1D,$00,$12,$00,$07,$00,$00,$00,$03,$09,$28,$00,$07,$D8,$00
-	dc.b $00,$02,$00,$1E,$00,$13,$00,$07,$00,$00,$00,$03,$0B,$28,$00,$07
-	dc.b $D8,$80,$00,$02,$00,$1D,$00,$1B,$00,$02,$00,$00,$00,$03,$0D,$28
-	dc.b $00,$07,$D9,$00,$00,$02,$00,$1E,$00,$13,$00,$06,$00,$00,$00,$03
-	dc.b $0F,$28,$00,$07,$D9,$80,$00,$02,$00,$1E,$00,$11,$00,$07,$00,$00
-abs_0_0005C406:
-	dc.b $00,$03,$17,$28,$00,$07,$DB,$80,$00,$02,$00,$1E,$00,$0E,$00,$0B
 	dc.b $00,$00
-abs_0_0005C418:
-	dc.b $00,$02,$F5,$28,$00,$07,$D0,$00,$00,$02,$00,$1E,$00,$17,$00,$07
-	dc.b $00,$00
-abs_0_0005C42A:
-	dc.b $00,$02,$F7,$28,$00,$07,$D0,$80,$00,$02,$00,$1D,$00,$1C,$00,$01
-	dc.b $00,$00
-abs_0_0005C43C:
-	dc.b $00,$02,$F9,$28,$00,$07,$D1,$00,$00,$02,$00,$1D,$00,$12,$00,$07
-	dc.b $00,$00
-abs_0_0005C44E:
-	dc.b $00,$02,$FB,$28,$00,$07,$D1,$80,$00,$02,$00,$1E,$00,$13,$00,$06
-	dc.b $00,$00
-abs_0_0005C460:
-	dc.b $00,$02,$FD,$28,$00,$07,$D2,$00,$00,$02,$00,$1D,$00,$1B,$00,$03
-	dc.b $00,$00
-abs_0_0005C472:
-	dc.b $00,$02,$FF,$28,$00,$07,$D2,$80,$00,$02,$00,$1E,$00,$13,$00,$07
-	dc.b $00,$00
-abs_0_0005C484:
-	dc.b $00,$03,$01,$28,$00,$07,$D3,$00,$00,$02,$00,$1D,$00,$12,$00,$07
-	dc.b $00,$00
-abs_0_0005C496:
-	dc.b $00,$03,$11,$28,$00,$07,$DA,$00,$00,$02,$00,$20,$00,$1C,$00,$02
-	dc.b $00,$00
-abs_0_0005C4A8:
-	dc.b $00,$02,$E9,$28,$00,$07,$D3,$80,$00,$02,$00,$20,$00,$1C,$00,$02
-	dc.b $00,$00
-abs_0_0005C4BA:
-	dc.b $00,$02,$EB,$28,$00,$07,$D4,$00,$00,$02,$00,$1F,$00,$1C,$00,$02
-	dc.b $00,$00
-abs_0_0005C4CC:
-	dc.b $00,$02,$ED,$28,$00,$07,$D4,$80,$00,$02,$00,$20,$00,$1C,$00,$02
-	dc.b $00,$00
-abs_0_0005C4DE:
-	dc.b $00,$02,$EF,$28,$00,$07,$D5,$00,$00,$02,$00,$20,$00,$1C,$00,$02
-	dc.b $00,$00
-abs_0_0005C4F0:
-	dc.b $00,$02,$F1,$28,$00,$07,$D5,$80,$00,$02,$00,$1F,$00,$1C,$00,$02
-	dc.b $00,$00
-abs_0_0005C502:
-	dc.b $00,$02,$F3,$28,$00,$07,$D6,$00,$00,$02,$00,$20,$00,$1C,$00,$02
-	dc.b $00,$00
-abs_0_0005C514:
-	dc.b $00,$03,$13,$28,$00,$07,$DA,$80,$00,$02,$00,$1E,$00,$18,$00,$04
-	dc.b $00,$00
-abs_0_0005C526:
-	dc.b $00,$02,$DD,$28,$00,$06,$9B,$6C,$00,$02,$00,$20,$00,$16,$00,$04
-	dc.b $00,$00
-abs_0_0005C538:
-	dc.b $00,$02,$DF,$28,$00,$06,$9B,$EC,$00,$02,$00,$20,$00,$18,$00,$04
-	dc.b $00,$00
-abs_0_0005C54A:
-	dc.b $00,$02,$E1,$28,$00,$06,$9C,$6C,$00,$02,$00,$20,$00,$18,$00,$04
-	dc.b $00,$00
-abs_0_0005C55C:
-	dc.b $00,$02,$E3,$28,$00,$06,$9C,$EC,$00,$02,$00,$20,$00,$18,$00,$04
-	dc.b $00,$00
-abs_0_0005C56E:
-	dc.b $00,$02,$E5,$28,$00,$06,$9D,$6C,$00,$02,$00,$20,$00,$18,$00,$04
-	dc.b $00,$00
-abs_0_0005C580:
-	dc.b $00,$02,$E7,$28,$00,$06,$9D,$EC,$00,$02,$00,$20,$00,$18,$00,$04
-	dc.b $00,$00
+player_move_positive_x_cycling_geometry_frames:
+	dc.l $00030328	; bitplane_data_ptr
+	dc.l $0007D680	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C39A:
+	dc.b $00,$03,$05,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D7,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001D	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0003	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C3AC:
+	dc.l $00030728	; bitplane_data_ptr
+	dc.l $0007D780	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001D	; frame_height
+	dc.w $0012	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C3BE:
+	dc.b $00,$03,$09,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D8,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0013	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C3D0:
+	dc.l $00030B28	; bitplane_data_ptr
+	dc.l $0007D880	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001D	; frame_height
+	dc.w $001B	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C3E2:
+	dc.b $00,$03,$0D,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D9,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0013	; frame_width
+	dc.w $0006	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C3F4:
+	dc.l $00030F28	; bitplane_data_ptr
+	dc.l $0007D980	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0011	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames:
+	dc.b $00,$03,$17,$28	; bitplane_data_ptr
+	dc.b $00,$07,$DB,$80	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $000E	; frame_width
+	dc.w $000B	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames_bitplane_data_ptr_1:
+	dc.l $0002F528	; bitplane_data_ptr
+	dc.l $0007D000	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0017	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames_bitplane_data_ptr_2:
+	dc.b $00,$02,$F7,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D0,$80	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001D	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0001	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames_bitplane_data_ptr_3:
+	dc.l $0002F928	; bitplane_data_ptr
+	dc.l $0007D100	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001D	; frame_height
+	dc.w $0012	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames_bitplane_data_ptr_4:
+	dc.b $00,$02,$FB,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D1,$80	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0013	; frame_width
+	dc.w $0006	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames_bitplane_data_ptr_5:
+	dc.l $0002FD28	; bitplane_data_ptr
+	dc.l $0007D200	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001D	; frame_height
+	dc.w $001B	; frame_width
+	dc.w $0003	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames_bitplane_data_ptr_6:
+	dc.b $00,$02,$FF,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D2,$80	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0013	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_x_geometry_frames_bitplane_data_ptr_7:
+	dc.l $00030128	; bitplane_data_ptr
+	dc.l $0007D300	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001D	; frame_height
+	dc.w $0012	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
+player_move_positive_y_geometry_frames:
+	dc.b $00,$03,$11,$28	; bitplane_data_ptr
+	dc.b $00,$07,$DA,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+player_move_positive_y_geometry_frames_bitplane_data_ptr_1:
+	dc.l $0002E928	; bitplane_data_ptr
+	dc.l $0007D380	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+player_move_positive_y_geometry_frames_bitplane_data_ptr_2:
+	dc.b $00,$02,$EB,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D4,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001F	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+player_move_positive_y_geometry_frames_bitplane_data_ptr_3:
+	dc.l $0002ED28	; bitplane_data_ptr
+	dc.l $0007D480	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+player_move_positive_y_geometry_frames_bitplane_data_ptr_4:
+	dc.b $00,$02,$EF,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D5,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+player_move_positive_y_geometry_frames_bitplane_data_ptr_5:
+	dc.l $0002F128	; bitplane_data_ptr
+	dc.l $0007D580	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001F	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+player_move_positive_y_geometry_frames_bitplane_data_ptr_6:
+	dc.b $00,$02,$F3,$28	; bitplane_data_ptr
+	dc.b $00,$07,$D6,$00	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $001C	; frame_width
+	dc.w $0002	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_y_geometry_frames:
+	dc.l $00031328	; bitplane_data_ptr
+	dc.l $0007DA80	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0004	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_y_geometry_frames_bitplane_data_ptr_1:
+	dc.b $00,$02,$DD,$28	; bitplane_data_ptr
+	dc.b $00,$06,$9B,$6C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0016	; frame_width
+	dc.w $0004	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_y_geometry_frames_bitplane_data_ptr_2:
+	dc.l $0002DF28	; bitplane_data_ptr
+	dc.l $00069BEC	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0004	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_y_geometry_frames_bitplane_data_ptr_3:
+	dc.b $00,$02,$E1,$28	; bitplane_data_ptr
+	dc.b $00,$06,$9C,$6C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0004	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_y_geometry_frames_bitplane_data_ptr_4:
+	dc.l $0002E328	; bitplane_data_ptr
+	dc.l $00069CEC	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0004	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_y_geometry_frames_bitplane_data_ptr_5:
+	dc.b $00,$02,$E5,$28	; bitplane_data_ptr
+	dc.b $00,$06,$9D,$6C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0004	; x_offset
+	dc.w $0000	; y_offset
+player_move_negative_y_geometry_frames_bitplane_data_ptr_6:
+	dc.l $0002E728	; bitplane_data_ptr
+	dc.l $00069DEC	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0018	; frame_width
+	dc.w $0004	; x_offset
+	dc.w $0000	; y_offset
 abs_0_0005C592:
 	dc.b $00,$04,$76,$38,$00,$06,$5E,$98,$00,$04,$00,$20,$00,$40,$00,$00
 	dc.b $00,$00,$00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$20,$00,$20
@@ -19144,10 +19353,29 @@ player_position_state_state_node_ptr:
 	dc.b $02	; world_object_flags
 player_position_state_interaction_data_ptr:
 	dc.l player_position_descriptor	; interaction_data_ptr
-	dc.b $07,$40,$00,$05,$C7,$56
-	dcb.b $9,$00
-	dc.b $05,$C3,$76,$00,$05,$C3,$88,$00,$05,$C3,$9A,$00,$05,$C3,$AC,$00
-	dc.b $05,$C3,$BE,$00,$05,$C3,$D0,$00,$05,$C3,$E2,$00,$05,$C3,$F4
+player_move_positive_x_animation_frame_count:
+	dc.b $07	; animation_node_suffix
+player_move_positive_x_animation_phase_step:
+	dc.b $40	; animation_node_suffix
+player_move_positive_x_animation_frame_sequence_ptr:
+	dc.l $0005C756	; animation_node_suffix
+player_move_positive_x_animation_mode_flags:
+	dc.b $00	; animation_node_suffix
+player_move_positive_x_animation_unknown_byte:
+	dc.b $00	; animation_node_suffix
+player_move_positive_x_animation_xy_sequence_ptr:
+	dc.l $00000000	; animation_node_suffix
+player_move_positive_x_animation_frame_index_and_phase:
+	dc.w $0000	; animation_node_suffix
+player_move_positive_x_frames:
+	dc.l abs_0_0005C376	; animation_frame_pointers
+	dc.l player_move_positive_x_cycling_geometry_frames
+	dc.l abs_0_0005C39A
+	dc.l abs_0_0005C3AC
+	dc.l abs_0_0005C3BE
+	dc.l abs_0_0005C3D0
+	dc.l abs_0_0005C3E2
+	dc.l abs_0_0005C3F4
 player_move_negative_x_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $07	; frame_count
@@ -19159,14 +19387,14 @@ player_move_negative_x_animation_gap_B:
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 player_move_negative_x_frames:
-	dc.l abs_0_0005C406	; frame_ptr
-	dc.l abs_0_0005C418	; frame_ptr
-	dc.l abs_0_0005C42A	; frame_ptr
-	dc.l abs_0_0005C43C	; frame_ptr
-	dc.l abs_0_0005C44E	; frame_ptr
-	dc.l abs_0_0005C460	; frame_ptr
-	dc.l abs_0_0005C472	; frame_ptr
-	dc.l abs_0_0005C484	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_1	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_2	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_3	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_4	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_5	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_6	; frame_ptr
+	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_7	; frame_ptr
 player_move_positive_y_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $06	; frame_count
@@ -19178,13 +19406,13 @@ player_move_positive_y_animation_gap_B:
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 player_move_positive_y_frames:
-	dc.l abs_0_0005C496	; frame_ptr
-	dc.l abs_0_0005C4A8	; frame_ptr
-	dc.l abs_0_0005C4BA	; frame_ptr
-	dc.l abs_0_0005C4CC	; frame_ptr
-	dc.l abs_0_0005C4DE	; frame_ptr
-	dc.l abs_0_0005C4F0	; frame_ptr
-	dc.l abs_0_0005C502	; frame_ptr
+	dc.l player_move_positive_y_geometry_frames	; frame_ptr
+	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_1	; frame_ptr
+	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_2	; frame_ptr
+	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_3	; frame_ptr
+	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_4	; frame_ptr
+	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_5	; frame_ptr
+	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_6	; frame_ptr
 player_move_negative_y_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $06	; frame_count
@@ -19196,13 +19424,13 @@ player_move_negative_y_animation_gap_B:
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 player_move_negative_y_frames:
-	dc.l abs_0_0005C514	; frame_ptr
-	dc.l abs_0_0005C526	; frame_ptr
-	dc.l abs_0_0005C538	; frame_ptr
-	dc.l abs_0_0005C54A	; frame_ptr
-	dc.l abs_0_0005C55C	; frame_ptr
-	dc.l abs_0_0005C56E	; frame_ptr
-	dc.l abs_0_0005C580	; frame_ptr
+	dc.l player_move_negative_y_geometry_frames	; frame_ptr
+	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_1	; frame_ptr
+	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_2	; frame_ptr
+	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_3	; frame_ptr
+	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_4	; frame_ptr
+	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_5	; frame_ptr
+	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_6	; frame_ptr
 	dc.b $00,$05,$5C,$60,$00,$06,$9B,$12,$00,$01,$00,$18,$00,$10,$00,$00
 	dc.b $00,$00,$00,$05,$5D,$20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10
 	dc.b $00,$00,$00,$00,$00,$05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04
@@ -19235,9 +19463,15 @@ abs_0_0005C96E:
 abs_0_0005C97A:
 	dcb.b $C,$00
 	dc.b $FF,$F0,$FF,$FC,$00,$05,$C9,$6E,$00,$00,$00,$00,$00,$00
-abs_0_0005C994:
-	dc.b $61,$00,$00,$18,$50,$EE,$02,$D8,$08,$EE,$00,$03,$03,$3C,$66,$06
-	dc.b $1D,$7C,$00,$46,$02,$CC,$4E,$75
+    ; Announce outcome, inhibit player movement, then test-and-set escape bit. Reload 70 only if it was clear; the known escape caller pre-sets it, preserving the inherited delay.
+announce_escape_and_inhibit_movement:
+	bsr.w enqueue_game_outcome_and_rank_messages
+	st.b app_player_movement_commit_inhibited(a6)
+	bset.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
+	bne.b abs_0_0005C9AA
+	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
+abs_0_0005C9AA:
+	rts
 abs_0_0005C9AC:
 	rts
     ; Announce once. Self-destruct state and the Earth deadline select the outcome; escape plus deposited/carried salvage chooses salvage or defeat rank. Counting is cumulative and byte-sized.
