@@ -125,8 +125,11 @@ def test_capture_register_relative_and_bounds():
 def test_capture_status_register_observes_carry_without_accepting_other_controls():
     c = Client()
     c.regs["sr"] = 0x2001
-    assert runtime.capture_scenario_state(c, {"registers": ["a5", "sr"]})["registers"] == {
-        "a5": "0x00002000", "sr": "0x00002001",
+    assert runtime.capture_scenario_state(c, {"registers": ["a5", "sr"]})[
+        "registers"
+    ] == {
+        "a5": "0x00002000",
+        "sr": "0x00002001",
     }
     for name in ("pc", "ccr", "control"):
         with pytest.raises(ValueError, match="Capture"):
@@ -410,3 +413,140 @@ def test_marker_write_only_stops_on_first_write_and_polling_avoids_watch():
     c.memory[0x5000:0x5004] = b"HAND"
     assert runtime.wait_for_marker(c, 0x5000, b"HAND", 1, write_watch=False)["matched"]
     assert not any(k == "break.add" for k, _ in c.calls)
+
+
+class OccurrenceClient(Client):
+    def __init__(self, payload, clock=None):
+        super().__init__(payload)
+        self.visits = 0
+        self.steps = 0
+        self.clock = clock
+        self.timeouts = []
+
+    def request(self, method, params=None, *, timeout=None):
+        if method == "step":
+            self.calls.append((method, params))
+            self.steps += 1
+            self.regs["pc"] += 2
+            if self.clock is not None:
+                self.clock[0] += 0.1
+            return {"reason": "step"}
+        return super().request(method, params)
+
+    def run_until(self, params, timeout):
+        self.timeouts.append(timeout)
+        # A run at the already-matching PC makes no progress, matching the real
+        # isolated Copperline transport probe. Only departed visits are counted.
+        if self.regs["pc"] != params["pc"]:
+            self.visits += 1
+            self.regs["d0"] = self.visits
+        if self.clock is not None:
+            self.clock[0] += 0.41
+        return super().run_until(params, timeout)
+
+
+def counted_scenario(count=3):
+    s = scenario()
+    s["phases"] = [s["phases"][0]]
+    s["input_events"] = []
+    s["phases"][0].update(
+        stable_key="s0:00000200:instruction",
+        occurrences=count,
+        capture_first=True,
+        capture={"registers": ["d0"]},
+    )
+    return s
+
+
+def test_occurrences_depart_and_validate_each_visit_with_first_and_last_capture(
+    tmp_path, monkeypatch
+):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    identities = []
+    original = runtime.payload_at_pc
+
+    def identify(*args):
+        identities.append(c.visits)
+        return original(*args)
+
+    monkeypatch.setattr(runtime, "payload_at_pc", identify)
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["status"] == "hit"
+    assert phase["occurrences_observed"] == phase["occurrences_requested"] == 3
+    assert identities == [1, 2, 3] and c.steps == 2
+    assert phase["first_capture"]["registers"]["d0"] == "0x00000001"
+    assert phase["capture"]["registers"]["d0"] == "0x00000003"
+    assert "visits" not in phase  # No unbounded per-visit capture list.
+
+
+def test_consecutive_matching_phases_depart_before_first_counted_visit(tmp_path):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    s = counted_scenario(1)
+    second = dict(s["phases"][0], name="next", occurrences=2)
+    s["phases"].append(second)
+    result = runtime.run_scenario(c, s, p)["phases"]
+    assert [x["occurrences_observed"] for x in result] == [1, 2]
+    assert c.visits == 3 and c.steps == 2
+
+
+def test_occurrence_budget_is_shared_and_partial_last_capture_survives(
+    tmp_path, monkeypatch
+):
+    p = payload(tmp_path)
+    clock = [0.0]
+    monkeypatch.setattr(runtime.time, "monotonic", lambda: clock[0])
+    c = OccurrenceClient(p.read_bytes(), clock)
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["status"] == "timeout" and phase["termination"] == "phase_deadline"
+    assert phase["occurrences_observed"] == 2 and len(c.timeouts) == 2
+    assert c.timeouts[1] < c.timeouts[0]
+    assert phase["capture"]["registers"]["d0"] == "0x00000002"
+    assert c.calls[-2:] == [("joy", {"port": 1}), ("joy", {"port": 2})]
+
+
+def test_occurrence_identity_failure_does_not_count_or_capture_wrong_visit(
+    tmp_path, monkeypatch
+):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    original = runtime.payload_at_pc
+
+    def identify(*args):
+        result = original(*args)
+        if c.visits == 2:
+            result["payload_offset"] = "0x202"
+        return result
+
+    monkeypatch.setattr(runtime, "payload_at_pc", identify)
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["termination"] == "payload_identity_mismatch"
+    assert phase["occurrences_observed"] == 1 and c.visits == 2
+    assert phase["capture"]["registers"]["d0"] == "0x00000001"
+
+
+def test_occurrence_unchanged_pc_fails_after_one_departure_attempt(tmp_path):
+    p = payload(tmp_path)
+
+    class Parked(OccurrenceClient):
+        def request(self, method, params=None, *, timeout=None):
+            if method == "step":
+                self.steps += 1
+                return {"reason": "step"}
+            return super().request(method, params, timeout=timeout)
+
+    c = Parked(p.read_bytes())
+    c.regs["pc"] = 0x1200
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["termination"] == "pc_departure_failed"
+    assert c.steps == 1 and c.visits == phase["occurrences_observed"] == 0
+
+
+@pytest.mark.parametrize("value", [0, 65, True, "2", 1.5])
+def test_occurrences_reject_invalid_bounds_at_runtime(tmp_path, value):
+    p = payload(tmp_path)
+    with pytest.raises(ValueError, match="occurrences"):
+        runtime.run_scenario(
+            OccurrenceClient(p.read_bytes()), counted_scenario(value), p
+        )

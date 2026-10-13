@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "emulator": "Copperline 1.0.0",
+  "execution_contract": "pandora direct payload",
+  "original_bytes": 376832,
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "generated_source_sha256": "30a68b6aae2fb74bf649b9bec2b9e2467a60041aa91af4af5d3cfc29b56d0d53",
+  "unchanged_c_vasm_receipt": "0ae4dda5723549d0622415b96214d0700fbcb1b9113196f022c8c8cb3353626d",
+  "scenario": "runtime/scenarios/pandora-nearby-interaction-callback.json",
+  "scenario_sha256": "a352fff8d11725767b4773a0453ce32ba7581d3e3b93c3e13cc52bbb92aa1dcb",
+  "source_mapping": {
+    "source_start": 0,
+    "source_end": 349040,
+    "runtime_base": 65536
+  },
+  "records": [
+    {
+      "fresh_boot": 1,
+      "all_checkpoint_identities_match": true,
+      "selected_card_id": 54,
+      "player_undefeated": true,
+      "initial_xy": [
+        241,
+        866
+      ],
+      "downward_visits": 19,
+      "downward_endpoint": [
+        241,
+        942
+      ],
+      "rightward_visits": 20,
+      "rightward_endpoint": [
+        381,
+        942
+      ],
+      "npc_xy": [
+        384,
+        1026
+      ],
+      "nearest_distance": 87,
+      "call_source_key": "s0:000083FE:instruction",
+      "return_source_key": "s0:00008400:instruction",
+      "call_a5": "0x0005b728",
+      "return_a5": "0x0005b728",
+      "call_a0": "0x0005d568",
+      "return_a0": "0x0005cfb4",
+      "call_sr": "0x00002000",
+      "return_sr": "0x00002008",
+      "return_carry": false,
+      "callback_and_message_cells_unchanged": true,
+      "cooldown_unchanged": true
+    },
+    {
+      "fresh_boot": 2,
+      "all_checkpoint_identities_match": true,
+      "selected_card_id": 54,
+      "player_undefeated": true,
+      "initial_xy": [
+        241,
+        866
+      ],
+      "downward_visits": 19,
+      "downward_endpoint": [
+        241,
+        942
+      ],
+      "rightward_visits": 20,
+      "rightward_endpoint": [
+        381,
+        942
+      ],
+      "npc_xy": [
+        384,
+        1026
+      ],
+      "nearest_distance": 87,
+      "call_source_key": "s0:000083FE:instruction",
+      "return_source_key": "s0:00008400:instruction",
+      "call_a5": "0x0005b728",
+      "return_a5": "0x0005b728",
+      "call_a0": "0x0005d568",
+      "return_a0": "0x0005cfb4",
+      "call_sr": "0x00002000",
+      "return_sr": "0x00002008",
+      "return_carry": false,
+      "callback_and_message_cells_unchanged": true,
+      "cooldown_unchanged": true
+    }
+  ],
+  "scope": [
+    "Observed initialized diabetic callback, ordinary card-selected carry-clear path only",
+    "No treatment or queue acceptance observation",
+    "No runtime coverage claim for the other sixteen callbacks",
+    "No future target-set, alias-write or lifetime closure",
+    "Original source and canonical histories unchanged",
+    "Debugger departure steps and boot handoff marker release are instrumentation; no target register or gameplay memory forcing",
+    "No original disk/loader or alternate-layout parity claim"
+  ]
+}

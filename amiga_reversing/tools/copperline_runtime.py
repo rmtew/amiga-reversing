@@ -61,10 +61,13 @@ def capture_scenario_state(client, capture):
         not isinstance(names, list)
         or len(names) > 17
         or any(
-            not isinstance(n, str) or not re.fullmatch("(?:[ad][0-7]|sr)", n) for n in names
+            not isinstance(n, str) or not re.fullmatch("(?:[ad][0-7]|sr)", n)
+            for n in names
         )
     ):
-        raise ValueError("Capture requires at most 17 valid 68000 registers, including sr")
+        raise ValueError(
+            "Capture requires at most 17 valid 68000 registers, including sr"
+        )
     if not isinstance(reads, list) or len(reads) > 64:
         raise ValueError("Capture requires at most 64 memory reads")
     regs = client.registers()
@@ -258,6 +261,107 @@ def release_handoff(client, contract):
     }
 
 
+def _run_scenario_phase(
+    client, phase, payload_path, symbols, function, *, depart_current=False
+):
+    address, seconds = phase.get("breakpoint_address"), phase.get("wait_seconds")
+    occurrences = phase.get("occurrences", 1)
+    capture_first = phase.get("capture_first", False)
+    if type(occurrences) is not int or not 1 <= occurrences <= 64:
+        raise ValueError("Scenario occurrences must be an integer from 1 to 64")
+    if type(capture_first) is not bool:
+        raise ValueError("Scenario capture_first must be boolean")
+    counted = "occurrences" in phase or capture_first or depart_current
+    if counted and not isinstance(phase.get("stable_key"), str):
+        raise ValueError("Occurrence capture requires a canonical source-row phase")
+    if type(seconds) not in (int, float) or not 0 < seconds <= 120:
+        raise ValueError("Scenario phase wait must be from 0 to 120 seconds")
+    deadline = time.monotonic() + seconds
+    item = {
+        "name": phase["name"],
+        "stable_key": phase.get("stable_key"),
+        "capture": None,
+        "resolved_function": None,
+        "occurrences_requested": occurrences,
+        "occurrences_observed": 0,
+        "first_visit": None,
+        "last_visit": None,
+    }
+    if capture_first:
+        item["first_capture"] = None
+    for visit in range(occurrences):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+        if (occurrences > 1 or depart_current or visit > 0) and client.registers()[
+            "pc"
+        ] == address:
+            try:
+                stop = client.request("step", {"n": 1}, timeout=remaining)
+            except CopperlineTimeout:
+                item.update(status="timeout", termination="phase_deadline")
+                break
+            regs = client.registers()
+            if stop.get("reason") != "step" or regs["pc"] == address:
+                item.update(
+                    status="not_hit",
+                    termination="pc_departure_failed",
+                    pc=f"0x{regs['pc']:08x}",
+                )
+                break
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+        item.update(wait_for_pc(client, address, remaining if counted else seconds))
+        if item["status"] != "hit":
+            break
+        detection = payload_at_pc(client, payload_path, address)
+        item["payload"] = detection
+        offset = phase.get("source_offset")
+        if detection["status"] != "pc_matched" or (
+            offset is not None and int(detection["payload_offset"], 0) != offset
+        ):
+            item.update(status="not_hit", termination="payload_identity_mismatch")
+            break
+        view = symbols.get("runtime_view", {})
+        expected_base = view.get("runtime_base")
+        if type(view.get("base_addr")) is int and type(view.get("source_start")) is int:
+            expected_base = view["base_addr"] - view["source_start"]
+        if (
+            expected_base is not None
+            and int(detection["runtime_base"], 0) != expected_base
+        ):
+            item.update(status="not_hit", termination="runtime_mapping_mismatch")
+            break
+        item["occurrences_observed"] += 1
+        summary = {
+            "pc": item["pc"],
+            "payload_offset": detection["payload_offset"],
+            "runtime_base": detection["runtime_base"],
+        }
+        if item["first_visit"] is None:
+            item["first_visit"] = summary
+        item["last_visit"] = summary
+        item["capture"] = capture_scenario_state(client, phase.get("capture", {}))
+        if capture_first and item["occurrences_observed"] == 1:
+            item["first_capture"] = item["capture"]
+        item["resolved_function"] = function
+        if counted and time.monotonic() > deadline:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+    if not counted:
+        for key in (
+            "occurrences_requested",
+            "occurrences_observed",
+            "first_visit",
+            "last_visit",
+        ):
+            item.pop(key)
+    return item
+
+
 def run_scenario(client, scenario, payload_path, release=None):
     phases, events = scenario.get("phases"), scenario.get("input_events", [])
     if (
@@ -313,40 +417,22 @@ def run_scenario(client, scenario, payload_path, release=None):
                 )
             if index == 0 and release is not None:
                 reverse_boundary = release()
-            item = wait_for_pc(client, address, phase.get("wait_seconds"))
-            item.update(
-                name=phase["name"],
-                stable_key=phase.get("stable_key"),
-                capture=None,
-                resolved_function=None,
+            previous = result[-1] if result else None
+            depart_current = (
+                previous is not None and previous.get("address") == f"0x{address:08x}"
+            )
+            item = _run_scenario_phase(
+                client,
+                phase,
+                payload_path,
+                symbols,
+                function,
+                depart_current=depart_current,
             )
             result.append(item)
             if item["status"] != "hit":
                 break
-            detection = payload_at_pc(client, payload_path, address)
-            item["payload"] = detection
-            offset = phase.get("source_offset")
-            if detection["status"] != "pc_matched" or (
-                offset is not None and int(detection["payload_offset"], 0) != offset
-            ):
-                item.update(status="not_hit", termination="payload_identity_mismatch")
-                break
-            view = symbols.get("runtime_view", {})
-            expected_base = view.get("runtime_base")
-            if (
-                type(view.get("base_addr")) is int
-                and type(view.get("source_start")) is int
-            ):
-                expected_base = view["base_addr"] - view["source_start"]
-            if (
-                expected_base is not None
-                and int(detection["runtime_base"], 0) != expected_base
-            ):
-                item.update(status="not_hit", termination="runtime_mapping_mismatch")
-                break
             confirmed = True
-            item["capture"] = capture_scenario_state(client, phase.get("capture", {}))
-            item["resolved_function"] = function
             next_held = {1: {}, 2: {}}
             for event in events:
                 if (

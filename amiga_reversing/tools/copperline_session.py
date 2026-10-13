@@ -209,6 +209,10 @@ def compile_scenario(
             raise ValueError("Scenario phase names must be unique non-empty strings.")
         names.add(name)
         if index == 0:
+            if "occurrences" in phase or "capture_first" in phase:
+                raise ValueError(
+                    "Occurrence capture requires a canonical source-row phase."
+                )
             if phase.get("observable") != "direct_payload_handoff":
                 raise ValueError(
                     "The first scenario phase must be the direct_payload_handoff observable."
@@ -218,6 +222,12 @@ def compile_scenario(
         wait_seconds = phase.get("wait_seconds")
         transition = phase.get("transition", "continue")
         capture = phase.get("capture", {})
+        occurrences = phase.get("occurrences", 1)
+        capture_first = phase.get("capture_first", False)
+        if type(occurrences) is not int or not 1 <= occurrences <= 64:
+            raise ValueError("Scenario occurrences must be an integer from 1 to 64.")
+        if type(capture_first) is not bool:
+            raise ValueError("Scenario capture_first must be boolean.")
         if (
             not isinstance(stable_key, str)
             or not isinstance(wait_seconds, int)
@@ -238,6 +248,10 @@ def compile_scenario(
                 "wait_seconds": wait_seconds,
                 "transition": transition,
                 "capture": capture,
+                **({"occurrences": occurrences} if "occurrences" in phase else {}),
+                **(
+                    {"capture_first": capture_first} if "capture_first" in phase else {}
+                ),
             }
         )
     phase_indexes = {

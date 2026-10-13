@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from amiga_reversing.tools import copperline_session
 
 
@@ -40,6 +42,8 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
                         "breakpoint_stable_key": "s0:00002904:instruction:2473",
                         "wait_seconds": 10,
                         "capture": {"registers": ["a4", "a5"], "memory_reads": []},
+                        "occurrences": 64,
+                        "capture_first": True,
                     },
                 ],
                 "input_events": [
@@ -90,6 +94,10 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
             "control": "port1 fire",
         }
     ]
+    assert "occurrences" not in compiled["phases"][0]
+    assert "capture_first" not in compiled["phases"][0]
+    assert compiled["phases"][1]["occurrences"] == 64
+    assert compiled["phases"][1]["capture_first"] is True
     assert json.loads(output.read_text(encoding="utf-8"))["identifier"] == "test"
 
 
@@ -380,3 +388,75 @@ def test_cli_loadseg_watch_cannot_move_after_source_breakpoint():
                 "s0:00000000:instruction",
             ]
         )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("occurrences", 0),
+        ("occurrences", 65),
+        ("occurrences", True),
+        ("occurrences", "2"),
+        ("occurrences", 1.5),
+        ("capture_first", 1),
+    ],
+)
+def test_compile_occurrences_rejects_invalid_fields_before_analysis(
+    tmp_path, monkeypatch, field, value
+):
+    phases = [
+        {"name": "boot", "observable": "direct_payload_handoff"},
+        {
+            "name": "counted",
+            "breakpoint_stable_key": "s0:00009844:instruction",
+            "wait_seconds": 20,
+            field: value,
+        },
+    ]
+    path = tmp_path / "scenario.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "identifier": "test",
+                "target_id": "pandora",
+                "phases": phases,
+            }
+        )
+    )
+
+    def no_analysis(*args):
+        raise AssertionError("Invalid occurrence request reached native analysis")
+
+    monkeypatch.setattr(
+        copperline_session, "build_project_listing_artifact_profile", no_analysis
+    )
+    with pytest.raises(ValueError, match=field):
+        copperline_session.compile_scenario("pandora", path, tmp_path / "out.json")
+
+
+def test_compile_occurrences_are_not_a_boot_handoff_counter(tmp_path):
+    path = tmp_path / "scenario.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "identifier": "test",
+                "target_id": "pandora",
+                "phases": [
+                    {
+                        "name": "boot",
+                        "observable": "direct_payload_handoff",
+                        "occurrences": 2,
+                    },
+                    {
+                        "name": "counted",
+                        "breakpoint_stable_key": "s0:00009844:instruction",
+                        "wait_seconds": 20,
+                    },
+                ],
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="source-row"):
+        copperline_session.compile_scenario("pandora", path, tmp_path / "out.json")

@@ -23,11 +23,25 @@ TARGET=amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000
 
 Repeat with `pandora-gameplay-entry.json` or
 `pandora-world-object-callback-queue.json` and a distinct state directory.
+`pandora-nearby-interaction-callback.json` waits for the entry officer's card
+transfer, counts nineteen downward and twenty rightward movement commits, then
+captures A5 and SR at the indirect interaction call and its return. Fire is
+released at UI initialization; movement starts only after the card store.
 Omit `--run` to inspect the resolved launch/scenario plan. Each runtime owns an
 isolated temporary configuration, dynamic loopback endpoint and token; it exits
 on completion or exception. No fixed port, shared config, Wine or GUI is used.
 Canonical target analysis can take around a minute before/after a run; each
 emulator run phase has its own wall deadline.
+
+Source-row phases may specify `occurrences` from 1 to 64. One `wait_seconds`
+budget covers all visits. A single instruction executes when departure from the
+already-paused PC is needed, preventing an immediate same-PC match from being
+counted again. Every visit must match original payload bytes and the canonical
+source mapping. The report retains the last accepted capture on an incomplete
+phase; `capture_first: true` also retains the first capture. Input remains held
+through the counted visits and is released at the named phase boundary or on
+failure. Visit counts alone do not establish a gameplay effect; this route also
+checks observed coordinates at its completed-move checkpoint `0x9844`.
 
 `--copperline` takes precedence over `COPPERLINE_BINARY`, the configured runtime
 path and PATH. The tool registry now exposes `copperline`; legacy `winuae` paths

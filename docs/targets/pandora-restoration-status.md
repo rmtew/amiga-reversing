@@ -35,11 +35,33 @@ and notes. Native reading of those four arrays accepts ordinary JSON indentation
 the existing schema and C ABI are unchanged. The framework/runtime checks pass
 119 focused tests, including five JSON formats and final nonobject rejection.
 
-A bounded Copperline run of the original payload reached title `0x0BA8` and UI
-initialization `0x079E`. Interaction call `0x83FE` timed out after thirty seconds
-at source `0x6F6E`, so neither its A5 preservation nor carry was dynamically
-observed. Read-only scenario capture now accepts SR for a later reachable probe.
-Alternate-layout execution remains unvalidated.
+The earlier Copperline probe released title fire but supplied no gameplay
+movement. Its timeout PC `0x6F6E` is a geometry-rendering prologue, not an input
+wait. Interaction is automatic proximity/cooldown dispatch. Starting movement
+before the officer transfers a card would trigger the ID-card failure path.
+
+Two fresh Copperline boots reproduce the nearby-interaction scenario. It waits
+for card store `0x4B13C`,
+observes selected card ID 54 and an undefeated player, then counts completed
+movement at `0x9844`. Nineteen downward and twenty rightward moves take the
+player from `(241,866)` through `(241,942)` to `(381,942)`. Static tile checks
+derive this order; it avoids the lateral drift of turning downward after moving
+horizontally. The observed nearest diabetic is at `(384,1026)`, distance 87.
+
+The call at source `0x83FE` targets `interact_with_diabetic` at runtime
+`0x5D568`. At return `0x8400`, A5 remains `0x5B728`; SR changes from `0x2000`
+to `0x2008`, leaving carry clear. The selected card is not insulin, so this
+follows the ordinary carry-clear return. The optional message pointer and
+cooldown remain unchanged across that call. Each checkpoint validates original
+payload identity and the canonical copied-view mapping. This validates one
+normal-return path, not treatment, queue acceptance, all seventeen callbacks,
+future target replacement or alternate-layout execution.
+The checked-in [scenario](../../runtime/scenarios/pandora-nearby-interaction-callback.json)
+and [compact observations](../../runtime/observations/pandora-nearby-interaction-callback.json)
+retain the inputs, identities and measured state without large trace logs.
+The seventeen new occurrence/runtime regressions bring the focused suite to
+136 passing tests. Assembly and canonical histories are unchanged by this
+runtime validation.
 
 Whole-image C and independent vasm verification matches all 376,832 original
 bytes, receipt
