@@ -14,7 +14,7 @@
         "size": 5102,
         "source_offset": 322270,
         "source_row_count": 319,
-        "source_row_id": 38003,
+        "source_row_id": 37955,
         "source_section_index": 0
       },
       {
@@ -29,7 +29,7 @@
         "size": 4634,
         "source_offset": 330532,
         "source_row_count": 290,
-        "source_row_id": 38529,
+        "source_row_id": 38481,
         "source_section_index": 0
       },
       {
@@ -44,7 +44,7 @@
         "size": 5500,
         "source_offset": 335172,
         "source_row_count": 347,
-        "source_row_id": 38824,
+        "source_row_id": 38776,
         "source_section_index": 0
       },
       {
@@ -59,7 +59,7 @@
         "size": 5300,
         "source_offset": 340678,
         "source_row_count": 332,
-        "source_row_id": 39176,
+        "source_row_id": 39128,
         "source_section_index": 0
       },
       {
@@ -74,7 +74,7 @@
         "size": 2000,
         "source_offset": 345984,
         "source_row_count": 125,
-        "source_row_id": 39513,
+        "source_row_id": 39465,
         "source_section_index": 0
       },
       {
@@ -753,6 +753,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0005504a-size-00000280",
+        "classification": "sound_sample",
+        "data_class_flags": 64,
+        "kind": "asset",
+        "name": "secondary_audio_waveform_bank",
+        "name_is_generated": false,
+        "path": "assets/secondary_audio_waveform_bank.bin",
+        "sha256": "9a6bcd8088cba44177e4116ee5ba240b63fad14d0263b42465c82f7870ec8ca6",
+        "size": 640,
+        "source_offset": 348234,
+        "source_row_count": 56,
+        "source_row_id": 39635,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-00023278-size-00000c00",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1088,11 +1103,11 @@
       {
         "kind": "source",
         "path": "pandora_3e1ee0f1_bk_00_000000e8.s",
-        "sha256": "22535a6b55279a5f9ef7966f608ba12ef0750ff90048472da2fc41846b1814e8",
-        "size": 1280772
+        "sha256": "83d4b4a00fe4fe30cc474a81d09f5d6b5eeb0632fb18ac8ea07377d7d6df4418",
+        "size": 1282714
       }
     ],
-    "metadata_hash": "08f988391b94a99fc2a70cd24b16c4496613968157c52ff22dbbfebcbce94e53",
+    "metadata_hash": "126fff936156081951894f457513d1ce11ac4fac9c01040352d83c9356e47145",
     "policy": {
       "id": "native-evidenced-opaque-v1",
       "minimum_asset_size": 256
@@ -1102,5 +1117,5 @@
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "6c287d3369c7d979cd21435382f7c3b1434c57229e69ae479ef1bed02d64614e"
+  "sha256": "d8bbf4c836dcb1f71bcf195466c8fa4abcc37a8b8c55e33a03e34411531d6570"
 }

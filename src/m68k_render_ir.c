@@ -516,7 +516,8 @@ static int append_planned_header_declarations(M68kRenderPlan *dest, const M68kRe
   return 1;
 }
 
-static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int emit_source_text) {
+static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, const M68kDecodeIR *decode,
+    int emit_source_text) {
   M68kRenderPlan final_plan;
   Arena *scratch_arena;
   char *source_text = NULL;
@@ -611,6 +612,28 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
     if (!append_asm_source_plan_row_copy(&final_plan, scratch_arena, row)) {
       m68k_render_plan_destroy(&final_plan);
       return 0;
+    }
+  }
+  /* Split rows have their own canonical span; the parent's bounded byte cache
+   * cannot supply later lines. Refill each data row from decoded source bytes. */
+  for (row_index = 0U; decode != NULL && row_index < final_plan.row_count; ++row_index) {
+    M68kRenderPlanRow *row = &final_plan.rows[row_index];
+    size_t section_index;
+    if (!row->has_source_range || !row->has_statement_metadata ||
+        row->statement_kind != M68K_STATEMENT_DATA) continue;
+    /* Unknown/no-source spans (including empty rows) carry no byte claim.
+     * In particular, never retain a copied parent cache on a missing section. */
+    row->source_byte_count = 0U;
+    m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, NULL, 0U);
+    for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+      const M68kDecodeSectionIR *section = &decode->sections[section_index];
+      if (section->section_index != row->source_section_index) continue;
+      if (section->data != NULL && row->source_offset <= section->size &&
+          row->source_size <= section->size - row->source_offset) {
+        m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL,
+          section->data + row->source_offset, row->source_size);
+      }
+      break;
     }
   }
   m68k_render_plan_free_text(preview->asm_source_text);
@@ -11383,7 +11406,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     goto cleanup;
   }
   if (render_asm_source && collect_asm_source_text && out_preview->transient_row_sink == NULL &&
-      !assemble_asm_source_plan_regions(out_preview, emit_asm_source_text)) {
+      !assemble_asm_source_plan_regions(out_preview, decode, emit_asm_source_text)) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }

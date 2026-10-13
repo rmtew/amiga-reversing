@@ -9059,10 +9059,26 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
   if (json_builder_append(builder, ",\"text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, text) != 0) return -1;
   if (stmt != NULL && stmt->source_byte_count != 0U) {
-    if (json_builder_append(builder, ",\"bytes\":") != 0) return -1;
-    if (json_builder_append_char(builder, '"') != 0) return -1;
-    if (json_builder_append_hex_bytes(builder, stmt->source_bytes, stmt->source_byte_count) != 0) return -1;
-    if (json_builder_append_char(builder, '"') != 0) return -1;
+    const uint8_t *bytes = stmt->source_bytes;
+    size_t size = stmt->source_byte_count;
+    if (has_plan_source_range && stmt->kind == M68K_STATEMENT_DATA) {
+      uint32_t delta = plan_source_offset >= stmt->offset ? plan_source_offset - stmt->offset : UINT32_MAX;
+      if (stmt->u.data.data != NULL && delta <= stmt->u.data.size &&
+          plan_source_size <= stmt->u.data.size - delta) {
+        bytes = stmt->u.data.data + delta;
+        size = plan_source_size;
+      } else if (delta <= size) {
+        bytes += delta;
+        size -= delta;
+        if (size > plan_source_size) size = plan_source_size;
+      } else size = 0U;
+    }
+    if (size != 0U) {
+      if (json_builder_append(builder, ",\"bytes\":") != 0) return -1;
+      if (json_builder_append_char(builder, '"') != 0) return -1;
+      if (json_builder_append_hex_bytes(builder, bytes, size) != 0) return -1;
+      if (json_builder_append_char(builder, '"') != 0) return -1;
+    }
   }
   if (has_addr) {
     if (json_builder_append(builder, ",\"addr\":") != 0) return -1;
@@ -9686,8 +9702,14 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     stmt = &plan_stmt;
     if (section_index >= 0) context->active_section_index = section_index;
   } else if (!is_plan_directive_subline && row != NULL && (row->has_statement || row->has_source_range)) {
-    stmt = listing_statement_for_plan_row(context->source_file, row);
-    if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
+    /* DATA plan rows carry their own span/cache after grouped rows split.
+     * The original statement may cover the entire array and start earlier. */
+    if (row->has_statement_metadata && row->statement_kind == M68K_STATEMENT_DATA &&
+        listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
+    else {
+      stmt = listing_statement_for_plan_row(context->source_file, row);
+      if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
+    }
     if (section_index >= 0) context->active_section_index = section_index;
   }
   context->current_native_direct_feature_flags = listing_native_direct_control_feature_flags(stmt,

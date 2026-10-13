@@ -194,25 +194,36 @@ self-modification. Startup copying executable bytes is already established.
 
 ## Derived subsystem ledger
 
-Latest source checkpoint (2026-10-13): three shared attachment rules cover 119
-fields (23 symbolic, 96 NULL). A separate 52-byte owner accounts for two checkpoint
-attachment states; all 439 prior layouts, including the 22-state table, remain
-unchanged. Ten catalog actions, including three consumer-view corrections, were
-independently reviewed and journal-accepted. The initial graph closes 112 prefixes
-with 23 links, no cycles and a maximum chain of three records. The established conditional consumer view retains
-field names; physical prefixes stay 26 bytes, with +26 valid only for separately
-proved tail owners. Later alias writes and lifetimes remain open. Shared empty
-inventory/offer +8/+9 fall-through aliases setup/palette scratch; original zero
-offers and clear trade-ready flags cannot arm a matching trade.
-Native pointer snapshot: 2,566 fields, 2,018 symbolic, 545 NULL, three fragments.
-Expanded C/vasm receipt `54bf90a9678802b39086b0392c37baecda441ca8a26fd743e7c0977cfb5f5f60`;
-source SHA256 `22535a6b55279a5f9ef7966f608ba12ef0750ff90048472da2fc41846b1814e8`.
-Actual compact ZIP is full-file C/vasm exact: 27 definitions, 1,497 compact records,
-754 expanded fallbacks; source SHA256 `3b4eb4322865f401a0d84274e6dad9a5a52f8fdc2e3895408cbbf1e51d7918cb`.
-All 68 assets, nine SDK includes and history prefixes remain intact; 76 focused
-tests passed. All 7,111 non-data tabbed source lines retain their previous text.
-Machine receipts: `.runtime-state/pandora-analysis/attachment-chain-followup/`.
-Remaining pointer-named scalars: 31 audio fields, plus eight separate cursors.
+Latest source checkpoint (2026-10-13): nine shared audio address rules cover
+43 initialized LONG fields, all NULL; 39 gain address semantics and four retain
+the existing sample-metadata pointer type. These domains describe supported
+consumer addresses, not observed live RAM. All 58 normal catalog actions were
+independently reviewed and journal-accepted. Three cursor/start names and the
+signed LONG sample byte offset distinguish mutable traversal from payload bases.
+Twenty-nine initializer-relative WORD references connect thirteen pitch and
+sixteen primary volume selectors; the six secondary references remain intact.
+The 72-WORD pitch multiplier table stays numeric. New owners account for a
+64-byte silence payload, a 640-byte secondary waveform bank and a 26-byte selector
+table. Configured DMA windows cover five 128-byte source slices; later or
+interleaved pointer/length writes remain open. Original program/list fixed-point
+analysis covers 858 tokens and 61 states, with pitch indices 22..58 inside the
+72-WORD table; arbitrary replacements and unchecked selectors remain open.
+All 438 unaffected layouts and 77 previous companion files retain their facts
+or bytes; two existing scalar arrays change presentation/reference facts only.
+A generic native fix exposes grouped DATA rows' own canonical bytes, enabling
+ordinary reference validation without repeating parent bytes. Forward-only
+preview spans remain unsuitable as per-line byte evidence.
+Native pointer snapshot: 2,605 fields, 2,018 symbolic, 584 NULL, three fragments.
+Expanded C/vasm receipt `42e40b103f7951b9ce4849ffdab215a2509522dac968ff765607e05fcd638052`;
+expanded source SHA256 `83d4b4a00fe4fe30cc474a81d09f5d6b5eeb0632fb18ac8ea07377d7d6df4418`.
+Actual compact ZIP is full-file C/vasm exact: 27 definitions, 1,499 compact records,
+752 expanded fallbacks; source SHA256 `585027ad1861e1ab543b1a3ed682db9a0cfc99b3f7014ccff21a9e1d68acdbe9`.
+All 69 assets match their original source ranges; nine SDK includes remain intact.
+Chromium displays 120 listing rows and the actual 2,605-field report;
+289 focused tests pass. Machine receipts and the bounded batch ledger:
+`.runtime-state/pandora-analysis/audio-pointer-followup/`.
+The preceding attachment graph retains 112 prefixes, 23 nonzero links, no cycles
+and maximum chain three; optional tails and later alias writes remain qualified.
 Native custom-prefix type joins remain a framework gap; no new runtime claim.
 
 “Unknown” below is an analysis status, not failure of exact source reproduction.
@@ -246,7 +257,7 @@ presentation, not the semantic recovery status below.
 | Inventory / trading / NPC | Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
 | Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter; decoded escape helper, six conditional 70-step reloads and distinct main/modal exit gates; fade/brain health latches | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Later delay reset/writer coverage, reachable zero/inherited states and complete writer/lifetime and domain coverage |
 | Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
-| Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; typed playback/DMA service inputs and paired feedback requests; 29 configurations and six canonical initializer-relative envelope references; eleven sample extents and mutable writers | Unchecked selector bounds; reset retains ticks and NPC pending bits, so inactive service cannot drain a pending nonzero tick count; phase and storage lifetime limits | Remaining caller/state combinations and write ownership |
+| Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; nine shared address rules distinguish 43 cold NULL bases/cursors; 29 pitch/primary-volume selector references and six secondary references; eleven sample extents, 64-byte silence and 640-byte secondary waveform owner | Original 858-token corpus yields pitch indices 22..58 within 72 WORDs; configured secondary DMA windows fit five 128-byte slices. Future selectors remain unchecked; primary/secondary marker and reload semantics differ; reset retains ticks and NPC pending bits | Mutable cursors, later/interleaved DMA writes, arbitrary replacement scripts, caller combinations and storage lifetime |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; corrected descriptor literals retain runtime aliases; two sampled tail windows lose original identity by UI entry, without proving the whole tail unused | Initializer at source $4AFFA is named; no proven uncopied-tail resource consumer and remaining purpose/bounds unknown |
 
 The native ownership snapshot immediately before the font/lifecycle batch has

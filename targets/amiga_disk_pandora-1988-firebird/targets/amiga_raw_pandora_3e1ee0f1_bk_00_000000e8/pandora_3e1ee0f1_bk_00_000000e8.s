@@ -238,14 +238,14 @@ audio_channel_playback_state_period_reset_countdown RS.B 1
 audio_channel_playback_state_period_delta_countdown RS.B 1
 audio_channel_playback_state_active RS.B 1
 audio_channel_playback_state_sequence_countdown RS.B 1
-audio_channel_playback_state_sequence_ptr RS.L 1
+audio_channel_playback_state_volume_sequence_cursor RS.L 1
     RS.B 8
 audio_channel_playback_state_SIZEOF EQU __RS
 
 ; STRUCT audio_sample_metadata
     RSRESET
 audio_sample_metadata_sample_ptr RS.L 1
-    RS.B 4
+audio_sample_metadata_sample_start_byte_offset RS.L 1
 audio_sample_metadata_sample_length RS.W 1
 audio_sample_metadata_sample_period RS.W 1
 audio_sample_metadata_SIZEOF EQU __RS
@@ -317,7 +317,7 @@ audio_channel_runtime_state_channel_flags RS.B 1
 audio_channel_runtime_state_pitch_modulation_flags RS.B 1
 audio_channel_runtime_state_current_note RS.B 1
 audio_channel_runtime_state_note_offset RS.B 1
-audio_channel_runtime_state_program_ptr RS.L 1
+audio_channel_runtime_state_program_cursor RS.L 1
 audio_channel_runtime_state_channel_configuration_offset RS.W 1
 audio_channel_runtime_state_channel_configuration_cursor_offset RS.W 1
 audio_channel_runtime_state_pitch_sequence_start_ptr RS.L 1
@@ -330,7 +330,7 @@ audio_channel_runtime_state_sample_metadata_ptr RS.L 1
 audio_channel_runtime_state_update_reload_countdown RS.W 1
 audio_channel_runtime_state_update_countdown RS.W 1
 audio_channel_runtime_state_pitch_delta_accumulator RS.W 1
-audio_channel_runtime_state_volume_sequence_ptr RS.L 1
+audio_channel_runtime_state_volume_sequence_start_ptr RS.L 1
 audio_channel_runtime_state_volume_sequence_cursor RS.L 1
 audio_channel_runtime_state_volume_sequence_interval RS.B 1
 audio_channel_runtime_state_volume_sequence_countdown RS.B 1
@@ -26038,7 +26038,7 @@ abs_0_0005D81C:
 	move.w #$2,audio_channel_runtime_state_channel_configuration_cursor_offset(a1)
 	movea.w $0(a3,a0.w),a0
 	adda.l a3,a0
-	move.l a0,audio_channel_runtime_state_program_ptr(a1)
+	move.l a0,audio_channel_runtime_state_program_cursor(a1)
 	adda.w #$30,a1
 	addq.w #2,d0
 	addq.w #1,d7
@@ -26124,7 +26124,8 @@ abs_0_0005D968:
 	move.w d7,d0
 	mulu.w #$C,d0
 	adda.w d0,a4
-	st.b $000A(a4)
+    ; KNOWN: type A4=Target code-entry register seed:audio_channel_dma_configuration
+	st.b audio_channel_dma_configuration_enabled(a4)
 	lea.l _custom.l,a6
 	move.w #$30,d0
 	mulu.w d7,d0
@@ -26133,39 +26134,40 @@ abs_0_0005D968:
 	move.w d7,d0
 	lsl.w #4,d0
 	adda.w d0,a6
-	movea.l $0004(a0),a1
-	movea.l $0018(a0),a5
-	tst.b $0016(a0)
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state
+	movea.l audio_channel_runtime_state_program_cursor(a0),a1
+	movea.l audio_channel_runtime_state_sample_metadata_ptr(a0),a5
+	tst.b audio_channel_runtime_state_sample_start_pending(a0)
 	bne.b abs_0_0005D9EC
-	st.b $0016(a0)
-	move.l $0004(a5),d0
+	st.b audio_channel_runtime_state_sample_start_pending(a0)
+	move.l audio_sample_metadata_sample_start_byte_offset(a5),d0
 	bmi.b abs_0_0005D9CE
-	movea.l $0000(a5),a2
+	movea.l audio_sample_metadata_sample_ptr.w(a5),a2
 	adda.l d0,a2
 	lsr.l #1,d0
-	move.w $0008(a5),d1
+	move.w audio_sample_metadata_sample_length(a5),d1
 	sub.w d0,d1
-	move.l a2,$0000(a4)
-	move.w d1,$0004(a4)
-	tst.b $000B(a4)
+	move.l a2,audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.w d1,audio_channel_dma_configuration_sample_length(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9CC
 	move.l a2,aud0+ac_ptr(a6)	; sound_sample pointer
 	move.w d1,aud0+ac_len(a6)
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
-	move.l audio_silence_sample_ptr(pc),$0000(a4)
-	move.w #$20,$0004(a4)
-	tst.b $000B(a4)
+	move.l audio_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9EC
 	move.l audio_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
 	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
-	subq.w #1,$001E(a0)
+	subq.w #1,audio_channel_runtime_state_update_countdown(a0)
 	beq.b abs_0_0005DA16
-	cmpi.w #1,$001E(a0)
+	cmpi.w #1,audio_channel_runtime_state_update_countdown(a0)
 	bne.w abs_0_0005DAB6
-	tst.b $000B(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA12
 	cmpi.b #131,(a1)
 	beq.b abs_0_0005DA12
@@ -26175,7 +26177,7 @@ abs_0_0005D9EC:
 abs_0_0005DA12:
 	bra.w abs_0_0005DAAE
 abs_0_0005DA16:
-	clr.b $0000(a0)
+	clr.b audio_channel_runtime_state_channel_flags.w(a0)
 abs_0_0005DA1A:
 	moveq.l #0,d0
 	move.b (a1)+,d0
@@ -26223,86 +26225,88 @@ abs_0_0005DA98:
 abs_0_0005DAAE:
 	dbf.w d7,abs_0_0005D968
 	bra.w abs_0_0005D8F6
+    ; Read a byte and apply its low seven bits. Bit 7 resets the stored cursor to the stream start; all 13 original streams end at that marker. Later stream or selector changes are not bounded.
 abs_0_0005DAB6:
-	move.b $0002(a0),d0
+	move.b audio_channel_runtime_state_current_note(a0),d0
 	add.b audio_global_note_offset(pc),d0
-	add.b $0003(a0),d0
-	movea.l $0010(a0),a1
+	add.b audio_channel_runtime_state_note_offset(a0),d0
+	movea.l audio_channel_runtime_state_pitch_sequence_cursor(a0),a1
 	move.b (a1)+,d1
 	bclr #7,d1
 	beq.b abs_0_0005DAD2
-	movea.l $000C(a0),a1
+	movea.l audio_channel_runtime_state_pitch_sequence_start_ptr(a0),a1
 abs_0_0005DAD2:
-	move.l a1,$0010(a0)
+	move.l a1,audio_channel_runtime_state_pitch_sequence_cursor(a0)
 	add.b d1,d0
 	andi.w #255,d0
 	lea.l audio_pitch_scalars(pc),a2
-	move.w $000A(a5),d1
+	move.w audio_sample_metadata_sample_period(a5),d1
 	moveq.l #10,d2
 	add.w d0,d0
 	move.w $0(a2,d0.w),d0
 	mulu.w d1,d0
 	lsr.l d2,d0
-	btst.b #1,$0000(a0)
+	btst.b #1,audio_channel_runtime_state_channel_flags.w(a0)
 	beq.b abs_0_0005DB12
-	tst.b $0015(a0)
+	tst.b audio_channel_runtime_state_pitch_delta_countdown(a0)
 	beq.b abs_0_0005DB04
-	subq.b #1,$0015(a0)
+	subq.b #1,audio_channel_runtime_state_pitch_delta_countdown(a0)
 	bra.b abs_0_0005DB12
 abs_0_0005DB04:
-	move.b $0014(a0),d1
+	move.b audio_channel_runtime_state_pitch_delta_step(a0),d1
 	ext.w d1
-	add.w d1,$0020(a0)
-	sub.w $0020(a0),d0
+	add.w d1,audio_channel_runtime_state_pitch_delta_accumulator(a0)
+	sub.w audio_channel_runtime_state_pitch_delta_accumulator(a0),d0
 abs_0_0005DB12:
-	tst.b $0001(a0)
+	tst.b audio_channel_runtime_state_pitch_modulation_flags(a0)
 	beq.b abs_0_0005DB64
 	bpl.b abs_0_0005DB34
-	move.b $002D(a0),d1
-	add.b $002C(a0),d1
-	move.b d1,$002D(a0)
-	cmp.b $002E(a0),d1
+	move.b audio_channel_runtime_state_pitch_modulation_value(a0),d1
+	add.b audio_channel_runtime_state_pitch_modulation_step(a0),d1
+	move.b d1,audio_channel_runtime_state_pitch_modulation_value(a0)
+	cmp.b audio_channel_runtime_state_pitch_modulation_limit(a0),d1
 	bne.b abs_0_0005DB48
-	bchg.b #7,$0001(a0)
+	bchg.b #7,audio_channel_runtime_state_pitch_modulation_flags(a0)
 	bra.b abs_0_0005DB48
 abs_0_0005DB34:
-	move.b $002D(a0),d1
-	sub.b $002C(a0),d1
-	move.b d1,$002D(a0)
+	move.b audio_channel_runtime_state_pitch_modulation_value(a0),d1
+	sub.b audio_channel_runtime_state_pitch_modulation_step(a0),d1
+	move.b d1,audio_channel_runtime_state_pitch_modulation_value(a0)
 	bne.b abs_0_0005DB48
-	bchg.b #7,$0001(a0)
+	bchg.b #7,audio_channel_runtime_state_pitch_modulation_flags(a0)
 abs_0_0005DB48:
-	tst.b $002D(a0)
+	tst.b audio_channel_runtime_state_pitch_modulation_value(a0)
 	bne.b abs_0_0005DB54
-	bchg.b #0,$0001(a0)
+	bchg.b #0,audio_channel_runtime_state_pitch_modulation_flags(a0)
 abs_0_0005DB54:
 	ext.w d1
-	btst.b #0,$0001(a0)
+	btst.b #0,audio_channel_runtime_state_pitch_modulation_flags(a0)
 	beq.b abs_0_0005DB62
 	add.w d1,d0
 	bra.b abs_0_0005DB64
 abs_0_0005DB62:
 	sub.w d1,d0
 abs_0_0005DB64:
-	move.w d0,$0006(a4)
-	tst.b $000B(a4)
+	move.w d0,audio_channel_dma_configuration_sample_period(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DB72
 	move.w d0,aud0+ac_per(a6)	; audio period
+    ; Primary volume: a negative marker retains the cursor but applies its low seven bits. Secondary envelopes retain both cursor and previous volume. Original markers bound the current streams.
 abs_0_0005DB72:
-	subq.b #1,$002B(a0)
+	subq.b #1,audio_channel_runtime_state_volume_sequence_countdown(a0)
 	bcc.b abs_0_0005DBA4
-	move.b $002A(a0),$002B(a0)
-	movea.l $0026(a0),a2
+	move.b audio_channel_runtime_state_volume_sequence_interval(a0),audio_channel_runtime_state_volume_sequence_countdown(a0)
+	movea.l audio_channel_runtime_state_volume_sequence_cursor(a0),a2
 	move.b (a2)+,d1
 	bmi.b abs_0_0005DB8A
-	move.l a2,$0026(a0)
+	move.l a2,audio_channel_runtime_state_volume_sequence_cursor(a0)
 abs_0_0005DB8A:
 	andi.w #127,d1
 	move.w audio_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
-	move.w d1,$0008(a4)
-	tst.b $000B(a4)
+	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DBA4
 	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DBA4:
@@ -26427,12 +26431,13 @@ direction_word:
 	dc.w $0000	; data
 audio_sample_7_word_write_offset:
 	dc.w $0000	; data
+    ; Original address slots are NULL. Initializers install source pointers; cursors mutate during service. Shared domains do not certify live addresses, DMA extents or lifetimes.
 audio_channel_state_records:
 	dc.b $00	; channel_flags
 	dc.b $00	; pitch_modulation_flags
 	dc.b $00	; current_note
 	dc.b $00	; note_offset
-	dc.l $00000000	; program_ptr
+	dc.l $00000000	; program_cursor
 	dc.w $0000	; channel_configuration_offset
 	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
@@ -26446,7 +26451,7 @@ audio_channel_state_records_gap_17_0:
 	dc.w $0000	; update_reload_countdown
 	dc.w $0000	; update_countdown
 	dc.w $0000	; pitch_delta_accumulator
-	dc.l $00000000	; volume_sequence_ptr
+	dc.l $00000000	; volume_sequence_start_ptr
 	dc.l $00000000	; volume_sequence_cursor
 	dc.b $00	; volume_sequence_interval
 	dc.b $00	; volume_sequence_countdown
@@ -26459,7 +26464,7 @@ audio_channel_state_records_gap_2F_0:
 	dc.b $00	; pitch_modulation_flags
 	dc.b $00	; current_note
 	dc.b $00	; note_offset
-	dc.l $00000000	; program_ptr
+	dc.l $00000000	; program_cursor
 	dc.w $0000	; channel_configuration_offset
 	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
@@ -26473,7 +26478,7 @@ audio_channel_state_records_gap_47_1:
 	dc.w $0000	; update_reload_countdown
 	dc.w $0000	; update_countdown
 	dc.w $0000	; pitch_delta_accumulator
-	dc.l $00000000	; volume_sequence_ptr
+	dc.l $00000000	; volume_sequence_start_ptr
 	dc.l $00000000	; volume_sequence_cursor
 	dc.b $00	; volume_sequence_interval
 	dc.b $00	; volume_sequence_countdown
@@ -26486,7 +26491,7 @@ audio_channel_state_records_gap_5F_1:
 	dc.b $00	; pitch_modulation_flags
 	dc.b $00	; current_note
 	dc.b $00	; note_offset
-	dc.l $00000000	; program_ptr
+	dc.l $00000000	; program_cursor
 	dc.w $0000	; channel_configuration_offset
 	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
@@ -26500,7 +26505,7 @@ audio_channel_state_records_gap_77_2:
 	dc.w $0000	; update_reload_countdown
 	dc.w $0000	; update_countdown
 	dc.w $0000	; pitch_delta_accumulator
-	dc.l $00000000	; volume_sequence_ptr
+	dc.l $00000000	; volume_sequence_start_ptr
 	dc.l $00000000	; volume_sequence_cursor
 	dc.b $00	; volume_sequence_interval
 	dc.b $00	; volume_sequence_countdown
@@ -26513,7 +26518,7 @@ audio_channel_state_records_gap_8F_2:
 	dc.b $00	; pitch_modulation_flags
 	dc.b $00	; current_note
 	dc.b $00	; note_offset
-	dc.l $00000000	; program_ptr
+	dc.l $00000000	; program_cursor
 	dc.w $0000	; channel_configuration_offset
 	dc.w $0000	; channel_configuration_cursor_offset
 	dc.l $00000000	; pitch_sequence_start_ptr
@@ -26527,7 +26532,7 @@ audio_channel_state_records_gap_A7_3:
 	dc.w $0000	; update_reload_countdown
 	dc.w $0000	; update_countdown
 	dc.w $0000	; pitch_delta_accumulator
-	dc.l $00000000	; volume_sequence_ptr
+	dc.l $00000000	; volume_sequence_start_ptr
 	dc.l $00000000	; volume_sequence_cursor
 	dc.b $00	; volume_sequence_interval
 	dc.b $00	; volume_sequence_countdown
@@ -26536,82 +26541,31 @@ audio_channel_state_records_gap_A7_3:
 	dc.b $00	; pitch_modulation_limit
 audio_channel_state_records_gap_BF_3:
 	dc.b $00	; typed data block gap
+    ; 72 scalar multipliers, not addresses. Original unchanged mode/list/program/pitch data gives indices 22..58; arbitrary note/global/channel writers still feed an unchecked eight-bit index.
 audio_pitch_scalars:
-	dc.w $2000	; lookup_table
-	dc.w $1E30
-	dc.w $1C80
-	dc.w $1AE8
-	dc.w $1968
-	dc.w $17F8
-	dc.w $16A0
-	dc.w $1558
-	dc.w $1428
-	dc.w $1308
-	dc.w $11F8
-	dc.w $10F0
-	dc.w $1000
-	dc.w $0F18
-	dc.w $0E40
-	dc.w $0D74
-	dc.w $0CB4
-	dc.w $0BFC
-	dc.w volume_selector_03_countdown_reload-audio_sample_metadata
-	dc.w $0AAC
-	dc.w $0A14
-	dc.w audio_sequence_channel_configurations_sequence_index_16-audio_sample_metadata
-	dc.w audio_sequence_channel_configurations_period_delta_select_10-audio_sample_metadata
-	dc.w audio_sequence_channel_configurations_period_delta_select_4-audio_sample_metadata
-	dc.w audio_channel_dma_configurations_sample_volume_2-audio_sample_metadata
-	dc.w $078C
-	dc.w $0720
-	dc.w $06BA
-	dc.w $065A
-	dc.w $05FE
-	dc.w $05A8
-	dc.w $0556
-	dc.w $050A
-	dc.w $04C2
-	dc.w $047E
-	dc.w $043C
-	dc.w $0400
-	dc.w $03C6
-	dc.w $0390
-	dc.w $035D
-	dc.w $032D
-	dc.w $02FF
-	dc.w $02D4
-	dc.w $02AB
-	dc.w $0285
-	dc.w $0261
-	dc.w $023F
-	dc.w $021E
-	dc.w $0200
-	dc.w $01E3
-	dc.w $01C8
-	dc.w $01AE
-	dc.w $0196
-	dc.w $017F
-	dc.w $016A
-	dc.w $0155
-	dc.w $0142
-	dc.w $0130
-	dc.w $011F
-	dc.w $010F
-	dc.w $0100
-	dc.w $00F1
-	dc.w $00E4
-	dc.w $00D7
-	dc.w $00CB
-	dc.w $00BF
-	dc.w $00B5
-	dc.w $00AA
-	dc.w $00A1
-	dc.w $0098
-	dc.w audio_player_initialization_presets_update_phase_increment_1-audio_sample_metadata
-	dc.w $0087
+	dc.w $2000,$1E30,$1C80,$1AE8,$1968,$17F8,$16A0,$1558	; audio_pitch_scalar
+	dc.w $1428,$1308,$11F8,$10F0,$1000,$0F18,$0E40,$0D74	; audio_pitch_scalar
+	dc.w $0CB4,$0BFC,$0B50,$0AAC,$0A14,$0984,$08FC,$0878	; audio_pitch_scalar
+	dc.w $0800,$078C,$0720,$06BA,$065A,$05FE,$05A8,$0556	; audio_pitch_scalar
+	dc.w $050A,$04C2,$047E,$043C,$0400,$03C6,$0390,$035D	; audio_pitch_scalar
+	dc.w $032D,$02FF,$02D4,$02AB,$0285,$0261,$023F,$021E	; audio_pitch_scalar
+	dc.w $0200,$01E3,$01C8,$01AE,$0196,$017F,$016A,$0155	; audio_pitch_scalar
+	dc.w $0142,$0130,$011F,$010F,$0100,$00F1,$00E4,$00D7	; audio_pitch_scalar
+	dc.w $00CB,$00BF,$00B5,$00AA,$00A1,$0098,$008F,$0087	; audio_pitch_scalar
 audio_pitch_sequence_offset_table:
-	dc.b $06,$A0,$06,$A2,$06,$A5,$06,$A8,$06,$AB,$06,$AE,$06,$B0,$06,$B8
-	dc.b $06,$BF,$06,$C5,$06,$C7,$06,$C9,$06,$CB
+	dc.w pitch_selector_00_offsets_with_loop_flag-initialize_audio_player	; audio_selector_offsets
+	dc.w pitch_selector_01_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_02_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_03_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_04_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_05_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_06_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_07_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_08_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_09_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_10_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_11_offsets_with_loop_flag-initialize_audio_player
+	dc.w pitch_selector_12_offsets_with_loop_flag-initialize_audio_player
 pitch_selector_00_offsets_with_loop_flag:
 	dc.b $00,$80	; data
 pitch_selector_01_offsets_with_loop_flag:
@@ -26640,59 +26594,48 @@ pitch_selector_12_offsets_with_loop_flag:
 	dc.b $18,$00,$00,$00,$00,$00,$80	; data
 audio_sample_metadata:
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_4_0:
-	dc.l $00000000	; typed data block gap
+	dc.l $00000000	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_10_1:
-	dc.l $00000000	; typed data block gap
+	dc.l $00000000	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_1C_2:
-	dc.l $FFFFFFFF	; typed data block gap
+	dc.l $FFFFFFFF	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_28_3:
-	dc.l $FFFFFFFF	; typed data block gap
+	dc.l $FFFFFFFF	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_34_4:
-	dc.l $FFFFFFFF	; typed data block gap
+	dc.l $FFFFFFFF	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_40_5:
-	dc.l $FFFFFFFF	; typed data block gap
+	dc.l $FFFFFFFF	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_4C_6:
-	dc.l $00000000	; typed data block gap
+	dc.l $00000000	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 audio_sample_metadata_sample_ptr_7:
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_58_7:
-	dc.l $00000000	; typed data block gap
+	dc.l $00000000	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_64_8:
-	dc.l $00000000	; typed data block gap
+	dc.l $00000000	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_70_9:
-	dc.l $00000000	; typed data block gap
+	dc.l $00000000	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 	dc.l $00000000	; sample_ptr
-audio_sample_metadata_gap_7C_10:
-	dc.l $00000000	; typed data block gap
+	dc.l $00000000	; sample_start_byte_offset
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
 audio_player_initialization_presets:
@@ -26703,7 +26646,6 @@ audio_player_initialization_presets:
 	dc.w $079A	; channel_2_configuration_list_offset
 	dc.w $07A4	; channel_3_configuration_list_offset
 	dc.b $03	; initial_duration_multiplier_byte
-audio_player_initialization_presets_update_phase_increment_1:
 	dc.b $05	; update_phase_increment
 	dc.w $0954	; channel_0_configuration_list_offset
 	dc.w $094A	; channel_1_configuration_list_offset
@@ -26949,7 +26891,7 @@ abs_0_0005E458:
 	lea.l $1164(a3),a0
 	movea.w $0(a0,d0.w),a0
 	adda.l a3,a0
-	move.l a0,audio_channel_playback_state_sequence_ptr(a2)
+	move.l a0,audio_channel_playback_state_volume_sequence_cursor(a2)
 	move.w #$200,d0
 abs_0_0005E484:
 	dbf.w d0,abs_0_0005E484
@@ -27048,11 +26990,11 @@ abs_0_0005E5A0:
 	subq.b #1,audio_channel_playback_state_sequence_countdown(a1)
 	bne.b abs_0_0005E5BE
 	move.b audio_channel_playback_state_sequence_interval(a1),audio_channel_playback_state_sequence_countdown(a1)
-	movea.l audio_channel_playback_state_sequence_ptr(a1),a2
+	movea.l audio_channel_playback_state_volume_sequence_cursor(a1),a2
     ; Secondary envelope: negative byte retains pointer and previous volume. Reload H gives H eligible service visits (zero wraps 256), unlike primary H+1; duration/update-disable gates apply.
 	move.b (a2)+,d0
 	bmi.b abs_0_0005E5BE
-	move.l a2,audio_channel_playback_state_sequence_ptr(a1)
+	move.l a2,audio_channel_playback_state_volume_sequence_cursor(a1)
 	ext.w d0
 	move.w d0,$00A8(a0)
 abs_0_0005E5BE:
@@ -27093,7 +27035,7 @@ audio_channel_playback_states:
 	dc.b $00	; period_delta_countdown
 	dc.b $00	; active
 	dc.b $00	; sequence_countdown
-	dc.l $00000000	; sequence_ptr
+	dc.l $00000000	; volume_sequence_cursor
 audio_channel_playback_states_gap_1E_0:
 	dcb.b $8,$00	; typed data block gap
 audio_channel_playback_states_period_delta_1:
@@ -27114,7 +27056,7 @@ audio_channel_playback_states_period_delta_1:
 	dc.b $00	; period_delta_countdown
 	dc.b $00	; active
 	dc.b $00	; sequence_countdown
-	dc.l $00000000	; sequence_ptr
+	dc.l $00000000	; volume_sequence_cursor
 audio_channel_playback_states_gap_44_1:
 	dcb.b $8,$00	; typed data block gap
 audio_channel_playback_states_period_delta_2:
@@ -27136,7 +27078,7 @@ audio_channel_playback_states_playback_ticks_remaining_2:
 	dc.b $00	; period_delta_countdown
 	dc.b $00	; active
 	dc.b $00	; sequence_countdown
-	dc.l $00000000	; sequence_ptr
+	dc.l $00000000	; volume_sequence_cursor
 audio_channel_playback_states_gap_6A_2:
 	dcb.b $8,$00	; typed data block gap
 audio_channel_playback_states_period_delta_3:
@@ -27157,7 +27099,7 @@ audio_channel_playback_states_period_delta_3:
 	dc.b $00	; period_delta_countdown
 	dc.b $00	; active
 	dc.b $00	; sequence_countdown
-	dc.l $00000000	; sequence_ptr
+	dc.l $00000000	; volume_sequence_cursor
 audio_channel_playback_states_gap_90_3:
 	dcb.b $8,$00	; typed data block gap
 voice_selector_byte:
@@ -27182,7 +27124,6 @@ audio_channel_dma_configurations_sample_ptr_2:
 	dc.l $00000000	; sample_ptr
 	dc.w $0000	; sample_length
 	dc.w $0000	; sample_period
-audio_channel_dma_configurations_sample_volume_2:
 	dc.w $0000	; sample_volume
 	dc.b $00	; enabled
 	dc.b $00	; start_pending
@@ -27253,7 +27194,6 @@ audio_sequence_channel_configurations:
 	dc.l $02000180	; sample_address_offset_pair
 	dc.b $03	; period_reset_interval
 	dc.b $01	; period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_4:
 	dc.b $92	; period_delta_select
 	dc.b $AA	; sample_address_offset_select
 	dc.b $0F	; playback_ticks_remaining
@@ -27332,7 +27272,6 @@ audio_sequence_channel_configurations_period_delta_select_4:
 	dc.l $02000000	; sample_address_offset_pair
 	dc.b $07	; period_reset_interval
 	dc.b $01	; period_delta_interval
-audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; period_delta_select
 	dc.b $00	; sample_address_offset_select
 	dc.b $1E	; playback_ticks_remaining
@@ -27415,7 +27354,6 @@ audio_sequence_channel_configurations_period_delta_select_10:
 	dc.b $00	; sample_address_offset_select
 	dc.b $0A	; playback_ticks_remaining
 	dc.b $01	; sequence_interval
-audio_sequence_channel_configurations_sequence_index_16:
 	dc.b $04	; sequence_index
 	dc.b $00	; update_disabled
 	dc.w $0000	; period_delta
@@ -27600,8 +27538,22 @@ secondary_volume_envelope_4:
 secondary_volume_envelope_5:
 	dc.b $18,$FF	; audio_sequence_envelope
 audio_volume_sequence_offset_table:
-	dc.b $11,$F9,$11,$FC,$12,$02,$12,$23,$12,$51,$12,$57,$12,$7B,$12,$7F
-	dc.b $12,$9D,$12,$A9,$12,$C8,$12,$E6,$12,$EB,$12,$F0,$12,$F3,$12,$F6
+	dc.w volume_selector_00_values_with_hold_flag-initialize_audio_player	; audio_volume_sequence_relative_offset_table
+	dc.w volume_selector_01_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_02_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_03_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_04_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_05_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_06_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_07_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_08_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_09_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_10_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_11_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_12_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_13_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_14_values_with_hold_flag-initialize_audio_player
+	dc.w volume_selector_15_values_with_hold_flag-initialize_audio_player
 volume_selector_00_countdown_reload:
 	dc.b $FF	; data
 volume_selector_00_values_with_hold_flag:
@@ -27949,57 +27901,18 @@ period_divisor_11:
 	dc.w $2134	; data
 audio_sample_10_payload:
 	dc.b $C0,$C0,$3D,$3D	; sound_sample
-	dcb.b $40,$00
-	dc.b $7A,$7D
-	dcb.b $C,$7F
-	dc.b $7D,$7A,$86,$83
-	dcb.b $C,$81
-	dc.b $83,$86,$70,$73
-	dcb.b $C,$75
-	dc.b $73,$70,$90,$8D
-	dcb.b $C,$8B
-	dc.b $8D,$90,$7A,$7D
-	dcb.b $C,$7F
-	dc.b $7D,$7A,$86,$83
-	dcb.b $C,$81
-	dc.b $83,$86,$66,$69
-	dcb.b $C,$6B
-	dc.b $69,$66,$9A,$97
-	dcb.b $C,$95
-	dc.b $97,$9A,$24,$28,$2C,$30,$34,$38,$3C,$40,$64,$68,$6C,$70,$74,$78
-	dc.b $7C,$7F,$5C,$58,$54,$50,$4C,$48,$44,$40,$1C,$18,$14,$10,$0C,$08
-	dc.b $04,$00,$DC,$D8,$D4,$D0,$CC,$C8,$C4,$C0,$9C,$98,$94,$90,$8C,$88
-	dc.b $84,$81,$A4,$A8,$AC,$B0,$B4,$B8,$BC,$C0,$E4,$E8,$EC,$F0,$F4,$F8
-	dc.b $FC,$00,$25,$29,$2D,$30,$34,$38,$3C,$40,$64,$68,$6C,$70,$74,$78
-	dc.b $7C,$7F,$5C,$58,$54,$50,$4C,$48,$44,$40,$1C,$18,$14,$10,$0C,$08
-	dc.b $04,$00,$DC,$D8,$D4,$D0,$CC,$C8,$C4,$C0,$9C,$98,$94,$90,$8C,$88
-	dc.b $84,$81,$A4,$A8,$AC,$B0,$B4,$B8,$BC,$C0,$E4,$E8,$EC,$F0,$F4,$F8
-	dc.b $FC,$00,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$0C,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$33,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$47,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$2A,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$01,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$2F,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$52,$0B,$3D,$27,$3B,$7F,$2F,$5C,$3A,$0B,$3D,$27,$3B,$7F,$2F
-	dc.b $5C,$00,$7F,$70,$60,$50,$40,$30,$20,$10,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$7F,$70,$60,$50,$7F,$70,$60,$50,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$7F,$70,$60,$50,$40,$30,$20,$10,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$40,$30,$20,$10,$40,$30,$20,$10,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$7F,$70,$60,$50,$40,$30,$20,$10,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$7F,$70,$60,$50,$7F,$70,$60,$50,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$7F,$70,$60,$50,$40,$30,$20,$10,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$40,$30,$20,$10,$40,$30,$20,$10,$81,$90,$A0,$B0,$C0,$D0
-	dc.b $E0,$F0,$7F,$5D,$F1,$D3,$4B,$40,$F1,$30,$F3,$2D,$54,$8D,$5F,$9F
-	dc.b $2A,$F5,$7F,$90,$01,$2D,$41,$B8,$F1,$63,$A9,$29,$69,$9C,$AC,$0C
-	dc.b $05,$61,$81,$0F,$57,$4B,$D2,$0E,$D3,$F0,$90,$A0,$08,$4B,$10,$54
-	dc.b $4B,$10,$40,$7C,$CE,$29,$BD,$00,$F0,$59,$30,$5E,$BF,$84,$F0,$09
-	dc.b $43,$FB,$7F,$5D,$F1,$D3,$4B,$40,$F1,$30,$F3,$2D,$54,$8D,$5F,$9F
-	dc.b $2A,$F5,$7F,$90,$01,$2D,$41,$B8,$F1,$63,$A9,$29,$69,$9C,$AC,$0C
-	dc.b $05,$61,$81,$0F,$57,$4B,$D2,$0E,$D3,$F0,$90,$A0,$08,$4B,$10,$54
-	dc.b $4B,$10,$40,$7C,$CE,$29,$BD,$00,$F0,$59,$30,$5E,$BF,$84,$F0,$09
-	dc.b $43,$FB,$4E,$71,$4E,$71,$00,$00,$03,$F2,$00,$00,$00,$00,$00,$05
-	dc.b $05,$A8,$05,$FF,$00,$02
+    ; Initializer leaves A0 here after 11 sample records and stores it as the silence pointer. Known silence paths program 32 DMA words; this 64-byte source window is initially zero.
+audio_silence_payload:
+	dcb.b $10,$00	; sound_sample
+	dcb.b $10,$00
+	dcb.b $10,$00
+	dcb.b $10,$00
+    ; Secondary base is silence end. The 29 original offset pairs select five contiguous 128-byte windows; start programs 64 DMA words. Interleaved or later pointer/length writers remain unproved.
+secondary_audio_waveform_bank:
+	INCBIN "assets/secondary_audio_waveform_bank.bin"
+; sound_sample
+	dc.b $4E,$71,$4E,$71,$00,$00,$03,$F2,$00,$00,$00,$00,$00,$05,$05,$A8
+	dc.b $05,$FF,$00,$02
 abs_0_000652DE:
 	bclr.b #0,app_world_interaction_flags(a6)
 	beq.b abs_0_000652FC

@@ -26,6 +26,13 @@ Windows wheel (`0.4.2.dev0+g61600df53.d20260308`). That wheel was absent in this
 cloud checkout. Moving the optional dependency does not assert compatibility of
 version-specific oracle tests.
 
+Persistent native row and window responses project exposed `bytes` from each
+row's canonical source offset, including later lines of grouped scalar arrays.
+The byte cache is bounded; missing or incomplete bytes are not full-field proof.
+The forward-only preview can retain a parent span for grouped data lines, so its
+metadata must not be used as per-line byte evidence. Use the persistent lookup
+for source-value validation and catalog mutations.
+
 ## CLI
 
 ```sh
