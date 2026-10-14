@@ -4636,28 +4636,29 @@ icelord_script_command_000C:
 icelord_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l icelord_script_command_000C	; target_pointer
+    ; The installed first-attachment controller alternates one active pose and a held-header pose with 100/6 interpreter-delay counts; later controller replacement remains separate.
 world_object_diabetic_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
-	dc.w $0180	; world_x
-	dc.w $0402	; world_y
+	dc.w $0180	; x
+	dc.w $0402	; y
 diabetic_script_command_0006:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l initialize_position_state_link	; target_pointer
-diabetic_script_command_000C:
+	dc.l start_diabetic_attachment_animation	; target
+diabetic_active_pose_wait:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0064	; operand_word
+	dc.w $0064	; ticks
 diabetic_script_command_0010:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l toggle_position_state_active_flag	; target_pointer
-diabetic_script_command_0016:
+	dc.l toggle_diabetic_attachment_hold	; target
+diabetic_held_pose_wait:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0006	; operand_word
+	dc.w $0006	; ticks
 diabetic_script_command_001A:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l toggle_position_state_active_flag	; target_pointer
+	dc.l toggle_diabetic_attachment_hold	; target
 diabetic_script_command_0020:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l diabetic_script_command_000C	; target_pointer
+	dc.l diabetic_active_pose_wait	; target
 world_object_security_officer_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $04D2	; world_x
@@ -4964,44 +4965,46 @@ bank_manager_script_command_0006:
 bank_manager_script_command_000A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l bank_manager_script_command_0006	; target_pointer
+    ; Introductory motion leads to one scripted item handoff; execution then stays in the post-handoff delay loop.
 world_object_entry_officer_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
-	dc.w $0197	; world_x
-	dc.w $0362	; world_y
+	dc.w $0197	; x
+world_object_entry_officer_behavior_script_y:
+	dc.w $0362	; y
 entry_officer_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l entry_officer_nodes_4A45E_3	; state_node_ptr
 entry_officer_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0014	; operand_word
+	dc.w $0014	; ticks
 entry_officer_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-	dc.w $000C	; operand_word
+	dc.w $000C	; word_offset
 entry_officer_script_command_0014:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 entry_officer_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 entry_officer_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0015	; reload_count
 	dc.w $0015	; remaining_count
-	dc.w $FFF8	; branch_displacement
+	dc.w $FFF8	; branch_disp
 entry_officer_script_command_0024:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 entry_officer_script_command_0026:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $001E	; operand_word
+	dc.w $001E	; ticks
 entry_officer_script_command_002A:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l collect_world_object_item	; target_pointer
-entry_officer_script_command_0030:
+	dc.l collect_world_object_item	; target
+entry_officer_post_handoff_wait:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $2710	; operand_word
+	dc.w $2710	; ticks
 entry_officer_script_command_0034:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l entry_officer_script_command_0030	; target_pointer
+	dc.l entry_officer_post_handoff_wait	; target
 world_object_driffid_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0330	; world_x
@@ -23242,16 +23245,16 @@ decrease_active_world_object_item_state:
 	jsr enqueue_status_message.l
 	moveq.l #-15,d0
 	jmp adjust_active_world_object_item_state.l
-initialize_position_state_link:
+start_diabetic_attachment_animation:
 	lea.l diabetic_states_4B7A0_1_state_node_ptr_1(pc),a0
-	lea.l abs_0_0005B814(pc),a1
+	lea.l diabetic_script_pose_controller(pc),a1
 	move.l a1,(a0)	; operand 2: world_position_render_state_prefix_state_node_ptr at (a0)
-	clr.w $0010(a1)
-	bclr.b #0,$000A(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	rts
-toggle_position_state_active_flag:
-	lea.l abs_0_0005B81E(pc),a0
-	bchg.b #0,(a0)
+toggle_diabetic_attachment_hold:
+	lea.l diabetic_script_pose_controller_mode_flags(pc),a0
+	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,(a0)	; operand 2: WorldPositionStateNode_mode_flags at (a0)
 	rts
 complete_bank_manager_interaction:
 	moveq.l #15,d0
@@ -23259,6 +23262,7 @@ complete_bank_manager_interaction:
 complete_thief_interaction:
 	moveq.l #15,d0
 	jmp adjust_active_world_object_item_state.l
+    ; Hand the selected item to the player and clear the giver's first inventory slot before the state/UI callbacks. Player defeat skips the handoff.
 collect_world_object_item:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_0005B184
@@ -23908,9 +23912,22 @@ world_object_diabetic_gap_40:
 	dc.b $32	; initial_item_state
 	dc.l diabetic_states_4B7A0_1_current_geometry_ptr_2	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-	dc.b $00,$05,$57,$30,$00,$06,$99,$C6,$00,$01,$00,$0B,$00,$10,$00,$00
-	dc.b $00,$00,$00,$05,$57,$88,$00,$06,$99,$DC,$00,$01,$00,$0B,$00,$10
-	dc.b $00,$00,$00,$00
+diabetic_script_pose_frames:
+	dc.l scene_pixel_cells_for_mask_bank_48	; bitplane_data_ptr
+	dc.l scene_mask_bank_48	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000B	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+diabetic_held_pose:
+	dc.l scene_pixel_cells_for_mask_bank_48+$58	; bitplane_data_ptr
+	dc.l scene_mask_bank_48+$16	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000B	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
 diabetic_animation_bank:
 	dc.l diabetic_states_4B7A0_1	; position_state_ptr
 	dc.w $0000	; world_x
@@ -23956,11 +23973,20 @@ diabetic_states_4B7A0_1_current_geometry_ptr_2:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-abs_0_0005B814:
-	dc.b $00,$05,$B7,$A0,$01,$80,$00,$05,$B8,$26
-abs_0_0005B81E:
-	dcb.b $9,$00
-	dc.b $05,$B7,$8E,$00,$05,$B7,$7C
+diabetic_script_pose_controller:
+	dc.l diabetic_animation_bank	; position_descriptor_ptr
+	dc.b $01	; frame_count
+	dc.b $80	; phase_step
+	dc.l diabetic_pose_frames_by_mode	; frame_sequence_ptr
+diabetic_script_pose_controller_mode_flags:
+	dc.b $00	; mode_flags
+diabetic_script_pose_controller_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+diabetic_pose_frames_by_mode:
+	dc.l diabetic_held_pose	; frame_ptr
+	dc.l diabetic_script_pose_frames	; frame_ptr
 world_object_security_officer:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_sec_officer	; interaction_callback
