@@ -6574,7 +6574,7 @@ def _target_memory_region_action() -> dict[str, object]:
             "source_domain", "memory_class", "lifetime", "dma_access"], "properties": {
             "region_id": {"type": "string"}, "name": {"type": "string"},
             "runtime_address": {"type": "integer"}, "size": {"type": "integer"}, "alignment": {"type": "integer"},
-            "source_domain": {"type": "string", "enum": ["runtime_only"]},
+            "source_domain": {"type": "string", "enum": ["runtime_only", "mapped_source"]},
             "memory_class": {"type": "string", "enum": ["cpu_ram"]},
             "lifetime": {"type": "string", "enum": ["persistent"]},
             "dma_access": {"type": "string", "enum": ["none", "chip"]}}})

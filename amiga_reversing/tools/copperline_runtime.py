@@ -109,7 +109,14 @@ def capture_scenario_state(client, capture):
                 "offset": offset if base is not None else None,
             }
         )
-    return {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
+    result = {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
+    custom = capture.get("custom_registers", [])
+    if (not isinstance(custom, list) or len(custom) > 16
+            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
+        raise ValueError("Capture requires at most 16 named custom registers")
+    if custom:
+        result["custom_registers"] = {name: client.request("custom.read", {"reg": name}) for name in custom}
+    return result
 
 
 def wait_for_pc(client, address, seconds):
@@ -259,6 +266,47 @@ def release_handoff(client, contract):
         "reverse_anchor": "after_write",
         "replay_across_write": False,
     }
+
+
+def prepare_materialization(client, contract, payload_path, seconds):
+    """Consume input only at the declared native copy handoff, before game code.
+
+    The versioned, payload-hash-bound contract asserts that its input copy is no
+    longer read after this boundary. Verify the *entire* copied view before any
+    initialization; ownership of input backing is retained for the process life.
+    """
+    from .direct_payload_adapter import validate_materialization
+
+    payload = payload_path.read_bytes()
+    validate_materialization(contract, len(payload))
+    m = contract.materialization
+    entry = m["runtime_address"] + m["entry_source_offset"] - m["source_offset"]
+    ident = client.add_breakpoint(entry)
+    try:
+        boundary = release_handoff(client, contract)
+        stop = client.run_until({"pc": entry}, timeout=seconds)
+        if stop.get("reason") not in {"target", "breakpoint"} or client.registers()["pc"] != entry:
+            raise CopperlineError("Materialization entry was not reached; refusing initialization")
+    finally:
+        client.remove_breakpoint(ident)
+    expected = payload[m["source_offset"]:m["source_offset"]+m["size"]]
+    digest = hashlib.sha256()
+    for offset in range(0, len(expected), 65536):
+        digest.update(client.read_memory(m["runtime_address"]+offset, min(65536, len(expected)-offset)))
+    if digest.digest() != hashlib.sha256(expected).digest():
+        raise CopperlineError("Materialized memory does not match the entire copied payload")
+    report = {"status": "verified", "entrypoint": entry, "size": len(expected),
+        "copied_sha256": digest.hexdigest(), "source_consumed_at_entry": True,
+        "input_backing_retained": True, "initialization": None}
+    if contract.initialization is not None:
+        address, data = contract.initialization
+        client.request("mem.write", {"addr": address, "data": data.hex(), "encoding": "hex"})
+        if client.read_memory(address, len(data)) != data:
+            raise CopperlineError("Relocated initialization did not persist")
+        client.request("reverse_anchor")
+        report["initialization"] = {"address": address, "bytes": data.hex(),
+            "readback_verified": True, "reverse_anchor": "after_write", "replay_across_write": False}
+    return boundary | {"materialization": report}
 
 
 def _run_scenario_phase(
@@ -698,6 +746,11 @@ def observe(session):
                     "Direct payload marker was not observed; refusing release"
                 )
             handoff = verify_handoff(client, contract, session.target_payload_path)
+        prepared = None
+        if contract and getattr(contract, "materialization", None) is not None:
+            prepared = prepare_materialization(client, contract, session.target_payload_path, session.continue_seconds)
+        def release():
+            return prepared if prepared is not None else release_handoff(client, contract)
         if scenario is not None:
             if contract is None:
                 raise ValueError(
@@ -707,7 +760,7 @@ def observe(session):
                 client,
                 scenario,
                 session.target_payload_path,
-                lambda: release_handoff(client, contract),
+                release,
             )
             reverse_boundary = scenario_result["reverse_boundary"]
             if scenario_result["phases"]:
@@ -738,7 +791,7 @@ def observe(session):
                     int(detection["runtime_base"], 0) + session.breakpoint_source_offset
                 )
             if contract:
-                reverse_boundary = release_handoff(client, contract)
+                reverse_boundary = release()
             bp = wait_for_pc(client, address, session.breakpoint_wait_seconds)
             stop_reason = bp["stop_reason"]
             if bp["status"] == "hit":
@@ -753,7 +806,7 @@ def observe(session):
                 ):
                     bp.update(status="not_hit", termination="payload_identity_mismatch")
         elif contract:
-            reverse_boundary = release_handoff(client, contract)
+            reverse_boundary = release()
             try:
                 stop = client.run_until(
                     {"seconds": 1_000_000_000}, timeout=session.continue_seconds

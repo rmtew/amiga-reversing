@@ -520,8 +520,12 @@ def resolve_binary(explicit: Path | None) -> Path:
 
 
 def validate_capture(capture: object) -> None:
-    if not isinstance(capture, dict) or set(capture) - {"registers", "memory_reads"}:
-        raise ValueError("Scenario capture supports only registers and memory_reads.")
+    if not isinstance(capture, dict) or set(capture) - {"registers", "memory_reads", "custom_registers"}:
+        raise ValueError("Scenario capture supports only registers, memory_reads and custom_registers.")
+    custom = capture.get("custom_registers", [])
+    if (not isinstance(custom, list) or len(custom) > 16
+            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
+        raise ValueError("Capture requires at most 16 named custom registers")
     registers, reads = capture.get("registers", []), capture.get("memory_reads", [])
     allowed = {f"{kind}{i}" for kind in ("a", "d") for i in range(8)} | {"sr"}
     if (

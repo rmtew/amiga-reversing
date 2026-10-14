@@ -35,7 +35,7 @@ def validate_manifest(manifest_path: Path, target_id: str) -> tuple[dict, Path]:
     }
     if (
         not isinstance(manifest, dict)
-        or set(manifest) != fields
+        or set(manifest) not in (fields, fields | {"initialization"})
         or manifest["schema_version"] != 1
         or manifest["kind"] != "fixed_width_memory_relocation"
         or manifest["target_id"] != target_id
@@ -69,6 +69,21 @@ def validate_manifest(manifest_path: Path, target_id: str) -> tuple[dict, Path]:
     original = read_binary_source_bytes(resolve_project_paths(target_id).binary_source)
     if sha256(original) != manifest["original_sha256"]:
         raise ValueError("Derived artifact original target identity mismatch")
+    initialization = manifest.get("initialization")
+    if manifest["region"]["source_domain"] == "mapped_source":
+        if (not isinstance(initialization, dict)
+                or set(initialization) != {"section_index", "source_offset", "bytes"}
+                or initialization["section_index"] != 0
+                or type(initialization["source_offset"]) is not int
+                or initialization["source_offset"] < 0
+                or not isinstance(initialization["bytes"], str)):
+            raise ValueError("Mapped artifact requires exact source initialization")
+        offset, size = initialization["source_offset"], manifest["region"]["size"]
+        if (offset + size > len(original)
+                or initialization["bytes"] != original[offset:offset+size].hex()):
+            raise ValueError("Mapped initialization differs from original source bytes")
+    elif "initialization" in manifest:
+        raise ValueError("Runtime-only artifact cannot claim source initialization")
     artifact_file = manifest["artifact_file"]
     if not isinstance(artifact_file, str) or Path(artifact_file).name != artifact_file:
         raise ValueError("Derived artifact requires a sibling payload filename")
@@ -149,6 +164,7 @@ def verify_native_binding(manifest: dict, artifact) -> None:
         or digest != manifest["native_plan_sha256"]
         or sorted(plan["rewrite_ledger"], key=lambda x: x["source_offset"])
         != manifest["rewrite_ledger"]
+        or plan.get("initialization") != manifest.get("initialization")
     ):
         raise ValueError(
             "Derived artifact no longer matches a closed native relocation proof"

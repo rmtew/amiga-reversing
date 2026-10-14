@@ -152,3 +152,19 @@ def test_closed_native_fixture_build_and_runtime_binding(tmp_path, monkeypatch):
         assert result["rewrite_count"] == 1
     finally:
         artifact.close()
+
+
+def test_mapped_manifest_requires_exact_initial_source_bytes(tmp_path, monkeypatch):
+    path, manifest = contract(tmp_path, monkeypatch)
+    manifest['region'].update(source_domain='mapped_source', runtime_address=0x10006, size=2)
+    manifest['initialization'] = {'section_index': 0, 'source_offset': 6, 'bytes': '4e75'}
+    path.write_text(json.dumps(manifest))
+    assert module.validate_manifest(path, 'fixture')[0]['initialization']['bytes'] == '4e75'
+    manifest['initialization']['bytes'] = '0040'
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='initialization differs'):
+        module.validate_manifest(path, 'fixture')
+    del manifest['initialization']
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='requires exact source initialization'):
+        module.validate_manifest(path, 'fixture')

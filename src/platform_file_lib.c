@@ -8791,12 +8791,13 @@ static int append_metadata_memory_region_local(const char *start, const char *en
       !json_number_field_local(start,end,"alignment",&r.alignment,&present) || !present || !r.alignment ||
       (r.alignment & (r.alignment-1U)) || r.runtime_address % r.alignment ||
       r.runtime_address > 0x1000000U-r.size || r.size > 0x1000000U ||
-      !json_optional_string_field_local(start,end,"source_domain",source,sizeof(source)) || strcmp(source,"runtime_only") ||
+      !json_optional_string_field_local(start,end,"source_domain",source,sizeof(source)) ||
+      (strcmp(source,"runtime_only") && strcmp(source,"mapped_source")) ||
       !json_optional_string_field_local(start,end,"memory_class",memory,sizeof(memory)) || strcmp(memory,"cpu_ram") ||
       !json_optional_string_field_local(start,end,"lifetime",lifetime,sizeof(lifetime)) || strcmp(lifetime,"persistent") ||
       !json_optional_string_field_local(start,end,"dma_access",dma,sizeof(dma)) || (strcmp(dma,"none") && strcmp(dma,"chip")) ||
       policy->memory_region_count >= M68K_ANALYSIS_MEMORY_REGION_LIMIT) return 0;
-  r.persistent = 1U; r.dma_access = !strcmp(dma,"chip");
+  r.persistent = 1U; r.dma_access = !strcmp(dma,"chip");r.source_mapped=!strcmp(source,"mapped_source");
   for (i=0;i<policy->memory_region_count;i++) {
     const M68kMemoryRegionIR *old=&policy->memory_regions[i];
     if (!strcmp(old->region_id,r.region_id) || (r.runtime_address < old->runtime_address+old->size &&
@@ -13431,17 +13432,12 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
-int platform_file_facts_v2_listing_artifact_runtime_source_json_alloc(PlatformFileListingArtifact *artifact,
-    uint32_t address, char **out_text) {
-  PlatformFileTextResult result;
-  JsonBuilder builder = {0};
+/* Shared exact materialized-view lookup; -1 is ambiguity, not an unmapped byte. */
+static int platform_artifact_runtime_source_local(const PlatformFileListingArtifact *artifact,
+    uint32_t address,uint32_t *out_section,uint32_t *out_offset) {
   size_t si, vi, target_section = 0U;
   uint32_t target_offset = 0U;
   int found = 0, ambiguous = 0;
-  memset(&result, 0, sizeof(result));
-  if (out_text == NULL) return -1;
-  *out_text = NULL;
-  if (artifact == NULL) return -1;
   /* Reuse native materialization decisions, including suppressed loader and
    * conflicting-copy views. Never select by view width or insertion order. */
   for (si = 0U; si < artifact->source_analysis.section_count; ++si) {
@@ -13461,10 +13457,20 @@ int platform_file_facts_v2_listing_artifact_runtime_source_json_alloc(PlatformFi
       found = 1;
     }
   }
+  *out_section=(uint32_t)target_section;*out_offset=target_offset;
+  return ambiguous ? -1 : found;
+}
+
+int platform_file_facts_v2_listing_artifact_runtime_source_json_alloc(PlatformFileListingArtifact *artifact,
+    uint32_t address, char **out_text) {
+  PlatformFileTextResult result={0};JsonBuilder builder={0};uint32_t target_section=0,target_offset=0;
+  if(!artifact || !out_text) return -1;
+  *out_text=NULL;
+  int status=platform_artifact_runtime_source_local(artifact,address,&target_section,&target_offset);
   if (json_builder_create(&builder) != 0 ||
       json_builder_appendf(&builder, "{\"status\":\"%s\",\"runtime_address\":%u",
-        ambiguous ? "ambiguous" : found ? "resolved" : "unmapped", (unsigned)address) != 0) goto oom;
-  if (found && !ambiguous && json_builder_appendf(&builder,
+        status<0 ? "ambiguous" : status ? "resolved" : "unmapped", (unsigned)address) != 0) goto oom;
+  if (status==1 && json_builder_appendf(&builder,
       ",\"section_index\":%u,\"source_offset\":%u", (unsigned)target_section, (unsigned)target_offset) != 0) goto oom;
   if (json_builder_append(&builder, "}") != 0) goto oom;
   result.text = json_builder_build(&builder);

@@ -194,13 +194,43 @@ cd /workspace/amiga-reversing
   --state-directory .runtime-state/pandora-analysis/keyboard-relocation/reproduce --run
 ```
 
-A future closed `memory_build` manifest can be passed as `--derived-artifact`.
-The direct adapter requires exact ledger/full payload identity and a current
-native proof, rejects payload/marker overlap, and inserts checked Exec `AllocAbs`
-reservation before HAND. Failure reaches FAIL without payload release. Source
-PC mappings remain valid only because this contract changes fixed-width address
-operands and preserves all code placement. This plumbing and reservation shim
-are tested; Pandora's five open pointer/frame obligations currently prevent a
-changed-layout build. Its alternate placement and reservation have not been
-observed in the emulator. The existing legal ROM is reused; no ROM download or
-original-disk-loader parity is implied.
+A closed `memory_build` manifest can be passed as `--derived-artifact`. Binding
+recomputes the native proof and checks the exact rewrite ledger and both payload
+hashes. The shim reserves marker storage first, then the entire input and declared
+destinations **before CMD_READ**. Overlapping input/destination leases are merged;
+there are no allocator calls or frees after loading. Marker-allocation failure
+holds without writing; later failures publish FAIL without payload release.
+
+Mapped-source initialization requires a hash-bound `materialization` contract:
+source offset/size, copied runtime address, exact entry source offset and explicit
+`source_consumed_at_entry: true`. Binding checks the native materialized view and
+entry instruction. The runtime verifies all loaded input at HAND, stops before
+the declared game entry, verifies the entire copied image, then writes/reads back
+only the logical region bytes and anchors reverse history. This runs before every
+scenario, single breakpoint or free-run path. It is one cold-bootstrap operation,
+not repeated on warm restart. An input-overlapping destination must fit wholly
+inside the consumed source interval and outside copied game storage and markers.
+The contract asserts no later reads of that consumed input; full-copy equality
+does not prove this lifetime assertion for arbitrary loaders.
+
+Pandora declares its native `$55370`-byte copy to `$10000`, ending before entry
+`$1046A`; initialization must not occur while the input at `$20000` is still live.
+The volume's logical two bytes use an eight-byte lease. Accepted native owner
+regions, runtime equates and materialized views reject conflicting destinations.
+Keyboard's five pointer/frame obligations remain open. No original-disk-loader
+parity is implied. `capture.custom_registers` accepts at most sixteen names and
+uses Copperline's read-only `custom.read`, including the stored values of
+write-only Paula registers; CPU memory reads of those addresses are insufficient.
+
+For the volume comparison, use the command above with
+`--scenario runtime/scenarios/pandora-audio-volume-relocation.json` and a distinct
+state directory. Add `--derived-artifact <manifest.json>` for the changed layout.
+The current saved-environment manifest is
+`.runtime-state/restoration/derived/e449f89c0ec6e432b070bdf0809c405958be12a2119909c502f3d135561f666c/manifest.json`.
+To rebuild it, run a fresh `verify`, then revision-checked `memory_build` for
+`region_id: "audio_master_volume"`, `destination: 414720`, `memory_class: "chip"`
+with that verification receipt. Both runs intentionally finish `incomplete` if
+the final five-second proximity-writer observation times out: the eight preceding
+hits validate initialization, both reads and matching Paula state, not the three
+game writers. [Compact observations](../runtime/observations/pandora-audio-volume-relocation.json)
+record the distinction and the next bounded gameplay scenario needed.

@@ -45,7 +45,7 @@ def region(**changes):
         {"runtime_address": 0x397D},
         {"size": 0x1000000},
         {"runtime_address": True},
-        {"source_domain": "mapped_source"},
+        {"source_domain": "unmapped_source"},
         {"lifetime": "overlay"},
         {"region_id": "bad\u0000id"},
         {"closed": True},
@@ -458,5 +458,80 @@ def test_native_prefix_rejects_control_frame_corruption_with_oracle(
         assert context["reason"] == reason
         if prefix.startswith("adda.w"):
             assert context["stack_delta"] == (-65536 if "65532" in prefix else -4)
+    finally:
+        artifact.close()
+
+
+def test_mapped_word_initialization_and_pc_displacement_ledger(tmp_path):
+    path = tmp_path / 'mapped.json'
+    definition = region(runtime_address=0x10008, size=2, source_domain='mapped_source')
+    path.write_text(json.dumps({'memory_regions': [definition],
+        'execution_views': [{'source_start': 0, 'source_end': 10, 'base_addr': 0x10000}]}))
+    code = bytes.fromhex('343a00064e7500000040')
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(code, display_path='mapped', metadata_path=path)
+    try:
+        facts = artifact.memory_regions_payload()['items'][0]
+        assert facts['source_placement'] == {'section_index': 0, 'source_offset': 8}
+        assert facts['references'][0]['encoding'] == 'pc_displacement'
+        plan = artifact.memory_region_plan('key_state', 0x12000, 'chip')
+        assert plan['status'] == 'ready'
+        assert plan['reservation_size'] == 8
+        assert plan['initialization'] == {'section_index': 0, 'source_offset': 8, 'bytes': '0040'}
+        assert plan['rewrite_ledger'][0]['after'] == '343a1ffe'
+        assert artifact.memory_region_plan('key_state', 0x70000, 'chip')['refusal'] == 'pc_displacement_encoding_overflow'
+        assert artifact.memory_region_plan('key_state', 0x10000, 'chip')['refusal'] == 'runtime_materialization_overlap'
+    finally:
+        artifact.close()
+
+
+def test_mapped_region_rejects_missing_native_view(tmp_path):
+    path = tmp_path / 'unmapped.json'
+    path.write_text(json.dumps({'memory_regions': [region(runtime_address=0x10008, size=2, source_domain='mapped_source')]}))
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4a39000100084e75'), display_path='unmapped', metadata_path=path)
+    try:
+        assert artifact.memory_region_plan('key_state', 0x12000, 'chip')['refusal'] == 'unresolved_source_mapping'
+    finally:
+        artifact.close()
+
+
+@pytest.mark.parametrize('code', ['3239000100074e750040', '41fa00064e7500000040'])
+def test_mapped_source_rejects_straddling_read_or_pc_pointer_producer(tmp_path, code):
+    path = tmp_path / 'bounds.json'
+    path.write_text(json.dumps({'memory_regions': [region(runtime_address=0x10008, size=2, source_domain='mapped_source')],
+        'execution_views': [{'source_start': 0, 'source_end': 10, 'base_addr': 0x10000}]}))
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex(code), display_path='bounds', metadata_path=path)
+    try:
+        plan = artifact.memory_region_plan('key_state', 0x12000, 'chip')
+        assert plan['status'] == 'refused'
+        assert plan['unresolved_obligations'] > 0
+    finally:
+        artifact.close()
+
+
+def test_padded_reservation_cannot_overlap_declared_runtime_owner(tmp_path):
+    path = tmp_path/'owner.json'
+    path.write_text(json.dumps({'memory_regions': [region(runtime_address=0x10008, size=2, source_domain='mapped_source')],
+        'execution_views': [{'source_start': 0, 'source_end': 10, 'base_addr': 0x10000}],
+        'target_equates': [{'name': 'live_buffer', 'value': 0x12004, 'value_representation': 'hex',
+            'address_domain': 'runtime', 'extent_bytes': 4, 'group': 'runtime_storage'}]}))
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('343a00064e7500000040'), display_path='owner', metadata_path=path)
+    try:
+        assert artifact.memory_region_plan('key_state', 0x12000, 'chip')['refusal'] == 'runtime_equate_overlap'
+    finally:
+        artifact.close()
+
+
+def test_pc_rewrite_is_not_skipped_when_new_displacement_equals_old_address(tmp_path):
+    code = bytes.fromhex('343a01043439000011064e75').ljust(0x106, b'\0') + bytes.fromhex('0040')
+    path = tmp_path/'coincidence.json'
+    path.write_text(json.dumps({'memory_regions': [region(runtime_address=0x1106, size=2, source_domain='mapped_source')],
+        'execution_views': [{'source_start': 0, 'source_end': len(code), 'base_addr': 0x1000}]}))
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(code, display_path='coincidence', metadata_path=path)
+    try:
+        plan = artifact.memory_region_plan('key_state', 0x2108, 'chip')
+        assert plan['status'] == 'ready'
+        assert plan['rewrite_count'] == 2
+        assert plan['rewrite_ledger'][0]['before'] == '343a0104'
+        assert plan['rewrite_ledger'][0]['after'] == '343a1106'
     finally:
         artifact.close()

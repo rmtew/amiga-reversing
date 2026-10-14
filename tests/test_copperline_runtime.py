@@ -569,3 +569,87 @@ def test_overlapping_keyboard_holds_release_once_and_cleanup_after_failure(tmp_p
     with pytest.raises(CopperlineError,match='lost press'):
         runtime.run_scenario(c,s,p)
     assert [v for k,v in c.calls if k=='key']==[(11,True),(11,False)]
+
+
+def materialization_contract(p):
+    from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract
+    return DirectPayloadContract('test', 'target', hashlib.sha256(p.read_bytes()).hexdigest(),
+        0x1000, 0x1000, {}, 0x5000, 0x48414E44,
+        materialization={'source_offset': 0, 'size': len(p.read_bytes()),
+            'runtime_address': 0x11000, 'entry_source_offset': 0,
+            'source_consumed_at_entry': True}, initialization=(0x18000, b'\x00\x40'))
+
+
+def test_materialization_verifies_whole_copy_then_exact_init_and_anchor(tmp_path):
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    c.memory[0x11000:0x11000+len(p.read_bytes())] = p.read_bytes()
+    report = runtime.prepare_materialization(c, materialization_contract(p), p, 2)
+    assert report['materialization']['size'] == len(p.read_bytes())
+    assert report['materialization']['initialization']['bytes'] == '0040'
+    assert c.read_memory(0x18000, 4) == b'\x00\x40\x00\x00'
+    assert c.calls[-1][0] == 'reverse_anchor'
+    assert len([x for x in c.calls if x[0] == 'run']) == 1
+
+
+@pytest.mark.parametrize('failure', ['stop', 'wrong_pc', 'copy', 'readback'])
+def test_materialization_refuses_before_resume_on_failed_phase(tmp_path, failure):
+    p = payload(tmp_path)
+    class FaultClient(Client):
+        def run_until(self, params, timeout):
+            result = super().run_until(params, timeout)
+            if failure == 'wrong_pc':
+                self.regs['pc'] += 2
+            return result
+        def request(self, method, params=None):
+            result = super().request(method, params)
+            if failure == 'readback' and method == 'mem.write' and params['addr'] == 0x18000:
+                self.memory[0x18000] ^= 1
+            return result
+    c = FaultClient(p.read_bytes())
+    c.memory[0x11000:0x11000+len(p.read_bytes())] = p.read_bytes()
+    if failure == 'stop':
+        c.stop = {'reason': 'double_fault'}
+    if failure == 'copy':
+        c.memory[0x11100] ^= 1
+    with pytest.raises(CopperlineError):
+        runtime.prepare_materialization(c, materialization_contract(p), p, 2)
+    writes = [x for x in c.calls if x[0] == 'mem.write' and x[1]['addr'] == 0x18000]
+    assert len(writes) == (1 if failure == 'readback' else 0)
+    assert len([x for x in c.calls if x[0] == 'run']) == 1
+    assert c.calls[-1][0] != 'reverse_anchor'
+
+
+@pytest.mark.parametrize('mode', ['free', 'breakpoint', 'scenario'])
+def test_observe_materializes_and_initializes_once_before_every_observation_path(tmp_path, monkeypatch, mode):
+    import json
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    c.memory[0x11000:0x11000+len(p.read_bytes())] = p.read_bytes()
+    c.memory[0x5000:0x5004] = b'HAND'
+    fake_process(monkeypatch, c)
+    monkeypatch.setattr(runtime, 'load_contract', lambda _: materialization_contract(p))
+    options = {'direct_payload_contract': 'test'}
+    if mode == 'breakpoint':
+        options['breakpoint_runtime_address'] = 0x11000
+    elif mode == 'scenario':
+        s = tmp_path/'scenario.json'
+        s.write_text(json.dumps(scenario()))
+        options['scenario_path'] = s
+    report = runtime.observe(fake_session(tmp_path, p, **options))
+    writes = [(i, v) for i, (k, v) in enumerate(c.calls) if k == 'mem.write']
+    assert [v['addr'] for _, v in writes] == [0x5000, 0x18000]
+    after_init = c.calls[writes[-1][0]+1:]
+    assert after_init[0][0] == 'reverse_anchor'
+    assert any(k == 'run' for k, _ in after_init)
+    assert report['observation']['reverse_boundary']['materialization']['initialization']['readback_verified']
+
+
+def test_named_custom_register_capture_uses_read_only_chipset_inspection():
+    c = Client()
+    result = runtime.capture_scenario_state(c, {'custom_registers': ['AUD0VOL', 'DMACON']})
+    assert list(result['custom_registers']) == ['AUD0VOL', 'DMACON']
+    assert c.calls == [('custom.read', {'reg': 'AUD0VOL'}), ('custom.read', {'reg': 'DMACON'})]
+    for custom in [['AUD0VOL']*17, ['mem.write'], [12]]:
+        with pytest.raises(ValueError, match='custom registers'):
+            runtime.capture_scenario_state(c, {'custom_registers': custom})

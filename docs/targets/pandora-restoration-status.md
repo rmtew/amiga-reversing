@@ -238,6 +238,50 @@ Actual compact ZIP also reproduces all 376,832 original bytes with C/vasm:
 SHA256 `c2aa0d456821d21a0cff268bd212010b9494bb1ea78eab01976fe7f7c37cb8f7`.
 Machine evidence: `.runtime-state/pandora-analysis/scratch-bounds-followup/`.
 
+Audio-volume relocation checkpoint (2026-10-15): **changed layout executes;
+game-writer coverage remains incomplete**. The two-byte `audio_master_volume`
+(source `$4DD00`, original runtime `$5DD00`, initial `$0040`) now has a native
+five-entry fixed-width rewrite ledger targeting `$65400`. Both PC-displacement
+reads retain their forms; the three absolute writes retain their WORD/WORD/BYTE
+widths, including the high-byte writer. The logical two bytes use an eight-byte
+lease. Accepted-reference closure does not prove all aliases or future resources.
+
+The bootstrap ownership bug is fixed generally: marker storage, full loaded input
+and declared destinations are reserved before CMD_READ, merging contained leases.
+No allocator call can insert free-list metadata into loaded input afterward.
+Initialization waits until native copied-game entry `$1046A`, after full input
+and full `$55370`-byte copied-image verification, then writes/reads back exactly
+`0040` and anchors reverse history. Consumed-input lifetime is an explicit
+payload-bound contract; no integrity check was weakened. Native persistent owners,
+runtime-equate extents and materialized views exclude conflicting placements.
+Two normal reviewed facts record the volume and constructor-owned tilemap grid
+`$4000..$F568`; keyboard work remains deferred.
+
+Both actual Copperline runs hit eight canonical phases. Captured PC-displacement
+bytes resolve the derived reads to `$65400`; D2 reads 64 on both note/envelope
+paths. Paula state matches all hit phases: note output AUD3VOL=64, envelope output
+AUD1VOL=64→48. The derived full payload is
+`dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1`.
+The [scenario](../../runtime/scenarios/pandora-audio-volume-relocation.json) and
+[compact observations/ledger](../../runtime/observations/pandora-audio-volume-relocation.json)
+record the actual identities, instructions, register values and incomplete status.
+
+The five-second watch for source `$55368` times out in both runs. Player `(241,866)`
+is distance 1297 from the `(840,168)` proximity source; activation requires less
+than 256. None of the three game writers is dynamically covered. Initialization
+and read/output parity are not full relocation completion. Next: a bounded normal
+input scenario entering/leaving that area, then its separate high-byte reset
+condition; no debugger-forced game state or broader proof expansion.
+
+361 focused tests pass; the full native suite retains the same two baseline
+failures. Independent code review and the reproduced PC-displacement regression
+pass. Both histories preserve their prefixes and append two reviewed facts.
+Original source, binary and all source-package file hashes remain unchanged;
+only package metadata identity changes. Final full C/vasm exact receipt:
+`90d1ec6e769375d7f66424d92a4a154e8cf2fe4dbb6e9e7749a04f29b49a2e30`.
+Bounded local receipts and preserved earlier archives:
+`.runtime-state/pandora-analysis/volume-relocation/`.
+
 Keyboard relocation checkpoint (2026-10-14): **incomplete**. One normal
 interpretation/review records `keyboard_state` at original runtime
 `$397C..$39FC` (128 bytes), with stable identity, alignment, persistent CPU

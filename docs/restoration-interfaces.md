@@ -228,11 +228,15 @@ stdio lifecycle: [SDK documentation](https://py.sdk.modelcontextprotocol.io/) an
 
 ## Runtime memory regions and derived artifacts
 
-`target.memory_region.add` records a stable runtime-only region identity, original
+`target.memory_region.add` records a stable region identity, original
 address, size/alignment, CPU placement, persistent lifetime and DMA requirement
 through ordinary revision-checked interpretation/history. `query` with
 `kind: "memory_regions"` projects native instruction references and bounded
 pointer-path obligations. Definitions do not assert relocation safety.
+`source_domain: "mapped_source"` additionally requires a unique contiguous native
+materialization for the initial bytes. Plans retain PC-displacement encoding when
+the new signed displacement fits; indexed and PC-relative pointer producers remain
+refusals. Logical byte extent is distinct from the padded eight-byte Exec lease.
 
 `memory_plan` takes `expected_revision`, `region_id`, integer `destination` and
 `memory_class` (`chip` or `slow` for the first A500 contract). Unsupported encoding,
@@ -245,7 +249,8 @@ its scope. Lack of references never proves free storage.
 native plan writes an immutable derived payload and exact instruction rewrite
 ledger/manifest under `.runtime-state/restoration/derived/`; original source and
 binary identity remain unchanged. The manifest binds both whole payload hashes,
-region definition, placement, analysis subject and native plan. Runtime binding
+region definition, placement, analysis subject and native plan. Mapped regions
+also bind exact source initialization bytes. Runtime binding
 recomputes the native proof and validates every changed byte. UI placement/build
 controls, CLI operations and MCP tools use these same operations. Pandora's first
 keyboard move currently refuses five obligations, so no relocated target artifact

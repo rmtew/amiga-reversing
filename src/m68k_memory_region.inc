@@ -1,25 +1,33 @@
 #include "m68k_memory_region_proof.inc"
 #include "m68k_memory_pointer_liveness.inc"
+#include "m68k_memory_region_addresses.inc"
 /* Native formal-memory projection. Included after the canonical artifact and
  * JSON codec definitions; it never scans rendered source or invents owners. */
 static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingArtifact *a,
     const M68kMemoryRegionIR *r) {
   size_t i,j,count=0,open=0; const M68kRenderPlan *p=&a->source_plan;
+  uint32_t source_section=0,source_offset=0;int mapped=mr_mapped_span(a,r,&source_section,&source_offset);
+  if(r->source_mapped && mapped!=1) open++;
   if (json_builder_append(b,"{\"region_id\":") || json_builder_append_json_string(b,r->region_id) ||
       json_builder_append(b,",\"name\":") || json_builder_append_json_string(b,r->name) ||
       json_builder_appendf(b,",\"runtime_address\":%u,\"size\":%u,\"alignment\":%u,"
-        "\"source_placement\":null,\"source_domain\":\"runtime_only\",\"memory_class\":\"cpu_ram\","
-        "\"lifetime\":\"persistent\",\"dma_access\":\"%s\",\"references\":[",
-        r->runtime_address,r->size,r->alignment,r->dma_access ? "chip" : "none")) return -1;
+        "\"source_domain\":\"%s\",\"memory_class\":\"cpu_ram\","
+        "\"lifetime\":\"persistent\",\"dma_access\":\"%s\",\"source_placement\":",
+        r->runtime_address,r->size,r->alignment,r->source_mapped ? "mapped_source" : "runtime_only",r->dma_access ? "chip" : "none")) return -1;
+  if(mapped==1) {
+    if(json_builder_appendf(b,"{\"section_index\":%u,\"source_offset\":%u}",source_section,source_offset)) return -1;
+  } else if(json_builder_append(b,"null")) return -1;
+  if(json_builder_append(b,",\"references\":[")) return -1;
   for(i=0;i<p->instruction_count;i++) {
     const M68kRenderPlannedInstruction *ins=&p->instructions[i];
     const M68kSimFormMetadata *m=m68k_sim_metadata_for_instruction(&ins->instruction);
     for(j=0;j<ins->instruction.operand_count;j++) {
       const M68kOperandIR *o=&ins->instruction.operands[j]; uint32_t address;
-      int absolute=m68k_asm_operand_absolute_value(o->kind,&o->value,&address);
-      int immediate=!absolute && m68k_ir_operand_immediate_value(o,&address);
-      if ((!absolute && !immediate) || address < r->runtime_address || address >= r->runtime_address+r->size) continue;
-      if(immediate || !m || ins->instruction.target_cpu!=M68K_ASM_CPU_68000 || o->kind==M68K_ASM_OPERAND_BF_EA || (m->operand_access_kinds[j]!=M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
+      int kind=mr_operand_address(a,ins,j,&address),absolute=kind==1,immediate=kind==2;
+      unsigned width=m ? mr_access_width(&ins->instruction,m,(uint8_t)j) : 0;
+      if(kind<0 && address==UINT32_MAX) {if(r->source_mapped) open++;continue;}
+      if(!kind || !mr_overlaps(address,width,r->runtime_address,r->size)) continue;
+      if(address<r->runtime_address || kind<0 || (kind==3 && m && m->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS) || kind==4 || immediate || !m || ins->instruction.target_cpu!=M68K_ASM_CPU_68000 || o->kind==M68K_ASM_OPERAND_BF_EA || (m->operand_access_kinds[j]!=M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
           ((m->operand_access_kinds[j]!=M68K_SIM_ACCESS_MEMORY_READ && m->operand_access_kinds[j]!=M68K_SIM_ACCESS_MEMORY_WRITE) ||
            !mr_access_width(&ins->instruction,m,(uint8_t)j) || mr_access_width(&ins->instruction,m,(uint8_t)j)>r->size-(address-r->runtime_address)))) open++;
       if(count++ && json_builder_append(b,",")) return -1;
@@ -28,7 +36,7 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
         "\"encoding\":\"%s\",\"obligation\":\"%s\"",ins->source_section_index,ins->source_offset,j,
         address,address-r->runtime_address,m ? mr_access_width(&ins->instruction,m,(uint8_t)j) : 0,
         m ? m->operand_access_kinds[j] : 0,
-        immediate ? "immediate" : o->value.ea_mode==7 && o->value.ea_reg==0 ? "absolute_word" : "absolute_long",
+        kind==3 ? "pc_displacement" : kind==4 ? "pc_index" : immediate ? "immediate" : o->value.ea_mode==7 && o->value.ea_reg==0 ? "absolute_word" : "absolute_long",
         immediate ? "ambiguous_scalar_or_pointer" : m && m->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS ?
           "derived_pointer_accesses" : "direct_access_bounds")) return -1;
       if(m && m->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS && absolute) {
@@ -102,49 +110,59 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
     PlatformFileListingArtifact *a,const char *id,uint32_t destination,uint32_t memory_class,char **out_text) {
   JsonBuilder b={0}; const M68kMemoryRegionIR *r=NULL; size_t i,j,rewrites=0,open=0;
   const char *refusal=NULL;
+  uint32_t source_section=0,source_offset=0,reservation_size=0;
   if(!a || !id || !out_text) return -1;
   *out_text=NULL;
   for(i=0;i<a->policy.memory_region_count;i++) if(!strcmp(a->policy.memory_regions[i].region_id,id)) r=&a->policy.memory_regions[i];
   if(!r) return -1;
-  if(destination % r->alignment || destination % 8U || r->size % 8U) refusal="reservation_alignment";
+  reservation_size=(r->size+7U)&~7U;
+  if(r->source_mapped && mr_mapped_span(a,r,&source_section,&source_offset)!=1) refusal="unresolved_source_mapping";
+  if(destination % r->alignment || destination % 8U) refusal="reservation_alignment";
   else if(destination==r->runtime_address) refusal="unchanged_placement";
   else if(r->dma_access && memory_class!=1U) refusal="chip_dma_required";
-  else if(!((memory_class==1U && r->size<=0x7f000U && destination>=0x1000U && destination<=0x80000U-r->size) ||
-      (memory_class==2U && r->size<=0x80000U && destination>=0xc00000U && destination<=0xc80000U-r->size))) refusal="outside_supported_a500_memory";
+  else if(!((memory_class==1U && reservation_size<=0x7f000U && destination>=0x1000U && destination<=0x80000U-reservation_size) ||
+      (memory_class==2U && reservation_size<=0x80000U && destination>=0xc00000U && destination<=0xc80000U-reservation_size))) refusal="outside_supported_a500_memory";
   for(i=0;i<a->policy.memory_region_count;i++) {
     const M68kMemoryRegionIR *other=&a->policy.memory_regions[i];
-    if(destination < other->runtime_address+other->size && other->runtime_address < destination+r->size) refusal="persistent_region_overlap";
+    if(destination < other->runtime_address+other->size && other->runtime_address < destination+reservation_size) refusal="persistent_region_overlap";
+  }
+  for(i=0;i<a->policy.target_equate_count;i++) {
+    const M68kAnalysisTargetEquate *owner=&a->policy.target_equates[i];
+    if(owner->address_domain && owner->extent_bytes &&
+        mr_overlaps(destination,reservation_size,(uint32_t)owner->value,owner->extent_bytes))
+      refusal="runtime_equate_overlap";
   }
   for(i=0;i<a->source_analysis.section_count;i++) {
     const M68kSectionAnalysisIR *section=&a->source_analysis.sections[i];
     for(j=0;j<section->runtime_view_count;j++) {
       const M68kRuntimeViewIR *view=&section->runtime_views[j];
-      if(view->materialized && destination < (uint64_t)view->runtime_address+view->size && view->runtime_address < (uint64_t)destination+r->size)
+      if(view->materialized && destination < (uint64_t)view->runtime_address+view->size && view->runtime_address < (uint64_t)destination+reservation_size)
         refusal="runtime_materialization_overlap";
     }
     for(j=0;j<section->data_reference_count;j++) {
       uint32_t value=section->data_references[j].raw_value;
       if(value>=r->runtime_address && value<r->runtime_address+r->size) open++;
-      if(value>=destination && value<destination+r->size) refusal="existing_destination_data_reference";
+      if(value>=destination && value<destination+reservation_size) refusal="existing_destination_data_reference";
     }
   }
   if(json_builder_create(&b) || json_builder_append(&b,"{\"region_id\":") || json_builder_append_json_string(&b,id) ||
       json_builder_appendf(&b,",\"destination\":%u,\"memory_class\":\"%s\",\"reservation\":\"exec_allocabs\","
-        "\"reservation_size\":%u,\"rewrite_ledger\":[",destination,memory_class==1U ? "chip" : memory_class==2U ? "slow" : "unsupported",r->size)) goto fail;
+        "\"reservation_size\":%u,\"rewrite_ledger\":[",destination,memory_class==1U ? "chip" : memory_class==2U ? "slow" : "unsupported",reservation_size)) goto fail;
   for(i=0;i<a->source_plan.instruction_count;i++) {
     const M68kRenderPlannedInstruction *ins=&a->source_plan.instructions[i];
     const M68kSimFormMetadata *m=m68k_sim_metadata_for_instruction(&ins->instruction);
     M68kInstructionIR changed=ins->instruction; InstructionSpec spec; unsigned char old[32],bytes[32];
-    uint32_t address=0,region_offset=0,operand_index=0;size_t matched=0,n;
+    uint32_t region_offset=0,operand_index=0;size_t matched=0,n;
     for(j=0;j<ins->instruction.operand_count;j++) {
       const M68kOperandIR *o=&ins->instruction.operands[j];uint32_t v;
-      int absolute=m68k_asm_operand_absolute_value(o->kind,&o->value,&v);
-      int immediate=!absolute && m68k_ir_operand_immediate_value(o,&v);
-      if(!absolute && !immediate) continue;
-      if(v>=destination && v<destination+r->size) refusal="existing_destination_reference";
-      if(v<r->runtime_address || v>=r->runtime_address+r->size) continue;
-      ++matched;address=v;region_offset=v-r->runtime_address;operand_index=(uint32_t)j;
-      if(immediate || !m || ins->instruction.target_cpu!=M68K_ASM_CPU_68000 || o->kind==M68K_ASM_OPERAND_BF_EA) { ++open;continue; }
+      int kind=mr_operand_address(a,ins,j,&v),immediate=kind==2;
+      unsigned width=m ? mr_access_width(&ins->instruction,m,(uint8_t)j) : 0;
+      if(!kind) continue;
+      if(kind<0 && v==UINT32_MAX) {if(r->source_mapped) open++;continue;}
+      if(mr_overlaps(v,width,destination,reservation_size)) refusal="existing_destination_reference";
+      if(!mr_overlaps(v,width,r->runtime_address,r->size)) continue;
+      ++matched;region_offset=v-r->runtime_address;operand_index=(uint32_t)j;
+      if(v<r->runtime_address || kind<0 || (kind==3 && m && m->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS) || kind==4 || immediate || !m || ins->instruction.target_cpu!=M68K_ASM_CPU_68000 || o->kind==M68K_ASM_OPERAND_BF_EA) { ++open;continue; }
       if(m->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS) {
         MRProofResult proof=mr_prove_root(a,r,ins,(uint8_t)j);
         if(proof.reason) { ++open;continue; }
@@ -153,12 +171,22 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
       if(mr_access_width(&ins->instruction,m,(uint8_t)j)==0 ||
           mr_access_width(&ins->instruction,m,(uint8_t)j)>r->size-region_offset) { ++open;continue; }
       if(o->value.ea_mode==7U && o->value.ea_reg==0U && destination+region_offset>0x7fffU && destination+region_offset<0xffff8000U) { refusal="absolute_word_encoding_overflow";continue; }
-      changed.operands[j].value.value=destination+region_offset;
+      if(kind==3) {
+        uint32_t pc;
+        if(mr_source_address(a,ins->source_section_index,ins->source_offset,&pc)!=1) { refusal="unresolved_instruction_mapping";continue; }
+        InstructionSpec original_spec;m68k_instruction_ir_to_spec(&ins->instruction,&original_spec);
+        size_t bias=m68k_asm_operand_relative_base_offset(original_spec.asm_form_index,original_spec.operands,
+            original_spec.operand_count,original_spec.size_suffix,j,0);
+        if((int64_t)pc+bias+(int32_t)m68k_sign_extend32(o->value.value,16U)!=v) { refusal="pc_reference_identity_mismatch";continue; }
+        int64_t delta=(int64_t)destination+region_offset-pc-bias;
+        if(delta<INT16_MIN || delta>INT16_MAX) { refusal="pc_displacement_encoding_overflow";continue; }
+        changed.operands[j].value.value=(uint32_t)delta;
+      } else changed.operands[j].value.value=destination+region_offset;
       memset(&changed.operands[j].symbol_ref,0,sizeof(changed.operands[j].symbol_ref));
     }
     if(!matched) continue;
     if(matched!=1) {open++;continue;}
-    if(changed.operands[operand_index].value.value==address) continue;
+    if(changed.operands[operand_index].value.value==ins->instruction.operands[operand_index].value.value) continue;
     if(ins->source_section_index!=0 || a->object.section_count!=1) { refusal="unsupported_source_container";continue; }
     m68k_instruction_ir_to_spec(&ins->instruction,&spec);
     n=m68k_instruction_spec_assemble_bytes(&spec,old,sizeof(old));
@@ -173,9 +201,15 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
     for(j=0;j<n;j++) if(json_builder_appendf(&b,"%02x",bytes[j])) goto fail;
     if(json_builder_append(&b,"\"}")) goto fail;
   }
+  if(json_builder_append(&b,"],\"initialization\":")) goto fail;
+  if(r->source_mapped && !refusal) {
+    if(json_builder_appendf(&b,"{\"section_index\":%u,\"source_offset\":%u,\"bytes\":\"",source_section,source_offset)) goto fail;
+    for(i=0;i<r->size;i++) if(json_builder_appendf(&b,"%02x",a->object.sections[source_section].data[source_offset+i])) goto fail;
+    if(json_builder_append(&b,"\"}")) goto fail;
+  } else if(json_builder_append(&b,"null")) goto fail;
   if(open && !refusal) refusal="unresolved_reference_or_access_closure";
   if(!rewrites && !refusal) refusal="no_supported_references";
-  if(json_builder_appendf(&b,"],\"rewrite_count\":%zu,\"unresolved_obligations\":%zu,\"status\":\"%s\",\"refusal\":",rewrites,open,refusal ? "refused" : "ready") ||
+  if(json_builder_appendf(&b,",\"rewrite_count\":%zu,\"unresolved_obligations\":%zu,\"status\":\"%s\",\"refusal\":",rewrites,open,refusal ? "refused" : "ready") ||
       (refusal ? json_builder_append_json_string(&b,refusal) : json_builder_append(&b,"null")) ||
       json_builder_append(&b,",\"scope\":\"accepted native references and bounded pointer paths only; fixed instruction extents; original code placement\","
         "\"runtime_evidence\":null,\"scenario_coverage\":null}")) goto fail;

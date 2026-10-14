@@ -764,6 +764,7 @@ typedef struct M68kMemoryRegionIR {
   uint32_t alignment;
   uint8_t dma_access;
   uint8_t persistent;
+  uint8_t source_mapped;
 } M68kMemoryRegionIR;
 
 typedef struct M68kAnalysisPolicy {

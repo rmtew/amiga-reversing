@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-audio-volume-relocation",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "copied_entry",
+      "breakpoint_stable_key": "s0:0000046A:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "title",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "note_volume_read",
+      "breakpoint_stable_key": "s0:0004DA50:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          },
+          {
+            "base_register": "a4",
+            "offset": 0,
+            "size": 12
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ],
+        "registers": [
+          "d1",
+          "d2",
+          "a4",
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "note_volume_applied",
+      "breakpoint_stable_key": "s0:0004DA6E:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          },
+          {
+            "base_register": "a4",
+            "offset": 0,
+            "size": 12
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ],
+        "registers": [
+          "d1",
+          "d2",
+          "a4",
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "envelope_volume_read",
+      "breakpoint_stable_key": "s0:0004DB92:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          },
+          {
+            "base_register": "a4",
+            "offset": 0,
+            "size": 12
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ],
+        "registers": [
+          "d1",
+          "d2",
+          "a4",
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "envelope_volume_applied",
+      "breakpoint_stable_key": "s0:0004DBA4:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          },
+          {
+            "base_register": "a4",
+            "offset": 0,
+            "size": 12
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ],
+        "registers": [
+          "d1",
+          "d2",
+          "a4",
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "ui",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "proximity_distance",
+      "breakpoint_stable_key": "s0:00055322:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          },
+          {
+            "address": 377682,
+            "size": 4
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ],
+        "registers": [
+          "d0",
+          "d1",
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "proximity_volume_write",
+      "breakpoint_stable_key": "s0:00055368:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 383564,
+            "size": 4
+          },
+          {
+            "address": 383886,
+            "size": 4
+          },
+          {
+            "address": 377682,
+            "size": 4
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ],
+        "registers": [
+          "d0",
+          "d1",
+          "a6"
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "envelope_volume_applied",
+      "control": "port1 fire",
+      "release_after_phase": "ui"
+    }
+  ]
+}

@@ -82,16 +82,27 @@ claimed, but not every callback continuation is certified. The root and region
 therefore retain their refusals (five unresolved roots); no pair lowering,
 conditional runtime guard or changed instruction mapping has been introduced.
 
-If keyboard relocation is deferred, the best smaller first-region candidate is
+Keyboard relocation is deferred. The smaller active region is
 `audio_master_volume`, source `$4DD00`, two bytes initially `$0040`: native facts
-identify two PC-relative reads and three absolute writes, including one byte
-write. Moving these accesses need not change an address-register value or an IRQ
-save payload. It still requires mapped-source initialization and native
-PC-relative reference coverage; a validated low-Chip reservation could permit
-same-width absolute-WORD reads, but no such free allocation has been established.
+identify two PC-relative reads and three absolute writes, including one high-byte
+write. The mapped-source plan retains both PC-displacement instruction forms and
+uses `$65400` with an eight-byte backing lease. Moving these accesses changes no
+address register or IRQ save payload. Accepted-reference closure is narrower than
+whole-program alias or future-resource closure.
+
+The direct shim now owns the complete loaded input before reading it; a contained
+destination shares that lease. Allocating the destination after reading was
+observed to corrupt live source bytes through Exec split metadata. The mandatory
+materialization protocol verifies full input, stops at the declared native copy
+handoff, verifies the full copied image, then initializes exactly the logical
+bytes with readback and a reverse anchor. Consumption at that boundary is an
+explicit payload-bound loader assertion. Native owner regions, runtime-equate
+extents and materialized views remain placement exclusions; allocator success
+alone never makes a destination safe. Current execution coverage and outstanding
+writer coverage are in the [target ledger](../targets/pandora-restoration-status.md).
 The twelve-byte `camera_scroll_profiles` table is another bounded CPU-only data
 family (two three-WORD records), with additional PC-indexed access, caller/index
-and pointer-lifetime obligations. Neither is a ready relocation plan, and slicing
+and pointer-lifetime obligations. The camera candidate is not a ready plan, and slicing
 the keyboard buffer does not remove its indexed writers or inherited aliases.
 
 ## Address and frame provenance

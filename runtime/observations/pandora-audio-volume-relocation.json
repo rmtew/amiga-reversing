@@ -1,0 +1,447 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "status": "partial",
+  "region": "audio_master_volume",
+  "logical_size": 2,
+  "reservation_size": 8,
+  "destination": 414720,
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "artifact_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+  "manifest_sha256": "e449f89c0ec6e432b070bdf0809c405958be12a2119909c502f3d135561f666c",
+  "native_plan_sha256": "64d371460dde4a203c6e60ebf607b380a67758b1e496d9ad32276b4875b9278f",
+  "rewrite_ledger": [
+    {
+      "after": "343a79b2",
+      "before": "343a02b2",
+      "operand_index": 0,
+      "region_offset": 0,
+      "section_index": 0,
+      "source_offset": 318028
+    },
+    {
+      "after": "343a7870",
+      "before": "343a0170",
+      "operand_index": 0,
+      "region_offset": 0,
+      "section_index": 0,
+      "source_offset": 318350
+    },
+    {
+      "after": "13fc004000065400",
+      "before": "13fc00400005dd00",
+      "operand_index": 1,
+      "region_offset": 0,
+      "section_index": 0,
+      "source_offset": 348912
+    },
+    {
+      "after": "33fc004000065400",
+      "before": "33fc00400005dd00",
+      "operand_index": 1,
+      "region_offset": 0,
+      "section_index": 0,
+      "source_offset": 348988
+    },
+    {
+      "after": "33c000065400",
+      "before": "33c00005dd00",
+      "operand_index": 1,
+      "region_offset": 0,
+      "section_index": 0,
+      "source_offset": 349032
+    }
+  ],
+  "initialization": {
+    "bytes": "0040",
+    "section_index": 0,
+    "source_offset": 318720
+  },
+  "observations": {
+    "original": {
+      "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      },
+      "phases": [
+        {
+          "phase": "copied_entry",
+          "status": "hit",
+          "pc": "0x0001046a",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 0
+          }
+        },
+        {
+          "phase": "title",
+          "status": "hit",
+          "pc": "0x00010ba8",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 1984
+          }
+        },
+        {
+          "phase": "note_volume_read",
+          "status": "hit",
+          "pc": "0x0005da50",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 1984
+          },
+          "registers": {
+            "d1": "0x08200040",
+            "d2": "0x00000040",
+            "a4": "0x0005e6b4",
+            "a6": "0x00dff030"
+          },
+          "executed_read": {
+            "instruction_address": 383564,
+            "bytes": "343a02b2",
+            "decoded_address": 384256,
+            "result_d2_word": 64
+          }
+        },
+        {
+          "phase": "note_volume_applied",
+          "status": "hit",
+          "pc": "0x0005da6e",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 64,
+            "DMACON": 1984
+          },
+          "registers": {
+            "d1": "0x00000040",
+            "d2": "0x00000040",
+            "a4": "0x0005e6b4",
+            "a6": "0x00dff030"
+          }
+        },
+        {
+          "phase": "envelope_volume_read",
+          "status": "hit",
+          "pc": "0x0005db92",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 16,
+            "AUD1VOL": 64,
+            "AUD2VOL": 16,
+            "AUD3VOL": 64,
+            "DMACON": 1999
+          },
+          "registers": {
+            "d1": "0x3d350030",
+            "d2": "0x00000040",
+            "a4": "0x0005e69c",
+            "a6": "0x00dff010"
+          },
+          "executed_read": {
+            "instruction_address": 383886,
+            "bytes": "343a0170",
+            "decoded_address": 384256,
+            "result_d2_word": 64
+          }
+        },
+        {
+          "phase": "envelope_volume_applied",
+          "status": "hit",
+          "pc": "0x0005dba4",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 16,
+            "AUD1VOL": 48,
+            "AUD2VOL": 16,
+            "AUD3VOL": 64,
+            "DMACON": 1999
+          },
+          "registers": {
+            "d1": "0x00000030",
+            "d2": "0x00000040",
+            "a4": "0x0005e69c",
+            "a6": "0x00dff010"
+          }
+        },
+        {
+          "phase": "ui",
+          "status": "hit",
+          "pc": "0x0001079e",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 64,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 1730
+          }
+        },
+        {
+          "phase": "proximity_distance",
+          "status": "hit",
+          "pc": "0x00065322",
+          "region_address": "0x0005dd00",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 64,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 2018
+          },
+          "registers": {
+            "d0": "0x2f2d0257",
+            "d1": "0x2f2d02ba",
+            "a6": "0x000039fc"
+          },
+          "player_xy_bytes": "00f10362"
+        },
+        {
+          "phase": "proximity_volume_write",
+          "status": "timeout",
+          "pc": "0x0001251c",
+          "wait_seconds": 5
+        }
+      ]
+    },
+    "derived": {
+      "input_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "051cac9349e34dab6a71b31a3140039298df8443f8e21782babc7719722f4079",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": {
+          "address": 414720,
+          "bytes": "0040",
+          "readback_verified": true,
+          "reverse_anchor": "after_write",
+          "replay_across_write": false
+        }
+      },
+      "phases": [
+        {
+          "phase": "copied_entry",
+          "status": "hit",
+          "pc": "0x0001046a",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 0
+          }
+        },
+        {
+          "phase": "title",
+          "status": "hit",
+          "pc": "0x00010ba8",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 1984
+          }
+        },
+        {
+          "phase": "note_volume_read",
+          "status": "hit",
+          "pc": "0x0005da50",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 1984
+          },
+          "registers": {
+            "d1": "0x08200040",
+            "d2": "0x00000040",
+            "a4": "0x0005e6b4",
+            "a6": "0x00dff030"
+          },
+          "executed_read": {
+            "instruction_address": 383564,
+            "bytes": "343a79b2",
+            "decoded_address": 414720,
+            "result_d2_word": 64
+          }
+        },
+        {
+          "phase": "note_volume_applied",
+          "status": "hit",
+          "pc": "0x0005da6e",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 0,
+            "AUD2VOL": 0,
+            "AUD3VOL": 64,
+            "DMACON": 1984
+          },
+          "registers": {
+            "d1": "0x00000040",
+            "d2": "0x00000040",
+            "a4": "0x0005e6b4",
+            "a6": "0x00dff030"
+          }
+        },
+        {
+          "phase": "envelope_volume_read",
+          "status": "hit",
+          "pc": "0x0005db92",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 16,
+            "AUD1VOL": 64,
+            "AUD2VOL": 16,
+            "AUD3VOL": 64,
+            "DMACON": 1999
+          },
+          "registers": {
+            "d1": "0x3d350030",
+            "d2": "0x00000040",
+            "a4": "0x0005e69c",
+            "a6": "0x00dff010"
+          },
+          "executed_read": {
+            "instruction_address": 383886,
+            "bytes": "343a7870",
+            "decoded_address": 414720,
+            "result_d2_word": 64
+          }
+        },
+        {
+          "phase": "envelope_volume_applied",
+          "status": "hit",
+          "pc": "0x0005dba4",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 16,
+            "AUD1VOL": 48,
+            "AUD2VOL": 16,
+            "AUD3VOL": 64,
+            "DMACON": 1999
+          },
+          "registers": {
+            "d1": "0x00000030",
+            "d2": "0x00000040",
+            "a4": "0x0005e69c",
+            "a6": "0x00dff010"
+          }
+        },
+        {
+          "phase": "ui",
+          "status": "hit",
+          "pc": "0x0001079e",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 64,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 1730
+          }
+        },
+        {
+          "phase": "proximity_distance",
+          "status": "hit",
+          "pc": "0x00065322",
+          "region_address": "0x00065400",
+          "region_bytes": "0040",
+          "old_region_bytes": "0040",
+          "paula": {
+            "AUD0VOL": 0,
+            "AUD1VOL": 64,
+            "AUD2VOL": 0,
+            "AUD3VOL": 0,
+            "DMACON": 2018
+          },
+          "registers": {
+            "d0": "0x2f2d0257",
+            "d1": "0x2f2d02ba",
+            "a6": "0x000039fc"
+          },
+          "player_xy_bytes": "00f10362"
+        },
+        {
+          "phase": "proximity_volume_write",
+          "status": "timeout",
+          "pc": "0x00016fb6",
+          "wait_seconds": 5
+        }
+      ]
+    }
+  },
+  "verified": [
+    "Full376832B loaded input identity before release in both runs.",
+    "Full349040B materialized view identity before game entry in both runs.",
+    "Exactly2B source initialization at65400 readback verified after copying, with reverse anchor.",
+    "Both PC-displacement reads execute from new address65400 and return64; captured instruction bytes resolve that address.",
+    "Paula state agrees at all8 hit phases; note outputAUD3VOL64, envelopeAUD1VOL64to48."
+  ],
+  "limits": [
+    "Proximity volume writer55368 did not hit within5wallseconds; both whole scenarios return incomplete.",
+    "Player stayed241,866; Manhattan distance1297 from840,168 exceeds activation threshold256.",
+    "None of the three game volume writers is dynamically covered; initialization is not game-write parity.",
+    "No all-game alias, synthesized-address, modified-resource, disk-loader, audible-waveform or full gameplay parity claim.",
+    "Keyboard relocation retains its five unresolved obligations."
+  ],
+  "next_step": "Add a bounded normal-input scenario reaching and leaving the proximity-audio area; then cover the high-byte reset path under its actual game flag condition, without debugger-forced game state."
+}

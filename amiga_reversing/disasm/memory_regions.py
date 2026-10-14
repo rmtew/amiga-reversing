@@ -45,7 +45,7 @@ def validate_region(region: dict) -> dict:
     ):
         raise ValueError("memory_region requires a nonempty aligned extent")
     if (
-        region["source_domain"] != "runtime_only"
+        region["source_domain"] not in {"runtime_only", "mapped_source"}
         or region["memory_class"] != "cpu_ram"
         or region["lifetime"] != "persistent"
         or region["dma_access"] not in {"none", "chip"}
@@ -126,6 +126,8 @@ def build_derived_artifact(
         "rewrite_ledger": ledger,
         "native_plan_sha256": native_hash,
     }
+    if region["source_domain"] == "mapped_source":
+        manifest["initialization"] = plan["initialization"]
     manifest_bytes = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode()
     directory = (
         PROJECT_ROOT
