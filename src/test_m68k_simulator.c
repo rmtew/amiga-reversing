@@ -9,6 +9,22 @@ static int test_external_write_allowed(void *user, uint32_t address, uint8_t wid
   return address == 0x30U && width == 1U;
 }
 
+static int test_concrete_subi_word_preserves_upper_and_sets_ccr(void) {
+  uint8_t memory[] = {0x04U, 0x40U, 0x03U, 0x48U}; /* subi.w #840,d0 */
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.d[0] = 0x00070328U;
+  state.sr = 0x2000U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state,
+    1U, 0U, 0U, NULL, &result));
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(0x0007FFE0U, state.d[0]);
+  M68K_C_ASSERT_U32(0x2019U, state.sr);
+  M68K_C_ASSERT_U32(0U, (uint32_t)result.memory_write_count);
+  return 0;
+}
+
 /* Real binary decoding deliberately supplies no text suffix. Exercise all four
  * bit operations, both index forms, direct D1 and byte EA/update forms. */
 static int test_concrete_bit_ea_category_width_and_flags(void) {
@@ -570,6 +586,7 @@ int m68k_c_simulator_tests(void) {
     {"metadata_lookup_does_not_fallback_to_mnemonic_shape",
       test_metadata_lookup_does_not_fallback_to_mnemonic_shape},
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
+    {"concrete_subi_word_preserves_upper_and_sets_ccr", test_concrete_subi_word_preserves_upper_and_sets_ccr},
     {"concrete_bit_ea_category_width_and_flags", test_concrete_bit_ea_category_width_and_flags},
     {"concrete_run_stops_on_instruction_limit", test_concrete_run_stops_on_instruction_limit},
     {"concrete_run_accepts_generated_noop_semantics", test_concrete_run_accepts_generated_noop_semantics},

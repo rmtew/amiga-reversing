@@ -1724,3 +1724,33 @@ remain in 24 unchanged files while all changed C/header/table files pass. Comple
 rendered-source roundtrip is exact with zero differing ranges. Original/source
 hashes and verified rifle checkpoint hashes remain unchanged. The rebuilt backend
 is loaded by a restarted listing UI at `http://127.0.0.1:8123/`.
+
+## Concrete SUBI width/CCR correction and bounded comparison completion
+
+The preceding arithmetic refusal is now resolved in the general concrete ADD/SUB
+path. A before/after minimal native regression reproduces word upper-bit
+corruption and verifies D0 `$00070328` minus 840 becomes `$0007ffe0`, SR `$2019`.
+The correction consumes existing width/CCR and source-extension metadata through
+shared helpers, preserves narrow data destinations, and retains full-width
+address arithmetic with unchanged SR. The boundary tests also expose a reversed
+form's stale register-only access; general parser normalization and regenerated
+KB execution bindings/simulator tables correct seven access entries across
+ADD/AND/OR/SUB and PMOVE. No target-specific CPU workaround is used.
+
+The same original/derived manifest/donor comparison now passes all nine bounded
+routine cases and exits 0. The near-player call follows both negative-delta NEG
+paths, returns in 21 instructions and writes 53 (`0035`); five modeled dead/armed
+calls still execute the BYTE writer and return in 26 instructions per layout.
+Normalized CPU states, control flow and writes agree. The complete 65,536-word
+single-store result remains identical to earlier receipts. The new evidence is
+`runtime/observations/pandora-volume-local-comparison-arithmetic-fixed.json`;
+historical negative receipts are unchanged. This completes those local CPU
+contracts, not normal gameplay BYTE reachability or arbitrary routine inputs.
+
+Validation: 190 focused tests plus 1,004 subtests pass, native simulator 30/30
+passes, and full-image rendered-source roundtrip is exact with zero differing
+ranges. The full native run retains only its two documented baseline failures.
+Changed C/header/table files pass style; no independent machine68k oracle is
+available. Original/source, verified rifle snapshot and prior relocation evidence
+remain intact. The service is restarted/reloaded for the new native backend.
+Clearance gameplay remains paused; normal game writer coverage stays two of three.

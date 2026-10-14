@@ -297,3 +297,51 @@ cases and exits 2 even when both layouts agree on the bad result. Whole-routine
 coverage therefore remains bounded and partial, not a general equivalence proof.
 Normal game BYTE reachability is still separate and unobserved; clearance-ID
 route expansion remains paused.
+
+### Concrete arithmetic gap closed for the bounded comparison
+
+The arithmetic defect described above is fixed at the existing general concrete
+execution layer. Its direct-register shortcut ignored data widths and CCR; the
+replacement reuses normalized operand evaluation, source extension, arithmetic,
+sized writes and generated CCR formulas. Dn/memory destinations use their
+access widths; An destinations retain full-register results and unchanged SR.
+Existing EA preparation/update helpers preserve pre/post addressing behavior.
+No instruction-name/address exception or new M68K fact is added.
+
+A minimal regression was red before the fix (`04400348`, D0 `$00070328` → bad
+`$0006ffe0`) and now verifies the correct `$0007ffe0`/SR `$2019`. Explicit
+byte/word/long boundary vectors exercise N/Z/V/C/X, carry/borrow and signed
+limits, preservation of all other SR bits, all untouched D/A registers and
+memory bytes, quick amounts 1/8, memory access boundaries, source extension and
+An wrapping. Invalid accesses stop without completed instructions/writes; a
+prepared EA register update is not promised to roll back. These tests use
+generated assembly and explicit expected results. An independent machine68k
+oracle remains unavailable, so this is not claimed as independent CPU proof.
+
+The matrix also uncovered a valid reversed-form binding gap: changing a base
+register operand into an EA did not change register-read/write access into EA
+access. `_form_adjusted_access_kind` now normalizes both directions. Rebuilding
+the normal execution-metadata stage from the existing extracted KB fields
+changes exactly seven access kinds in five instructions: ADD/AND/OR/SUB and
+three PMOVE forms. The simulator tables are regenerated; other instruction
+facts, encodings and generated assembler/disassembler tables are unchanged.
+PMOVE remains unsupported by concrete execution where previously unsupported.
+The generator tests reproduce these bindings and verify conservative category
+handling; concrete AND/OR memory cases cover the shared normalization.
+
+For this metadata refresh, use the previous preserved-KB regeneration recipe
+with the selection `if 'execution' not in entry: continue` in place of the
+EA-category-only selection, then regenerate simulator tables and rebuild.
+Only the seven documented access kinds change. Generator freshness and parser
+reproduction regressions enforce the resulting artifacts.
+
+The same verified donor and complete five-rewrite relocation manifest now admit
+all nine bounded local calls. Near-player arming avoids audio initialization,
+executes both absolute-distance NEG instructions and returns volume 53 in 21
+steps. The five modeled dead/armed BYTE calls return in 26 steps per layout;
+all normalized states, writes and control paths match. The 65,536-word direct
+store result is unchanged. The new arithmetic-fixed receipt preserves earlier
+refusals as history, reports no refused cases, and the CLI exits 0. Those are
+bounded modeled CPU-call equivalence results. Normal game BYTE reachability,
+Paula/DMA behavior, arbitrary contexts, interrupts and allocation proof remain
+separate; clearance-ID gameplay remains paused.

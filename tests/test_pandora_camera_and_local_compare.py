@@ -82,6 +82,28 @@ def test_width_fixed_routine_receipt_preserves_store_proof_and_refuses_new_contr
     assert failure['expected_logical_word']==53 and failure['observed_logical_word']==64
 
 
+def test_arithmetic_fixed_receipt_qualifies_all_bounded_routine_cases():
+    result=json.loads((ROOT/'runtime/observations/pandora-volume-local-comparison-arithmetic-fixed.json').read_text())
+    assert result['BYTE_instruction_comparison']==LOCAL['BYTE_instruction_comparison']
+    assert result['status']=='bounded_local_routine_and_BYTE_equivalence'
+    assert result['routine_comparison']=={'status':'bounded_CPU_only_routine_equivalence',
+                                           'accepted_cases':9,'refused_cases':[]}
+    near=next(c for c in result['accepted_cases'] if c['name']=='alive_near_armed')
+    assert near['logical_output']=='0035' and near['CPU_state_equal']
+    assert sum(c['BYTE_writer_executed_locally'] for c in result['accepted_cases'])==5
+
+
+def test_corrected_native_near_routine_takes_absolute_distance_and_returns():
+    from amiga_reversing.tools.pandora_volume_local_compare import execute
+    library=ROOT/'src/build/libamiga_backend.so'
+    if not library.exists():pytest.skip('native generated backend not built')
+    _,projection,regs=load_context(CONTEXT,DATA)
+    r=execute(load_engine(library),DATA,projection,regs,relocated=False,dead=False,armed=True,volume=64,xy=(808,154))
+    assert r['logical_word']==53 and r['state']['pc']==0x800
+    assert 0x65316 in r['pcs'] and 0x65320 in r['pcs']  # both negative deltas must be negated
+    assert not r['BYTE_writer_executed']
+
+
 @pytest.mark.parametrize('volume',[0x40,6,0x1ff,0xaa55,0xffff])
 def test_fixed_native_guarded_dead_routine_reaches_writer_and_returns(volume):
     from amiga_reversing.tools.pandora_volume_local_compare import execute

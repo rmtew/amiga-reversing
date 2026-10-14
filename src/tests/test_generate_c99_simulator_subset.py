@@ -85,6 +85,27 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
     def test_generated_tables_are_current(self) -> None:
         self.assertEqual(self._tables, (ROOT / "src/generated/m68k_simulator_tables.h").read_text())
 
+    def test_reversed_forms_rebind_register_access_to_ea(self) -> None:
+        sys.path.insert(0, str(ROOT / "src" / "scripts"))
+        from kb.m68k_parser import _build_execution_metadata, _form_adjusted_access_kind
+        from generate_c99_assembler_corpus import _item_forms
+        kb = self._generator._load_kb()
+        for entry in kb["instructions"]:
+            if entry["mnemonic"] not in {"ADD", "SUB", "AND", "OR", "PMOVE"}:
+                continue
+            expanded = copy.deepcopy(entry)
+            expanded["forms"] = _item_forms(kb, entry)
+            self.assertEqual(_build_execution_metadata(expanded), entry["execution"])
+            override = entry["execution"]["form_overrides"]["1"]["operands"]
+            index = 0 if entry["mnemonic"] == "PMOVE" else 1
+            self.assertEqual(override[index]["access"]["kind"], "memory_read" if index == 0 else "memory_write")
+        for kind in ("ea", "ind", "postinc", "predec", "disp", "absw", "absl"):
+            self.assertEqual(_form_adjusted_access_kind(kind, "register_read"), "memory_read")
+            self.assertEqual(_form_adjusted_access_kind(kind, "register_write"), "memory_write")
+        self.assertEqual(_form_adjusted_access_kind("dn", "memory_write"), "register_write")
+        self.assertEqual(_form_adjusted_access_kind("imm", "register_read"), "immediate")
+        self.assertEqual(_form_adjusted_access_kind("ctrl_reg", "register_read"), "register_read")
+
     def test_generates_flow_and_semantics_metadata(self) -> None:
         self.assertIn("M68K_SIM_FLOW_CALL", self._tables)
         self.assertIn("M68K_SIM_SEMANTICS_AVAILABLE", self._tables)

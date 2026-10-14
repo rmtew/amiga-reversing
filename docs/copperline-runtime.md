@@ -655,3 +655,71 @@ project index retains its independently documented local baseline 404:
 metadata was changed to repair that selector; direct Pandora project/listing
 requests succeed. See the existing server baseline classification under local
 `.runtime-state/pandora-analysis/performance-c8f6/`.
+
+## Concrete arithmetic corrected; nine bounded routine cases pass
+
+This supersedes the arithmetic refusal above. A minimal native regression first
+reproduced `SUBI.W #840,D0` (`04400348`) with D0 `$00070328` and SR `$2000`:
+the old concrete path produced `$0006ffe0`, corrupting the upper word, and left
+CCR unchanged. It now produces `$0007ffe0` and SR `$2019`. The shared concrete
+ADD/SUB path uses existing generated operand-width/CCR metadata, the existing
+source-extension arithmetic helper and sized destination writer. Data-register
+upper bits and memory neighbours are preserved; address-register destinations
+retain full-width arithmetic and unchanged SR. Immediate, register, quick and EA
+forms share the correction, including existing pre/post access update helpers.
+No Pandora-specific instruction branch or new CPU fact is introduced.
+
+The boundary matrix exposed an adjacent upstream form-binding error: reversing
+`<ea>,Dn` into `Dn,<ea>` retained a register-only destination access. The parser
+now normalizes register-to-EA accesses as well as EA-to-register accesses. Seven
+stale access bindings were regenerated from preserved extracted KB fields:
+ADD/AND/OR/SUB destinations and three PMOVE source forms. Generated simulator
+tables were regenerated too. PMOVE execution support is not added by correcting
+its metadata. Generator tests verify reproducibility and category normalization;
+concrete AND/OR memory checks cover the shared reversed-form correction.
+
+[Arithmetic-fixed comparison](../runtime/observations/pandora-volume-local-comparison-arithmetic-fixed.json)
+uses the same verified donor and complete relocation manifest. All nine bounded
+calls now satisfy their independent contracts and original/derived normalized
+CPU state, control-flow and write comparisons. The near-player case at `(808,154)`
+executes both required NEG instructions, returns in 21 instructions and writes
+volume `$0035` (53). The five modeled dead/armed BYTE calls still return in 26
+instructions each. The exhaustive 65,536-word direct-store result is identical to
+both historical receipts, which remain unmodified. The CLI now exits **0** with
+`bounded_local_routine_and_BYTE_equivalence`; this is a bounded CPU verdict, not
+normal game reachability or unrestricted routine equivalence.
+
+Run the local-comparison command above with
+`--output /tmp/pandora-arithmetic-fixed-comparison.json` (expected exit 0).
+Focused arithmetic tests use generated assembly and explicit boundary vectors:
+
+```sh
+.venv/bin/python -m pytest -q src/tests/test_m68k_simulator_arithmetic.py \
+  src/tests/test_generate_c99_simulator_subset.py \
+  src/tests/test_m68k_simulator_abstract.py tests/test_pandora_camera_and_local_compare.py
+.venv/bin/python src/scripts/check_c_style.py src/m68k_simulator.c \
+  src/test_m68k_simulator.c src/generated/m68k_simulator_tables.h
+src/build/m68k_c_unit_tests.exe
+```
+
+The full focused run passes 190 tests plus 1,004 subtests. The new arithmetic tests
+cover byte/word/long signed overflow, zero/negative results, carry/borrow/extend,
+non-CCR SR preservation, Dn upper-bit and memory-neighbour preservation,
+immediate/register/quick forms, EA pre/post updates, address-source extension
+and 32-bit address wrapping. End-of-memory byte access succeeds; invalid word
+access/predecrement stops without a completed instruction or memory write.
+Refused execution may retain prepared EA register updates; no rollback guarantee
+is assumed. Native simulator 30/30 passes; the full native suite still fails only
+the two documented pointer-table-pointee and unknown-decompression baseline
+cases. Changed C/header/table style and full-image exact roundtrip pass, with no
+differing source ranges. The independent machine68k oracle remains unavailable.
+
+The service is restarted for the rebuilt backend and Pandora's listing reloaded.
+Original binary/source, relocation manifest, WORD evidence, historical local
+receipts and rifle checkpoint are preserved. No emulator/gameplay run was added.
+Clearance gameplay stays paused, and normal game BYTE execution remains unobserved.
+
+Final reload check: 42,219 Pandora rows, successful three-row listing API read.
+All 121 preserved-KB execution entries reproduce through the normal builder;
+only the seven documented access kinds differ from the previous commit. The
+previous global-project-index orphan-metadata error remains unrelated.

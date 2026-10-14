@@ -6916,6 +6916,14 @@ def _form_adjusted_access_kind(form_operand_type: str, access_kind: str) -> str:
         return "register_write"
     if form_operand_type in ("dn", "an") and access_kind == "memory_read":
         return "register_read"
+    # Form direction can also change a base register operand into an EA. Such
+    # an EA may still decode as a direct register; the native access path
+    # resolves that category rather than retaining a register-only binding.
+    if form_operand_type == "ea" or _ea_address_shape_for_operand_type(form_operand_type) is not None:
+        if access_kind == "register_read":
+            return "memory_read"
+        if access_kind == "register_write":
+            return "memory_write"
     return access_kind
 
 

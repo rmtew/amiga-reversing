@@ -3969,17 +3969,53 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     }
     io_state->a[lhs_reg] = resolved_address;
   } else if ((metadata->operation_type == M68K_SIM_OP_ADD || metadata->operation_type == M68K_SIM_OP_SUB) &&
-      source != NULL && dest != NULL &&
-      sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
-        memory, memory_size, io_state->pc, &immediate_value, memory_policy) &&
-      sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg)) {
-    uint32_t delta = immediate_value;
-    if (metadata->source_sign_extend) {
-      uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->source_operand_index);
-      delta = sim_sign_extend_value(delta, (uint8_t)(width * 8U));
+      source != NULL && dest != NULL) {
+    M68kSimValue lhs_value;
+    M68kSimValue rhs_value;
+    M68kSimValue output_value;
+    uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
+    int address_destination = sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index,
+      dest, &is_address, &lhs_reg) && is_address;
+    if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source,
+          io_state) ||
+        !sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state) ||
+        !sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source,
+          io_state, memory, memory_size, io_state->pc, &immediate_value, memory_policy) ||
+        !sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state, memory, memory_size, io_state->pc, &resolved_value, memory_policy)) {
+      sim_diag_error(diagnostics, "unsupported concrete arithmetic operand");
+      return -1;
     }
-    if (metadata->operation_type == M68K_SIM_OP_SUB) delta = (uint32_t)(0U - delta);
-    if (is_address) io_state->a[lhs_reg] += delta; else io_state->d[lhs_reg] += delta;
+    lhs_value = sim_value_constant(resolved_value, M68K_SIM_PROV_REGISTER_COPY);
+    rhs_value = sim_value_constant(immediate_value, M68K_SIM_PROV_REGISTER_COPY);
+    if (!sim_apply_add_sub_by_metadata(instruction, metadata, &lhs_value, &rhs_value, &output_value) ||
+        output_value.kind != M68K_SIM_VALUE_CONSTANT) {
+      sim_diag_error(diagnostics, "unsupported concrete arithmetic result");
+      return -1;
+    }
+    /* Address destinations retain full-width arithmetic and SR; data accesses
+     * use generated widths and CCR rules, including narrow Dn preservation. */
+    if (address_destination) {
+      io_state->a[lhs_reg] = output_value.value;
+    } else {
+      if ((metadata->ccr_formula != M68K_SIM_CCR_FORMULA_ADD_FLAGS &&
+            metadata->ccr_formula != M68K_SIM_CCR_FORMULA_SUB_FLAGS) ||
+          !sim_apply_abstract_add_sub_flags(io_state->sr, resolved_value, immediate_value, width,
+            metadata->ccr_formula == M68K_SIM_CCR_FORMULA_SUB_FLAGS, &io_state->sr) ||
+          !sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+            io_state, memory, memory_size, io_state->pc, output_value.value, write_trace, memory_policy)) {
+        sim_diag_error(diagnostics, "unsupported concrete arithmetic destination or flags");
+        return -1;
+      }
+    }
+    if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source,
+          io_state) ||
+        !sim_apply_concrete_ea_register_update(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete arithmetic operand update");
+      return -1;
+    }
   } else if ((metadata->operation_type == M68K_SIM_OP_ADD_EXTEND ||
           metadata->operation_type == M68K_SIM_OP_SUB_EXTEND) &&
       source != NULL && dest != NULL) {
