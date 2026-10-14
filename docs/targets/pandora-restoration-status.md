@@ -272,7 +272,7 @@ C/vasm verification is exact for all 376,832 bytes, receipt
 `75f1ea4bcebee3bb8c1e712c0fe172e4cefa02ca3dbf1c028f9e6a4ded877418`;
 source SHA remains `b5c29658451d7a775aadc1cd574dcee25528bbe477362372b0fb47abfd1b913d`.
 Actual compact ZIP also reproduces every original byte through C/vasm; its
-source SHA remains `c2aa0d456821d21a0cff268bd212010b9494bb1ea78eab01976fe7f7c37cb8f7`
+source SHA is `974bd68621c39c2a94a9bc457cd5bd6e5bb74ecab0e3d2c964b7beb6e20b306c`
 with 27 definitions, 1,501 records and 768 explicit fallbacks. All prior effective
 facts, 78 companions, 69 original asset spans and both history prefixes are preserved. Machine evidence is under
 `.runtime-state/pandora-analysis/keyboard-relocation/`; reproduction and the
