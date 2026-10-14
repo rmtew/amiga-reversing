@@ -535,7 +535,7 @@ game relocation, unknown aliases, arbitrary mutations or other scenarios.
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
 
-Current checklist (2026-10-13): “documented” means the selected facts and
+Current checklist (2026-10-14): “documented” means the selected facts and
 consumer contracts below are reviewed; “partial” retains a known semantic or
 lifecycle limit. “Unanalysed” identifies the next evidence dependency, rather
 than a new coverage metric. No row claims complete subsystem recovery.
@@ -555,7 +555,7 @@ presentation, not the semantic recovery status below.
 | Bootstrap / initialization | Fixed-base overlap-safe copy, continuation, supervisor/stack/workspace and initial buffers | Dependent resource setup and storage lifetimes | Copy-helper return lineage, temporal overwrites and alternate placement |
 | IRQ / frame / gameplay | Dispatch priority, display pointer programming, completion latch; front/back swap and shared main/modal input, text and mission-timer services | Callback effects, input phases and buffer ownership | Complete allocation/lifetime and caller coverage |
 | Title / starfield | Ten-byte record fields and five scoped A2 inputs; grounded post-reset continuation typing; ten initialized runtime samples match signed projection arithmetic | Byte 9 remains unknown; clear/render use continuation jumps; the 1000-byte runtime array is outside the absolute-storage command schema | Complete runtime ownership/lifetime, table bounds and indirect paths |
-| World commands / objects | All 33 handler identities and operand contracts; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | Mutable scripts, callback effects, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
+| World commands / objects | All 33 handler identities and operand contracts; 12 shared command schemas, 20 scoped handler inputs and 31 named operand uses; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | Mutable scripts, callback effects, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
 | Combat / encounter | Proximity/trade entry, equipment reload/damage tables, player/opponent charge state, health overlays, hit feedback, charge gauge and defeat cleanup; initialized callback targets and their shared item-state helper | Four non-null callbacks among 35 initialized objects; callback precedes opponent deactivation; item-state addition wraps modulo 256 and skips flag-bit-1 objects. XY-copy and saved-state swap use typed object fields; the table wrapper loads A0 but the helper inherits A5 | Mutable callback replacements, fixed-RAM pointer purpose, complete state/pointer lifetimes and indirect callers; nine initialized saved-state pointers are null |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks; mask-input/border consumers and shared 20×8 modal grid; fixed NPC and receptacle geometry/descriptor families | Receptacle deposit saves the attachment, completion/restart restores it and clears the saved pointer; restart clears the entire interaction flags byte, including proximity bit 0 | Remaining banks, complete write ownership, arbitrary attachment chains and DMA constraints |
 | Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table retains its exact 26-byte prefix; two checkpoint attachment states have a separate 52-byte owner. Shared rules cover 119 attachment fields | Initial 112-prefix attachment graph closes with 23 links, no cycles and maximum chain three. Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, later attachment cycles/alias writes and complete caller/lifetime coverage |
@@ -565,6 +565,7 @@ presentation, not the semantic recovery status below.
 | Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Cursor pixels survive observed source-scratch reuse; header/pointer consumption is phase-dependent. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; nine shared address rules distinguish 43 cold NULL bases/cursors; 29 pitch/primary-volume selector references and six secondary references; eleven sample extents, 64-byte silence and 640-byte secondary waveform owner | Original 858-token corpus yields pitch indices 22..58 within 72 WORDs; configured secondary DMA windows fit five 128-byte slices. Future selectors remain unchecked; primary/secondary marker and reload semantics differ; reset retains ticks and NPC pending bits | Mutable cursors, later/interleaved DMA writes, arbitrary replacement scripts, caller combinations and storage lifetime |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; the first cold-title zero blit footprint covers the loaded-input tail. Three sampled tail windows become zero at title and two change again by UI entry; original purpose stays unproved | Original file-tail purpose, complete later writer/consumer coverage, DMA lookahead and scratch allocation bounds remain unknown |
+| Alternate execution layout | Two-byte volume relocation: both normal game WORD writers agree | Nine bounded local CPU calls and all 65,536 direct BYTE-store words agree; normal-gameplay BYTE execution remains unobserved | Whole-game changed code/data/DMA placement, temporal/late lineage and unrestricted contexts remain unproven |
 
 The native ownership snapshot immediately before the font/lifecycle batch has
 55,391 unclaimed bytes, including the 27,792-byte uncopied tail. These are
@@ -576,11 +577,25 @@ physical owners and address identities, qualified control/data-flow effects,
 reviewed readable source and exact original reproduction. Alternate-layout
 completion additionally needs execution evidence for an actually changed legal
 layout, including its code, data and DMA addresses.
-| Alternate execution layout | Address-class constraints identified | Current source identities are conditional on native views | Changed code/data/DMA placement and temporal/late lineage remain unimplemented or unproven |
 
 The normal native asset planner owns INCBIN selection and naming; the shared
 publisher owns companion files. Original disk/loader parity remains explicitly
 out of scope.
+
+2026-10-14 command-operand checkpoint: 12 shared formats replace raw A4 offsets
+in 20 handlers (31 native field bindings across 30 instructions). Three
+sequence-command inputs refine six-byte prefixes without changing the other
+node handlers. Eleven narration comments are withdrawn; six shared comments
+retain loop, delay, address-base and callback-effect semantics. All unrelated
+metadata, assets/owners and history prefixes are preserved. The normal journal
+accepts 41 facts; 191 focused tests pass. Complete C/vasm reproduction is exact
+for 376,832 bytes, receipt
+`d6b3c4ea35990c404e537137730cb6b106dd10d48c792ba41ada8423eabda415`;
+source SHA256
+`cfe068408fcfec9bf33549a55de08695216c926937626e45bd3286de23f1c56b`.
+Indexed relative-copy accesses and the heterogeneous interpreter cursor remain
+untyped; pointer safety, mutable callback effects and lifetimes stay open.
+No gameplay route was expanded and the BYTE coverage gap above is retained.
 
 ## Framework repairs accompanying the startup batch
 

@@ -601,6 +601,85 @@ entity_edge_blit_scratch_row_plane3_first_word RS.W 1
 entity_edge_blit_scratch_row_plane3_second_word RS.W 1
 entity_edge_blit_scratch_row_SIZEOF EQU __RS
 
+; STRUCT cmd_position_xy
+    RSRESET
+cmd_position_xy_opcode RS.W 1
+cmd_position_xy_x RS.W 1
+cmd_position_xy_y RS.W 1
+cmd_position_xy_SIZEOF EQU __RS
+
+; STRUCT cmd_coordinate
+    RSRESET
+cmd_coordinate_opcode RS.W 1
+cmd_coordinate_value RS.W 1
+cmd_coordinate_SIZEOF EQU __RS
+
+; STRUCT cmd_coordinate_source
+    RSRESET
+cmd_coordinate_source_opcode RS.W 1
+cmd_coordinate_source_source_ptr RS.L 1
+cmd_coordinate_source_SIZEOF EQU __RS
+
+; STRUCT cmd_axis_delta
+    RSRESET
+cmd_axis_delta_opcode RS.W 1
+cmd_axis_delta_delta RS.W 1
+cmd_axis_delta_SIZEOF EQU __RS
+
+; STRUCT cmd_position_delta
+    RSRESET
+cmd_position_delta_opcode RS.W 1
+cmd_position_delta_dx RS.W 1
+cmd_position_delta_dy RS.W 1
+cmd_position_delta_dz RS.W 1
+cmd_position_delta_SIZEOF EQU __RS
+
+; STRUCT cmd_xy_delta
+    RSRESET
+cmd_xy_delta_opcode RS.W 1
+cmd_xy_delta_dx RS.W 1
+cmd_xy_delta_dy RS.W 1
+cmd_xy_delta_SIZEOF EQU __RS
+
+; STRUCT cmd_delay
+    RSRESET
+cmd_delay_opcode RS.W 1
+cmd_delay_ticks RS.W 1
+cmd_delay_SIZEOF EQU __RS
+
+; STRUCT cmd_relative_word_copy
+    RSRESET
+cmd_relative_word_copy_opcode RS.W 1
+cmd_relative_word_copy_word_offset RS.W 1
+cmd_relative_word_copy_SIZEOF EQU __RS
+
+; STRUCT cmd_repeat
+    RSRESET
+cmd_repeat_opcode RS.W 1
+cmd_repeat_reload_count RS.W 1
+cmd_repeat_remaining_count RS.W 1
+cmd_repeat_branch_disp RS.W 1
+cmd_repeat_SIZEOF EQU __RS
+
+; STRUCT cmd_absolute_target
+    RSRESET
+cmd_absolute_target_opcode RS.W 1
+cmd_absolute_target_target RS.L 1
+cmd_absolute_target_SIZEOF EQU __RS
+
+; STRUCT cmd_relative_target
+    RSRESET
+cmd_relative_target_opcode RS.W 1
+cmd_relative_target_target_disp RS.W 1
+cmd_relative_target_SIZEOF EQU __RS
+
+; STRUCT cmd_node_sequence
+    RSRESET
+cmd_node_sequence_opcode RS.W 1
+cmd_node_sequence_state_node_ptr RS.L 1
+cmd_node_sequence_frame_sequence_ptr RS.L 1
+cmd_node_sequence_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -1810,105 +1889,96 @@ string_0002109E:
 	dc.b "               TERRY GREER",$0D,$0D
 	dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00
 	dc.b $00
-    ; Set object X/Y from words script+2/+4; advance A4 by 6.
 world_object_command_set_position:
-	move.w $0002(a4),world_object_shared_prefix_world_x(a5)
-	move.w $0004(a4),world_object_shared_prefix_world_y(a5)
+	move.w cmd_position_xy_x(a4),world_object_shared_prefix_world_x(a5)
+	move.w cmd_position_xy_y(a4),world_object_shared_prefix_world_y(a5)
 	addq.l #6,a4
 	rts
-    ; Set object X from word script+2; advance A4 by 4.
 world_object_command_set_x:
-	move.w $0002(a4),world_object_shared_prefix_world_x(a5)
+	move.w cmd_coordinate_value(a4),world_object_shared_prefix_world_x(a5)
 	addq.l #4,a4
 	rts
-    ; Set object Y from word script+2; advance A4 by 4.
 world_object_command_set_y:
-	move.w $0002(a4),world_object_shared_prefix_world_y(a5)
+	move.w cmd_coordinate_value(a4),world_object_shared_prefix_world_y(a5)
 	addq.l #4,a4
 	rts
-    ; Set object X from the word pointed to by long pointer script+2; advance A4 by 6.
 world_object_command_load_x:
-	movea.l $0002(a4),a0
+	movea.l cmd_coordinate_source_source_ptr(a4),a0
 	move.w (a0),world_object_shared_prefix_world_x(a5)
 	addq.l #6,a4
 	rts
-    ; Set object Y from the word pointed to by long pointer script+2; advance A4 by 6.
 world_object_command_load_y:
-	movea.l $0002(a4),a0
+	movea.l cmd_coordinate_source_source_ptr(a4),a0
 	move.w (a0),world_object_shared_prefix_world_y(a5)
 	addq.l #6,a4
 	rts
-    ; Add word script+2 to object X (16-bit wrap); advance A4 by 4.
+    ; Script deltas wrap in 16 bits and bypass collision checks; the player movement path applies its own restrictions.
 world_object_command_add_x:
-	move.w $0002(a4),d0
+	move.w cmd_axis_delta_delta(a4),d0
 	add.w d0,world_object_shared_prefix_world_x(a5)
 	addq.l #4,a4
 	rts
-    ; Add word script+2 to object Y (16-bit wrap); advance A4 by 4.
 world_object_command_add_y:
-	move.w $0002(a4),d0
+	move.w cmd_axis_delta_delta(a4),d0
 	add.w d0,world_object_shared_prefix_world_y(a5)
 	addq.l #4,a4
 	rts
-    ; Add word script+2 to object Z (16-bit wrap); advance A4 by 4.
 world_object_command_add_z:
-	move.w $0002(a4),d0
+	move.w cmd_axis_delta_delta(a4),d0
 	add.w d0,world_object_shared_prefix_world_z(a5)
 	addq.l #4,a4
 	rts
-    ; Add words script+2/+4/+6 to object X/Y/Z (16-bit wrap); advance A4 by 8.
 world_object_command_add_position:
-	move.w $0002(a4),d0
+	move.w cmd_position_delta_dx(a4),d0
 	add.w d0,world_object_shared_prefix_world_x(a5)
-	move.w $0004(a4),d0
+	move.w cmd_position_delta_dy(a4),d0
 	add.w d0,world_object_shared_prefix_world_y(a5)
-	move.w $0006(a4),d0
+	move.w cmd_position_delta_dz(a4),d0
 	add.w d0,world_object_shared_prefix_world_z(a5)
 	addq.l #8,a4
 	rts
-    ; Add words script+2/+4 to object X/Y (16-bit wrap); advance A4 by 6.
 world_object_command_add_xy:
-	move.w $0002(a4),d0
+	move.w cmd_xy_delta_dx(a4),d0
 	add.w d0,world_object_shared_prefix_world_x(a5)
-	move.w $0004(a4),d0
+	move.w cmd_xy_delta_dy(a4),d0
 	add.w d0,world_object_shared_prefix_world_y(a5)
 	addq.l #6,a4
 	rts
-    ; Set object delay word from script+2; advance A4 by 4. A nonzero delay stops this interpreter pass and is decremented on later calls.
+    ; A nonzero delay stops this script pass. Later interpreter calls count it down before dispatch resumes.
 world_object_command_set_delay_ticks:
-	move.w $0002(a4),world_object_shared_prefix_behavior_script_delay_ticks(a5)
+	move.w cmd_delay_ticks(a4),world_object_shared_prefix_behavior_script_delay_ticks(a5)
 	addq.l #4,a4
 	rts
-    ; Let d be signed word script+2. Copy word [A4+d+2] to [A4+d+4], then advance A4 by 4. This writes script-relative storage.
+    ; Initialized scripts use this self-copy to reset repeat counters; arbitrary relative destinations remain unchecked.
 world_object_command_copy_relative_word:
-	movea.w $0002(a4),a0
+	movea.w cmd_relative_word_copy_word_offset(a4),a0
 	move.w $2(a4,a0.w),$4(a4,a0.w)
 	addq.l #4,a4
 	rts
-    ; If word script+4 is nonzero, decrement it and add signed word script+6 to A4. Otherwise reload script+4 from script+2 and advance A4 by 8.
+    ; A loop body preceding this test executes remaining_count+1 times before fall-through; the counter is then reloaded.
 world_object_command_repeat_branch_or_reload:
-	tst.w $0004(a4)
+	tst.w cmd_repeat_remaining_count(a4)
 	beq.b abs_0_000111CC
-	subq.w #1,$0004(a4)
-	adda.w $0006(a4),a4
+	subq.w #1,cmd_repeat_remaining_count(a4)
+	adda.w cmd_repeat_branch_disp(a4),a4
 	rts
 abs_0_000111CC:
-	move.w $0002(a4),$0004(a4)
+	move.w cmd_repeat_reload_count(a4),cmd_repeat_remaining_count(a4)
 	addq.l #8,a4
 	rts
-    ; Call long pointer script+2 with A4-A5 saved/restored; advance A4 by 6. Other register and memory effects depend on the callee.
+    ; The callback has no cursor-return contract; its memory effects remain unconstrained.
 world_object_command_call_absolute:
 	movem.l a4-a5,-(a7)
-	movea.l $0002(a4),a0
+	movea.l cmd_absolute_target_target(a4),a0
 	jsr (a0)
 	movem.l (a7)+,a4-a5
 	addq.l #6,a4
 	rts
-    ; Call old A4 plus signed word script+2 with A4-A5 saved/restored; advance A4 by 4. Other register and memory effects depend on the callee.
+    ; Relative callback and jump targets are signed displacements from the opcode word.
 world_object_command_call_relative:
 	movem.l a4-a5,-(a7)
 	movea.l a4,a0
-	adda.w $0002(a4),a0
+	adda.w cmd_relative_target_target_disp(a4),a0
 	jsr (a0)
 	movem.l (a7)+,a4-a5
 	addq.l #4,a4
@@ -1967,13 +2037,11 @@ script_y_equal:
 	cmp.w (a0),d0
 	bne.b script_compare_next
 	bra.b script_compare_taken
-    ; Replace A4 with the long script pointer at script+2; no additional advance.
 world_object_command_jump_absolute:
-	movea.l $0002(a4),a4
+	movea.l cmd_absolute_target_target(a4),a4
 	rts
-    ; Add signed word script+2 to A4; no additional advance.
 world_object_command_jump_relative:
-	adda.w $0002(a4),a4
+	adda.w cmd_relative_target_target_disp(a4),a4
 	rts
     ; Node selection resets both frame index and phase and clears held-header mode. Attachment variants choose the first state matching flag 3.
 world_object_command_set_node_if_flag3_clear:
@@ -2029,11 +2097,11 @@ world_object_command_set_node_sequence_if_flag3_clear:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 	btst.b #3,world_position_state_record_world_object_flags(a0)
 	bne.b abs_0_0001132E
-	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
+	movea.l cmd_node_sequence_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
+	move.l cmd_node_sequence_frame_sequence_ptr(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_0001132E:
 	lea.l $000A(a4),a4
 	rts
@@ -2048,11 +2116,11 @@ abs_0_0001133C:
 	movea.l d0,a0
 	bra.b abs_0_0001133C
 abs_0_0001134E:
-	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
+	movea.l cmd_node_sequence_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
+	move.l cmd_node_sequence_frame_sequence_ptr(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_00011366:
 	lea.l $000A(a4),a4
 	rts
@@ -2067,11 +2135,11 @@ abs_0_00011374:
 	movea.l d0,a0
 	bra.b abs_0_00011374
 abs_0_00011386:
-	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
+	movea.l cmd_node_sequence_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-	move.l $0006(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
+	move.l cmd_node_sequence_frame_sequence_ptr(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
 abs_0_0001139E:
 	lea.l $000A(a4),a4
 	rts
