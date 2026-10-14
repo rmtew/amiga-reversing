@@ -1,0 +1,1951 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "status": "original_layout_crossing_validated",
+  "provenance": {
+    "raw_receipt_sha256": "da39eeccfe548e0a1ddfa476e623dc8378840cfcf3755c7dbe98a83a482037a2",
+    "scenario": "runtime/scenarios/pandora-pianist-crossing.json"
+  },
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "source_rules": "runtime/observations/pandora-pianist-timing.json",
+  "wait_calls_after_timing_loop_4": 249,
+  "gate": {
+    "pc": 7980,
+    "xy": [
+      816,
+      974
+    ],
+    "delay": 30,
+    "counters": {
+      "7902": 24,
+      "7932": 72,
+      "7962": 24,
+      "7996": 24,
+      "8026": 72,
+      "8056": 24
+    },
+    "flags": 36
+  },
+  "terrain_frames": [
+    [
+      14,
+      30,
+      7,
+      0
+    ],
+    [
+      24,
+      30,
+      2,
+      0
+    ],
+    [
+      28,
+      29,
+      3,
+      0
+    ],
+    [
+      18,
+      29,
+      7,
+      0
+    ],
+    [
+      19,
+      30,
+      7,
+      0
+    ],
+    [
+      27,
+      29,
+      2,
+      0
+    ],
+    [
+      19,
+      30,
+      6,
+      0
+    ],
+    [
+      17,
+      30,
+      7,
+      0
+    ],
+    [
+      14,
+      30,
+      11,
+      0
+    ],
+    [
+      23,
+      30,
+      7,
+      0
+    ],
+    [
+      28,
+      29,
+      1,
+      0
+    ],
+    [
+      27,
+      29,
+      3,
+      0
+    ],
+    [
+      28,
+      32,
+      2,
+      0
+    ],
+    [
+      28,
+      31,
+      2,
+      0
+    ],
+    [
+      24,
+      30,
+      4,
+      0
+    ],
+    [
+      22,
+      32,
+      4,
+      0
+    ],
+    [
+      24,
+      32,
+      4,
+      0
+    ]
+  ],
+  "crossing_assessment": {
+    "status": "conditional_clearance",
+    "checks": [
+      {
+        "move": 1,
+        "direction": "right",
+        "pose": [
+          787,
+          794,
+          "right"
+        ],
+        "actor_call_window": [
+          0,
+          13
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 2,
+        "direction": "right",
+        "pose": [
+          794,
+          794,
+          "right"
+        ],
+        "actor_call_window": [
+          1,
+          19
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 3,
+        "direction": "right",
+        "pose": [
+          801,
+          794,
+          "right"
+        ],
+        "actor_call_window": [
+          2,
+          25
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 4,
+        "direction": "right",
+        "pose": [
+          808,
+          794,
+          "right"
+        ],
+        "actor_call_window": [
+          3,
+          31
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 5,
+        "direction": "right",
+        "pose": [
+          815,
+          794,
+          "right"
+        ],
+        "actor_call_window": [
+          4,
+          37
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 6,
+        "direction": "right",
+        "pose": [
+          822,
+          794,
+          "right"
+        ],
+        "actor_call_window": [
+          5,
+          43
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 7,
+        "direction": "down",
+        "pose": [
+          815,
+          794,
+          "down"
+        ],
+        "actor_call_window": [
+          6,
+          49
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 8,
+        "direction": "up",
+        "pose": [
+          815,
+          790,
+          "up"
+        ],
+        "actor_call_window": [
+          7,
+          55
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 9,
+        "direction": "up",
+        "pose": [
+          815,
+          786,
+          "up"
+        ],
+        "actor_call_window": [
+          8,
+          61
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 10,
+        "direction": "up",
+        "pose": [
+          815,
+          782,
+          "up"
+        ],
+        "actor_call_window": [
+          9,
+          67
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 11,
+        "direction": "up",
+        "pose": [
+          815,
+          778,
+          "up"
+        ],
+        "actor_call_window": [
+          10,
+          73
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 12,
+        "direction": "up",
+        "pose": [
+          815,
+          774,
+          "up"
+        ],
+        "actor_call_window": [
+          11,
+          79
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 13,
+        "direction": "up",
+        "pose": [
+          815,
+          770,
+          "up"
+        ],
+        "actor_call_window": [
+          12,
+          85
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 14,
+        "direction": "up",
+        "pose": [
+          815,
+          766,
+          "up"
+        ],
+        "actor_call_window": [
+          13,
+          91
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 15,
+        "direction": "up",
+        "pose": [
+          815,
+          762,
+          "up"
+        ],
+        "actor_call_window": [
+          14,
+          97
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 16,
+        "direction": "up",
+        "pose": [
+          815,
+          758,
+          "up"
+        ],
+        "actor_call_window": [
+          15,
+          103
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 17,
+        "direction": "up",
+        "pose": [
+          815,
+          754,
+          "up"
+        ],
+        "actor_call_window": [
+          16,
+          109
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 18,
+        "direction": "up",
+        "pose": [
+          815,
+          750,
+          "up"
+        ],
+        "actor_call_window": [
+          17,
+          115
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 19,
+        "direction": "up",
+        "pose": [
+          815,
+          746,
+          "up"
+        ],
+        "actor_call_window": [
+          18,
+          121
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 20,
+        "direction": "up",
+        "pose": [
+          815,
+          742,
+          "up"
+        ],
+        "actor_call_window": [
+          19,
+          127
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 21,
+        "direction": "up",
+        "pose": [
+          815,
+          738,
+          "up"
+        ],
+        "actor_call_window": [
+          20,
+          133
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 22,
+        "direction": "right",
+        "pose": [
+          822,
+          738,
+          "right"
+        ],
+        "actor_call_window": [
+          21,
+          139
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 23,
+        "direction": "right",
+        "pose": [
+          829,
+          738,
+          "right"
+        ],
+        "actor_call_window": [
+          22,
+          145
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 24,
+        "direction": "right",
+        "pose": [
+          836,
+          738,
+          "right"
+        ],
+        "actor_call_window": [
+          23,
+          151
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 25,
+        "direction": "right",
+        "pose": [
+          843,
+          738,
+          "right"
+        ],
+        "actor_call_window": [
+          24,
+          157
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 26,
+        "direction": "right",
+        "pose": [
+          850,
+          738,
+          "right"
+        ],
+        "actor_call_window": [
+          25,
+          163
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 27,
+        "direction": "right",
+        "pose": [
+          857,
+          738,
+          "right"
+        ],
+        "actor_call_window": [
+          26,
+          169
+        ],
+        "unsafe_calls": []
+      },
+      {
+        "move": 28,
+        "direction": "right",
+        "pose": [
+          864,
+          738,
+          "right"
+        ],
+        "actor_call_window": [
+          27,
+          175
+        ],
+        "unsafe_calls": []
+      }
+    ],
+    "max_loop_calls_per_move": 6,
+    "initial_input_lag_calls": 1
+  },
+  "runtime_steps": [
+    {
+      "phase": "cross_01_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        787,
+        794
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 29,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 1,
+      "expected_pose": [
+        787,
+        794,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_02_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        794,
+        794
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 27,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 3,
+      "expected_pose": [
+        794,
+        794,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_03_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        801,
+        794
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 25,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 5,
+      "expected_pose": [
+        801,
+        794,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_04_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        808,
+        794
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 23,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 7,
+      "expected_pose": [
+        808,
+        794,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_05_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        794
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 21,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 9,
+      "expected_pose": [
+        815,
+        794,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_06_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        822,
+        794
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 19,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 11,
+      "expected_pose": [
+        822,
+        794,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_07_down",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        794
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 17,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 13,
+      "expected_pose": [
+        815,
+        794,
+        "down"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_08_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        790
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 16,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 14,
+      "expected_pose": [
+        815,
+        790,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_09_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        786
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 15,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 15,
+      "expected_pose": [
+        815,
+        786,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_10_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        782
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 14,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 16,
+      "expected_pose": [
+        815,
+        782,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_11_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        778
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 13,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 17,
+      "expected_pose": [
+        815,
+        778,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_12_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        774
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 12,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 18,
+      "expected_pose": [
+        815,
+        774,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_13_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        770
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 11,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 19,
+      "expected_pose": [
+        815,
+        770,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_14_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        766
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 10,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 20,
+      "expected_pose": [
+        815,
+        766,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_15_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        762
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 9,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 21,
+      "expected_pose": [
+        815,
+        762,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_16_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        758
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 8,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 22,
+      "expected_pose": [
+        815,
+        758,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_17_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        754
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 7,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 23,
+      "expected_pose": [
+        815,
+        754,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_18_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        750
+      ],
+      "actor": {
+        "pc": 7980,
+        "xy": [
+          816,
+          974
+        ],
+        "delay": 6,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 24,
+      "expected_pose": [
+        815,
+        750,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_19_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        746
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          972
+        ],
+        "delay": 2,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 6,
+      "calls_since_gate": 30,
+      "expected_pose": [
+        815,
+        746,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_20_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        742
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          972
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 31,
+      "expected_pose": [
+        815,
+        742,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_21_up",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        815,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          970
+        ],
+        "delay": 2,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 23,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 32,
+      "expected_pose": [
+        815,
+        738,
+        "up"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_22_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        822,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          970
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 23,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 1,
+      "calls_since_gate": 33,
+      "expected_pose": [
+        822,
+        738,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_23_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        829,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          968
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 22,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 35,
+      "expected_pose": [
+        829,
+        738,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_24_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        836,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          962
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 19,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 6,
+      "calls_since_gate": 41,
+      "expected_pose": [
+        836,
+        738,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_25_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        843,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          960
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 18,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 43,
+      "expected_pose": [
+        843,
+        738,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_26_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        850,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          958
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 17,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 45,
+      "expected_pose": [
+        850,
+        738,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_27_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        857,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          956
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 16,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 47,
+      "expected_pose": [
+        857,
+        738,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    },
+    {
+      "phase": "cross_28_right",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "player_xy": [
+        864,
+        738
+      ],
+      "actor": {
+        "pc": 7992,
+        "xy": [
+          816,
+          954
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 15,
+          "8026": 72,
+          "8056": 24
+        },
+        "flags": 4
+      },
+      "eligible_calls_since_previous": 2,
+      "calls_since_gate": 49,
+      "expected_pose": [
+        864,
+        738,
+        "right"
+      ],
+      "camera_reload": 6,
+      "ui_flags": 0
+    }
+  ],
+  "eligible_calls_to_final_accepted_move": 49,
+  "observations": {
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "reverse_boundary": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      }
+    },
+    "scenario": {
+      "phases": [
+        {
+          "name": "crossing_gate",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "030c031a",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "030c031a",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe00050001000600480048fff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba8a",
+                "bytes": "00011f2c",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "00011f2c",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "033003ce",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "033003ce",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005baaa",
+                "bytes": "001e",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "001e",
+                  "mask_hex": "ffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005baae",
+                "bytes": "04",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "42",
+                  "matched": true
+                }
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "cross_01_right",
+          "stable_key": "s0:00009844:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "0313031a",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "0313031a",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f2c00011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "033003ce00000000000000000041004100a000d8001d00000400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe00050001000600480048fff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "0c",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "0000000000000000000000000005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c366",
+                "bytes": "0000",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c83",
+                "bytes": "6101f9000000000250035002f00350000000000000b5680000f568000001680c",
+                "base_register": "a6",
+                "offset": 647
+              },
+              {
+                "address": "0x00003cc4",
+                "bytes": "0006",
+                "base_register": "a6",
+                "offset": 712
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x00019844",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x00019844",
+          "sp": "0x00010436",
+          "stack_return_address": "0x000111e0",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "cross_28_right",
+          "stable_key": "s0:00009844:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "036002e2",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "036002e2",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f3800011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "033003ba00000000000000000041004100a00101000100000400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "0018000ffff8001e0005c0fa0005c09a0015000c0001fffe00050001000600480048fff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "0c",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "0000000000000000000000000005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c366",
+                "bytes": "0000",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c83",
+                "bytes": "4901f80000000002a003a002a00300000000000000b5680000f568000001680c",
+                "base_register": "a6",
+                "offset": 647
+              },
+              {
+                "address": "0x00003cc4",
+                "bytes": "0006",
+                "base_register": "a6",
+                "offset": 712
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x00019844",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x00019844",
+          "sp": "0x00010436",
+          "stack_return_address": "0x000111e0",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    }
+  },
+  "limits": [
+    "Original layout only; BYTE writer remains unobserved.",
+    "All28accepted positions and UI assertions passed; all actor states agree with1..6eligible calls per move.",
+    "Captured flags4/5 vary with proximity; only exclusion bits0x42 enter patrol timing.",
+    "Flight-controller patrol atX1104 is a separate event gate before rifle pickup."
+  ]
+}

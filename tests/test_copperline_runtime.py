@@ -466,9 +466,9 @@ def test_occurrences_depart_and_validate_each_visit_with_first_and_last_capture(
     identities = []
     original = runtime.payload_at_pc
 
-    def identify(*args):
+    def identify(*args, **kwargs):
         identities.append(c.visits)
-        return original(*args)
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(runtime, "payload_at_pc", identify)
     phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
@@ -513,8 +513,8 @@ def test_occurrence_identity_failure_does_not_count_or_capture_wrong_visit(
     c = OccurrenceClient(p.read_bytes())
     original = runtime.payload_at_pc
 
-    def identify(*args):
-        result = original(*args)
+    def identify(*args, **kwargs):
+        result = original(*args, **kwargs)
         if c.visits == 2:
             result["payload_offset"] = "0x202"
         return result
@@ -653,3 +653,91 @@ def test_named_custom_register_capture_uses_read_only_chipset_inspection():
     for custom in [['AUD0VOL']*17, ['mem.write'], [12]]:
         with pytest.raises(ValueError, match='custom registers'):
             runtime.capture_scenario_state(c, {'custom_registers': custom})
+
+
+def test_pc_identity_window_stays_inside_copy_view_at_final_instruction(tmp_path):
+    p = tmp_path/'copy.bin'
+    data = bytes(range(64)) + b'\x4e\x75' + bytes(range(64, 128))
+    p.write_bytes(data)
+    c = Client(data[:66])
+    # The input beyond the copied view is not materialized here.
+    c.memory[0x1042:0x1052] = b'\xff'*16
+    view = {'source_start': 0, 'source_end': 66, 'base_addr': 0x1000}
+    assert runtime.payload_at_pc(c, p, 0x1040)['status'] == 'not_matched'
+    result = runtime.payload_at_pc(c, p, 0x1040, runtime_view=view)
+    assert result['status'] == 'pc_matched'
+    assert result['payload_offset'] == '0x40'
+    assert result['runtime_base'] == '0x00001000'
+    assert result['sample_size'] == 16
+    assert result['sample_address'] == '0x00001032'
+    c.memory[0x103F] ^= 1
+    assert runtime.payload_at_pc(c, p, 0x1040, runtime_view=view)['status'] == 'not_matched'
+
+
+@pytest.mark.parametrize('view', [
+    {'source_start': 0, 'source_end': 15, 'base_addr': 0x1000},
+    {'source_start': 0, 'source_end': 9999, 'base_addr': 0x1000},
+    {'source_start': 0, 'source_end': 66, 'base_addr': 0x2000},
+])
+def test_pc_identity_refuses_invalid_or_noncontaining_copy_view(tmp_path, view):
+    p = payload(tmp_path)
+    with pytest.raises(CopperlineError, match='containing canonical view'):
+        runtime.payload_at_pc(Client(), p, 0x1040, runtime_view=view)
+
+
+def test_pc_identity_boundary_with_nonzero_source_start(tmp_path):
+    p = tmp_path/'offset-view.bin'
+    data = bytes(range(128));p.write_bytes(data)
+    c = Client(data[32:96]);c.memory[0x1040:0x1050] = b'\xff'*16
+    result = runtime.payload_at_pc(c, p, 0x103E,
+        runtime_view={'source_start': 32, 'source_end': 96, 'base_addr': 0x1000})
+    assert result['status'] == 'pc_matched'
+    assert result['payload_offset'] == '0x5e'
+    assert result['runtime_base'] == '0x00000fe0'
+    assert result['sample_size'] == 16
+
+
+def test_memory_expectation_failure_stops_counted_route_and_releases_input(tmp_path):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    s = counted_scenario(3)
+    first = dict(s['phases'][0], name='press', occurrences=1, capture={})
+    check = dict(s['phases'][0], name='guard', capture={'memory_reads': [
+        {'address': 0x2000, 'size': 1, 'expect_hex': '00', 'expect_mask_hex': '06'}]})
+    s['phases'] = [first, check, dict(first, name='never')]
+    s['input_events'] = [{'after_phase': 'press', 'release_after_phase': 'never', 'control': 'port1 right'}]
+    c.memory[0x2000] = 2
+    result = runtime.run_scenario(c, s, p)
+    assert len(result['phases']) == 2
+    failure = result['phases'][-1]
+    assert failure['termination'] == 'capture_expectation_mismatch'
+    assert failure['status'] == 'not_hit'
+    assert failure['occurrences_observed'] == 1
+    assert not failure['capture']['memory_reads'][0]['expectation']['matched']
+    assert [v for k,v in c.calls if k == 'joy'][-2:] == [{'port': 1}, {'port': 2}]
+
+
+def test_memory_expectations_exact_and_masked_are_read_only():
+    c = Client(); c.memory[0x2000] = 0x80
+    for read in ({'expect_hex': '80'}, {'expect_hex': '00', 'expect_mask_hex': '06'}):
+        result = runtime.capture_scenario_state(c, {'memory_reads': [dict(address=0x2000, size=1, **read)]})
+        assert result['memory_reads'][0]['expectation']['matched']
+    assert c.memory[0x2000] == 0x80
+    assert not c.calls
+
+
+def test_checkpoint_cleanup_requires_acknowledged_full_input_release():
+    class CleanupClient:
+        def __init__(self):self.calls=[]
+        def joystick(self,**kw):self.calls.append(('joy',kw))
+        def key(self,key,**kw):self.calls.append(('key',key,kw))
+    c=CleanupClient()
+    runtime.confirm_checkpoint_input_release(c,{'input_events':[{'control':'key 64'},{'control':'key 64'},{'control':'port1 right'}]})
+    assert c.calls==[('joy',{'port':1}),('joy',{'port':2}),('key',64,{'pressed':False})]
+
+
+def test_checkpoint_cleanup_failure_is_not_suppressed():
+    class BrokenCleanup:
+        def joystick(self,**kw):raise CopperlineError('release not acknowledged')
+    with pytest.raises(CopperlineError,match='not acknowledged'):
+        runtime.confirm_checkpoint_input_release(BrokenCleanup(),{})

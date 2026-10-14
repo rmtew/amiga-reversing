@@ -257,21 +257,160 @@ runtime-equate extents and materialized views exclude conflicting placements.
 Two normal reviewed facts record the volume and constructor-owned tilemap grid
 `$4000..$F568`; keyboard work remains deferred.
 
-Both actual Copperline runs hit eight canonical phases. Captured PC-displacement
-bytes resolve the derived reads to `$65400`; D2 reads 64 on both note/envelope
-paths. Paula state matches all hit phases: note output AUD3VOL=64, envelope output
-AUD1VOL=64→48. The derived full payload is
+The initial eight-phase comparison established both reads at `$65400`, with
+matching note/envelope Paula outputs 64 and 64→48. A subsequent normal joystick
+scenario now reaches **both WORD game writers in both layouts**: 21 canonical
+phase hits after verified handoff, 231 accepted movement commits, inside position
+`(752,314)` (distance 234), then outside `(724,314)` (distance 262). The D0 writer
+at source `$55368` changes volume `0004→0006`; the immediate WORD reset at
+`$5533C` changes `0001→0040`. The sampled note scales envelope 24 at volume 6 to
+AUD3VOL=2. Relevant Paula values match, and the old `$5DD00` guard remains `0040`
+throughout the relocated route. The derived full payload remains
 `dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1`.
-The [scenario](../../runtime/scenarios/pandora-audio-volume-relocation.json) and
-[compact observations/ledger](../../runtime/observations/pandora-audio-volume-relocation.json)
-record the actual identities, instructions, register values and incomplete status.
+The [normal-input scenario](../../runtime/scenarios/pandora-volume-proximity-writers.json)
+and [compact observations](../../runtime/observations/pandora-volume-proximity-writers.json)
+record full identities, initialization, writer values, output and remaining limits.
 
-The five-second watch for source `$55368` times out in both runs. Player `(241,866)`
-is distance 1297 from the `(840,168)` proximity source; activation requires less
-than 256. None of the three game writers is dynamically covered. Initialization
-and read/output parity are not full relocation completion. Next: a bounded normal
-input scenario entering/leaving that area, then its separate high-byte reset
-condition; no debugger-forced game state or broader proof expansion.
+The **BYTE high-lane writer at `$552F0` remains unexercised**. The longer
+[normal-input combat probe](../../runtime/scenarios/pandora-volume-feed-combat-probe.json)
+reaches the Megabio Feed, opens inventory with `key 64` (Space), selects an empty
+carried slot, then delivers six charged fire presses. Both layouts hit all 46
+canonical phases. Each attack at charge 24 subtracts five from the low health byte:
+`1D→18→13→0E→09→04→FF`; the game's signed-negative branch marks the Feed defeated
+(flags `$66`). Player health ends at 80, with original/relocated game state and
+relevant Paula captures matching. No guest state was forced.
+
+This explains the remaining guard: combat's temporary world-X bias clears shared
+audio flag bit 0 and restores volume `0040`; after defeat that flag remains clear.
+The BYTE writer requires the defeated flag **and** shared audio bit 0 set, so its
+entry guard bypasses the write in the sampled post-defeat state. This excludes
+that observed transition, **not every normal gameplay path**. Bounded whole-program
+queries find 13 named shared-flag accesses: initialization, the alive proximity
+setter, the dead/far clears, a second setter at `$4D34C`, and unrelated-bit uses.
+The second setter has no accepted incoming references/CFG edges; incomplete facts
+and aliases still preclude a universal unreachability claim.
+
+A direct weapon kill is a viable **static alternative**: main-loop source `$5F0`
+processes the weapon ray before proximity audio at `$624`. One rifle hit deals 30
+against the Feed's initial 29 HP. The callback and feedback path do not clear the
+shared flag at A6+`$33D`: feedback uses the distinct byte at A6+`$33E`. Source
+`$93FA` can mark the Feed defeated without the combat coordinate bias, leaving the
+BYTE guard's two bits set in the same frame. Required predicates remain explicit:
+normal rifle acquisition, selected item/ammo/fire edge, valid aim/live geometry,
+unblocked ray and no earlier nearby encounter. The BYTE writer and its relocated
+comparison remain unobserved; the successful WORD evidence is unchanged.
+
+**Compact world model (2026-10-15).**
+[`pandora_world_model`](../../amiga_reversing/tools/pandora_world_model.py) now
+consumes native symbols, effective record schemas, original bytes and verified
+checkpoints. It is a read-only, target-specific planning aid, not a second native
+fact store or a full game-playing engine. [Model output](../../runtime/observations/pandora-world-model.json)
+and [checkpoint input](../../runtime/observations/pandora-world-model-checkpoint.json)
+make its assumptions inspectable.
+
+| Model component | Established input / validation | Remaining boundary |
+|---|---|---|
+| Terrain | 43×30 selectors choose 3×3 records: 90×129 tiles, 16 pixels each; 512-bit collision table; six captured cells exactly match | Dynamic changes elsewhere are not inferred safe |
+| Movement | X=7, Y=4, axis-only, direction-dependent lateral drift and native edge/feet probes; 30 original directional frame entries / 17 unique bounds | Camera/UI/inhibit/event state must also permit a step |
+| Object event | Player `(808,794)`, pianist `(816,808)`, flags `$24`, selected item 9, matching nearest/interaction pointers | Other actors' live state and unresolved trade predicates remain unknown |
+| Encounter transition | Model predicts combat inside strict 24×16 bounds; next checkpoint confirms UI `$02`, player `(10808,794)` and movement rejection | This is the cause of the upper-route stall, not a demonstrated collision wall |
+| Pianist patrol | Original script and native opcode values yield X=816, Y=728…974; reload N executes N+1 moves; live script matches the admitted original cycle | A swept patrol envelope is conservative; delays are not a timing prediction |
+| BYTE dependencies | Empty-slot rifle pickup `(1244,867)` → arm audio alive → direct weapon kill → both guard bits | No rifle pickup, weapon hit or BYTE write has yet been observed |
+
+The previous terrain-only A* routes omitted the earlier nearby-combat transition.
+Their counted-PC timeout captures were the **last successful movement**, not the
+state at timeout. A focused capture identified the UI early exit; A3 had not yet
+been bound to geometry and was not interpreted as a frame header. Expanding all
+poses did not fix the missing event predicate. The first south-route stall's
+cause remains unclassified.
+
+The model now rejects the full rifle route when the pianist's entire patrol
+keepout is enforced. It instead derives a conditional staging plan: **up 18, right
+77, stop `(780,794)`**, one accepted-X-step margin west of that envelope, with
+checks no more than eight accepted moves apart. This staging plan is not a new
+runtime qualification. Before crossing, establish a short-horizon patrol/interaction
+predicate from the actor's live script/countdown and position. Unknowns stop the
+plan; another guessed route is not justified.
+
+The framework already supplies native data/field/CFG queries, canonical runtime
+views, read-only captures and bounded source-PC/input phases. The remaining general
+runner improvement is a bounded alternative canonical stop/outcome (for example,
+combat entry `$7792` during a movement phase) with state capture and immediate
+input cleanup, followed by explicit predicted-state checks. Alternative stop outcomes remain proposed. Exact/masked captured-memory checks
+are now implemented and stop subsequent phases on a mismatch. Revision-bound reuse of native compilation/PC
+resolution can reduce minute-scale probe overhead; source/manifest checks must
+remain. The generated CPU simulator can check focused instruction semantics but
+is not a world/AI simulator. No large architecture or autonomous playing engine
+is needed for this scenario.
+
+[Reproduction and limits](../copperline-runtime.md) and the
+[BYTE/efficiency assessment](../../runtime/observations/pandora-volume-byte-reachability.json)
+retain the counterexamples. Seventeen focused model tests pass, including the
+actual pianist script's N+1 range, encounter boundaries and the recorded
+combat/movement transition. Existing runtime/native suites were not repeated.
+Original binary/source hashes and prior WORD observations remain unchanged;
+there are no new target facts, generated-source edits or forced guest states.
+
+**Timing checkpoint after `6dc51ee0`.** The read-only patrol model now counts
+eligible object-loop calls, including delay-on-zero dispatch and six mutable
+script counters. Five consecutive live loop observations match exactly. It
+rejects an immediate crossing, waits for the start of the pianist's 30-call rest
+at Y=974, and checks all admitted camera-pause timings for a 28-move corridor
+route. All 28 predicted player coordinates passed in original Copperline, ending
+`(864,738)` with UI clear; captured patrol states match 49 eligible calls.
+
+The public scenario checks exact/masked memory after canonical identity at every
+visit and releases input on mismatch. Requested-PC absence still uses a short
+phase deadline; alternative stop PCs are not implemented. This closes the
+pianist crossing gap, not the weapon/BYTE goal. The flight-controller patrol at
+X=1104 is the next actor gate. Three captures validate two consecutive updates
+with the same interpreter; the player remains `(864,738)`. A 35-record snapshot
+also locates the security officer `(1234,840)` near pickup. These observations do
+not yet compose a safe weapon-acquisition route or its empty-slot/fresh-latch
+predicates. The return/aim/ray path and original/relocated BYTE comparison remain
+unobserved. The next staging candidate `(1074,738)` is unexecuted.
+
+Focused timing/model/runtime/session tests: **112 passed**. The original
+binary/source and previous WORD receipt remain unchanged; no native facts or
+generated source were edited. See [timing and crossing reproduction](../copperline-runtime.md#pianist-timing-and-guarded-crossing).
+
+**Normal rifle pickup checkpoint.** Verified local save/resume now binds snapshots
+to payload, media, ROM, emulator/profile, layout manifest and canonical stopped
+state. One fresh corridor root is followed by four independently owned movement/inventory
+segments and an idle audit; root handoff/copy verification is explicitly inherited. All phase and
+position assertions pass. The flight-controller crossing is qualified in the
+forward direction, then normal inventory selection and pickup equip rifle 18 at
+`(1228,874)` with HP 95, ammo `05,01` and the card stored in carried inventory.
+Snapshots remain local; layout bindings prohibit sharing an original checkpoint
+with a relocated run.
+
+The [rifle receipt](../../runtime/observations/pandora-rifle-composition.json)
+records the six-snapshot chain and remaining model boundary. A 382-move terrain
+return candidate crosses both patrols in reverse. No patrol-cycle gate satisfies
+the conservative timing windows for its 45-move reverse flight corridor, so the
+return was not executed. Tighter cumulative camera-pause timing is the next
+specific model requirement. A read-only capture verifies the live Feed body and correct map base `$4000`;
+the first `$8880` assumption stopped at its guard. The revised candidate
+`(808,154)` aims east and starts its ray inside the captured body on a clear tile.
+Future live membership/geometry and normal arming/hit predicates remain
+unobserved. BYTE execution and original/relocated comparison
+are still outstanding; two-of-three writer coverage is unchanged.
+
+Focused suite: **134 passed**. Original bytes/source and previous WORD evidence
+are unchanged. No game predicate was edited. See [checkpoint reproduction and
+limits](../copperline-runtime.md#verified-checkpoints-and-normal-rifle-pickup).
+
+The canonical PC identity sampler now keeps its minimum 16-byte sample inside a
+copied view near its end (the final RTS is at `$6536E`, view end `$65370`), including
+preceding bytes and translating back to the exact source PC. Full HAND/copy hashes
+and exact offset/base checks remain required. Compiler phase capacity is bounded
+to 64 including handoff (at most 63 executable phases), within the runner's existing
+64-executable-phase cap; this permits the longer diagnostic scene. 69 focused
+runtime/session tests pass; control/symbol tests add 27 passes and two skips.
+Independent read-only review found no correctness blocker. Original source/binary
+hashes were rechecked unchanged, so the exact receipt below is reused without
+repeating the unchanged native suite. Current bounded receipts are under
+`.runtime-state/pandora-analysis/volume-writers/`.
 
 361 focused tests pass; the full native suite retains the same two baseline
 failures. Independent code review and the reproduced PC-displacement regression
@@ -396,7 +535,7 @@ game relocation, unknown aliases, arbitrary mutations or other scenarios.
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
 
-Current checklist (2026-10-13): “documented” means the selected facts and
+Current checklist (2026-10-14): “documented” means the selected facts and
 consumer contracts below are reviewed; “partial” retains a known semantic or
 lifecycle limit. “Unanalysed” identifies the next evidence dependency, rather
 than a new coverage metric. No row claims complete subsystem recovery.
@@ -416,7 +555,7 @@ presentation, not the semantic recovery status below.
 | Bootstrap / initialization | Fixed-base overlap-safe copy, continuation, supervisor/stack/workspace and initial buffers | Dependent resource setup and storage lifetimes | Copy-helper return lineage, temporal overwrites and alternate placement |
 | IRQ / frame / gameplay | Dispatch priority, display pointer programming, completion latch; front/back swap and shared main/modal input, text and mission-timer services | Callback effects, input phases and buffer ownership | Complete allocation/lifetime and caller coverage |
 | Title / starfield | Ten-byte record fields and five scoped A2 inputs; grounded post-reset continuation typing; ten initialized runtime samples match signed projection arithmetic | Byte 9 remains unknown; clear/render use continuation jumps; the 1000-byte runtime array is outside the absolute-storage command schema | Complete runtime ownership/lifetime, table bounds and indirect paths |
-| World commands / objects | All 33 handler identities and operand contracts; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | Mutable scripts, callback effects, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
+| World commands / objects | All 33 handler identities and operand contracts; 12 shared command schemas, 20 scoped handler inputs and 31 named operand uses; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | Mutable scripts, callback effects, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
 | Combat / encounter | Proximity/trade entry, equipment reload/damage tables, player/opponent charge state, health overlays, hit feedback, charge gauge and defeat cleanup; initialized callback targets and their shared item-state helper | Four non-null callbacks among 35 initialized objects; callback precedes opponent deactivation; item-state addition wraps modulo 256 and skips flag-bit-1 objects. XY-copy and saved-state swap use typed object fields; the table wrapper loads A0 but the helper inherits A5 | Mutable callback replacements, fixed-RAM pointer purpose, complete state/pointer lifetimes and indirect callers; nine initialized saved-state pointers are null |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks; mask-input/border consumers and shared 20×8 modal grid; fixed NPC and receptacle geometry/descriptor families | Receptacle deposit saves the attachment, completion/restart restores it and clears the saved pointer; restart clears the entire interaction flags byte, including proximity bit 0 | Remaining banks, complete write ownership, arbitrary attachment chains and DMA constraints |
 | Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table retains its exact 26-byte prefix; two checkpoint attachment states have a separate 52-byte owner. Shared rules cover 119 attachment fields | Initial 112-prefix attachment graph closes with 23 links, no cycles and maximum chain three. Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, later attachment cycles/alias writes and complete caller/lifetime coverage |
@@ -426,6 +565,7 @@ presentation, not the semantic recovery status below.
 | Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Cursor pixels survive observed source-scratch reuse; header/pointer consumption is phase-dependent. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; nine shared address rules distinguish 43 cold NULL bases/cursors; 29 pitch/primary-volume selector references and six secondary references; eleven sample extents, 64-byte silence and 640-byte secondary waveform owner | Original 858-token corpus yields pitch indices 22..58 within 72 WORDs; configured secondary DMA windows fit five 128-byte slices. Future selectors remain unchecked; primary/secondary marker and reload semantics differ; reset retains ticks and NPC pending bits | Mutable cursors, later/interleaved DMA writes, arbitrary replacement scripts, caller combinations and storage lifetime |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; the first cold-title zero blit footprint covers the loaded-input tail. Three sampled tail windows become zero at title and two change again by UI entry; original purpose stays unproved | Original file-tail purpose, complete later writer/consumer coverage, DMA lookahead and scratch allocation bounds remain unknown |
+| Alternate execution layout | Two-byte volume relocation: both normal game WORD writers agree | Nine bounded local CPU calls and all 65,536 direct BYTE-store words agree; normal-gameplay BYTE execution remains unobserved | Whole-game changed code/data/DMA placement, temporal/late lineage and unrestricted contexts remain unproven |
 
 The native ownership snapshot immediately before the font/lifecycle batch has
 55,391 unclaimed bytes, including the 27,792-byte uncopied tail. These are
@@ -437,11 +577,25 @@ physical owners and address identities, qualified control/data-flow effects,
 reviewed readable source and exact original reproduction. Alternate-layout
 completion additionally needs execution evidence for an actually changed legal
 layout, including its code, data and DMA addresses.
-| Alternate execution layout | Address-class constraints identified | Current source identities are conditional on native views | Changed code/data/DMA placement and temporal/late lineage remain unimplemented or unproven |
 
 The normal native asset planner owns INCBIN selection and naming; the shared
 publisher owns companion files. Original disk/loader parity remains explicitly
 out of scope.
+
+2026-10-14 command-operand checkpoint: 12 shared formats replace raw A4 offsets
+in 20 handlers (31 native field bindings across 30 instructions). Three
+sequence-command inputs refine six-byte prefixes without changing the other
+node handlers. Eleven narration comments are withdrawn; six shared comments
+retain loop, delay, address-base and callback-effect semantics. All unrelated
+metadata, assets/owners and history prefixes are preserved. The normal journal
+accepts 41 facts; 191 focused tests pass. Complete C/vasm reproduction is exact
+for 376,832 bytes, receipt
+`d6b3c4ea35990c404e537137730cb6b106dd10d48c792ba41ada8423eabda415`;
+source SHA256
+`cfe068408fcfec9bf33549a55de08695216c926937626e45bd3286de23f1c56b`.
+Indexed relative-copy accesses and the heterogeneous interpreter cursor remain
+untyped; pointer safety, mutable callback effects and lifetimes stay open.
+No gameplay route was expanded and the BYTE coverage gap above is retained.
 
 ## Framework repairs accompanying the startup batch
 
@@ -1503,3 +1657,115 @@ final receipt; the withdrawn failed array and its undo marker remain in history.
 The live UI remains available at `http://127.0.0.1:8123/` without a backend
 restart. Exact assembly and static consumer evidence do not establish emulator
 execution or complete gameplay recovery.
+
+## Rifle return assessment and local relocation boundary
+
+The next bounded runtime slice reused the verified rifle checkpoint without
+replaying acquisition. Decoded camera/script timing now fits seven neutral
+transitions, the prior forward flight crossing (41 calls, bound 45), and all
+45 positions of a reverse timing diagnostic (64 calls, bound 68). Horizontal
+requests use delay two; vertical/idle use one. Camera bursts are charged once
+per burst rather than at every move. This resolves the previous timing-model
+blocker, subject to fixed profile and no new encounters/modal control.
+
+It does not qualify the return. The diagnostic's final health check found HP44;
+the stronger per-visit HP95 recipe stops at `reverse_34_up`. A normal prefix
+probe stops before source `$887C` stores 44 over player HP95: the security
+response subtracts 51 after failed held-ID clearance. Current zone is zero,
+rifle18 fails, and carried Amy ID54 is outside accepted IDs48–53. Another valid
+ID/trade is required; merely selecting Amy is insufficient. The intact rifle
+checkpoint `(1228,874)` and healthy reverse staging `(1137,874)` remain reusable.
+No successful return snapshot or aim/fire/hit is claimed. Further game quest
+modeling is intentionally stopped for this two-byte relocation task.
+
+A cheaper local CPU comparison binds the manifest and canonical checkpoint
+donor, without editing guest state. The actual original/derived BYTE instruction
+at source `$552F0` agrees for all 65,536 initial words, producing
+`0x4000 | (input & 0xff)` with one byte write, equal registers/CCR/PC and preserved
+guards. This models direct writer entry, not normal reachability. Whole-routine
+comparison is refused: generated unsized bit-memory operands use longword reads
+and writes despite the KB's existing byte rule; the observed BCLR footprint is
+four bytes. No routine case is accepted. Proposal 044 records the upstream
+binding/oracle work required before retrying; the native simulator is unchanged
+and an independent machine68k oracle is unavailable.
+
+Normal game writer coverage remains **two of three**; BYTE remains unobserved
+in normal gameplay. Reproduction, expected partial-result exit2 and exact
+evidence paths are in `docs/copperline-runtime.md`. This slice changes only
+bounded tools/scenarios/evidence/docs/tests. Original binary SHA256 remains
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`,
+and current rendered-source SHA256 remains
+`b5c29658451d7a775aadc1cd574dcee25528bbe477362372b0fb47abfd1b913d`.
+No source facts, generated target output, ROMs or guest snapshots are published.
+
+Validation: **144 passed** across checkpoint/runtime/session, patrol/world/rifle
+models and the new camera/local-CPU tests. The full 65,536-word CLI was rerun and
+returned the expected exit2 with the routine-width refusal; its JSON matches the
+published receipt. `git diff --check` passes. Original/source hashes were
+rechecked; no output-affecting change requires new reassembly, so the previous
+exact C/vasm receipt remains applicable. The listing UI responds HTTP200 on
+`http://127.0.0.1:8123/`; no emulator process remains running.
+
+## Generated bit-memory width binding repaired
+
+The four-byte bit-memory blocker above is now fixed generally. The parser binds
+the existing PDF-backed EA-category size rule into execution metadata; regenerated
+form tables supply register/memory widths, and native reads/writes/EA updates and
+bit flags consume that rule without requiring a decoded suffix. The obsolete
+separate hardcoded bit-width choice is removed. Concrete bit predecrement now
+uses the existing general pre-access helper. No Pandora CPU workaround or new
+instruction facts were added.
+
+The same provenance-bound full-routine comparison now accepts eight bounded
+cases. Five modeled dead/armed cases execute the guard, reset helper, BYTE store
+and return in 26 instructions per layout, with equal normalized CPU state/writes
+and outputs `4040,4006,40ff,4055,40ff`. This is guarded local routine equivalence
+under the existing generated CPU, not normal gameplay reachability or hardware
+proof. The complete 65,536-word single-store result is unchanged and preserved.
+
+One alive/near case still refuses its independent routine contract: concrete
+SUBI data-register arithmetic uses the full register and leaves CCR unchanged,
+so the BPL/NEG absolute-value path is wrong and volume 64 replaces expected 53.
+Equal results across layouts do not discharge that defect. The partial CLI still
+exits 2, now with `refused_local_routine_contract`; the historical width-refusal
+receipt is retained alongside `pandora-volume-local-comparison-width-fixed.json`.
+Proposal 044 records the new arithmetic gap and scope boundary. Clearance-ID
+route expansion remains paused; no aim/fire/hit or normal BYTE success is claimed.
+
+Validation: 176 focused tests and 32 abstract subtests pass; native simulator 29/29
+(including 64 concrete bit combinations) pass. The full native suite retains its
+two previously documented baseline failures; repository-wide style violations
+remain in 24 unchanged files while all changed C/header/table files pass. Complete
+rendered-source roundtrip is exact with zero differing ranges. Original/source
+hashes and verified rifle checkpoint hashes remain unchanged. The rebuilt backend
+is loaded by a restarted listing UI at `http://127.0.0.1:8123/`.
+
+## Concrete SUBI width/CCR correction and bounded comparison completion
+
+The preceding arithmetic refusal is now resolved in the general concrete ADD/SUB
+path. A before/after minimal native regression reproduces word upper-bit
+corruption and verifies D0 `$00070328` minus 840 becomes `$0007ffe0`, SR `$2019`.
+The correction consumes existing width/CCR and source-extension metadata through
+shared helpers, preserves narrow data destinations, and retains full-width
+address arithmetic with unchanged SR. The boundary tests also expose a reversed
+form's stale register-only access; general parser normalization and regenerated
+KB execution bindings/simulator tables correct seven access entries across
+ADD/AND/OR/SUB and PMOVE. No target-specific CPU workaround is used.
+
+The same original/derived manifest/donor comparison now passes all nine bounded
+routine cases and exits 0. The near-player call follows both negative-delta NEG
+paths, returns in 21 instructions and writes 53 (`0035`); five modeled dead/armed
+calls still execute the BYTE writer and return in 26 instructions per layout.
+Normalized CPU states, control flow and writes agree. The complete 65,536-word
+single-store result remains identical to earlier receipts. The new evidence is
+`runtime/observations/pandora-volume-local-comparison-arithmetic-fixed.json`;
+historical negative receipts are unchanged. This completes those local CPU
+contracts, not normal gameplay BYTE reachability or arbitrary routine inputs.
+
+Validation: 190 focused tests plus 1,004 subtests pass, native simulator 30/30
+passes, and full-image rendered-source roundtrip is exact with zero differing
+ranges. The full native run retains only its two documented baseline failures.
+Changed C/header/table files pass style; no independent machine68k oracle is
+available. Original/source, verified rifle snapshot and prior relocation evidence
+remain intact. The service is restarted/reloaded for the new native backend.
+Clearance gameplay remains paused; normal game writer coverage stays two of three.

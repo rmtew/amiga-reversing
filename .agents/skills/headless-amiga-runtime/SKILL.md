@@ -68,3 +68,15 @@ Run focused control/session/runtime/symbol tests, real strictly headless target
 scenarios for changed behaviors, and exact target round trip when source output
 is affected. Keep logs bounded and record unavailable inputs precisely. Transport
 synthetic tests alone do not establish original-loader or gameplay parity.
+
+## Verified local checkpoints
+
+Use public `--checkpoint-save <fresh.json>` / `--checkpoint-load <receipt.json>`
+for reuse after a completed canonical scenario. A resume scenario starts with
+`verified_checkpoint` and a single-visit canonical anchor at the saved PC. The
+runner binds snapshot and media/context hashes, verifies exact registers and
+payload identity after load, and records inherited root handoff/copy evidence.
+Keep snapshots in ignored local runtime storage; do not commit or publish guest
+state files. Original and derived layouts need separate root executions. Read
+`docs/copperline-runtime.md` for reproduction and limits. A raw transport snapshot
+without the runner receipt is not an admitted checkpoint.

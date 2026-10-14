@@ -143,7 +143,8 @@ typedef enum M68kSimOperandWidthMode {
   M68K_SIM_WIDTH_NONE = 0,
   M68K_SIM_WIDTH_FIXED = 1,
   M68K_SIM_WIDTH_INSTRUCTION_SIZE = 2,
-  M68K_SIM_WIDTH_FULL_REGISTER = 3
+  M68K_SIM_WIDTH_FULL_REGISTER = 3,
+  M68K_SIM_WIDTH_EA_CATEGORY = 4
 } M68kSimOperandWidthMode;
 
 typedef enum M68kSimShiftDirection {
@@ -377,6 +378,8 @@ typedef struct M68kSimFormMetadata {
   uint8_t operand_result_kinds[4];
   uint8_t operand_width_modes[4];
   uint8_t operand_widths[4];
+  uint8_t ea_register_width;
+  uint8_t ea_memory_width;
   uint16_t sp_effect_start;
   uint8_t sp_effect_count;
   uint8_t source_operand_index;

@@ -225,6 +225,7 @@ WIDTH_MODE_ENUM = {
     None: "M68K_SIM_WIDTH_NONE",
     "fixed": "M68K_SIM_WIDTH_FIXED",
     "instruction_size": "M68K_SIM_WIDTH_INSTRUCTION_SIZE",
+    "ea_category": "M68K_SIM_WIDTH_EA_CATEGORY",
     "full_register": "M68K_SIM_WIDTH_FULL_REGISTER",
 }
 
@@ -856,6 +857,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
         result_kinds = ["M68K_SIM_RESULT_NONE"] * 4
         operand_width_modes = ["M68K_SIM_WIDTH_NONE"] * 4
         operand_widths = ["0u"] * 4
+        ea_category_widths = [0, 0]
         for operand in execution_operands:
             if not isinstance(operand, dict):
                 continue
@@ -1025,6 +1027,12 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             elif width_source in WIDTH_MODE_ENUM:
                 operand_width_modes[operand_index] = WIDTH_MODE_ENUM[width_source]
                 operand_widths[operand_index] = "0u"
+            if width_source == "ea_category":
+                sizes = entry.get("size_by_ea_category", {})
+                if not isinstance(sizes, dict) or any(sizes.get(k) not in {"b", "w", "l"}
+                        for k in ("register", "memory")):
+                    raise AssertionError(f"Missing EA-category widths for {mnemonic}")
+                ea_category_widths = [{"b": 1, "w": 2, "l": 4}[sizes[k]] for k in ("register", "memory")]
             _validate_ea_metadata(
                 mnemonic,
                 _local_form_index(form),
@@ -1127,6 +1135,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             "      { "
             f"{operand_widths[0]}, {operand_widths[1]}, {operand_widths[2]}, {operand_widths[3]} "
             "},",
+            f"      {ea_category_widths[0]}u, {ea_category_widths[1]}u,",
             "      "
             f"{sp_start}u, {len(sp_effects)}u, "
             f"{_operand_index_by_role(execution, 'source') if isinstance(execution, dict) else 0xFF}u, "

@@ -42,7 +42,7 @@ static int sim_operand_is_immediate_ea(const M68kOperandIR *operand);
 static int sim_operand_is_absolute_long_ea(const M68kOperandIR *operand);
 static int sim_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t *out_value);
 static int sim_ea_address_register(uint8_t ea_shape, const M68kOperandIR *operand, uint8_t *out_reg);
-static uint8_t sim_bit_width_for_metadata_operand(const M68kSimFormMetadata *metadata, uint8_t operand_index,
+static uint8_t sim_ea_category_width(const M68kSimFormMetadata *metadata, uint8_t operand_index,
     const M68kOperandIR *operand);
 static int sim_bit_index_from_value(const M68kSimValue *value, uint8_t width, uint32_t *out_bit);
 static int sim_concrete_apply_predecrement_operand(const M68kInstructionIR *instruction,
@@ -585,6 +585,10 @@ static uint8_t sim_effective_operand_width(const M68kInstructionIR *instruction,
   if (mode == M68K_SIM_WIDTH_FIXED) return width;
   if (mode == M68K_SIM_WIDTH_INSTRUCTION_SIZE) return sim_operand_width_from_instruction(instruction);
   if (mode == M68K_SIM_WIDTH_FULL_REGISTER) return 4U;
+  if (mode == M68K_SIM_WIDTH_EA_CATEGORY) {
+    if (operand_index >= instruction->operand_count) return 0U;
+    return sim_ea_category_width(metadata, operand_index, &instruction->operands[operand_index]);
+  }
   if (width == 0U) width = sim_operand_width_from_instruction(instruction);
   return width;
 }
@@ -1640,7 +1644,7 @@ static int sim_apply_abstract_bit_test_flags(uint16_t sr, const M68kSimFormMetad
   uint16_t next_sr;
   if (metadata == NULL || dest_operand == NULL || source == NULL || dest_value == NULL || out_sr == NULL) return 0;
   if (dest_value->kind != M68K_SIM_VALUE_CONSTANT) return 0;
-  width = sim_bit_width_for_metadata_operand(metadata, dest_operand_index, dest_operand);
+  width = sim_ea_category_width(metadata, dest_operand_index, dest_operand);
   if (!sim_bit_index_from_value(source, (uint8_t)width, &bit_index)) return 0;
   bit_is_set = (dest_value->value >> bit_index) & 1U;
   next_sr = (uint16_t)(sr & ~(1U << g_m68k_sim_ccr_bit_z));
@@ -1913,24 +1917,19 @@ static int sim_link_displacement_concrete(const M68kInstructionIR *instruction, 
   return 1;
 }
 
-static uint8_t sim_bit_width_for_metadata_operand(const M68kSimFormMetadata *metadata, uint8_t operand_index,
+static uint8_t sim_ea_category_width(const M68kSimFormMetadata *metadata, uint8_t operand_index,
     const M68kOperandIR *operand) {
   uint8_t is_address;
   uint8_t reg;
-  if (metadata == NULL || operand == NULL || operand_index >= 4U) return 1U;
-  if (metadata->operand_expected_kinds[operand_index] == M68K_SIM_EXPECT_DN ||
-      metadata->operand_expected_kinds[operand_index] == M68K_SIM_EXPECT_AN ||
-      metadata->operand_expected_kinds[operand_index] == M68K_SIM_EXPECT_RN) {
-    return 4U;
-  }
-  if (sim_direct_register_slot_by_metadata(metadata, operand_index, operand, &is_address, &reg)) return 4U;
-  return 1U;
+  if (metadata == NULL || operand == NULL || operand_index >= 4U) return 0U;
+  if (sim_direct_register_slot_by_metadata(metadata, operand_index, operand, &is_address, &reg)) return metadata->ea_register_width;
+  return metadata->ea_memory_width;
 }
 
 static int sim_bit_index_from_value(const M68kSimValue *value, uint8_t width, uint32_t *out_bit) {
   uint32_t modulus;
-  if (value == NULL || out_bit == NULL || value->kind != M68K_SIM_VALUE_CONSTANT) return 0;
-  modulus = width >= 4U ? 32U : 8U;
+  if (value == NULL || out_bit == NULL || value->kind != M68K_SIM_VALUE_CONSTANT || width == 0U) return 0;
+  modulus = (uint32_t)width * 8U;
   *out_bit = value->value % modulus;
   return 1;
 }
@@ -1943,7 +1942,7 @@ static int sim_apply_bit_op(uint8_t operation_type, const M68kSimFormMetadata *m
   uint32_t mask;
   if (metadata == NULL || source == NULL || dest_operand == NULL || dest_value == NULL || out_value == NULL) return 0;
   if (dest_value->kind != M68K_SIM_VALUE_CONSTANT) return 0;
-  width = sim_bit_width_for_metadata_operand(metadata, dest_operand_index, dest_operand);
+  width = sim_ea_category_width(metadata, dest_operand_index, dest_operand);
   if (!sim_bit_index_from_value(source, (uint8_t)width, &bit_index)) return 0;
   mask = 1U << bit_index;
   *out_value = *dest_value;
@@ -3970,17 +3969,53 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     }
     io_state->a[lhs_reg] = resolved_address;
   } else if ((metadata->operation_type == M68K_SIM_OP_ADD || metadata->operation_type == M68K_SIM_OP_SUB) &&
-      source != NULL && dest != NULL &&
-      sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
-        memory, memory_size, io_state->pc, &immediate_value, memory_policy) &&
-      sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg)) {
-    uint32_t delta = immediate_value;
-    if (metadata->source_sign_extend) {
-      uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->source_operand_index);
-      delta = sim_sign_extend_value(delta, (uint8_t)(width * 8U));
+      source != NULL && dest != NULL) {
+    M68kSimValue lhs_value;
+    M68kSimValue rhs_value;
+    M68kSimValue output_value;
+    uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
+    int address_destination = sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index,
+      dest, &is_address, &lhs_reg) && is_address;
+    if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source,
+          io_state) ||
+        !sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state) ||
+        !sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source,
+          io_state, memory, memory_size, io_state->pc, &immediate_value, memory_policy) ||
+        !sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state, memory, memory_size, io_state->pc, &resolved_value, memory_policy)) {
+      sim_diag_error(diagnostics, "unsupported concrete arithmetic operand");
+      return -1;
     }
-    if (metadata->operation_type == M68K_SIM_OP_SUB) delta = (uint32_t)(0U - delta);
-    if (is_address) io_state->a[lhs_reg] += delta; else io_state->d[lhs_reg] += delta;
+    lhs_value = sim_value_constant(resolved_value, M68K_SIM_PROV_REGISTER_COPY);
+    rhs_value = sim_value_constant(immediate_value, M68K_SIM_PROV_REGISTER_COPY);
+    if (!sim_apply_add_sub_by_metadata(instruction, metadata, &lhs_value, &rhs_value, &output_value) ||
+        output_value.kind != M68K_SIM_VALUE_CONSTANT) {
+      sim_diag_error(diagnostics, "unsupported concrete arithmetic result");
+      return -1;
+    }
+    /* Address destinations retain full-width arithmetic and SR; data accesses
+     * use generated widths and CCR rules, including narrow Dn preservation. */
+    if (address_destination) {
+      io_state->a[lhs_reg] = output_value.value;
+    } else {
+      if ((metadata->ccr_formula != M68K_SIM_CCR_FORMULA_ADD_FLAGS &&
+            metadata->ccr_formula != M68K_SIM_CCR_FORMULA_SUB_FLAGS) ||
+          !sim_apply_abstract_add_sub_flags(io_state->sr, resolved_value, immediate_value, width,
+            metadata->ccr_formula == M68K_SIM_CCR_FORMULA_SUB_FLAGS, &io_state->sr) ||
+          !sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+            io_state, memory, memory_size, io_state->pc, output_value.value, write_trace, memory_policy)) {
+        sim_diag_error(diagnostics, "unsupported concrete arithmetic destination or flags");
+        return -1;
+      }
+    }
+    if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source,
+          io_state) ||
+        !sim_apply_concrete_ea_register_update(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete arithmetic operand update");
+      return -1;
+    }
   } else if ((metadata->operation_type == M68K_SIM_OP_ADD_EXTEND ||
           metadata->operation_type == M68K_SIM_OP_SUB_EXTEND) &&
       source != NULL && dest != NULL) {
@@ -4602,12 +4637,13 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if ((metadata->operation_type == M68K_SIM_OP_BIT_TEST || metadata->operation_type == M68K_SIM_OP_BIT_SET ||
           metadata->operation_type == M68K_SIM_OP_BIT_CLEAR || metadata->operation_type == M68K_SIM_OP_BIT_CHANGE) &&
       source != NULL && dest != NULL &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest, io_state) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
         memory, memory_size, io_state->pc, &resolved_value, memory_policy) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest, io_state,
         memory, memory_size, io_state->pc, &resolved_address, memory_policy)) {
-    uint8_t width = sim_bit_width_for_metadata_operand(metadata, metadata->dest_operand_index, dest);
-    uint32_t modulus = width >= 4U ? 32U : 8U;
+    uint8_t width = sim_ea_category_width(metadata, metadata->dest_operand_index, dest);
+    uint32_t modulus = (uint32_t)width * 8U;
     uint32_t mask = 1U << (resolved_value % modulus);
     uint32_t written_value = resolved_address;
     uint16_t next_sr = (uint16_t)(io_state->sr & ~(1U << g_m68k_sim_ccr_bit_z));

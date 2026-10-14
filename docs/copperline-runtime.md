@@ -229,8 +229,497 @@ The current saved-environment manifest is
 `.runtime-state/restoration/derived/e449f89c0ec6e432b070bdf0809c405958be12a2119909c502f3d135561f666c/manifest.json`.
 To rebuild it, run a fresh `verify`, then revision-checked `memory_build` for
 `region_id: "audio_master_volume"`, `destination: 414720`, `memory_class: "chip"`
-with that verification receipt. Both runs intentionally finish `incomplete` if
-the final five-second proximity-writer observation times out: the eight preceding
-hits validate initialization, both reads and matching Paula state, not the three
-game writers. [Compact observations](../runtime/observations/pandora-audio-volume-relocation.json)
-record the distinction and the next bounded gameplay scenario needed.
+with that verification receipt. This initial scenario intentionally finishes
+`incomplete` at its short writer watch; its eight prior hits establish read/output
+parity. The follow-up `runtime/scenarios/pandora-volume-proximity-writers.json`
+uses ordinary joystick input and completes 21 canonical phases in both layouts,
+covering the D0 WORD volume writer, immediate WORD reset and sampled AUD3VOL=2
+at volume 6. The old-address guard remains `0040` in the derived run. Use the same
+command/manifest with that scenario and separate `--state-directory` values.
+[Compact writer observations](../runtime/observations/pandora-volume-proximity-writers.json)
+record the comparison. The original eight-phase
+[observations/ledger](../runtime/observations/pandora-audio-volume-relocation.json)
+remain historical receipts.
+
+`runtime/scenarios/pandora-volume-feed-combat-probe.json` uses the same command,
+with a separate state directory. It reaches the Feed, opens inventory using
+`key 64` (Space), swaps the selected officer ID for an empty carried slot and uses
+six charged fire presses to defeat it. Both layouts hit all 46 canonical phases.
+The final capture establishes defeated flag bit 1 set and shared audio flag bit 0
+clear: combat already reset that flag and restored volume `0040`. The BYTE writer
+therefore remains uncovered; both flags must be set to enter it. The next work is
+a normal flag-setting route after defeat or a static reachability assessment,
+not a forced game-state write. Keyboard-buffer relocation remains deferred.
+
+Canonical copied-view PC samples near the view end include preceding bytes so the
+whole minimum 16-byte sample stays materialized. Offset/base validation and full
+input/copied-image identity checks remain unchanged. Declarative scenarios permit
+2..64 phases including handoff, producing at most 63 executable phases within the
+runner's existing cap of 64; input-event holds remain capped at 32 in the compiler.
+
+
+## Pandora's bounded world model
+
+The remaining BYTE volume path is a static candidate: a direct rifle kill can
+preserve the armed shared flag until the same-frame proximity update. Full combat
+clears it first. Weapon acquisition/aim and nearby-event predicates remain
+unvalidated, so this is not all-writer completion.
+
+The read-only model uses native symbol coordinates/opcode values, effective
+record schemas and the exact original payload. It reconstructs terrain, movement
+poses, bounded original script patrols and the scenario dependency chain. The
+provided checkpoint predicts the pianist encounter and validates the next UI/
+movement transition. It does not treat a timeout's last successful capture as the
+state at timeout or assign a register role before the relevant binding executes.
+
+With the existing listing server running, regenerate the offline model **without
+launching Copperline**:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_world_model \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --observation runtime/observations/pandora-world-model-checkpoint.json \
+  --output /tmp/pandora-world-model.json
+```
+
+[Saved model](../runtime/observations/pandora-world-model.json) includes a compact
+excluded-tile grid, native source bindings, 35 original object identities/script profiles, the
+validated pianist encounter and explicit unknowns. Only that observed actor's
+patrol is currently enforced by the route search. Its whole swept envelope leaves
+no admitted rifle route under this model; that is not a real-game impossibility
+proof. The model derives a conditional staging goal `(780,794)` with eight-move
+checks and refuses to assume a safe crossing without timing/interaction evidence.
+
+`runtime/scenarios/pandora-world-model-transition.json` is the existing bounded
+normal-input diagnostic that captures canonical combat entry `$7792` and subsequent
+movement rejection `$9984` (ten source phases). It validates the model's specific
+counterexample, not a weapon acquisition or BYTE write. Use the normal public
+Copperline CLI, legal ROM, original direct contract and a separate state directory
+if reproducing it; no repeat is needed merely to inspect the saved receipts.
+`pandora-volume-byte-route-blocker.json` preserves the earlier rejection-only
+observation. All owned emulator processes have exited after capture.
+
+Alternative canonical stop outcomes remain a framework gap. Memory captures now
+support `expect_hex` and optional `expect_mask_hex`, each exactly `size` bytes
+encoded as hex. They are checked after canonical PC/payload verification at every
+counted visit. A mismatch records `capture_expectation_mismatch`, ends the
+scenario and releases held input. A transition that never reaches the requested
+PC still stops at the phase deadline; assertions do not provide an alternative
+early breakpoint. Verified local checkpoints are described below; older raw `state.save/load`
+transport snapshots do not establish that provenance contract. The previous successful WORD/Paula comparison remains unchanged.
+
+
+## Pianist timing and guarded crossing
+
+The original-layout timing diagnostic reaches `(780,794)` in the predicted 95
+accepted moves. Five subsequent source `$5CA` observations validate one pianist
+script update per gameplay loop: Y=834,832,830,828,826, with matching script PC,
+delay and all six mutable repeat counters. The outer source `$253C` loop skips
+flags `&$42` before decrementing delay; source `$13F4` dispatches on the call that
+reaches zero. Delay 1 therefore advances next call, delay 2 every second call.
+The original admitted script has a 377-call cycle, including its 30-call rest.
+These are gameplay-loop calls, not assumed PAL frames or accepted player moves.
+
+Camera scrolling inserts movement pauses. Known camera profile writers select
+0/1, with reloads 4/6. The bounded crossing model checks every possible elapsed
+actor call for each pose under 1..6 calls per accepted move, including initial
+input latency and the waiting interval before the following move. It rejects the
+immediate crossing and instead waits 249 calls from `timing_loop_4` to the start
+of the rest at `(816,974)`, script `$1F2C`, delay 30. The gate's exact player/actor
+state is checked before pressing right.
+
+The model-derived corridor route is right 6, down 1 (lateral drift), up 14, right
+7. Every accepted position is asserted, rather than assuming counted movement
+remains on course. All 28 moves passed in real Copperline, ending `(864,738)` with
+UI mask 6 clear. Captured actor states match 49 eligible calls, with each
+inter-move delta within 1..6. Proximity flag bits 4/5 change separately and are
+not mistaken for interpreter timing state.
+
+The pure model is `amiga_reversing.tools.pandora_patrol_timing`; evidence is in
+`runtime/observations/pandora-pianist-{timing,crossing}.json`. Reproduce with the
+normal CLI command above, replacing `--scenario` with
+`runtime/scenarios/pandora-pianist-timing.json` or
+`runtime/scenarios/pandora-pianist-crossing.json` and using a fresh state directory.
+This earlier diagnostic starts from boot; the new segments below use verified
+local checkpoints. These are original-only
+observations: the rifle pickup, direct hit, BYTE writer and relocated comparison
+remain separate gates. The next corridor contains the flight controller's patrol
+at X=1104; its live state must be admitted before that crossing.
+
+The follow-up `pandora-corridor-actors.json` scenario repeats the qualified prefix
+and stops at the same player coordinate. Its 61 canonical phases pass (62 total
+including handoff). It samples all 35 object records over three successive loop
+visits, then takes three consecutive flight-controller captures. The same
+interpreter predicts `(1104,746),delay1` → `(1104,748),delay2` →
+`(1104,748),delay1`, including all six live repeat counters. These snapshots are
+not atomic global state or bounds for every unknown callback.
+
+The next unexecuted staging candidate is right 30 to `(1074,738)`, west of the
+flight-controller interaction envelope. A reliable rifle route still needs its
+timed crossing composed with camera pauses and normal pickup prerequisites. The
+security officer at `(1234,840)` is another nearby interaction predicate; its
+original script holds XY and toggles animation, which does not by itself prove
+that interaction harmless. Empty-slot selection and a fresh proximity latch must
+be admitted before pickup. The return path, accepted aim and direct ray hit are
+subsequent model gaps. This checkpoint stops before those assumptions.
+
+Focused verification for this checkpoint:
+
+```sh
+.venv/bin/python -m pytest -q \
+  tests/test_pandora_patrol_timing.py tests/test_pandora_world_model.py \
+  tests/test_copperline_runtime.py tests/test_copperline_session.py
+```
+
+Result: **112 passed**. Native/control suites and full source round-trip were not
+repeated: no target facts or generated source changed, and the original
+binary/source hashes and prior WORD receipt are checked unchanged. No owned
+Copperline process remains running. The existing listing server remains on
+loopback port 8123. Native canonical scenario compilation remains the dominant
+probe cost (roughly a minute or two here); the timing model itself runs offline.
+
+
+## Verified checkpoints and normal rifle pickup
+
+`--checkpoint-save <fresh-name.json>` saves a local `.clstate` plus receipt after
+a complete canonical scenario, after acknowledged input cleanup. `--checkpoint-load` requires
+a scenario beginning with `verified_checkpoint`, then a single-visit canonical
+anchor at the saved source PC. Before loading, the runner checks the snapshot
+hash, target/payload, ROM, emulator, fixed profile, media, derived-manifest and
+runtime-view binding. After loading, every saved CPU register and the canonical
+PC payload sample must match before execution/input. Reverse history is anchored
+after load; replay across it is not evidence. Existing destinations are refused.
+
+Root receipts preserve the full input/copied-image verification from boot. Resume
+reports explicitly mark that root verification as inherited, rather than claiming
+a new handoff. Each successor records its parent snapshot hash. These are local runtime artifacts with content/context checks; cross-machine
+portability has not been validated. Snapshots contain private guest
+machine state and stay in ignored `.runtime-state`; none are committed. Each
+original/relocated layout needs a separate root and chain. An original checkpoint
+cannot be loaded with the relocated payload/manifest.
+
+A real fresh-process chain now passes:
+
+| Segment | Canonical phases | Result |
+|---|---:|---|
+| Existing corridor prefix | 61 | Fresh verified root at `(864,738)` |
+| `pandora-rifle-west-staging.json` | 32 | 30 exact moves to `(1074,738)` |
+| `pandora-flight-model-crossing.json` | 30 | 28 exact moves to `(1130,810)`; admitted live patrol gate |
+| `pandora-rifle-approach.json` | 38 | 30 exact moves to `(1214,874)`, normal empty-slot selection |
+| `pandora-rifle-pickup.json` | 5 | Two moves enter pickup radius; source `$811E` confirms item 18 |
+| `pandora-rifle-checkpoint-audit.json` | 2 | Fresh-process restore and one idle loop; cached movement/fire remain zero |
+
+At the approach, Space opens inventory, fire swaps selected card 54 into the first
+empty carried slot, fire is released, and Space closes the panel. The final gate
+checks selected item 0, UI mask 6 clear, fire 0 and a clear receptacle latch.
+Movement changes pickup distance 37→30→23; the strict `<28` test and fresh latch
+then copy rifle ID 18. Final state is `(1228,874)`, selected 18, HP 95, ammo `05,01`,
+carried bytes `36000000`, receptacle `00058a481201`, volume `0040`, shared audio
+byte `00`. The rifle-bearing snapshot is saved. No guest predicate was edited;
+subsequent segments resumed exact saved execution instead of replaying the prefix.
+
+For this environment, use the existing legal ROM path and pinned Copperline.
+Create a fresh root once (choose a new local directory if these files exist):
+
+```sh
+pandora_target=amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
+pandora_run=.runtime-state/pandora-rifle-reproduction
+pandora_rom=/workspace/attachments/30c1a24c-f353-4e4e-9dc0-36ce5cee8932/kick13.rom
+pandora_emulator=/workspace/copperline-assessment/squashfs-root/usr/bin/copperline
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$pandora_target" --rom "$pandora_rom" --copperline "$pandora_emulator" \
+  --direct-payload-contract pandora --state-directory "$pandora_run/root" \
+  --scenario runtime/scenarios/pandora-corridor-actors.json \
+  --checkpoint-save "$pandora_run/corridor.json" --run
+
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$pandora_target" --rom "$pandora_rom" --copperline "$pandora_emulator" \
+  --direct-payload-contract pandora --state-directory "$pandora_run/west" \
+  --scenario runtime/scenarios/pandora-rifle-west-staging.json \
+  --checkpoint-load "$pandora_run/corridor.json" \
+  --checkpoint-save "$pandora_run/west.json" --run
+```
+
+Repeat the second command with these arguments, retaining the same media/payload:
+
+| Scenario | Load receipt | Save receipt | State subdirectory |
+|---|---|---|---|
+| `pandora-flight-model-crossing.json` | `west.json` | `east.json` | `east` |
+| `pandora-rifle-approach.json` | `east.json` | `ready.json` | `ready` |
+| `pandora-rifle-pickup.json` | `ready.json` | `rifle.json` | `rifle` |
+| `pandora-rifle-checkpoint-audit.json` | `rifle.json` | `rifle-clean.json` | `audit` |
+
+[Compact receipt](../runtime/observations/pandora-rifle-composition.json) contains
+all phase outcomes, snapshot-parent hashes, inventory/pickup captures, the flight
+patrol comparisons and the unexecuted return/aim assessments. Native scenario
+compilation took about 95–98 seconds per new segment here; saved-state reuse
+removes repeated gameplay prefixes, not that separate compilation cost.
+
+**Earlier BYTE gap (superseded by the camera/clearance assessment below):** the terrain model finds a conditional 382-move return to
+`(808,154)`, but it crosses both patrol corridors in reverse. For the 45-move
+reverse flight corridor, none of 377 original patrol-cycle gates is admitted by
+the conservative 1..6-call-per-move windows. This is a model limitation, not an
+impossibility claim. Before running the return, derive tighter cumulative camera
+pause bounds (or a different admitted reverse route), validate them against the
+saved crossing receipts, and resume from the rifle checkpoint. The forward
+crossing proof does not qualify its reverse.
+
+A read-only restore of the rifle state captures the live Feed descriptor at
+`(840,168)`, geometry `$5C264`, zero state offsets, alive HP 29 and bounds
+`[847,872)×[168,195)`. All six original animated frames share those bounds. The
+provisional upward ray X=843 would miss them, and aligning that column encounters
+a solid tile before the body. The revised terrain candidate finishes at
+`(808,154)` after an accepted right move, safely outside the strict encounter box.
+Decoded ray arithmetic gives first point `(850,168)`, inside the captured body.
+Its tile 450 is clear; the nearby live cells match the original map. This remains
+a conditional aim: future active-list membership, live geometry/flags, fire edge,
+ammo, prior alive proximity arming and callback preservation need validation at
+the firing point. No return, aim, hit, BYTE write or relocated weapon comparison
+was executed.
+
+The first read-only map capture stopped on an incorrect `$8880` base assumption;
+that was an earlier sampled-cell address. The corrected capture verifies the live
+base `$4000` before interpreting cells. It reused the unchanged compiled canonical
+row/mapping and revalidated only the revised bounded capture, taking 0.2 seconds
+without a native rebuild or gameplay advance. Both the stopped guard and corrected
+receipt are retained. `pandora-feed-ray-state.json` reproduces the read-only
+inspection from the rifle checkpoint; omit `--checkpoint-save` for that command.
+
+Focused checkpoint/runtime/session/patrol/model/transaction suite: **134 passed**.
+Original binary/source and prior WORD receipts remain unchanged. Native/control
+suites and full reassembly were not repeated because target output is unchanged.
+
+## Camera timing resolved; return blocked by ID clearance
+
+Continue from the verified rifle checkpoint above, without replaying acquisition.
+`pandora_camera_timing` models the mutable movement-script delay: horizontal
+requests write two at source `$9680`, vertical requests write one at `$96AA`,
+and idle dispatch writes one at `$999C`. Camera service `$7D48..$7DA4`
+decrements its countdown before movement; expiry clears the active bit/deltas.
+Profile 1 has reload six and margins 32/16. Its interior burst shifts 80 pixels
+and adds at most five calls. These are gameplay-loop bounds, not wall-clock rates.
+The bound requires a fixed profile, accepted axis moves and no modal encounter,
+wrapping or external script change.
+
+Seven real neutral transitions agree exactly, including scroll, countdown
+`5,4,3,2,1,0,255,254`, and delay two becoming one. The previously qualified
+forward flight crossing takes 41 eligible calls within the new cumulative bound
+45. A reverse diagnostic reaches all 45 predicted positions in 64 calls within
+bound 68, with two vertical bursts. This validates timing only: the first
+diagnostic checked health at its end and found 44 rather than 95. The stronger
+published recipe guards HP at every wait/movement visit and stops at
+`reverse_34_up`; subsequent phases and snapshot save do not run.
+
+A separate bounded prefix stops at canonical source `$887C`, before the health
+store: HP is still 95, D0 contains 44, A5 identifies the player and the nearest
+NPC is the flight controller. The decoded security response subtracts 51 when
+the held ID fails clearance. Zone is zero; accepted item IDs are 48 through 53
+with tiers `[4,3,1,3,0,2]`, requiring tier greater than zone. Selected rifle 18
+fails, and carried Amy ID 54 is outside that range. Swapping back to Amy is
+therefore insufficient. A stationary ten-second probe did not hit the response;
+that negative result applies only to its parked window.
+
+The intact rifle checkpoint remains at `(1228,874)`, HP95, rifle18, ammo `05,01`.
+A separately verified staging checkpoint is at `(1137,874)`. No successful return
+checkpoint, firing-point qualification, hit, normal BYTE execution or relocated
+weapon comparison is claimed. Acquiring another valid ID/trade would expand
+this two-byte relocation test into another game quest, so gameplay work stops
+at this explicit boundary.
+
+[Bounded camera/clearance evidence](../runtime/observations/pandora-camera-return-boundary.json)
+records successful timing observations separately from the failed health guard.
+From the existing rifle receipt, use the same public checkpoint CLI above with:
+
+| Scenario | Load checkpoint | Save checkpoint |
+|---|---|---|
+| `pandora-camera-idle-observation.json` | rifle-clean | fresh neutral receipt |
+| `pandora-reverse-flight-staging.json` | neutral receipt | fresh reverse-stage receipt |
+| `pandora-reverse-flight-crossing.json` | reverse-stage receipt | omit (expected HP refusal) |
+| `pandora-reverse-security-damage.json` | reverse-stage receipt | omit (before-store inspection) |
+| `pandora-rifle-security-response.json` | rifle-clean | omit (parked timeout) |
+| `pandora-volume-routine-context.json` | rifle-clean | omit (read-only CPU donor) |
+
+Each command still needs a fresh isolated `--state-directory`; checkpoints and
+guest snapshots remain ignored local inputs. The camera probe's neutral successor
+is the staging donor; do not silently substitute a state with different timing.
+
+## Cheaper local BYTE contract and simulator boundary
+
+The provenance-preserving CPU-only tool validates the original payload, closed
+two-byte relocation manifest and a read-only canonical `$5CA` donor. Live routine
+bytes match the original. Original/derived code and bounded captured cells are
+projected into separate local memories; unobserved cells use the original image
+or zero. Synthetic call frames and modeled guard inputs never enter Copperline.
+
+The actual manifest BYTE instruction at source `$552F0` passes **all 65,536
+initial 16-bit words**: exactly one byte write at the respective volume address,
+output `0x4000 | (input & 0xff)`, equal registers/CCR/PC, preserved low byte and
+adjacent guards. This explicitly enters at the writer, excluding its guards,
+reset helper, Paula and normal gameplay reachability.
+
+Full-routine comparison is **refused**, including the captured natural guard:
+the generated concrete simulator treats an unsized memory bit operand as a
+longword despite the KB's existing EA-category byte rule. The BCLR flag write
+spans four bytes rather than one. Equality under that defect is not a routine
+proof. No routine case is accepted; no CPU semantics or generated backend was
+changed. Proposal 044 records the required upstream binding fix and oracle
+coverage. `machine68k` is not installed, so this is not independent CPU proof.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_volume_local_compare \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --context runtime/observations/pandora-volume-local-context.json \
+  --manifest .runtime-state/restoration/derived/e449f89c0ec6e432b070bdf0809c405958be12a2119909c502f3d135561f666c/manifest.json \
+  --output /tmp/pandora-local-comparison.json
+```
+
+Expected exit **2** writes the partial result, not a successful routine verdict.
+The manifest is the existing local derived-build output, not a published guest
+snapshot. [Comparison receipt](../runtime/observations/pandora-volume-local-comparison.json)
+and [bounded donor](../runtime/observations/pandora-volume-local-context.json)
+retain hashes and explicit scope. Normal game writer coverage remains **two of
+three**. No interrupts, hardware/DMA timing, storage ownership or allocation
+claims follow from local CPU execution. Focused regression results and unchanged
+target hashes are recorded with this slice in the restoration status.
+
+## Generated EA-category width binding fixed
+
+The initial four-byte bit-memory refusal above is retained as historical
+negative evidence. The next framework slice fixes its source: execution metadata
+now binds an EA operand with the existing `size_by_ea_category` rule to
+`ea_category`, and generated simulator form metadata carries both byte widths.
+The native width selector uses the decoded operand category even without a size
+suffix. Reads, writes and EA updates consume that selector. Bit masks/flags use
+the same generated category widths, replacing the old separate register/memory
+width assumptions. The bit path also invokes the existing predecrement helper
+before access; the new predecrement regression exposed that missing call.
+
+Only the four affected execution bindings (BCHG/BCLR/BSET/BTST, including both
+forms) were regenerated from preserved PDF-backed KB fields through the parser's
+normal execution-metadata builder. No new instruction facts or Pandora-specific
+CPU semantics were introduced. The simulator tables were regenerated, all native
+consumers rebuilt, and the listing service restarted for the changed backend.
+
+The [new comparison receipt](../runtime/observations/pandora-volume-local-comparison-width-fixed.json)
+uses the same donor and full relocation manifest. Eight bounded local cases pass
+normalized CPU state, writes and control-flow comparison. Five explicitly
+modeled dead/armed calls enter the routine's real guard, execute the BYTE writer,
+run the reset helper and return, 26 instructions per layout, for initial words
+`0040,0006,01ff,aa55,ffff`. Outputs are `4040,4006,40ff,4055,40ff`.
+These are complete guarded local calls, not observed game calls. The unchanged
+65,536-word direct-store result is preserved exactly in both receipts.
+
+The ninth case, alive/near/armed at `(808,154)`, remains **refused** on a separate
+concrete ADD/SUB defect. At source `$55310`, `subi.w #840,d0` with D0 `$00070328`
+and SR `$2000` should produce D0 `$0007ffe0` and SR `$2019`; the concrete direct
+register branch instead produces `$0006ffe0` and leaves SR `$2000`. It operates
+on the full register and omits data-arithmetic flags, causing BPL to skip NEG.
+The local near case consequently gives volume 64 rather than 53. Even equal
+original/derived results cannot satisfy the independent routine contract. The
+runner records this as `refused_local_routine_contract`, continues independent
+cases, writes the partial report and exits 2. Fixing general arithmetic semantics
+is a separate framework slice; this width fix does not hide or bypass that gap.
+
+Repeat the local comparison command above with
+`--output /tmp/pandora-width-fixed-comparison.json`. It still exits **2**, now for
+the arithmetic contract rather than bit-memory width. Build/check commands:
+
+```sh
+.venv/bin/python src/scripts/generate_c99_simulator_subset.py
+make -j4 all
+.venv/bin/python -m pytest -q src/tests/test_generate_c99_simulator_subset.py \
+  src/tests/test_m68k_simulator_abstract.py tests/test_pandora_camera_and_local_compare.py
+src/build/m68k_c_unit_tests.exe
+```
+
+The local ignored Linux Makefile supplies `make`; tracked Linux setup instructions
+remain in `docs/linux-baseline-2026-10.md`. The metadata regeneration recipe/test
+is recorded in Proposal 044. Native simulator tests pass all 29 cases, including a
+64-combination concrete bit matrix; abstract tests add 32 bit-operation subtests.
+The broader focused run passes176 tests plus32 subtests. Full native tests retain
+the two independently documented baseline failures in pointer-table pointee
+propagation and unknown decompression identification. The changed C/header/table
+files pass style checks; the repository-wide style test still reports violations
+in 24 unchanged files. Full-image rendered-source roundtrip remains exact with no
+differing ranges. No independent machine68k CPU oracle is installed.
+
+Clearance-ID route expansion stays paused. Normal gameplay BYTE coverage remains
+unobserved, and normal game writer coverage stays two of three. The intact rifle
+checkpoint, source/binary bytes and earlier WORD evidence are unchanged. The UI
+continues on loopback `http://127.0.0.1:8123/`; no emulator is running.
+
+After restart, Pandora's native listing reload completed with 42,219 rows and a
+successful three-row listing API read (web app contract header 2). The global
+project index retains its independently documented local baseline 404:
+`Missing .project.json for project: amiga_hunk_large`. No unrelated target
+metadata was changed to repair that selector; direct Pandora project/listing
+requests succeed. See the existing server baseline classification under local
+`.runtime-state/pandora-analysis/performance-c8f6/`.
+
+## Concrete arithmetic corrected; nine bounded routine cases pass
+
+This supersedes the arithmetic refusal above. A minimal native regression first
+reproduced `SUBI.W #840,D0` (`04400348`) with D0 `$00070328` and SR `$2000`:
+the old concrete path produced `$0006ffe0`, corrupting the upper word, and left
+CCR unchanged. It now produces `$0007ffe0` and SR `$2019`. The shared concrete
+ADD/SUB path uses existing generated operand-width/CCR metadata, the existing
+source-extension arithmetic helper and sized destination writer. Data-register
+upper bits and memory neighbours are preserved; address-register destinations
+retain full-width arithmetic and unchanged SR. Immediate, register, quick and EA
+forms share the correction, including existing pre/post access update helpers.
+No Pandora-specific instruction branch or new CPU fact is introduced.
+
+The boundary matrix exposed an adjacent upstream form-binding error: reversing
+`<ea>,Dn` into `Dn,<ea>` retained a register-only destination access. The parser
+now normalizes register-to-EA accesses as well as EA-to-register accesses. Seven
+stale access bindings were regenerated from preserved extracted KB fields:
+ADD/AND/OR/SUB destinations and three PMOVE source forms. Generated simulator
+tables were regenerated too. PMOVE execution support is not added by correcting
+its metadata. Generator tests verify reproducibility and category normalization;
+concrete AND/OR memory checks cover the shared reversed-form correction.
+
+[Arithmetic-fixed comparison](../runtime/observations/pandora-volume-local-comparison-arithmetic-fixed.json)
+uses the same verified donor and complete relocation manifest. All nine bounded
+calls now satisfy their independent contracts and original/derived normalized
+CPU state, control-flow and write comparisons. The near-player case at `(808,154)`
+executes both required NEG instructions, returns in 21 instructions and writes
+volume `$0035` (53). The five modeled dead/armed BYTE calls still return in 26
+instructions each. The exhaustive 65,536-word direct-store result is identical to
+both historical receipts, which remain unmodified. The CLI now exits **0** with
+`bounded_local_routine_and_BYTE_equivalence`; this is a bounded CPU verdict, not
+normal game reachability or unrestricted routine equivalence.
+
+Run the local-comparison command above with
+`--output /tmp/pandora-arithmetic-fixed-comparison.json` (expected exit 0).
+Focused arithmetic tests use generated assembly and explicit boundary vectors:
+
+```sh
+.venv/bin/python -m pytest -q src/tests/test_m68k_simulator_arithmetic.py \
+  src/tests/test_generate_c99_simulator_subset.py \
+  src/tests/test_m68k_simulator_abstract.py tests/test_pandora_camera_and_local_compare.py
+.venv/bin/python src/scripts/check_c_style.py src/m68k_simulator.c \
+  src/test_m68k_simulator.c src/generated/m68k_simulator_tables.h
+src/build/m68k_c_unit_tests.exe
+```
+
+The full focused run passes 190 tests plus 1,004 subtests. The new arithmetic tests
+cover byte/word/long signed overflow, zero/negative results, carry/borrow/extend,
+non-CCR SR preservation, Dn upper-bit and memory-neighbour preservation,
+immediate/register/quick forms, EA pre/post updates, address-source extension
+and 32-bit address wrapping. End-of-memory byte access succeeds; invalid word
+access/predecrement stops without a completed instruction or memory write.
+Refused execution may retain prepared EA register updates; no rollback guarantee
+is assumed. Native simulator 30/30 passes; the full native suite still fails only
+the two documented pointer-table-pointee and unknown-decompression baseline
+cases. Changed C/header/table style and full-image exact roundtrip pass, with no
+differing source ranges. The independent machine68k oracle remains unavailable.
+
+The service is restarted for the rebuilt backend and Pandora's listing reloaded.
+Original binary/source, relocation manifest, WORD evidence, historical local
+receipts and rifle checkpoint are preserved. No emulator/gameplay run was added.
+Clearance gameplay stays paused, and normal game BYTE execution remains unobserved.
+
+Final reload check: 42,219 Pandora rows, successful three-row listing API read.
+All 121 preserved-KB execution entries reproduce through the normal builder;
+only the seven documented access kinds differ from the previous commit. The
+previous global-project-index orphan-metadata error remains unrelated.

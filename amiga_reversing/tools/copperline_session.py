@@ -19,7 +19,9 @@ from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
 from amiga_reversing.disasm.project_paths import resolve_project_paths
-from amiga_reversing.tools.copperline_runtime import observe
+from amiga_reversing.tools.copperline_runtime import (
+    MAX_SCENARIO_PHASES, observe, validate_memory_expectation,
+)
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 from amiga_reversing.tools.runtime_symbols import generate_runtime_symbol_artifact
 
@@ -48,6 +50,8 @@ class HeadlessCopperlineSession:
     breakpoint_runtime_address: int | None = None
     derived_artifact_manifest: Path | None = None
     scenario_path: Path | None = None
+    checkpoint_save: Path | None = None
+    checkpoint_load: Path | None = None
 
     def plan(self) -> dict[str, object]:
         return {
@@ -63,6 +67,8 @@ class HeadlessCopperlineSession:
             if self.derived_artifact_manifest
             else None,
             "direct_payload_contract": self.direct_payload_contract,
+            "checkpoint_save": str(self.checkpoint_save) if self.checkpoint_save else None,
+            "checkpoint_load": str(self.checkpoint_load) if self.checkpoint_load else None,
         }
 
 
@@ -198,9 +204,9 @@ def compile_scenario(
     input_events = scenario.get("input_events", [])
     if not isinstance(identifier, str) or not identifier:
         raise ValueError("Scenario requires a non-empty identifier.")
-    if not isinstance(phases, list) or not 2 <= len(phases) <= 32:
+    if not isinstance(phases, list) or not 2 <= len(phases) <= MAX_SCENARIO_PHASES:
         raise ValueError(
-            "Scenario requires boot handoff plus at least one canonical source-row phase."
+            f"Scenario requires boot handoff plus canonical source-row phases (2..{MAX_SCENARIO_PHASES} total)."
         )
     if not isinstance(input_events, list) or len(input_events) > 32:
         raise ValueError("Scenario input_events must be a list.")
@@ -218,9 +224,9 @@ def compile_scenario(
                 raise ValueError(
                     "Occurrence capture requires a canonical source-row phase."
                 )
-            if phase.get("observable") != "direct_payload_handoff":
+            if phase.get("observable") not in {"direct_payload_handoff", "verified_checkpoint"}:
                 raise ValueError(
-                    "The first scenario phase must be the direct_payload_handoff observable."
+                    "The first scenario phase must be direct_payload_handoff or verified_checkpoint."
                 )
             continue
         stable_key = phase.get("breakpoint_stable_key")
@@ -368,6 +374,7 @@ def compile_scenario(
         "identifier": identifier,
         "target_id": target_id,
         "direct_payload_contract": scenario.get("direct_payload_contract"),
+        "start_observable": phases[0]["observable"],
         "phases": compiled_phases,
         "input_events": compiled_events,
     }
@@ -543,11 +550,14 @@ def validate_capture(capture: object) -> None:
             "region_id",
             "offset",
             "size",
+            "expect_hex",
+            "expect_mask_hex",
         }:
             raise ValueError("Invalid capture memory read.")
         size = read.get("size")
         if type(size) is not int or not 1 <= size <= 64:
             raise ValueError("Capture memory size must be 1..64.")
+        validate_memory_expectation(read)
         if "region_id" in read:
             if (
                 not isinstance(read["region_id"], str)
@@ -624,6 +634,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="stop early when the observed diagnostic longword equals this eight-hex-digit value",
     )
     parser.add_argument("--state-directory", type=Path)
+    parser.add_argument("--checkpoint-save", type=Path, help="Save a local verified checkpoint receipt after a completed scenario")
+    parser.add_argument("--checkpoint-load", type=Path, help="Resume a content-bound local checkpoint at its canonical PC")
     parser.add_argument(
         "--observation-memory-address",
         type=lambda value: int(value, 0),
@@ -686,6 +698,10 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError(
             "--scenario requires --direct-payload-contract so input cannot run before a verified handoff."
         )
+    if (args.checkpoint_save or args.checkpoint_load) and (
+        not args.scenario or not args.direct_payload_contract or args.loadseg_watch_seconds
+    ):
+        raise ValueError("Checkpoints require a direct-payload scenario without LoadSeg watching")
     if args.derived_artifact and not args.direct_payload_contract:
         raise ValueError(
             "--derived-artifact requires a verified direct-payload contract"
@@ -762,6 +778,8 @@ def main(argv: list[str] | None = None) -> int:
         if breakpoint_row is not None
         else None,
         scenario_path=scenario_output,
+        checkpoint_save=args.checkpoint_save,
+        checkpoint_load=args.checkpoint_load,
     )
     if not args.run:
         print(

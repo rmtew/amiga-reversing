@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "status": "local_BYTE_equivalence_routine_comparison_refused",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "derived_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+  "manifest_sha256": "e449f89c0ec6e432b070bdf0809c405958be12a2119909c502f3d135561f666c",
+  "context_sha256": "ed8c258a4dca5c8474e009cd4c81d69fbc4aed9417a0104ad52540004aabfd89",
+  "backend_sha256": "fdd5e9396bf3e6e6746467b94b0c4e0e7fec4bd95348c691418ac810eddd7b3f",
+  "checkpoint_provenance": {
+    "status": "restored",
+    "receipt_sha256": "dea1218f4e93874845f04663a0986071c7f8bef356ff2b2461a3b91ed9c6a696",
+    "snapshot_sha256": "e76d29e7a76cc104d551185b6fb7406f5a4f3272cfd22d550fa5eb43087b4db7",
+    "root_verification": "inherited_from_saved_execution",
+    "reverse_anchor": "after_state_load",
+    "replay_across_load": false
+  },
+  "cases_before_refusal": [],
+  "routine_comparison": {
+    "status": "refused_generated_simulator_bit_memory_width",
+    "case": "captured_guard",
+    "expected_local_BYTE": false,
+    "observed_local_BYTE": false,
+    "shared_flag_write_effects": [
+      [
+        15673,
+        0
+      ],
+      [
+        15674,
+        0
+      ],
+      [
+        15675,
+        0
+      ],
+      [
+        15676,
+        0
+      ]
+    ],
+    "expected_flag_write_width": 1,
+    "observed_flag_write_width": 4,
+    "KB_rule": "size_by_ea_category: register=l, memory=b",
+    "gap": "Unsized bit-operation memory operands use instruction-size fallback=long for concrete reads/writes. The generated binding must consume the existing KB EA-category width rule."
+  },
+  "BYTE_instruction_comparison": {
+    "status": "exhaustive_local_BYTE_instruction_equivalence",
+    "initial_words_tested": 65536,
+    "original_instruction": "13fc00400005dd00",
+    "derived_instruction": "13fc004000065400",
+    "instruction_source_offset": "0x552f0",
+    "output_rule": "0x4000 | (input & 0xff)",
+    "registers_CCR_PC_equal": true,
+    "write_width": 1,
+    "guards_unchanged": true,
+    "outputs_sha256": "205b3d5cd35217d0fabefd77ada8b1d0d4b5c61a64bef76c629ca8cd83489784",
+    "scope": "Modeled entry directly at the writer. Guard reachability, reset helper, Paula and game execution are excluded."
+  },
+  "local_call_context": {
+    "entry_source_offset": "0x552fe",
+    "donor_source_offset": "0x5ca",
+    "return_pc": 2048,
+    "SP_adjustment": -4,
+    "instruction_budget": 128
+  },
+  "limits": [
+    "CPU-only projection, with explicit modeled call/guard/data inputs; no game snapshot or gameplay predicate was edited.",
+    "Uncaptured cells use original image or zero shadow. Modeled cases avoid audio initialization; reset helper writes are compared, including custom-register write intents.",
+    "No interrupts, Amiga set/clear register semantics, Paula/DMA timing, allocation or normal gameplay reachability proof.",
+    "Generated spec-driven CPU backend used; an independent machine68k oracle is unavailable in this environment.",
+    "Local BYTE execution is separate from the still-unobserved normal-gameplay BYTE path and original/relocated game comparison."
+  ]
+}

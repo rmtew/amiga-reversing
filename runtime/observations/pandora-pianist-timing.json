@@ -1,0 +1,1219 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "status": "staging_and_timing_validated",
+  "provenance": {
+    "raw_receipt_sha256": "759f3b43d405ff31678e862904e7861c5f890539eb62f9a0d2368112dc15788c",
+    "scenario": "runtime/scenarios/pandora-pianist-timing.json",
+    "selection": "Final accepted staging move and five consecutive pre-trade gameplay-loop captures; other phases summarized."
+  },
+  "source_rules": {
+    "native_subject_revision": "d62c6f7232d9553d8fba1bb2d9f3b8209dc9d0a3a6fe9133c169b82480920151",
+    "interpreter_source_range": [
+      "0x13f4",
+      "0x1430"
+    ],
+    "outer_loop_source_range": [
+      "0x253c",
+      "0x255c"
+    ],
+    "camera_service_source_range": [
+      "0x7d24",
+      "0x7da4"
+    ],
+    "camera_profiles": [
+      4,
+      6
+    ],
+    "camera_profile_source_writes": [
+      {
+        "source_offset": 1704,
+        "text": "tst.w app_camera_scroll_profile_index(a6)"
+      },
+      {
+        "source_offset": 1710,
+        "text": "clr.w app_camera_scroll_profile_index(a6)"
+      },
+      {
+        "source_offset": 1728,
+        "text": "tst.w app_camera_scroll_profile_index(a6)"
+      },
+      {
+        "source_offset": 1734,
+        "text": "move.w #$1,app_camera_scroll_profile_index(a6)"
+      },
+      {
+        "source_offset": 40684,
+        "text": "move.w #$1,app_camera_scroll_profile_index(a6)"
+      },
+      {
+        "source_offset": 41298,
+        "text": "move.w app_camera_scroll_profile_index(a6),d0"
+      }
+    ],
+    "script_start": 7866,
+    "script_size": 200,
+    "eligible_call_cycle": 377,
+    "delay_semantics": "Decrement once per eligible outer-loop call; dispatch on the call reaching zero. A set delay ends dispatch immediately.",
+    "exclusions": "Outer flags &0x42 skip before decrement; observed proximity flags0x24 do not inhibit."
+  },
+  "fields": {
+    "item_name_ptr": [
+      0,
+      4
+    ],
+    "interaction_callback": [
+      4,
+      4
+    ],
+    "context_message_ptr": [
+      12,
+      4
+    ],
+    "interaction_message_ptr": [
+      16,
+      4
+    ],
+    "position_descriptor_ptr": [
+      44,
+      4
+    ],
+    "world_x": [
+      48,
+      2
+    ],
+    "world_y": [
+      50,
+      2
+    ],
+    "hit_points": [
+      60,
+      2
+    ],
+    "proximity_distance": [
+      66,
+      2
+    ],
+    "selected_item_id": [
+      70,
+      1
+    ],
+    "initial_selected_item_id": [
+      71,
+      1
+    ],
+    "world_object_flags": [
+      72,
+      1
+    ],
+    "initial_world_object_flags": [
+      73,
+      1
+    ],
+    "item_definition_id": [
+      74,
+      1
+    ],
+    "item_state": [
+      76,
+      1
+    ],
+    "initial_item_state": [
+      77,
+      1
+    ],
+    "context_prompt_cooldown": [
+      82,
+      2
+    ],
+    "inventory_slots_ptr": [
+      20,
+      4
+    ],
+    "trade_offer_table_ptr": [
+      24,
+      4
+    ],
+    "initial_inventory_slots_ptr": [
+      28,
+      4
+    ],
+    "initial_trade_offer_table_ptr": [
+      32,
+      4
+    ],
+    "initial_hit_points": [
+      62,
+      2
+    ],
+    "movement_direction_flags": [
+      75,
+      1
+    ],
+    "saved_position_state_ptr": [
+      78,
+      4
+    ],
+    "interaction_completion_callback": [
+      8,
+      4
+    ],
+    "behavior_script_ptr": [
+      36,
+      4
+    ],
+    "initial_behavior_script_ptr": [
+      40,
+      4
+    ],
+    "behavior_script_delay_ticks": [
+      68,
+      2
+    ],
+    "world_z": [
+      52,
+      2
+    ]
+  },
+  "phase_summary": [
+    {
+      "name": "title_menu_loop",
+      "status": "hit",
+      "source_offset": "0xba8",
+      "visits": null
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "status": "hit",
+      "source_offset": "0x79e",
+      "visits": null
+    },
+    {
+      "name": "initial_proximity_context",
+      "status": "hit",
+      "source_offset": "0x83ae",
+      "visits": null
+    },
+    {
+      "name": "entry_officer_card_transferred",
+      "status": "hit",
+      "source_offset": "0x4b13c",
+      "visits": null
+    },
+    {
+      "name": "stage_up_08",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_up_16",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_up_18",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 2
+    },
+    {
+      "name": "stage_right_08",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_16",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_24",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_32",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_40",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_48",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_56",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_64",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_72",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 8
+    },
+    {
+      "name": "stage_right_77",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "visits": 5
+    },
+    {
+      "name": "timing_loop_0",
+      "status": "hit",
+      "source_offset": "0x5ca",
+      "visits": 1
+    },
+    {
+      "name": "timing_loop_1",
+      "status": "hit",
+      "source_offset": "0x5ca",
+      "visits": 1
+    },
+    {
+      "name": "timing_loop_2",
+      "status": "hit",
+      "source_offset": "0x5ca",
+      "visits": 1
+    },
+    {
+      "name": "timing_loop_3",
+      "status": "hit",
+      "source_offset": "0x5ca",
+      "visits": 1
+    },
+    {
+      "name": "timing_loop_4",
+      "status": "hit",
+      "source_offset": "0x5ca",
+      "visits": 1
+    }
+  ],
+  "observation": {
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "reverse_boundary": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      }
+    },
+    "scenario": {
+      "phases": [
+        {
+          "name": "stage_right_77",
+          "stable_key": "s0:00009844:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "030c031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f5600011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "0330034400000000000000000041004100a00055000100002400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe0005000100060048001dfff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005ba660005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c382",
+                "bytes": "000e",
+                "base_register": null,
+                "offset": null
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 5,
+          "occurrences_observed": 5,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x00019844",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x00019844",
+          "sp": "0x00010436",
+          "stack_return_address": "0x000111e0",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "timing_loop_0",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "030c031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f5600011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "0330034200000000000000000041004100a0004c000100002400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe0005000100060048001cfff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005ba660005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c382",
+                "bytes": "000e",
+                "base_register": null,
+                "offset": null
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "timing_loop_1",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "030c031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f5600011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "0330034000000000000000000041004100a0004a000100002400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe0005000100060048001bfff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005ba660005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c382",
+                "bytes": "000e",
+                "base_register": null,
+                "offset": null
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "timing_loop_2",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "030c031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f5600011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "0330033e00000000000000000041004100a00048000100002400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe0005000100060048001afff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005ba660005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c382",
+                "bytes": "000e",
+                "base_register": null,
+                "offset": null
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "timing_loop_3",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "030c031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f5600011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "0330033c00000000000000000041004100a00046000100002400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe00050001000600480019fff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005ba660005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c382",
+                "bytes": "000e",
+                "base_register": null,
+                "offset": null
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "timing_loop_4",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "030c031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f5600011eba0005be7a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "0330033a00000000000000000041004100a00044000100002400530020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011eba",
+                "bytes": "0017033002d800050001001e0005c10c0005c00e0015000c0001000200050002000600180018fff8001e0005c0fa0005c0b20015000c00010002000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011efa",
+                "bytes": "00480048fff8001e0005c0fa0005c0d60015000c0001000200050002000600180018fff8001e0005c10c0005c0360005001e0015000c0001fffe000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f3a",
+                "bytes": "00180018fff8001e0005c0fa0005c09a0015000c0001fffe00050001000600480018fff8001e0005c0fa0005c0ca0015000c0001fffe00050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f7a",
+                "bytes": "fff8001400011eba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x000039fc",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 0
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005ba660005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x0005c382",
+                "bytes": "000e",
+                "base_register": null,
+                "offset": null
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    }
+  },
+  "timing_summary": [
+    {
+      "phase": "stage_right_77",
+      "player_xy": [
+        780,
+        794
+      ],
+      "actor": {
+        "pc": 8022,
+        "xy": [
+          816,
+          836
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 29,
+          "8056": 24
+        },
+        "flags": 36
+      },
+      "eligible_call_delta_mod377": []
+    },
+    {
+      "phase": "timing_loop_0",
+      "player_xy": [
+        780,
+        794
+      ],
+      "actor": {
+        "pc": 8022,
+        "xy": [
+          816,
+          834
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 28,
+          "8056": 24
+        },
+        "flags": 36
+      },
+      "eligible_call_delta_mod377": [
+        1
+      ]
+    },
+    {
+      "phase": "timing_loop_1",
+      "player_xy": [
+        780,
+        794
+      ],
+      "actor": {
+        "pc": 8022,
+        "xy": [
+          816,
+          832
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 27,
+          "8056": 24
+        },
+        "flags": 36
+      },
+      "eligible_call_delta_mod377": [
+        1
+      ]
+    },
+    {
+      "phase": "timing_loop_2",
+      "player_xy": [
+        780,
+        794
+      ],
+      "actor": {
+        "pc": 8022,
+        "xy": [
+          816,
+          830
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 26,
+          "8056": 24
+        },
+        "flags": 36
+      },
+      "eligible_call_delta_mod377": [
+        1
+      ]
+    },
+    {
+      "phase": "timing_loop_3",
+      "player_xy": [
+        780,
+        794
+      ],
+      "actor": {
+        "pc": 8022,
+        "xy": [
+          816,
+          828
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 25,
+          "8056": 24
+        },
+        "flags": 36
+      },
+      "eligible_call_delta_mod377": [
+        1
+      ]
+    },
+    {
+      "phase": "timing_loop_4",
+      "player_xy": [
+        780,
+        794
+      ],
+      "actor": {
+        "pc": 8022,
+        "xy": [
+          816,
+          826
+        ],
+        "delay": 1,
+        "counters": {
+          "7902": 24,
+          "7932": 72,
+          "7962": 24,
+          "7996": 24,
+          "8026": 24,
+          "8056": 24
+        },
+        "flags": 36
+      },
+      "eligible_call_delta_mod377": [
+        1
+      ]
+    }
+  ],
+  "limits": [
+    "Five one-call transitions validated; movement-count deltas can include camera pauses.",
+    "Encounter flags can change separately from the patrol; the timing comparison uses only exclusion bits0x42.",
+    "No weapon pickup, hit, BYTE write or relocated comparison in this receipt."
+  ]
+}

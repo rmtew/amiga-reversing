@@ -100,6 +100,25 @@ explicit payload-bound loader assertion. Native owner regions, runtime-equate
 extents and materialized views remain placement exclusions; allocator success
 alone never makes a destination safe. Current execution coverage and outstanding
 writer coverage are in the [target ledger](../targets/pandora-restoration-status.md).
+A normal-input comparison now exercises both WORD writers and a note output at volume 6 in both
+layouts, preserving the old-address guard. The separate high-byte writer remains
+uncovered even after a passing normal inventory/combat route defeats the Feed in
+both layouts: combat clears the shared audio bit, and the BYTE reset requires that
+bit set as well as defeat. The secondary setter has no accepted incoming references/CFG edges; this does
+not prove it unreachable. A separate direct weapon-kill path can preserve the
+armed flag, unlike full combat: the selected-item ray runs before same-frame
+proximity audio, and its callbacks clear the adjacent audio/event bytes rather
+than the shared flag. This remains conditional until ordinary acquisition, aim
+and hit predicates are observed.
+
+The compact Pandora world model now predicts the specific pianist encounter that
+blocked the rifle route and validates its following UI/movement transition. It
+uses native symbols/schemas, original script opcode values and verified captures;
+unknown actor state and patrol timing remain explicit. Its conservative swept
+patrol envelope admits a staging goal but not a complete rifle route. The next
+step is a short-horizon actor-state predicate, not more guessed routes or a
+general game-playing engine. No forced state or keyboard-region proof expansion
+is implied. See the [target ledger](../targets/pandora-restoration-status.md).
 The twelve-byte `camera_scroll_profiles` table is another bounded CPU-only data
 family (two three-WORD records), with additional PC-indexed access, caller/index
 and pointer-lifetime obligations. The camera candidate is not a ready plan, and slicing
@@ -157,3 +176,172 @@ the manifest, reserve destination storage before HAND, and compare reset, keys
 11/12 press/release and gameplay against the original baseline, checking both new
 storage and old-address guards. Preserve original expanded/compact exact assembly,
 all existing facts/assets and append-only interpretation/review history.
+
+## Bounded Pandora volume CPU comparison: generated width gap
+
+The separate two-byte master-volume experiment has a closed relocation manifest
+and normal execution evidence for both WORD writers. Normal BYTE reachability
+remains unobserved. A verified rifle checkpoint and tighter camera timing remove
+repeated acquisition/model uncertainty, but its return encounters failed ID
+clearance (source `$887C`, HP95→44). Another valid ID/trade quest is deliberately
+outside this bounded relocation comparison; the gameplay path is not declared
+impossible or complete.
+
+Before expanding that route, the local CPU tool validates the manifest and a
+canonical checkpoint donor, projects original/derived code into separate local
+memories, and keeps modeled call/guard inputs separate from Copperline. Direct
+entry at the manifest BYTE store agrees for every initial 16-bit word. This is
+an instruction contract, not guard reachability, full-routine equivalence,
+allocation proof or Paula/DMA behavior. The partial result exits 2 and preserves
+its refusal rather than accepting equality under a bad CPU model.
+
+The attempted full routine exposes a general tooling gap. The KB already says
+`size_by_ea_category: register=l, memory=b` for bit operations. The generated
+concrete operand binding does not carry this rule to effective-width selection:
+`sim_effective_operand_width` in `src/m68k_simulator.c` falls back to longword
+for absent IR size. BTST/BCLR concrete reads/writes consume that width, although
+bit-mask selection separately knows a memory destination has an eight-bit bit
+index. The observed shared-flag BCLR write spans four bytes instead of one.
+Original/derived equality under that behavior cannot qualify the routine.
+The checked report accepts no routine cases, including the captured natural
+case. No target predicate or native CPU implementation was edited to bypass it.
+
+The next framework slice must bind the existing KB EA-category rule upstream
+into generated operand semantics, then use one consistent effective width for
+concrete reads/writes, EA update and flag semantics. Add positive and conservative
+regressions for register versus memory, immediate versus dynamic bit index,
+postincrement/predecrement and adjacent-byte guards/CCR, checked against an
+independent CPU oracle where available. Re-extract only if an actual source/KB
+fact is missing; do not encode Pandora addresses or duplicate instruction facts
+in a handwritten runtime switch. Retry the same provenance-bound local cases
+only after this fix. A general generator/runtime change and unavailable local
+machine68k oracle are outside this bounded two-byte validation slice, so the
+missing capability remains explicit rather than hidden behind a target shim.
+
+See `runtime/observations/pandora-volume-local-comparison.json` and
+`docs/copperline-runtime.md` for the scoped result, donor and reproduction.
+No local result upgrades the two-of-three normal game writer coverage.
+
+### Width repair and subsequent arithmetic refusal
+
+The width gap is repaired in the authoritative parser/binding path. An EA
+operand with a PDF-derived `size_by_ea_category` rule now uses normalized
+`width_source: ea_category`; generated form metadata carries both category
+widths. The runtime resolves the decoded category for reads, writes and EA
+updates. Bit-index/flag selection consumes the same generated widths; the old
+independent register-long/memory-byte width helper is removed. The concrete bit
+path now calls the existing predecrement preparation helper before accessing its
+operand, exposed by the new focused matrix. This adds no instruction facts or
+target-address cases to CPU semantics.
+
+The extraction facts were already correct, so only execution metadata was
+regenerated from the preserved PDF-backed KB fields. Reproduce that bounded
+stage without a fresh PDF parse (the regression checks the resulting bindings):
+
+```sh
+.venv/bin/python - <<'PY'
+import copy, json, sys
+from pathlib import Path
+sys.path.insert(0, 'src/scripts')
+from kb.m68k_parser import apply_execution_metadata
+from generate_c99_assembler_corpus import _item_forms
+path = Path('knowledge/m68k_instructions.json')
+kb = json.loads(path.read_text())
+for entry in kb['instructions']:
+    if not entry.get('size_by_ea_category'):
+        continue
+    expanded = copy.deepcopy(entry)
+    expanded['forms'] = _item_forms(kb, entry)
+    apply_execution_metadata([expanded])
+    entry['execution'] = expanded['execution']
+path.write_text(json.dumps(kb, indent=2, ensure_ascii=False))
+PY
+.venv/bin/python src/scripts/generate_c99_simulator_subset.py
+make -j4 all
+```
+
+Only eight destination bindings change (four operations, two forms), alongside
+regenerated simulator tables. Focused tests prove regeneration reproduces those
+bindings, modified category data drives emitted widths, missing category data
+refuses generation, and committed tables match fresh generation. Native tests
+cover 64 combinations of four bit operations, immediate/dynamic index,
+register/indirect/postincrement/predecrement destination and old bit value;
+all untouched neighbours and non-Z flags are preserved. Abstract tests exercise
+32 corresponding register/indirect combinations and byte access footprints.
+
+The original/derived comparison is rerun against the same donor and complete
+manifest. Eight cases satisfy bounded local contracts and normalized state,
+control-flow and write equivalence. In particular, five modeled dead/armed
+calls execute the guard, reset helper and BYTE store and return normally.
+The 65,536-word direct-store result is byte-for-byte unchanged. The old negative
+receipt is retained; the new result is
+`runtime/observations/pandora-volume-local-comparison-width-fixed.json`.
+
+A different valid form now exposes the next concrete CPU capability gap. The
+alive/near case executes source `$55310`, `subi.w #840,d0` (bytes `04400348`).
+With D0 `$00070328` and SR `$2000`, its concrete direct-register arithmetic
+branch yields `$0006ffe0` and unchanged SR instead of the word-preserving
+`$0007ffe0` and SR `$2019`. The BPL therefore skips the NEG required for absolute
+distance, producing volume 64 instead of53. The abstract arithmetic path already
+uses width-aware arithmetic and flag helpers; concrete direct-register ADD/SUB
+currently adds a full-register delta and omits data-arithmetic CCR updates.
+
+This arithmetic repair is intentionally outside the requested generated
+bit-width slice. The next general framework fix must preserve narrow Dn upper
+bits, update data-arithmetic CCR from existing generated rules, preserve An
+semantics and signed source extension, and cover immediate/register/quick and
+signed/unsigned/wrapping boundaries with an independent oracle when available.
+Do not mask the gap by choosing only coordinates that avoid negative deltas.
+The comparison reports `refused_local_routine_contract`, continues independent
+cases and exits 2 even when both layouts agree on the bad result. Whole-routine
+coverage therefore remains bounded and partial, not a general equivalence proof.
+Normal game BYTE reachability is still separate and unobserved; clearance-ID
+route expansion remains paused.
+
+### Concrete arithmetic gap closed for the bounded comparison
+
+The arithmetic defect described above is fixed at the existing general concrete
+execution layer. Its direct-register shortcut ignored data widths and CCR; the
+replacement reuses normalized operand evaluation, source extension, arithmetic,
+sized writes and generated CCR formulas. Dn/memory destinations use their
+access widths; An destinations retain full-register results and unchanged SR.
+Existing EA preparation/update helpers preserve pre/post addressing behavior.
+No instruction-name/address exception or new M68K fact is added.
+
+A minimal regression was red before the fix (`04400348`, D0 `$00070328` → bad
+`$0006ffe0`) and now verifies the correct `$0007ffe0`/SR `$2019`. Explicit
+byte/word/long boundary vectors exercise N/Z/V/C/X, carry/borrow and signed
+limits, preservation of all other SR bits, all untouched D/A registers and
+memory bytes, quick amounts 1/8, memory access boundaries, source extension and
+An wrapping. Invalid accesses stop without completed instructions/writes; a
+prepared EA register update is not promised to roll back. These tests use
+generated assembly and explicit expected results. An independent machine68k
+oracle remains unavailable, so this is not claimed as independent CPU proof.
+
+The matrix also uncovered a valid reversed-form binding gap: changing a base
+register operand into an EA did not change register-read/write access into EA
+access. `_form_adjusted_access_kind` now normalizes both directions. Rebuilding
+the normal execution-metadata stage from the existing extracted KB fields
+changes exactly seven access kinds in five instructions: ADD/AND/OR/SUB and
+three PMOVE forms. The simulator tables are regenerated; other instruction
+facts, encodings and generated assembler/disassembler tables are unchanged.
+PMOVE remains unsupported by concrete execution where previously unsupported.
+The generator tests reproduce these bindings and verify conservative category
+handling; concrete AND/OR memory cases cover the shared normalization.
+
+For this metadata refresh, use the previous preserved-KB regeneration recipe
+with the selection `if 'execution' not in entry: continue` in place of the
+EA-category-only selection, then regenerate simulator tables and rebuild.
+Only the seven documented access kinds change. Generator freshness and parser
+reproduction regressions enforce the resulting artifacts.
+
+The same verified donor and complete five-rewrite relocation manifest now admit
+all nine bounded local calls. Near-player arming avoids audio initialization,
+executes both absolute-distance NEG instructions and returns volume 53 in 21
+steps. The five modeled dead/armed BYTE calls return in 26 steps per layout;
+all normalized states, writes and control paths match. The 65,536-word direct
+store result is unchanged. The new arithmetic-fixed receipt preserves earlier
+refusals as history, reports no refused cases, and the CLI exits 0. Those are
+bounded modeled CPU-call equivalence results. Normal game BYTE reachability,
+Paula/DMA behavior, arbitrary contexts, interrupts and allocation proof remain
+separate; clearance-ID gameplay remains paused.

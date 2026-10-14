@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import os
@@ -53,6 +54,59 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
         )
         self.assertIn("static const uint16_t g_m68k_sim_condition_masks[16] = {", self._tables)
         self.assertIn("M68K_SIM_FLOW_JUMP", self._tables)
+        self.assertIn("M68K_SIM_WIDTH_EA_CATEGORY", self._tables)
+
+    def test_ea_width_binding_reproduces_from_extracted_fields(self) -> None:
+        sys.path.insert(0, str(ROOT / "src" / "scripts"))
+        from kb.m68k_parser import _build_execution_metadata
+        from generate_c99_assembler_corpus import _item_forms
+        kb = self._generator._load_kb()
+        entries = [i for i in kb["instructions"] if i.get("size_by_ea_category")]
+        self.assertEqual({i["mnemonic"] for i in entries}, {"BCHG", "BCLR", "BSET", "BTST"})
+        for entry in entries:
+            expanded = copy.deepcopy(entry)
+            expanded["forms"] = _item_forms(kb, entry)
+            self.assertEqual(_build_execution_metadata(expanded), entry["execution"])
+            self.assertEqual(entry["execution"]["operands"][1]["access"]["width_source"], "ea_category")
+            del expanded["size_by_ea_category"]
+            self.assertEqual(_build_execution_metadata(expanded)["operands"][1]["access"]["width_source"], "instruction_size")
+
+    def test_ea_width_generation_consumes_rule_and_refuses_missing_category(self) -> None:
+        kb = self._generator._load_kb()
+        entry = next(i for i in kb["instructions"] if i["mnemonic"] == "BCLR")
+        forms = [f for f in self._generator._load_forms() if f.mnemonic == "BCLR"]
+        entry["size_by_ea_category"] = {"register": "w", "memory": "b"}
+        tables = self._generator._emit_tables_include(forms, kb)
+        self.assertIn("      2u, 1u,", tables)
+        del entry["size_by_ea_category"]["memory"]
+        with self.assertRaisesRegex(AssertionError, "Missing EA-category widths"):
+            self._generator._emit_tables_include(forms, kb)
+
+    def test_generated_tables_are_current(self) -> None:
+        self.assertEqual(self._tables, (ROOT / "src/generated/m68k_simulator_tables.h").read_text())
+
+    def test_reversed_forms_rebind_register_access_to_ea(self) -> None:
+        sys.path.insert(0, str(ROOT / "src" / "scripts"))
+        from kb.m68k_parser import _build_execution_metadata, _form_adjusted_access_kind
+        from generate_c99_assembler_corpus import _item_forms
+        kb = self._generator._load_kb()
+        for entry in kb["instructions"]:
+            if entry["mnemonic"] not in {"ADD", "SUB", "AND", "OR", "PMOVE"}:
+                continue
+            expanded = copy.deepcopy(entry)
+            expanded["forms"] = _item_forms(kb, entry)
+            self.assertEqual(_build_execution_metadata(expanded), entry["execution"])
+            override = entry["execution"]["form_overrides"]["1"]["operands"]
+            index = 0 if entry["mnemonic"] == "PMOVE" else 1
+            self.assertEqual(override[index]["access"]["kind"], "memory_read" if index == 0 else "memory_write")
+        for kind in ("ea", "ind", "postinc", "predec", "disp", "absw", "absl"):
+            self.assertEqual(_form_adjusted_access_kind(kind, "register_read"), "memory_read")
+            self.assertEqual(_form_adjusted_access_kind(kind, "register_write"), "memory_write")
+        self.assertEqual(_form_adjusted_access_kind("dn", "memory_write"), "register_write")
+        self.assertEqual(_form_adjusted_access_kind("imm", "register_read"), "immediate")
+        self.assertEqual(_form_adjusted_access_kind("ctrl_reg", "register_read"), "register_read")
+
+    def test_generates_flow_and_semantics_metadata(self) -> None:
         self.assertIn("M68K_SIM_FLOW_CALL", self._tables)
         self.assertIn("M68K_SIM_SEMANTICS_AVAILABLE", self._tables)
         self.assertIn("M68K_SIM_OP_COMPARE", self._tables)
@@ -170,13 +224,13 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
         self.assertEqual(instructions["TAS"]["execution"]["semantic_op"], "test_and_set")
         self.assertEqual(instructions["TAS"]["execution"]["operands"][0]["usage"], "read_modify_write")
         self.assertEqual(instructions["BTST"]["execution"]["semantic_op"], "bit_test")
-        self.assertEqual(instructions["BTST"]["execution"]["operands"][1]["access"]["width_source"], "instruction_size")
+        self.assertEqual(instructions["BTST"]["execution"]["operands"][1]["access"]["width_source"], "ea_category")
         self.assertEqual(instructions["BSET"]["execution"]["semantic_op"], "bit_set")
-        self.assertEqual(instructions["BSET"]["execution"]["operands"][1]["access"]["width_source"], "instruction_size")
+        self.assertEqual(instructions["BSET"]["execution"]["operands"][1]["access"]["width_source"], "ea_category")
         self.assertEqual(instructions["BCLR"]["execution"]["semantic_op"], "bit_clear")
-        self.assertEqual(instructions["BCLR"]["execution"]["operands"][1]["access"]["width_source"], "instruction_size")
+        self.assertEqual(instructions["BCLR"]["execution"]["operands"][1]["access"]["width_source"], "ea_category")
         self.assertEqual(instructions["BCHG"]["execution"]["semantic_op"], "bit_change")
-        self.assertEqual(instructions["BCHG"]["execution"]["operands"][1]["access"]["width_source"], "instruction_size")
+        self.assertEqual(instructions["BCHG"]["execution"]["operands"][1]["access"]["width_source"], "ea_category")
         self.assertEqual(instructions["NOP"]["execution"]["semantic_op"], "nop")
         self.assertEqual(instructions["RESET"]["execution"]["semantic_op"], "reset")
         self.assertEqual(instructions["RTM"]["execution"]["semantic_op"], "rtm")

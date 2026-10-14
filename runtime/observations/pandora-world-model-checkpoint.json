@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "original_receipt_sha256": "645dc8432acf271a3bdf14a78d26a387db7cc6e6ff640db94739c6b210d0736d",
+    "selection": "Three existing canonical checkpoint captures; other prefix phases omitted."
+  },
+  "status": "ok",
+  "observation": {
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "reverse_boundary": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      }
+    },
+    "scenario": {
+      "phases": [
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "capture": {
+            "registers": {
+              "a5": "0x0005a40a",
+              "a6": "0x000039fc",
+              "sr": "0x00002010"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "00f103620000000000000000005f005f0064000000013600000000000000000000000000",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005a40a",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "0000",
+                "base_register": "a6",
+                "offset": 558
+              },
+              {
+                "address": "0x00003c77",
+                "bytes": "ae",
+                "base_register": "a6",
+                "offset": 635
+              },
+              {
+                "address": "0x00003ca2",
+                "bytes": "30",
+                "base_register": "a6",
+                "offset": 678
+              },
+              {
+                "address": "0x00003d52",
+                "bytes": "000c",
+                "base_register": "a6",
+                "offset": 854
+              }
+            ]
+          },
+          "resolved_function": null,
+          "address": "0x0005b13c",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x0005b13c",
+          "sp": "0x00010436",
+          "stack_return_address": "0x000111e0",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "model_observe_encounter_entry",
+          "stable_key": "s0:00007792:instruction",
+          "capture": {
+            "registers": {
+              "a4": "0x0005c322",
+              "a5": "0x0005ba66",
+              "a6": "0x000039fc",
+              "d0": "0x00050002",
+              "sr": "0x00002000"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "0328031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005c368",
+                "bytes": "3600",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005c35e",
+                "bytes": "005f",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005ba66",
+                "bytes": "0001a598000000000000000000000000000000000001b1000001b3a00001b1080001b3a000011f5600011eba0005be7a",
+                "base_register": "a5",
+                "offset": 0
+              },
+              {
+                "address": "0x0005ba96",
+                "bytes": "0330032800000000000000000041004100a00016000109002400530020200005",
+                "base_register": "a5",
+                "offset": 48
+              },
+              {
+                "address": "0x00003b92",
+                "bytes": "00000000000000000005ba660005ba66",
+                "base_register": "a6",
+                "offset": 406
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558
+              },
+              {
+                "address": "0x00003d39",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 829
+              }
+            ]
+          },
+          "resolved_function": {
+            "name": "initialize_combat_encounter",
+            "source_start": 30610,
+            "source_end": 30924,
+            "runtime_start": 96146,
+            "runtime_end": 96460
+          },
+          "address": "0x00017792",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x00017792",
+          "sp": "0x0001044e",
+          "stack_return_address": "0x000105ce",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7792"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7792",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "model_encounter_disables_movement",
+          "stable_key": "s0:00009984:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc",
+              "d0": "0x00050002",
+              "sr": "0x00002000"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "2a38031a",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005c35e",
+                "bytes": "005f",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "02",
+                "base_register": "a6",
+                "offset": 558
+              },
+              {
+                "address": "0x00003b9a",
+                "bytes": "0005ba660005ba66",
+                "base_register": "a6",
+                "offset": 414
+              }
+            ]
+          },
+          "resolved_function": {
+            "name": "hold_player_movement_animation",
+            "source_start": 39300,
+            "source_end": 39340,
+            "runtime_start": 104836,
+            "runtime_end": 104876
+          },
+          "address": "0x00019984",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x00019984",
+          "sp": "0x00010436",
+          "stack_return_address": "0x000111e0",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9984"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9984",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    }
+  }
+}

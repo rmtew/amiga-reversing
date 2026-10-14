@@ -3951,7 +3951,7 @@
                 "ea_pc_base_bias_bytes": 0,
                 "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_write",
+                  "kind": "memory_write",
                   "width": null,
                   "width_source": "instruction_size",
                   "result_kind": "scalar"
@@ -5403,7 +5403,7 @@
                 "ea_pc_base_bias_bytes": 0,
                 "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_write",
+                  "kind": "memory_write",
                   "width": null,
                   "width_source": "instruction_size",
                   "result_kind": "scalar"
@@ -6993,7 +6993,7 @@
             "access": {
               "kind": "memory_write",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -7049,7 +7049,7 @@
                 "access": {
                   "kind": "memory_write",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }
@@ -7457,7 +7457,7 @@
             "access": {
               "kind": "memory_write",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -7513,7 +7513,7 @@
                 "access": {
                   "kind": "memory_write",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }
@@ -10648,7 +10648,7 @@
             "access": {
               "kind": "memory_write",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -10704,7 +10704,7 @@
                 "access": {
                   "kind": "memory_write",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }
@@ -11341,7 +11341,7 @@
             "access": {
               "kind": "memory_read",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -11397,7 +11397,7 @@
                 "access": {
                   "kind": "memory_read",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }
@@ -26029,7 +26029,7 @@
                 "ea_pc_base_bias_bytes": 0,
                 "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_write",
+                  "kind": "memory_write",
                   "width": null,
                   "width_source": "instruction_size",
                   "result_kind": "scalar"
@@ -29843,7 +29843,7 @@
                 "ea_pc_base_bias_bytes": 0,
                 "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_write",
+                  "kind": "memory_write",
                   "width": null,
                   "width_source": "instruction_size",
                   "result_kind": "scalar"
@@ -40684,7 +40684,7 @@
                 "ea_pc_base_bias_bytes": 0,
                 "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_read",
+                  "kind": "memory_read",
                   "width": null,
                   "width_source": null,
                   "result_kind": "scalar"
@@ -40740,7 +40740,7 @@
                 "ea_pc_base_bias_bytes": 0,
                 "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_read",
+                  "kind": "memory_read",
                   "width": null,
                   "width_source": null,
                   "result_kind": "scalar"
@@ -40796,7 +40796,7 @@
                 "ea_pc_base_bias_bytes": 0,
                 "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_read",
+                  "kind": "memory_read",
                   "width": null,
                   "width_source": null,
                   "result_kind": "scalar"

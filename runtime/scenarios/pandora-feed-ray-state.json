@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-feed-ray-state",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "feed_ray_state",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04cc036a"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377298,
+            "size": 64
+          },
+          {
+            "address": 377362,
+            "size": 20
+          },
+          {
+            "address": 377342,
+            "size": 4,
+            "expect_hex": "0005c2be"
+          },
+          {
+            "address": 377534,
+            "size": 12
+          },
+          {
+            "address": 377546,
+            "size": 26
+          },
+          {
+            "address": 377426,
+            "size": 64
+          },
+          {
+            "address": 377490,
+            "size": 44
+          },
+          {
+            "base_register": "a6",
+            "offset": 446,
+            "size": 4,
+            "expect_hex": "00004000"
+          },
+          {
+            "address": 20192,
+            "size": 12
+          },
+          {
+            "address": 20552,
+            "size": 12
+          },
+          {
+            "address": 20912,
+            "size": 12
+          },
+          {
+            "address": 21272,
+            "size": 12
+          },
+          {
+            "address": 384256,
+            "size": 2,
+            "expect_hex": "0040"
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

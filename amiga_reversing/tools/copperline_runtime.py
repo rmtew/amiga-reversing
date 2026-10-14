@@ -12,6 +12,8 @@ from pathlib import Path
 from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTimeout
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
+MAX_SCENARIO_PHASES = 64
+
 
 def detect_payload_execution(
     payload_path: Path, pc_address: int, pc_memory: bytes
@@ -44,13 +46,50 @@ def detect_payload_execution(
     return result
 
 
-def payload_at_pc(client, path, pc):
+def payload_at_pc(client, path, pc, *, runtime_view=None):
+    # A canonical copied view may end immediately after this instruction. Keep
+    # the identity window inside that view by including preceding bytes; reading
+    # past its end would compare unrelated runtime storage with unloaded input.
+    bounds = None
+    if runtime_view is not None:
+        start, end, base = (runtime_view.get(k) for k in ("source_start", "source_end", "base_addr"))
+        if (any(type(v) is not int for v in (start, end, base))
+                or not 0 <= start < end <= path.stat().st_size
+                or end - start < 16 or not 0 <= base <= 0x1000000 - (end-start)
+                or not base <= pc < base + end-start):
+            raise CopperlineError("PC identity requires a valid containing canonical view")
+        bounds = (base, base + end-start)
     for size in (16, 32, 64, 128, 256):
-        sample = client.read_memory(pc, min(size, 0x1000000 - pc))
-        detected = detect_payload_execution(path, pc, sample)
+        address, count = pc, min(size, 0x1000000 - pc)
+        if bounds is not None:
+            count = min(size, bounds[1]-bounds[0])
+            address = max(bounds[0], min(pc, bounds[1]-count))
+        sample = client.read_memory(address, count)
+        detected = detect_payload_execution(path, address, sample)
+        if address != pc:
+            bias = pc-address
+            detected["matching_offsets"] = [hex(int(v, 0)+bias) for v in detected["matching_offsets"]]
+            detected["sample_address"] = f"0x{address:08x}"
+            if detected["status"] == "pc_matched":
+                detected["payload_offset"] = hex(int(detected["payload_offset"], 0)+bias)
         if detected["status"] != "ambiguous":
             return detected
     return detected
+
+
+def validate_memory_expectation(read):
+    """Validate an optional exact/masked assertion on a bounded memory capture."""
+    expected = read.get("expect_hex")
+    if "expect_hex" not in read:
+        if "expect_mask_hex" in read:
+            raise ValueError("Capture expectation mask requires expect_hex")
+        return
+    size = read.get("size")
+    for value in (expected, read.get("expect_mask_hex", expected)):
+        if (type(size) is not int or not 1 <= size <= 64
+                or not isinstance(value, str) or len(value) != size*2
+                or not re.fullmatch(r"[0-9a-fA-F]+", value)):
+            raise ValueError("Capture expectation must be size-matched hexadecimal bytes")
 
 
 def capture_scenario_state(client, capture):
@@ -75,6 +114,7 @@ def capture_scenario_state(client, capture):
     for read in reads:
         if not isinstance(read, dict):
             raise ValueError("Memory read must be an object")
+        validate_memory_expectation(read)
         addr, base, offset, size = (
             read.get("address"),
             read.get("base_register"),
@@ -109,6 +149,14 @@ def capture_scenario_state(client, capture):
                 "offset": offset if base is not None else None,
             }
         )
+        if "expect_hex" in read:
+            actual = bytes.fromhex(output[-1]["bytes"])
+            expected = bytes.fromhex(read["expect_hex"])
+            mask = bytes.fromhex(read.get("expect_mask_hex", "ff"*size))
+            output[-1]["expectation"] = {
+                "expected_hex": expected.hex(), "mask_hex": mask.hex(),
+                "matched": len(actual) == size and all(
+                    a & m == e & m for a, e, m in zip(actual, expected, mask))}
     result = {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
     custom = capture.get("custom_registers", [])
     if (not isinstance(custom, list) or len(custom) > 16
@@ -365,7 +413,7 @@ def _run_scenario_phase(
         item.update(wait_for_pc(client, address, remaining if counted else seconds))
         if item["status"] != "hit":
             break
-        detection = payload_at_pc(client, payload_path, address)
+        detection = payload_at_pc(client, payload_path, address, runtime_view=phase.get("runtime_view"))
         item["payload"] = detection
         offset = phase.get("source_offset")
         if detection["status"] != "pc_matched" or (
@@ -393,6 +441,10 @@ def _run_scenario_phase(
             item["first_visit"] = summary
         item["last_visit"] = summary
         item["capture"] = capture_scenario_state(client, phase.get("capture", {}))
+        if any(not r.get("expectation", {}).get("matched", True)
+               for r in item["capture"]["memory_reads"]):
+            item.update(status="not_hit", termination="capture_expectation_mismatch")
+            break
         if capture_first and item["occurrences_observed"] == 1:
             item["first_capture"] = item["capture"]
         item["resolved_function"] = function
@@ -415,7 +467,7 @@ def run_scenario(client, scenario, payload_path, release=None):
     if (
         not isinstance(phases, list)
         or not phases
-        or len(phases) > 64
+        or len(phases) > MAX_SCENARIO_PHASES
         or not isinstance(events, list)
         or len(events) > 64
     ):
@@ -677,6 +729,16 @@ def watch_loadseg(client, ndk, seconds):
     return result
 
 
+def confirm_checkpoint_input_release(client, scenario):
+    """Checkpoint saves require acknowledged cleanup, beyond best-effort finally."""
+    for port in (1, 2):
+        client.joystick(port=port)
+    keys = {int(e['control'].split()[1]) for e in scenario.get('input_events', [])
+            if e['control'].startswith('key ')}
+    for key in sorted(keys):
+        client.key(key, pressed=False)
+
+
 def observe(session):
     """Run one isolated owned process and return the public observation envelope."""
     if not 0 < session.continue_seconds <= 600:
@@ -696,6 +758,21 @@ def observe(session):
     scenario = (
         json.loads(session.scenario_path.read_text()) if session.scenario_path else None
     )
+    from . import copperline_checkpoint as checkpoints
+    load_path = getattr(session, 'checkpoint_load', None)
+    save_path = getattr(session, 'checkpoint_save', None)
+    checkpoint_record = checkpoint_context = None
+    if load_path or save_path:
+        if (contract is None or scenario is None or getattr(session,'loadseg_watch_seconds',None)
+                or session.breakpoint_runtime_address is not None or session.breakpoint_source_offset is not None):
+            raise CopperlineError('Checkpoints require a direct scenario without standalone observations')
+        checkpoint_context = checkpoints.binding(session,contract,scenario)
+        if save_path and (Path(save_path).exists() or checkpoints.snapshot_path(save_path).exists()):
+            raise CopperlineError('Checkpoint destination already exists; choose a fresh name')
+        if load_path:
+            checkpoint_record = checkpoints.read_checkpoint(load_path,checkpoint_context)
+    if scenario is not None and (scenario.get('start_observable','direct_payload_handoff') == 'verified_checkpoint') != bool(load_path):
+        raise CopperlineError('Scenario start observable does not match checkpoint mode')
     with CopperlineProcess(
         session.binary_path,
         rom=session.rom_path,
@@ -705,50 +782,60 @@ def observe(session):
         client = process.client
         marker, handoff, scenario_result, bp = None, None, None, None
         reverse_boundary = None
-        address = (
-            contract.handoff_marker_address
-            if contract
-            else session.observation_memory_address
-        )
-        expected = (
-            contract.handoff_marker_value.to_bytes(4, "big")
-            if contract
-            else session.observation_memory_equals
-        )
-        if address is not None and (
-            expected is not None or session.observation_memory_write_watch
-        ):
-            marker = wait_for_marker(
-                client,
-                address,
-                expected,
-                session.continue_seconds,
-                write_watch=bool(contract) or session.observation_memory_write_watch,
-            )
-            stop_reason = marker["stop_reason"]
+        checkpoint_result = None
+        if checkpoint_record is not None:
+            checkpoint_result = checkpoints.restore(client,load_path,checkpoint_record,
+                scenario,session.target_payload_path,payload_at_pc)
+            handoff = dict(checkpoint_record['root']['handoff'], verification_source='checkpoint_root')
+            prepared = dict(checkpoint_record['root']['reverse_boundary'],
+                memory_write=None, reverse_anchor='after_state_load', replay_across_load=False,
+                verification_source='checkpoint_root', snapshot_sha256=checkpoint_record['snapshot_sha256'])
+            stop_reason = 'checkpoint_restored'
         else:
-            try:
-                stop = client.run_until(
-                    {"seconds": 1_000_000_000}, timeout=session.continue_seconds
+            address = (
+                contract.handoff_marker_address
+                if contract
+                else session.observation_memory_address
+            )
+            expected = (
+                contract.handoff_marker_value.to_bytes(4, "big")
+                if contract
+                else session.observation_memory_equals
+            )
+            if address is not None and (
+                expected is not None or session.observation_memory_write_watch
+            ):
+                marker = wait_for_marker(
+                    client,
+                    address,
+                    expected,
+                    session.continue_seconds,
+                    write_watch=bool(contract) or session.observation_memory_write_watch,
                 )
-                stop_reason = stop.get("reason")
-            except CopperlineTimeout:
-                stop_reason = "deadline_interrupt"
-            if address is not None:
-                marker = {
-                    "address": f"0x{address:08x}",
-                    "bytes": client.read_memory(address, 4).hex(),
-                    "matched": None,
-                }
-        if contract:
-            if not marker["matched"]:
-                raise CopperlineError(
-                    "Direct payload marker was not observed; refusing release"
-                )
-            handoff = verify_handoff(client, contract, session.target_payload_path)
-        prepared = None
-        if contract and getattr(contract, "materialization", None) is not None:
-            prepared = prepare_materialization(client, contract, session.target_payload_path, session.continue_seconds)
+                stop_reason = marker["stop_reason"]
+            else:
+                try:
+                    stop = client.run_until(
+                        {"seconds": 1_000_000_000}, timeout=session.continue_seconds
+                    )
+                    stop_reason = stop.get("reason")
+                except CopperlineTimeout:
+                    stop_reason = "deadline_interrupt"
+                if address is not None:
+                    marker = {
+                        "address": f"0x{address:08x}",
+                        "bytes": client.read_memory(address, 4).hex(),
+                        "matched": None,
+                    }
+            if contract:
+                if not marker["matched"]:
+                    raise CopperlineError(
+                        "Direct payload marker was not observed; refusing release"
+                    )
+                handoff = verify_handoff(client, contract, session.target_payload_path)
+            prepared = None
+            if contract and getattr(contract, "materialization", None) is not None:
+                prepared = prepare_materialization(client, contract, session.target_payload_path, session.continue_seconds)
         def release():
             return prepared if prepared is not None else release_handoff(client, contract)
         if scenario is not None:
@@ -846,6 +933,15 @@ def observe(session):
             and bp["status"] != "hit"
         ):
             status = "incomplete"
+        if save_path:
+            if status == 'ok':
+                confirm_checkpoint_input_release(client, scenario)
+                checkpoint_result = {'load':checkpoint_result, 'save':checkpoints.save(
+                    client,save_path,checkpoint_context,scenario,scenario_result,handoff,
+                    reverse_boundary,parent=checkpoint_record,identify=payload_at_pc,
+                    payload_path=session.target_payload_path)}
+            else:
+                checkpoint_result = {'load':checkpoint_result,'save':{'status':'not_saved','reason':'scenario_incomplete'}}
         observation = {
             "status": status,
             "continue_seconds": session.continue_seconds,
@@ -870,5 +966,6 @@ def observe(session):
             "breakpoint": bp,
             "exec_state": exec_state,
             "loadseg_watch": loader_watch,
+            "checkpoint": checkpoint_result,
         }
         return {"status": status, "backend": "copperline", "observation": observation}

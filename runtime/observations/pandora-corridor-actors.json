@@ -1,0 +1,858 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "status": "original_layout_corridor_state_observed",
+  "provenance": {
+    "raw_receipt_sha256": "d143019d3a4c9d475cca9a4ef6a4001451ccff362aa2808dcda6bbfa62b4b1da",
+    "scenario": "runtime/scenarios/pandora-corridor-actors.json",
+    "canonical_phases_hit": 61,
+    "snapshot_limit": "35 actor records are sampled in three successive loop visits, not atomically."
+  },
+  "world_snapshot": [
+    {
+      "name": "player_world_object",
+      "source_offset": 312098,
+      "xy": [
+        864,
+        738
+      ],
+      "flags": 0,
+      "selected_item_id": 54,
+      "pc": 312092,
+      "initial_script": 312082
+    },
+    {
+      "name": "world_object_pianist",
+      "source_offset": 309862,
+      "xy": [
+        816,
+        952
+      ],
+      "flags": 4,
+      "selected_item_id": 0,
+      "pc": 7992,
+      "initial_script": 7866
+    },
+    {
+      "name": "world_object_megabio_feed",
+      "source_offset": 311762,
+      "xy": [
+        840,
+        168
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8602,
+      "initial_script": 8586
+    },
+    {
+      "name": "world_object_defence_controller",
+      "source_offset": 309946,
+      "xy": [
+        336,
+        1442
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8552,
+      "initial_script": 8426
+    },
+    {
+      "name": "world_object_wackobrain",
+      "source_offset": 310030,
+      "xy": [
+        528,
+        1214
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8392,
+      "initial_script": 8266
+    },
+    {
+      "name": "world_object_squash_player",
+      "source_offset": 299540,
+      "xy": [
+        1226,
+        132
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 5816,
+      "initial_script": 5650
+    },
+    {
+      "name": "world_object_kriptonite",
+      "source_offset": 300094,
+      "xy": [
+        934,
+        392
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 5982,
+      "initial_script": 5830
+    },
+    {
+      "name": "world_object_glass",
+      "source_offset": 310114,
+      "xy": [
+        724,
+        1346
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 6730,
+      "initial_script": 6514
+    },
+    {
+      "name": "world_object_kwik_kleen",
+      "source_offset": 310198,
+      "xy": [
+        868,
+        1716
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 6892,
+      "initial_script": 6770
+    },
+    {
+      "name": "world_object_flight_controller",
+      "source_offset": 310282,
+      "xy": [
+        1104,
+        744
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8192,
+      "initial_script": 8066
+    },
+    {
+      "name": "world_object_thief",
+      "source_offset": 301320,
+      "xy": [
+        320,
+        532
+      ],
+      "flags": 0,
+      "selected_item_id": 102,
+      "pc": 5436,
+      "initial_script": 5304
+    },
+    {
+      "name": "world_object_priest",
+      "source_offset": 301874,
+      "xy": [
+        182,
+        394
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 9094,
+      "initial_script": 9078
+    },
+    {
+      "name": "world_object_hooligan",
+      "source_offset": 303144,
+      "xy": [
+        528,
+        689
+      ],
+      "flags": 0,
+      "selected_item_id": 8,
+      "pc": 7826,
+      "initial_script": 7198
+    },
+    {
+      "name": "world_object_captain",
+      "source_offset": 305108,
+      "xy": [
+        656,
+        1002
+      ],
+      "flags": 2,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_resource_officer",
+      "source_offset": 305248,
+      "xy": [
+        240,
+        1392
+      ],
+      "flags": 2,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_engineer",
+      "source_offset": 305388,
+      "xy": [
+        608,
+        748
+      ],
+      "flags": 6,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_science_officer",
+      "source_offset": 305528,
+      "xy": [
+        432,
+        1498
+      ],
+      "flags": 2,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_medic",
+      "source_offset": 305668,
+      "xy": [
+        912,
+        1500
+      ],
+      "flags": 2,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_awol_officer",
+      "source_offset": 305790,
+      "xy": [
+        944,
+        1776
+      ],
+      "flags": 2,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_entry_officer",
+      "source_offset": 304138,
+      "xy": [
+        253,
+        866
+      ],
+      "flags": 6,
+      "selected_item_id": 0,
+      "pc": 9168,
+      "initial_script": 9116
+    },
+    {
+      "name": "world_object_icelord",
+      "source_offset": 302458,
+      "xy": [
+        1312,
+        192
+      ],
+      "flags": 0,
+      "selected_item_id": 11,
+      "pc": 8646,
+      "initial_script": 8630
+    },
+    {
+      "name": "world_object_death_fly",
+      "source_offset": 304556,
+      "xy": [
+        1061,
+        1248
+      ],
+      "flags": 0,
+      "selected_item_id": 12,
+      "pc": 8904,
+      "initial_script": 8876
+    },
+    {
+      "name": "world_object_lieutenant_commander",
+      "source_offset": 305930,
+      "xy": [
+        384,
+        192
+      ],
+      "flags": 2,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_commander",
+      "source_offset": 306150,
+      "xy": [
+        192,
+        192
+      ],
+      "flags": 2,
+      "selected_item_id": 0,
+      "pc": -65536,
+      "initial_script": -65536
+    },
+    {
+      "name": "world_object_driffid",
+      "source_offset": 304788,
+      "xy": [
+        816,
+        1186
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 9228,
+      "initial_script": 9174
+    },
+    {
+      "name": "world_object_musician",
+      "source_offset": 296634,
+      "xy": [
+        774,
+        226
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8624,
+      "initial_script": 8608
+    },
+    {
+      "name": "world_object_menial_droid",
+      "source_offset": 306298,
+      "xy": [
+        1304,
+        376
+      ],
+      "flags": 0,
+      "selected_item_id": 9,
+      "pc": 5564,
+      "initial_script": 5470
+    },
+    {
+      "name": "world_object_gardener",
+      "source_offset": 306852,
+      "xy": [
+        686,
+        1204
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 7084,
+      "initial_script": 6986
+    },
+    {
+      "name": "world_object_robomechanic",
+      "source_offset": 308126,
+      "xy": [
+        504,
+        1592
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 9300,
+      "initial_script": 9254
+    },
+    {
+      "name": "world_object_doctor",
+      "source_offset": 308478,
+      "xy": [
+        842,
+        1452
+      ],
+      "flags": 0,
+      "selected_item_id": 13,
+      "pc": 8808,
+      "initial_script": 8790
+    },
+    {
+      "name": "world_object_diabetic",
+      "source_offset": 309032,
+      "xy": [
+        384,
+        1026
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8668,
+      "initial_script": 8652
+    },
+    {
+      "name": "world_object_chemist",
+      "source_offset": 309688,
+      "xy": [
+        442,
+        1228
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8738,
+      "initial_script": 8720
+    },
+    {
+      "name": "world_object_technician",
+      "source_offset": 307590,
+      "xy": [
+        716,
+        1892
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 6972,
+      "initial_script": 6906
+    },
+    {
+      "name": "world_object_bank_manager",
+      "source_offset": 309504,
+      "xy": [
+        373,
+        417
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 9110,
+      "initial_script": 9100
+    },
+    {
+      "name": "world_object_security_officer",
+      "source_offset": 309294,
+      "xy": [
+        1234,
+        840
+      ],
+      "flags": 0,
+      "selected_item_id": 0,
+      "pc": 8706,
+      "initial_script": 8690
+    }
+  ],
+  "observation": {
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "reverse_boundary": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      }
+    },
+    "scenario": {
+      "phases": [
+        {
+          "name": "flight_timing_0",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "036002e2",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "036002e2",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005bc0a",
+                "bytes": "0001a5a9000000000000000000000000000000000001b1100001b3a00001b1180001b3a00001200000011f820005bfba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005bc3a",
+                "bytes": "045002ea000000000000000000370037005a00f8000100000000540020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f82",
+                "bytes": "0017045003c800050001001e0005c1c00005c0220015000c0001fffe00050002000600180018fff8001e0005c1ae0005c0a60015000c0001fffe000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011fc2",
+                "bytes": "00480048fff8001e0005c1ae0005c0e20015000c0001fffe00050002000600180018fff8001e0005c1c00005bffa0005001e0015000c00010002000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00012002",
+                "bytes": "0018000dfff8001e0005c1ae0005c0be0015000c0001000200050001000600480048fff8001e0005c1ae0005c0ee0015000c0001000200050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00012042",
+                "bytes": "fff8001400011f82",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c83",
+                "bytes": "4801f50000000002a003a002a00300000000000000b5680000f568000001680c",
+                "base_register": "a6",
+                "offset": 647
+              },
+              {
+                "address": "0x00003cc4",
+                "bytes": "00060001",
+                "base_register": "a6",
+                "offset": 712
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "flight_timing_1",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "036002e2",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "036002e2",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005bc0a",
+                "bytes": "0001a5a9000000000000000000000000000000000001b1100001b3a00001b1180001b3a00001200000011f820005bfba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005bc3a",
+                "bytes": "045002ec000000000000000000370037005a00fa000200000000540020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f82",
+                "bytes": "0017045003c800050001001e0005c1c00005c0220015000c0001fffe00050002000600180018fff8001e0005c1ae0005c0a60015000c0001fffe000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011fc2",
+                "bytes": "00480048fff8001e0005c1ae0005c0e20015000c0001fffe00050002000600180018fff8001e0005c1c00005bffa0005001e0015000c00010002000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00012002",
+                "bytes": "0018000cfff8001e0005c1ae0005c0be0015000c0001000200050001000600480048fff8001e0005c1ae0005c0ee0015000c0001000200050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00012042",
+                "bytes": "fff8001400011f82",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c83",
+                "bytes": "4704f40000000002a003a002a00300000000000000b5680000f568000001680c",
+                "base_register": "a6",
+                "offset": 647
+              },
+              {
+                "address": "0x00003cc4",
+                "bytes": "00060001",
+                "base_register": "a6",
+                "offset": 712
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "name": "flight_timing_2",
+          "stable_key": "s0:000005CA:instruction",
+          "capture": {
+            "registers": {
+              "a6": "0x000039fc"
+            },
+            "memory_reads": [
+              {
+                "address": "0x0005c352",
+                "bytes": "036002e2",
+                "base_register": null,
+                "offset": null,
+                "expectation": {
+                  "expected_hex": "036002e2",
+                  "mask_hex": "ffffffff",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x00003c2a",
+                "bytes": "00",
+                "base_register": "a6",
+                "offset": 558,
+                "expectation": {
+                  "expected_hex": "00",
+                  "mask_hex": "06",
+                  "matched": true
+                }
+              },
+              {
+                "address": "0x0005bc0a",
+                "bytes": "0001a5a9000000000000000000000000000000000001b1100001b3a00001b1180001b3a00001200000011f820005bfba",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x0005bc3a",
+                "bytes": "045002ec000000000000000000370037005a00fa000100000000540020200005",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011f82",
+                "bytes": "0017045003c800050001001e0005c1c00005c0220015000c0001fffe00050002000600180018fff8001e0005c1ae0005c0a60015000c0001fffe000500010006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00011fc2",
+                "bytes": "00480048fff8001e0005c1ae0005c0e20015000c0001fffe00050002000600180018fff8001e0005c1c00005bffa0005001e0015000c00010002000500020006",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00012002",
+                "bytes": "0018000cfff8001e0005c1ae0005c0be0015000c0001000200050001000600480048fff8001e0005c1ae0005c0ee0015000c0001000200050002000600180018",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00012042",
+                "bytes": "fff8001400011f82",
+                "base_register": null,
+                "offset": null
+              },
+              {
+                "address": "0x00003c83",
+                "bytes": "4703f30000000002a003a002a00300000000000000b5680000f568000001680c",
+                "base_register": "a6",
+                "offset": 647
+              },
+              {
+                "address": "0x00003cc4",
+                "bytes": "00060001",
+                "base_register": "a6",
+                "offset": 712
+              }
+            ]
+          },
+          "resolved_function": null,
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x000105ca",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          },
+          "address": "0x000105ca",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "pc": "0x000105ca",
+          "sp": "0x00010452",
+          "stack_return_address": "0x00000010",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5ca"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5ca",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    }
+  },
+  "next_gate": {
+    "player_xy": [
+      864,
+      738
+    ],
+    "candidate_staging_goal": [
+      1074,
+      738
+    ],
+    "candidate_moves": [
+      "right30"
+    ],
+    "flight_controller": {
+      "source_offset": 310282,
+      "script_start": 8066,
+      "original_envelope": {
+        "x": [
+          1104,
+          1104
+        ],
+        "y": [
+          722,
+          968
+        ]
+      },
+      "timing_observations": [
+        [
+          746,
+          1
+        ],
+        [
+          748,
+          2
+        ],
+        [
+          748,
+          1
+        ]
+      ],
+      "validation": "Two consecutive one-loop transitions match the original script and captured counters using the same interpreter."
+    },
+    "security_officer": {
+      "observed_xy": [
+        1234,
+        840
+      ],
+      "selected_item_id": 0,
+      "flags": 0,
+      "initial_script": 8690,
+      "observed_pc": 8706,
+      "original_script": "Sets1234,840 then only delays/toggles animation; live interaction predicate is separate."
+    },
+    "remaining_model_gap": [
+      "Compose the flight-controller timing and camera-paused corridor path before entering its strict24x16 interaction envelope.",
+      "Model the nearby security-officer interaction and the empty-slot/fresh-latch pickup transition before admitting the rifle acquisition.",
+      "Then model return/aim/ray predicates for a normal direct kill; BYTE execution and original/relocated parity remain unobserved."
+    ]
+  },
+  "limits": [
+    "No movement beyond864,738 in this diagnostic; it repeats the validated prefix and captures the next gate.",
+    "Actor positions are live observations, not universal movement bounds or proof that unknown callbacks are harmless.",
+    "No guest state edits, save/resume assumption, weapon pickup or BYTE claim."
+  ]
+}

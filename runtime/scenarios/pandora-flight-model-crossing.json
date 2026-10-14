@@ -1,0 +1,1957 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-flight-model-crossing",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "flight_west_anchor",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "043202e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00"
+          },
+          {
+            "address": 375818,
+            "size": 48,
+            "expect_hex": "0001a5a9000000000000000000000000000000000001b1100001b3a00001b1180001b3a00001201e00011f820005bfba"
+          },
+          {
+            "address": 375866,
+            "size": 32,
+            "expect_hex": "04500364000000000000000000370037005a00a0000100000000540020200005"
+          },
+          {
+            "address": 73602,
+            "size": 64,
+            "expect_hex": "0017045003c800050001001e0005c1c00005c0220015000c0001fffe00050002000600180018fff8001e0005c1ae0005c0a60015000c0001fffe000500010006"
+          },
+          {
+            "address": 73666,
+            "size": 64,
+            "expect_hex": "00480048fff8001e0005c1ae0005c0e20015000c0001fffe00050002000600180018fff8001e0005c1c00005bffa0005001e0015000c00010002000500020006"
+          },
+          {
+            "address": 73730,
+            "size": 64,
+            "expect_hex": "00180018fff8001e0005c1ae0005c0be0015000c0001000200050001000600480019fff8001e0005c1ae0005c0ee0015000c0001000200050002000600180018"
+          },
+          {
+            "address": 73794,
+            "size": 8,
+            "expect_hex": "fff8001400011f82"
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_01_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "043902e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_02_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "044002e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_03_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "044702e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_04_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "044e02e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_05_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045502e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_06_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_07_left",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045502e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_08_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02e2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_09_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02e6"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_10_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02ea"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_11_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02ee"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_12_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02f2"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_13_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02f6"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_14_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02fa"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_15_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c02fe"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_16_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c0302"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_17_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c0306"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_18_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c030a"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_19_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c030e"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_20_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c0312"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_21_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c0316"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_22_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c031a"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_23_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c031e"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_24_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c0322"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_25_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c0326"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_26_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c032a"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_27_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463032a"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_cross_28_right",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "046a032a"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    },
+    {
+      "name": "flight_east_loop",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "046a032a"
+          },
+          {
+            "address": 15402,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 15491,
+            "size": 32
+          },
+          {
+            "address": 15556,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "address": 15250,
+            "size": 16
+          }
+        ],
+        "registers": [
+          "a6"
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "flight_west_anchor",
+      "release_after_phase": "flight_cross_06_right",
+      "control": "port1 right"
+    },
+    {
+      "after_phase": "flight_cross_06_right",
+      "release_after_phase": "flight_cross_07_left",
+      "control": "port1 left"
+    },
+    {
+      "after_phase": "flight_cross_07_left",
+      "release_after_phase": "flight_cross_26_down",
+      "control": "port1 down"
+    },
+    {
+      "after_phase": "flight_cross_26_down",
+      "release_after_phase": "flight_cross_28_right",
+      "control": "port1 right"
+    }
+  ]
+}

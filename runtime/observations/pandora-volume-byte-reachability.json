@@ -1,0 +1,939 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "status": "BYTE_writer_unobserved_weapon_path_viable_subject_to_normal_acquisition_and_hit_preconditions",
+  "analysis_subject_revision": "d62c6f7232d9553d8fba1bb2d9f3b8209dc9d0a3a6fe9133c169b82480920151",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "source_sha256": "b5c29658451d7a775aadc1cd574dcee25528bbe477362372b0fb47abfd1b913d",
+  "prior_successful_evidence": {
+    "path": "pandora-volume-proximity-writers.json",
+    "sha256": "58b7e8c0612f7e0524313f6e2233a941c3d0e45e6c1dbce08fec09836c12b06b",
+    "status": "unchanged; two WORD writers and both-layout21/46phase observations retained"
+  },
+  "flag": {
+    "name": "app_world_interaction_flags",
+    "application_offset": "0x33d",
+    "observed_runtime_address": "0x3d39",
+    "required_bit": 0,
+    "native_named_instruction_count": 13,
+    "native_named_instructions": [
+      {
+        "annotation": "",
+        "bytes": "422e033d",
+        "mnemonic": "clr",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 4,
+        "source_offset": 41084,
+        "text": "clr.b app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0000033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316236,
+        "text": "bset.b #0,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0001033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316304,
+        "text": "bset.b #INTERACTION_FLAG_MUSICIAN_COMPLETED,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0007033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316362,
+        "text": "bset.b #INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0002033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316476,
+        "text": "bset.b #INTERACTION_FLAG_TECHNICIAN_COMPLETED,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0005033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316498,
+        "text": "bset.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ae0005033d",
+        "mnemonic": "bclr",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316558,
+        "text": "bclr.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0003033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316714,
+        "text": "bset.b #INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "082e0004033d",
+        "mnemonic": "btst",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316776,
+        "text": "btst.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0004033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 316866,
+        "text": "bset.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ae0000033d",
+        "mnemonic": "bclr",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 348894,
+        "text": "bclr.b #0,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ae0000033d",
+        "mnemonic": "bclr",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 348970,
+        "text": "bclr.b #0,app_world_interaction_flags(a6)"
+      },
+      {
+        "annotation": "",
+        "bytes": "08ee0000033d",
+        "mnemonic": "bset",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 349002,
+        "text": "bset.b #0,app_world_interaction_flags(a6)"
+      }
+    ],
+    "secondary_setter": {
+      "source_offset": "0x4d34c",
+      "incoming_native_cfg_edges": 0,
+      "incoming_accepted_references": 0,
+      "limit": "No incoming accepted edge/reference is not proof against hidden indirect paths, aliases or incomplete code facts."
+    },
+    "adjacent_bytes": {
+      "game_event_flags": "A6+0x33c",
+      "world_interaction_audio_flags": "A6+0x33e",
+      "relevance": "Feedback clears offset33E, not the required shared flag at33D."
+    }
+  },
+  "ordering": {
+    "main_loop": [
+      {
+        "source_offset": "0x5ca",
+        "action": "nearby trade or combat"
+      },
+      {
+        "source_offset": "0x5f0",
+        "action": "selected-item weapon ray"
+      },
+      {
+        "source_offset": "0x5f6",
+        "action": "world object interactions"
+      },
+      {
+        "source_offset": "0x624",
+        "action": "proximity audio"
+      }
+    ],
+    "BYTE_guard": [
+      "Feed object flagbit1 set at entry552FE",
+      "BCLR bit0 at552DE reports its previous value",
+      "BEQ at552E4 skips the write if that previous bit was clear",
+      "reset_audio_channels552EA, BYTE write552F0, restore552F8, return552FC"
+    ],
+    "combat_case": "The prior observed combat route biases worldX by10000, clears sharedbit0 while far from the audio center, and returns with Feedflags66/shared00. This sampled post-combat state skips the BYTE write.",
+    "conditional_post_combat_invariant": {
+      "claim": "If Feedbit1 remains set and no other path or alias writes sharedbit0, each proximity update clears/tests0 and skips the BYTE writer until reset.",
+      "assumptions": [
+        "Original payload and established runtime mapping; ordinary application-base/callback register contracts.",
+        "No unmodelled store, indirect target, alias, changed callback or modified script sets the bit.",
+        "World restart and external debugger changes are excluded from this interval."
+      ],
+      "limit": "This does not prove a whole-game invariant; the direct weapon kill is a distinct pre-defeat transition."
+    }
+  },
+  "weapon_candidate": {
+    "status": "static_viable_not_runtime_validated",
+    "entry": "0x9250",
+    "requirements": [
+      "Player alive; UI flags&6 clear; fire sampled pressed; fire-edge latch031B clear.",
+      "Selected item18(LASER RIFLE) or19(PULSE CANNON); corresponding ammunition byte nonzero.",
+      "Ordinary last accepted movement direction produces a ray that passes solid-tile checks and intersects Feed CURRENT live geometry.",
+      "Feed descriptor is in active object table; live state bits6/3 permit collision. Saved death state42 is not the live-state test.",
+      "Sharedbit0 already armed by a preceding alive proximity update within Manhattan distance256.",
+      "No earlier nearby encounter diverts the main loop into combat."
+    ],
+    "effect": "Ray path subtracts30/90 from the low health byte; initialFeedHP29 is lethal for one rifle hit. Completion at93EC, restore at93F6, BSET defeatedbit1 at93FA, feedback at9408 occur before same-frame proximityaudio.",
+    "callback": "Feed completion points to4D368: clears feedback event/reset channels while preservingA5/A6; weapon feedback4D330 clears offset33E. Neither named path clears shared33D.",
+    "expected_BYTE_effect": "If reached with prior volume00xx, move.b#40 at552F0 yields40xx in both layouts; this is static width semantics, not a runtime observation.",
+    "rifle_source": {
+      "position_descriptor_source_offset": "0x4889e",
+      "xy": [
+        1244,
+        867
+      ],
+      "interaction_data_source_offset": "0x48a66",
+      "initial_bytes": "000000001200",
+      "required_item_id": 18,
+      "pickup_instruction": "0x8118",
+      "gate": "Selected item<2, distance<28 and new proximity-latch transition; approach with officerID stored in carried inventory, then collect via empty selection."
+    },
+    "candidate_return": {
+      "start": [
+        1228,
+        874
+      ],
+      "aim": [
+        836,
+        130
+      ],
+      "heading": "down",
+      "accepted_moves": 376,
+      "status": "superseded terrain-only candidate; not admitted by the event model"
+    },
+    "uncovered": "No normal rifle acquisition, Feed weapon hit, BYTE write, or changed-layout BYTE comparison was claimed in these probes."
+  },
+  "route_probes": [
+    {
+      "receipt": "original-gun-result.json",
+      "layout": "original_only",
+      "handoff": {
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "size": 376832,
+        "load_address": 131072,
+        "status": "verified"
+      },
+      "materialization": {
+        "memory_write": "handoff_release",
+        "reverse_anchor": "after_write",
+        "replay_across_write": false,
+        "materialization": {
+          "status": "verified",
+          "entrypoint": 66666,
+          "size": 349040,
+          "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+          "source_consumed_at_entry": true,
+          "input_backing_retained": true,
+          "initialization": null
+        }
+      },
+      "phases_observed": 7,
+      "hit_phases": 6,
+      "last_phase": {
+        "name": "gun_route_02_right_20",
+        "stable_key": "s0:00009844:instruction",
+        "occurrences_requested": 20,
+        "occurrences_observed": 17,
+        "first_visit": {
+          "pc": "0x00019844",
+          "payload_offset": "0x9844",
+          "runtime_base": "0x00010000"
+        },
+        "last_visit": {
+          "pc": "0x00019844",
+          "payload_offset": "0x9844",
+          "runtime_base": "0x00010000"
+        },
+        "address": "0x00019844",
+        "status": "timeout",
+        "termination": "deadline_interrupt",
+        "stop_reason": "pause",
+        "pc": "0x000105c2",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x9844"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x9844",
+          "runtime_base": "0x00010000"
+        }
+      },
+      "last_successful_capture": {
+        "registers": {
+          "a2": "0x0005c72a",
+          "a3": "0x0005c3be",
+          "a4": "0x0005c322",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "d0": "0x00000007",
+          "d1": "0x00000000",
+          "sr": "0x00002010"
+        },
+        "memory_reads": [
+          {
+            "address": "0x0005c352",
+            "bytes": "0328036a",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005dd00",
+            "bytes": "0040",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005dd00",
+            "bytes": "0040",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x00003d39",
+            "bytes": "00",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005c368",
+            "bytes": "3600",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005c35e",
+            "bytes": "005f",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005c21a",
+            "bytes": "00",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x00058a66",
+            "bytes": "000000001200",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x00003c2a",
+            "bytes": "00",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0001924e",
+            "bytes": "0501",
+            "base_register": null,
+            "offset": null
+          }
+        ],
+        "custom_registers": {
+          "AUD0VOL": {
+            "name": "AUD0VOL",
+            "off": 168,
+            "value": 0
+          },
+          "AUD1VOL": {
+            "name": "AUD1VOL",
+            "off": 184,
+            "value": 1
+          },
+          "AUD2VOL": {
+            "name": "AUD2VOL",
+            "off": 200,
+            "value": 0
+          },
+          "AUD3VOL": {
+            "name": "AUD3VOL",
+            "off": 216,
+            "value": 0
+          },
+          "DMACON": {
+            "name": "DMACON",
+            "off": 150,
+            "value": 2016
+          }
+        }
+      },
+      "capture_limit": "On timeout this is the last successful occurrence, not a final-state snapshot."
+    },
+    {
+      "receipt": "original-gun-detour-result.json",
+      "layout": "original_only",
+      "handoff": {
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "size": 376832,
+        "load_address": 131072,
+        "status": "verified"
+      },
+      "materialization": {
+        "memory_write": "handoff_release",
+        "reverse_anchor": "after_write",
+        "replay_across_write": false,
+        "materialization": {
+          "status": "verified",
+          "entrypoint": 66666,
+          "size": 349040,
+          "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+          "source_consumed_at_entry": true,
+          "input_backing_retained": true,
+          "initialization": null
+        }
+      },
+      "phases_observed": 9,
+      "hit_phases": 8,
+      "last_phase": {
+        "name": "gun_route_04_down_1",
+        "stable_key": "s0:00009844:instruction",
+        "occurrences_requested": 1,
+        "occurrences_observed": 0,
+        "first_visit": null,
+        "last_visit": null,
+        "address": "0x00019844",
+        "status": "timeout",
+        "termination": "deadline_interrupt",
+        "stop_reason": "pause",
+        "pc": "0x0001853e",
+        "sp": "0x0001044a",
+        "stack_return_address": "0x000183b2"
+      },
+      "capture_limit": "On timeout this is the last successful occurrence, not a final-state snapshot."
+    },
+    {
+      "receipt": "original-gun-rejection-result.json",
+      "layout": "original_only",
+      "handoff": {
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "size": 376832,
+        "load_address": 131072,
+        "status": "verified"
+      },
+      "materialization": {
+        "memory_write": "handoff_release",
+        "reverse_anchor": "after_write",
+        "replay_across_write": false,
+        "materialization": {
+          "status": "verified",
+          "entrypoint": 66666,
+          "size": 349040,
+          "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+          "source_consumed_at_entry": true,
+          "input_backing_retained": true,
+          "initialization": null
+        }
+      },
+      "phases_observed": 9,
+      "hit_phases": 9,
+      "last_phase": {
+        "name": "gun_north_corridor_rejected_turn",
+        "stable_key": "s0:00009984:instruction",
+        "address": "0x00019984",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x00019984",
+        "sp": "0x00010436",
+        "stack_return_address": "0x000111e0",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x9984"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x9984",
+          "runtime_base": "0x00010000"
+        }
+      },
+      "last_successful_capture": {
+        "registers": {
+          "d0": "0x00050002",
+          "d1": "0x00000002",
+          "d2": "0x00000000",
+          "d3": "0x00000020",
+          "d4": "0x0000001e",
+          "d5": "0x0000ffff",
+          "d6": "0x00001001",
+          "d7": "0x0000ffff",
+          "a0": "0x000195e2",
+          "a1": "0x00058cf4",
+          "a2": "0x00058f56",
+          "a3": "0x00008b64",
+          "a4": "0x0005c312",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "a7": "0x00010436",
+          "sr": "0x00002000"
+        },
+        "memory_reads": [
+          {
+            "address": "0x0005c352",
+            "bytes": "2a38031a",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005c368",
+            "bytes": "3600",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005c35e",
+            "bytes": "005f",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005c72a",
+            "bytes": "0005c42a0005c3e20005c776000000000005c71e0000000000020005",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x00008b64",
+            "bytes": "000237a80001faa80001fea8000202a80002",
+            "base_register": "a3",
+            "offset": 0
+          },
+          {
+            "address": "0x00008880",
+            "bytes": "000244a800025928000208a8000209280001faa8000237a8",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x00003cd4",
+            "bytes": "00",
+            "base_register": "a6",
+            "offset": 728
+          },
+          {
+            "address": "0x00003c77",
+            "bytes": "ae",
+            "base_register": "a6",
+            "offset": 635
+          },
+          {
+            "address": "0x00003c2a",
+            "bytes": "02",
+            "base_register": "a6",
+            "offset": 558
+          },
+          {
+            "address": "0x00003bc2",
+            "bytes": "00000001fff9000000000000000000070000000780000007",
+            "base_register": "a6",
+            "offset": 454
+          }
+        ]
+      }
+    }
+  ],
+  "diagnosed_blocker": {
+    "scenario": "../scenarios/pandora-volume-byte-route-blocker.json",
+    "status": "all9diagnostic phases hit; confirms unwanted combat, not BYTE coverage",
+    "source_pc": "0x9984",
+    "player_xy": [
+      10808,
+      794
+    ],
+    "unbiased_player_xy": [
+      808,
+      794
+    ],
+    "player_hp": 95,
+    "ui_flags": "02",
+    "movement_inhibit": "00",
+    "evidence": "UI flags&6 at95E2..95EA branch to9984 before collision geometry binding; X has the combat+10000 bias.",
+    "a3_limit": "A3=8B64 was sampled but is not a geometry binding on this early UI branch; it must not be interpreted as a frame header.",
+    "terrain_check": [
+      {
+        "tile_xy": [
+          50,
+          51
+        ],
+        "source_selector": 67,
+        "model_tile_id": 232,
+        "captured_tile_id": 232,
+        "equal": true
+      },
+      {
+        "tile_xy": [
+          51,
+          51
+        ],
+        "source_selector": 73,
+        "model_tile_id": 273,
+        "captured_tile_id": 273,
+        "equal": true
+      },
+      {
+        "tile_xy": [
+          52,
+          51
+        ],
+        "source_selector": 73,
+        "model_tile_id": 112,
+        "captured_tile_id": 112,
+        "equal": true
+      },
+      {
+        "tile_xy": [
+          53,
+          51
+        ],
+        "source_selector": 73,
+        "model_tile_id": 113,
+        "captured_tile_id": 113,
+        "equal": true
+      },
+      {
+        "tile_xy": [
+          54,
+          51
+        ],
+        "source_selector": 41,
+        "model_tile_id": 84,
+        "captured_tile_id": 84,
+        "equal": true
+      },
+      {
+        "tile_xy": [
+          55,
+          51
+        ],
+        "source_selector": 41,
+        "model_tile_id": 206,
+        "captured_tile_id": 206,
+        "equal": true
+      }
+    ],
+    "next_smallest_observation": "At the derived west staging goal780,794 inspect pianist script/countdown/position and validate a short-horizon crossing predicate; no complete rifle route is currently admitted.",
+    "scope_boundary": "Normal weapon acquisition now needs an NPC-aware route. No more long route/combat attempts were made after diagnosing the omitted state transition.",
+    "identified_actor": {
+      "player_xy": [
+        808,
+        794
+      ],
+      "actor": {
+        "name": "world_object_pianist",
+        "xy": [
+          816,
+          808
+        ],
+        "flags": 36,
+        "selected_item_id": 9
+      },
+      "predicted_outcome": "combat",
+      "observed_outcome": "canonical combat entry7792",
+      "patrol_keepout_inclusive": [
+        793,
+        839,
+        713,
+        989
+      ]
+    }
+  },
+  "method_assessment": {
+    "implemented_model": {
+      "terrain": "43x30 source selectors3502; each selects a3x3 WORD offset record at3F16, producing90x12916px tiles; the original build_world_tilemap_pointer_grid constructor establishes grid4000..F568.",
+      "collision": "512MSB-first solid-tile bits atsourceA822; actual source95E2+ edge/feet probe rules, axis-only movement and modal-tile exclusions.",
+      "movement": "X=7,Y=4; first vertical request after horizontal can add opposite7X and suppressY; direction is planner state.",
+      "poses": "Initially15positiveX/Y entries; expanded to all30original directional frame-array entries (17unique bounds). This did not resolve the blocked turn because the UI guard precedes geometry.",
+      "objects": "35 original objects resolved from native symbols/schemas; pianist identified and original patrol bounded, but other actors are not yet live route guards.",
+      "flags_inventory": "Explicit audio/death dependencies, empty-slot rifle pickup/proximity latch, ammo and UI/weapon gates."
+    },
+    "disproved_assumptions": [
+      "A static terrain path was treated as executable without modelling earlier nearby trade/combat transitions.",
+      "A counted movement timeout was initially treated as a route obstruction without a contemporaneous final-state capture; timeout capture is the last successful occurrence.",
+      "The A3 geometry role cannot be assumed on the early UI exit."
+    ],
+    "not_disproved": [
+      "The decoded terrain model: all6locally sampled tile cells equal their native-data predictions.",
+      "Movement arithmetic and earlier successful routes remain valid evidence within their recorded conditions."
+    ],
+    "framework_support": [
+      "Revision-bound native symbols/instructions/CFG/references/typed field facts and original source bytes.",
+      "Confirmed materialized views, full-payload identity, read-only registers/memory/custom-register capture.",
+      "Canonical source-PC checkpoints, counted visits, bounded joystick/raw-key holds and cleanup.",
+      "Generated CPU simulator for focused semantic checks; not a complete Amiga world/AI simulator."
+    ],
+    "framework_gaps": [
+      "The implemented compact adapter enforces the observed pianist patrol only; other live actor/event state and patrol timing remain unknown.",
+      "No phase-level alternative canonical stop/outcome for an unexpected encounter with role-correct capture.",
+      "No explicit game-state expectations compared with a predicted transition; successful-PC captures do not describe state after a timeout.",
+      "Short adaptive planning currently entails fresh owned sessions; low-level state.save/load tests are not a public verified checkpoint/resume contract."
+    ],
+    "smallest_clean_improvement": {
+      "generic": "Allow a small bounded list of alternative canonical stop PCs per phase, with named outcome/capture and immediate input cleanup; e.g. combat entry7792 interrupts a movement objective9844. Keep exact identity/source/base checks for every stop.",
+      "target_specific": "Compose a Pandora state adapter from canonical records and a verified runtime snapshot: map, current player pose/input/UI, nearby object identity/positions/flags and inventory predicates. Treat unknown actor state conservatively; plan a short horizon and compare expected position/state at checkpoints.",
+      "incremental_use": "First identify the blocking actor with the existing capture surface; add its observed interaction envelope to the model, rather than alter confirmed terrain or launch another complete route. Formalise new semantic facts through normal native/history commands when accepted.",
+      "performance": "Reuse one revision/payload/manifest-bound native artifact for scenario compilation and finalPC resolution. Current compile_scenario and resolve_paused_pc independently build artifacts; do not cache across changed revisions or bypass native proof.",
+      "avoid": "No whole-game AI engine, duplicate source-of-truth database, debugger-forced game state or broad emulator migration."
+    },
+    "cost_benefit": "The terrain-only searches took fractions of a second to about2s; the event-constrained search in the saved model took about6s. Native metadata collection/compilation, bootstrap and waiting for unrecognised outcomes dominate. The model now rejects the unsupported full route and derives a short-checkpoint staging plan. Alternative canonical stop outcomes are the smallest general runner improvement; precise patrol timing/full checkpoint resumption are not silently assumed.",
+    "compact_model": {
+      "module": "../../amiga_reversing/tools/pandora_world_model.py",
+      "output": "pandora-world-model.json",
+      "input": "pandora-world-model-checkpoint.json",
+      "validated_transition": {
+        "status": "validated",
+        "source_pc": "0x9984",
+        "predicted_combat_xy": [
+          10808,
+          794
+        ],
+        "observed_player_xy": [
+          10808,
+          794
+        ],
+        "ui_flags": 2,
+        "movement_gate": "combat_or_inventory_blocks_movement"
+      },
+      "staging_plan": {
+        "status": "conditional_candidate",
+        "expanded": 1370,
+        "event_edges_rejected": 0,
+        "seconds": 0.089,
+        "accepted_moves": 95,
+        "runs": [
+          {
+            "direction": "up",
+            "moves": 18,
+            "endpoint": [
+              241,
+              794,
+              "up"
+            ]
+          },
+          {
+            "direction": "right",
+            "moves": 77,
+            "endpoint": [
+              780,
+              794,
+              "right"
+            ]
+          }
+        ],
+        "checkpoints": [
+          {
+            "after_moves": 8,
+            "expected_state": [
+              241,
+              834,
+              "up"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 16,
+            "expected_state": [
+              241,
+              802,
+              "up"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 24,
+            "expected_state": [
+              283,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 32,
+            "expected_state": [
+              339,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 40,
+            "expected_state": [
+              395,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 48,
+            "expected_state": [
+              451,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 56,
+            "expected_state": [
+              507,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 64,
+            "expected_state": [
+              563,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 72,
+            "expected_state": [
+              619,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 80,
+            "expected_state": [
+              675,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 88,
+            "expected_state": [
+              731,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          },
+          {
+            "after_moves": 95,
+            "expected_state": [
+              780,
+              794,
+              "right"
+            ],
+            "required_ui_mask6": 0
+          }
+        ],
+        "goal": [
+          780,
+          794
+        ],
+        "next_gate": "Do not enter the patrol envelope until a short-horizon actor-position or interaction predicate is established."
+      },
+      "full_rifle_route": {
+        "status": "unknown_no_route_within_model_budget",
+        "expanded": 96911,
+        "event_edges_rejected": 18,
+        "seconds": 5.856,
+        "accepted_moves": 0,
+        "runs": [],
+        "checkpoints": []
+      },
+      "status": "implemented read-only target adapter; no new route executed",
+      "initial_player": {
+        "xy": [
+          241,
+          866
+        ],
+        "selected_item_id": 54,
+        "direction": "none",
+        "source_checkpoint": "0x4b13c"
+      }
+    }
+  },
+  "validation": {
+    "new_implementation_changes": true,
+    "tests": "17 focused model tests passed, plus offline CLI regeneration from the committed compact checkpoint. Previous 96 runtime/control tests and native suite were not repeated.",
+    "real_emulator": "Preserved original-layout route/rejection captures plus two bounded encounter/transition captures. No new emulator run after the model-first steering. No BYTE or changed-layout weapon-hit observation.",
+    "prior_exact_receipt_reused": "90d1ec6e769375d7f66424d92a4a154e8cf2fe4dbb6e9e7749a04f29b49a2e30",
+    "prior_implementation_tests": "96 passed, 2 skipped remain the previous checkpoint result, not newly rerun.",
+    "original_source_unchanged": true
+  },
+  "local_receipts": {
+    "state.json": "239650c6344b02b928909ea0a4e1f4a17be27225d787bf9371fe05c50fff00fe",
+    "shared-flag-instructions.json": "8e37e34251e7c5d4edb3c219db821352893e8f7732a6ca41df0c174188deffd8",
+    "shared-flag-references.json": "dbe37b56a10dcf4c3bf3d3e43e723517ce6e8c6f025498b6c58ca19ccd202f48",
+    "secondary-setter-incoming-edges.json": "5754a230a08f58a128f573735763920f4aaed29714770f579f0f8335fa68d90b",
+    "secondary-setter-incoming-references.json": "5754a230a08f58a128f573735763920f4aaed29714770f579f0f8335fa68d90b",
+    "volume-guard.json": "0f9e70207cc33d35b79ddd42d19fd3391084d1f05ad4c80d6a0642fd6d51b8f1",
+    "main-loop.json": "4e0ca3775eef328000c3c9d8afe44f67dc485dd7ada60a701d0768203082f881",
+    "projectile-flow.json": "865d2797825e8baf85acee0d6968b25de36cc045d35988cf7ff155d6644d879a",
+    "projectile-flow-page2.json": "dc4b4c55d0b1cf3760847d42009673b498318b5c9925c2b0edfe7e9fae5e3697",
+    "projectile-flow-tail.json": "8cdef381eddccbb430aab3684a76fed115a32665b53daa4c603947a486adc41e",
+    "audio-helper-clears.json": "3813e0090b657c04261056261e177608d71e727534e4411df5d077ba3b2c06ae",
+    "gun-source-symbols.json": "eaa42eecb3d3f2c296c109c27b504414b7838cbcdc57ea0f8213537ce09524e7",
+    "gun-position-symbols.json": "5388ac60ba9edc0ade53bac5441d37ed53a3d67c6e976a769b11b26e399b014d",
+    "gun-acquisition.json": "58f3eb95a8651670c5b00dee22461dcf3857f865a0ddbf606c4bda8b17f95858",
+    "movement-ui-guard.json": "729d7e26ea2f07c846c8a48dc97dc0fc1b629af4df910627018c089225a9426c",
+    "combat-initialization.json": "ef86925d837b3488c45748fadd377729e804c699964e650fe4a65b428adf7aa6",
+    "player-movement-symbols.json": "67a435dd14cbf513f09e9d2e0f16727f3ba93ce1ef6584fa5d0e7c0e704b12c7",
+    "all-player-frames.json": "b32792bdfd1b52925d8d564156762cab4b743445f90839e41dca94462d1d07a0",
+    "local-map-comparison.json": "5480f720ab82306c9588dfc792ccbf5bb0b68533b3661ef7efcba4ed7f5bcfd8",
+    "original-gun-result.json": "889b0384b48c1e868d4852b898de71965d82b1ea5b5175dd870f06f61484d35c",
+    "original-gun-detour-result.json": "4498d24a91b945a138815942c26a776f15fa00724e5b1a797ca57dc92b556beb",
+    "original-gun-rejection-result.json": "df3ecf363baa5a4564843d533aa83d0be33b3d6173532b7cf3876f1753e2bf9d",
+    "world-model-encounter-result.json": "04addcff1f633bb7770b074d535ba279bc49d9c10040cb917284fadf6d27400e",
+    "world-model-transition-result.json": "645dc8432acf271a3bdf14a78d26a387db7cc6e6ff640db94739c6b210d0736d"
+  },
+  "model_artifacts": {
+    "runtime/observations/pandora-world-model.json": "09b400f334b9f905486091040787173248c6fbb9df4210710b1382c61454af6f",
+    "runtime/observations/pandora-world-model-checkpoint.json": "8309f41d30ec78b4cda72f60663d0f2fa778e9e0be8bd885cffc140888a23d58"
+  }
+}

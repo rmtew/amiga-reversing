@@ -9,6 +9,82 @@ static int test_external_write_allowed(void *user, uint32_t address, uint8_t wid
   return address == 0x30U && width == 1U;
 }
 
+static int test_concrete_subi_word_preserves_upper_and_sets_ccr(void) {
+  uint8_t memory[] = {0x04U, 0x40U, 0x03U, 0x48U}; /* subi.w #840,d0 */
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.d[0] = 0x00070328U;
+  state.sr = 0x2000U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state,
+    1U, 0U, 0U, NULL, &result));
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(0x0007FFE0U, state.d[0]);
+  M68K_C_ASSERT_U32(0x2019U, state.sr);
+  M68K_C_ASSERT_U32(0U, (uint32_t)result.memory_write_count);
+  return 0;
+}
+
+/* Real binary decoding deliberately supplies no text suffix. Exercise all four
+ * bit operations, both index forms, direct D1 and byte EA/update forms. */
+static int test_concrete_bit_ea_category_width_and_flags(void) {
+  static const uint16_t opwords[4] = {0x0100U, 0x0140U, 0x0180U, 0x01C0U};
+  static const uint16_t destinations[4] = {0x0001U, 0x0010U, 0x0018U, 0x0020U};
+  size_t operation;
+  size_t immediate;
+  size_t destination;
+  size_t present;
+  for (operation = 0U; operation < 4U; ++operation) {
+    for (immediate = 0U; immediate < 2U; ++immediate) {
+      for (destination = 0U; destination < 4U; ++destination) {
+        for (present = 0U; present < 2U; ++present) {
+          uint8_t memory[64];
+          uint8_t expected[64];
+          M68kSimConcreteState state;
+          M68kSimConcreteRunTraceResult result;
+          uint16_t opword = (uint16_t)((immediate ? 0x0800U + operation * 0x40U : opwords[operation]) |
+            destinations[destination]);
+          uint32_t mask = destination == 0U ? 0x00020000U : 0x02U;
+          uint32_t input = (destination == 0U ? 0x80000080U : 0x80U) | (present ? mask : 0U);
+          uint32_t output = input;
+          memset(memory, 0xA5, sizeof(memory));
+          memset(&state, 0, sizeof(state));
+          memory[0] = (uint8_t)(opword >> 8);
+          memory[1] = (uint8_t)opword;
+          memory[2] = 0x00U;
+          memory[3] = 0x31U; /* bit49 => bit17 in Dn, bit1 in memory */
+          memory[32] = destination == 0U ? 0xA5U : (uint8_t)input;
+          memcpy(expected, memory, sizeof(memory));
+          state.d[0] = 0x12340031U;
+          state.d[1] = destination == 0U ? input : 0xCAFEBABEU;
+          state.a[0] = destination == 3U ? 33U : 32U;
+          state.sr = 0xA71FU;
+          if (operation == 1U) output ^= mask;
+          if (operation == 2U) output &= ~mask;
+          if (operation == 3U) output |= mask;
+          if (destination != 0U) expected[32] = (uint8_t)output;
+          M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory),
+            &state, 1U, 0U, 0U, NULL, &result));
+          M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+          M68K_C_ASSERT_U32(immediate ? 4U : 2U, state.pc);
+          M68K_C_ASSERT_U32(0x12340031U, state.d[0]);
+          M68K_C_ASSERT_U32(destination == 0U ? output : 0xCAFEBABEU, state.d[1]);
+          M68K_C_ASSERT_U32(destination == 2U ? 33U : 32U, state.a[0]);
+          M68K_C_ASSERT_U32(present ? 0xA71BU : 0xA71FU, state.sr);
+          M68K_C_ASSERT(memcmp(memory, expected, sizeof(memory)) == 0);
+          M68K_C_ASSERT_U32(destination != 0U && operation != 0U ? 1U : 0U, (uint32_t)result.memory_write_count);
+          if (result.memory_write_count != 0U) {
+            M68K_C_ASSERT_U32(1U, (uint32_t)result.memory_write_range_count);
+            M68K_C_ASSERT_U32(32U, result.memory_write_ranges[0].start);
+            M68K_C_ASSERT_U32(33U, result.memory_write_ranges[0].end);
+          }
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 static int test_external_long_access_allowed(void *user, uint32_t address, uint8_t width) {
   (void)user;
   return address == 0x30U && width == 4U;
@@ -510,6 +586,8 @@ int m68k_c_simulator_tests(void) {
     {"metadata_lookup_does_not_fallback_to_mnemonic_shape",
       test_metadata_lookup_does_not_fallback_to_mnemonic_shape},
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
+    {"concrete_subi_word_preserves_upper_and_sets_ccr", test_concrete_subi_word_preserves_upper_and_sets_ccr},
+    {"concrete_bit_ea_category_width_and_flags", test_concrete_bit_ea_category_width_and_flags},
     {"concrete_run_stops_on_instruction_limit", test_concrete_run_stops_on_instruction_limit},
     {"concrete_run_accepts_generated_noop_semantics", test_concrete_run_accepts_generated_noop_semantics},
     {"concrete_run_reports_pc_out_of_range", test_concrete_run_reports_pc_out_of_range},
