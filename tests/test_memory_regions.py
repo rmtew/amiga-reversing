@@ -410,6 +410,7 @@ def test_balanced_native_prefix_can_borrow_a_return_context(tmp_path):
         ),
         ("pea.l $4000.l", "", "unmodeled_frame_prefix_exception_or_link"),
         ("move #$2000,sr", "", "unmodeled_frame_prefix_exception_or_link"),
+        ("chk.w #2,d0", "", "unmodeled_frame_prefix_exception_or_link"),
         ("move.l usp,a0", "", "frame_prefix_address_escape"),
         ("lea.l $0(a1,a7.l),a2", "", "frame_prefix_address_escape"),
     ],

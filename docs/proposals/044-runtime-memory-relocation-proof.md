@@ -37,6 +37,63 @@ not represented. Its parser/execution model needs a separate grounded extension;
 do not encode a mnemonic exception in the relocation interpreter. Current prefix
 proof explores both branch outcomes and does not rely on that CCR result.
 
+## Bounded leaf liveness and Pandora's actual interrupt configuration
+
+`m68k_memory_pointer_liveness.inc` projects future uses after an adjacent bounded,
+non-mutating leaf read. It follows accepted branches, calls and register aliases,
+stopping a path at independent overwrite, observation, escape or an unsupported
+observer. It retains tail-return uncertainty, rejects partial alias overwrites,
+and does not admit a first leaf that overwrites the producer through MOVEM or can
+raise a described exception. Event/state/depth limits never certify omitted paths.
+The result explicitly does **not** discharge relocation, frame integrity, IRQ
+observers or instruction/interrupt timing. Root and prefix proofs now also refuse generated exception triggers
+and bounds traps; a CHK path must not silently become closed.
+
+For Pandora's `$9062` root, the current native audit visits 109 states after the
+read at `$9068`: no later pointer use, independent overwrites at `$2D2A`, `$6122`
+and `$921A`, and a mode/exception barrier at warm restart `$464`. These are source
+offsets; the materialized program view starts at runtime `$10000`.
+
+The relevant environment is the original A500/68000 game after its bootstrap,
+with no external vector/callback patching, debugger-injected exceptions, NMI or
+trace execution, and an intact game-owned stack and original resources. Startup
+installs TRAP0 at `$482`, executes it at `$486`, sets SR to `$2700` at `$488`, and
+later `$2000` at `$512`. The remaining recognized SR writes use `$2700`/`$2000`,
+or restore the locally saved SR in the atomic callback setter `$2656..$2660`.
+Thus warm restart's `$2700` write does not leave supervisor mode in this game
+configuration; arbitrary user-mode entry is not the relevant blocker.
+
+Setup installs the level-3 handler `$8E4` through vector `$6C` at `$4E0`, clears
+INTENA, and enables master/Copper/VBL with `$C030` at `$516`. Title transitions
+toggle the master bit, not another interrupt source. The handler saves
+D0/A0-A1/A5-A6, replaces A0 with a callback, then restores it before each RTE.
+The interrupted A0 slot is `8(SP)` at callback entry and `60(SP)` at the audio
+callee reached through the gameplay VBL wrapper's `$9D0` call. Recognized
+dispatcher/callback stack accesses do not explicitly read that interrupted slot.
+
+This is insufficient for closure: gameplay VBL reaches audio entry `$4D8FC`,
+whose live stream decoder reaches the **unresolved native indexed jump `$4DC2A`**.
+The table at `$4DCE8` contains eleven commands `$80..$8A`; the instruction path
+alone admits `$80..$9F`. The existing original-resource token observations do not
+establish a native invariant over mutable stream cursors, configuration selectors
+and all their writers. Assuming an intact stack or unchanged input file cannot
+substitute for that missing continuation bound. No observed saved-A0 read is
+claimed, but not every callback continuation is certified. The root and region
+therefore retain their refusals (five unresolved roots); no pair lowering,
+conditional runtime guard or changed instruction mapping has been introduced.
+
+If keyboard relocation is deferred, the best smaller first-region candidate is
+`audio_master_volume`, source `$4DD00`, two bytes initially `$0040`: native facts
+identify two PC-relative reads and three absolute writes, including one byte
+write. Moving these accesses need not change an address-register value or an IRQ
+save payload. It still requires mapped-source initialization and native
+PC-relative reference coverage; a validated low-Chip reservation could permit
+same-width absolute-WORD reads, but no such free allocation has been established.
+The twelve-byte `camera_scroll_profiles` table is another bounded CPU-only data
+family (two three-WORD records), with additional PC-indexed access, caller/index
+and pointer-lifetime obligations. Neither is a ready relocation plan, and slicing
+the keyboard buffer does not remove its indexed writers or inherited aliases.
+
 ## Address and frame provenance
 
 The next step needs tagged values: unknown, absolute runtime address with native

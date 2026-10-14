@@ -43,7 +43,8 @@ static MRFramePrefixResult mr_frame_prefix(const PlatformFileListingArtifact *a,
     if(!m || ins->instruction.target_cpu!=M68K_ASM_CPU_68000) MRF_FAIL("unsupported_frame_prefix_instruction");
     if(m->operation_type==M68K_SIM_OP_NONE && m->operation_class==M68K_SIM_CLASS_NONE &&
         (m->flow_kind==M68K_SIM_FLOW_NONE || m->flow_kind==M68K_SIM_FLOW_SEQUENTIAL)) MRF_FAIL("unsupported_frame_prefix_instruction");
-    if(m->flow_kind==M68K_SIM_FLOW_TRAP || m->operation_type==M68K_SIM_OP_LINK || m->operation_type==M68K_SIM_OP_UNLK ||
+    if(m->flow_kind==M68K_SIM_FLOW_TRAP || m->exception_trigger || m->bounds_trap_on_fail ||
+        m->operation_type==M68K_SIM_OP_LINK || m->operation_type==M68K_SIM_OP_UNLK ||
         m->operation_type==M68K_SIM_OP_PUSH_EA || m->ccr_formula==M68K_SIM_CCR_FORMULA_WRITE_SR)
       MRF_FAIL("unmodeled_frame_prefix_exception_or_link");
     unsigned stack_memory_operands=0;

@@ -289,7 +289,8 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
     if(ins->instruction.target_cpu!=M68K_ASM_CPU_68000) MR_FAIL("unsupported_pointer_cpu_scope");
     if(m->operation_type==M68K_SIM_OP_NONE && m->operation_class==M68K_SIM_CLASS_NONE &&
         (m->flow_kind==M68K_SIM_FLOW_NONE || m->flow_kind==M68K_SIM_FLOW_SEQUENTIAL)) MR_FAIL("unaccepted_or_unsupported_pointer_path");
-    if(m->flow_kind==M68K_SIM_FLOW_TRAP || m->operation_type==M68K_SIM_OP_PUSH_EA ||
+    if(m->flow_kind==M68K_SIM_FLOW_TRAP || (m->exception_trigger && m->flow_kind!=M68K_SIM_FLOW_RETURN) || m->bounds_trap_on_fail ||
+        m->operation_type==M68K_SIM_OP_PUSH_EA ||
         m->ccr_formula==M68K_SIM_CCR_FORMULA_WRITE_SR) MR_FAIL("unmodeled_pointer_exception");
     if((state.saved_count || state.depth) && (m->operation_type==M68K_SIM_OP_LINK || m->operation_type==M68K_SIM_OP_UNLK)) MR_FAIL("saved_pointer_frame_address_escape");
     M68kSimCpuState cpu;M68kSimStepResult step;m68k_sim_cpu_state_init_unknown(&cpu);

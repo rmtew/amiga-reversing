@@ -1,4 +1,5 @@
 #include "m68k_memory_region_proof.inc"
+#include "m68k_memory_pointer_liveness.inc"
 /* Native formal-memory projection. Included after the canonical artifact and
  * JSON codec definitions; it never scans rendered source or invents owners. */
 static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingArtifact *a,
@@ -44,6 +45,20 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
             frame.entry,frame.delta,frame.minimum_delta,frame.maximum_delta,frame.states,frame.paths,frame.failure_offset,
             frame.reason ? "refused" : "modeled_relative_only") ||
             (frame.reason ? json_builder_append_json_string(b,frame.reason) : json_builder_append(b,"null")) || json_builder_append(b,"}")) return -1;
+        MRLivenessResult live=mr_after_leaf_liveness(a,r,ins,(uint8_t)j);
+        if(live.applicable) {
+          if(json_builder_appendf(b,",\"after_leaf_liveness\":{\"leaf_offset\":%u,\"start_offset\":%u,\"states\":%u,"
+              "\"overwrite_count\":%u,\"use_count\":%u,\"barrier_count\":%u,\"truncated\":%s,"
+              "\"scope\":\"accepted_ordinary_control_flow_only\",\"relocation_closure\":false,"
+              "\"interrupt_observers\":\"unmodeled\",\"frame_integrity\":\"unproved\",\"events\":[",
+              live.leaf,live.start,live.states,live.deaths,live.uses,live.barriers,live.truncated ? "true" : "false")) return -1;
+          for(unsigned event=0;event<live.event_count;event++) {
+            if((event && json_builder_append(b,",")) ||
+                json_builder_appendf(b,"{\"source_offset\":%u,\"kind\":",live.events[event].pc) ||
+                json_builder_append_json_string(b,live.events[event].kind) || json_builder_append(b,"}")) return -1;
+          }
+          if(json_builder_append(b,"]}")) return -1;
+        }
         if(proof.reason) {
           const M68kRenderPlannedInstruction *failed=mr_instruction(a,proof.source_offset);
           if(failed) {
