@@ -306,6 +306,41 @@ conditional build/guard enforcement does not yet exist. No Pandora artifact was
 built, reserved or executed at the new placement, and no new target/history facts
 were added by this framework continuation.
 
+The following closure investigation used fresh native instruction and caller
+queries, without adding a proof assumption or changing target facts. Explicit A6
+definitions are `$48C` and IRQ `$8E8` (application base `$39FC`), `$4D978` (custom
+base) and `$4D98E` (audio channel arithmetic); `$1034` and `$97C8` restore A6 from
+the stack. The audio callers visibly pair `$102A..$1034` and `$97BE..$97C8`
+push/call/pop sequences. This identifies the preservation obligation; a matched
+pop does not prove its saved slot remained intact through the callee.
+
+The seven explicit SP definitions/adjustments are `$47A`, `$4BA`, `$609E`,
+`$71A8`, `$71B2`, `$71C2` and `$71C6`. The first two initialize SP from the native
+PC-relative `$10452` anchor. Their presence alone supplies neither an incoming
+SP interval at a later keyboard root nor a complete future stack envelope.
+
+The IRQ handler at `$8E4` saves D0/A0/A1/A5/A6, establishes A6/A5 at `$8E8/$8EE`,
+dispatches a callback through one of three mutable application slots and has four
+matching MOVEM/RTE exits. Those exits show intended register preservation, not
+proof that callback writes cannot alias the saved frame. The keyboard producer at
+`$86A` writes A1; its preceding `$862` LEA establishes CIA access through A0.
+Closing that root still requires the incoming IRQ stack domain, the application
+base at its call and preservation of both callback and interrupted frames.
+
+The pause-gate root `$2D2A` has three resolved native callers: `$600`, `$902C`
+and `$9C40`. Its returned A0 remains live into joystick handling, which writes
+through A6. Thus merely dropping the caller-prefix obligation would not close the
+alias obligations. The `$9C76` exit path reaches the `$464` SR write before A0's
+independent replacement at `$49E`; skipping the mode transition would assume the
+supervisor/frame condition that still needs proof. No addition in this
+investigation closes any of the five roots; no broader abstraction was added.
+
+Inspection of Copperline's pinned `v1.0.0` source was blocked by the network proxy
+with `403 Forbidden` for the GitHub API tree request. That restricted fetch was
+stopped without an alternate route. The local listing service remains available.
+The before-execution/interrupt guarantees required for a conditional runtime guard
+route have not been established, so that route cannot authorize a derived build.
+
 The next step is shared native provenance/frame analysis establishing disjoint
 application/object storage and balanced caller/callback stacks. Re-review those
 five roots, then build the seven-rewrite artifact through the normal verified
