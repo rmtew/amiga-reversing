@@ -1,0 +1,1353 @@
+{
+  "schema_version": 1,
+  "status": "partial_two_of_three_game_writers",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "scenario": "../scenarios/pandora-volume-proximity-writers.json",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "artifact_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+  "region": "audio_master_volume",
+  "original_address": "0x5dd00",
+  "destination": "0x65400",
+  "logical_size": 2,
+  "route": {
+    "start": [
+      241,
+      866
+    ],
+    "inside": [
+      752,
+      314
+    ],
+    "center": [
+      840,
+      168
+    ],
+    "inside_manhattan_distance": 234,
+    "outside": [
+      724,
+      314
+    ],
+    "outside_manhattan_distance": 262,
+    "accepted_moves": 231,
+    "input": "phase-bounded native joystick only"
+  },
+  "materialization": {
+    "original": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      }
+    },
+    "relocated": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "051cac9349e34dab6a71b31a3140039298df8443f8e21782babc7719722f4079",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": {
+          "address": 414720,
+          "bytes": "0040",
+          "readback_verified": true,
+          "reverse_anchor": "after_write",
+          "replay_across_write": false
+        }
+      }
+    }
+  },
+  "phases": [
+    {
+      "name": "title_menu_loop",
+      "status": "hit",
+      "source_offset": "0xba8",
+      "runtime_base": "0x00010000"
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "status": "hit",
+      "source_offset": "0x79e",
+      "runtime_base": "0x00010000"
+    },
+    {
+      "name": "initial_proximity_context",
+      "status": "hit",
+      "source_offset": "0x83ae",
+      "runtime_base": "0x00010000"
+    },
+    {
+      "name": "entry_officer_card_transferred",
+      "status": "hit",
+      "source_offset": "0x4b13c",
+      "runtime_base": "0x00010000"
+    },
+    {
+      "name": "route_00_up_18",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "00f1031a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 2,
+        "AUD2VOL": 0,
+        "AUD3VOL": 0,
+        "DMACON": 2018
+      }
+    },
+    {
+      "name": "route_01_right_44",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "0225031a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 0,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_02_down_1",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "021e031a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 0,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_03_up_36",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "021e028a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 4,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_04_left_6",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "01f4028a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 4,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_05_right_1",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "01fb028a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 4,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_06_down_1",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "01f4028a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 4,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_07_up_64",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "01f4018a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 4,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_08_up_20",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "01f4013a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 1,
+        "AUD2VOL": 0,
+        "AUD3VOL": 4,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "route_09_right_36",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "02f0013a",
+      "original_volume": "0004",
+      "relocated_volume": "0004",
+      "old_address_guard": "0040",
+      "interaction_flags": "01",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 3,
+        "AUD1VOL": 3,
+        "AUD2VOL": 3,
+        "AUD3VOL": 2,
+        "DMACON": 2031
+      }
+    },
+    {
+      "name": "volume_word_before",
+      "status": "hit",
+      "source_offset": "0x55368",
+      "runtime_base": "0x00010000",
+      "player_xy": "02f0013a",
+      "original_volume": "0004",
+      "relocated_volume": "0004",
+      "old_address_guard": "0040",
+      "interaction_flags": "01",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 3,
+        "AUD1VOL": 3,
+        "AUD2VOL": 3,
+        "AUD3VOL": 2,
+        "DMACON": 2031
+      }
+    },
+    {
+      "name": "volume_word_after",
+      "status": "hit",
+      "source_offset": "0x5536e",
+      "runtime_base": "0x00010000",
+      "player_xy": "02f0013a",
+      "original_volume": "0006",
+      "relocated_volume": "0006",
+      "old_address_guard": "0040",
+      "interaction_flags": "01",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 3,
+        "AUD1VOL": 3,
+        "AUD2VOL": 3,
+        "AUD3VOL": 2,
+        "DMACON": 2031
+      }
+    },
+    {
+      "name": "proximity_note_read",
+      "status": "hit",
+      "source_offset": "0x4da50",
+      "runtime_base": "0x00010000",
+      "player_xy": "02f0013a",
+      "original_volume": "0006",
+      "relocated_volume": "0006",
+      "old_address_guard": "0040",
+      "interaction_flags": "01",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 2,
+        "AUD1VOL": 1,
+        "AUD2VOL": 2,
+        "AUD3VOL": 3,
+        "DMACON": 2021
+      }
+    },
+    {
+      "name": "proximity_note_output",
+      "status": "hit",
+      "source_offset": "0x4da6e",
+      "runtime_base": "0x00010000",
+      "player_xy": "02f0013a",
+      "original_volume": "0006",
+      "relocated_volume": "0006",
+      "old_address_guard": "0040",
+      "interaction_flags": "01",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 2,
+        "AUD1VOL": 1,
+        "AUD2VOL": 2,
+        "AUD3VOL": 2,
+        "DMACON": 2021
+      }
+    },
+    {
+      "name": "leave_band_four_left",
+      "status": "hit",
+      "source_offset": "0x9844",
+      "runtime_base": "0x00010000",
+      "player_xy": "02d4013a",
+      "original_volume": "0001",
+      "relocated_volume": "0001",
+      "old_address_guard": "0040",
+      "interaction_flags": "01",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 0,
+        "AUD2VOL": 0,
+        "AUD3VOL": 2,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "volume_reset_before",
+      "status": "hit",
+      "source_offset": "0x5533c",
+      "runtime_base": "0x00010000",
+      "player_xy": "02d4013a",
+      "original_volume": "0001",
+      "relocated_volume": "0001",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 0,
+        "AUD2VOL": 0,
+        "AUD3VOL": 0,
+        "DMACON": 2016
+      }
+    },
+    {
+      "name": "volume_reset_after",
+      "status": "hit",
+      "source_offset": "0x55344",
+      "runtime_base": "0x00010000",
+      "player_xy": "02d4013a",
+      "original_volume": "0040",
+      "relocated_volume": "0040",
+      "old_address_guard": "0040",
+      "interaction_flags": "00",
+      "paula_equal": true,
+      "paula_both": {
+        "AUD0VOL": 0,
+        "AUD1VOL": 0,
+        "AUD2VOL": 0,
+        "AUD3VOL": 0,
+        "DMACON": 2016
+      }
+    }
+  ],
+  "game_writers": {
+    "0x55368": {
+      "width": "WORD",
+      "status": "observed_in_both",
+      "before": "0004",
+      "after": "0006"
+    },
+    "0x5533c": {
+      "width": "WORD",
+      "status": "observed_in_both",
+      "before": "0001",
+      "after": "0040"
+    },
+    "0x552f0": {
+      "width": "BYTE_high_lane",
+      "status": "not_observed",
+      "reason": "The defeated flag bit 1 is set, but shared audio bit 0 was cleared during combat. The BYTE reset requires both. Static entry guard therefore bypasses the write in this sampled post-defeat state."
+    }
+  },
+  "combat_probe": {
+    "scenario": "../scenarios/pandora-volume-feed-combat-probe.json",
+    "status": "all_phases_hit_in_both",
+    "executable_phases": 46,
+    "original_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "relocated_handoff": {
+      "payload_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "materialization_original": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      }
+    },
+    "materialization_relocated": {
+      "memory_write": "handoff_release",
+      "reverse_anchor": "after_write",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "051cac9349e34dab6a71b31a3140039298df8443f8e21782babc7719722f4079",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": {
+          "address": 414720,
+          "bytes": "0040",
+          "readback_verified": true,
+          "reverse_anchor": "after_write",
+          "replay_across_write": false
+        }
+      }
+    },
+    "ordinary_inputs": [
+      "joystick route to Feed",
+      "key 64 Space opens inventory",
+      "fire swaps selected officer ID for empty carried slot",
+      "six fire presses at attack charge 24"
+    ],
+    "player_hp_initial": 95,
+    "player_hp_final": 80,
+    "feed_hp_initial": 29,
+    "feed_hp_after_six_hits": [
+      "0018",
+      "0013",
+      "000e",
+      "0009",
+      "0004",
+      "00ff"
+    ],
+    "feed_flags_after_defeat": "66",
+    "shared_audio_flags_after_defeat": "00",
+    "volume_after_defeat": "0040",
+    "byte_writer_status": "not_observed",
+    "reason": "The defeated flag bit 1 is set, but shared audio bit 0 was cleared during combat. The BYTE reset requires both. Static entry guard therefore bypasses the write in this sampled post-defeat state.",
+    "earlier_attempt": {
+      "layout": "original",
+      "result": "combat-entry timeout with officer ID selected; superseded by normal inventory selection",
+      "local_receipt": "original-feed-result.json"
+    },
+    "next_action": "Find a normal route that sets shared audio flag bit 0 after Feed defeat, or establish the static reachability boundary. No debugger-forced state or all-writer completion claim.",
+    "phases": [
+      {
+        "name": "feed_approach_00_left_5",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          689,
+          314
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "00",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005a028",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 0,
+          "AUD2VOL": 0,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_approach_01_right_1",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          696,
+          314
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "00",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005a028",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 0,
+          "AUD2VOL": 0,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_approach_02_down_1",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          689,
+          314
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "00",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005a028",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 0,
+          "AUD2VOL": 0,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_approach_03_up_46",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          689,
+          130
+        ],
+        "volume_original": "0012",
+        "volume_relocated": "0012",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "00",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "000586ba",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 19,
+          "AUD1VOL": 19,
+          "AUD2VOL": 19,
+          "AUD3VOL": 7,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_approach_04_right_19",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          822,
+          130
+        ],
+        "volume_original": "0031",
+        "volume_relocated": "0031",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 24,
+          "AUD1VOL": 49,
+          "AUD2VOL": 24,
+          "AUD3VOL": 36,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_approach_05_down_15",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          815,
+          186
+        ],
+        "volume_original": "0037",
+        "volume_relocated": "0037",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 14,
+          "AUD1VOL": 56,
+          "AUD2VOL": 14,
+          "AUD3VOL": 21,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_approach_06_right_3",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          836,
+          186
+        ],
+        "volume_original": "0039",
+        "volume_relocated": "0039",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 14,
+          "AUD1VOL": 42,
+          "AUD2VOL": 14,
+          "AUD3VOL": 35,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_approach_07_down_1",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          829,
+          186
+        ],
+        "volume_original": "003b",
+        "volume_relocated": "003b",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 11,
+          "AUD1VOL": 59,
+          "AUD2VOL": 11,
+          "AUD3VOL": 35,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_approach_08_up_1",
+        "status": "hit_in_both",
+        "source_offset": "0x9844",
+        "paula_equal": true,
+        "player_xy": [
+          829,
+          182
+        ],
+        "volume_original": "0039",
+        "volume_relocated": "0039",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "00",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 7,
+          "AUD1VOL": 42,
+          "AUD2VOL": 7,
+          "AUD3VOL": 33,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_inventory_opened",
+        "status": "hit_in_both",
+        "source_offset": "0x2898",
+        "paula_equal": true,
+        "player_xy": [
+          829,
+          182
+        ],
+        "volume_original": "003a",
+        "volume_relocated": "003a",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "0c",
+        "captured_game_state_equal": true,
+        "selected_item_bytes": "3600",
+        "paula_both": {
+          "AUD0VOL": 7,
+          "AUD1VOL": 42,
+          "AUD2VOL": 7,
+          "AUD3VOL": 33,
+          "DMACON": 2023
+        }
+      },
+      {
+        "name": "feed_inventory_ready",
+        "status": "hit_in_both",
+        "source_offset": "0x28d4",
+        "paula_equal": true,
+        "player_xy": [
+          829,
+          182
+        ],
+        "volume_original": "003a",
+        "volume_relocated": "003a",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "04",
+        "captured_game_state_equal": true,
+        "selected_item_bytes": "3600",
+        "paula_both": {
+          "AUD0VOL": 58,
+          "AUD1VOL": 58,
+          "AUD2VOL": 58,
+          "AUD3VOL": 48,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_combat_entry",
+        "status": "hit_in_both",
+        "source_offset": "0x7792",
+        "paula_equal": true,
+        "player_xy": [
+          829,
+          182
+        ],
+        "volume_original": "003a",
+        "volume_relocated": "003a",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "01",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "24",
+        "feed_xy": [
+          840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000000000000000000",
+        "ui_flags": "04",
+        "captured_game_state_equal": true,
+        "selected_item_bytes": "0000",
+        "paula_both": {
+          "AUD0VOL": 43,
+          "AUD1VOL": 43,
+          "AUD2VOL": 43,
+          "AUD3VOL": 8,
+          "DMACON": 2031
+        }
+      },
+      {
+        "name": "feed_attack_1_charged",
+        "status": "hit_in_both",
+        "source_offset": "0x81a6",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 95,
+        "feed_hp_word": 29,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "0018000c030303030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 0,
+          "AUD2VOL": 0,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_attack_1_hit",
+        "status": "hit_in_both",
+        "source_offset": "0x7974",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 95,
+        "feed_hp_word": 24,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "0000000c030302030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 0,
+          "AUD2VOL": 0,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_attack_2_charged",
+        "status": "hit_in_both",
+        "source_offset": "0x81a6",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 90,
+        "feed_hp_word": 24,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00180001030303030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 54,
+          "AUD2VOL": 36,
+          "AUD3VOL": 0,
+          "DMACON": 2018
+        }
+      },
+      {
+        "name": "feed_attack_2_hit",
+        "status": "hit_in_both",
+        "source_offset": "0x7974",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 90,
+        "feed_hp_word": 19,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000001030302030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 44,
+          "AUD2VOL": 36,
+          "AUD3VOL": 0,
+          "DMACON": 2018
+        }
+      },
+      {
+        "name": "feed_attack_3_charged",
+        "status": "hit_in_both",
+        "source_offset": "0x81a6",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 90,
+        "feed_hp_word": 19,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "0018000d030303030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 36,
+          "AUD2VOL": 36,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_attack_3_hit",
+        "status": "hit_in_both",
+        "source_offset": "0x7974",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 90,
+        "feed_hp_word": 14,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "0000000d030302030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 36,
+          "AUD2VOL": 36,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_attack_4_charged",
+        "status": "hit_in_both",
+        "source_offset": "0x81a6",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 85,
+        "feed_hp_word": 14,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00180002030303030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 44,
+          "AUD2VOL": 36,
+          "AUD3VOL": 0,
+          "DMACON": 2018
+        }
+      },
+      {
+        "name": "feed_attack_4_hit",
+        "status": "hit_in_both",
+        "source_offset": "0x7974",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 85,
+        "feed_hp_word": 9,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000002030302030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 36,
+          "AUD2VOL": 36,
+          "AUD3VOL": 0,
+          "DMACON": 2018
+        }
+      },
+      {
+        "name": "feed_attack_5_charged",
+        "status": "hit_in_both",
+        "source_offset": "0x81a6",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 85,
+        "feed_hp_word": 9,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "0018000e030303030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 36,
+          "AUD2VOL": 36,
+          "AUD3VOL": 40,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_attack_5_hit",
+        "status": "hit_in_both",
+        "source_offset": "0x7974",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 85,
+        "feed_hp_word": 4,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "0000000e030302030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 36,
+          "AUD2VOL": 36,
+          "AUD3VOL": 40,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_attack_6_charged",
+        "status": "hit_in_both",
+        "source_offset": "0x81a6",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 80,
+        "feed_hp_word": 4,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00180003030303030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 36,
+          "AUD2VOL": 36,
+          "AUD3VOL": 40,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_attack_6_hit",
+        "status": "hit_in_both",
+        "source_offset": "0x7974",
+        "paula_equal": true,
+        "player_xy": [
+          10829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 80,
+        "feed_hp_word": 255,
+        "feed_flags": "64",
+        "feed_xy": [
+          10840,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000003030302030505",
+        "ui_flags": "22",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 36,
+          "AUD2VOL": 36,
+          "AUD3VOL": 40,
+          "DMACON": 2016
+        }
+      },
+      {
+        "name": "feed_after_combat_audio_entry",
+        "status": "hit_in_both",
+        "source_offset": "0x552fe",
+        "paula_equal": true,
+        "player_xy": [
+          829,
+          182
+        ],
+        "volume_original": "0040",
+        "volume_relocated": "0040",
+        "old_address_guard": "0040",
+        "shared_audio_flags": "00",
+        "player_hp": 80,
+        "feed_hp_word": 255,
+        "feed_flags": "66",
+        "feed_xy": [
+          832,
+          168
+        ],
+        "interaction_object_pointer": "0005c1d2",
+        "charge_tuple": "00000003030302030505",
+        "ui_flags": "20",
+        "captured_game_state_equal": true,
+        "paula_both": {
+          "AUD0VOL": 0,
+          "AUD1VOL": 0,
+          "AUD2VOL": 0,
+          "AUD3VOL": 0,
+          "DMACON": 2016
+        }
+      }
+    ],
+    "secondary_setter": {
+      "source_offset": "0x4d34c",
+      "symbol": "abs_0_0005D34C",
+      "accepted_native_references": 0,
+      "subject_revision": "d62c6f7232d9553d8fba1bb2d9f3b8209dc9d0a3a6fe9133c169b82480920151",
+      "limits": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    }
+  },
+  "limits": [
+    "No claim of all-writer completion, whole-game alias closure, or original disk-loader parity.",
+    "Keyboard relocation remains deferred; no target facts or source were changed.",
+    "Paula values are stored chipset-register observations, not audio waveform equivalence."
+  ],
+  "validation": {
+    "runtime_session_tests_passed": 69,
+    "control_symbol_tests_passed": 27,
+    "control_symbol_tests_skipped": 2,
+    "original_exact_receipt_reused": "90d1ec6e769375d7f66424d92a4a154e8cf2fe4dbb6e9e7749a04f29b49a2e30",
+    "source_sha256_unchanged": "b5c29658451d7a775aadc1cd574dcee25528bbe477362372b0fb47abfd1b913d"
+  },
+  "local_receipts": {
+    "original-route-fixed-result.json": "b6af8c5d5f2e229a11195a9dd5ac2e03e279fbb0391076e7c701738610a3a59a",
+    "derived-route-result.json": "a20929064efa9894ba9f0dc30116495a7e2329978e91c02bf5de40966e9d47c6",
+    "original-feed-result.json": "8f594b53046f7395f4bb5209cc56fd512214fac249566d0570c2bd31cd66201f",
+    "original-inventory-feed-result.json": "abd44a989c0fc49bae8b841686fad0b111ad13a50e6895bc303e703540c0ff91",
+    "derived-inventory-feed-result.json": "2195b29a5bf332d245367f9fd2fea4b141b8025c44e8add4809d6e69235b400e",
+    "secondary-audio-setter-references.json": "3453af8630999e3ce479a91a29b3bfb9e86297f38c0f9de0ce059d4178b9058c"
+  }
+}

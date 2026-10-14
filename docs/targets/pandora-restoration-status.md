@@ -257,21 +257,52 @@ runtime-equate extents and materialized views exclude conflicting placements.
 Two normal reviewed facts record the volume and constructor-owned tilemap grid
 `$4000..$F568`; keyboard work remains deferred.
 
-Both actual Copperline runs hit eight canonical phases. Captured PC-displacement
-bytes resolve the derived reads to `$65400`; D2 reads 64 on both note/envelope
-paths. Paula state matches all hit phases: note output AUD3VOL=64, envelope output
-AUD1VOL=64→48. The derived full payload is
+The initial eight-phase comparison established both reads at `$65400`, with
+matching note/envelope Paula outputs 64 and 64→48. A subsequent normal joystick
+scenario now reaches **both WORD game writers in both layouts**: 21 canonical
+phase hits after verified handoff, 231 accepted movement commits, inside position
+`(752,314)` (distance 234), then outside `(724,314)` (distance 262). The D0 writer
+at source `$55368` changes volume `0004→0006`; the immediate WORD reset at
+`$5533C` changes `0001→0040`. The sampled note scales envelope 24 at volume 6 to
+AUD3VOL=2. Relevant Paula values match, and the old `$5DD00` guard remains `0040`
+throughout the relocated route. The derived full payload remains
 `dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1`.
-The [scenario](../../runtime/scenarios/pandora-audio-volume-relocation.json) and
-[compact observations/ledger](../../runtime/observations/pandora-audio-volume-relocation.json)
-record the actual identities, instructions, register values and incomplete status.
+The [normal-input scenario](../../runtime/scenarios/pandora-volume-proximity-writers.json)
+and [compact observations](../../runtime/observations/pandora-volume-proximity-writers.json)
+record full identities, initialization, writer values, output and remaining limits.
 
-The five-second watch for source `$55368` times out in both runs. Player `(241,866)`
-is distance 1297 from the `(840,168)` proximity source; activation requires less
-than 256. None of the three game writers is dynamically covered. Initialization
-and read/output parity are not full relocation completion. Next: a bounded normal
-input scenario entering/leaving that area, then its separate high-byte reset
-condition; no debugger-forced game state or broader proof expansion.
+The **BYTE high-lane writer at `$552F0` remains unexercised**. The longer
+[normal-input combat probe](../../runtime/scenarios/pandora-volume-feed-combat-probe.json)
+reaches the Megabio Feed, opens inventory with `key 64` (Space), selects an empty
+carried slot, then delivers six charged fire presses. Both layouts hit all 46
+canonical phases. Each attack at charge 24 subtracts five from the low health byte:
+`1D→18→13→0E→09→04→FF`; the game's signed-negative branch marks the Feed defeated
+(flags `$66`). Player health ends at 80, with original/relocated game state and
+relevant Paula captures matching. No guest state was forced.
+
+This explains the remaining guard: combat's temporary world-X bias clears shared
+audio flag bit 0 and restores volume `0040`; after defeat that flag remains clear.
+The BYTE writer requires the defeated flag **and** shared audio bit 0 set, so its
+entry guard bypasses the write in the sampled post-defeat state. A secondary
+setter at source `$4D34C` currently has zero accepted native references; absent
+references do not prove unreachability. Next: find an ordinary game route that
+sets the flag after Feed defeat, or establish the static reachability boundary.
+This is two-of-three game-writer coverage, not full relocation completion, and
+does not resume keyboard-buffer relocation. An earlier approach without inventory
+selection timed out at combat entry with the officer ID selected; the passing
+inventory route supersedes it.
+
+The canonical PC identity sampler now keeps its minimum 16-byte sample inside a
+copied view near its end (the final RTS is at `$6536E`, view end `$65370`), including
+preceding bytes and translating back to the exact source PC. Full HAND/copy hashes
+and exact offset/base checks remain required. Compiler phase capacity is bounded
+to 64 including handoff (at most 63 executable phases), within the runner's existing
+64-executable-phase cap; this permits the longer diagnostic scene. 69 focused
+runtime/session tests pass; control/symbol tests add 27 passes and two skips.
+Independent read-only review found no correctness blocker. Original source/binary
+hashes were rechecked unchanged, so the exact receipt below is reused without
+repeating the unchanged native suite. Current bounded receipts are under
+`.runtime-state/pandora-analysis/volume-writers/`.
 
 361 focused tests pass; the full native suite retains the same two baseline
 failures. Independent code review and the reproduced PC-displacement regression

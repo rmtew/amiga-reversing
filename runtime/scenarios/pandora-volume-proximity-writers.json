@@ -1,0 +1,844 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-volume-proximity-writers",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "initial_proximity_context",
+      "breakpoint_stable_key": "s0:000083AE:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "entry_officer_card_transferred",
+      "breakpoint_stable_key": "s0:0004B13C:instruction",
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "route_00_up_18",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 18,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_01_right_44",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 44,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_02_down_1",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_03_up_36",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 36,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_04_left_6",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 6,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_05_right_1",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_06_down_1",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_07_up_64",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 64,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_08_up_20",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 20,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "route_09_right_36",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 36,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "volume_word_before",
+      "breakpoint_stable_key": "s0:00055368:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "volume_word_after",
+      "breakpoint_stable_key": "s0:0005536E:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "proximity_note_read",
+      "breakpoint_stable_key": "s0:0004DA50:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "proximity_note_output",
+      "breakpoint_stable_key": "s0:0004DA6E:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "leave_band_four_left",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 4,
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "volume_reset_before",
+      "breakpoint_stable_key": "s0:0005533C:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "volume_reset_after",
+      "breakpoint_stable_key": "s0:00055344:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    },
+    {
+      "after_phase": "entry_officer_card_transferred",
+      "control": "port1 up",
+      "release_after_phase": "route_00_up_18"
+    },
+    {
+      "after_phase": "route_00_up_18",
+      "control": "port1 right",
+      "release_after_phase": "route_01_right_44"
+    },
+    {
+      "after_phase": "route_01_right_44",
+      "control": "port1 down",
+      "release_after_phase": "route_02_down_1"
+    },
+    {
+      "after_phase": "route_02_down_1",
+      "control": "port1 up",
+      "release_after_phase": "route_03_up_36"
+    },
+    {
+      "after_phase": "route_03_up_36",
+      "control": "port1 left",
+      "release_after_phase": "route_04_left_6"
+    },
+    {
+      "after_phase": "route_04_left_6",
+      "control": "port1 right",
+      "release_after_phase": "route_05_right_1"
+    },
+    {
+      "after_phase": "route_05_right_1",
+      "control": "port1 down",
+      "release_after_phase": "route_06_down_1"
+    },
+    {
+      "after_phase": "route_06_down_1",
+      "control": "port1 up",
+      "release_after_phase": "route_07_up_64"
+    },
+    {
+      "after_phase": "route_07_up_64",
+      "control": "port1 up",
+      "release_after_phase": "route_08_up_20"
+    },
+    {
+      "after_phase": "route_08_up_20",
+      "control": "port1 right",
+      "release_after_phase": "route_09_right_36"
+    },
+    {
+      "after_phase": "proximity_note_output",
+      "control": "port1 left",
+      "release_after_phase": "leave_band_four_left"
+    }
+  ]
+}

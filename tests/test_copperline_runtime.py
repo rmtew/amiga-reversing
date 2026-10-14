@@ -466,9 +466,9 @@ def test_occurrences_depart_and_validate_each_visit_with_first_and_last_capture(
     identities = []
     original = runtime.payload_at_pc
 
-    def identify(*args):
+    def identify(*args, **kwargs):
         identities.append(c.visits)
-        return original(*args)
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(runtime, "payload_at_pc", identify)
     phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
@@ -513,8 +513,8 @@ def test_occurrence_identity_failure_does_not_count_or_capture_wrong_visit(
     c = OccurrenceClient(p.read_bytes())
     original = runtime.payload_at_pc
 
-    def identify(*args):
-        result = original(*args)
+    def identify(*args, **kwargs):
+        result = original(*args, **kwargs)
         if c.visits == 2:
             result["payload_offset"] = "0x202"
         return result
@@ -653,3 +653,45 @@ def test_named_custom_register_capture_uses_read_only_chipset_inspection():
     for custom in [['AUD0VOL']*17, ['mem.write'], [12]]:
         with pytest.raises(ValueError, match='custom registers'):
             runtime.capture_scenario_state(c, {'custom_registers': custom})
+
+
+def test_pc_identity_window_stays_inside_copy_view_at_final_instruction(tmp_path):
+    p = tmp_path/'copy.bin'
+    data = bytes(range(64)) + b'\x4e\x75' + bytes(range(64, 128))
+    p.write_bytes(data)
+    c = Client(data[:66])
+    # The input beyond the copied view is not materialized here.
+    c.memory[0x1042:0x1052] = b'\xff'*16
+    view = {'source_start': 0, 'source_end': 66, 'base_addr': 0x1000}
+    assert runtime.payload_at_pc(c, p, 0x1040)['status'] == 'not_matched'
+    result = runtime.payload_at_pc(c, p, 0x1040, runtime_view=view)
+    assert result['status'] == 'pc_matched'
+    assert result['payload_offset'] == '0x40'
+    assert result['runtime_base'] == '0x00001000'
+    assert result['sample_size'] == 16
+    assert result['sample_address'] == '0x00001032'
+    c.memory[0x103F] ^= 1
+    assert runtime.payload_at_pc(c, p, 0x1040, runtime_view=view)['status'] == 'not_matched'
+
+
+@pytest.mark.parametrize('view', [
+    {'source_start': 0, 'source_end': 15, 'base_addr': 0x1000},
+    {'source_start': 0, 'source_end': 9999, 'base_addr': 0x1000},
+    {'source_start': 0, 'source_end': 66, 'base_addr': 0x2000},
+])
+def test_pc_identity_refuses_invalid_or_noncontaining_copy_view(tmp_path, view):
+    p = payload(tmp_path)
+    with pytest.raises(CopperlineError, match='containing canonical view'):
+        runtime.payload_at_pc(Client(), p, 0x1040, runtime_view=view)
+
+
+def test_pc_identity_boundary_with_nonzero_source_start(tmp_path):
+    p = tmp_path/'offset-view.bin'
+    data = bytes(range(128));p.write_bytes(data)
+    c = Client(data[32:96]);c.memory[0x1040:0x1050] = b'\xff'*16
+    result = runtime.payload_at_pc(c, p, 0x103E,
+        runtime_view={'source_start': 32, 'source_end': 96, 'base_addr': 0x1000})
+    assert result['status'] == 'pc_matched'
+    assert result['payload_offset'] == '0x5e'
+    assert result['runtime_base'] == '0x00000fe0'
+    assert result['sample_size'] == 16

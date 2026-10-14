@@ -525,3 +525,22 @@ def test_custom_register_capture_is_bounded_and_names_only():
     for names in [['AUD0VOL']*17, ['mem.write'], [12]]:
         with pytest.raises(ValueError, match='custom registers'):
             copperline_session.validate_capture({'custom_registers': names})
+
+
+def test_compiler_and_runner_share_bounded_phase_capacity(monkeypatch, tmp_path):
+    path = tmp_path/'many-phases.json'
+    phases = [{'name': 'boot', 'observable': 'direct_payload_handoff'}] + [
+        {'name': f'visit_{i}', 'breakpoint_stable_key': 's0:00000004:instruction', 'wait_seconds': 1}
+        for i in range(63)]
+    scenario = {'schema_version': 1, 'identifier': 'many', 'target_id': 'fixture', 'phases': phases}
+    row = {'stable_key': 's0:00000004:instruction', 'start_offset': 4}
+    artifact = _FakeArtifact(row)
+    artifact._runtime_observation_views = ({'base_addr': 0x10000, 'source_start': 0, 'source_end': 16},)
+    monkeypatch.setattr(copperline_session, 'build_project_listing_artifact_profile', lambda _: (0, {}, artifact))
+    path.write_text(json.dumps(scenario))
+    compiled = copperline_session.compile_scenario('fixture', path, tmp_path/'compiled.json')
+    assert len(compiled['phases']) == 63
+    scenario['phases'].append(dict(phases[-1], name='excess'))
+    path.write_text(json.dumps(scenario))
+    with pytest.raises(ValueError, match='2..64'):
+        copperline_session.compile_scenario('fixture', path, tmp_path/'excess.json')

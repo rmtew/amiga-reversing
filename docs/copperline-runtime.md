@@ -229,8 +229,30 @@ The current saved-environment manifest is
 `.runtime-state/restoration/derived/e449f89c0ec6e432b070bdf0809c405958be12a2119909c502f3d135561f666c/manifest.json`.
 To rebuild it, run a fresh `verify`, then revision-checked `memory_build` for
 `region_id: "audio_master_volume"`, `destination: 414720`, `memory_class: "chip"`
-with that verification receipt. Both runs intentionally finish `incomplete` if
-the final five-second proximity-writer observation times out: the eight preceding
-hits validate initialization, both reads and matching Paula state, not the three
-game writers. [Compact observations](../runtime/observations/pandora-audio-volume-relocation.json)
-record the distinction and the next bounded gameplay scenario needed.
+with that verification receipt. This initial scenario intentionally finishes
+`incomplete` at its short writer watch; its eight prior hits establish read/output
+parity. The follow-up `runtime/scenarios/pandora-volume-proximity-writers.json`
+uses ordinary joystick input and completes 21 canonical phases in both layouts,
+covering the D0 WORD volume writer, immediate WORD reset and sampled AUD3VOL=2
+at volume 6. The old-address guard remains `0040` in the derived run. Use the same
+command/manifest with that scenario and separate `--state-directory` values.
+[Compact writer observations](../runtime/observations/pandora-volume-proximity-writers.json)
+record the comparison. The original eight-phase
+[observations/ledger](../runtime/observations/pandora-audio-volume-relocation.json)
+remain historical receipts.
+
+`runtime/scenarios/pandora-volume-feed-combat-probe.json` uses the same command,
+with a separate state directory. It reaches the Feed, opens inventory using
+`key 64` (Space), swaps the selected officer ID for an empty carried slot and uses
+six charged fire presses to defeat it. Both layouts hit all 46 canonical phases.
+The final capture establishes defeated flag bit 1 set and shared audio flag bit 0
+clear: combat already reset that flag and restored volume `0040`. The BYTE writer
+therefore remains uncovered; both flags must be set to enter it. The next work is
+a normal flag-setting route after defeat or a static reachability assessment,
+not a forced game-state write. Keyboard-buffer relocation remains deferred.
+
+Canonical copied-view PC samples near the view end include preceding bytes so the
+whole minimum 16-byte sample stays materialized. Offset/base validation and full
+input/copied-image identity checks remain unchanged. Declarative scenarios permit
+2..64 phases including handoff, producing at most 63 executable phases within the
+runner's existing cap of 64; input-event holds remain capped at 32 in the compiler.

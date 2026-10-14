@@ -100,6 +100,14 @@ explicit payload-bound loader assertion. Native owner regions, runtime-equate
 extents and materialized views remain placement exclusions; allocator success
 alone never makes a destination safe. Current execution coverage and outstanding
 writer coverage are in the [target ledger](../targets/pandora-restoration-status.md).
+A normal-input comparison now exercises both WORD writers and a note output at volume 6 in both
+layouts, preserving the old-address guard. The separate high-byte writer remains
+uncovered even after a passing normal inventory/combat route defeats the Feed in
+both layouts: combat clears the shared audio bit, and the BYTE reset requires that
+bit set as well as defeat. The secondary setter currently has no accepted native
+references; this does not prove it unreachable. A normal flag-setting route or
+static reachability assessment is next. No forced state or keyboard-region proof
+expansion is implied.
 The twelve-byte `camera_scroll_profiles` table is another bounded CPU-only data
 family (two three-WORD records), with additional PC-indexed access, caller/index
 and pointer-lifetime obligations. The camera candidate is not a ready plan, and slicing

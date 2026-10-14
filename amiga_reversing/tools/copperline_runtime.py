@@ -12,6 +12,8 @@ from pathlib import Path
 from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTimeout
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
+MAX_SCENARIO_PHASES = 64
+
 
 def detect_payload_execution(
     payload_path: Path, pc_address: int, pc_memory: bytes
@@ -44,10 +46,32 @@ def detect_payload_execution(
     return result
 
 
-def payload_at_pc(client, path, pc):
+def payload_at_pc(client, path, pc, *, runtime_view=None):
+    # A canonical copied view may end immediately after this instruction. Keep
+    # the identity window inside that view by including preceding bytes; reading
+    # past its end would compare unrelated runtime storage with unloaded input.
+    bounds = None
+    if runtime_view is not None:
+        start, end, base = (runtime_view.get(k) for k in ("source_start", "source_end", "base_addr"))
+        if (any(type(v) is not int for v in (start, end, base))
+                or not 0 <= start < end <= path.stat().st_size
+                or end - start < 16 or not 0 <= base <= 0x1000000 - (end-start)
+                or not base <= pc < base + end-start):
+            raise CopperlineError("PC identity requires a valid containing canonical view")
+        bounds = (base, base + end-start)
     for size in (16, 32, 64, 128, 256):
-        sample = client.read_memory(pc, min(size, 0x1000000 - pc))
-        detected = detect_payload_execution(path, pc, sample)
+        address, count = pc, min(size, 0x1000000 - pc)
+        if bounds is not None:
+            count = min(size, bounds[1]-bounds[0])
+            address = max(bounds[0], min(pc, bounds[1]-count))
+        sample = client.read_memory(address, count)
+        detected = detect_payload_execution(path, address, sample)
+        if address != pc:
+            bias = pc-address
+            detected["matching_offsets"] = [hex(int(v, 0)+bias) for v in detected["matching_offsets"]]
+            detected["sample_address"] = f"0x{address:08x}"
+            if detected["status"] == "pc_matched":
+                detected["payload_offset"] = hex(int(detected["payload_offset"], 0)+bias)
         if detected["status"] != "ambiguous":
             return detected
     return detected
@@ -365,7 +389,7 @@ def _run_scenario_phase(
         item.update(wait_for_pc(client, address, remaining if counted else seconds))
         if item["status"] != "hit":
             break
-        detection = payload_at_pc(client, payload_path, address)
+        detection = payload_at_pc(client, payload_path, address, runtime_view=phase.get("runtime_view"))
         item["payload"] = detection
         offset = phase.get("source_offset")
         if detection["status"] != "pc_matched" or (
@@ -415,7 +439,7 @@ def run_scenario(client, scenario, payload_path, release=None):
     if (
         not isinstance(phases, list)
         or not phases
-        or len(phases) > 64
+        or len(phases) > MAX_SCENARIO_PHASES
         or not isinstance(events, list)
         or len(events) > 64
     ):

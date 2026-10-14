@@ -19,7 +19,7 @@ from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
 from amiga_reversing.disasm.project_paths import resolve_project_paths
-from amiga_reversing.tools.copperline_runtime import observe
+from amiga_reversing.tools.copperline_runtime import MAX_SCENARIO_PHASES, observe
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 from amiga_reversing.tools.runtime_symbols import generate_runtime_symbol_artifact
 
@@ -198,9 +198,9 @@ def compile_scenario(
     input_events = scenario.get("input_events", [])
     if not isinstance(identifier, str) or not identifier:
         raise ValueError("Scenario requires a non-empty identifier.")
-    if not isinstance(phases, list) or not 2 <= len(phases) <= 32:
+    if not isinstance(phases, list) or not 2 <= len(phases) <= MAX_SCENARIO_PHASES:
         raise ValueError(
-            "Scenario requires boot handoff plus at least one canonical source-row phase."
+            f"Scenario requires boot handoff plus canonical source-row phases (2..{MAX_SCENARIO_PHASES} total)."
         )
     if not isinstance(input_events, list) or len(input_events) > 32:
         raise ValueError("Scenario input_events must be a list.")
