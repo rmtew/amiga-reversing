@@ -374,6 +374,32 @@ Focused timing/model/runtime/session tests: **112 passed**. The original
 binary/source and previous WORD receipt remain unchanged; no native facts or
 generated source were edited. See [timing and crossing reproduction](../copperline-runtime.md#pianist-timing-and-guarded-crossing).
 
+**Normal rifle pickup checkpoint.** Verified local save/resume now binds snapshots
+to payload, media, ROM, emulator/profile, layout manifest and canonical stopped
+state. One fresh corridor root is followed by four independently owned movement/inventory
+segments and an idle audit; root handoff/copy verification is explicitly inherited. All phase and
+position assertions pass. The flight-controller crossing is qualified in the
+forward direction, then normal inventory selection and pickup equip rifle 18 at
+`(1228,874)` with HP 95, ammo `05,01` and the card stored in carried inventory.
+Snapshots remain local; layout bindings prohibit sharing an original checkpoint
+with a relocated run.
+
+The [rifle receipt](../../runtime/observations/pandora-rifle-composition.json)
+records the six-snapshot chain and remaining model boundary. A 382-move terrain
+return candidate crosses both patrols in reverse. No patrol-cycle gate satisfies
+the conservative timing windows for its 45-move reverse flight corridor, so the
+return was not executed. Tighter cumulative camera-pause timing is the next
+specific model requirement. A read-only capture verifies the live Feed body and correct map base `$4000`;
+the first `$8880` assumption stopped at its guard. The revised candidate
+`(808,154)` aims east and starts its ray inside the captured body on a clear tile.
+Future live membership/geometry and normal arming/hit predicates remain
+unobserved. BYTE execution and original/relocated comparison
+are still outstanding; two-of-three writer coverage is unchanged.
+
+Focused suite: **134 passed**. Original bytes/source and previous WORD evidence
+are unchanged. No game predicate was edited. See [checkpoint reproduction and
+limits](../copperline-runtime.md#verified-checkpoints-and-normal-rifle-pickup).
+
 The canonical PC identity sampler now keeps its minimum 16-byte sample inside a
 copied view near its end (the final RTS is at `$6536E`, view end `$65370`), including
 preceding bytes and translating back to the exact source PC. Full HAND/copy hashes

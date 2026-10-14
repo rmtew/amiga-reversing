@@ -19,8 +19,9 @@ def test_native_session_plan_is_explicit_and_bounded():
     assert session.plan()["continue_seconds"] == 12
 
 
+@pytest.mark.parametrize("observable", ["direct_payload_handoff", "verified_checkpoint"])
 def test_compile_scenario_resolves_only_canonical_rows_once(
-    monkeypatch, tmp_path: Path
+    monkeypatch, tmp_path: Path, observable
 ) -> None:
     scenario = tmp_path / "scenario.json"
     output = tmp_path / "compiled.json"
@@ -31,7 +32,7 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
                 "identifier": "test",
                 "target_id": "pandora",
                 "phases": [
-                    {"name": "boot", "observable": "direct_payload_handoff"},
+                    {"name": "boot", "observable": observable},
                     {
                         "name": "title",
                         "breakpoint_stable_key": "s0:00000BA8:instruction:760",
@@ -98,6 +99,7 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
     assert "capture_first" not in compiled["phases"][0]
     assert compiled["phases"][1]["occurrences"] == 64
     assert compiled["phases"][1]["capture_first"] is True
+    assert compiled["start_observable"] == observable
     assert json.loads(output.read_text(encoding="utf-8"))["identifier"] == "test"
 
 

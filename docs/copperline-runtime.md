@@ -305,9 +305,8 @@ encoded as hex. They are checked after canonical PC/payload verification at ever
 counted visit. A mismatch records `capture_expectation_mismatch`, ends the
 scenario and releases held input. A transition that never reaches the requested
 PC still stops at the phase deadline; assertions do not provide an alternative
-early breakpoint. Existing
-`state.save/load` transport tests are not a public verified checkpoint/resume
-contract. The previous successful WORD/Paula comparison remains unchanged.
+early breakpoint. Verified local checkpoints are described below; older raw `state.save/load`
+transport snapshots do not establish that provenance contract. The previous successful WORD/Paula comparison remains unchanged.
 
 
 ## Pianist timing and guarded crossing
@@ -341,7 +340,8 @@ The pure model is `amiga_reversing.tools.pandora_patrol_timing`; evidence is in
 normal CLI command above, replacing `--scenario` with
 `runtime/scenarios/pandora-pianist-timing.json` or
 `runtime/scenarios/pandora-pianist-crossing.json` and using a fresh state directory.
-No verified public checkpoint/resume contract is assumed. These are original-only
+This earlier diagnostic starts from boot; the new segments below use verified
+local checkpoints. These are original-only
 observations: the rifle pickup, direct hit, BYTE writer and relocated comparison
 remain separate gates. The next corridor contains the flight controller's patrol
 at X=1104; its live state must be admitted before that crossing.
@@ -377,3 +377,114 @@ binary/source hashes and prior WORD receipt are checked unchanged. No owned
 Copperline process remains running. The existing listing server remains on
 loopback port 8123. Native canonical scenario compilation remains the dominant
 probe cost (roughly a minute or two here); the timing model itself runs offline.
+
+
+## Verified checkpoints and normal rifle pickup
+
+`--checkpoint-save <fresh-name.json>` saves a local `.clstate` plus receipt after
+a complete canonical scenario, after acknowledged input cleanup. `--checkpoint-load` requires
+a scenario beginning with `verified_checkpoint`, then a single-visit canonical
+anchor at the saved source PC. Before loading, the runner checks the snapshot
+hash, target/payload, ROM, emulator, fixed profile, media, derived-manifest and
+runtime-view binding. After loading, every saved CPU register and the canonical
+PC payload sample must match before execution/input. Reverse history is anchored
+after load; replay across it is not evidence. Existing destinations are refused.
+
+Root receipts preserve the full input/copied-image verification from boot. Resume
+reports explicitly mark that root verification as inherited, rather than claiming
+a new handoff. Each successor records its parent snapshot hash. These are local runtime artifacts with content/context checks; cross-machine
+portability has not been validated. Snapshots contain private guest
+machine state and stay in ignored `.runtime-state`; none are committed. Each
+original/relocated layout needs a separate root and chain. An original checkpoint
+cannot be loaded with the relocated payload/manifest.
+
+A real fresh-process chain now passes:
+
+| Segment | Canonical phases | Result |
+|---|---:|---|
+| Existing corridor prefix | 61 | Fresh verified root at `(864,738)` |
+| `pandora-rifle-west-staging.json` | 32 | 30 exact moves to `(1074,738)` |
+| `pandora-flight-model-crossing.json` | 30 | 28 exact moves to `(1130,810)`; admitted live patrol gate |
+| `pandora-rifle-approach.json` | 38 | 30 exact moves to `(1214,874)`, normal empty-slot selection |
+| `pandora-rifle-pickup.json` | 5 | Two moves enter pickup radius; source `$811E` confirms item 18 |
+| `pandora-rifle-checkpoint-audit.json` | 2 | Fresh-process restore and one idle loop; cached movement/fire remain zero |
+
+At the approach, Space opens inventory, fire swaps selected card 54 into the first
+empty carried slot, fire is released, and Space closes the panel. The final gate
+checks selected item 0, UI mask 6 clear, fire 0 and a clear receptacle latch.
+Movement changes pickup distance 37→30→23; the strict `<28` test and fresh latch
+then copy rifle ID 18. Final state is `(1228,874)`, selected 18, HP 95, ammo `05,01`,
+carried bytes `36000000`, receptacle `00058a481201`, volume `0040`, shared audio
+byte `00`. The rifle-bearing snapshot is saved. No guest predicate was edited;
+subsequent segments resumed exact saved execution instead of replaying the prefix.
+
+For this environment, use the existing legal ROM path and pinned Copperline.
+Create a fresh root once (choose a new local directory if these files exist):
+
+```sh
+pandora_target=amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
+pandora_run=.runtime-state/pandora-rifle-reproduction
+pandora_rom=/workspace/attachments/30c1a24c-f353-4e4e-9dc0-36ce5cee8932/kick13.rom
+pandora_emulator=/workspace/copperline-assessment/squashfs-root/usr/bin/copperline
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$pandora_target" --rom "$pandora_rom" --copperline "$pandora_emulator" \
+  --direct-payload-contract pandora --state-directory "$pandora_run/root" \
+  --scenario runtime/scenarios/pandora-corridor-actors.json \
+  --checkpoint-save "$pandora_run/corridor.json" --run
+
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$pandora_target" --rom "$pandora_rom" --copperline "$pandora_emulator" \
+  --direct-payload-contract pandora --state-directory "$pandora_run/west" \
+  --scenario runtime/scenarios/pandora-rifle-west-staging.json \
+  --checkpoint-load "$pandora_run/corridor.json" \
+  --checkpoint-save "$pandora_run/west.json" --run
+```
+
+Repeat the second command with these arguments, retaining the same media/payload:
+
+| Scenario | Load receipt | Save receipt | State subdirectory |
+|---|---|---|---|
+| `pandora-flight-model-crossing.json` | `west.json` | `east.json` | `east` |
+| `pandora-rifle-approach.json` | `east.json` | `ready.json` | `ready` |
+| `pandora-rifle-pickup.json` | `ready.json` | `rifle.json` | `rifle` |
+| `pandora-rifle-checkpoint-audit.json` | `rifle.json` | `rifle-clean.json` | `audit` |
+
+[Compact receipt](../runtime/observations/pandora-rifle-composition.json) contains
+all phase outcomes, snapshot-parent hashes, inventory/pickup captures, the flight
+patrol comparisons and the unexecuted return/aim assessments. Native scenario
+compilation took about 95–98 seconds per new segment here; saved-state reuse
+removes repeated gameplay prefixes, not that separate compilation cost.
+
+**Remaining BYTE gap:** the terrain model finds a conditional 382-move return to
+`(808,154)`, but it crosses both patrol corridors in reverse. For the 45-move
+reverse flight corridor, none of 377 original patrol-cycle gates is admitted by
+the conservative 1..6-call-per-move windows. This is a model limitation, not an
+impossibility claim. Before running the return, derive tighter cumulative camera
+pause bounds (or a different admitted reverse route), validate them against the
+saved crossing receipts, and resume from the rifle checkpoint. The forward
+crossing proof does not qualify its reverse.
+
+A read-only restore of the rifle state captures the live Feed descriptor at
+`(840,168)`, geometry `$5C264`, zero state offsets, alive HP 29 and bounds
+`[847,872)×[168,195)`. All six original animated frames share those bounds. The
+provisional upward ray X=843 would miss them, and aligning that column encounters
+a solid tile before the body. The revised terrain candidate finishes at
+`(808,154)` after an accepted right move, safely outside the strict encounter box.
+Decoded ray arithmetic gives first point `(850,168)`, inside the captured body.
+Its tile 450 is clear; the nearby live cells match the original map. This remains
+a conditional aim: future active-list membership, live geometry/flags, fire edge,
+ammo, prior alive proximity arming and callback preservation need validation at
+the firing point. No return, aim, hit, BYTE write or relocated weapon comparison
+was executed.
+
+The first read-only map capture stopped on an incorrect `$8880` base assumption;
+that was an earlier sampled-cell address. The corrected capture verifies the live
+base `$4000` before interpreting cells. It reused the unchanged compiled canonical
+row/mapping and revalidated only the revised bounded capture, taking 0.2 seconds
+without a native rebuild or gameplay advance. Both the stopped guard and corrected
+receipt are retained. `pandora-feed-ray-state.json` reproduces the read-only
+inspection from the rifle checkpoint; omit `--checkpoint-save` for that command.
+
+Focused checkpoint/runtime/session/patrol/model/transaction suite: **134 passed**.
+Original binary/source and prior WORD receipts remain unchanged. Native/control
+suites and full reassembly were not repeated because target output is unchanged.

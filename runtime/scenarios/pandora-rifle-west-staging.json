@@ -1,0 +1,2193 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-rifle-west-staging",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "corridor_anchor",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "036002e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_01",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "036702e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_02",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "036e02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_03",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "037502e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_04",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "037c02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_05",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "038302e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_06",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "038a02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_07",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "039102e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_08",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "039802e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_09",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "039f02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_10",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03a602e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_11",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03ad02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_12",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03b402e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_13",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03bb02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_14",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03c202e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_15",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03c902e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_16",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03d002e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_17",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03d702e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_18",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03de02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_19",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03e502e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_20",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03ec02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_21",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03f302e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_22",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "03fa02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_23",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "040102e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_24",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "040802e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_25",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "040f02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_26",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "041602e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_27",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "041d02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_28",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "042402e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_29",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "042b02e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_step_30",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "043202e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "west_staging_loop",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "043202e2"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 647,
+            "size": 32
+          },
+          {
+            "base_register": "a6",
+            "offset": 712,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "corridor_anchor",
+      "release_after_phase": "west_step_30",
+      "control": "port1 right"
+    }
+  ]
+}

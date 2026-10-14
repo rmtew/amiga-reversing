@@ -724,3 +724,20 @@ def test_memory_expectations_exact_and_masked_are_read_only():
         assert result['memory_reads'][0]['expectation']['matched']
     assert c.memory[0x2000] == 0x80
     assert not c.calls
+
+
+def test_checkpoint_cleanup_requires_acknowledged_full_input_release():
+    class CleanupClient:
+        def __init__(self):self.calls=[]
+        def joystick(self,**kw):self.calls.append(('joy',kw))
+        def key(self,key,**kw):self.calls.append(('key',key,kw))
+    c=CleanupClient()
+    runtime.confirm_checkpoint_input_release(c,{'input_events':[{'control':'key 64'},{'control':'key 64'},{'control':'port1 right'}]})
+    assert c.calls==[('joy',{'port':1}),('joy',{'port':2}),('key',64,{'pressed':False})]
+
+
+def test_checkpoint_cleanup_failure_is_not_suppressed():
+    class BrokenCleanup:
+        def joystick(self,**kw):raise CopperlineError('release not acknowledged')
+    with pytest.raises(CopperlineError,match='not acknowledged'):
+        runtime.confirm_checkpoint_input_release(BrokenCleanup(),{})
